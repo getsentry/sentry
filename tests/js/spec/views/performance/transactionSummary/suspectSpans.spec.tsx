@@ -65,7 +65,7 @@ describe('SuspectSpans', function () {
       expect(await screen.findByText('Operation')).toBeInTheDocument();
       expect(await screen.findByText('Description')).toBeInTheDocument();
       expect(await screen.findByText('P75 Exclusive Time')).toBeInTheDocument();
-      expect(await screen.findByText('Total Occurrences')).toBeInTheDocument();
+      expect(await screen.findByText('Total Count')).toBeInTheDocument();
       expect(await screen.findByText('Total Exclusive Time')).toBeInTheDocument();
       expect(await screen.findByText('Example Transaction')).toBeInTheDocument();
     });

@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.utils import timezone
 
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
 from tests.acceptance.page_objects.issue_details import IssueDetailsPage
@@ -81,6 +82,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_mark_reviewed(self):
         event = self.create_sample_event(platform="python")
+        add_group_to_inbox(event.group, GroupInboxReason.NEW)
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.mark_reviewed()
 

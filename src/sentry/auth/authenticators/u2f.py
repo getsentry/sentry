@@ -168,7 +168,7 @@ class U2fInterface(AuthenticatorInterface):
             # TODO change rp.id later when register is implemented
             server = U2FFido2Server(
                 app_id=challenge["appId"],
-                rp={"id": challenge["appId"], "name": "Relying Party"},
+                rp={"id": challenge["appId"], "name": "Sentry"},
             )
             state = {
                 "challenge": challenge["challenge"],

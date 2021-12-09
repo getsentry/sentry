@@ -1,4 +1,5 @@
-import {FC} from 'react';
+import {FC, useEffect, useRef} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -8,11 +9,11 @@ import SearchBar from 'sentry/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import PageHeading from 'sentry/components/pageHeading';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -21,7 +22,7 @@ import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQuer
 import useTeams from 'sentry/utils/useTeams';
 
 import MetricsSearchBar from '../metricsSearchBar';
-import {MetricsSwitch} from '../metricsSwitch';
+import {MetricsSwitch, useMetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
@@ -30,9 +31,10 @@ import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
 import {
-  getCurrentLandingDisplay,
+  getDefaultDisplayForPlatform,
+  getLandingDisplayFromParam,
   handleLandingDisplayChange,
-  LANDING_DISPLAYS,
+  LANDING_V3_DISPLAYS,
   LandingDisplayField,
 } from './utils';
 
@@ -45,7 +47,6 @@ type Props = {
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
-  isMetricsData?: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
@@ -65,24 +66,47 @@ export function PerformanceLanding(props: Props) {
     handleSearch,
     handleTrendsClick,
     shouldShowOnboarding,
-    isMetricsData,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
 
-  const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
+  const hasMounted = useRef(false);
+  const paramLandingDisplay = getLandingDisplayFromParam(location);
+  const defaultLandingDisplayForProjects = getDefaultDisplayForPlatform(
+    projects,
+    eventView
+  );
+  const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
+
+  useEffect(() => {
+    if (hasMounted.current) {
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          landingDisplay: undefined,
+        },
+      });
+    }
+  }, [eventView.project.join('.')]);
+
+  useEffect(() => {
+    hasMounted.current = true;
+  }, []);
+
   const filterString = getTransactionSearchQuery(location, eventView.query);
+  const {isMetricsData} = useMetricsSwitch();
 
   const showOnboarding = shouldShowOnboarding;
 
-  const shownLandingDisplays = LANDING_DISPLAYS.filter(
+  const shownLandingDisplays = LANDING_V3_DISPLAYS.filter(
     ({isShown}) => !isShown || isShown(organization)
   );
 
-  const ViewComponent = fieldToViewMap[currentLandingDisplay.field];
+  const ViewComponent = fieldToViewMap[landingDisplay.field];
 
   return (
-    <div data-test-id="performance-landing-v3">
+    <StyledPageContent data-test-id="performance-landing-v3">
       <Layout.Header>
         <Layout.HeaderContent>
           <StyledHeading>{t('Performance')}</StyledHeading>
@@ -102,14 +126,12 @@ export function PerformanceLanding(props: Props) {
           )}
         </Layout.HeaderActions>
 
-        <StyledNavTabs>
+        <Layout.HeaderNavTabs>
           {shownLandingDisplays.map(({label, field}) => (
-            <li
-              key={label}
-              className={currentLandingDisplay.field === field ? 'active' : ''}
-            >
+            <li key={label} className={landingDisplay.field === field ? 'active' : ''}>
               <a
                 href="#"
+                data-test-id={`landing-tab-${field}`}
                 onClick={() =>
                   handleLandingDisplayChange(
                     field,
@@ -124,7 +146,7 @@ export function PerformanceLanding(props: Props) {
               </a>
             </li>
           ))}
-        </StyledNavTabs>
+        </Layout.HeaderNavTabs>
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -171,18 +193,16 @@ export function PerformanceLanding(props: Props) {
           )}
         </Layout.Main>
       </Layout.Body>
-    </div>
+    </StyledPageContent>
   );
 }
 
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
 `;
 
-const StyledNavTabs = styled(NavTabs)`
-  margin-bottom: 0;
-  /* Makes sure the tabs are pushed into another row */
-  width: 100%;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const SearchContainerWithFilter = styled('div')`

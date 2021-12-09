@@ -36,4 +36,5 @@ class SentryAppAvatar(AvatarBase):
         db_table = "sentry_sentryappavatar"
 
     def get_cache_key(self, size):
-        return f"sentry_app_avatar:{self.sentry_app_id}:{size}"
+        color_identifier = "color" if self.color else "simple"
+        return f"sentry_app_avatar:{self.sentry_app_id}:{color_identifier}:{size}"

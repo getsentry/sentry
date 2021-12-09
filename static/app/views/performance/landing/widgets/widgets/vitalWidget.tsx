@@ -332,7 +332,7 @@ function getVitalDataForListItem(listItem: TableDataRow) {
   return vitalData;
 }
 
-const VitalBarCell = styled(RightAlignedCell)`
+export const VitalBarCell = styled(RightAlignedCell)`
   width: 120px;
   margin-left: ${space(1)};
   margin-right: ${space(1)};

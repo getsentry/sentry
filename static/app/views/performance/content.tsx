@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -53,7 +54,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({
-    eventView: generatePerformanceEventView(location, projects, {
+    eventView: generatePerformanceEventView(location, organization, projects, {
       isMetricsData,
     }),
     error: undefined,
@@ -73,7 +74,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   useEffect(() => {
     setState({
       ...state,
-      eventView: generatePerformanceEventView(location, projects, {
+      eventView: generatePerformanceEventView(location, organization, projects, {
         isMetricsData,
       }),
     });
@@ -121,6 +122,16 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   }
 
   function setError(newError?: string) {
+    if (
+      typeof newError === 'object' ||
+      (Array.isArray(newError) && typeof newError[0] === 'object')
+    ) {
+      Sentry.withScope(scope => {
+        scope.setExtra('error', newError);
+        Sentry.captureException(new Error('setError failed with error type.'));
+      });
+      return;
+    }
     setState({...state, error: newError});
   }
 
