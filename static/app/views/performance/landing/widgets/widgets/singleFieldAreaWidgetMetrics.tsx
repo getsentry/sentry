@@ -4,6 +4,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {t} from 'sentry/locale';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {decodeList} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
 
@@ -45,6 +46,7 @@ export function SingleFieldAreaWidgetMetrics(
 
   const metricsFieldMap = {
     [widgetDefinitions.tpm_area.fields[0]]: 'count(transaction.duration)',
+    [widgetDefinitions.failure_rate_area.fields[0]]: 'count(transaction.duration)',
   };
 
   const metricsField = metricsFieldMap[field] ?? field;
@@ -69,8 +71,13 @@ export function SingleFieldAreaWidgetMetrics(
           statsPeriod={period}
           project={project}
           environment={environment}
-          query="transaction:foo" // TODO(metrics): make this dynamic once api is ready (widgetData.list.data[selectedListIndex].transaction)
+          query={new MutableSearch(eventView.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
           field={decodeList(chartFields)}
+          groupBy={
+            field === widgetDefinitions.failure_rate_area.fields[0]
+              ? ['transaction.status']
+              : undefined
+          }
           includePrevious
         >
           {children}
