@@ -27,6 +27,7 @@ from .deletedproject import *  # NOQA
 from .deletedteam import *  # NOQA
 from .deploy import *  # NOQA
 from .distribution import *  # NOQA
+from .docintegrationavatar import *  # NOQA
 from .email import *  # NOQA
 from .environment import *  # NOQA
 from .event import *  # NOQA
