@@ -22,7 +22,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import eventstore, features, options
+from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
@@ -279,8 +279,7 @@ def _load_event(
                     cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT
                 )
 
-        save_event_transaction_rate = options.get("store.save-transactions-ingest-consumer-rate")
-        if data.get("type") == "transaction" and random.random() < save_event_transaction_rate:
+        if data.get("type") == "transaction":
             # No need for preprocess/process for transactions thus submit
             # directly transaction specific save_event task.
             save_event_transaction.delay(
