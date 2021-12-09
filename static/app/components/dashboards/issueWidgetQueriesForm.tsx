@@ -109,7 +109,6 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
               excludeEnvironment
               supportedTags={tags}
               tagValueLoader={this.tagValueLoader}
-              savedSearch={undefined}
               onSidebarToggle={() => undefined}
             />
           </SearchConditionsWrapper>
