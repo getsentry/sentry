@@ -63,7 +63,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             "overview": request.json_body.get("overview"),
             "allowedOrigins": request.json_body.get("allowedOrigins", []),
             "popularity": request.json_body.get("popularity")
-            if request.user.is_superuser
+            if is_active_superuser(request)
             else None,
         }
 
