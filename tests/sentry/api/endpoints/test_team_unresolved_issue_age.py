@@ -44,11 +44,16 @@ class TeamUnresolvedIssueAgeEndpointTest(APITestCase):
         response = self.get_success_response(self.team.organization.slug, self.team.slug)
         assert response.data == {
             "< 1 hour": 1,
+            "< 2 hour": 0,
+            "< 4 hour": 0,
+            "< 8 hour": 0,
+            "< 12 hour": 0,
             "< 1 day": 0,
             "< 1 week": 0,
             "< 2 week": 0,
             "< 4 week": 1,
             "< 8 week": 0,
+            "< 24 week": 0,
             "< 1 year": 0,
             "> 1 year": 2,
         }
@@ -58,11 +63,16 @@ class TeamUnresolvedIssueAgeEndpointTest(APITestCase):
         response = self.get_success_response(self.team.organization.slug, self.team.slug)
         assert response.data == {
             "< 1 hour": 0,
+            "< 2 hour": 0,
+            "< 4 hour": 0,
+            "< 8 hour": 0,
+            "< 12 hour": 0,
             "< 1 day": 0,
             "< 1 week": 0,
             "< 2 week": 0,
             "< 4 week": 0,
             "< 8 week": 0,
+            "< 24 week": 0,
             "< 1 year": 0,
             "> 1 year": 0,
         }
