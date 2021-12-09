@@ -15,7 +15,7 @@ class DocIntegrationAvatar(AvatarBase):
 
     doc_integration = FlexibleForeignKey("sentry.DocIntegration", related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=((0, "upload"),))
-    date_added = models.DateTimeField(default=timezone.now, null=True)
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
