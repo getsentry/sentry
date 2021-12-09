@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey
 
@@ -14,6 +15,7 @@ class DocIntegrationAvatar(AvatarBase):
 
     doc_integration = FlexibleForeignKey("sentry.DocIntegration", related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=((0, "upload"),))
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
