@@ -6,6 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
+import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {DashboardState} from 'sentry/views/dashboardsV2/types';
 import * as types from 'sentry/views/dashboardsV2/types';
@@ -344,6 +345,8 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can enter edit mode for widgets', async function () {
+      const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
+
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -369,11 +372,24 @@ describe('Dashboards > Detail', function () {
         .find('IconClick[data-test-id="widget-edit"]')
         .simulate('click');
 
-      await tick();
-
-      const modal = await mountGlobalModal();
-
-      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            id: '1',
+            interval: '1d',
+            queries: [
+              {
+                conditions: 'event.type:error',
+                fields: ['count()'],
+                name: '',
+              },
+            ],
+            title: 'Errors',
+            type: 'line',
+          },
+        })
+      );
     });
 
     it('does not update if api update fails', async function () {
