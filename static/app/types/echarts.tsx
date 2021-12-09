@@ -22,12 +22,6 @@ export type Series = {
   stack?: string; // https://echarts.apache.org/en/option.html#series-line.stack
   z?: number; // https://echarts.apache.org/en/option.html#series-line.z
   markLine?: LineSeriesOption['markLine'];
-  /**
-   * Temp solution used by the metrics Failure Rate Widget in performance,
-   * making it possible to use discovery failure_rate() aggregation even if
-   * the seriesName is different from failure_rate()
-   */
-  aggregation?: string;
 };
 
 export type ReactEchartsRef = ReactEchartsCore & {
