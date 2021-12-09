@@ -1921,11 +1921,7 @@ SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
-# Downstream (i.e., getsentry) sets SENTRY_ONPREMISE, so keep reading from that
-# for now, but in the rest of _this_ codebase we should reference
-# SENTRY_SELF_HOSTED.
-SENTRY_ONPREMISE = True  # deprecated, use ...
-SENTRY_SELF_HOSTED = SENTRY_ONPREMISE  # ... this instead
+SENTRY_ONPREMISE = True
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2185,7 +2181,7 @@ JS_SDK_LOADER_SDK_VERSION = ""
 # This should be the url pointing to the JS SDK
 JS_SDK_LOADER_DEFAULT_SDK_URL = ""
 
-# block domains which are generally used by spammers -- keep this configurable in case a self-hosted
+# block domains which are generally used by spammers -- keep this configurable in case an onpremise
 # install wants to allow it
 INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
