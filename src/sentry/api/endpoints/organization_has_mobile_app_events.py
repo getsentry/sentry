@@ -53,7 +53,7 @@ class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
                 },
                 referrer="api.organization-has-mobile-app-events",
                 use_snql=features.has(
-                    "organizations:performance-view", organization, actor=request.user
+                    "organizations:performance-use-snql", organization, actor=request.user
                 ),
             )
             data = result["data"]
