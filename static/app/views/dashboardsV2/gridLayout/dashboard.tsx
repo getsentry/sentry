@@ -250,7 +250,7 @@ class Dashboard extends Component<Props, State> {
     // Workaround because onBreakpointChange occurs after onLayoutChange
     const rect = document.querySelector('.react-grid-layout')?.getBoundingClientRect();
     if (rect && rect.width <= MOBILE_BREAKPOINT) {
-      // Do not save the layout if we're in single column view
+      // Do not save the layout if we're in mobile view
       this.setState({breakpoint: 'mobile'});
       return;
     }
