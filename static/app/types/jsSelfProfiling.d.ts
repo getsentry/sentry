@@ -22,7 +22,7 @@ namespace JSSelfProfiling {
 
 
   type Trace = {
-    resources: Resource[];
+    resources: string[];
     frames: Frame[];
     stacks: Stack[];
     samples: Sample[];
