@@ -15,12 +15,12 @@ from sentry.testutils import TestCase
 
 
 class EntitySubscriptionTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         for tag in ["session", "session.status"]:
             indexer.record(tag)
 
-    def test_map_aggregate_to_sessions_entity_subscription_non_supported_aggregate(self):
+    def test_map_aggregate_to_sessions_entity_subscription_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
         with self.assertRaises(UnsupportedQuerySubscription):
             map_aggregate_to_entity_subscription(
@@ -29,14 +29,14 @@ class EntitySubscriptionTestCase(TestCase):
                 extra_fields={"org_id": self.organization.id},
             )
 
-    def test_map_aggregate_to_sessions_entity_subscription_missing_organization(self):
+    def test_map_aggregate_to_sessions_entity_subscription_missing_organization(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         with self.assertRaises(InvalidQuerySubscription):
             map_aggregate_to_entity_subscription(
                 dataset=QueryDatasets.SESSIONS, aggregate=aggregate
             )
 
-    def test_map_aggregate_to_sessions_entity_subscription(self):
+    def test_map_aggregate_to_sessions_entity_subscription(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         entity_subscription = map_aggregate_to_entity_subscription(
             dataset=QueryDatasets.SESSIONS,
@@ -62,7 +62,7 @@ class EntitySubscriptionTestCase(TestCase):
             ["identity", "sessions", "_total_count"],
         ]
 
-    def test_map_aggregate_to_metrics_entity_subscription_non_supported_aggregate(self):
+    def test_map_aggregate_to_metrics_entity_subscription_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
         with self.assertRaises(UnsupportedQuerySubscription):
             map_aggregate_to_entity_subscription(
@@ -71,12 +71,14 @@ class EntitySubscriptionTestCase(TestCase):
                 extra_fields={"org_id": self.organization.id},
             )
 
-    def test_map_aggregate_to_metrics_entity_subscription_missing_organization(self):
+    def test_map_aggregate_to_metrics_entity_subscription_missing_organization(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         with self.assertRaises(InvalidQuerySubscription):
             map_aggregate_to_entity_subscription(dataset=QueryDatasets.METRICS, aggregate=aggregate)
 
-    def test_map_aggregate_to_metrics_entity_subscription_unsupported_crash_free_users(self):
+    def test_map_aggregate_to_metrics_entity_subscription_unsupported_crash_free_users(
+        self,
+    ) -> None:
         aggregate = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
         with self.assertRaises(UnsupportedQuerySubscription):
             map_aggregate_to_entity_subscription(
@@ -85,7 +87,7 @@ class EntitySubscriptionTestCase(TestCase):
                 extra_fields={"org_id": self.organization.id},
             )
 
-    def test_map_aggregate_to_metrics_entity_subscription(self):
+    def test_map_aggregate_to_metrics_entity_subscription(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         entity_subscription = map_aggregate_to_entity_subscription(
             dataset=QueryDatasets.METRICS,
@@ -109,7 +111,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter.conditions == [["metric_id", "=", metric_id(org_id, "session")]]
         assert snuba_filter.groupby == groupby
 
-    def test_map_aggregate_to_transactions_entity_subscription(self):
+    def test_map_aggregate_to_transactions_entity_subscription(self) -> None:
         aggregate = "percentile(transaction.duration,.95)"
         entity_subscription = map_aggregate_to_entity_subscription(
             dataset=QueryDatasets.TRANSACTIONS, aggregate=aggregate
@@ -126,7 +128,7 @@ class EntitySubscriptionTestCase(TestCase):
             ["quantile(0.95)", "duration", "percentile_transaction_duration__95"]
         ]
 
-    def test_map_aggregate_to_events_entity_subscription(self):
+    def test_map_aggregate_to_events_entity_subscription(self) -> None:
         aggregate = "count_unique(user)"
         entity_subscription = map_aggregate_to_entity_subscription(
             dataset=QueryDatasets.EVENTS, aggregate=aggregate

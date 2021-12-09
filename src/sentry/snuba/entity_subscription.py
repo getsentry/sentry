@@ -8,7 +8,7 @@ from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models import Environment
-from sentry.release_health.metrics import metric_id, tag_key
+from sentry.release_health.metrics import metric_id, tag_key, tag_value
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.snuba.dataset import EntityKey
@@ -228,7 +228,9 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
             }
         )
         if environment:
-            snuba_filter.conditions.append(["environment", "=", environment.name])
+            snuba_filter.conditions.append(
+                [tag_key(self.org_id, "environment"), "=", tag_value(self.org_id, environment.name)]
+            )
         return snuba_filter
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:

@@ -1,3 +1,4 @@
+import json
 import logging
 import operator
 from copy import copy
@@ -538,9 +539,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 **entity_subscription.get_entity_extra_params(),
             }
 
-            snql_query = json_to_snql(body, dataset.value)
-            snql_query = snql_query.set_match(Entity(entity_subscription.entity_key))
-            snql_query.validate()
+            try:
+                snql_query = json_to_snql(body, dataset.value)
+                snql_query = snql_query.set_match(Entity(entity_subscription.entity_key))
+                snql_query.validate()
+            except Exception as e:
+                raise serializers.ValidationError(
+                    str(e), params={"params": json.dumps(body), "dataset": data["dataset"].value}
+                )
+
             try:
                 raw_snql_query(snql_query, referrer="alertruleserializer.test_query")
             except Exception:
