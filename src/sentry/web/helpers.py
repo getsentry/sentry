@@ -20,8 +20,7 @@ def get_default_context(request, existing_context=None, team=None):
         "URL_PREFIX": options.get("system.url-prefix"),
         "SINGLE_ORGANIZATION": settings.SENTRY_SINGLE_ORGANIZATION,
         "PLUGINS": plugins,
-        "ONPREMISE": settings.SENTRY_SELF_HOSTED,  # deprecated, use ...
-        "SELF_HOSTED": settings.SENTRY_SELF_HOSTED,  # ... this instead
+        "ONPREMISE": settings.SENTRY_ONPREMISE,
     }
 
     if existing_context:

@@ -7,12 +7,12 @@ import DefaultSettings from 'sentry/plugins/components/settings';
 type Props = DefaultSettings['props'];
 
 type State = DefaultSettings['state'] & {
-  showSelfHostedConfiguration?: boolean;
+  showOnPremisesConfiguration?: boolean;
 };
 
 class Settings extends DefaultSettings<Props, State> {
   REQUIRED_FIELDS = ['account_email', 'api_token', 'website_id'];
-  SELF_HOSTED_FIELDS = ['api_url', 'player_url'];
+  ON_PREMISES_FIELDS = ['api_url', 'player_url'];
 
   renderFields(fields: State['fieldList']) {
     return fields?.map(f =>
@@ -29,9 +29,9 @@ class Settings extends DefaultSettings<Props, State> {
     return fields?.filter(field => fieldNames.includes(field.name)) ?? [];
   }
 
-  toggleSelfHostedConfiguration = () => {
+  toggleOnPremisesConfiguration = () => {
     this.setState({
-      showSelfHostedConfiguration: !this.state.showSelfHostedConfiguration,
+      showOnPremisesConfiguration: !this.state.showOnPremisesConfiguration,
     });
   };
 
@@ -53,9 +53,9 @@ class Settings extends DefaultSettings<Props, State> {
     const hasChanges = !isEqual(this.state.initialData, this.state.formData);
 
     const requiredFields = this.filterFields(this.state.fieldList, this.REQUIRED_FIELDS);
-    const selfHostedFields = this.filterFields(
+    const onPremisesFields = this.filterFields(
       this.state.fieldList,
-      this.SELF_HOSTED_FIELDS
+      this.ON_PREMISES_FIELDS
     );
 
     return (
@@ -68,19 +68,19 @@ class Settings extends DefaultSettings<Props, State> {
           </div>
         )}
         {this.renderFields(requiredFields)}
-        {selfHostedFields.length > 0 ? (
+        {onPremisesFields.length > 0 ? (
           <div className="control-group">
             <button
               className="btn btn-default"
               type="button"
-              onClick={this.toggleSelfHostedConfiguration}
+              onClick={this.toggleOnPremisesConfiguration}
             >
-              Configure self-hosted
+              Configure on-premises
             </button>
           </div>
         ) : null}
-        {this.state.showSelfHostedConfiguration
-          ? this.renderFields(selfHostedFields)
+        {this.state.showOnPremisesConfiguration
+          ? this.renderFields(onPremisesFields)
           : null}
       </Form>
     );
