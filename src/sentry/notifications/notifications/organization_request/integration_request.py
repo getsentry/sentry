@@ -32,6 +32,7 @@ def get_url(organization: Organization, provider_type: str, provider_slug: str) 
     return url
 
 
+# TODO: switch to a role-based strategy
 class IntegrationRequestNotification(OrganizationRequestNotification):
     def __init__(
         self,
@@ -91,6 +92,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
 
     def determine_recipients(self) -> Iterable[Team | User]:
         # Explicitly typing to satisfy mypy.
+        # TODO: notify anyone who can install an integration
         recipients: Iterable[Team | User] = self.organization.get_owners()
         return recipients
 

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, Type
 
 from sentry import analytics, roles
 from sentry.models import NotificationSetting, OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.strategies.role_based_strategy import RoleBasedStrategy
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils.actions import MessageAction
@@ -23,10 +24,12 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     referrer_base: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
     fine_tuning_key = "approval"
+    RoleBasedStategyClass: Type[RoleBasedStrategy] = RoleBasedStrategy
 
     def __init__(self, organization: Organization, requester: User) -> None:
         super().__init__(organization)
         self.requester = requester
+        self.role_based_strategy = self.RoleBasedStategyClass(organization)
 
     def get_reference(self) -> Any:
         return self.organization
@@ -42,12 +45,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return f"?referrer={self.get_referrer(provider)}"
 
     def determine_recipients(self) -> Iterable[Team | User]:
-        members = self.determine_member_recipients()
-        # store the members in our cache
-        for member in members:
-            self.set_member_in_cache(member)
-        # convert members to users
-        return map(lambda member: member.user, members)
+        return self.role_based_strategy.determine_recipients()
 
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         """
@@ -81,20 +79,6 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             # TODO: use safe_execute
             notify(provider, self, recipients, context)
 
-    def get_member(self, user: User) -> OrganizationMember:
-        # cache the result
-        if user.id not in self.member_by_user_id:
-            self.member_by_user_id[user.id] = OrganizationMember.objects.get(
-                user=user, organization=self.organization
-            )
-        return self.member_by_user_id[user.id]
-
-    def set_member_in_cache(self, member: OrganizationMember) -> None:
-        """
-        A way to set a member in a cache to avoid a query.
-        """
-        self.member_by_user_id[member.user_id] = member
-
     def get_notification_title(self) -> str:
         # purposely use empty string for the notification title
         return ""
@@ -115,14 +99,9 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def build_notification_footer(self, recipient: Team | User) -> str:
         from sentry.integrations.slack.utils.notifications import get_settings_url
 
-        # TODO(mgaeta): Implement this for team recipients.
-        if isinstance(recipient, Team):
-            raise NotImplementedError
-        recipient_member = self.get_member(recipient)
         settings_url = get_settings_url(self, recipient)
-        return (
-            "You are receiving this notification because you're listed as an organization "
-            f"{self.get_role_string(recipient_member)} | <{settings_url}|Notification Settings>"
+        return self.role_based_strategy.build_notification_footer_from_settings_url(
+            settings_url, recipient
         )
 
     def get_title_link(self) -> str | None:
