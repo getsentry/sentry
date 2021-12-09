@@ -103,21 +103,20 @@ const HelpMessage = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const Flex = styled('div')`
+const Wrapper = styled('div')`
   display: flex;
-`;
-
-const Wrapper = styled(Flex)`
   flex: 1;
   align-items: center;
   justify-content: center;
 `;
 
-const HeightWrapper = styled(Flex)`
+const HeightWrapper = styled('div')`
+  display: flex;
   height: 350px;
 `;
 
-const Content = styled(Flex)`
+const Content = styled('div')`
+  display: flex;
   flex-direction: column;
   justify-content: center;
   margin-left: 40px;
