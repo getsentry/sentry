@@ -6,6 +6,7 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 describe('IssueWidgetQueriesForm', function () {
   const organization = TestStubs.Organization();
+  const api = new MockApiClient();
   let onChangeHandler;
 
   beforeEach(() => {
@@ -56,6 +57,7 @@ describe('IssueWidgetQueriesForm', function () {
 
     mountWithTheme(
       <IssueWidgetQueriesForm
+        api={api}
         organization={organization}
         selection={{
           projects: [1],

@@ -233,6 +233,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
             />
           </StyledField>
           <IssueWidgetQueriesForm
+            api={api}
             organization={organization}
             selection={querySelection}
             fieldOptions={fieldOptions}
