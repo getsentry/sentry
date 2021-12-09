@@ -122,7 +122,6 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         ]
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
-        # TODO MARCOS FIRST
         return self.get_client().search_issues(query)
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:

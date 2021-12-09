@@ -137,7 +137,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return issues
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
-        # Explicitly typing to satisfy mypy.Users/marcos/sentry/sentry/src/sentry/integrations/bitbucket/issues
+        # Explicitly typing to satisfy mypy.
         issues: Mapping[str, Sequence[Mapping[str, Any]]] = self.get(
             "/search/issues", params={"q": query}
         )
