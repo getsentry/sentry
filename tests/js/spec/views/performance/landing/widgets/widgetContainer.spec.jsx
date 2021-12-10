@@ -360,7 +360,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.VitalByTransactionAndRating({measurement: 'lcp'}),
+      body: TestStubs.MetricsFieldByTransactionAndRating({
+        field: 'count(measurements.lcp)',
+      }),
       match: [(...args) => !issuesPredicate(...args)],
     });
     const data = initializeData();
@@ -463,7 +465,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.VitalByTransactionAndRating({measurement: 'fcp'}),
+      body: TestStubs.MetricsFieldByTransactionAndRating({
+        field: 'count(measurements.fcp)',
+      }),
       match: [(...args) => !issuesPredicate(...args)],
     });
     const data = initializeData();
@@ -566,7 +570,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.VitalByTransactionAndRating({measurement: 'fid'}),
+      body: TestStubs.MetricsFieldByTransactionAndRating({
+        field: 'count(measurements.fid)',
+      }),
       match: [(...args) => !issuesPredicate(...args)],
     });
     const data = initializeData();
@@ -668,16 +674,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p50(transaction.duration)'}),
+        body: TestStubs.MetricsField({field: 'p50(transaction.duration)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'p50(transaction.duration)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -750,16 +755,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p75(transaction.duration)'}),
+        body: TestStubs.MetricsField({field: 'p75(transaction.duration)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'p75(transaction.duration)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -832,16 +836,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p95(transaction.duration)'}),
+        body: TestStubs.MetricsField({field: 'p95(transaction.duration)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'p95(transaction.duration)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -914,16 +917,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p99(transaction.duration)'}),
+        body: TestStubs.MetricsField({field: 'p99(transaction.duration)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'p99(transaction.duration)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -996,16 +998,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p75(measurements.lcp)'}),
+        body: TestStubs.MetricsField({field: 'p75(measurements.lcp)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'p75(measurements.lcp)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -1078,16 +1079,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'count(transaction.duration)'}),
+        body: TestStubs.MetricsField({field: 'count(transaction.duration)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'count(transaction.duration)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -1160,15 +1160,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldAreaByTransactionStatus(),
+        body: TestStubs.MetricsFieldByTransactionStatus({
+          field: 'count(transaction.duration)',
+        }),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldAreaByTransactionStatus({
-          previousData: true,
+        body: TestStubs.MetricsFieldByTransactionStatus({
+          field: 'count(transaction.duration)',
         }),
         match: [
           (...args) => {
@@ -1460,14 +1462,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.FieldByTransaction({field}),
+      body: TestStubs.MetricsFieldByTransaction({field}),
       match: [(...args) => !issuesPredicate(...args)],
     });
 
     const previousMetricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.FieldByTransaction({field}),
+      body: TestStubs.MetricsFieldByTransaction({field}),
       match: [
         (...args) => {
           return (
@@ -1593,14 +1595,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.FieldByTransaction({field}),
+      body: TestStubs.MetricsFieldByTransaction({field}),
       match: [(...args) => !issuesPredicate(...args)],
     });
 
     const previousMetricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.FieldByTransaction({field}),
+      body: TestStubs.MetricsFieldByTransaction({field}),
       match: [
         (...args) => {
           return (
