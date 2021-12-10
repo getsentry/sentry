@@ -862,7 +862,6 @@ class Factories:
             sentry_app = Factories.create_sentry_app()
 
         integration_feature = IntegrationFeature.objects.create(
-            sentry_app=sentry_app,
             target_id=sentry_app.id,
             target_type=IntegrationTypes.SENTRY_APP.value,
             feature=feature or Feature.API,

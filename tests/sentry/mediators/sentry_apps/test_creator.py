@@ -12,6 +12,7 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
+from sentry.models.integrationfeature import IntegrationTypes
 from sentry.testutils import TestCase
 
 
@@ -102,7 +103,9 @@ class TestCreator(TestCase):
 
     def test_creates_integration_feature(self):
         app = self.creator.call()
-        assert IntegrationFeature.objects.filter(sentry_app=app).exists()
+        assert IntegrationFeature.objects.filter(
+            target_id=app.id, target_type=IntegrationTypes.SENTRY_APP.value
+        ).exists()
 
     @patch("sentry.mediators.sentry_apps.creator.Creator.log")
     @patch("sentry.models.integrationfeature.IntegrationFeature.objects.create")

@@ -12,7 +12,9 @@ class SentryAppFeaturesTest(APITestCase):
         self.sentry_app = self.create_sentry_app(
             name="Test", organization=self.create_organization(owner=self.user)
         )
-        self.api_feature = IntegrationFeature.objects.get(sentry_app=self.sentry_app)
+        self.api_feature = IntegrationFeature.objects.get(
+            target_id=self.sentry_app.id, target_type=IntegrationTypes.SENTRY_APP.value
+        )
         self.issue_link_feature = self.create_sentry_app_feature(
             sentry_app=self.sentry_app, feature=Feature.ISSUE_LINK
         )
