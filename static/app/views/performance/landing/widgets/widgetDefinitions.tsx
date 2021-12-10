@@ -58,10 +58,16 @@ export enum PerformanceWidgetSetting {
 const WIDGET_PALETTE = CHART_PALETTE[5];
 export const WIDGET_DEFINITIONS: ({
   organization,
-}) => Record<PerformanceWidgetSetting, ChartDefinition> = ({
-  organization,
+  isMetricsData,
 }: {
   organization: Organization;
+  isMetricsData?: boolean;
+}) => Record<PerformanceWidgetSetting, ChartDefinition> = ({
+  organization,
+  isMetricsData,
+}: {
+  organization: Organization;
+  isMetricsData?: boolean;
 }) => ({
   [PerformanceWidgetSetting.DURATION_HISTOGRAM]: {
     title: t('Duration Distribution'),
@@ -94,7 +100,9 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.WORST_LCP_VITALS]: {
     title: t('Worst LCP Web Vitals'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.LCP),
-    fields: ['measurements.lcp'],
+    fields: isMetricsData
+      ? ['count(sentry.transactions.measurements.lcp)']
+      : ['measurements.lcp'],
     vitalStops: {
       poor: 4000,
       meh: 2500,
@@ -104,7 +112,9 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.WORST_FCP_VITALS]: {
     title: t('Worst FCP Web Vitals'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FCP),
-    fields: ['measurements.fcp'],
+    fields: isMetricsData
+      ? ['count(sentry.transactions.measurements.fcp)']
+      : ['measurements.fcp'],
     vitalStops: {
       poor: 3000,
       meh: 1000,
@@ -114,7 +124,9 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.WORST_FID_VITALS]: {
     title: t('Worst FID Web Vitals'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FID),
-    fields: ['measurements.fid'],
+    fields: isMetricsData
+      ? ['count(sentry.transactions.measurements.fid)']
+      : ['measurements.fid'],
     vitalStops: {
       poor: 300,
       meh: 100,
@@ -124,7 +136,9 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.WORST_CLS_VITALS]: {
     title: t('Worst CLS Web Vitals'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.CLS),
-    fields: ['measurements.cls'],
+    fields: isMetricsData
+      ? ['count(sentry.transactions.measurements.cls)']
+      : ['measurements.cls'],
     vitalStops: {
       poor: 0.25,
       meh: 0.1,
@@ -134,7 +148,7 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.TPM_AREA]: {
     title: t('Transactions Per Minute'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
-    fields: ['tpm()'],
+    fields: isMetricsData ? ['count(sentry.sessions.transaction.duration)'] : ['tpm()'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[1],
   },
@@ -148,42 +162,54 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.P50_DURATION_AREA]: {
     title: t('p50 Duration'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
-    fields: ['p50(transaction.duration)'],
+    fields: isMetricsData
+      ? ['p50(sentry.sessions.transaction.duration)']
+      : ['p50(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
   [PerformanceWidgetSetting.P75_DURATION_AREA]: {
     title: t('p75 Duration'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
-    fields: ['p75(transaction.duration)'],
+    fields: isMetricsData
+      ? ['p75(sentry.sessions.transaction.duration)']
+      : ['p75(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
   [PerformanceWidgetSetting.P95_DURATION_AREA]: {
     title: t('p95 Duration'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
-    fields: ['p95(transaction.duration)'],
+    fields: isMetricsData
+      ? ['p95(sentry.sessions.transaction.duration)']
+      : ['p95(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
   [PerformanceWidgetSetting.P99_DURATION_AREA]: {
     title: t('p99 Duration'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P99),
-    fields: ['p99(transaction.duration)'],
+    fields: isMetricsData
+      ? ['p99(sentry.sessions.transaction.duration)']
+      : ['p99(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
   },
   [PerformanceWidgetSetting.P75_LCP_AREA]: {
     title: t('p75 LCP'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
-    fields: ['p75(measurements.lcp)'],
+    fields: isMetricsData
+      ? ['p75(sentry.transactions.measurements.lcp)']
+      : ['p75(measurements.lcp)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[1],
   },
   [PerformanceWidgetSetting.FAILURE_RATE_AREA]: {
     title: t('Failure Rate'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
-    fields: ['failure_rate()'],
+    fields: isMetricsData
+      ? ['count(sentry.sessions.transaction.duration)']
+      : ['failure_rate()'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[2],
   },
@@ -211,14 +237,18 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.SLOW_FRAMES_AREA]: {
     title: t('Slow Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
-    fields: ['p75(measurements.frames_slow_rate)'],
+    fields: isMetricsData
+      ? ['p75(sentry.transactions.measurements.frames_slow_rate)']
+      : ['p75(measurements.frames_slow_rate)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.FROZEN_FRAMES_AREA]: {
     title: t('Frozen Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
-    fields: ['p75(measurements.frames_frozen_rate)'],
+    fields: isMetricsData
+      ? ['p75(sentry.transactions.measurements.frames_frozen_rate)']
+      : ['p75(measurements.frames_frozen_rate)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[5],
   },
@@ -267,14 +297,18 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.MOST_SLOW_FRAMES]: {
     title: t('Most Slow Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
-    fields: ['avg(measurements.frames_slow)'],
+    fields: isMetricsData
+      ? ['avg(sentry.transactions.measurements.frames_slow)']
+      : ['avg(measurements.frames_slow)'],
     dataType: GenericPerformanceWidgetDataType.line_list,
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_FROZEN_FRAMES]: {
     title: t('Most Frozen Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
-    fields: ['avg(measurements.frames_frozen)'],
+    fields: isMetricsData
+      ? ['avg(sentry.transactions.measurements.frames_frozen)']
+      : ['avg(measurements.frames_frozen)'],
     dataType: GenericPerformanceWidgetDataType.line_list,
     chartColor: WIDGET_PALETTE[0],
   },

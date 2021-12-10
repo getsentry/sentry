@@ -36,10 +36,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'poor',
         },
         totals: {
-          [`count(measurements.${measurement})`]: 913.2667882519335,
+          [`count(sentry.transactions.measurements.${measurement})`]: 913.2667882519335,
         },
         series: {
-          [`count(measurements.${measurement})`]: [
+          [`count(sentry.transactions.measurements.${measurement})`]: [
             878.0965537951091, 892.4128102279035, 917.4473775231118, 884.0592721573165,
             882.8631377404286, 977.3661107427924, 860.5718105590834, 1036.8824425087375,
             857.4349331408594, 872.0064570283837, 954.3387108987523, 982.0946255973818,
@@ -55,10 +55,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'meh',
         },
         totals: {
-          [`count(measurements.${measurement})`]: 537.0443448410027,
+          [`count(sentry.transactions.measurements.${measurement})`]: 537.0443448410027,
         },
         series: {
-          [`count(measurements.${measurement})`]: [
+          [`count(sentry.transactions.measurements.${measurement})`]: [
             480.25279914214235, 446.2470330439192, 540.2723720628555, 578.8238603650881,
             521.333776306769, 565.7998107918086, 552.484459768386, 556.4380473259937,
             463.13632179530805, 610.3239126307383, 568.8398422912862, 490.7285481925072,
@@ -74,10 +74,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'good',
         },
         totals: {
-          [`count(measurements.${measurement})`]: 310.99324556336916,
+          [`count(sentry.transactions.measurements.${measurement})`]: 310.99324556336916,
         },
         series: {
-          [`count(measurements.${measurement})`]: [
+          [`count(sentry.transactions.measurements.${measurement})`]: [
             301.84940453421194, 304.68814732362097, 301.9642776305766, 314.8072375586307,
             257.72640884714446, 269.49092851324036, 319.92471568867126, 396.0333440504141,
             282.919294815697, 288.60267153849486, 322.426440794062, 346.5679457744942,
@@ -93,10 +93,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'poor',
         },
         totals: {
-          [`count(measurements.${measurement})`]: 334.68332989807976,
+          [`count(sentry.transactions.measurements.${measurement})`]: 334.68332989807976,
         },
         series: {
-          [`count(measurements.${measurement})`]: [
+          [`count(sentry.transactions.measurements.${measurement})`]: [
             250.3774996770386, 371.6466508301939, 389.0367396067616, 364.3194808493991,
             200.31796886834115, 382.2695255829035, 315.19978364600627, 343.65161544673435,
             394.0993214558925, 303.2183329284477, 331.8381124232099, 303.94194516767607,
@@ -112,10 +112,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'meh',
         },
         totals: {
-          [`count(measurements.${measurement})`]: 678.2848709983151,
+          [`count(sentry.transactions.measurements.${measurement})`]: 678.2848709983151,
         },
         series: {
-          [`count(measurements.${measurement})`]: [
+          [`count(sentry.transactions.measurements.${measurement})`]: [
             738.9628961315675, 705.2147839253868, 697.751323586985, 653.2820567061374,
             699.4645282581238, 700.331139178481, 631.6492978710824, 676.3301175125379,
             700.0691909918392, 617.811038380621, 633.3687666897259, 681.3519605114661,
@@ -131,10 +131,10 @@ export function VitalByTransactionAndRating({measurement, ...rest}) {
           measurement_rating: 'good',
         },
         totals: {
-          [`count(measurements.${measurement})`]: 733.2314556449236,
+          [`count(sentry.transactions.measurements.${measurement})`]: 733.2314556449236,
         },
         series: {
-          [`count(measurements.${measurement})`]: [
+          [`count(sentry.transactions.measurements.${measurement})`]: [
             683.3645918170907, 686.2188745079375, 638.5992986501745, 841.2356927608002,
             720.2768463363028, 673.2745128606168, 761.1691750270439, 636.7014142246217,
             736.3066317858726, 675.5427607945265, 797.414473494506, 754.1362217563709,
@@ -623,10 +623,10 @@ export function SingleFieldAreaByTransactionStatus({
             'transaction.status': 'cancelled',
           },
           totals: {
-            'count(transaction.duration)': 37136.841939500686,
+            'count(sentry.sessions.transaction.duration)': 37136.841939500686,
           },
           series: {
-            'count(transaction.duration)': [
+            'count(sentry.sessions.transaction.duration)': [
               355.3490131200743, 330.3055256333457, 407.83884157275776, 428.9533930364429,
               436.2548034308876, 285.7230952127132, 392.76558843901313, 370.0344751978364,
               331.21595173183823, 371.3882993485885, 338.4624380322561, 483.7742051516484,
@@ -662,10 +662,10 @@ export function SingleFieldAreaByTransactionStatus({
             'transaction.status': 'ok',
           },
           totals: {
-            'count(transaction.duration)': 52696.64340655463,
+            'count(sentry.sessions.transaction.duration)': 52696.64340655463,
           },
           series: {
-            'count(transaction.duration)': [
+            'count(sentry.sessions.transaction.duration)': [
               618.5865450505377, 663.610842193466, 556.8238160974133, 572.8545752921874,
               515.8543283370781, 583.3452944058821, 547.4090298814124, 515.9604719252445,
               587.2141471094967, 619.8450076986474, 529.0930291914201, 559.6810872719008,
@@ -699,10 +699,10 @@ export function SingleFieldAreaByTransactionStatus({
             'transaction.status': 'aborted',
           },
           totals: {
-            'count(transaction.duration)': 57824.45854505795,
+            'count(sentry.sessions.transaction.duration)': 57824.45854505795,
           },
           series: {
-            'count(transaction.duration)': [
+            'count(sentry.sessions.transaction.duration)': [
               506.3709370578013, 644.8542681318904, 596.7553570437444, 632.9772407677009,
               570.8162328546368, 593.5745602118294, 618.0465855121598, 508.64556781922664,
               603.6776731131123, 583.3473239799015, 594.8521211952932, 578.7511786534105,
@@ -843,10 +843,10 @@ export function SingleFieldAreaByTransactionStatus({
           'transaction.status': 'cancelled',
         },
         totals: {
-          'count(transaction.duration)': 10889.641147930535,
+          'count(sentry.sessions.transaction.duration)': 10889.641147930535,
         },
         series: {
-          'count(transaction.duration)': [
+          'count(sentry.sessions.transaction.duration)': [
             129.08909626771595, 12.05525991313921, 167.34756459841375, 155.52958037586194,
             93.64004647066692, 84.92427683544548, 134.65394287288012, 118.85174506111882,
             93.11334053685312, 209.3725759568951, 159.06232017428817, 118.73397242084685,
@@ -880,10 +880,10 @@ export function SingleFieldAreaByTransactionStatus({
           'transaction.status': 'ok',
         },
         totals: {
-          'count(transaction.duration)': 41862.4336917241,
+          'count(sentry.sessions.transaction.duration)': 41862.4336917241,
         },
         series: {
-          'count(transaction.duration)': [
+          'count(sentry.sessions.transaction.duration)': [
             264.3532288476283, 460.8701542483636, 295.158111535157, 498.1439192490123,
             396.5717562032937, 448.6446427985836, 458.7775051532489, 291.7846406438918,
             428.689239800836, 544.4655116906713, 476.66794233198425, 394.2074684556551,
@@ -916,10 +916,10 @@ export function SingleFieldAreaByTransactionStatus({
           'transaction.status': 'aborted',
         },
         totals: {
-          'count(transaction.duration)': 27298.51942394313,
+          'count(sentry.sessions.transaction.duration)': 27298.51942394313,
         },
         series: {
-          'count(transaction.duration)': [
+          'count(sentry.sessions.transaction.duration)': [
             326.5430306083484, 257.009610619181, 360.69576256541023, 222.9917705742787,
             299.96094115770904, 339.8377014514525, 285.77447388971046, 265.2418800848479,
             232.91335770882114, 187.52331238404065, 250.54576260795432, 376.4363991194316,

@@ -1,3 +1,4 @@
+import mean from 'lodash/mean';
 import moment from 'moment';
 
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
@@ -81,13 +82,11 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     : undefined;
 
   const dataMean = data.map(serie => {
-    let meanData = serie.totals;
-    let seriesName = serie.seriesName;
+    const meanData = defined(seriesTotal)
+      ? serie.totals / seriesTotal
+      : mean(serie.data.map(({value}) => value));
 
-    if (defined(seriesTotal)) {
-      meanData = serie.totals / seriesTotal;
-      seriesName = 'failure_rate()';
-    }
+    const seriesName = defined(seriesTotal) ? 'failure_rate()' : serie.seriesName;
 
     return {
       mean: meanData,
