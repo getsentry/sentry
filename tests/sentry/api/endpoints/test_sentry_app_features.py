@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models import IntegrationFeature
-from sentry.models.integrationfeature import Feature
+from sentry.models.integrationfeature import Feature, IntegrationTypes
 from sentry.testutils import APITestCase
 
 
@@ -26,9 +26,13 @@ class SentryAppFeaturesTest(APITestCase):
         assert {
             "description": self.api_feature.description,
             "featureGate": self.api_feature.feature_str(),
+            "targetId": self.sentry_app.id,
+            "targetType": IntegrationTypes.SENTRY_APP.value,
         } in response.data
 
         assert {
             "description": self.issue_link_feature.description,
             "featureGate": self.issue_link_feature.feature_str(),
+            "targetId": self.sentry_app.id,
+            "targetType": IntegrationTypes.SENTRY_APP.value,
         } in response.data
