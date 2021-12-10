@@ -9,4 +9,6 @@ class IntegrationFeatureSerializer(Serializer):
             "description": obj.description.strip(),
             # feature gating work done in getsentry expects the format 'featureGate'
             "featureGate": obj.feature_str(),
+            "targetId": obj.target_id,
+            "targetType": obj.target_type,
         }

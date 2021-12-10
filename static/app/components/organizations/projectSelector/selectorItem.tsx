@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import GlobalSelectionHeaderRow from 'sentry/components/globalSelectionHeaderRow';
 import Highlight from 'sentry/components/highlight';
 import Hovercard from 'sentry/components/hovercard';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
+import GlobalSelectionHeaderRow from 'sentry/components/organizations/globalSelectionHeaderRow';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
