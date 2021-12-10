@@ -12,10 +12,9 @@ def backfill_target_id(apps, schema_editor):
     for integration_feature in RangeQuerySetWrapperWithProgressBar(
         IntegrationFeature.objects.all()
     ):
-        if integration_feature.target_id is None:
-            integration_feature.target_id = integration_feature.sentry_app.id
-            integration_feature.target_type = IntegrationTypes.SENTRY_APP.value
-            integration_feature.save()
+        integration_feature.target_id = integration_feature.sentry_app.id
+        integration_feature.target_type = IntegrationTypes.SENTRY_APP.value
+        integration_feature.save()
 
 
 class Migration(migrations.Migration):
