@@ -9,6 +9,7 @@ import space from 'sentry/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {explodeField, generateFieldAsString} from 'sentry/utils/discover/fields';
+import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -153,4 +154,4 @@ const StyledIssueListSearchBar = styled(IssueListSearchBar)`
   }
 `;
 
-export default withIssueTags(IssueWidgetQueriesForm);
+export default withApi(withIssueTags(IssueWidgetQueriesForm));
