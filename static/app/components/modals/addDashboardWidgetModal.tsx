@@ -314,31 +314,42 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleDefaultFields = () => {
-    const {defaultWidgetQuery, defaultTableColumns} = this.props;
+    const {defaultWidgetQuery, defaultTableColumns, widget} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       const displayType = prevState.displayType as Widget['displayType'];
       const normalized = normalizeQueries(displayType, prevState.queries);
 
-      // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
-      if (defaultWidgetQuery && defaultTableColumns && !prevState.userHasModified) {
-        if (displayType === DisplayType.TABLE) {
-          normalized.forEach(query => {
-            query.fields = [...defaultTableColumns];
-          });
-        } else if (displayType === DisplayType.TOP_N) {
-          normalized.forEach(query => {
-            // Append Y-Axis to query.fields since TOP_N view assumes the last field is the Y-Axis
-            query.fields = [...defaultTableColumns, defaultWidgetQuery.fields[0]];
-            query.orderby = defaultWidgetQuery.orderby;
-          });
-        } else {
-          normalized.forEach(query => {
-            query.fields = [...defaultWidgetQuery.fields];
-          });
+      if (!prevState.userHasModified) {
+        // If the Widget is an issue widget,
+        if (widget?.widgetType === WidgetType.ISSUE) {
+          set(newState, 'queries', widget.queries);
+          set(newState, 'widgetType', WidgetType.ISSUE);
+          return {...newState, errors: undefined};
+        }
+
+        // Default widget provided by Add to Dashboard from Discover
+        if (defaultWidgetQuery && defaultTableColumns) {
+          // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
+          if (displayType === DisplayType.TABLE) {
+            normalized.forEach(query => {
+              query.fields = [...defaultTableColumns];
+            });
+          } else if (displayType === DisplayType.TOP_N) {
+            normalized.forEach(query => {
+              // Append Y-Axis to query.fields since TOP_N view assumes the last field is the Y-Axis
+              query.fields = [...defaultTableColumns, defaultWidgetQuery.fields[0]];
+              query.orderby = defaultWidgetQuery.orderby;
+            });
+          } else {
+            normalized.forEach(query => {
+              query.fields = [...defaultWidgetQuery.fields];
+            });
+          }
         }
       }
 
+      set(newState, 'widgetType', WidgetType.DISCOVER);
       set(newState, 'queries', normalized);
       return {...newState, errors: undefined};
     });
@@ -354,7 +365,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         from: source,
         field,
         value,
-        widget_type: 'discover',
+        widget_type: prevState.widgetType,
         organization,
       });
 
@@ -616,7 +627,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   style={{flex: 1}}
                   choices={DATASET_CHOICES}
                   value={state.widgetType}
-                  label={t('Data Set')}
+                  label={t('Dataset')}
                   onChange={this.handleDatasetChange}
                 />
               </React.Fragment>
