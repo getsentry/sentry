@@ -16,6 +16,6 @@ export function stackMarkerToHumanReadable(marker: JSSelfProfiling.Marker): stri
       return t('Other');
     default:
       // since spec is still in dev, just gracefully return whatever we received.
-      return t(marker);
+      return marker;
   }
 }
