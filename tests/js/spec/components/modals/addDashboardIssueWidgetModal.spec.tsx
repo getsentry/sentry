@@ -66,7 +66,17 @@ describe('Modals -> AddDashboardIssueWidgetModal', function () {
     });
     await clickSubmit();
 
-    expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({widgetType: 'issue'}));
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        displayType: 'table',
+        interval: '5m',
+        queries: [
+          {conditions: '', fields: ['issue', 'assignee', 'title'], name: '', orderby: ''},
+        ],
+        title: '',
+        widgetType: 'issue',
+      })
+    );
     wrapper.unmount();
   });
 });

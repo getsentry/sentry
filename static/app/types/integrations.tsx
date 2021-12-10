@@ -1,6 +1,7 @@
 import Alert from 'sentry/components/alert';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {
+  DISABLED as DISABLED_STATUS,
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
@@ -223,7 +224,8 @@ export type IntegrationFeature = {
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
-  | typeof PENDING;
+  | typeof PENDING
+  | typeof DISABLED_STATUS;
 
 type IntegrationDialog = {
   actionText: string;

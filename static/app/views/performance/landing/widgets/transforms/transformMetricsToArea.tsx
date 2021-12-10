@@ -81,7 +81,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     : undefined;
 
   const dataMean = data.map(serie => {
-    let meanData = serie.totals / serie.data.length;
+    let meanData = serie.totals;
     let seriesName = serie.seriesName;
 
     if (defined(seriesTotal)) {
