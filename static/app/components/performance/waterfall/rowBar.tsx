@@ -10,7 +10,6 @@ import {
 export const RowRectangle = styled('div')<{spanBarHatch: boolean}>`
   position: absolute;
   height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
-  top: ${ROW_PADDING}px;
   left: 0;
   min-width: 1px;
   user-select: none;
