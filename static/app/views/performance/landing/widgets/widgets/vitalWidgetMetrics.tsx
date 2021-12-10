@@ -50,7 +50,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   const {ContainerActions, eventView, organization, location, chartSetting} = props;
   const [selectedListIndex, setSelectListIndex] = useState(0);
   const field = props.fields[0];
-  const metricsField = `count(${field})`;
+  const metricsField = `count(sentry.transactions.${field})`;
   const vital = settingToVital[chartSetting];
 
   const Queries = {

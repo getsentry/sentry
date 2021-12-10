@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {t} from 'sentry/locale';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -18,6 +19,26 @@ import {DurationChart, HighlightNumber, Subtitle} from './singleFieldAreaWidget'
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformMetricsToArea>;
 };
+
+function getMetricsField(field: string) {
+  const parsedField = parseFunction(field);
+
+  if (!parsedField) {
+    return field;
+  }
+
+  const {name, arguments: args} = parsedField;
+
+  if (!args[0]) {
+    return field;
+  }
+
+  if (args[0].includes('measurements')) {
+    return `${name}(sentry.transactions.${args[0]})`;
+  }
+
+  return `${name}(sentry.sessions.${args[0]})`;
+}
 
 export function SingleFieldAreaWidgetMetrics(
   props: PerformanceWidgetProps & {
@@ -49,7 +70,7 @@ export function SingleFieldAreaWidgetMetrics(
     [widgetDefinitions.failure_rate_area.fields[0]]: 'count(transaction.duration)',
   };
 
-  const metricsField = metricsFieldMap[field] ?? field;
+  const metricsField = getMetricsField(metricsFieldMap[field] ?? field);
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
