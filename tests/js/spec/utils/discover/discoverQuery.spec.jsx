@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -30,7 +30,7 @@ describe('DiscoverQuery', function () {
         data: [{transaction: '/health', count: 1000}],
       },
     });
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <DiscoverQuery
         orgSlug="test-org"
         api={api}
@@ -46,11 +46,10 @@ describe('DiscoverQuery', function () {
       </DiscoverQuery>
     );
     await tick();
-    wrapper.update();
 
     // Children should be rendered, and API should be called.
     expect(getMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('p')).toHaveLength(1);
+    expect(await screen.findByText('/health')).toBeInTheDocument();
   });
 
   it('applies limit and cursor props', async function () {
@@ -61,7 +60,7 @@ describe('DiscoverQuery', function () {
         data: [{transaction: '/health', count: 1000}],
       },
     });
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <DiscoverQuery
         orgSlug="test-org"
         api={api}
@@ -79,7 +78,6 @@ describe('DiscoverQuery', function () {
       </DiscoverQuery>
     );
     await tick();
-    wrapper.update();
 
     expect(getMock).toHaveBeenCalledTimes(1);
     expect(getMock).toHaveBeenCalledWith(
