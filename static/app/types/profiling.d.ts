@@ -46,16 +46,7 @@ namespace Profiling {
     name: string;
     traceID: string;
     activeProfileIndex: number;
-    profiles: Profile[];
-  };
-
-  type ProfileTypes = EventedProfile | SampledProfile | JSSelfProfiling.Trace;
-
-  type ImportedProfiles = {
-    name: string;
-    traceID: string;
-    activeProfileIndex: number;
-    profiles: Profile[];
+    profiles: ProfileTypes[];
   };
 
   // This extends speedscope's schema - we are keeping this as is, but we are likely to diverge as we add more
