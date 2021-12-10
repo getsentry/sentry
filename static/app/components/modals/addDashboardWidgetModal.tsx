@@ -322,7 +322,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
       if (!prevState.userHasModified) {
         // If the Widget is an issue widget,
-        if (widget?.widgetType === WidgetType.ISSUE) {
+        if (
+          displayType === DisplayType.TABLE &&
+          widget?.widgetType === WidgetType.ISSUE
+        ) {
           set(newState, 'queries', widget.queries);
           set(newState, 'widgetType', WidgetType.ISSUE);
           return {...newState, errors: undefined};
