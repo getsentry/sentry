@@ -37,7 +37,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         try:
             projects = client.get_projects(self.instance)
         except (ApiError, ApiUnauthorized, KeyError) as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         project_choices = [(project["id"], project["name"]) for project in projects]
 
@@ -77,7 +77,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         try:
             item_categories = client.get_work_item_categories(self.instance, project)["value"]
         except (ApiError, ApiUnauthorized, KeyError) as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         # we want to maintain ordering of the items
         item_type_map = OrderedDict()
@@ -184,7 +184,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 comment=markdown(description),
             )
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         project_name = created_item["fields"]["System.AreaPath"]
         return {

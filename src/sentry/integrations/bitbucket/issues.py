@@ -158,4 +158,4 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
                     repo=repo, issue_id=issue_num, data={"content": {"raw": comment}}
                 )
             except ApiError as e:
-                self.raise_error(e)
+                raise self.raise_error(e)

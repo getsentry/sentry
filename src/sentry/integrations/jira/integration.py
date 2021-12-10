@@ -379,7 +379,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             return self.get_client().search_issues(query)
         except ApiError as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
     def make_choices(self, values):
         if not values:
@@ -821,7 +821,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            return self.raise_error(e)
+            raise self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:
