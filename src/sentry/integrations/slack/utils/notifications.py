@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import re
 from typing import Mapping
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleTriggerAction, Incident
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
-from sentry.models import Integration, Team, User
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 
@@ -45,15 +43,6 @@ def send_incident_alert_notification(
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
         logger.info("rule.fail.slack_post", extra={"error": str(e)})
-
-
-def get_referrer_qstring(notification: BaseNotification, recipient: Team | User) -> str:
-    # TODO: make a generic version that works for other notification types
-    return (
-        "?referrer="
-        + re.sub("Notification$", "Slack", notification.__class__.__name__)
-        + str(recipient.__class__.__name__)
-    )
 
 
 def send_slack_response(

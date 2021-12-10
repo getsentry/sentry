@@ -27,6 +27,7 @@ from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):
+    referrer_base = "release-activity"
     notification_setting_type = NotificationSettingTypes.DEPLOY
 
     def __init__(self, activity: Activity) -> None:

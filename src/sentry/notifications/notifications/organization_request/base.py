@@ -30,7 +30,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_reference(self) -> Any:
         return self.organization
 
-    def determine_recipients(self) -> Iterable[Team | User]:
+    def determine_recipients(self) -> Iterable[User]:
         return self.role_based_recipient_strategy.determine_recipients()
 
     def get_notification_title(self) -> str:
@@ -51,9 +51,11 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return None
 
     def get_log_params(self, recipient: Team | User) -> MutableMapping[str, Any]:
+        if isinstance(recipient, Team):
+            raise NotImplementedError
+
         return {
-            "organization_id": self.organization.id,
+            **super().get_log_params(recipient),
             "user_id": self.requester.id,
             "target_user_id": recipient.id,
-            "actor_id": recipient.id,
         }

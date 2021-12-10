@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from abc import ABC
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 from urllib.parse import urlparse, urlunparse
@@ -89,7 +88,8 @@ class GroupActivityNotification(ActivityNotification, ABC):
         return self.get_activity_name()
 
     def get_group_link(self) -> str:
-        referrer = re.sub("Notification$", "Email", self.__class__.__name__)
+        # method only used for emails
+        referrer = self.get_referrer(ExternalProviders.EMAIL)
         return str(self.group.get_absolute_url(params={"referrer": referrer}))
 
     def get_participants_with_group_subscription_reason(
