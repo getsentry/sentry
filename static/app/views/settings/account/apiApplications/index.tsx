@@ -4,16 +4,16 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import {ApiApplication} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import Row from 'app/views/settings/account/apiApplications/row';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {ApiApplication} from 'sentry/types';
+import AsyncView from 'sentry/views/asyncView';
+import Row from 'sentry/views/settings/account/apiApplications/row';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 

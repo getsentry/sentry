@@ -1,12 +1,12 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import FeatureBadge from 'app/components/featureBadge';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import {getDisplayLabel, IssueDisplayOptions} from 'app/views/issueList/utils';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import FeatureBadge from 'sentry/components/featureBadge';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import {getDisplayLabel, IssueDisplayOptions} from 'sentry/views/issueList/utils';
 
 type Props = {
   onDisplayChange: (display: string) => void;
@@ -81,10 +81,10 @@ const IssueListDisplayOptions = ({
             : getDisplayLabel(display)
         }
       >
-        <React.Fragment>
+        <Fragment>
           {getMenuItem(IssueDisplayOptions.EVENTS)}
           {getMenuItem(IssueDisplayOptions.SESSIONS)}
-        </React.Fragment>
+        </Fragment>
       </StyledDropdownControl>
     </GuideAnchor>
   );

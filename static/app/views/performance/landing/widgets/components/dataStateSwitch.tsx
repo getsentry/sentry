@@ -10,11 +10,11 @@ export function DataStateSwitch(props: {
   dataComponents: JSX.Element[];
   emptyComponent: JSX.Element;
 }): JSX.Element {
-  if (props.isLoading && props.loadingComponent) {
-    return props.loadingComponent;
-  }
   if (props.isErrored) {
     return props.errorComponent;
+  }
+  if (props.isLoading && props.loadingComponent) {
+    return props.loadingComponent;
   }
   if (!props.hasData) {
     return props.emptyComponent;

@@ -1,4 +1,4 @@
-from sentry.models import ExternalActor, Integration
+from sentry.models import ExternalActor
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.tasks.code_owners import update_code_owners_schema
 from sentry.testutils import TestCase
@@ -7,10 +7,6 @@ from sentry.testutils import TestCase
 class CodeOwnersTest(TestCase):
     def setUp(self):
         self.login_as(user=self.user)
-        self.integration = Integration.objects.create(
-            provider="github", name="GitHub", external_id="github:1"
-        )
-        self.oi = self.integration.add_organization(self.organization, self.user)
 
         self.team = self.create_team(
             organization=self.organization, slug="tiger-team", members=[self.user]
@@ -21,7 +17,6 @@ class CodeOwnersTest(TestCase):
         )
         self.code_mapping = self.create_code_mapping(
             project=self.project,
-            organization_integration=self.oi,
         )
 
         self.data = {

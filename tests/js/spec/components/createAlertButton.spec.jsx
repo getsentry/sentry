@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import * as navigation from 'app/actionCreators/navigation';
+import * as navigation from 'sentry/actionCreators/navigation';
 import CreateAlertButton, {
   CreateAlertFromViewButton,
-} from 'app/components/createAlertButton';
-import EventView from 'app/utils/discover/eventView';
-import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
+} from 'sentry/components/createAlertButton';
+import EventView from 'sentry/utils/discover/eventView';
+import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
 
 const onIncompatibleQueryMock = jest.fn();
 const onCloseMock = jest.fn();

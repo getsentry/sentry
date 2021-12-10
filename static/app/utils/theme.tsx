@@ -2,50 +2,122 @@ import '@emotion/react';
 
 import color from 'color';
 
-import CHART_PALETTE from 'app/constants/chartPalette';
-import {DataCategory} from 'app/types';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {DataCategory} from 'sentry/types';
 
-const colors = {
-  white: '#FFFFFF',
+/**
+ * Exporting for use in Storybook only. Do not import this
+ * anywhere else! Instead, use the theme prop or import useTheme.
+ */
+export const lightColors = {
   black: '#1D1127',
+  white: '#FFFFFF',
 
-  gray100: '#E7E1EC',
-  gray200: '#C6BECF',
-  gray300: '#9386A0',
-  gray400: '#776589',
-  gray500: '#2B1D38',
+  surface100: '#FAF9FB',
+  surface200: '#FFFFFF',
+  surface300: '#FFFFFF',
 
-  yellow100: '#FDE8b4',
-  yellow200: '#FFD577',
-  yellow300: '#FFC227',
+  gray500: '#2B2233',
+  gray400: '#4D4158',
+  gray300: '#80708F',
+  gray200: '#DBD6E1',
+  gray100: '#EBE6EF',
 
-  purple100: '#D4D1EC',
-  purple200: '#A396DA',
+  purple400: '#584AC0',
   purple300: '#6C5FC7',
+  purple200: 'rgba(108, 95, 199, 0.5)',
+  purple100: 'rgba(108, 95, 199, 0.1)',
 
-  blue100: '#D2DFF7',
-  blue200: '#6e9ef7',
-  blue300: '#3D74DB',
+  blue400: '#2562D4',
+  blue300: '#3C74DD',
+  blue200: 'rgba(60, 116, 221, 0.5)',
+  blue100: 'rgba(60, 116, 221, 0.09)',
 
-  red100: '#FCC6C8',
-  red200: '#FD918F',
+  green400: '#268D75',
+  green300: '#2BA185',
+  green200: 'rgba(43, 161, 133, 0.55)',
+  green100: 'rgba(43, 161, 133, 0.13)',
+
+  yellow400: '#E5A500',
+  yellow300: '#F5B000',
+  yellow200: 'rgba(245, 176, 0, 0.55)',
+  yellow100: 'rgba(245, 176, 0, 0.08)',
+
+  red400: '#F32F35',
   red300: '#F55459',
+  red200: 'rgba(245, 84, 89, 0.5)',
+  red100: 'rgba(245, 84, 89, 0.09)',
 
-  green100: '#B6ECDF',
-  green200: '#7DD6BE',
-  green300: '#33BF9E',
-
-  pink100: '#FDC9D7',
-  pink200: '#FA93AB',
-  pink300: '#F05781',
+  pink400: '#E50675',
+  pink300: '#FA2991',
+  pink200: 'rgba(250, 51, 150, 0.5)',
+  pink100: 'rgba(250, 51, 150, 0.1)',
 };
 
 /**
- * This is not in the gray palette because it should [generally] only be used for backgrounds
+ * Exporting for use in Storybook only. Do not import this
+ * anywhere else! Instead, use the theme prop or import useTheme.
  */
-const backgroundSecondary = '#FAF9FB';
+export const darkColors = {
+  black: '#1D1127',
+  white: '#FFFFFF',
 
-const lightAliases = {
+  surface100: '#1A141F',
+  surface200: '#241D2A',
+  surface300: '#2C2433',
+
+  gray500: '#EBE6EF',
+  gray400: '#D6D0DC',
+  gray300: '#998DA5',
+  gray200: '#43384C',
+  gray100: '#342B3B',
+
+  purple400: '#6859CF',
+  purple300: '#7669D3',
+  purple200: 'rgba(108, 95, 199, 0.6)',
+  purple100: 'rgba(118, 105, 211, 0.1)',
+
+  blue400: '#4284FF',
+  blue300: '#5C95FF',
+  blue200: 'rgba(92, 149, 255, 0.4)',
+  blue100: 'rgba(92, 149, 255, 0.1)',
+
+  green400: '#26B593',
+  green300: '#2AC8A3',
+  green200: 'rgba(42, 200, 163, 0.4)',
+  green100: 'rgba(42, 200, 163, 0.1)',
+
+  yellow400: '#F5B000',
+  yellow300: '#FFC227',
+  yellow200: 'rgba(255, 194, 39, 0.35)',
+  yellow100: 'rgba(255, 194, 39, 0.07)',
+
+  red400: '#FA2E34',
+  red300: '#FA4F54',
+  red200: 'rgba(250, 79, 84, 0.4)',
+  red100: 'rgba(250, 79, 84, 0.1)',
+
+  pink400: '#EF067A',
+  pink300: '#FA3396',
+  pink200: 'rgba(250, 51, 150, 0.55)',
+  pink100: 'rgba(250, 51, 150, 0.13)',
+};
+
+const lightShadows = {
+  dropShadowLightest: '0 0 2px rgba(43, 34, 51, 0.04)',
+  dropShadowLight: '0 1px 4px rgba(43, 34, 51, 0.04)',
+  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
+};
+
+const darkShadows = {
+  dropShadowLightest: '0 0 2px rgba(10, 8, 12, 0.2)',
+  dropShadowLight: '0 1px 4px rgba(10, 8, 12, 0.2)',
+  dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
+};
+
+type BaseColors = typeof lightColors;
+
+const generateAliases = (colors: BaseColors) => ({
   /**
    * Primary text color
    */
@@ -54,27 +126,32 @@ const lightAliases = {
   /**
    * Text that should not have as much emphasis
    */
-  subText: colors.gray400,
+  subText: colors.gray300,
 
   /**
    * Background for the main content area of a page?
    */
-  bodyBackground: backgroundSecondary,
+  bodyBackground: colors.surface100,
 
   /**
    * Primary background color
    */
-  background: colors.white,
+  background: colors.surface200,
+
+  /**
+   * Elevated background color
+   */
+  backgroundElevated: colors.surface300,
 
   /**
    * Secondary background color used as a slight contrast against primary background
    */
-  backgroundSecondary,
+  backgroundSecondary: colors.surface100,
 
   /**
    * Background for the header of a page
    */
-  headerBackground: colors.white,
+  headerBackground: colors.surface200,
 
   /**
    * Primary border color
@@ -110,7 +187,8 @@ const lightAliases = {
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    */
-  disabled: colors.gray200,
+  disabled: colors.gray300,
+  disabledBorder: colors.gray200,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -121,12 +199,12 @@ const lightAliases = {
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: backgroundSecondary,
+  focus: colors.surface100,
 
   /**
    * Inactive
    */
-  inactive: colors.gray200,
+  inactive: colors.gray300,
 
   /**
    * Link color indicates that something is clickable
@@ -144,24 +222,18 @@ const lightAliases = {
   /**
    * Primary button colors
    */
-  primaryButtonBorder: '#3d328e',
-  primaryButtonBorderActive: '#352b7b',
-
-  /**
-   * Gradient for sidebar
-   */
-  sidebarGradient:
-    'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+  primaryButtonBorder: colors.purple200,
+  primaryButtonBorderActive: colors.purple300,
 
   /**
    * Form placeholder text color
    */
-  formPlaceholder: colors.gray200,
+  formPlaceholder: colors.gray300,
 
   /**
    * Default form text color
    */
-  formText: colors.gray500,
+  formText: colors.gray400,
 
   /**
    * Form input border
@@ -171,7 +243,7 @@ const lightAliases = {
   /**
    *
    */
-  rowBackground: backgroundSecondary,
+  rowBackground: colors.surface300,
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
@@ -182,7 +254,7 @@ const lightAliases = {
   /**
    * Color for chart label text
    */
-  chartLabel: colors.gray200,
+  chartLabel: colors.gray300,
 
   /**
    * Color for the 'others' series in topEvent charts
@@ -200,19 +272,9 @@ const lightAliases = {
   progressBackground: colors.gray100,
 
   /**
-   * Background of alerts
-   */
-  alertBackgroundAlpha: 0.3,
-
-  /**
-   * Background of default badge (mainly used in NavTabs)
-   */
-  badgeBackground: colors.gray200,
-
-  /**
    * Overlay for partial opacity
    */
-  overlayBackgroundAlpha: 'rgba(255, 255, 255, 0.7)',
+  overlayBackgroundAlpha: color(colors.surface100).alpha(0.7).string(),
 
   /**
    * Tag progress bars
@@ -221,45 +283,40 @@ const lightAliases = {
   tagBar: colors.gray200,
 
   /**
-   * Color for badge text
-   */
-  badgeText: colors.white,
-
-  /**
    * Search filter "token" background
    */
   searchTokenBackground: {
-    valid: '#E8F3FE',
-    validActive: color('#E8F3FE').darken(0.02).string(),
+    valid: colors.blue100,
+    validActive: color(colors.blue100).opaquer(0.2).string(),
     invalid: colors.red100,
-    invalidActive: color(colors.red100).darken(0.02).string(),
+    invalidActive: color(colors.red100).opaquer(0.2).string(),
   },
 
   /**
    * Search filter "token" border
    */
   searchTokenBorder: {
-    valid: '#B5DAFF',
-    validActive: color('#B5DAFF').darken(0.15).string(),
-    invalid: colors.red300,
-    invalidActive: color(colors.red300).darken(0.15).string(),
+    valid: colors.blue200,
+    validActive: color(colors.blue200).opaquer(0.4).string(),
+    invalid: colors.red200,
+    invalidActive: color(colors.red200).opaquer(0.4).string(),
   },
 
   /**
    * Count on button when active
    */
-  buttonCountActive: colors.gray100,
+  buttonCountActive: colors.white,
 
   /**
    * Count on button
    */
-  buttonCount: colors.gray400,
+  buttonCount: colors.gray500,
 
   /**
    * Background of alert banners at the top
    */
-  bannerBackground: colors.black,
-};
+  bannerBackground: colors.gray500,
+});
 
 const dataCategory = {
   [DataCategory.ERRORS]: CHART_PALETTE[4][3],
@@ -268,7 +325,7 @@ const dataCategory = {
   [DataCategory.DEFAULT]: CHART_PALETTE[4][0],
 };
 
-const generateAlertTheme = (alias: Aliases) => ({
+const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
   muted: {
     background: colors.gray200,
     backgroundLight: alias.backgroundSecondary,
@@ -277,104 +334,104 @@ const generateAlertTheme = (alias: Aliases) => ({
   },
   info: {
     background: colors.blue300,
-    backgroundLight: color(colors.blue100).alpha(alias.alertBackgroundAlpha).string(),
+    backgroundLight: colors.blue100,
     border: colors.blue200,
     iconColor: colors.blue300,
   },
   warning: {
     background: colors.yellow300,
-    backgroundLight: color(colors.yellow100).alpha(alias.alertBackgroundAlpha).string(),
-    border: colors.yellow300,
+    backgroundLight: colors.yellow100,
+    border: colors.yellow200,
     iconColor: colors.yellow300,
   },
   success: {
     background: colors.green300,
-    backgroundLight: color(colors.green100).alpha(alias.alertBackgroundAlpha).string(),
+    backgroundLight: colors.green100,
     border: colors.green200,
     iconColor: colors.green300,
   },
   error: {
     background: colors.red300,
-    backgroundLight: color(colors.red100).alpha(alias.alertBackgroundAlpha).string(),
+    backgroundLight: colors.red100,
     border: colors.red200,
     iconColor: colors.red300,
     textLight: colors.red200,
   },
 });
 
-const generateBadgeTheme = (alias: Aliases) => ({
+const generateBadgeTheme = (colors: BaseColors) => ({
   default: {
-    background: alias.badgeBackground,
-    indicatorColor: alias.badgeBackground,
-    color: alias.badgeText,
+    background: colors.gray100,
+    indicatorColor: colors.gray100,
+    color: colors.gray500,
   },
   alpha: {
     background: `linear-gradient(90deg, ${colors.pink300}, ${colors.yellow300})`,
     indicatorColor: colors.pink300,
-    color: alias.badgeText,
+    color: colors.white,
   },
   beta: {
     background: `linear-gradient(90deg, ${colors.purple300}, ${colors.pink300})`,
     indicatorColor: colors.purple300,
-    color: alias.badgeText,
+    color: colors.white,
   },
   new: {
     background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
     indicatorColor: colors.green300,
-    color: alias.badgeText,
+    color: colors.white,
   },
   review: {
     background: colors.purple300,
     indicatorColor: colors.purple300,
-    color: alias.badgeText,
+    color: colors.white,
   },
   warning: {
     background: colors.yellow300,
     indicatorColor: colors.yellow300,
-    color: alias.badgeText,
+    color: colors.gray500,
   },
 });
 
-const tag = {
+const generateTagTheme = (colors: BaseColors) => ({
   default: {
-    background: colors.gray100,
+    background: colors.gray200,
     iconColor: colors.purple300,
   },
   promotion: {
-    background: colors.pink100,
+    background: colors.pink200,
     iconColor: colors.pink300,
   },
   highlight: {
-    background: colors.purple100,
+    background: colors.purple200,
     iconColor: colors.purple300,
   },
   warning: {
-    background: colors.yellow100,
+    background: colors.yellow200,
     iconColor: colors.yellow300,
   },
   success: {
-    background: colors.green100,
+    background: colors.green200,
     iconColor: colors.green300,
   },
   error: {
-    background: colors.red100,
+    background: colors.red200,
     iconColor: colors.red300,
   },
   info: {
-    background: colors.blue100,
+    background: colors.blue200,
     iconColor: colors.blue300,
   },
   white: {
-    background: colors.white,
+    background: colors.surface200,
     iconColor: colors.gray500,
   },
   black: {
     background: colors.gray500,
     iconColor: colors.white,
   },
-};
+});
 
-const level = {
+const generateLevelTheme = (colors: BaseColors) => ({
   sample: colors.purple300,
   info: colors.blue300,
   warning: colors.yellow300,
@@ -384,9 +441,9 @@ const level = {
   error: '#FF7738',
   fatal: colors.red300,
   default: colors.gray300,
-};
+});
 
-const generateButtonTheme = (alias: Aliases) => ({
+const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
   borderRadius: '3px',
 
   default: {
@@ -405,7 +462,7 @@ const generateButtonTheme = (alias: Aliases) => ({
     backgroundActive: '#4e3fb4',
     border: alias.primaryButtonBorder,
     borderActive: alias.primaryButtonBorderActive,
-    focusShadow: color(colors.purple300).alpha(0.4).string(),
+    focusShadow: colors.purple200,
   },
   success: {
     color: colors.white,
@@ -414,7 +471,7 @@ const generateButtonTheme = (alias: Aliases) => ({
     backgroundActive: colors.green300,
     border: '#7ccca5',
     borderActive: '#7ccca5',
-    focusShadow: color(colors.green300).alpha(0.5).string(),
+    focusShadow: colors.green200,
   },
   danger: {
     color: colors.white,
@@ -423,7 +480,7 @@ const generateButtonTheme = (alias: Aliases) => ({
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
     borderActive: '#7d1c13',
-    focusShadow: color(colors.red300).alpha(0.5).string(),
+    focusShadow: colors.red200,
   },
   link: {
     color: colors.blue300,
@@ -437,8 +494,8 @@ const generateButtonTheme = (alias: Aliases) => ({
   disabled: {
     color: alias.disabled,
     colorActive: alias.disabled,
-    border: alias.disabled,
-    borderActive: alias.disabled,
+    border: alias.disabledBorder,
+    borderActive: alias.disabledBorder,
     background: alias.background,
     backgroundActive: alias.background,
     focusShadow: false,
@@ -466,7 +523,9 @@ const iconSizes = {
 const commonTheme = {
   breakpoints: ['800px', '992px', '1200px', '1440px', '2560px'],
 
-  ...colors,
+  ...lightColors,
+
+  ...lightShadows,
 
   iconSizes,
 
@@ -548,10 +607,6 @@ const commonTheme = {
   headerSelectorRowHeight: 44,
   headerSelectorLabelHeight: 28,
 
-  dropShadowLightest: '0 1px 2px rgba(0, 0, 0, 0.04)',
-  dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
-  dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
-
   // Relative font sizes
   fontSizeRelativeSmall: '0.9em',
 
@@ -593,9 +648,9 @@ const commonTheme = {
 
   dataCategory,
 
-  tag,
+  tag: generateTagTheme(lightColors),
 
-  level,
+  level: generateLevelTheme(lightColors),
 
   charts: {
     colors: CHART_PALETTE[CHART_PALETTE.length - 1],
@@ -604,7 +659,7 @@ const commonTheme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)] as string[],
 
-    previousPeriod: colors.gray200,
+    previousPeriod: lightColors.gray200,
     symbolSize: 6,
   },
 
@@ -629,85 +684,50 @@ const commonTheme = {
   },
 };
 
-const darkAliases = {
-  ...lightAliases,
-  bodyBackground: colors.black,
-  headerBackground: colors.gray500,
-  background: colors.black,
-  backgroundSecondary: colors.gray500,
-  border: colors.gray400,
-  innerBorder: colors.gray500,
-  modalBorder: `1px solid ${colors.gray400}`,
-  modalBoxShadow: '0 15px 40px 0 rgb(67 62 75 / 30%), 0 1px 15px 0 rgb(67 61 74 / 15%)',
-  textColor: colors.white,
-  subText: colors.gray200,
-  linkColor: colors.blue200,
-  linkHoverColor: colors.blue300,
-  disabled: colors.gray400,
-  active: colors.pink300,
-  focus: colors.gray500,
-  inactive: colors.gray200,
-  error: colors.red300,
-  success: colors.green300,
-  primaryButtonBorder: colors.purple200,
-  primaryButtonBorderActive: colors.purple200,
-  secondaryButtonText: colors.purple200,
-  secondaryButtonBorder: colors.purple200,
-  sidebarGradient: 'linear-gradient(6.01deg, #0A090F -8.44%, #1B0921 85.02%)',
-  formPlaceholder: colors.gray400,
-  formText: colors.white,
-  formInputBorder: colors.gray400,
-  rowBackground: colors.gray500,
-  chartLineColor: colors.gray500,
-  chartLabel: colors.gray400,
-  chartOther: colors.gray300,
-  progressBar: colors.purple200,
-  progressBackground: colors.gray400,
-  badgeBackground: colors.gray400,
-  alertBackgroundAlpha: 0.1,
-  overlayBackgroundAlpha: 'rgba(18, 9, 23, 0.7)',
-  tagBarHover: colors.purple300,
-  tagBar: colors.gray400,
-  businessIconColors: [colors.pink100, colors.pink300],
-  badgeText: colors.black,
-  searchTokenBackground: {
-    valid: '#1F1A3D',
-    validActive: color('#1F1A3D').lighten(0.05).string(),
-    invalid: color(colors.red300).darken(0.8).string(),
-    invalidActive: color(colors.red300).darken(0.7).string(),
-  },
-  searchTokenBorder: {
-    valid: '#554E80',
-    validActive: color('#554E80').lighten(0.15).string(),
-    invalid: color(colors.red300).darken(0.5).string(),
-    invalidActive: color(colors.red300).darken(0.4).string(),
-  },
-
-  buttonCountActive: colors.gray100,
-  buttonCount: colors.gray400,
-  bannerBackground: colors.purple100,
-};
+const lightAliases = generateAliases(lightColors);
+const darkAliases = generateAliases(darkColors);
 
 export const lightTheme = {
   ...commonTheme,
+  ...lightColors,
   ...lightAliases,
-  alert: generateAlertTheme(lightAliases),
-  badge: generateBadgeTheme(lightAliases),
-  button: generateButtonTheme(lightAliases),
+  ...lightShadows,
+  inverted: {
+    ...darkColors,
+    ...darkAliases,
+  },
+  alert: generateAlertTheme(lightColors, lightAliases),
+  badge: generateBadgeTheme(lightColors),
+  button: generateButtonTheme(lightColors, lightAliases),
+  tag: generateTagTheme(lightColors),
+  level: generateLevelTheme(lightColors),
+  sidebarGradient:
+    'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+  sidebarBorder: 'transparent',
 };
 
 export const darkTheme: Theme = {
   ...commonTheme,
+  ...darkColors,
   ...darkAliases,
-  alert: generateAlertTheme(darkAliases),
-  badge: generateBadgeTheme(darkAliases),
-  button: generateButtonTheme(darkAliases),
+  ...darkShadows,
+  inverted: {
+    ...lightColors,
+    ...lightAliases,
+  },
+  alert: generateAlertTheme(darkColors, darkAliases),
+  badge: generateBadgeTheme(darkColors),
+  button: generateButtonTheme(darkColors, darkAliases),
+  tag: generateTagTheme(darkColors),
+  level: generateLevelTheme(darkColors),
+  sidebarGradient: 'linear-gradient(180deg, #181622 0%, #1B1825 100%)',
+  sidebarBorder: darkAliases.border,
 };
 
 export type Theme = typeof lightTheme;
 export type Aliases = typeof lightAliases;
 
-export type Color = keyof typeof colors;
+export type Color = keyof typeof lightColors;
 export type IconSize = keyof typeof iconSizes;
 
 export default commonTheme;

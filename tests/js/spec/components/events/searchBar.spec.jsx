@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import SearchBar from 'app/components/events/searchBar';
-import TagStore from 'app/stores/tagStore';
+import SearchBar from 'sentry/components/events/searchBar';
+import TagStore from 'sentry/stores/tagStore';
 
 const focusTextarea = el => el.find('textarea[name="query"]').simulate('focus');
 const selectNthAutocompleteItem = async (el, index) => {

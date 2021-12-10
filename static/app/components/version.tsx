@@ -3,17 +3,17 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Clipboard from 'app/components/clipboard';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import {IconCopy} from 'app/icons';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {formatVersion} from 'app/utils/formatters';
-import theme from 'app/utils/theme';
-import withOrganization from 'app/utils/withOrganization';
+import Clipboard from 'sentry/components/clipboard';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCopy} from 'sentry/icons';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {formatVersion} from 'sentry/utils/formatters';
+import theme from 'sentry/utils/theme';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   /**
@@ -117,7 +117,7 @@ const Version = ({
 
       <Clipboard value={version}>
         <TooltipClipboardIconWrapper>
-          <IconCopy size="xs" color="white" />
+          <IconCopy size="xs" />
         </TooltipClipboardIconWrapper>
       </Clipboard>
     </TooltipContent>

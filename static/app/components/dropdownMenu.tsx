@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as Sentry from '@sentry/react';
 
-import {MENU_CLOSE_DELAY} from 'app/constants';
+import {MENU_CLOSE_DELAY} from 'sentry/constants';
 
 export type GetActorArgs<E extends Element> = {
   onClick?: (e: React.MouseEvent<E>) => void;

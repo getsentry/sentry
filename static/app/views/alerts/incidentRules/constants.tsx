@@ -1,7 +1,7 @@
-import {t} from 'app/locale';
-import EventView from 'app/utils/discover/eventView';
-import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
+import {AggregationKey, LooseFieldKey} from 'sentry/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {
   AlertRuleThresholdType,
   Dataset,
@@ -10,13 +10,17 @@ import {
   TimeWindow,
   Trigger,
   UnsavedIncidentRule,
-} from 'app/views/alerts/incidentRules/types';
+} from 'sentry/views/alerts/incidentRules/types';
 import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
   isSessionAggregate,
-} from 'app/views/alerts/utils';
-import {AlertType, WizardRuleTemplate} from 'app/views/alerts/wizard/options';
+} from 'sentry/views/alerts/utils';
+import {AlertType, WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
+
+export const DEFAULT_COUNT_TIME_WINDOW = 1; // 1min
+export const DEFAULT_CHANGE_TIME_WINDOW = 60; // 1h
+export const DEFAULT_CHANGE_COMP_DELTA = 10080; // 1w
 
 export const DEFAULT_AGGREGATE = 'count()';
 export const DEFAULT_TRANSACTION_AGGREGATE = 'p95(transaction.duration)';
@@ -144,15 +148,21 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
   const datasetAndEventtypes = parsedQuery
     ? DATA_SOURCE_TO_SET_AND_EVENT_TYPES[parsedQuery.source]
     : DATA_SOURCE_TO_SET_AND_EVENT_TYPES.error;
+
+  let aggregate = eventView.getYAxis();
+  if (
+    datasetAndEventtypes.dataset === 'transactions' &&
+    /^p\d{2,3}\(\)/.test(eventView.getYAxis())
+  ) {
+    // p95() -> p95(transaction.duration)
+    aggregate = eventView.getYAxis().slice(0, 3) + '(transaction.duration)';
+  }
+
   return {
     ...createDefaultRule(),
     ...datasetAndEventtypes,
     query: parsedQuery?.query ?? eventView.query,
-    // If creating a metric alert for transactions, default to the p95 metric
-    aggregate:
-      datasetAndEventtypes.dataset === 'transactions'
-        ? 'p95(transaction.duration)'
-        : eventView.getYAxis(),
+    aggregate,
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }

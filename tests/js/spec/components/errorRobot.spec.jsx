@@ -1,7 +1,7 @@
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import {ErrorRobot} from 'app/components/errorRobot';
+import {Client} from 'sentry/api';
+import {ErrorRobot} from 'sentry/components/errorRobot';
 
 describe('ErrorRobot', function () {
   let getIssues;

@@ -4,25 +4,31 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import IssueWidgetQueriesForm from 'app/components/dashboards/issueWidgetQueriesForm';
-import {PanelAlert} from 'app/components/panels';
-import {t} from 'app/locale';
-import {DateString, GlobalSelection, Organization, RelativePeriod} from 'app/types';
-import {defined} from 'app/utils';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import IssueWidgetCard from 'app/views/dashboardsV2/issueWidgetCard';
-import {DisplayType, Widget, WidgetQuery, WidgetType} from 'app/views/dashboardsV2/types';
-import {mapErrors} from 'app/views/dashboardsV2/widget/eventWidget/utils';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
+import {PanelAlert} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {DateString, GlobalSelection, Organization, RelativePeriod} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
+import {
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
+import {mapErrors} from 'sentry/views/dashboardsV2/widget/eventWidget/utils';
+import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widget/issueWidget/utils';
+import Input from 'sentry/views/settings/components/forms/controls/input';
+import Field from 'sentry/views/settings/components/forms/field';
 
 export type DashboardIssueWidgetModalOptions = {
   organization: Organization;
@@ -52,11 +58,12 @@ type State = {
   queries: WidgetQuery[];
   loading: boolean;
   errors?: Record<string, any>;
+  widgetType: WidgetType;
 };
 
 const newQuery = {
   name: '',
-  fields: [] as string[],
+  fields: ['issue', 'assignee', 'title'] as string[],
   conditions: '',
   orderby: '',
 };
@@ -73,6 +80,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
         queries: [{...newQuery}],
         errors: undefined,
         loading: false,
+        widgetType: WidgetType.ISSUE,
       };
       return;
     }
@@ -83,6 +91,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       queries: widget.queries,
       errors: undefined,
       loading: false,
+      widgetType: WidgetType.ISSUE,
     };
   }
 
@@ -94,17 +103,33 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       organization,
       onAddWidget,
       onUpdateWidget,
+      closeModal,
       widget: previousWidget,
     } = this.props;
     this.setState({loading: true});
     let errors: FlatValidationError = {};
+
+    // Clear any empty fields
+    const queries = this.state.queries.map(query => {
+      return {...query, fields: query.fields.filter(field => field)};
+    });
+    if (!!!queries[0].fields.length) {
+      this.setState({
+        errors: {queries: [{fields: t('No columns selected')}]},
+        loading: false,
+      });
+      return;
+    }
+    this.setState({queries});
+
     const widgetData: Widget = {
       title: this.state.title,
       interval: this.state.interval,
-      queries: this.state.queries,
+      queries,
       displayType: DisplayType.TABLE,
-      type: WidgetType.ISSUE,
+      widgetType: this.state.widgetType,
     };
+
     try {
       await validateWidget(api, organization.slug, widgetData);
       if (defined(onUpdateWidget) && !!previousWidget) {
@@ -117,6 +142,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
         onAddWidget(widgetData);
         addSuccessMessage(t('Added widget.'));
       }
+      closeModal();
     } catch (err) {
       errors = mapErrors(err?.responseJSON ?? {}, {});
       this.setState({errors});
@@ -135,7 +161,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
         from: 'dashboards',
         field,
         value,
-        widgetType: 'issue',
+        widget_type: 'issue',
         organization,
       });
 
@@ -175,6 +201,7 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
       : start && end
       ? {...selection, datetime: {start, end, period: '', utc: null}}
       : selection;
+    const fieldOptions = generateIssueWidgetFieldOptions();
 
     const isUpdatingWidget = defined(onUpdateWidget) && !!previousWidget;
 
@@ -208,9 +235,10 @@ class AddDashboardIssueWidgetModal extends React.Component<Props, State> {
           <IssueWidgetQueriesForm
             organization={organization}
             selection={querySelection}
+            fieldOptions={fieldOptions}
             query={state.queries[0]}
-            error={errors?.query}
-            onChange={(widgetQuery: WidgetQuery) => this.handleQueryChange(widgetQuery)}
+            error={errors?.queries?.[0]}
+            onChange={this.handleQueryChange}
           />
           <IssueWidgetCard
             api={api}

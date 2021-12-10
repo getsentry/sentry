@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 from django.conf.global_settings import *  # NOQA
 
 import sentry
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -786,11 +787,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
     },
-    "check-symbolicator-lpq-project-eligibility": {
-        "task": "sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
-        "schedule": timedelta(seconds=10),
-        "options": {"expires": 10},
-    },
 }
 
 BGTASKS = {
@@ -922,6 +918,8 @@ SENTRY_FEATURES = {
     "organizations:event-attachments-viewer": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
+    # Enable Dynamic Sampling errors in the org settings
+    "organizations:filters-and-sampling-error-rules": False,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -936,6 +934,8 @@ SENTRY_FEATURES = {
     "organizations:discover-top-events": False,
     # Enable Performance view
     "organizations:performance-view": True,
+    # Enable profiling
+    "organizations:profiling": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1002,8 +1002,8 @@ SENTRY_FEATURES = {
     "organizations:sentry-app-debugging": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable widget resizing in dashboards
-    "organizations:dashboard-widget-resizing": False,
+    # Enable react-grid-layout dashboards
+    "organizations:dashboard-grid-layout": False,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
@@ -1029,16 +1029,14 @@ SENTRY_FEATURES = {
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
-    # Enable views for tag explorer
-    "organizations:performance-tag-explorer": True,
-    # Enable views for tag page
-    "organizations:performance-tag-page": True,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
     # Enable views for transaction events page in performance
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
+    # Enable mobile vitals
+    "organizations:performance-mobile-vitals": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
@@ -1050,14 +1048,10 @@ SENTRY_FEATURES = {
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
-    # Automatically opt IN users to receiving Slack notifications.
-    "organizations:notification-slack-automatic": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
-    # Enable the sentryapp logo upload feature
-    "organizations:sentry-app-logo-upload": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
@@ -1097,8 +1091,6 @@ SENTRY_FEATURES = {
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
-    # send organization request notifications through Slack
-    "organizations:slack-requests": False,
     # Enable team insights page
     "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.
@@ -1191,6 +1183,9 @@ SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
 
 # sample rate for the relay projectconfig endpoint
 SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
+
+# sample rate for relay's cache invalidation task
+SENTRY_RELAY_TASK_APM_SAMPLING = 0
 
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
@@ -1336,6 +1331,15 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_OPTIONS = {}
+# These values were determined from analysis on one week of api access logs
+SENTRY_RATELIMITER_DEFAULT_IP = 1000
+SENTRY_RATELIMITER_DEFAULT_USER = 3230
+SENTRY_RATELIMITER_DEFAULT_ORG = 620
+SENTRY_RATELIMITER_DEFAULTS = {
+    RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),
+    RateLimitCategory.USER: RateLimit(SENTRY_RATELIMITER_DEFAULT_USER, 1),
+    RateLimitCategory.ORGANIZATION: RateLimit(SENTRY_RATELIMITER_DEFAULT_ORG, 1),
+}
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
@@ -1907,6 +1911,9 @@ SENTRY_DEVSERVICES = {
     ),
 }
 
+# Max file size for serialized file uploads in API
+SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000
+
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
 
@@ -2201,10 +2208,12 @@ KAFKA_OUTCOMES = "outcomes"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
+KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
     "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
 }
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
@@ -2226,6 +2235,10 @@ KAFKA_TOPICS = {
     KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {
         "cluster": "default",
         "topic": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+    },
+    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {
+        "cluster": "default",
+        "topic": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
     },
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
@@ -2386,7 +2399,7 @@ SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 #
 # Currently, only redis is supported.
 SENTRY_REALTIME_METRICS_BACKEND = (
-    "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore"
+    "sentry.processing.realtime_metrics.dummy.DummyRealtimeMetricsStore"
 )
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.

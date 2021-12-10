@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import RecoveryOptionsModal from 'app/components/modals/recoveryOptionsModal';
+import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal';
 
 describe('RecoveryOptionsModal', function () {
   const closeModal = jest.fn();

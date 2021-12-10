@@ -1,4 +1,5 @@
 import {cloneElement, Component, isValidElement} from 'react';
+import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -7,28 +8,33 @@ import {
   createDashboard,
   deleteDashboard,
   updateDashboard,
-} from 'app/actionCreators/dashboards';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
+} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openAddDashboardIssueWidgetModal,
   openDashboardWidgetLibraryModal,
-} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import HookOrDefault from 'app/components/hookOrDefault';
-import * as Layout from 'app/components/layouts/thirds';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
+import GridLayoutDashboard, {
+  assignTempId,
+  constructGridItemKey,
+} from './gridLayout/dashboard';
+import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
-import Dashboard from './dashboard';
+import DnDKitDashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import DashboardTitle from './title';
 import {DashboardDetails, DashboardListItem, DashboardState, Widget} from './types';
@@ -51,7 +57,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   route: PlainRoute;
-  reloadData?: () => void;
+  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
 };
 
@@ -59,12 +65,14 @@ type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetToBeUpdated?: Widget;
+  layout: RGLLayout[];
 };
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
+    layout: getDashboardLayout(this.props.organization.id, this.props.dashboard.id),
   };
 
   componentDidMount() {
@@ -232,7 +240,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCancel = () => {
-    const {organization, location, params} = this.props;
+    const {organization, dashboard, location, params} = this.props;
     if (params.dashboardId) {
       trackAnalyticsEvent({
         eventKey: 'dashboards2.edit.cancel',
@@ -242,6 +250,7 @@ class DashboardDetail extends Component<Props, State> {
       this.setState({
         dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
+        layout: getDashboardLayout(organization.id, dashboard.id),
       });
       return;
     }
@@ -257,7 +266,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddWidget = () => {
-    const {organization, dashboard, api, reloadData, location} = this.props;
+    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
@@ -267,15 +276,15 @@ class DashboardDetail extends Component<Props, State> {
       onAddWidget: (widgets: Widget[]) => {
         const modifiedDashboard = {
           ...cloneDashboard(dashboard),
-          widgets,
+          widgets: widgets.map(assignTempId),
         };
+        this.setState({modifiedDashboard});
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
-            addSuccessMessage(t('Dashboard updated'));
-
-            if (reloadData) {
-              reloadData();
+            if (onDashboardUpdate) {
+              onDashboardUpdate(newDashboard);
             }
+            addSuccessMessage(t('Dashboard updated'));
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -292,15 +301,39 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  /**
+   * Saves a dashboard layout where the layout keys are replaced with the IDs of new widgets.
+   */
+  saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
+    const {layout} = this.state;
+    if (layout.length !== newWidgets.length) {
+      throw new Error('Expected layouts and widgets to be the same length');
+    }
+
+    const newLayout = layout.map((widgetLayout, index) => ({
+      ...widgetLayout,
+      i: constructGridItemKey(newWidgets[index]),
+    }));
+    saveDashboardLayout(organizationId, dashboardId, newLayout);
+    this.setState({layout: newLayout, modifiedDashboard: null});
+  };
+
   onCommit = () => {
-    const {api, organization, location, dashboard, reloadData} = this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (organization.features.includes('dashboard-grid-layout')) {
+                this.saveLayoutWithNewWidgets(
+                  organization.id,
+                  newDashboard.id,
+                  newDashboard.widgets
+                );
+              }
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.create.complete',
@@ -326,6 +359,12 @@ class DashboardDetail extends Component<Props, State> {
         break;
       }
       case DashboardState.EDIT: {
+        // TODO(nar): This should only fire when there are changes to the layout
+        // and the dashboard can be successfully saved
+        if (organization.features.includes('dashboard-grid-layout')) {
+          saveDashboardLayout(organization.id, dashboard.id, layout);
+        }
+
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
           if (isEqual(dashboard, modifiedDashboard)) {
@@ -337,6 +376,17 @@ class DashboardDetail extends Component<Props, State> {
           }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (onDashboardUpdate) {
+                onDashboardUpdate(newDashboard);
+              }
+
+              if (organization.features.includes('dashboard-grid-layout')) {
+                this.saveLayoutWithNewWidgets(
+                  organization.id,
+                  newDashboard.id,
+                  newDashboard.widgets
+                );
+              }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.edit.complete',
@@ -348,9 +398,6 @@ class DashboardDetail extends Component<Props, State> {
                 modifiedDashboard: null,
               });
 
-              if (reloadData) {
-                reloadData();
-              }
               if (dashboard && newDashboard.id !== dashboard.id) {
                 browserHistory.replace({
                   pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -393,6 +440,10 @@ class DashboardDetail extends Component<Props, State> {
     this.setState({widgetToBeUpdated: widget});
   };
 
+  onLayoutChange = (layout: RGLLayout[]) => {
+    this.setState({layout});
+  };
+
   onUpdateWidget = (widgets: Widget[]) => {
     const {modifiedDashboard} = this.state;
 
@@ -413,16 +464,32 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddIssueWidget = () => {
-    const {organization, dashboard} = this.props;
+    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
 
     openAddDashboardIssueWidgetModal({
       organization,
       onAddWidget: widget => {
-        this.setState({
-          dashboardState: DashboardState.EDIT,
-          modifiedDashboard: cloneDashboard(dashboard),
-        });
-        this.onUpdateWidget([...dashboard.widgets, widget]);
+        const modifiedDashboard = {
+          ...dashboard,
+          widgets: [...dashboard.widgets, assignTempId(widget)],
+        };
+        updateDashboard(api, organization.slug, modifiedDashboard).then(
+          (newDashboard: DashboardDetails) => {
+            if (onDashboardUpdate) {
+              onDashboardUpdate(newDashboard);
+            }
+            if (dashboard && newDashboard.id !== dashboard.id) {
+              browserHistory.replace({
+                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                query: {
+                  ...location.query,
+                },
+              });
+              return;
+            }
+          },
+          () => undefined
+        );
       },
     });
   };
@@ -442,8 +509,19 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDefaultDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
+
+    const dashboardProps = {
+      paramDashboardId: dashboardId,
+      dashboard: modifiedDashboard ?? dashboard,
+      organization,
+      isEditing: this.isEditing,
+      onUpdate: this.onUpdateWidget,
+      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
+      router,
+      location,
+    };
 
     return (
       <GlobalSelectionHeader
@@ -475,19 +553,19 @@ class DashboardDetail extends Component<Props, State> {
                 onDelete={this.onDelete(dashboard)}
                 onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
+                widgetCount={dashboard.widgets.length}
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
-            <Dashboard
-              paramDashboardId={dashboardId}
-              dashboard={modifiedDashboard ?? dashboard}
-              organization={organization}
-              isEditing={this.isEditing}
-              onUpdate={this.onUpdateWidget}
-              onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-              router={router}
-              location={location}
-            />
+            {organization.features.includes('dashboard-grid-layout') ? (
+              <GridLayoutDashboard
+                {...dashboardProps}
+                layout={layout}
+                onLayoutChange={this.onLayoutChange}
+              />
+            ) : (
+              <DnDKitDashboard {...dashboardProps} />
+            )}
           </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
@@ -497,8 +575,20 @@ class DashboardDetail extends Component<Props, State> {
   renderDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location, newWidget} =
       this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
+
+    const dashboardProps = {
+      paramDashboardId: dashboardId,
+      dashboard: modifiedDashboard ?? dashboard,
+      organization,
+      isEditing: this.isEditing,
+      onUpdate: this.onUpdateWidget,
+      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
+      router,
+      location,
+      newWidget,
+    };
 
     return (
       <GlobalSelectionHeader
@@ -512,64 +602,65 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <NoProjectMessage organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: t('Dashboards'),
-                    to: `/organizations/${organization.slug}/dashboards/`,
-                  },
-                  {
-                    label:
-                      dashboardState === DashboardState.CREATE
-                        ? t('Create Dashboard')
-                        : organization.features.includes('dashboards-edit') &&
-                          dashboard.id === 'default-overview'
-                        ? 'Default Dashboard'
-                        : this.dashboardTitle,
-                  },
-                ]}
-              />
-              <Layout.Title>
-                <DashboardTitle
-                  dashboard={modifiedDashboard ?? dashboard}
-                  onUpdate={this.setModifiedDashboard}
-                  isEditing={this.isEditing}
+        <StyledPageContent>
+          <NoProjectMessage organization={organization}>
+            <Layout.Header>
+              <Layout.HeaderContent>
+                <Breadcrumbs
+                  crumbs={[
+                    {
+                      label: t('Dashboards'),
+                      to: `/organizations/${organization.slug}/dashboards/`,
+                    },
+                    {
+                      label:
+                        dashboardState === DashboardState.CREATE
+                          ? t('Create Dashboard')
+                          : organization.features.includes('dashboards-edit') &&
+                            dashboard.id === 'default-overview'
+                          ? 'Default Dashboard'
+                          : this.dashboardTitle,
+                    },
+                  ]}
                 />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <Controls
-                organization={organization}
-                dashboards={dashboards}
-                onEdit={this.onEdit}
-                onCancel={this.onCancel}
-                onCommit={this.onCommit}
-                onAddWidget={this.onAddWidget}
-                onDelete={this.onDelete(dashboard)}
-                onAddIssueWidget={this.onAddIssueWidget}
-                dashboardState={dashboardState}
-              />
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <Dashboard
-                paramDashboardId={dashboardId}
-                dashboard={modifiedDashboard ?? dashboard}
-                organization={organization}
-                isEditing={this.isEditing}
-                onUpdate={this.onUpdateWidget}
-                onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-                router={router}
-                location={location}
-                newWidget={newWidget}
-              />
-            </Layout.Main>
-          </Layout.Body>
-        </NoProjectMessage>
+                <Layout.Title>
+                  <DashboardTitle
+                    dashboard={modifiedDashboard ?? dashboard}
+                    onUpdate={this.setModifiedDashboard}
+                    isEditing={this.isEditing}
+                  />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <Controls
+                  organization={organization}
+                  dashboards={dashboards}
+                  onEdit={this.onEdit}
+                  onCancel={this.onCancel}
+                  onCommit={this.onCommit}
+                  onAddWidget={this.onAddWidget}
+                  onDelete={this.onDelete(dashboard)}
+                  onAddIssueWidget={this.onAddIssueWidget}
+                  dashboardState={dashboardState}
+                  widgetCount={dashboard.widgets.length}
+                />
+              </Layout.HeaderActions>
+            </Layout.Header>
+            <Layout.Body>
+              <Layout.Main fullWidth>
+                {organization.features.includes('dashboard-grid-layout') ? (
+                  <GridLayoutDashboard
+                    {...dashboardProps}
+                    layout={layout}
+                    onLayoutChange={this.onLayoutChange}
+                  />
+                ) : (
+                  <DnDKitDashboard {...dashboardProps} />
+                )}
+              </Layout.Main>
+            </Layout.Body>
+          </NoProjectMessage>
+        </StyledPageContent>
       </GlobalSelectionHeader>
     );
   }
@@ -603,6 +694,10 @@ const StyledPageHeader = styled('div')`
     grid-column-gap: ${space(2)};
     height: 40px;
   }
+`;
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
 `;
 
 export default withApi(withOrganization(DashboardDetail));

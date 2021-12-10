@@ -118,7 +118,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
         mock_send_invite_email.assert_called_once_with()
 
-    @patch("sentry.utils.ratelimits.for_organization_member_invite")
+    @patch("sentry.ratelimits.for_organization_member_invite")
     @patch("sentry.models.OrganizationMember.send_invite_email")
     def test_rate_limited(self, mock_send_invite_email, mock_rate_limit):
         mock_rate_limit.return_value = True

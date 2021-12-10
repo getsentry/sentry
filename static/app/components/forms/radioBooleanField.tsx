@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import InputField from 'app/components/forms/inputField';
-import {defined} from 'app/utils';
+import InputField from 'sentry/components/forms/inputField';
+import {defined} from 'sentry/utils';
 
 type Props = {
   yesLabel: string;

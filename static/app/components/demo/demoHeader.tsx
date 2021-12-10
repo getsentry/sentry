@@ -1,19 +1,19 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import LogoSentry from 'app/components/logoSentry';
-import {t} from 'app/locale';
-import PreferencesStore from 'app/stores/preferencesStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
-import space from 'app/styles/space';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LogoSentry from 'sentry/components/logoSentry';
+import {t} from 'sentry/locale';
+import PreferencesStore from 'sentry/stores/preferencesStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
   urlAttachQueryParams,
-} from 'app/utils/demoMode';
-import getCookie from 'app/utils/getCookie';
+} from 'sentry/utils/demoMode';
+import getCookie from 'sentry/utils/getCookie';
 
 export default function DemoHeader() {
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox

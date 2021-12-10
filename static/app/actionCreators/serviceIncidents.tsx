@@ -1,5 +1,5 @@
-import ConfigStore from 'app/stores/configStore';
-import {SentryServiceIncident, SentryServiceStatus} from 'app/types';
+import ConfigStore from 'sentry/stores/configStore';
+import {SentryServiceIncident, SentryServiceStatus} from 'sentry/types';
 
 type IncidentImpact = SentryServiceStatus['indicator'];
 

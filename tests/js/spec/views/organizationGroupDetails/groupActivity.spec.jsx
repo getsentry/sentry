@@ -2,13 +2,13 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import NoteInput from 'app/components/activity/note/input';
-import ConfigStore from 'app/stores/configStore';
-import GroupStore from 'app/stores/groupStore';
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
+import NoteInput from 'sentry/components/activity/note/input';
+import ConfigStore from 'sentry/stores/configStore';
+import GroupStore from 'sentry/stores/groupStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {GroupActivity} from 'sentry/views/organizationGroupDetails/groupActivity';
 
 describe('GroupActivity', function () {
   let project;
@@ -64,6 +64,28 @@ describe('GroupActivity', function () {
     });
     expect(wrapper.find('GroupActivityItem').text()).toContain(
       'marked this issue as reviewed'
+    );
+  });
+
+  it('renders a assigned to self activity', function () {
+    const user = TestStubs.User({id: '301', name: 'Mark'});
+    const wrapper = createWrapper({
+      activity: [
+        {
+          data: {
+            assignee: user.id,
+            assigneeEmail: user.email,
+            assigneeType: 'user',
+          },
+          dateCreated: '2021-10-01T15:31:38.950115Z',
+          id: '117',
+          type: 'assigned',
+          user,
+        },
+      ],
+    });
+    expect(wrapper.find('GroupActivityItem').text()).toContain(
+      'assigned this issue to themselves'
     );
   });
 

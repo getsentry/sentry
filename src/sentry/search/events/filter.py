@@ -1112,23 +1112,22 @@ class QueryFilter(QueryFields):
     ) -> Tuple[List[WhereType], List[WhereType]]:
         parsed_terms = self.parse_query(query)
 
+        self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
         if any(
             isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
             for term in parsed_terms
         ):
-            where, having = self.resolve_boolean_conditions(parsed_terms)
-            if not use_aggregate_conditions:
-                having = []
+            where, having = self.resolve_boolean_conditions(parsed_terms, use_aggregate_conditions)
         else:
             where = self.resolve_where(parsed_terms)
-            having = self.resolve_having(parsed_terms) if use_aggregate_conditions else []
+            having = self.resolve_having(parsed_terms, use_aggregate_conditions)
         return where, having
 
     def resolve_boolean_conditions(
-        self, terms: ParsedTerms
+        self, terms: ParsedTerms, use_aggregate_conditions: bool
     ) -> Tuple[List[WhereType], List[WhereType]]:
         if len(terms) == 1:
-            return self.resolve_boolean_condition(terms[0])
+            return self.resolve_boolean_condition(terms[0], use_aggregate_conditions)
 
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
@@ -1173,8 +1172,8 @@ class QueryFilter(QueryFields):
             lhs, rhs = terms[:1], terms[1:]
             operator = And
 
-        lhs_where, lhs_having = self.resolve_boolean_conditions(lhs)
-        rhs_where, rhs_having = self.resolve_boolean_conditions(rhs)
+        lhs_where, lhs_having = self.resolve_boolean_conditions(lhs, use_aggregate_conditions)
+        rhs_where, rhs_having = self.resolve_boolean_conditions(rhs, use_aggregate_conditions)
 
         if operator == Or and (lhs_where or rhs_where) and (lhs_having or rhs_having):
             raise InvalidSearchQuery(
@@ -1203,17 +1202,17 @@ class QueryFilter(QueryFields):
             return [operator(conditions=combined_conditions)]
 
     def resolve_boolean_condition(
-        self, term: ParsedTerm
+        self, term: ParsedTerm, use_aggregate_conditions: bool
     ) -> Tuple[List[WhereType], List[WhereType]]:
         if isinstance(term, ParenExpression):
-            return self.resolve_boolean_conditions(term.children)
+            return self.resolve_boolean_conditions(term.children, use_aggregate_conditions)
 
         where, having = [], []
 
         if isinstance(term, SearchFilter):
             where = self.resolve_where([term])
         elif isinstance(term, AggregateFilter):
-            having = self.resolve_having([term])
+            having = self.resolve_having([term], use_aggregate_conditions)
 
         return where, having
 
@@ -1229,9 +1228,14 @@ class QueryFilter(QueryFields):
 
         return where_conditions
 
-    def resolve_having(self, parsed_terms: ParsedTerms) -> List[WhereType]:
+    def resolve_having(
+        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
+    ) -> List[WhereType]:
         """Given a list of parsed terms, construct their equivalent snql having
         conditions, filtering only for aggregate conditions"""
+
+        if not use_aggregate_conditions:
+            return []
 
         having_conditions: List[WhereType] = []
         for term in parsed_terms:

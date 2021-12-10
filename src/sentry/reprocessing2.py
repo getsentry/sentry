@@ -27,7 +27,7 @@ How reprocessing works
    A group redirect is installed. The old group is deleted, while the new group
    is unresolved. This effectively unsets the REPROCESSING status.
 
-   A user looking at the progressbar on the old group's URL is supposed to be
+   A user looking at the progress bar on the old group's URL is supposed to be
    redirected at this point. The new group can either:
 
    a. Have events by itself, but also show a success message based on the data in activity.
@@ -93,7 +93,7 @@ from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
-from sentry.utils import json, snuba
+from sentry.utils import json, metrics, snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import redis_clusters
@@ -264,8 +264,25 @@ def reprocess_event(project_id, event_id, start_time):
     )
 
 
-def delete_old_primary_hash(event):
-    """In case the primary hash changed during reprocessing, we need to tell
+def get_original_group_id(event):
+    return get_path(event.data, "contexts", "reprocessing", "original_issue_id")
+
+
+def get_original_primary_hash(event):
+    return get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
+
+
+def buffered_delete_old_primary_hash(
+    project_id,
+    group_id,
+    event_id=None,
+    datetime=None,
+    old_primary_hash=None,
+    current_primary_hash=None,
+    force_flush_batch: bool = False,
+):
+    """
+    In case the primary hash changed during reprocessing, we need to tell
     Snuba before reinserting the event. Snuba may then insert a tombstone row
     depending on whether the primary_hash is part of the PK/sortkey or not.
 
@@ -275,19 +292,107 @@ def delete_old_primary_hash(event):
     If the primary_hash is not part of the PK/sortkey, or if the primary_hash
     did not change, nothing needs to be done as ClickHouse's table merge will
     merge the two rows together.
+
+    Like `buffered_handle_remaining_events`, this is a quick and dirty way to
+    batch event IDs so requests to tombstone rows are not being individually
+    sent over to Snuba.
+
+    This also includes the same constraints for optimal performance as
+    `buffered_handle_remaining_events` in that events being fed to this should
+    have datetimes as close to each other as possible. Unfortunately, this
+    function is invoked by tasks that are run asynchronously and therefore the
+    guarantee from `buffered_handle_remaining_events` regarding events being
+    sorted by timestamps is not applicable here.
+
+    This function also does not batch events which have different old primary
+    hashes together into one operation. This means that if the data being fed
+    in tends to have a 1:1 ratio of event:old primary hashes, then the buffering
+    in this effectively does nothing.
     """
 
-    old_primary_hash = get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
+    from sentry import killswitches
 
-    if old_primary_hash is not None and old_primary_hash != event.get_primary_hash():
-        from sentry import eventstream
+    if killswitches.killswitch_matches_context(
+        "reprocessing2.drop-delete-old-primary-hash", {"project_id": project_id}
+    ):
+        return
 
-        eventstream.tombstone_events_unsafe(
-            event.project_id,
-            [event.event_id],
-            old_primary_hash=old_primary_hash,
-            from_timestamp=event.datetime,
-            to_timestamp=event.datetime,
+    client = _get_sync_redis_client()
+
+    # This is a meta key that contains old primary hashes. These hashes are then
+    # combined with other values to construct a key that points to a list of
+    # tombstonable events.
+    primary_hash_set_key = f"re2:tombstone-primary-hashes:{project_id}:{group_id}"
+    old_primary_hashes = client.smembers(primary_hash_set_key)
+
+    def build_event_key(primary_hash):
+        return f"re2:tombstones:{{{project_id}:{group_id}:{primary_hash}}}"
+
+    if old_primary_hash is not None and old_primary_hash != current_primary_hash:
+        event_key = build_event_key(old_primary_hash)
+        client.lpush(event_key, f"{to_timestamp(datetime)};{event_id}")
+        client.expire(event_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+
+        if old_primary_hash not in old_primary_hashes:
+            old_primary_hashes.add(old_primary_hash)
+            client.sadd(primary_hash_set_key, old_primary_hash)
+            client.expire(primary_hash_set_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+
+    # Events for a group are split and bucketed by their primary hashes. If flushing is to be
+    # performed on a per-group basis, the event count needs to be summed up across all buckets
+    # belonging to a single group.
+    event_count = 0
+    for primary_hash in old_primary_hashes:
+        key = build_event_key(primary_hash)
+        event_count += client.llen(key)
+
+    if force_flush_batch or event_count > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
+        with sentry_sdk.start_span(
+            op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
+        ):
+            for primary_hash in old_primary_hashes:
+                event_key = build_event_key(primary_hash)
+                event_ids, from_date, to_date = pop_batched_events_from_redis(event_key)
+
+                # Racing might be happening between two different tasks. Give up on the
+                # task that's lagging behind by prematurely terminating flushing.
+                if len(event_ids) == 0:
+                    with sentry_sdk.configure_scope() as scope:
+                        scope.set_tag("project_id", project_id)
+                        scope.set_tag("old_group_id", group_id)
+                        scope.set_tag("old_primary_hash", old_primary_hash)
+
+                    logger.error("reprocessing2.buffered_delete_old_primary_hash.empty_batch")
+                    return
+
+                from sentry import eventstream
+
+                # In the worst case scenario, a group will have a 1:1 mapping of primary hashes to
+                # events, which means 1 insert per event.
+                # The overall performance of this will be marginally better than the unbatched version
+                # if a group has a lot of old primary hashes.
+                eventstream.tombstone_events_unsafe(
+                    project_id,
+                    event_ids,
+                    old_primary_hash=old_primary_hash,
+                    from_timestamp=from_date,
+                    to_timestamp=to_date,
+                )
+
+        # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
+        # event per hash, a different solution may need to be considered.
+        ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
+        metrics.timing(
+            key="reprocessing2.buffered_delete_old_primary_hash.event_count",
+            value=event_count,
+        )
+        metrics.timing(
+            key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_count",
+            value=len(old_primary_hashes),
+        )
+        metrics.timing(
+            key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
+            value=ratio,
         )
 
 
@@ -409,7 +514,12 @@ def buffered_handle_remaining_events(
         )
 
 
-def pop_remaining_event_ids_from_redis(key):
+def pop_batched_events_from_redis(key):
+    """
+    For redis key pointing to a list of buffered events structured like
+    `event id;datetime of event`, returns a list of event IDs, the
+    earliest datetime, and the latest datetime.
+    """
     client = _get_sync_redis_client()
     event_ids_batch = []
     min_datetime = None

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Column, generateFieldAsString} from 'app/utils/discover/fields';
-import ArithmeticInput from 'app/views/eventsV2/table/arithmeticInput';
+import {Column, generateFieldAsString} from 'sentry/utils/discover/fields';
+import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
 
 describe('ArithmeticInput', function () {
   let wrapper;

@@ -1,3 +1,4 @@
+import time
 from copy import deepcopy
 from typing import Optional
 from unittest import mock
@@ -5,6 +6,7 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.models import ApiToken
+from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics import _METRICS
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -282,9 +284,7 @@ class OrganizationMetricDataTest(APITestCase):
 
     @with_feature(FEATURE_FLAG)
     def test_invalid_filter(self):
-
         for query in [
-            "%w45698u",
             "release:foo or ",
         ]:
 
@@ -299,21 +299,69 @@ class OrganizationMetricDataTest(APITestCase):
 
     @with_feature(FEATURE_FLAG)
     def test_valid_filter(self):
+        query = "release:myapp@2.0.0"
+        response = self.get_success_response(
+            self.project.organization.slug,
+            field="sum(session)",
+            groupBy="environment",
+            query=query,
+        )
+        assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
 
-        for query in [
-            "release:",  # Empty string is OK
-            "release:myapp@2.0.0",
-            "release:myapp@2.0.0 and environment:production",
-            "release:myapp@2.0.0 and environment:production or session.status:healthy",
-        ]:
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_unknown(self):
+        response = self.get_response(
+            self.project.organization.slug, field="sum(session)", orderBy="foo"
+        )
+        assert response.status_code == 400
 
-            response = self.get_success_response(
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_tag(self):
+        """Order by tag is not supported (yet)"""
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(session)",
+            groupBy="environment",
+            orderBy="environment",
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_2(self):
+        """Only one field is supported with order by"""
+        response = self.get_response(
+            self.project.organization.slug,
+            field=["sum(session)", "count_unique(user)"],
+            orderBy=["sum(session)"],
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile(self):
+        """Order by tag is not supported yet"""
+        response = self.get_response(
+            self.project.organization.slug, field="p95(session)", orderBy="p95(session)"
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_limit_without_orderby(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(session)",
+            limit=3,
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_limit_invalid(self):
+        for limit in (-1, 0, "foo"):
+            response = self.get_response(
                 self.project.organization.slug,
                 field="sum(session)",
-                groupBy="environment",
-                query=query,
+                limit=limit,
             )
-            assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
+            assert response.status_code == 400
 
 
 class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
@@ -351,3 +399,347 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
 
         # Request for single project gives a counter of one:
         assert count_sessions(project_id=self.project2.id) == 1
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby(self):
+        # Record some strings
+        metric_id = indexer.record("measurements.lcp")
+        k_transaction = indexer.record("transaction")
+        v_foo = indexer.record("/foo")
+        v_bar = indexer.record("/bar")
+        v_baz = indexer.record("/baz")
+        k_rating = indexer.record("measurement_rating")
+        v_good = indexer.record("good")
+        v_meh = indexer.record("meh")
+        v_poor = indexer.record("poor")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id,
+                    "timestamp": int(time.time()),
+                    "tags": {
+                        k_transaction: v_transaction,
+                        k_rating: v_rating,
+                    },
+                    "type": "d",
+                    "value": count
+                    * [123.4],  # count decides the cardinality of this distribution bucket
+                    "retention_days": 90,
+                }
+                for v_transaction, count in ((v_foo, 1), (v_bar, 3), (v_baz, 2))
+                for v_rating in (v_good, v_meh, v_poor)
+            ],
+            entity="metrics_distributions",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="count(measurements.lcp)",
+            query="measurement_rating:poor",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy="transaction",
+            orderBy="-count(measurements.lcp)",
+            limit=2,
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar", 3),
+            ("/baz", 2),
+        ]
+        for (expected_transaction, expected_count), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert "series" not in group
+            assert group["by"] == {"transaction": expected_transaction}
+            totals = group["totals"]
+            assert totals == {"count(measurements.lcp)": expected_count}
+
+    @with_feature(FEATURE_FLAG)
+    def test_unknown_groupby(self):
+        """Use a tag name in groupby that does not exist in the indexer"""
+        # Insert session metrics:
+        self.store_session(self.build_session(project_id=self.project.id))
+
+        # "foo" is known by indexer, "bar" is not
+        indexer.record("foo")
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["session.status", "foo"],
+        )
+
+        groups = response.data["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {"session.status": "init", "foo": None}
+
+        response = self.get_response(
+            self.organization.slug,
+            field="sum(session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["session.status", "bar"],
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_unknown_filter(self):
+        """Use a tag key/value in filter that does not exist in the indexer"""
+        # Insert session metrics:
+        self.store_session(self.build_session(project_id=self.project.id))
+
+        response = self.get_response(
+            self.organization.slug,
+            field="sum(session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            query="foo:123",  # Unknown tag key
+        )
+        print(response.data)
+        assert response.status_code == 400
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            query="release:123",  # Unknown tag value is fine.
+        )
+
+        groups = response.data["groups"]
+        assert len(groups) == 0
+
+
+class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+        now = int(time.time())
+
+        # TODO: move _send to SnubaMetricsTestCase
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("metric1"),
+                    "timestamp": now,
+                    "tags": {
+                        indexer.record("tag1"): indexer.record("value1"),
+                        indexer.record("tag2"): indexer.record("value2"),
+                    },
+                    "type": "c",
+                    "value": 1,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("metric1"),
+                    "timestamp": now,
+                    "tags": {
+                        indexer.record("tag3"): indexer.record("value3"),
+                    },
+                    "type": "c",
+                    "value": 1,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("metric2"),
+                    "timestamp": now,
+                    "tags": {
+                        indexer.record("tag4"): indexer.record("value3"),
+                        indexer.record("tag1"): indexer.record("value2"),
+                        indexer.record("tag2"): indexer.record("value1"),
+                    },
+                    "type": "s",
+                    "value": [123],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("metric3"),
+                    "timestamp": now,
+                    "tags": {},
+                    "type": "s",
+                    "value": [123],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+
+
+class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationTest):
+
+    endpoint = "sentry-api-0-organization-metrics-index"
+
+    @with_feature(FEATURE_FLAG)
+    def test_metrics_index(self):
+        """
+
+        Note that this test will fail once we have a metrics meta store,
+        because the setUp bypasses it.
+        """
+
+        response = self.get_success_response(
+            self.organization.slug,
+            datasource="snuba",  # TODO: remove datasource arg
+        )
+
+        assert response.data == [
+            {"name": "metric1", "type": "counter", "operations": ["sum"], "unit": None},
+            {"name": "metric2", "type": "set", "operations": ["count_unique"], "unit": None},
+            {"name": "metric3", "type": "set", "operations": ["count_unique"], "unit": None},
+        ]
+
+
+class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegrationTest):
+
+    endpoint = "sentry-api-0-organization-metric-details"
+
+    @with_feature(FEATURE_FLAG)
+    def test_metric_details(self):
+        # metric1:
+        response = self.get_success_response(
+            self.organization.slug,
+            "metric1",
+            datasource="snuba",  # TODO: remove datasource arg
+        )
+        assert response.data == {
+            "name": "metric1",
+            "type": "counter",
+            "operations": ["sum"],
+            "unit": None,
+            "tags": [
+                {"key": "tag1"},
+                {"key": "tag2"},
+                {"key": "tag3"},
+            ],
+        }
+
+        # metric2:
+        response = self.get_success_response(
+            self.organization.slug,
+            "metric2",
+            datasource="snuba",  # TODO: remove datasource arg
+        )
+        assert response.data == {
+            "name": "metric2",
+            "type": "set",
+            "operations": ["count_unique"],
+            "unit": None,
+            "tags": [
+                {"key": "tag1"},
+                {"key": "tag2"},
+                {"key": "tag4"},
+            ],
+        }
+
+        # metric3:
+        response = self.get_success_response(
+            self.organization.slug,
+            "metric3",
+            datasource="snuba",  # TODO: remove datasource arg
+        )
+        assert response.data == {
+            "name": "metric3",
+            "type": "set",
+            "operations": ["count_unique"],
+            "unit": None,
+            "tags": [],
+        }
+
+
+class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTest):
+
+    endpoint = "sentry-api-0-organization-metrics-tags"
+
+    @with_feature(FEATURE_FLAG)
+    def test_metric_tags(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            datasource="snuba",  # TODO: remove datasource arg
+        )
+        assert response.data == [
+            {"key": "tag1"},
+            {"key": "tag2"},
+            {"key": "tag3"},
+            {"key": "tag4"},
+        ]
+
+        # When metric names are supplied, get intersection of tag names:
+        response = self.get_success_response(
+            self.organization.slug,
+            datasource="snuba",  # TODO: remove datasource arg
+            metric=["metric1", "metric2"],
+        )
+        assert response.data == [
+            {"key": "tag1"},
+            {"key": "tag2"},
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            datasource="snuba",  # TODO: remove datasource arg
+            metric=["metric1", "metric2", "metric3"],
+        )
+        assert response.data == []
+
+
+class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegrationTest):
+
+    endpoint = "sentry-api-0-organization-metrics-tag-details"
+
+    @with_feature(FEATURE_FLAG)
+    def test_metric_tag_details(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            "tag1",
+            datasource="snuba",  # TODO: remove datasource arg
+        )
+        assert response.data == [
+            {"key": "tag1", "value": "value1"},
+            {"key": "tag1", "value": "value2"},
+        ]
+
+        # When single metric_name is supplied, get only tag values for that metric:
+        response = self.get_success_response(
+            self.organization.slug,
+            "tag1",
+            metric=["metric1"],
+            datasource="snuba",  # TODO: remove datasource arg
+        )
+        assert response.data == [
+            {"key": "tag1", "value": "value1"},
+        ]
+
+        # When metric names are supplied, get intersection of tags:
+        response = self.get_success_response(
+            self.organization.slug,
+            "tag1",
+            metric=["metric1", "metric2"],
+            datasource="snuba",  # TODO: remove datasource arg
+        )
+        assert response.data == []

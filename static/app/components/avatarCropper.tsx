@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import Well from 'app/components/well';
-import {AVATAR_URL_MAP} from 'app/constants';
-import {t, tct} from 'app/locale';
-import {AvatarUser} from 'app/types';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import Well from 'sentry/components/well';
+import {AVATAR_URL_MAP} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import {AvatarUser} from 'sentry/types';
 
 const resizerPositions = {
   nw: ['top', 'left'],
@@ -21,7 +21,13 @@ type Model = Pick<AvatarUser, 'avatar'>;
 type Props = {
   model: Model;
   updateDataUrlState: (opts: {savedDataUrl?: string | null; dataUrl?: string}) => void;
-  type: 'user' | 'team' | 'organization' | 'project';
+  type:
+    | 'user'
+    | 'team'
+    | 'organization'
+    | 'project'
+    | 'sentryAppColor'
+    | 'sentryAppSimple';
   savedDataUrl?: string;
 };
 

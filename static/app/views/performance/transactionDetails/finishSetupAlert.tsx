@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import PageAlertBar from 'app/components/pageAlertBar';
-import {IconLightning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import Button from 'sentry/components/button';
+import PageAlertBar from 'sentry/components/pageAlertBar';
+import {IconLightning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 export default function FinishSetupAlert({
   organization,

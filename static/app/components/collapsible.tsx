@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import Button from 'app/components/button';
-import {t, tn} from 'app/locale';
+import Button from 'sentry/components/button';
+import {t, tn} from 'sentry/locale';
 
 type CollapseButtonRenderProps = {
   onCollapse: () => void;

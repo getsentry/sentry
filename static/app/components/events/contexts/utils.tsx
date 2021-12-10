@@ -2,24 +2,26 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {t} from 'app/locale';
-import plugins from 'app/plugins';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
+import {t} from 'sentry/locale';
+import plugins from 'sentry/plugins';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 const CONTEXT_TYPES = {
-  default: require('app/components/events/contexts/default').default,
-  app: require('app/components/events/contexts/app/app').default,
-  device: require('app/components/events/contexts/device/device').default,
-  os: require('app/components/events/contexts/operatingSystem/operatingSystem').default,
-  runtime: require('app/components/events/contexts/runtime/runtime').default,
-  user: require('app/components/events/contexts/user/user').default,
-  gpu: require('app/components/events/contexts/gpu/gpu').default,
-  trace: require('app/components/events/contexts/trace/trace').default,
+  default: require('sentry/components/events/contexts/default').default,
+  app: require('sentry/components/events/contexts/app/app').default,
+  device: require('sentry/components/events/contexts/device/device').default,
+  os: require('sentry/components/events/contexts/operatingSystem/operatingSystem')
+    .default,
+  runtime: require('sentry/components/events/contexts/runtime/runtime').default,
+  browser: require('sentry/components/events/contexts/browser/browser').default,
+  user: require('sentry/components/events/contexts/user/user').default,
+  gpu: require('sentry/components/events/contexts/gpu/gpu').default,
+  trace: require('sentry/components/events/contexts/trace/trace').default,
   // 'redux.state' will be replaced with more generic context called 'state'
-  'redux.state': require('app/components/events/contexts/redux').default,
-  state: require('app/components/events/contexts/state').default,
+  'redux.state': require('sentry/components/events/contexts/redux').default,
+  state: require('sentry/components/events/contexts/state').default,
 };
 
 export function getContextComponent(type: string) {

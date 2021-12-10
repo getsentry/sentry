@@ -35,7 +35,7 @@
     "baseUrl": "../",
     "outDir": "../src/sentry/static/sentry/dist",
     "paths": {
-      "app/*": ["static/app/*"],
+      "sentry/*": ["static/app/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
       "sentry-images/*": ["static/images/*"],
       "sentry-locale/*": ["src/sentry/locale/*"],

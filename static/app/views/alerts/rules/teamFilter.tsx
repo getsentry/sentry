@@ -2,12 +2,12 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Input from 'app/components/forms/input';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import useTeams from 'app/utils/useTeams';
+import Input from 'sentry/components/forms/input';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import useTeams from 'sentry/utils/useTeams';
 
 import Filter from './filter';
 

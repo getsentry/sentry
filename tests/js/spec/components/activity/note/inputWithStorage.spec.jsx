@@ -1,10 +1,10 @@
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
-import localStorage from 'app/utils/localStorage';
+import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
+import localStorage from 'sentry/utils/localStorage';
 
-jest.mock('app/utils/localStorage');
+jest.mock('sentry/utils/localStorage');
 
 describe('NoteInputWithStorage', function () {
   const defaultProps = {

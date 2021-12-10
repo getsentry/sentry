@@ -1,24 +1,22 @@
-import React from 'react';
+import {Fragment} from 'react';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import {t} from 'app/locale';
-import {Organization, OrganizationSummary} from 'app/types';
-import withOrganizations from 'app/utils/withOrganizations';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {t} from 'sentry/locale';
+import {Organization, OrganizationSummary} from 'sentry/types';
+import {OrganizationIntegration} from 'sentry/types/integrations';
+import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
-} from 'app/views/settings/account/notifications/constants';
-import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
-import {ACCOUNT_NOTIFICATION_FIELDS} from 'app/views/settings/account/notifications/fields';
-import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
-import NotificationSettingsByOrganization from 'app/views/settings/account/notifications/notificationSettingsByOrganization';
-import NotificationSettingsByProjects from 'app/views/settings/account/notifications/notificationSettingsByProjects';
-import {
-  Identity,
-  OrganizationIntegration,
-} from 'app/views/settings/account/notifications/types';
-import UnlinkedAlert from 'app/views/settings/account/notifications/unlinkedAlert';
+} from 'sentry/views/settings/account/notifications/constants';
+import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
+import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
+import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
+import NotificationSettingsByOrganization from 'sentry/views/settings/account/notifications/notificationSettingsByOrganization';
+import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
+import {Identity} from 'sentry/views/settings/account/notifications/types';
+import UnlinkedAlert from 'sentry/views/settings/account/notifications/unlinkedAlert';
 import {
   getCurrentDefault,
   getCurrentProviders,
@@ -31,12 +29,12 @@ import {
   isSufficientlyComplex,
   mergeNotificationSettings,
   providerListToString,
-} from 'app/views/settings/account/notifications/utils';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {FieldObject} from 'app/views/settings/components/forms/type';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+} from 'sentry/views/settings/account/notifications/utils';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import {FieldObject} from 'sentry/views/settings/components/forms/type';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   notificationType: string;
@@ -228,7 +226,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const unlinkedOrgs = this.getUnlinkedOrgs();
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
         {hasSlack && unlinkedOrgs.length > 0 && (
@@ -264,7 +262,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
               onChange={this.getStateToPutForParent}
             />
           ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

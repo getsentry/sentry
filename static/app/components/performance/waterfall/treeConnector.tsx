@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
-import {getToggleTheme} from 'app/components/performance/waterfall/utils';
-import {IconChevron} from 'app/icons';
-import space from 'app/styles/space';
-import {OmitHtmlDivProps} from 'app/utils';
+import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
+import {getToggleTheme} from 'sentry/components/performance/waterfall/utils';
+import {IconChevron} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {OmitHtmlDivProps} from 'sentry/utils';
 
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 const TOGGLE_BUTTON_MAX_WIDTH = 30;

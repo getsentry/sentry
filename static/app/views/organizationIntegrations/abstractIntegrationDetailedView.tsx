@@ -3,34 +3,34 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
-import Access from 'app/components/acl/access';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel} from 'app/components/panels';
-import Tag from 'app/components/tag';
-import Tooltip from 'app/components/tooltip';
-import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'app/icons';
-import {t} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import space from 'app/styles/space';
+import Access from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel} from 'sentry/components/panels';
+import Tag from 'sentry/components/tag';
+import Tooltip from 'sentry/components/tooltip';
+import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import space from 'sentry/styles/space';
 import {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
   Organization,
-} from 'app/types';
+} from 'sentry/types';
 import {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
-} from 'app/utils/analytics/integrationAnalyticsEvents';
+} from 'sentry/utils/analytics/integrationAnalyticsEvents';
 import {
   getCategories,
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
-} from 'app/utils/integrationUtil';
-import marked, {singleLineRenderer} from 'app/utils/marked';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+} from 'sentry/utils/integrationUtil';
+import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 import IntegrationStatus from './integrationStatus';
@@ -228,6 +228,18 @@ class AbstractIntegrationDetailedView<
     return getCategories(this.featureData);
   }
 
+  renderAlert(): React.ReactNode {
+    return null;
+  }
+
+  renderAdditionalCTA(): React.ReactNode {
+    return null;
+  }
+
+  renderIntegrationIcon() {
+    return <PluginIcon pluginId={this.integrationSlug} size={50} />;
+  }
+
   renderRequestIntegrationButton() {
     return (
       <RequestIntegrationButton
@@ -275,25 +287,30 @@ class AbstractIntegrationDetailedView<
     const tags = this.cleanTags();
 
     return (
-      <Flex>
-        <PluginIcon pluginId={this.integrationSlug} size={50} />
-        <NameContainer>
-          <Flex>
-            <Name>{this.integrationName}</Name>
-            <StatusWrapper>
-              {this.installationStatus && (
-                <IntegrationStatus status={this.installationStatus} />
-              )}
-            </StatusWrapper>
-          </Flex>
-          <Flex>
-            {tags.map(feature => (
-              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
-            ))}
-          </Flex>
-        </NameContainer>
-        {this.renderAddInstallButton()}
-      </Flex>
+      <TopSectionWrapper>
+        <Flex>
+          {this.renderIntegrationIcon()}
+          <NameContainer>
+            <Flex>
+              <Name>{this.integrationName}</Name>
+              <StatusWrapper>
+                {this.installationStatus && (
+                  <IntegrationStatus status={this.installationStatus} />
+                )}
+              </StatusWrapper>
+            </Flex>
+            <Flex>
+              {tags.map(feature => (
+                <StyledTag key={feature}>{startCase(feature)}</StyledTag>
+              ))}
+            </Flex>
+          </NameContainer>
+        </Flex>
+        <Flex>
+          {this.renderAddInstallButton()}
+          {this.renderAdditionalCTA()}
+        </Flex>
+      </TopSectionWrapper>
     );
   }
 
@@ -359,6 +376,7 @@ class AbstractIntegrationDetailedView<
   renderBody() {
     return (
       <React.Fragment>
+        {this.renderAlert()}
         {this.renderTopSection()}
         {this.renderTabs()}
         {this.state.tab === 'overview'
@@ -478,6 +496,11 @@ const CreatedContainer = styled('div')`
   color: ${p => p.theme.gray300};
   font-weight: 600;
   font-size: 12px;
+`;
+
+const TopSectionWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
 `;
 
 export default AbstractIntegrationDetailedView;

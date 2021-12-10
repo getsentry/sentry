@@ -2,8 +2,8 @@ import Cookies from 'js-cookie';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import TwoFactorRequired from 'app/views/settings/account/accountSecurity/';
-import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/accountSecurityWrapper';
+import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/';
+import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
 const ORG_ENDPOINT = '/organizations/';

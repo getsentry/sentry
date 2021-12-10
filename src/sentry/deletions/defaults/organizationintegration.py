@@ -34,16 +34,21 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
         return relations
 
     def delete_instance(self, instance):
-        from sentry.models import Repository, RepositoryProjectPathConfig
+        from sentry.models import ProjectCodeOwners, Repository, RepositoryProjectPathConfig
 
         # Dissociate repos from the integration being deleted. integration
         Repository.objects.filter(
             organization_id=instance.organization_id, integration_id=instance.integration_id
         ).update(integration_id=None)
 
-        # Detach path mappings from the integration as well.
-        RepositoryProjectPathConfig.objects.filter(organization_integration_id=instance.id).update(
-            organization_integration_id=None
-        )
+        # Delete Code Owners with a Code Mapping using the OrganizationIntegration
+        ProjectCodeOwners.objects.filter(
+            repository_project_path_config__in=RepositoryProjectPathConfig.objects.filter(
+                organization_integration_id=instance.id
+            ).values_list("id", flat=True)
+        ).delete()
+
+        # Delete the Code Mappings
+        RepositoryProjectPathConfig.objects.filter(organization_integration_id=instance.id).delete()
 
         return super().delete_instance(instance)

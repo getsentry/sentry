@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {NotificationSettingsObject} from 'app/views/settings/account/notifications/constants';
-import NotificationSettings from 'app/views/settings/account/notifications/notificationSettings';
+import {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
+import NotificationSettings from 'sentry/views/settings/account/notifications/notificationSettings';
 
 const createWrapper = (notificationSettings: NotificationSettingsObject) => {
   const {routerContext} = initializeOrg();
@@ -33,8 +33,8 @@ describe('NotificationSettings', function () {
       workflow: {user: {me: {email: 'never', slack: 'never'}}},
     });
 
-    // There are 7 notification setting Selects/Toggles.
+    // There are 8 notification setting Selects/Toggles.
     const fields = wrapper.find('Field');
-    expect(fields).toHaveLength(7);
+    expect(fields).toHaveLength(8);
   });
 });

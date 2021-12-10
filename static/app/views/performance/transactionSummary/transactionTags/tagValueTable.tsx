@@ -1,27 +1,30 @@
-import React, {Component} from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
-import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import Pagination, {CursorHandler} from 'app/components/pagination';
-import {IconAdd} from 'app/icons/iconAdd';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {fieldAlignment} from 'app/utils/discover/fields';
-import {formatPercentage} from 'app/utils/formatters';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumn,
+} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {IconAdd} from 'sentry/icons/iconAdd';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {
   TableData,
   TableDataRow,
-} from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import {TableColumn} from 'app/views/eventsV2/table/types';
+} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {PerformanceDuration} from '../../utils';
 import {TagValue} from '../transactionOverview/tagExplorer';
@@ -281,7 +284,7 @@ export class TagValueTable extends Component<Props, State> {
               newColumns
             ) as any,
             renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-            onResizeColumn: this.handleResizeColumn as any,
+            onResizeColumn: this.handleResizeColumn,
           }}
           location={location}
         />

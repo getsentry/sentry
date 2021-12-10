@@ -1,18 +1,23 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
-
-import ProjectsStore from 'app/stores/projectsStore';
-import {getShortEventId} from 'app/utils/events';
 import {
-  ExampleSpan,
-  ExampleTransaction,
-  SuspectSpan,
-} from 'app/utils/performance/suspectSpans/types';
-import TransactionSpans from 'app/views/performance/transactionSummary/transactionSpans';
+  generateSuspectSpansResponse,
+  SAMPLE_SPANS,
+} from 'sentry-test/performance/initializePerformanceData';
+import {
+  act,
+  fireEvent,
+  mountWithTheme,
+  screen,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {getShortEventId} from 'sentry/utils/events';
+import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
 import {
   SpanSortOthers,
   SpanSortPercentiles,
-} from 'app/views/performance/transactionSummary/transactionSpans/types';
+} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view', 'performance-suspect-spans-view'];
@@ -35,98 +40,6 @@ function initializeData({query} = {query: {}}) {
   act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
-
-type SpanOpt = {
-  id: string;
-};
-
-type ExampleOpt = {
-  id: string;
-  description: string;
-  spans: SpanOpt[];
-};
-
-type SuspectOpt = {
-  op: string;
-  group: string;
-  examples: ExampleOpt[];
-};
-
-function makeSpan(opt: SpanOpt): ExampleSpan {
-  const {id} = opt;
-  return {
-    id,
-    startTimestamp: 10100,
-    finishTimestamp: 10200,
-    exclusiveTime: 100,
-  };
-}
-
-function makeExample(opt: ExampleOpt): ExampleTransaction {
-  const {id, description, spans} = opt;
-  return {
-    id,
-    description,
-    startTimestamp: 10000,
-    finishTimestamp: 12000,
-    nonOverlappingExclusiveTime: 2000,
-    spans: spans.map(makeSpan),
-  };
-}
-
-export function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
-  const {op, group, examples} = opt;
-  return {
-    projectId: 1,
-    project: 'bar',
-    transaction: 'transaction-1',
-    op,
-    group,
-    frequency: 1,
-    count: 1,
-    sumExclusiveTime: 1,
-    p50ExclusiveTime: 1,
-    p75ExclusiveTime: 1,
-    p95ExclusiveTime: 1,
-    p99ExclusiveTime: 1,
-    examples: examples.map(makeExample),
-  };
-}
-
-const spans = [
-  {
-    op: 'op1',
-    group: 'aaaaaaaaaaaaaaaa',
-    examples: [
-      {
-        id: 'abababababababab',
-        description: 'span-1',
-        spans: [{id: 'ababab11'}, {id: 'ababab22'}],
-      },
-      {
-        id: 'acacacacacacacac',
-        description: 'span-2',
-        spans: [{id: 'acacac11'}, {id: 'acacac22'}],
-      },
-    ],
-  },
-  {
-    op: 'op2',
-    group: 'bbbbbbbbbbbbbbbb',
-    examples: [
-      {
-        id: 'bcbcbcbcbcbcbcbc',
-        description: 'span-3',
-        spans: [{id: 'bcbcbc11'}, {id: 'bcbcbc11'}],
-      },
-      {
-        id: 'bdbdbdbdbdbdbdbd',
-        description: 'span-4',
-        spans: [{id: 'bdbdbd11'}, {id: 'bdbdbd22'}],
-      },
-    ],
-  },
-];
 
 describe('Performance > Transaction Spans', function () {
   let eventsV2Mock;
@@ -192,7 +105,7 @@ describe('Performance > Transaction Spans', function () {
     beforeEach(function () {
       eventsSpansPerformanceMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
-        body: spans.map(makeSuspectSpan),
+        body: generateSuspectSpansResponse(),
       });
     });
 
@@ -212,16 +125,19 @@ describe('Performance > Transaction Spans', function () {
       expect(cards).toHaveLength(2);
       for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
+        // need to narrow the search to the upper half of the card
+        const upper = await within(card).findByTestId('suspect-card-upper');
 
         // these headers should be present by default
-        expect(await within(card).findByText('Span Operation')).toBeInTheDocument();
-        expect(await within(card).findByText('p75 Duration')).toBeInTheDocument();
-        expect(await within(card).findByText('Frequency')).toBeInTheDocument();
+        expect(await within(upper).findByText('Span Operation')).toBeInTheDocument();
+        expect(await within(upper).findByText('p75 Exclusive Time')).toBeInTheDocument();
+        expect(await within(upper).findByText('Frequency')).toBeInTheDocument();
         expect(
-          await within(card).findByText('Total Cumulative Duration')
+          await within(upper).findByText('Total Exclusive Time')
         ).toBeInTheDocument();
 
-        for (const example of spans[i].examples) {
+        // only 2 examples show by default
+        for (const example of SAMPLE_SPANS[i].examples.slice(0, 2)) {
           expect(
             await within(card).findByText(getShortEventId(example.id))
           ).toBeInTheDocument();
@@ -234,10 +150,10 @@ describe('Performance > Transaction Spans', function () {
     });
 
     [
-      {sort: SpanSortPercentiles.P50_EXCLUSIVE_TIME, label: 'p50 Duration'},
-      {sort: SpanSortPercentiles.P75_EXCLUSIVE_TIME, label: 'p75 Duration'},
-      {sort: SpanSortPercentiles.P95_EXCLUSIVE_TIME, label: 'p95 Duration'},
-      {sort: SpanSortPercentiles.P99_EXCLUSIVE_TIME, label: 'p99 Duration'},
+      {sort: SpanSortPercentiles.P50_EXCLUSIVE_TIME, label: 'p50 Exclusive Time'},
+      {sort: SpanSortPercentiles.P75_EXCLUSIVE_TIME, label: 'p75 Exclusive Time'},
+      {sort: SpanSortPercentiles.P95_EXCLUSIVE_TIME, label: 'p95 Exclusive Time'},
+      {sort: SpanSortPercentiles.P99_EXCLUSIVE_TIME, label: 'p99 Exclusive Time'},
     ].forEach(({sort, label}) => {
       it('renders the right percentile header', async function () {
         const initialData = initializeData({query: {sort}});
@@ -253,16 +169,18 @@ describe('Performance > Transaction Spans', function () {
         expect(cards).toHaveLength(2);
         for (let i = 0; i < cards.length; i++) {
           const card = cards[i];
+          // need to narrow the search to the upper half of the card
+          const upper = await within(card).findByTestId('suspect-card-upper');
 
           // these headers should be present by default
-          expect(await within(card).findByText('Span Operation')).toBeInTheDocument();
-          expect(await within(card).findByText(label)).toBeInTheDocument();
-          expect(await within(card).findByText('Frequency')).toBeInTheDocument();
+          expect(await within(upper).findByText('Span Operation')).toBeInTheDocument();
+          expect(await within(upper).findByText(label)).toBeInTheDocument();
+          expect(await within(upper).findByText('Frequency')).toBeInTheDocument();
           expect(
-            await within(card).findByText('Total Cumulative Duration')
+            await within(upper).findByText('Total Exclusive Time')
           ).toBeInTheDocument();
 
-          const arrow = await within(card).findByTestId('span-sort-arrow');
+          const arrow = await within(upper).findByTestId('span-sort-arrow');
           expect(arrow).toBeInTheDocument();
           expect(
             await within(arrow.closest('div')!).findByText(label)
@@ -285,21 +203,54 @@ describe('Performance > Transaction Spans', function () {
       expect(cards).toHaveLength(2);
       for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
-
-        // need to narrow the search to the upper half of the card because `Occurrences` appears in the table header as well
+        // need to narrow the search to the upper half of the card
         const upper = await within(card).findByTestId('suspect-card-upper');
+
         // these headers should be present by default
         expect(await within(upper).findByText('Span Operation')).toBeInTheDocument();
-        expect(await within(upper).findByText('p75 Duration')).toBeInTheDocument();
-        expect(await within(upper).findByText('Occurrences')).toBeInTheDocument();
+        expect(await within(upper).findByText('p75 Exclusive Time')).toBeInTheDocument();
+        expect(await within(upper).findByText('Total Count')).toBeInTheDocument();
         expect(
-          await within(upper).findByText('Total Cumulative Duration')
+          await within(upper).findByText('Total Exclusive Time')
         ).toBeInTheDocument();
 
         const arrow = await within(upper).findByTestId('span-sort-arrow');
         expect(arrow).toBeInTheDocument();
         expect(
-          await within(arrow.closest('div')!).findByText('Occurrences')
+          await within(arrow.closest('div')!).findByText('Total Count')
+        ).toBeInTheDocument();
+      }
+    });
+
+    it('renders the right avg occurrence header', async function () {
+      const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
+      mountWithTheme(
+        <TransactionSpans
+          organization={initialData.organization}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      const cards = await screen.findAllByTestId('suspect-card');
+      expect(cards).toHaveLength(2);
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+        // need to narrow the search to the upper half of the card
+        const upper = await within(card).findByTestId('suspect-card-upper');
+
+        // these headers should be present by default
+        expect(await within(upper).findByText('Span Operation')).toBeInTheDocument();
+        expect(await within(upper).findByText('p75 Exclusive Time')).toBeInTheDocument();
+        expect(await within(upper).findByText('Average Count')).toBeInTheDocument();
+        expect(
+          await within(upper).findByText('Total Exclusive Time')
+        ).toBeInTheDocument();
+
+        const arrow = await within(upper).findByTestId('span-sort-arrow');
+        expect(arrow).toBeInTheDocument();
+        expect(
+          await within(arrow.closest('div')!).findByText('Average Count')
         ).toBeInTheDocument();
       }
     });
@@ -323,8 +274,56 @@ describe('Performance > Transaction Spans', function () {
         expect(await within(lower).findByText('Example Transaction')).toBeInTheDocument();
         expect(await within(lower).findByText('Timestamp')).toBeInTheDocument();
         expect(await within(lower).findByText('Span Duration')).toBeInTheDocument();
-        expect(await within(lower).findByText('Occurrences')).toBeInTheDocument();
+        expect(await within(lower).findByText('Count')).toBeInTheDocument();
         expect(await within(lower).findByText('Cumulative Duration')).toBeInTheDocument();
+      }
+    });
+
+    it('allows toggling of more examples', async function () {
+      const initialData = initializeData();
+      mountWithTheme(
+        <TransactionSpans
+          organization={initialData.organization}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      const cards = await screen.findAllByTestId('suspect-card');
+      expect(cards).toHaveLength(2);
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+
+        expect(
+          within(card).queryByText('Show More Transaction Examples')
+        ).toBeInTheDocument();
+        expect(
+          within(card).queryByText('Hide Transaction Examples')
+        ).not.toBeInTheDocument();
+
+        // only 2 examples show by default
+        for (const example of SAMPLE_SPANS[i].examples.slice(0, 2)) {
+          expect(
+            await within(card).findByText(getShortEventId(example.id))
+          ).toBeInTheDocument();
+        }
+
+        fireEvent.click(await within(card).findByText('Show More Transaction Examples'));
+
+        expect(within(card).queryByText('Hide Transaction Examples')).toBeInTheDocument();
+        expect(
+          within(card).queryByText('Show More Transaction Examples')
+        ).not.toBeInTheDocument();
+
+        // each span has 3 examples
+        expect(SAMPLE_SPANS[i].examples).toHaveLength(3);
+
+        // all the examples should be shown now
+        for (const example of SAMPLE_SPANS[i].examples) {
+          expect(
+            await within(card).findByText(getShortEventId(example.id))
+          ).toBeInTheDocument();
+        }
       }
     });
   });

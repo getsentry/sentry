@@ -1,19 +1,19 @@
-import {Component, createRef, Fragment, MouseEvent} from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownBubble from 'app/components/dropdownBubble';
-import DropdownButton from 'app/components/dropdownButton';
-import {DropdownItem} from 'app/components/dropdownControl';
-import DropdownMenu from 'app/components/dropdownMenu';
-import Tooltip from 'app/components/tooltip';
-import Truncate from 'app/components/truncate';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {SelectValue} from 'app/types';
+import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import DropdownBubble from 'sentry/components/dropdownBubble';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownItem} from 'sentry/components/dropdownControl';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import Tooltip from 'sentry/components/tooltip';
+import Truncate from 'sentry/components/truncate';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {SelectValue} from 'sentry/types';
 
 const defaultProps = {
   menuWidth: 'auto',
@@ -80,7 +80,7 @@ class OptionCheckboxSelector extends Component<Props, State> {
     return disabled || (selected.length > 2 && !selected.includes(value));
   }
 
-  handleCheckboxClick(event: MouseEvent, opt: SelectValue<string>) {
+  handleCheckboxClick(event: React.MouseEvent, opt: SelectValue<string>) {
     const {onChange} = this.props;
     event.stopPropagation();
     if (!this.shouldBeDisabled(opt)) {

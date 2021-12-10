@@ -3,8 +3,10 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.expressions import Limit
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
@@ -15,7 +17,7 @@ from sentry.utils import json
 from sentry.utils.samples import load_data
 
 
-class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase):
+class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
     FEATURES = ["organizations:performance-suspect-spans-view"]
 
     def setUp(self):
@@ -23,7 +25,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         self.login_as(user=self.user)
 
         self.url = reverse(
-            "sentry-api-0-organization-events-spans-performance",
+            self.URL,
             kwargs={"organization_slug": self.organization.slug},
         )
 
@@ -103,60 +105,10 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
 
         return self.store_event(data, project_id=self.project.id)
 
-    def suspect_span_group_snuba_results(self, op, event):
+    def suspect_span_examples_snuba_results(self, op, event):
         results = {
             "project.id": self.project.id,
             "project": self.project.slug,
-            "transaction": event.transaction,
-            "array_join_spans_op": op,
-        }
-
-        if op == "http.server":
-            results.update(
-                {
-                    "array_join_spans_group": "ab" * 8,
-                    "count_unique_id": 1,
-                    "count": 1,
-                    "sumArray_spans_exclusive_time": 4.0,
-                    "percentileArray_spans_exclusive_time_0_50": 4.0,
-                    "percentileArray_spans_exclusive_time_0_75": 4.0,
-                    "percentileArray_spans_exclusive_time_0_95": 4.0,
-                    "percentileArray_spans_exclusive_time_0_99": 4.0,
-                }
-            )
-        elif op == "django.middleware":
-            results.update(
-                {
-                    "array_join_spans_group": "cd" * 8,
-                    "count_unique_id": 1,
-                    "count": 2,
-                    "sumArray_spans_exclusive_time": 6.0,
-                    "percentileArray_spans_exclusive_time_0_50": 3.0,
-                    "percentileArray_spans_exclusive_time_0_75": 3.0,
-                    "percentileArray_spans_exclusive_time_0_95": 3.0,
-                    "percentileArray_spans_exclusive_time_0_99": 3.0,
-                }
-            )
-        elif op == "django.view":
-            results.update(
-                {
-                    "array_join_spans_group": "ef" * 8,
-                    "count_unique_id": 1,
-                    "count": 3,
-                    "sumArray_spans_exclusive_time": 3.0,
-                    "percentileArray_spans_exclusive_time_0_50": 1.0,
-                    "percentileArray_spans_exclusive_time_0_75": 1.0,
-                    "percentileArray_spans_exclusive_time_0_95": 1.0,
-                    "percentileArray_spans_exclusive_time_0_99": 1.0,
-                }
-            )
-        else:
-            assert False, f"Unexpected Op: {op}"
-
-        return results
-
-    def suspect_span_examples_snuba_results(self, op, event):
-        results = {
             "id": event.event_id,
             "array_join_spans_op": op,
         }
@@ -193,21 +145,118 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
 
         return results
 
-    def suspect_span_results(self, op, event):
+    def assert_span_results(self, result, expected_result, keys):
+        assert len(result) == len(expected_result)
+        for suspect, expected_suspect in zip(result, expected_result):
+            for key in keys:
+                assert suspect[key] == expected_suspect[key], key
+
+            assert len(suspect["examples"]) == len(expected_suspect["examples"])
+
+            for example, expected_example in zip(suspect["examples"], expected_suspect["examples"]):
+                for key in [
+                    "id",
+                    "description",
+                    "startTimestamp",
+                    "finishTimestamp",
+                    "nonOverlappingExclusiveTime",
+                ]:
+                    assert example[key] == expected_example[key], key
+
+                assert len(example["spans"]) == len(expected_example["spans"])
+
+                for span, expected_span in zip(example["spans"], expected_example["spans"]):
+                    for key in [
+                        "id",
+                        "startTimestamp",
+                        "finishTimestamp",
+                        "exclusiveTime",
+                    ]:
+                        assert span[key] == expected_span[key], key
+
+    def assert_suspect_span(self, result, expected_result):
+        self.assert_span_results(
+            result,
+            expected_result,
+            [
+                "projectId",
+                "project",
+                "transaction",
+                "op",
+                "group",
+                "frequency",
+                "count",
+                "sumExclusiveTime",
+                "p50ExclusiveTime",
+                "p75ExclusiveTime",
+                "p95ExclusiveTime",
+                "p99ExclusiveTime",
+            ],
+        )
+
+    def assert_span_examples(self, result, expected_result):
+        self.assert_span_results(result, expected_result, ["op", "group"])
+
+    def suspect_span_group_snuba_results(self, op, event):
+        results = {
+            "project.id": self.project.id,
+            "project": self.project.slug,
+            "transaction": event.transaction,
+            "array_join_spans_op": op,
+        }
+
+        if op == "http.server":
+            results.update(
+                {
+                    "array_join_spans_group": "ab" * 8,
+                    "count_unique_id": 1,
+                    "count": 1,
+                    "equation[0]": 1,
+                    "sumArray_spans_exclusive_time": 4.0,
+                    "percentileArray_spans_exclusive_time_0_50": 4.0,
+                    "percentileArray_spans_exclusive_time_0_75": 4.0,
+                    "percentileArray_spans_exclusive_time_0_95": 4.0,
+                    "percentileArray_spans_exclusive_time_0_99": 4.0,
+                }
+            )
+        elif op == "django.middleware":
+            results.update(
+                {
+                    "array_join_spans_group": "cd" * 8,
+                    "count_unique_id": 1,
+                    "count": 2,
+                    "equation[0]": 2,
+                    "sumArray_spans_exclusive_time": 6.0,
+                    "percentileArray_spans_exclusive_time_0_50": 3.0,
+                    "percentileArray_spans_exclusive_time_0_75": 3.0,
+                    "percentileArray_spans_exclusive_time_0_95": 3.0,
+                    "percentileArray_spans_exclusive_time_0_99": 3.0,
+                }
+            )
+        elif op == "django.view":
+            results.update(
+                {
+                    "array_join_spans_group": "ef" * 8,
+                    "count_unique_id": 1,
+                    "count": 3,
+                    "equation[0]": 3,
+                    "sumArray_spans_exclusive_time": 3.0,
+                    "percentileArray_spans_exclusive_time_0_50": 1.0,
+                    "percentileArray_spans_exclusive_time_0_75": 1.0,
+                    "percentileArray_spans_exclusive_time_0_95": 1.0,
+                    "percentileArray_spans_exclusive_time_0_99": 1.0,
+                }
+            )
+        else:
+            assert False, f"Unexpected Op: {op}"
+
+        return results
+
+    def span_example_results(self, op, event):
         if op == "http.server":
             return {
-                "projectId": self.project.id,
-                "project": self.project.slug,
-                "transaction": event.transaction,
                 "op": op,
                 "group": "ab" * 8,
-                "frequency": 1,
-                "count": 1,
-                "sumExclusiveTime": 4.0,
-                "p50ExclusiveTime": 4.0,
-                "p75ExclusiveTime": 4.0,
-                "p95ExclusiveTime": 4.0,
-                "p99ExclusiveTime": 4.0,
                 "examples": [
                     {
                         "id": event.event_id,
@@ -229,20 +278,10 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 ],
             }
 
-        if op == "django.middleware":
+        elif op == "django.middleware":
             return {
-                "projectId": self.project.id,
-                "project": self.project.slug,
-                "transaction": event.transaction,
                 "op": op,
                 "group": "cd" * 8,
-                "frequency": 1,
-                "count": 2,
-                "sumExclusiveTime": 6.0,
-                "p50ExclusiveTime": 3.0,
-                "p75ExclusiveTime": 3.0,
-                "p95ExclusiveTime": 3.0,
-                "p99ExclusiveTime": 3.0,
                 "examples": [
                     {
                         "id": event.event_id,
@@ -265,7 +304,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 ],
             }
 
-        if op == "django.view":
+        elif op == "django.view":
             return {
                 "projectId": self.project.id,
                 "project": self.project.slug,
@@ -301,49 +340,70 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 ],
             }
 
-        assert False, f"Unexpected Op: {op}"
+        else:
+            assert False, f"Unexpected Op: {op}"
 
-    def assert_suspect_span(self, result, expected_result):
-        assert len(result) == len(expected_result)
-        for suspect, expected_suspect in zip(result, expected_result):
-            for key in [
-                "projectId",
-                "project",
-                "transaction",
-                "op",
-                "group",
-                "frequency",
-                "count",
-                "sumExclusiveTime",
-                "p50ExclusiveTime",
-                "p75ExclusiveTime",
-                "p95ExclusiveTime",
-                "p99ExclusiveTime",
-            ]:
-                assert suspect[key] == expected_suspect[key], key
+    def suspect_span_results(self, op, event):
+        results = self.span_example_results(op, event)
 
-            assert len(suspect["examples"]) == len(expected_suspect["examples"])
+        if op == "http.server":
+            results.update(
+                {
+                    "projectId": self.project.id,
+                    "project": self.project.slug,
+                    "transaction": event.transaction,
+                    "op": op,
+                    "group": "ab" * 8,
+                    "frequency": 1,
+                    "count": 1,
+                    "sumExclusiveTime": 4.0,
+                    "p50ExclusiveTime": 4.0,
+                    "p75ExclusiveTime": 4.0,
+                    "p95ExclusiveTime": 4.0,
+                    "p99ExclusiveTime": 4.0,
+                }
+            )
 
-            for example, expected_example in zip(suspect["examples"], expected_suspect["examples"]):
-                for key in [
-                    "id",
-                    "description",
-                    "startTimestamp",
-                    "finishTimestamp",
-                    "nonOverlappingExclusiveTime",
-                ]:
-                    assert example[key] == expected_example[key], key
+        elif op == "django.middleware":
+            results.update(
+                {
+                    "projectId": self.project.id,
+                    "project": self.project.slug,
+                    "transaction": event.transaction,
+                    "frequency": 1,
+                    "count": 2,
+                    "sumExclusiveTime": 6.0,
+                    "p50ExclusiveTime": 3.0,
+                    "p75ExclusiveTime": 3.0,
+                    "p95ExclusiveTime": 3.0,
+                    "p99ExclusiveTime": 3.0,
+                }
+            )
 
-                assert len(example["spans"]) == len(expected_example["spans"])
+        elif op == "django.view":
+            results.update(
+                {
+                    "projectId": self.project.id,
+                    "project": self.project.slug,
+                    "transaction": event.transaction,
+                    "frequency": 1,
+                    "count": 3,
+                    "sumExclusiveTime": 3.0,
+                    "p50ExclusiveTime": 1.0,
+                    "p75ExclusiveTime": 1.0,
+                    "p95ExclusiveTime": 1.0,
+                    "p99ExclusiveTime": 1.0,
+                }
+            )
 
-                for span, expected_span in zip(example["spans"], expected_example["spans"]):
-                    for key in [
-                        "id",
-                        "startTimestamp",
-                        "finishTimestamp",
-                        "exclusiveTime",
-                    ]:
-                        assert span[key] == expected_span[key], key
+        else:
+            assert False, f"Unexpected Op: {op}"
+
+        return results
+
+
+class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndpointTestBase):
+    URL = "sentry-api-0-organization-events-spans-performance"
 
     def test_no_feature(self):
         response = self.client.get(self.url, format="json")
@@ -355,13 +415,132 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         self.login_as(user=user)
 
         url = reverse(
-            "sentry-api-0-organization-events-spans-performance",
+            self.URL,
             kwargs={"organization_slug": org.slug},
         )
 
         with self.feature(self.FEATURES):
             response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
+
+    def test_bad_per_suspect(self):
+        for per_suspect in [-1, 11]:
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={
+                        "project": self.project.id,
+                        "perSuspect": per_suspect,
+                    },
+                    format="json",
+                )
+            assert response.status_code == 400, response.content
+            assert response.data == {"detail": "perSuspect must be integer between 0 and 10."}
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_default_per_suspect(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [
+                    self.suspect_span_group_snuba_results("django.middleware", event),
+                    self.suspect_span_group_snuba_results("http.server", event),
+                    self.suspect_span_group_snuba_results("django.view", event),
+                ],
+            },
+            {
+                "data": [
+                    self.suspect_span_examples_snuba_results("django.middleware", event),
+                    self.suspect_span_examples_snuba_results("http.server", event),
+                    self.suspect_span_examples_snuba_results("django.view", event),
+                ],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert mock_raw_snql_query.call_count == 2
+
+        # there are 3 suspect, and the default per_suspect is 4
+        assert mock_raw_snql_query.call_args_list[1][0][0].limit == Limit(3 * 4)
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_zero_per_suspect(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [
+                    self.suspect_span_group_snuba_results("django.middleware", event),
+                    self.suspect_span_group_snuba_results("http.server", event),
+                    self.suspect_span_group_snuba_results("django.view", event),
+                ],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "perSuspect": 0,
+                },
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        # since per suspect is 0, the second query to get examples is skipped entirely
+        assert mock_raw_snql_query.call_count == 1
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_custom_per_suspect(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        for i, per_suspect in enumerate(range(1, 11)):
+            mock_raw_snql_query.side_effect = [
+                {
+                    "data": [
+                        self.suspect_span_group_snuba_results("django.middleware", event),
+                        self.suspect_span_group_snuba_results("http.server", event),
+                        self.suspect_span_group_snuba_results("django.view", event),
+                    ],
+                },
+                {
+                    "data": [
+                        self.suspect_span_examples_snuba_results("django.middleware", event),
+                        self.suspect_span_examples_snuba_results("http.server", event),
+                        self.suspect_span_examples_snuba_results("django.view", event),
+                    ],
+                },
+            ]
+
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={
+                        "project": self.project.id,
+                        "perSuspect": per_suspect,
+                    },
+                    format="json",
+                )
+
+            offset = 2 * i
+
+            assert response.status_code == 200, response.content
+            assert mock_raw_snql_query.call_count == offset + 2
+
+            # there are 3 suspect
+            assert mock_raw_snql_query.call_args_list[offset + 1][0][0].limit == Limit(
+                3 * per_suspect
+            )
 
     def test_bad_sort(self):
         with self.feature(self.FEATURES):
@@ -375,7 +554,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             )
         assert response.status_code == 400, response.content
         assert response.data == {
-            "detail": "Can only order by one of count, sumExclusiveTime, p50ExclusiveTime, p75ExclusiveTime, p95ExclusiveTime, p99ExclusiveTime"
+            "detail": "Can only order by one of count, avgOccurrence, sumExclusiveTime, p50ExclusiveTime, p75ExclusiveTime, p95ExclusiveTime, p99ExclusiveTime"
         }
 
     def test_sort_default(self):
@@ -555,6 +734,95 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_sort_avg_occurrence(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [
+                    self.suspect_span_group_snuba_results("django.view", event),
+                    self.suspect_span_group_snuba_results("django.middleware", event),
+                    self.suspect_span_group_snuba_results("http.server", event),
+                ],
+            },
+            {
+                "data": [
+                    self.suspect_span_examples_snuba_results("django.view", event),
+                    self.suspect_span_examples_snuba_results("django.middleware", event),
+                    self.suspect_span_examples_snuba_results("http.server", event),
+                ],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "sort": "-avgOccurrence",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        self.assert_suspect_span(
+            response.data,
+            [
+                self.suspect_span_results("django.view", event),
+                self.suspect_span_results("django.middleware", event),
+                self.suspect_span_results("http.server", event),
+            ],
+        )
+
+        assert mock_raw_snql_query.call_count == 2
+
+        # the first call is the get the suspects, and should be using the specified sort
+        assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
+            OrderBy(
+                exp=Function(
+                    "divide",
+                    [
+                        Function("count", [], "count"),
+                        Function(
+                            "nullIf", [Function("uniq", [Column("event_id")], "count_unique_id"), 0]
+                        ),
+                    ],
+                    "equation[0]",
+                ),
+                direction=Direction.DESC,
+            ),
+            OrderBy(
+                exp=Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+                direction=Direction.DESC,
+            ),
+        ]
+        assert (
+            mock_raw_snql_query.call_args_list[0][0][1]
+            == "api.organization-events-spans-performance-suspects"
+        )
+
+        # the second call is the get the examples, and should also be using the specified sort
+        assert mock_raw_snql_query.call_args_list[1][0][0].orderby == [
+            OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC),
+            OrderBy(
+                exp=Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+                direction=Direction.DESC,
+            ),
+        ]
+        assert (
+            mock_raw_snql_query.call_args_list[1][0][1]
+            == "api.organization-events-spans-performance-examples"
+        )
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_sort_percentiles(self, mock_raw_snql_query):
         event = self.create_event()
 
@@ -641,7 +909,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_op_filters(self, mock_raw_snql_query):
+    def test_op_filter(self, mock_raw_snql_query):
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -654,7 +922,6 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 self.url,
                 data={
                     "project": self.project.id,
-                    "sort": "-sumExclusiveTime",
                     "spanOp": "django.middleware",
                 },
                 format="json",
@@ -663,24 +930,11 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         assert response.status_code == 200, response.content
         self.assert_suspect_span(
             response.data,
-            # when sorting by -count, this should be the last of the 3 results
-            # but the spanOp filter means it should be the only result
             [self.suspect_span_results("django.middleware", event)],
         )
 
         assert mock_raw_snql_query.call_count == 2
 
-        # the first call is the get the suspects, and should be using the specified sort
-        assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
-            OrderBy(
-                exp=Function(
-                    "sum",
-                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
-                    "sumArray_spans_exclusive_time",
-                ),
-                direction=Direction.DESC,
-            )
-        ]
         # the first call should also contain the additional condition on the span op
         assert (
             Condition(
@@ -690,25 +944,58 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             )
             in mock_raw_snql_query.call_args_list[0][0][0].where
         )
-        assert (
-            mock_raw_snql_query.call_args_list[0][0][1]
-            == "api.organization-events-spans-performance-suspects"
+
+    def test_bad_group_filter(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "spanGroup": "cd",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "span.group must be a valid 16 character hex (containing only digits, or a-f characters)"
+        }
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_group_filter(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {"data": [self.suspect_span_group_snuba_results("django.middleware", event)]},
+            {"data": [self.suspect_span_examples_snuba_results("django.middleware", event)]},
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "spanGroup": "cd" * 8,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        self.assert_suspect_span(
+            response.data,
+            [self.suspect_span_results("django.middleware", event)],
         )
 
-        # the second call is the get the examples, and should also be using the specified sort
-        assert mock_raw_snql_query.call_args_list[1][0][0].orderby == [
-            OrderBy(
-                exp=Function(
-                    "sum",
-                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
-                    "sumArray_spans_exclusive_time",
-                ),
-                direction=Direction.DESC,
-            )
-        ]
+        assert mock_raw_snql_query.call_count == 2
+
+        # the first call should also contain the additional condition on the span op
         assert (
-            mock_raw_snql_query.call_args_list[1][0][1]
-            == "api.organization-events-spans-performance-examples"
+            Condition(
+                lhs=Function("arrayJoin", [Column("spans.group")], "array_join_spans_group"),
+                op=Op.IN,
+                rhs=Function("tuple", ["cd" * 8]),
+            )
+            in mock_raw_snql_query.call_args_list[0][0][0].where
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
@@ -849,3 +1136,107 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         results = self.suspect_span_results("http.server", event)
         results["group"] = "00" + "ab" * 7
         self.assert_suspect_span(response.data, [results])
+
+
+class OrganizationEventsSpansEndpointTest(OrganizationEventsSpansEndpointTestBase):
+    URL = "sentry-api-0-organization-events-spans"
+
+    def test_no_feature(self):
+        response = self.client.get(self.url, format="json")
+        assert response.status_code == 404, response.content
+
+    def test_no_projects(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+
+        url = reverse(
+            self.URL,
+            kwargs={"organization_slug": org.slug},
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(url, format="json")
+        assert response.status_code == 404, response.content
+
+    def test_require_span_param(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"span": [ErrorDetail("This field is required.", code="required")]}
+
+    def test_illegal_offset_with_multiple_spans(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "span": [f"http.server:{'ab' * 8}", f"django.middleware:{'cd' * 8}"],
+                    "cursor": "0:10:0",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Can only specify offset with one span."}
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_one_span(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [self.suspect_span_examples_snuba_results("http.server", event)],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id, "span": f"http.server:{'ab' * 8}"},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert mock_raw_snql_query.call_count == 1
+
+        self.assert_span_examples(response.data, [self.span_example_results("http.server", event)])
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_multiple_spans(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [
+                    self.suspect_span_examples_snuba_results("django.middleware", event),
+                    self.suspect_span_examples_snuba_results("http.server", event),
+                ],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "span": [f"http.server:{'ab' * 8}", f"django.middleware:{'cd' * 8}"],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert mock_raw_snql_query.call_count == 1
+
+        self.assert_span_examples(
+            response.data,
+            [
+                self.span_example_results("django.middleware", event),
+                self.span_example_results("http.server", event),
+            ],
+        )

@@ -1,6 +1,6 @@
-import CHART_PALETTE from 'app/constants/chartPalette';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 import {getTermHelp, PERFORMANCE_TERM} from '../../data';
 
@@ -11,7 +11,7 @@ export interface ChartDefinition {
   title: string;
 
   titleTooltip: string;
-  fields: string[];
+  fields: string[]; // The first field in the list will be treated as the primary field in most widgets (except for special casing).
 
   chartColor?: string; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
 
@@ -267,14 +267,14 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.MOST_SLOW_FRAMES]: {
     title: t('Most Slow Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
-    fields: ['p75(measurements.frames_slow_rate)'],
+    fields: ['avg(measurements.frames_slow)'],
     dataType: GenericPerformanceWidgetDataType.line_list,
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_FROZEN_FRAMES]: {
     title: t('Most Frozen Frames'),
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
-    fields: ['p75(measurements.frames_frozen_rate)'],
+    fields: ['avg(measurements.frames_frozen)'],
     dataType: GenericPerformanceWidgetDataType.line_list,
     chartColor: WIDGET_PALETTE[0],
   },

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import IssueListSavedSearchMenu from 'app/views/issueList/savedSearchMenu';
+import IssueListSavedSearchMenu from 'sentry/views/issueList/savedSearchMenu';
 
 describe('IssueListSavedSearchMenu', () => {
   let wrapper;

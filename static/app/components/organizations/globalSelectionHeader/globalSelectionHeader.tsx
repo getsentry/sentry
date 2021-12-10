@@ -7,25 +7,25 @@ import {
   updateDateTime,
   updateEnvironments,
   updateProjects,
-} from 'app/actionCreators/globalSelection';
-import BackToIssues from 'app/components/organizations/backToIssues';
-import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
-import HeaderSeparator from 'app/components/organizations/headerSeparator';
-import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
-import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
+} from 'sentry/actionCreators/globalSelection';
+import BackToIssues from 'sentry/components/organizations/backToIssues';
+import HeaderItemPosition from 'sentry/components/organizations/headerItemPosition';
+import HeaderSeparator from 'sentry/components/organizations/headerSeparator';
+import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
+import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
 import TimeRangeSelector, {
   ChangeData,
-} from 'app/components/organizations/timeRangeSelector';
-import Tooltip from 'app/components/tooltip';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconArrow} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {GlobalSelection, MinimalProject, Organization, Project} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import Projects from 'app/utils/projects';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+} from 'sentry/components/organizations/timeRangeSelector';
+import Tooltip from 'sentry/components/tooltip';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {GlobalSelection, MinimalProject, Organization, Project} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import Projects from 'sentry/utils/projects';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 
 const PROJECTS_PER_PAGE = 50;
 
@@ -53,7 +53,7 @@ const defaultProps = {
 };
 
 type Props = {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   organization: Organization;
 
   memberProjects: Project[];
@@ -438,11 +438,11 @@ const Header = styled('div')`
 
   background: ${p => p.theme.headerBackground};
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  @media (min-width: ${props => props.theme.breakpoints[0]} and max-width: ${props =>
-      props.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]} and max-width: ${p =>
+      p.theme.breakpoints[1]}) {
     margin-top: 54px;
   }
-  @media (max-width: calc(${props => props.theme.breakpoints[0]} - 1px)) {
+  @media (max-width: calc(${p => p.theme.breakpoints[0]} - 1px)) {
     margin-top: 0;
   }
 `;

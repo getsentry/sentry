@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ToolbarHeader from 'app/components/toolbarHeader';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {GlobalSelection} from 'app/types';
+import ToolbarHeader from 'sentry/components/toolbarHeader';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {GlobalSelection} from 'sentry/types';
 
 type Props = {
   selection: GlobalSelection;

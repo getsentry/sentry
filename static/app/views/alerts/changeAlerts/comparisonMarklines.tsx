@@ -1,10 +1,10 @@
-import MarkLine from 'app/components/charts/components/markLine';
-import {LineChartSeries} from 'app/components/charts/lineChart';
-import {t} from 'app/locale';
-import {Series} from 'app/types/echarts';
-import {MINUTE} from 'app/utils/formatters';
-import theme from 'app/utils/theme';
-import {AlertRuleThresholdType, Trigger} from 'app/views/alerts/incidentRules/types';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {t} from 'sentry/locale';
+import {Series} from 'sentry/types/echarts';
+import {MINUTE} from 'sentry/utils/formatters';
+import theme from 'sentry/utils/theme';
+import {AlertRuleThresholdType, Trigger} from 'sentry/views/alerts/incidentRules/types';
 
 export const checkChangeStatus = (
   value: number,
@@ -121,7 +121,7 @@ export const getComparisonMarkLines = (
                   0,
                 ],
               },
-            ] as any,
+            ],
           ],
         }),
         data: [],

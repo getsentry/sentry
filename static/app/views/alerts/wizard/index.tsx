@@ -2,23 +2,23 @@ import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import CreateAlertButton from 'app/components/createAlertButton';
-import FeatureBadge from 'app/components/featureBadge';
-import Hovercard from 'app/components/hovercard';
-import * as Layout from 'app/components/layouts/thirds';
-import ExternalLink from 'app/components/links/externalLink';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
-import {Dataset} from 'app/views/alerts/incidentRules/types';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import CreateAlertButton from 'sentry/components/createAlertButton';
+import FeatureBadge from 'sentry/components/featureBadge';
+import Hovercard from 'sentry/components/hovercard';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {Dataset} from 'sentry/views/alerts/incidentRules/types';
 
 import {
   AlertType,

@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import accountDetailsFields from 'app/data/forms/accountDetails';
-import {fields} from 'app/data/forms/projectGeneralSettings';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import accountDetailsFields from 'sentry/data/forms/accountDetails';
+import {fields} from 'sentry/data/forms/projectGeneralSettings';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
 const user = TestStubs.User({});
 
@@ -21,7 +21,9 @@ describe('JsonForm', function () {
       try {
         mountWithTheme(<JsonForm forms={accountDetailsFields} />);
       } catch (error) {
-        expect(error.message).toBe("Cannot read property 'email' of undefined");
+        expect(error.message).toBe(
+          "Cannot read properties of undefined (reading 'email')"
+        );
       }
     });
 
@@ -119,7 +121,9 @@ describe('JsonForm', function () {
           />
         );
       } catch (error) {
-        expect(error.message).toBe("Cannot read property 'email' of undefined");
+        expect(error.message).toBe(
+          "Cannot read properties of undefined (reading 'email')"
+        );
       }
     });
 

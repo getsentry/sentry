@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import DashboardWidgetQuerySelectorModal from 'app/components/modals/dashboardWidgetQuerySelectorModal';
-import {t} from 'app/locale';
-import {DisplayType} from 'app/views/dashboardsV2/types';
+import {Client} from 'sentry/api';
+import DashboardWidgetQuerySelectorModal from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
+import {t} from 'sentry/locale';
+import {DisplayType} from 'sentry/views/dashboardsV2/types';
 
 const stubEl: any = (props: any) => <div>{props.children}</div>;
 

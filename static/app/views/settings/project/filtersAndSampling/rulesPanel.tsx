@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {Panel, PanelFooter} from 'app/components/panels';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {Panel, PanelFooter} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 import Rules from './rules';
 import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';

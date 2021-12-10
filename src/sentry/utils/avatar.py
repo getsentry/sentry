@@ -2,7 +2,7 @@
 Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
       selected, the svg, etc) will also need to be changed there.
 """
-from typing import MutableMapping, Optional, Union
+from typing import MutableMapping, Optional, TextIO, Union
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.encoding import force_text
 from django.utils.html import escape
+from PIL import Image  # type: ignore
 
 from sentry.http import safe_urlopen
 from sentry.utils.compat import map
@@ -125,3 +126,13 @@ def get_email_avatar(
                     gravatar_url = get_gravatar_url(identifier, size=size)
                     return f'<img class="avatar" src="{gravatar_url}">'
     return get_letter_avatar(display_name, identifier, size, use_svg=False)
+
+
+def is_black_alpha_only(data: TextIO) -> bool:
+    """Check if an image has only black pixels (with alpha)"""
+    result = False
+    with Image.open(data) as image:
+        if image.mode == "RGBA":
+            result = not any(p[:3] != (0, 0, 0) for p in list(image.getdata()))
+    data.seek(0)
+    return result

@@ -1,18 +1,18 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import EventDataSection from 'app/components/events/eventDataSection';
-import RichHttpContent from 'app/components/events/interfaces/richHttpContent/richHttpContent';
-import {getCurlCommand, getFullUrl} from 'app/components/events/interfaces/utils';
-import ExternalLink from 'app/components/links/externalLink';
-import Truncate from 'app/components/truncate';
-import {IconOpen} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {EntryRequest, Event} from 'app/types/event';
-import {isUrl} from 'app/utils';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import RichHttpContent from 'sentry/components/events/interfaces/richHttpContent/richHttpContent';
+import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Truncate from 'sentry/components/truncate';
+import {IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {EntryRequest, Event} from 'sentry/types/event';
+import {isUrl} from 'sentry/utils';
 
 type Props = {
   event: Event;
@@ -140,12 +140,12 @@ const Header = styled('h3')`
 const StyledIconOpen = styled(IconOpen)`
   transition: 0.1s linear color;
   margin: 0 ${space(0.5)};
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.subText};
   position: relative;
   top: 1px;
 
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.textColor};
   }
 `;
 

@@ -1,20 +1,20 @@
 import {Component} from 'react';
-import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import NotFound from 'app/components/errors/notFound';
-import {BorderlessEventEntries} from 'app/components/events/eventEntries';
-import Footer from 'app/components/footer';
-import Link from 'app/components/links/link';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
-import {Group} from 'app/types';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import NotFound from 'sentry/components/errors/notFound';
+import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
+import Footer from 'sentry/components/footer';
+import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
+import space from 'sentry/styles/space';
+import {Group} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
@@ -80,11 +80,7 @@ class SharedGroupDetails extends Component<Props, State> {
   getTitle() {
     const {group} = this.state;
 
-    if (group) {
-      return group.title;
-    }
-
-    return 'Sentry';
+    return group?.title ?? 'Sentry';
   }
 
   render() {
@@ -107,7 +103,7 @@ class SharedGroupDetails extends Component<Props, State> {
     const title = this.getTitle();
 
     return (
-      <DocumentTitle title={title}>
+      <SentryDocumentTitle noSuffix title={title}>
         <div className="app">
           <div className="pattern-bg" />
           <div className="container">
@@ -143,7 +139,7 @@ class SharedGroupDetails extends Component<Props, State> {
             </div>
           </div>
         </div>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

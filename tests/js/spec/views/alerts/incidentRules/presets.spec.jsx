@@ -1,16 +1,16 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {DisplayModes} from 'app/utils/discover/types';
-import {PRESET_AGGREGATES} from 'app/views/alerts/incidentRules/presets';
-import {Dataset} from 'app/views/alerts/incidentRules/types';
-import {getIncidentDiscoverUrl} from 'app/views/alerts/utils/getIncidentDiscoverUrl';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import {PRESET_AGGREGATES} from 'sentry/views/alerts/incidentRules/presets';
+import {Dataset} from 'sentry/views/alerts/incidentRules/types';
+import {getIncidentDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentDiscoverUrl';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-jest.mock('app/views/performance/transactionSummary/utils', () => ({
+jest.mock('sentry/views/performance/transactionSummary/utils', () => ({
   transactionSummaryRouteWithQuery: jest.fn(),
 }));
 
-jest.mock('app/views/alerts/utils/getIncidentDiscoverUrl', () => {
+jest.mock('sentry/views/alerts/utils/getIncidentDiscoverUrl', () => {
   return {
     getIncidentDiscoverUrl: jest.fn(),
   };

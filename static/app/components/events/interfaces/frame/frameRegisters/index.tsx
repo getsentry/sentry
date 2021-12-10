@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 import {getSortedRegisters} from './utils';
 import Value from './value';

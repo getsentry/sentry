@@ -1,13 +1,13 @@
-import {ComponentProps, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
-import {Panel} from 'app/components/panels';
-import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import TimeRangeSelector from 'sentry/components/organizations/timeRangeSelector';
+import {Panel} from 'sentry/components/panels';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
-type Props = ComponentProps<typeof TimeRangeSelector> & {
+type Props = React.ComponentProps<typeof TimeRangeSelector> & {
   className?: string;
 };
 

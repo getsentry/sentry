@@ -1,24 +1,26 @@
-import {ReactNode} from 'react';
+import {useReducer} from 'react';
 import {Location, LocationDescriptor, Query} from 'history';
 
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
-import {defined} from 'app/utils';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {ColumnType, fieldAlignment} from 'app/utils/discover/fields';
-import {formatPercentage} from 'app/utils/formatters';
-import {SuspectSpan} from 'app/utils/performance/suspectSpans/types';
+import Button from 'sentry/components/button';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
+import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import {SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 
 import {PerformanceDuration} from '../../utils';
 
 import {
   emptyValue,
+  FooterPanel,
   HeaderItem,
   LowerPanel,
   SpanDurationBar,
@@ -39,32 +41,35 @@ import {getSuspectSpanSortFromEventView} from './utils';
 const SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
   {
     key: 'id',
-    name: 'Example Transaction',
+    name: t('Example Transaction'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'timestamp',
-    name: 'Timestamp',
+    name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'spanDuration',
-    name: 'Span Duration',
+    name: t('Span Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'occurrences',
-    name: 'Occurrences',
+    name: t('Count'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'cumulativeDuration',
-    name: 'Cumulative Duration',
+    name: t('Cumulative Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SPANS_TABLE_COLUMN_TYPE: Partial<Record<SuspectSpanTableColumnKeys, ColumnType>> = {
+const SPANS_TABLE_COLUMN_TYPE: Omit<
+  Record<SuspectSpanTableColumnKeys, ColumnType>,
+  'spans' | 'transactionDuration'
+> = {
   id: 'string',
   timestamp: 'date',
   spanDuration: 'duration',
@@ -84,6 +89,7 @@ type Props = {
   ) => LocationDescriptor;
   eventView: EventView;
   totals: SpansTotalValues | null;
+  preview: number;
 };
 
 export default function SuspectSpanEntry(props: Props) {
@@ -94,9 +100,18 @@ export default function SuspectSpanEntry(props: Props) {
     generateTransactionLink,
     eventView,
     totals,
+    preview,
   } = props;
 
-  const examples = suspectSpan.examples.map(example => ({
+  const expandable = suspectSpan.examples.length > preview;
+
+  const [collapsed, toggleCollapsed] = useReducer(state => !state, true);
+
+  const visibileExamples = collapsed
+    ? suspectSpan.examples.slice(0, preview)
+    : suspectSpan.examples;
+
+  const examples = visibileExamples.map(example => ({
     id: example.id,
     project: suspectSpan.project,
     // timestamps are in seconds but want them in milliseconds
@@ -125,7 +140,7 @@ export default function SuspectSpanEntry(props: Props) {
         <SpanCount sort={sort} suspectSpan={suspectSpan} totals={totals} />
         <TotalCumulativeDuration sort={sort} suspectSpan={suspectSpan} totals={totals} />
       </UpperPanel>
-      <LowerPanel data-test-id="suspect-card-lower">
+      <LowerPanel expandable={expandable} data-test-id="suspect-card-lower">
         <GridEditable
           data={examples}
           columnOrder={SPANS_TABLE_COLUMN_ORDER}
@@ -142,6 +157,15 @@ export default function SuspectSpanEntry(props: Props) {
           location={location}
         />
       </LowerPanel>
+      {expandable && (
+        <FooterPanel>
+          <Button priority="link" onClick={toggleCollapsed}>
+            {collapsed
+              ? t('Show More Transaction Examples')
+              : t('Hide Transaction Examples')}
+          </Button>
+        </FooterPanel>
+      )}
     </div>
   );
 }
@@ -153,10 +177,10 @@ type HeaderItemProps = {
 };
 
 const PERCENTILE_LABELS: Record<SpanSortPercentiles, string> = {
-  [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: t('p50 Duration'),
-  [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: t('p75 Duration'),
-  [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: t('p95 Duration'),
-  [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: t('p99 Duration'),
+  [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: t('p50 Exclusive Time'),
+  [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: t('p75 Exclusive Time'),
+  [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: t('p95 Exclusive Time'),
+  [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: t('p99 Exclusive Time'),
 };
 
 function PercentileDuration(props: HeaderItemProps) {
@@ -182,8 +206,19 @@ function SpanCount(props: HeaderItemProps) {
   if (sort.field === SpanSortOthers.COUNT) {
     return (
       <HeaderItem
-        label={t('Occurrences')}
+        label={t('Total Count')}
         value={String(suspectSpan.count)}
+        align="right"
+        isSortKey
+      />
+    );
+  }
+
+  if (sort.field === SpanSortOthers.AVG_OCCURRENCE) {
+    return (
+      <HeaderItem
+        label={t('Average Count')}
+        value={formatFloat(suspectSpan.avgOccurrences, 2)}
         align="right"
         isSortKey
       />
@@ -243,7 +278,7 @@ function TotalCumulativeDuration(props: HeaderItemProps) {
 
   return (
     <HeaderItem
-      label={t('Total Cumulative Duration')}
+      label={t('Total Exclusive Time')}
       value={value}
       align="right"
       isSortKey={sort.field === SpanSortOthers.SUM_EXCLUSIVE_TIME}
@@ -251,7 +286,7 @@ function TotalCumulativeDuration(props: HeaderItemProps) {
   );
 }
 
-function renderHeadCell(column: SuspectSpanTableColumn, _index: number): ReactNode {
+function renderHeadCell(column: SuspectSpanTableColumn, _index: number): React.ReactNode {
   const align = fieldAlignment(column.key, SPANS_TABLE_COLUMN_TYPE[column.key]);
   return (
     <SortLink
@@ -275,7 +310,10 @@ function renderBodyCellWithMeta(
   ) => LocationDescriptor,
   suspectSpan: SuspectSpan
 ) {
-  return (column: SuspectSpanTableColumn, dataRow: SuspectSpanDataRow): ReactNode => {
+  return (
+    column: SuspectSpanTableColumn,
+    dataRow: SuspectSpanDataRow
+  ): React.ReactNode => {
     // if the transaction duration is falsey, then just render the span duration on its own
     if (column.key === 'spanDuration' && dataRow.transactionDuration) {
       return (
@@ -296,8 +334,12 @@ function renderBodyCellWithMeta(
             worst.exclusiveTime >= span.exclusiveTime ? worst : span
           )
         : null;
-      const hash = worstSpan ? `#span-${worstSpan.id}` : undefined;
-      const target = generateTransactionLink(organization, dataRow, location.query, hash);
+      const target = generateTransactionLink(
+        organization,
+        dataRow,
+        location.query,
+        worstSpan.id
+      );
 
       rendered = <Link to={target}>{rendered}</Link>;
     }

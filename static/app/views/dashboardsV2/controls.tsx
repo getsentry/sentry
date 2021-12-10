@@ -1,18 +1,19 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import Hovercard from 'app/components/hovercard';
-import {IconAdd, IconEdit} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import Hovercard from 'sentry/components/hovercard';
+import Tooltip from 'sentry/components/tooltip';
+import {IconAdd, IconEdit} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 
-import {DashboardListItem, DashboardState} from './types';
+import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
   organization: Organization;
@@ -24,6 +25,7 @@ type Props = {
   onAddWidget: () => void;
   onAddIssueWidget: () => void;
   dashboardState: DashboardState;
+  widgetCount: number;
 };
 
 class Controls extends React.Component<Props> {
@@ -32,6 +34,7 @@ class Controls extends React.Component<Props> {
       organization,
       dashboardState,
       dashboards,
+      widgetCount,
       onEdit,
       onCancel,
       onCommit,
@@ -118,17 +121,22 @@ class Controls extends React.Component<Props> {
                 {t('Edit Dashboard')}
               </Button>
               {organization.features.includes('widget-library') ? (
-                <Button
-                  data-test-id="add-widget-library"
-                  priority="primary"
-                  icon={<IconAdd isCircled />}
-                  onClick={e => {
-                    e.preventDefault();
-                    onAddWidget();
-                  }}
+                <Tooltip
+                  title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  })}
+                  disabled={!!!(widgetCount >= MAX_WIDGETS)}
                 >
-                  {t('Add Widget')}
-                </Button>
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    disabled={widgetCount >= MAX_WIDGETS}
+                    icon={<IconAdd isCircled />}
+                    onClick={onAddWidget}
+                  >
+                    {t('Add Widget')}
+                  </Button>
+                </Tooltip>
               ) : null}
               {organization.features.includes('issues-in-dashboards') ? (
                 <Button

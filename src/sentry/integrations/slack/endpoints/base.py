@@ -1,11 +1,13 @@
-import abc
-from typing import Any, Sequence, Tuple
+from __future__ import annotations
 
+import abc
+
+from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
-from sentry.integrations.slack.requests.base import SlackRequest
+from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 
@@ -19,12 +21,12 @@ ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
 
 
 class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
-    def post_dispatcher(self, request: SlackRequest) -> Any:
+    def post_dispatcher(self, request: SlackDMRequest) -> Response:
         """
         All Slack commands are handled by this endpoint. This block just
         validates the request and dispatches it to the right handler.
         """
-        command, args = self.get_command_and_args(request)
+        command, args = request.get_command_and_args()
 
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
@@ -48,17 +50,17 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         unknown_command = request_data.get("text", "").lower()
         return self.respond(SlackHelpMessageBuilder(unknown_command).build())
 
-    def get_command_and_args(self, request: SlackRequest) -> Tuple[str, Sequence[str]]:
+    def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         raise NotImplementedError
 
-    def reply(self, slack_request: SlackRequest, message: str) -> Response:
-        raise NotImplementedError
-
-    def link_user(self, slack_request: SlackRequest) -> Any:
+    def link_user(self, slack_request: SlackDMRequest) -> Response:
         if slack_request.has_identity:
             return self.reply(
                 slack_request, ALREADY_LINKED_MESSAGE.format(username=slack_request.identity_str)
             )
+
+        if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
+            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         associate_url = build_linking_url(
             integration=slack_request.integration,
@@ -68,21 +70,23 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
         )
         return self.reply(slack_request, LINK_USER_MESSAGE.format(associate_url=associate_url))
 
-    def unlink_user(self, slack_request: SlackRequest) -> Any:
+    def unlink_user(self, slack_request: SlackDMRequest) -> Response:
         if not slack_request.has_identity:
             return self.reply(slack_request, NOT_LINKED_MESSAGE)
 
-        integration = slack_request.integration
+        if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
+            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
+
         associate_url = build_unlinking_url(
-            integration_id=integration.id,
+            integration_id=slack_request.integration.id,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
         )
         return self.reply(slack_request, UNLINK_USER_MESSAGE.format(associate_url=associate_url))
 
-    def link_team(self, slack_request: SlackRequest) -> Any:
+    def link_team(self, slack_request: SlackDMRequest) -> Response:
         raise NotImplementedError
 
-    def unlink_team(self, slack_request: SlackRequest) -> Any:
+    def unlink_team(self, slack_request: SlackDMRequest) -> Response:
         raise NotImplementedError
