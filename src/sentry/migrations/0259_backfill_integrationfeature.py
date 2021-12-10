@@ -2,6 +2,7 @@
 
 from django.db import migrations
 
+from sentry.models.integrationfeature import IntegrationTypes
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
@@ -13,6 +14,7 @@ def backfill_target_id(apps, schema_editor):
     ):
         if integration_feature.target_id is None:
             integration_feature.target_id = integration_feature.sentry_app.id
+            integration_feature.target_type = IntegrationTypes.SENTRY_APP.value
             integration_feature.save()
 
 
@@ -35,7 +37,7 @@ class Migration(migrations.Migration):
     # You'll also usually want to set this to `False` if you're writing a data
     # migration, since we don't want the entire migration to run in one long-running
     # transaction.
-    atomic = True
+    atomic = False
 
     dependencies = [
         ("sentry", "0258_create_docintegrationavatar_table"),
