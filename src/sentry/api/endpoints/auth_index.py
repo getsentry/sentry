@@ -1,15 +1,19 @@
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
+from django.utils.http import is_safe_url
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
+from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
-from sentry.models import Authenticator
+from sentry.auth.superuser import Superuser, is_active_superuser
+from sentry.models import Authenticator, Organization
 from sentry.utils import auth, json
+from sentry.utils.auth import initiate_login
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -130,6 +134,16 @@ class AuthIndexEndpoint(Endpoint):
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        if request.user.is_superuser and not is_active_superuser(request) and Superuser.org_id:
+            # if a superuser hitting this endpoint is not active, they are most likely
+            # trying to become active, and likely need to re-identify with SSO to do so.
+            redirect = request.META.get("HTTP_REFERER", "")
+            if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
+                redirect = None
+
+            initiate_login(request, redirect)
+            raise SsoRequired(Organization.objects.get_from_cache(id=Superuser.org_id))
 
         request.user = request._request.user
 

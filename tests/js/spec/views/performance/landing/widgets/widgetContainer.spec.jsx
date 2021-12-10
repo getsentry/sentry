@@ -360,7 +360,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.VitalByTransactionAndRating({measurement: 'lcp'}),
+      body: TestStubs.MetricsFieldByTransactionAndRating({
+        field: 'count(measurements.lcp)',
+      }),
       match: [(...args) => !issuesPredicate(...args)],
     });
     const data = initializeData();
@@ -463,7 +465,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.VitalByTransactionAndRating({measurement: 'fcp'}),
+      body: TestStubs.MetricsFieldByTransactionAndRating({
+        field: 'count(measurements.fcp)',
+      }),
       match: [(...args) => !issuesPredicate(...args)],
     });
     const data = initializeData();
@@ -566,7 +570,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.VitalByTransactionAndRating({measurement: 'fid'}),
+      body: TestStubs.MetricsFieldByTransactionAndRating({
+        field: 'count(measurements.fid)',
+      }),
       match: [(...args) => !issuesPredicate(...args)],
     });
     const data = initializeData();
@@ -668,16 +674,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p50(transaction.duration)'}),
+        body: TestStubs.MetricsField({field: 'p50(transaction.duration)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'p50(transaction.duration)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -705,7 +710,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p50 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -750,16 +755,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p75(transaction.duration)'}),
+        body: TestStubs.MetricsField({field: 'p75(transaction.duration)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'p75(transaction.duration)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -787,7 +791,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p75 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -832,16 +836,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p95(transaction.duration)'}),
+        body: TestStubs.MetricsField({field: 'p95(transaction.duration)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'p95(transaction.duration)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -869,7 +872,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p95 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -914,16 +917,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p99(transaction.duration)'}),
+        body: TestStubs.MetricsField({field: 'p99(transaction.duration)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'p99(transaction.duration)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -951,7 +953,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p99 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -996,16 +998,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p75(measurements.lcp)'}),
+        body: TestStubs.MetricsField({field: 'p75(measurements.lcp)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'p75(measurements.lcp)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -1033,7 +1034,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p75 LCP'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -1078,16 +1079,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'count(transaction.duration)'}),
+        body: TestStubs.MetricsField({field: 'count(transaction.duration)'}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
+        body: TestStubs.MetricsField({
           field: 'count(transaction.duration)',
-          previousData: true,
         }),
         match: [
           (...args) => {
@@ -1115,7 +1115,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'Transactions Per Minute'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534.302');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51,292.954');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -1160,15 +1160,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldAreaByTransactionStatus(),
+        body: TestStubs.MetricsFieldByTransactionStatus({
+          field: 'count(transaction.duration)',
+        }),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldAreaByTransactionStatus({
-          previousData: true,
+        body: TestStubs.MetricsFieldByTransactionStatus({
+          field: 'count(transaction.duration)',
         }),
         match: [
           (...args) => {
@@ -1455,6 +1457,95 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
   });
 
+  it('Most slow frames widget - metrics based', async function () {
+    const field = 'avg(measurements.frames_slow)';
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsFieldByTransaction({field}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+
+    const previousMetricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsFieldByTransaction({field}),
+      match: [
+        (...args) => {
+          return (
+            !issuesPredicate(...args) &&
+            args[1].query.statsPeriodStart &&
+            args[1].query.statsPeriodEnd
+          );
+        },
+      ],
+    });
+    const data = initializeData();
+
+    wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Slow Frames'
+    );
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+    expect(previousMetricsMock).toHaveBeenCalledTimes(1);
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          groupBy: ['transaction'],
+          interval: '1h',
+          limit: 3,
+          orderBy: field,
+          project: [-42],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(previousMetricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriodEnd: '7d',
+          statsPeriodStart: '14d',
+        }),
+      })
+    );
+  });
+
   it('Most frozen frames widget', async function () {
     const data = initializeData();
 
@@ -1497,6 +1588,95 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
+  });
+
+  it('Most frozen frames widget - metrics based', async function () {
+    const field = 'avg(measurements.frames_frozen)';
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsFieldByTransaction({field}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+
+    const previousMetricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsFieldByTransaction({field}),
+      match: [
+        (...args) => {
+          return (
+            !issuesPredicate(...args) &&
+            args[1].query.statsPeriodStart &&
+            args[1].query.statsPeriodEnd
+          );
+        },
+      ],
+    });
+    const data = initializeData();
+
+    wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_FROZEN_FRAMES}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Frozen Frames'
+    );
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+    expect(previousMetricsMock).toHaveBeenCalledTimes(1);
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          groupBy: ['transaction'],
+          interval: '1h',
+          limit: 3,
+          orderBy: field,
+          project: [-42],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(previousMetricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriodEnd: '7d',
+          statsPeriodStart: '14d',
+        }),
+      })
+    );
   });
 
   it('Able to change widget type from menu', async function () {

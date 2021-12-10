@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from sentry.models import SentryApp
+from sentry.models.integrationfeature import IntegrationTypes
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
@@ -57,6 +58,8 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                         {
                             "featureGate": "integrations-api",
                             "description": "Testin can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                            "targetId": self.unpublished_app.id,
+                            "targetType": IntegrationTypes.SENTRY_APP.value,
                         }
                     ],
                     "popularity": SentryApp._meta.get_field("popularity").default,
