@@ -1,3 +1,5 @@
+from typing import Any, Mapping, MutableMapping
+
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 
@@ -20,7 +22,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
         views.append(VstsExtensionFinishedView())
         return views
 
-    def build_integration(self, state):
+    def build_integration(self, state: MutableMapping[str, Any]) -> Mapping[str, Any]:
         state["account"] = {
             "accountId": state["vsts"]["accountId"],
             "accountName": state["vsts"]["accountName"],

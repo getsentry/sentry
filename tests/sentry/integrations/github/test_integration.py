@@ -370,7 +370,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
-        base_error = "Error Communicating with GitHub (HTTP 404): %s" % (API_ERRORS[404])
+        base_error = f"Error Communicating with GitHub (HTTP 404): {API_ERRORS[404]}"
         assert (
             installation.message_from_error(
                 ApiError("Not Found", code=404, url="https://api.github.com/repos/scefali")
@@ -381,6 +381,5 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert (
             installation.message_from_error(ApiError("Not Found", code=404, url=url))
             == base_error
-            + " Please also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
-            % url
+            + f" Please also confirm that the commits associated with the following URL have been pushed to GitHub: {url}"
         )
