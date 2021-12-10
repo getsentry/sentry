@@ -358,6 +358,10 @@ def query_top_tags(
                 [translated_aggregate_column, "IS NOT NULL", None],
                 ["tags_key", "IN", [tag_key]],
             ],
+            extra_snql_condition=[
+                Condition(Column(translated_aggregate_column), Op.IS_NOT_NULL),
+                Condition(Column("tags_key"), Op.EQ, tag_key),
+            ],
             functions_acl=["array_join"],
             referrer=f"{referrer}.top_tags",
             use_snql=use_snql,
