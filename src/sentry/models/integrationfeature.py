@@ -113,7 +113,7 @@ class IntegrationFeature(Model):
 
         if self.user_description:
             return self.user_description
-        integration = None
+
         if self.target_type == IntegrationTypes.SENTRY_APP.value:
             integration = SentryApp.objects.get(id=self.target_id)
         else:
