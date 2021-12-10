@@ -3,10 +3,10 @@ import {WeightedNode} from './weightedNode';
 
 export class CallTreeNode extends WeightedNode {
   readonly frame: Frame;
-  readonly parent: CallTreeNode | null;
 
   private locked = false;
 
+  parent: CallTreeNode | null;
   recursive?: CallTreeNode;
   children: CallTreeNode[] = [];
 
@@ -14,6 +14,10 @@ export class CallTreeNode extends WeightedNode {
     super();
     this.parent = parent;
     this.frame = frame;
+  }
+
+  setParent(parent: CallTreeNode): void {
+    this.parent = parent;
   }
 
   setRecursive(node: CallTreeNode): void {
@@ -32,4 +36,10 @@ export class CallTreeNode extends WeightedNode {
   freeze(): void {
     this.locked = true;
   }
+
+  isRoot(): boolean {
+    return Frame.Root === this.frame;
+  }
+
+  static readonly Root = new CallTreeNode(Frame.Root, null);
 }
