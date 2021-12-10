@@ -46,8 +46,6 @@ const ADD_BUTTON_POSITION = {
 };
 const DEFAULT_WIDGET_WIDTH = 2;
 
-const GridLayout = WidthProvider(RGL);
-
 type Props = {
   api: Client;
   organization: Organization;
@@ -247,7 +245,7 @@ class Dashboard extends Component<Props> {
     } = this.props;
 
     return (
-      <GridLayoutContainer
+      <GridLayout
         cols={NUM_COLS}
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
@@ -271,7 +269,7 @@ class Dashboard extends Component<Props> {
             />
           </div>
         )}
-      </GridLayoutContainer>
+      </GridLayout>
     );
   }
 }
@@ -284,8 +282,8 @@ const GridItem = styled('div')`
   }
 `;
 
-// Hack to display chart tooltips above other grid items
-const GridLayoutContainer = styled(GridLayout)`
+// HACK: to stack chart tooltips above other grid items
+const GridLayout = styled(WidthProvider(RGL))`
   .react-grid-item:hover {
     z-index: 10;
   }
