@@ -15,7 +15,7 @@ from sentry.middleware.ratelimit import (
     get_rate_limit_key,
     get_rate_limit_value,
 )
-from sentry.models import ApiKey, ApiToken, User
+from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
 from sentry.testutils import TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -76,6 +76,7 @@ class RatelimitMiddlewareTest(TestCase):
 
         # Test for default IP
         request = self.factory.get("/")
+        print(request)
         assert (
             get_rate_limit_key(view, request) == "ip:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
         )
@@ -115,10 +116,17 @@ class RatelimitMiddlewareTest(TestCase):
             scopes=["event:write"],
         )
 
-        install = self.create_sentry_app_installation(
-            organization=self.organization, slug=sentry_app.slug, user=self.user
+        internal_integration = self.create_internal_integration(
+            name="my_app",
+            organization=self.organization,
+            scopes=("project:read",),
+            webhook_url="http://example.com",
         )
-        token = self.create_internal_integration_token(install=install, user=self.user)
+        # there should only be one record created so just grab the first one
+        install = SentryAppInstallation.objects.get(
+            sentry_app=internal_integration.id, organization=self.organization
+        )
+        token = install.api_token
 
         request.user = User.objects.get(id=sentry_app.proxy_user_id)
         request.auth = token

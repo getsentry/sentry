@@ -62,7 +62,11 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
             category = "user"
             id = request_auth.user_id
 
-    elif not isinstance(request_auth, ApiKey) and not isinstance(request_user, AnonymousUser):
+    elif (
+        not isinstance(request_auth, ApiKey)
+        and request_user
+        and not isinstance(request_user, AnonymousUser)
+    ):
         category = "user"
         id = request_user.id
 
