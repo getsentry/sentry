@@ -4,6 +4,10 @@ import inspect
 import sentry_sdk
 from django.conf import settings
 from django.urls import resolve
+
+# Reexport sentry_sdk just in case we ever have to write another shim like we
+# did for raven
+from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
 from sentry_sdk.client import get_options
 from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
@@ -93,14 +97,11 @@ SAMPLED_TASKS = {
     "sentry.tasks.reprocessing2.handle_remaining_events": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.reprocessing2.reprocess_group": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
+    "sentry.tasks.relay.update_config_cache": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
 }
 
 
 UNSAFE_TAG = "_unsafe"
-
-# Reexport sentry_sdk just in case we ever have to write another shim like we
-# did for raven
-from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
 
 
 def is_current_event_safe():
