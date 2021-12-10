@@ -49,6 +49,8 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
     request_auth = getattr(request, "auth", None)
     request_user = getattr(request, "user", None)
 
+    from django.contrib.auth.models import AnonymousUser
+
     from sentry.models import ApiKey, ApiToken
 
     if isinstance(request_auth, ApiToken):
@@ -60,7 +62,7 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
             category = "user"
             id = request_auth.user_id
 
-    elif not isinstance(request_auth, ApiKey) and request_user:
+    elif not isinstance(request_auth, ApiKey) and not isinstance(request_user, AnonymousUser):
         category = "user"
         id = request_user.id
 
