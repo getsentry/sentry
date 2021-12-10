@@ -20,6 +20,7 @@ from sentry.models import (
     InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
+    UserEmail,
 )
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -50,11 +51,20 @@ class AuthIdentityHandlerTest(TestCase):
             "data": {"foo": "bar"},
         }
 
-        self.handler = AuthIdentityHandler(
-            self.auth_provider, Provider(self.provider), self.organization, self.request
-        )
-
         self.state = AuthHelperSessionStore(self.request, "pipeline")
+
+    @property
+    def handler(self):
+        return self._handler_with(self.identity)
+
+    def _handler_with(self, identity):
+        return AuthIdentityHandler(
+            self.auth_provider,
+            Provider(self.provider),
+            self.organization,
+            self.request,
+            identity,
+        )
 
     def set_up_user(self):
         """Set up a persistent user and associate it to the request.
@@ -80,7 +90,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
 
-        auth_identity = self.handler.handle_new_user(self.identity)
+        auth_identity = self.handler.handle_new_user()
         user = auth_identity.user
 
         assert user.email == self.email
@@ -100,7 +110,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
     def test_associated_existing_member_invite_by_email(self):
         member = OrganizationMember.objects.create(organization=self.organization, email=self.email)
 
-        auth_identity = self.handler.handle_new_user(self.identity)
+        auth_identity = self.handler.handle_new_user()
 
         assigned_member = OrganizationMember.objects.get(
             organization=self.organization, user=auth_identity.user
@@ -115,7 +125,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
-        auth_identity = self.handler.handle_new_user(self.identity)
+        auth_identity = self.handler.handle_new_user()
 
         assert OrganizationMember.objects.filter(
             organization=self.organization,
@@ -136,7 +146,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
             {"memberId": member.id, "token": member.token, "url": ""}
         )
 
-        auth_identity = self.handler.handle_new_user(self.identity)
+        auth_identity = self.handler.handle_new_user()
 
         assigned_member = OrganizationMember.objects.get(
             organization=self.organization, user=auth_identity.user
@@ -151,7 +161,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest):
         mock_auth.get_login_redirect.return_value = "test_login_url"
         user, auth_identity = self.set_up_user_identity()
 
-        redirect = self.handler.handle_existing_identity(self.state, auth_identity, self.identity)
+        redirect = self.handler.handle_existing_identity(self.state, auth_identity)
 
         assert redirect.url == mock_auth.get_login_redirect.return_value
         assert mock_auth.get_login_redirect.called_with(self.request)
@@ -174,9 +184,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest):
             mock_auth.get_login_redirect.return_value = "test_login_url"
             user, auth_identity = self.set_up_user_identity()
 
-            redirect = self.handler.handle_existing_identity(
-                self.state, auth_identity, self.identity
-            )
+            redirect = self.handler.handle_existing_identity(self.state, auth_identity)
 
             assert redirect.url == mock_auth.get_login_redirect.return_value
             assert mock_auth.get_login_redirect.called_with(self.request)
@@ -196,7 +204,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
     def test_new_identity(self, mock_messages):
         self.set_up_user()
 
-        auth_identity = self.handler.handle_attach_identity(self.identity)
+        auth_identity = self.handler.handle_attach_identity()
         assert auth_identity.ident == self.identity["id"]
         assert auth_identity.data == self.identity["data"]
 
@@ -226,7 +234,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         user = self.set_up_user()
         existing_om = OrganizationMember.objects.create(user=user, organization=self.organization)
 
-        auth_identity = self.handler.handle_attach_identity(self.identity)
+        auth_identity = self.handler.handle_attach_identity()
         assert auth_identity.ident == self.identity["id"]
         assert auth_identity.data == self.identity["data"]
 
@@ -242,7 +250,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
     def test_existing_identity(self, mock_messages):
         user, existing_identity = self.set_up_user_identity()
 
-        returned_identity = self.handler.handle_attach_identity(self.identity)
+        returned_identity = self.handler.handle_attach_identity()
         assert returned_identity == existing_identity
         assert not mock_messages.add_message.called
 
@@ -255,7 +263,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         )
         OrganizationMember.objects.create(user=other_user, organization=self.organization)
 
-        returned_identity = self.handler.handle_attach_identity(self.identity)
+        returned_identity = self.handler.handle_attach_identity()
         assert returned_identity.user == request_user
         assert returned_identity.ident == self.identity["id"]
         assert returned_identity.data == self.identity["data"]
@@ -278,7 +286,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
 
 class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
     def _test_simple(self, mock_render, expected_template):
-        redirect = self.handler.handle_unknown_identity(self.state, self.identity)
+        redirect = self.handler.handle_unknown_identity(self.state)
 
         assert redirect is mock_render.return_value
         template, context, request = mock_render.call_args.args
@@ -400,24 +408,21 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
             "identity_id": self.identity_id,
         }
 
-    @mock.patch("sentry.auth.helper.AuthIdentityHandler._get_user")
-    def test_has_verified_account_success(self, mock_get_user):
-        mock_get_user.return_value = self.user
-        assert self.handler.has_verified_account(self.identity, self.verification_value) is True
+    def test_has_verified_account_success(self):
+        UserEmail.objects.create(email=self.email, user=self.user)
+        assert self.handler.has_verified_account(self.verification_value) is True
 
-    @mock.patch("sentry.auth.helper.AuthIdentityHandler._get_user")
-    def test_has_verified_account_fail_email(self, mock_get_user):
-        mock_get_user.return_value = self.user
+    def test_has_verified_account_fail_email(self):
+        UserEmail.objects.create(email=self.email, user=self.user)
         identity = {
             "id": "1234",
             "email": "b@test.com",
             "name": "Morty",
             "data": {"foo": "bar"},
         }
-        assert self.handler.has_verified_account(identity, self.verification_value) is False
+        assert self._handler_with(identity).has_verified_account(self.verification_value) is False
 
-    @mock.patch("sentry.auth.helper.AuthIdentityHandler._get_user")
-    def test_has_verified_account_fail_user_id(self, mock_get_user):
-        mock_get_user.return_value = self.create_user()
-        self.wrong_user_flag = True
-        assert self.handler.has_verified_account(self.identity, self.verification_value) is False
+    def test_has_verified_account_fail_user_id(self):
+        wrong_user = self.create_user()
+        UserEmail.objects.create(email=self.email, user=wrong_user)
+        assert self.handler.has_verified_account(self.verification_value) is False
