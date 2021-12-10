@@ -3,6 +3,7 @@ import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary
 
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import DashboardWidgetLibraryModal from 'sentry/components/modals/dashboardWidgetLibraryModal';
+import * as types from 'sentry/views/dashboardsV2/types';
 
 const stubEl = props => <div>{props.children}</div>;
 const alertText =
@@ -12,7 +13,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
   openAddDashboardWidgetModal: jest.fn(),
 }));
 
-function mountModal({initialData}, onApply, closeModal) {
+function mountModal({initialData}, onApply, closeModal, widgets = []) {
   const routerContext = TestStubs.routerContext();
   return mountWithTheme(
     <DashboardWidgetLibraryModal
@@ -20,7 +21,7 @@ function mountModal({initialData}, onApply, closeModal) {
       Footer={stubEl}
       Body={stubEl}
       organization={initialData.organization}
-      dashboard={TestStubs.Dashboard([], {
+      dashboard={TestStubs.Dashboard(widgets, {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
@@ -41,21 +42,27 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
       apdexThreshold: 400,
     },
   });
+  let container;
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    if (container) {
+      container.unmount();
+    }
   });
 
   it('opens modal and renders correctly', async function () {
     // Checking initial modal states
-    const container = mountModal({initialData});
+    container = mountModal({initialData});
 
-    expect(screen.queryByText('All Events')).toBeInTheDocument();
-    expect(screen.queryByText('Total Errors')).toBeInTheDocument();
-    expect(screen.queryByText('Affected Users')).toBeInTheDocument();
-    expect(screen.queryByText('Handled vs. Unhandled')).toBeInTheDocument();
-    expect(screen.queryByText('Errors by Country')).toBeInTheDocument();
-    expect(screen.queryByText('Errors by Browser')).toBeInTheDocument();
+    expect(screen.queryByText('Duration Distribution')).toBeInTheDocument();
+    expect(screen.queryByText('High Throughput Transactions')).toBeInTheDocument();
+    expect(screen.queryByText('LCP by Country')).toBeInTheDocument();
+    expect(screen.queryByText('Miserable Users')).toBeInTheDocument();
+    expect(screen.queryByText('Slow vs Fast Transactions')).toBeInTheDocument();
+    expect(screen.queryByText('Top Issues')).toBeInTheDocument();
+    expect(screen.queryByText('Top Unhandled Error Types')).toBeInTheDocument();
+    expect(screen.queryByText('Users Affected by Errors')).toBeInTheDocument();
 
     expect(
       screen.getByRole('button', {name: 'Widget Library', current: true})
@@ -68,51 +75,72 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     userEvent.click(button);
 
     expect(openAddDashboardWidgetModal).toHaveBeenCalledTimes(1);
-
-    container.unmount();
   });
 
   it('submits selected widgets', function () {
     // Checking initial modal states
     const mockApply = jest.fn();
     const closeModal = jest.fn();
-    const container = mountModal({initialData}, mockApply, closeModal);
+    container = mountModal({initialData}, mockApply, closeModal, [
+      TestStubs.Widget(
+        [{name: '', orderby: '', conditions: 'event.type:error', fields: ['count()']}],
+        {
+          title: 'Errors',
+          interval: '1d',
+          id: '1',
+          displayType: 'line',
+        }
+      ),
+    ]);
 
     // Select some widgets
-    const allEvents = screen.queryByText('All Events');
+    const allEvents = screen.queryByText('High Throughput Transactions');
     userEvent.click(allEvents);
 
+    expect(screen.getByTestId('confirm-widgets')).toBeEnabled();
     userEvent.click(screen.getByTestId('confirm-widgets'));
 
     expect(mockApply).toHaveBeenCalledTimes(1);
     expect(mockApply).toHaveBeenCalledWith([
-      {
-        displayType: 'area',
-        id: undefined,
-        interval: '5m',
-        description: 'Area chart reflecting all error and transaction events.',
+      expect.objectContaining({
+        displayType: 'line',
+        id: '1',
+        interval: '1d',
         queries: [
           {
-            conditions: '!event.type:transaction',
+            conditions: 'event.type:error',
             fields: ['count()'],
             name: '',
             orderby: '',
           },
         ],
-        title: 'All Events',
+        title: 'Errors',
+      }),
+      {
+        displayType: 'top_n',
+        id: undefined,
+        interval: '5m',
+        description: 'Top 5 transactions with the largest volume.',
+        queries: [
+          {
+            conditions: '!event.type:error',
+            fields: ['transaction', 'count()'],
+            name: '',
+            orderby: '-count',
+          },
+        ],
+        title: 'High Throughput Transactions',
         widgetType: 'discover',
       },
     ]);
     expect(closeModal).toHaveBeenCalledTimes(1);
-
-    container.unmount();
   });
 
   it('raises warning if widget not selected', function () {
     // Checking initial modal states
     const mockApply = jest.fn();
     const closeModal = jest.fn();
-    const container = mountModal({initialData}, mockApply, closeModal);
+    container = mountModal({initialData}, mockApply, closeModal);
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();
 
     userEvent.click(screen.getByTestId('confirm-widgets'));
@@ -120,7 +148,22 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     expect(mockApply).toHaveBeenCalledTimes(0);
     expect(closeModal).toHaveBeenCalledTimes(0);
     expect(screen.getByText(alertText)).toBeInTheDocument();
+  });
 
-    container.unmount();
+  it('disables save button if widget limit is exceeded', function () {
+    // Checking initial modal states
+    const mockApply = jest.fn();
+    const closeModal = jest.fn();
+    types.MAX_WIDGETS = 1;
+    container = mountModal({initialData}, mockApply, closeModal);
+
+    // Select some widgets
+    const allEvents = screen.queryByText('High Throughput Transactions');
+    userEvent.click(allEvents);
+
+    const totalErrors = screen.queryByText('Users Affected by Errors');
+    userEvent.click(totalErrors);
+
+    expect(screen.getByTestId('confirm-widgets')).toBeDisabled();
   });
 });

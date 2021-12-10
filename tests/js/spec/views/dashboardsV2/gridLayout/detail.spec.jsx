@@ -258,6 +258,7 @@ describe('Dashboards > Detail', function () {
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
+        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -282,13 +283,16 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      if (wrapper) {
+        wrapper.unmount();
+      }
     });
 
     it('can remove widgets', async function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: {widgets: [widgets[0]]},
+        body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
       wrapper = mountWithTheme(
         <ViewEditDashboard
@@ -370,7 +374,6 @@ describe('Dashboards > Detail', function () {
       const modal = await mountGlobalModal();
 
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
-      wrapper.unmount();
     });
 
     it('shows add wiget option', async function () {
@@ -390,8 +393,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(true);
-
-      wrapper.unmount();
     });
 
     it('hides add widget option', async function () {
@@ -413,8 +414,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(false);
-
-      wrapper.unmount();
     });
 
     it('hides and shows breadcrumbs based on feature', async function () {
@@ -461,7 +460,6 @@ describe('Dashboards > Detail', function () {
       expect(breadcrumbs.exists()).toBe(true);
       expect(breadcrumbs.find('BreadcrumbLink').find('a').text()).toEqual('Dashboards');
       expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
-      wrapper.unmount();
     });
 
     it('enters edit mode when given a new widget in location query', async function () {
@@ -490,7 +488,6 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.EDIT
       );
-      wrapper.unmount();
     });
 
     it('enters view mode when not given a new widget in location query', async function () {
@@ -508,10 +505,10 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.VIEW
       );
-      wrapper.unmount();
     });
 
     it('can add library widgets', async function () {
+      types.MAX_WIDGETS = 10;
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -596,26 +593,25 @@ describe('Dashboards > Detail', function () {
                 type: 'line',
               },
               {
-                displayType: 'area',
+                displayType: 'top_n',
                 id: undefined,
-                description: 'Area chart reflecting all error and transaction events.',
                 interval: '5m',
+                description: 'Top 5 transactions with the largest volume.',
                 queries: [
                   {
-                    conditions: '!event.type:transaction',
-                    fields: ['count()'],
+                    conditions: '!event.type:error',
+                    fields: ['transaction', 'count()'],
                     name: '',
-                    orderby: '',
+                    orderby: '-count',
                   },
                 ],
-                title: 'All Events',
+                title: 'High Throughput Transactions',
                 widgetType: 'discover',
               },
             ],
           }),
         })
       );
-      wrapper.unmount();
     });
 
     it('adds an Issue widget to the dashboard', async function () {
@@ -654,7 +650,10 @@ describe('Dashboards > Detail', function () {
       await tick();
       await modal.update();
 
-      modal.find('ModalBody input').simulate('change', {target: {value: 'Issue Widget'}});
+      modal
+        .find('ModalBody input')
+        .first()
+        .simulate('change', {target: {value: 'Issue Widget'}});
       modal.find('ModalFooter button').simulate('click');
 
       await tick();
@@ -672,7 +671,14 @@ describe('Dashboards > Detail', function () {
               {
                 displayType: 'table',
                 interval: '5m',
-                queries: [{conditions: '', fields: [], name: '', orderby: ''}],
+                queries: [
+                  {
+                    conditions: '',
+                    fields: ['issue', 'assignee', 'title'],
+                    name: '',
+                    orderby: '',
+                  },
+                ],
                 title: 'Issue Widget',
                 widgetType: 'issue',
               },
@@ -680,7 +686,6 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
-      wrapper.unmount();
     });
   });
 });

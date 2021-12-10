@@ -5,13 +5,11 @@ import * as Sentry from '@sentry/react';
 import {openModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Access from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import {IconInfo} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {
   Frame,
@@ -330,17 +328,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
         <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
-          <Feature features={['organizations:sentry-app-logo-upload']}>
-            {({hasFeature}) => (
-              <StyledIconWrapper
-                isDark={ConfigStore.get('theme') === 'dark'}
-                hasFeature={hasFeature}
-              >
-                {getIntegrationIcon(config.provider.key)}
-              </StyledIconWrapper>
-            )}
-          </Feature>
-
+          <StyledIconWrapper>{getIntegrationIcon(config.provider.key)}</StyledIconWrapper>
           <OpenInName>{config.provider.name}</OpenInName>
         </OpenInLink>
       </OpenInContainer>
@@ -373,9 +361,8 @@ export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
 `;
 
-const StyledIconWrapper = styled('span')<{isDark: boolean; hasFeature: boolean}>`
-  color: ${({isDark, hasFeature}) =>
-    !hasFeature ? 'inherit' : isDark ? 'white' : 'black'};
+const StyledIconWrapper = styled('span')`
+  color: inherit;
   line-height: 0;
 `;
 
