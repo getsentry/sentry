@@ -17,6 +17,7 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {GlobalSelection, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'sentry/views/dashboardsV2/addWidget';
@@ -145,10 +146,7 @@ class Dashboard extends Component<Props> {
   };
 
   handleAddComplete = (widget: Widget) => {
-    this.props.onUpdate([
-      ...this.props.dashboard.widgets,
-      {...widget, tempId: Date.now().toString()},
-    ]);
+    this.props.onUpdate([...this.props.dashboard.widgets, assignTempId(widget)]);
   };
 
   handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
@@ -286,6 +284,14 @@ const GridItem = styled('div')`
 
 export function constructGridItemKey(widget: Widget) {
   return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
+}
+
+export function assignTempId(widget) {
+  if (widget.id ?? widget.tempId) {
+    return widget;
+  }
+
+  return {...widget, tempId: uniqueId()};
 }
 
 /**
