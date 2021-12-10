@@ -17,6 +17,7 @@ from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import ListField
+from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType
@@ -28,31 +29,50 @@ from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 @dataclasses.dataclass(frozen=True)
 class SpanPerformanceColumn:
     suspect_op_group_columns: List[str]
-    suspect_example_columns: List[str]
+    suspect_op_group_sort: List[str]
+    suspect_example_sort: List[str]
 
 
 SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
     "count": SpanPerformanceColumn(
-        ["count()", "sumArray(spans_exclusive_time)"], ["count()", "sumArray(spans_exclusive_time)"]
+        ["count()", "sumArray(spans_exclusive_time)"],
+        ["count()", "sumArray(spans_exclusive_time)"],
+        ["count()", "sumArray(spans_exclusive_time)"],
     ),
     "avgOccurrence": SpanPerformanceColumn(
+        [
+            "count()",
+            "count_unique(id)",
+            "equation|count() / count_unique(id)",
+            "sumArray(spans_exclusive_time)",
+        ],
         ["equation[0]", "sumArray(spans_exclusive_time)"],
         ["count()", "sumArray(spans_exclusive_time)"],
     ),
     "sumExclusiveTime": SpanPerformanceColumn(
-        ["sumArray(spans_exclusive_time)"], ["sumArray(spans_exclusive_time)"]
+        ["sumArray(spans_exclusive_time)"],
+        ["sumArray(spans_exclusive_time)"],
+        ["sumArray(spans_exclusive_time)"],
     ),
     "p50ExclusiveTime": SpanPerformanceColumn(
-        ["percentileArray(spans_exclusive_time, 0.50)"], ["maxArray(spans_exclusive_time)"]
+        ["percentileArray(spans_exclusive_time, 0.50)"],
+        ["percentileArray(spans_exclusive_time, 0.50)"],
+        ["maxArray(spans_exclusive_time)"],
     ),
     "p75ExclusiveTime": SpanPerformanceColumn(
-        ["percentileArray(spans_exclusive_time, 0.75)"], ["maxArray(spans_exclusive_time)"]
+        ["percentileArray(spans_exclusive_time, 0.75)"],
+        ["percentileArray(spans_exclusive_time, 0.75)"],
+        ["maxArray(spans_exclusive_time)"],
     ),
     "p95ExclusiveTime": SpanPerformanceColumn(
-        ["percentileArray(spans_exclusive_time, 0.95)"], ["maxArray(spans_exclusive_time)"]
+        ["percentileArray(spans_exclusive_time, 0.95)"],
+        ["percentileArray(spans_exclusive_time, 0.95)"],
+        ["maxArray(spans_exclusive_time)"],
     ),
     "p99ExclusiveTime": SpanPerformanceColumn(
-        ["percentileArray(spans_exclusive_time, 0.99)"], ["maxArray(spans_exclusive_time)"]
+        ["percentileArray(spans_exclusive_time, 0.99)"],
+        ["percentileArray(spans_exclusive_time, 0.99)"],
+        ["maxArray(spans_exclusive_time)"],
     ),
 }
 
@@ -86,6 +106,22 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsEndpointBase):  # ty
         return direction, orderby
 
 
+class SpansPerformanceSerializer(serializers.Serializer):  # type: ignore
+    field = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    query = serializers.CharField(required=False, allow_null=True)
+    spanOp = ListField(child=serializers.CharField(), required=False, allow_null=True, max_length=4)
+    spanGroup = ListField(
+        child=serializers.CharField(), required=False, allow_null=True, max_length=4
+    )
+    perSuspect = serializers.IntegerField(default=4, min_value=0, max_value=10)
+
+    def validate_spanGroup(self, span_groups):
+        for group in span_groups:
+            if not is_span_id(group):
+                raise serializers.ValidationError(INVALID_SPAN_ID.format("spanGroup"))
+        return span_groups
+
+
 class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(request, organization):
@@ -96,29 +132,30 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
         except NoProjects:
             return Response(status=404)
 
-        query = request.GET.get("query")
-        span_ops = request.GET.getlist("spanOp")
-        span_groups = request.GET.getlist("spanGroup")
+        serializer = SpansPerformanceSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serialized = serializer.validated_data
 
-        try:
-            per_suspect = int(request.GET.get("perSuspect", 4))
-            if per_suspect < 0 or per_suspect > 10:
-                raise ValueError
-        except ValueError:
-            raise ParseError(detail="perSuspect must be integer between 0 and 10.")
-
-        if span_groups and any(not is_span_id(group) for group in span_groups):
-            raise ParseError(detail=INVALID_SPAN_ID.format("span.group"))
+        fields = serialized.get("field", [])
+        query = serialized.get("query")
+        span_ops = serialized.get("spanOp")
+        span_groups = serialized.get("spanGroup")
+        per_suspect = serialized.get("perSuspect")
 
         direction, orderby_column = self.get_orderby_column(request)
 
         def data_fn(offset: int, limit: int) -> Any:
-            orderbys = [
-                direction + column
-                for column in SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_op_group_columns
-            ]
             suspects = query_suspect_span_groups(
-                params, query, span_ops, span_groups, orderbys, limit, offset
+                params,
+                fields,
+                query,
+                span_ops,
+                span_groups,
+                direction,
+                orderby_column,
+                limit,
+                offset,
             )
 
             # Because we want to support pagination, the limit is 1 more than will be
@@ -267,14 +304,14 @@ class SuspectSpan:
     transaction: str
     op: str
     group: str
-    frequency: int
-    count: int
-    avg_occurrences: float
-    sum_exclusive_time: float
-    p50_exclusive_time: float
-    p75_exclusive_time: float
-    p95_exclusive_time: float
-    p99_exclusive_time: float
+    frequency: Optional[int]
+    count: Optional[int]
+    avg_occurrences: Optional[float]
+    sum_exclusive_time: Optional[float]
+    p50_exclusive_time: Optional[float]
+    p75_exclusive_time: Optional[float]
+    p95_exclusive_time: Optional[float]
+    p99_exclusive_time: Optional[float]
 
     def serialize(self) -> Any:
         return {
@@ -315,9 +352,11 @@ class Span:
     def from_str(s: str) -> Span:
         parts = s.rsplit(":", 1)
         if len(parts) != 2:
-            raise ValueError(f"{s} is not a valid span.")
+            raise ValueError(
+                "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)"
+            )
         if not is_span_id(parts[1]):
-            raise ValueError(f"{parts[1]} is not a valid span group.")
+            raise ValueError(INVALID_SPAN_ID.format("spanGroup"))
         return Span(op=parts[0], group=parts[1])
 
 
@@ -330,14 +369,22 @@ class EventID:
 
 def query_suspect_span_groups(
     params: ParamsType,
+    fields: List[str],
     query: Optional[str],
     span_ops: Optional[List[str]],
     span_groups: Optional[List[str]],
-    order_columns: List[str],
+    direction: str,
+    orderby: str,
     limit: int,
     offset: int,
 ) -> List[SuspectSpan]:
+    suspect_span_columns = SPAN_PERFORMANCE_COLUMNS[orderby]
+
     selected_columns: List[str] = [
+        column
+        for column in suspect_span_columns.suspect_op_group_columns + fields
+        if not is_equation(column)
+    ] + [
         "project.id",
         "project",
         "transaction",
@@ -347,12 +394,24 @@ def query_suspect_span_groups(
         "count_unique(id)",
     ]
 
-    equations: List[str] = ["count() / count_unique(id)"]
+    equations: List[str] = [
+        strip_equation(column)
+        for column in suspect_span_columns.suspect_op_group_columns
+        if is_equation(column)
+    ]
 
-    for column in SPAN_PERFORMANCE_COLUMNS.values():
-        for col in column.suspect_op_group_columns:
-            if not col.startswith("equation["):
-                selected_columns.append(col)
+    # TODO: This adds all the possible fields to the query by default. However,
+    # due to the way shards aggregate the rows, this can be slow. As an
+    # optimization, allow the fields to be user specified to only get the
+    # necessary aggregations.
+    #
+    # As part of the transition, continue to add all possible fields when its
+    # not specified, but this should be removed in the future.
+    if not fields:
+        for column in SPAN_PERFORMANCE_COLUMNS.values():
+            for col in column.suspect_op_group_sort:
+                if not col.startswith("equation["):
+                    selected_columns.append(col)
 
     builder = QueryBuilder(
         dataset=Dataset.Discover,
@@ -360,7 +419,7 @@ def query_suspect_span_groups(
         selected_columns=selected_columns,
         equations=equations,
         query=query,
-        orderby=order_columns,
+        orderby=[direction + column for column in suspect_span_columns.suspect_op_group_sort],
         auto_aggregations=True,
         use_aggregate_conditions=True,
         limit=limit,
@@ -401,10 +460,10 @@ def query_suspect_span_groups(
             transaction=suspect["transaction"],
             op=suspect["array_join_spans_op"],
             group=suspect["array_join_spans_group"],
-            frequency=suspect["count_unique_id"],
-            count=suspect["count"],
-            avg_occurrences=suspect["equation[0]"],
-            sum_exclusive_time=suspect["sumArray_spans_exclusive_time"],
+            frequency=suspect.get("count_unique_id"),
+            count=suspect.get("count"),
+            avg_occurrences=suspect.get("equation[0]"),
+            sum_exclusive_time=suspect.get("sumArray_spans_exclusive_time"),
             p50_exclusive_time=suspect.get("percentileArray_spans_exclusive_time_0_50"),
             p75_exclusive_time=suspect.get("percentileArray_spans_exclusive_time_0_75"),
             p95_exclusive_time=suspect.get("percentileArray_spans_exclusive_time_0_95"),
@@ -427,7 +486,7 @@ def query_example_transactions(
     if not spans or per_suspect == 0:
         return {}
 
-    orderby_columns = SPAN_PERFORMANCE_COLUMNS[orderby].suspect_example_columns
+    orderby_columns = SPAN_PERFORMANCE_COLUMNS[orderby].suspect_example_sort
 
     selected_columns: List[str] = [
         "id",

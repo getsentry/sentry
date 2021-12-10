@@ -145,11 +145,14 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
 
         return results
 
-    def assert_span_results(self, result, expected_result, keys):
+    def assert_span_results(self, result, expected_result, keys, none_keys):
         assert len(result) == len(expected_result)
         for suspect, expected_suspect in zip(result, expected_result):
             for key in keys:
-                assert suspect[key] == expected_suspect[key], key
+                if key in none_keys:
+                    assert suspect[key] is None, key
+                else:
+                    assert suspect[key] == expected_suspect[key], key
 
             assert len(suspect["examples"]) == len(expected_suspect["examples"])
 
@@ -174,7 +177,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                     ]:
                         assert span[key] == expected_span[key], key
 
-    def assert_suspect_span(self, result, expected_result):
+    def assert_suspect_span(self, result, expected_result, none_keys=None):
         self.assert_span_results(
             result,
             expected_result,
@@ -192,6 +195,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                 "p95ExclusiveTime",
                 "p99ExclusiveTime",
             ],
+            none_keys,
         )
 
     def assert_span_examples(self, result, expected_result):
@@ -435,7 +439,22 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
                     format="json",
                 )
             assert response.status_code == 400, response.content
-            assert response.data == {"detail": "perSuspect must be integer between 0 and 10."}
+            if per_suspect < 0:
+                assert response.data == {
+                    "perSuspect": [
+                        ErrorDetail(
+                            "Ensure this value is greater than or equal to 0.", code="min_value"
+                        )
+                    ]
+                }
+            if per_suspect > 10:
+                assert response.data == {
+                    "perSuspect": [
+                        ErrorDetail(
+                            "Ensure this value is less than or equal to 10.", code="max_value"
+                        )
+                    ]
+                }
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_default_per_suspect(self, mock_raw_snql_query):
@@ -958,7 +977,12 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
 
         assert response.status_code == 400, response.content
         assert response.data == {
-            "detail": "span.group must be a valid 16 character hex (containing only digits, or a-f characters)"
+            "spanGroup": [
+                ErrorDetail(
+                    "spanGroup must be a valid 16 character hex (containing only digits, or a-f characters)",
+                    code="invalid",
+                )
+            ]
         }
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
@@ -1169,6 +1193,41 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsSpansEndpointTestBas
 
         assert response.status_code == 400, response.content
         assert response.data == {"span": [ErrorDetail("This field is required.", code="required")]}
+
+    def test_bad_span_param(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id, "span": ["http.server"]},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "span": [
+                ErrorDetail(
+                    "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)",
+                    code="invalid",
+                )
+            ]
+        }
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id, "span": ["http.server:ab"]},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "span": [
+                ErrorDetail(
+                    "spanGroup must be a valid 16 character hex (containing only digits, or a-f characters)",
+                    code="invalid",
+                )
+            ]
+        }
 
     def test_illegal_offset_with_multiple_spans(self):
         with self.feature(self.FEATURES):
