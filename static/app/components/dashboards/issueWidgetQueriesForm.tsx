@@ -55,7 +55,7 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
   };
 
   tagValueLoader = (key: string, search: string) => {
-    const {organization, selection} = this.props;
+    const {organization, selection, api} = this.props;
     const orgId = organization.slug;
     const projectIds = selection.projects.map(id => id.toString());
     const endpointParams = {
@@ -64,7 +64,7 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
       statsPeriod: selection.datetime.period,
     };
 
-    return fetchTagValues(this.props.api, orgId, key, search, projectIds, endpointParams);
+    return fetchTagValues(api, orgId, key, search, projectIds, endpointParams);
   };
 
   render() {
