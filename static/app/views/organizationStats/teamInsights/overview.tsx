@@ -27,6 +27,7 @@ import Header from '../header';
 
 import DescriptionCard from './descriptionCard';
 import TeamAlertsTriggered from './teamAlertsTriggered';
+import TeamIssuesAge from './teamIssuesAge';
 import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
 import TeamReleases from './teamReleases';
@@ -300,6 +301,12 @@ function TeamInsightsOverview({location, router}: Props) {
                 end={end?.toString()}
                 location={location}
               />
+            </DescriptionCard>
+            <DescriptionCard
+              title={t('Age of Unresolved Issues')}
+              description={t('How long ago since unresolved issues were first created.')}
+            >
+              <TeamIssuesAge organization={organization} teamSlug={currentTeam!.slug} />
             </DescriptionCard>
             <DescriptionCard
               title={t('Time to Resolution')}
