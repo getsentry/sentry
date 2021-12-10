@@ -56,7 +56,7 @@ const WidgetLibraryGrid = styled('div')`
   grid-template-rows: repeat(2, max-content);
   row-gap: ${space(1.5)};
   column-gap: ${space(2)};
-  /* 700px is the max width of the Modal */
+  /* 700px is the max width of the modal */
   @media (max-width: 700px) {
     grid-template-columns: auto;
   }
