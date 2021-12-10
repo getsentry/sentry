@@ -25,6 +25,9 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
             date_deleted=None,
         )
 
+    def get_by_api_token(self, token_id: str) -> QuerySet:
+        return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
+
 
 class SentryAppInstallation(ParanoidModel):
     __include_in_export__ = True
