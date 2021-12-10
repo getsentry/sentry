@@ -168,8 +168,19 @@ class U2fInterface extends React.Component<Props, State> {
         const challengeArray = base64urlToBuffer(
           this.props.challengeData.webAuthnAuthenticationData
         );
-        const challenge = cbor.decodeAllSync(challengeArray);
-        this.webAuthnSignIn(challenge[0]);
+        const challenge = cbor.decodeFirst(challengeArray);
+        challenge
+          .then(data => {
+            this.webAuthnSignIn(data);
+          })
+          .catch(err => {
+            const failure = 'DEVICE_ERROR';
+            Sentry.captureException(err);
+            this.setState({
+              deviceFailure: failure,
+              hasBeenTapped: false,
+            });
+          });
       } else {
         promise = u2f.sign(this.props.challengeData.authenticateRequests);
         this.submitU2fResponse(promise);
