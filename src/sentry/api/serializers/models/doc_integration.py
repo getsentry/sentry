@@ -3,7 +3,7 @@ from typing import Any, Mapping
 from sentry.api.serializers import Serializer, register, serialize
 
 # from sentry.api.validators.doc_integration import METADATA_TYPES
-from sentry.models import DocIntegration
+from sentry.models.integration import DocIntegration
 from sentry.models.integrationfeature import IntegrationFeature, IntegrationTypes
 from sentry.models.user import User
 from sentry.utils.compat import map
@@ -23,7 +23,7 @@ class DocIntegrationSerializer(Serializer):
             "name": obj.name,
             "author": obj.author,
             "description": obj.description,
-            "docUrl": obj.url,
+            "url": obj.url,
             "popularity": obj.popularity,
             "isDraft": obj.is_draft,
         }

@@ -1,8 +1,9 @@
 import logging
-from typing import Mapping
 
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import best_match
+
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ METADATA_SCHEMA = {
 METADATA_TYPES = ["resources"]
 
 
-def validate_metadata_schema(instance: Mapping[str, any]):
+def validate_metadata_schema(instance: JSONData):
     v = Draft7Validator(METADATA_SCHEMA)
     if not v.is_valid(instance):
         raise best_match(v.iter_errors(instance))

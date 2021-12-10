@@ -1,15 +1,11 @@
-from typing import TYPE_CHECKING
-
 from rest_framework.request import Request
 
 from sentry.api.bases.sentryapps import IntegrationPlatformEndpoint, ensure_scoped_permission
 from sentry.api.permissions import SentryPermission
 from sentry.api.validators.doc_integration import METADATA_TYPES
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.integration import DocIntegration
 from sentry.utils.json import JSONData
-
-if TYPE_CHECKING:
-    from sentry.models.integration import DocIntegration
 
 
 class DocIntegrationsPermission(SentryPermission):
@@ -38,7 +34,7 @@ class DocIntegrationsPermission(SentryPermission):
         ),
     }
 
-    def has_object_permission(self, request: Request, view, doc_integration: "DocIntegration"):
+    def has_object_permission(self, request: Request, view, doc_integration: DocIntegration):
         if not hasattr(request, "user") or not request.user:
             return False
 
