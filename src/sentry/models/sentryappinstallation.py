@@ -26,7 +26,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         )
 
     def get_by_api_token(self, token_id: str) -> QuerySet:
-        return self.filter(sentryappinstallationtoken__api_token_id=token_id)
+        return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
 
 class SentryAppInstallation(ParanoidModel):

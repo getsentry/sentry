@@ -47,19 +47,22 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
 
     ip_address = request.META.get("REMOTE_ADDR")
     request_auth = getattr(request, "auth", None)
+    request_user = getattr(request, "user", None)
+
     from sentry.models import ApiKey, ApiToken
 
     if isinstance(request_auth, ApiToken):
-        if request.user.is_sentry_app:
+
+        if request_user.is_sentry_app:
             category = "org"
             id = get_organization_id_from_token(request_auth.id)
         else:
             category = "user"
             id = request_auth.user_id
 
-    elif not isinstance(request_auth, ApiKey) and request.user:
+    elif not isinstance(request_auth, ApiKey) and request_user:
         category = "user"
-        id = request.user.id
+        id = request_user.id
 
     # ApiKeys will be treated with IP ratelimits
     elif ip_address is not None:
