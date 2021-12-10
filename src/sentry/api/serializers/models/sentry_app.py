@@ -3,7 +3,7 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.models import IntegrationFeature, SentryApp
-from sentry.models.integration_feature import IntegrationTypes
+from sentry.models.integrationfeature import IntegrationTypes
 from sentry.models.sentryapp import MASKED_VALUE
 from sentry.utils.compat import map
 

@@ -109,6 +109,13 @@ class IntegrationFeature(Model):
 
     @property
     def description(self):
+        from sentry.models import DocIntegration, SentryApp
+
         if self.user_description:
             return self.user_description
-        return Feature.description(self.feature, self.sentry_app.name)
+        integration = None
+        if self.target_type == IntegrationTypes.SENTRY_APP.value:
+            integration = SentryApp.objects.get(id=self.target_id)
+        else:
+            integration = DocIntegration.objects.get(id=self.target_id)
+        return Feature.description(self.feature, integration.name)

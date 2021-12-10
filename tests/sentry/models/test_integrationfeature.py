@@ -1,5 +1,5 @@
 from sentry.models import IntegrationFeature
-from sentry.models.integration_feature import IntegrationTypes
+from sentry.models.integrationfeature import IntegrationTypes
 from sentry.testutils import TestCase
 
 

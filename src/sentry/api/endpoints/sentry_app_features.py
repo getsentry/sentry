@@ -2,7 +2,7 @@ from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import IntegrationFeature
-from sentry.models.integration_feature import IntegrationTypes
+from sentry.models.integrationfeature import IntegrationTypes
 
 
 class SentryAppFeaturesEndpoint(SentryAppBaseEndpoint):
