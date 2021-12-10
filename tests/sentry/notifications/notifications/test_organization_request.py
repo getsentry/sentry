@@ -1,20 +1,20 @@
 from sentry.models import NotificationSetting, OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
-from sentry.notifications.notifications.strategies.role_based_receipt_strategy import (
-    RoleBasedReceiptStrategy,
+from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
+    RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 
 
-class DummyRoleBasedReceiptStrategy(RoleBasedReceiptStrategy):
+class DummyRoleBasedRecipientStrategy(RoleBasedRecipientStrategy):
     def determine_member_recipients(self):
         return OrganizationMember.objects.filter(organization=self.organization)
 
 
 class DummyRequestNotification(OrganizationRequestNotification):
-    RoleBasedReceiptStrategyClass = DummyRoleBasedReceiptStrategy
+    RoleBasedRecipientStrategyClass = DummyRoleBasedRecipientStrategy
 
 
 class GetParticipantsTest(TestCase):

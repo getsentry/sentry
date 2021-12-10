@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from sentry import analytics
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
-from sentry.notifications.notifications.strategies.owner_receipt_strategy import (
-    OwnerReceiptStrategy,
+from sentry.notifications.notifications.strategies.owner_recipient_strategy import (
+    OwnerRecipientStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
@@ -37,7 +37,7 @@ def get_url(organization: Organization, provider_type: str, provider_slug: str) 
 
 class IntegrationRequestNotification(OrganizationRequestNotification):
     # TODO: switch to a strategy based on the integration write scope
-    RoleBasedReceiptStrategyClass = OwnerReceiptStrategy
+    RoleBasedRecipientStrategyClass = OwnerRecipientStrategy
 
     def __init__(
         self,

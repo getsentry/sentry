@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from sentry.models import Organization, User
 
 
-class RoleBasedReceiptStrategy(metaclass=ABCMeta):
+class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
 
     def __init__(self, organization: Organization):

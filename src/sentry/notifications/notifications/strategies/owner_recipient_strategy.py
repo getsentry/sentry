@@ -5,10 +5,10 @@ from typing import Iterable
 from sentry import roles
 from sentry.models import OrganizationMember
 
-from .role_based_receipt_strategy import RoleBasedReceiptStrategy
+from .role_based_recipient_strategy import RoleBasedRecipientStrategy
 
 
-class OwnerReceiptStrategy(RoleBasedReceiptStrategy):
+class OwnerRecipientStrategy(RoleBasedRecipientStrategy):
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
         # Explicitly typing to satisfy mypy.
         members: Iterable[
