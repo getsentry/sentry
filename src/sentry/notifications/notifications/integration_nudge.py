@@ -42,18 +42,6 @@ MESSAGE_LIBRARY = [
 
 
 class IntegrationNudgeNotification(BaseNotification):
-    def get_filename(self) -> str:
-        pass
-
-    def get_category(self) -> str:
-        pass
-
-    def get_type(self) -> str:
-        pass
-
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        pass
-
     category = "integration_nudge"
     filename = "integration-nudge"
     type = "integration.nudge"
@@ -87,7 +75,13 @@ class IntegrationNudgeNotification(BaseNotification):
         return MESSAGE_LIBRARY[self.seed].format(provider=self.provider.name.capitalize())
 
     def get_message_actions(self) -> Sequence[MessageAction]:
-        return [MessageAction(name="Turn on personal notifications", value="1")]
+        return [
+            MessageAction(
+                name="Turn on personal notifications",
+                action_id="enable_notifications",
+                value="all_slack",
+            )
+        ]
 
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
@@ -100,3 +94,15 @@ class IntegrationNudgeNotification(BaseNotification):
 
     def build_attachment_title(self) -> str:
         return ""
+
+    def get_filename(self) -> str:
+        return ""
+
+    def get_category(self) -> str:
+        return ""
+
+    def get_type(self) -> str:
+        return ""
+
+    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
+        pass
