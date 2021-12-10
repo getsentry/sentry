@@ -114,7 +114,6 @@ class Creator(Mediator, SentryAppMixin):
         try:
             with transaction.atomic():
                 IntegrationFeature.objects.create(
-                    sentry_app=self.sentry_app,
                     target_id=self.sentry_app.id,
                     target_type=IntegrationTypes.SENTRY_APP.value,
                 )
