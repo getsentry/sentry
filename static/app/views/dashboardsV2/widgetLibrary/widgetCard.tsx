@@ -3,7 +3,9 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody} from 'sentry/components/panels';
-import {IconGraph, IconMenu} from 'sentry/icons';
+import {IconArrow, IconGlobe, IconGraph, IconMenu, IconNumber} from 'sentry/icons';
+import {IconGraphArea} from 'sentry/icons/iconGraphArea';
+import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import space from 'sentry/styles/space';
 
 import {DisplayType} from '../types';
@@ -30,6 +32,16 @@ function WidgetLibraryCard({
     switch (displayType) {
       case DisplayType.TABLE:
         return <IconMenu size="xs" />;
+      case DisplayType.WORLD_MAP:
+        return <IconGlobe size="xs" />;
+      case DisplayType.BIG_NUMBER:
+        return <IconNumber size="xs" />;
+      case DisplayType.BAR:
+        return <IconGraphBar size="xs" />;
+      case DisplayType.TOP_N:
+        return <IconArrow size="xs" />;
+      case DisplayType.AREA:
+        return <IconGraphArea size="xs" />;
       case DisplayType.LINE:
       default:
         return <IconGraph size="xs" />;
@@ -79,7 +91,7 @@ const TitleContainer = styled('div')`
 `;
 
 const Description = styled('div')`
-  padding: 0 ${space(1)} ${space(1.5)} 40px;
+  padding: 0 ${space(1)} ${space(1.5)} 36px;
   font-size: 14px;
   line-height: 21px;
   color: ${p => p.theme.gray300};
@@ -91,10 +103,11 @@ type PanelProps = {
 
 const StyledPanel = styled(Panel)<PanelProps>`
   margin-bottom: 0;
-  border: ${p =>
-    p.selected ? '2px solid' + p.theme.purple400 : '1px solid ' + p.theme.border};
+  border: ${p => '1px solid ' + p.theme.border};
+  outline: ${p => (p.selected ? '2px solid' + p.theme.purple400 : undefined)};
   box-sizing: border-box;
   box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
 `;
 
 export default WidgetLibraryCard;
