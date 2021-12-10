@@ -35,7 +35,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     end: end ?? '',
   };
 
-  if (!response || !responsePrevious) {
+  if (!response) {
     return {
       ...commonChildData,
       hasData: false,
@@ -81,7 +81,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     : undefined;
 
   const dataMean = data.map(serie => {
-    let meanData = serie.totals / serie.data.length;
+    let meanData = serie.totals;
     let seriesName = serie.seriesName;
 
     if (defined(seriesTotal)) {
@@ -97,21 +97,21 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   });
 
   const previousGroups = isFailureRateWidget
-    ? responsePrevious.groups.filter(
+    ? responsePrevious?.groups.filter(
         group => !TRANSACTION_SUCCESS_STATUS.includes(group.by['transaction.status'])
       )
-    : responsePrevious.groups;
+    : responsePrevious?.groups;
 
   const previousTotalPerBucket = isFailureRateWidget
-    ? responsePrevious.intervals.map((_intervalValue, intervalIndex) =>
-        responsePrevious.groups.reduce(
+    ? responsePrevious?.intervals.map((_intervalValue, intervalIndex) =>
+        responsePrevious?.groups.reduce(
           (acc, group) => acc + group.series[metricsField][intervalIndex],
           0
         )
       )
     : undefined;
 
-  const previousData = previousGroups.map(group => ({
+  const previousData = previousGroups?.map(group => ({
     seriesName: `previous ${metricsField}`,
     data: response?.intervals.map((intervalValue, intervalIndex) => ({
       name: moment(intervalValue).valueOf(),

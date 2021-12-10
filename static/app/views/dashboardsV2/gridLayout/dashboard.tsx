@@ -17,6 +17,7 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {GlobalSelection, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'sentry/views/dashboardsV2/addWidget';
@@ -45,8 +46,6 @@ const ADD_BUTTON_POSITION = {
   isResizable: false,
 };
 const DEFAULT_WIDGET_WIDTH = 2;
-
-const GridLayout = WidthProvider(RGL);
 
 type Props = {
   api: Client;
@@ -145,15 +144,13 @@ class Dashboard extends Component<Props> {
   };
 
   handleAddComplete = (widget: Widget) => {
-    this.props.onUpdate([
-      ...this.props.dashboard.widgets,
-      {...widget, tempId: Date.now().toString()},
-    ]);
+    this.props.onUpdate([...this.props.dashboard.widgets, assignTempId(widget)]);
   };
 
-  handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
+  handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const nextList = [...this.props.dashboard.widgets];
-    nextList[index] = nextWidget;
+    const updateIndex = nextList.indexOf(prevWidget);
+    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
   };
 
@@ -205,7 +202,7 @@ class Dashboard extends Component<Props> {
       widget,
       selection,
       onAddWidget: this.handleAddComplete,
-      onUpdateWidget: this.handleUpdateComplete(index),
+      onUpdateWidget: this.handleUpdateComplete(widget),
     };
     if (widget.widgetType === WidgetType.ISSUE) {
       openAddDashboardIssueWidgetModal(modalProps);
@@ -284,8 +281,23 @@ const GridItem = styled('div')`
   }
 `;
 
+// HACK: to stack chart tooltips above other grid items
+const GridLayout = styled(WidthProvider(RGL))`
+  .react-grid-item:hover {
+    z-index: 10;
+  }
+`;
+
 export function constructGridItemKey(widget: Widget) {
   return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
+}
+
+export function assignTempId(widget) {
+  if (widget.id ?? widget.tempId) {
+    return widget;
+  }
+
+  return {...widget, tempId: uniqueId()};
 }
 
 /**

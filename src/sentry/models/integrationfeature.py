@@ -1,7 +1,14 @@
+from enum import Enum
+
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+)
 
 
 class Feature:
@@ -68,10 +75,26 @@ class Feature:
         )
 
 
+class IntegrationTypes(Enum):
+    SENTRY_APP = 0
+    DOC_INTEGRATION = 1
+
+
 class IntegrationFeature(Model):
     __include_in_export__ = False
 
-    sentry_app = FlexibleForeignKey("sentry.SentryApp")
+    sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
+    # the id of the sentry_app or doc_integration
+    # TODO(CEO): change this to null=False
+    target_id = BoundedBigIntegerField(null=True)
+    target_type = BoundedPositiveIntegerField(
+        default=0,
+        null=True,
+        choices=(
+            (IntegrationTypes.SENTRY_APP, "sentry_app"),
+            (IntegrationTypes.DOC_INTEGRATION, "doc_integration"),
+        ),
+    )
     user_description = models.TextField(null=True)
     feature = BoundedPositiveIntegerField(default=0, choices=Feature.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
@@ -86,6 +109,13 @@ class IntegrationFeature(Model):
 
     @property
     def description(self):
+        from sentry.models import DocIntegration, SentryApp
+
         if self.user_description:
             return self.user_description
-        return Feature.description(self.feature, self.sentry_app.name)
+
+        if self.target_type == IntegrationTypes.SENTRY_APP.value:
+            integration = SentryApp.objects.get(id=self.target_id)
+        else:
+            integration = DocIntegration.objects.get(id=self.target_id)
+        return Feature.description(self.feature, integration.name)

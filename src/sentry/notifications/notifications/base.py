@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 from urllib.parse import urljoin
 
 from sentry import analytics
-from sentry.models import Environment, NotificationSetting
+from sentry.models import Environment, NotificationSetting, Team
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -13,9 +13,10 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, Team, User
+    from sentry.models import Organization, Project, User
 
 
+# TODO: add abstractmethod decorators
 class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it
@@ -89,15 +90,8 @@ class BaseNotification(abc.ABC):
     def build_attachment_title(self) -> str:
         raise NotImplementedError
 
-    def build_notification_footer_from_settings_url(
-        self, settings_url: str, recipient: Team | User
-    ) -> str:
-        raise NotImplementedError
-
     def build_notification_footer(self, recipient: Team | User) -> str:
-        # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
-        return self.build_notification_footer_from_settings_url(settings_url, recipient)
+        raise NotImplementedError
 
     def get_message_description(self) -> Any:
         context = getattr(self, "context", None)
@@ -147,6 +141,7 @@ class BaseNotification(abc.ABC):
         return f"?referrer={self.get_referrer(provider)}"
 
     def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
+        # settings url is dependant on the provider so we know which provider is sending them into Sentry
         if isinstance(recipient, Team):
             team = Team.objects.get(id=recipient.id)
             url_str = f"/settings/{self.org_slug}/teams/{team.slug}/notifications/"
@@ -207,9 +202,10 @@ class ProjectNotification(BaseNotification, abc.ABC):
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {"project_id": self.project.id, **super().get_log_params(recipient)}
 
-    def build_notification_footer_from_settings_url(
-        self, settings_url: str, _recipient: Team | User
-    ) -> str:
+    def build_notification_footer(self, recipient: Team | User) -> str:
+        # notification footer only used for Slack for now
+        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
+
         parent = getattr(self, "project", self.organization)
         footer: str = parent.slug
         group = getattr(self, "group", None)
