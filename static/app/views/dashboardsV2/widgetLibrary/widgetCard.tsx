@@ -103,10 +103,11 @@ type PanelProps = {
 
 const StyledPanel = styled(Panel)<PanelProps>`
   margin-bottom: 0;
-  border: ${p =>
-    p.selected ? '2px solid' + p.theme.purple400 : '1px solid ' + p.theme.border};
+  border: ${p => '1px solid ' + p.theme.border};
+  outline: ${p => (p.selected ? '2px solid' + p.theme.purple400 : undefined)};
   box-sizing: border-box;
   box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
 `;
 
 export default WidgetLibraryCard;
