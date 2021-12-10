@@ -1,10 +1,13 @@
 import logging
 
+from rest_framework import status
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.docintegrations import DocIntegrationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import DocIntegrationSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.integration import DocIntegration
 
@@ -25,4 +28,15 @@ class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
         )
 
     def post(self, request: Request):
-        pass
+        data = request.json_body
+        # Override any incoming JSON for these fields
+        data["is_draft"] = False
+        data["metadata"] = self.generate_metadata(request)
+        serializer = DocIntegrationSerializer(data=data)
+        if serializer.is_valid():
+            doc_integration = serializer.save()
+            return Response(
+                serialize(doc_integration, request.user, access=request.access),
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
