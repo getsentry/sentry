@@ -47,8 +47,6 @@ const ADD_BUTTON_POSITION = {
 };
 const DEFAULT_WIDGET_WIDTH = 2;
 
-const GridLayout = WidthProvider(RGL);
-
 type Props = {
   api: Client;
   organization: Organization;
@@ -280,6 +278,13 @@ export default withApi(withGlobalSelection(Dashboard));
 const GridItem = styled('div')`
   .react-resizable-handle {
     z-index: 1;
+  }
+`;
+
+// HACK: to stack chart tooltips above other grid items
+const GridLayout = styled(WidthProvider(RGL))`
+  .react-grid-item:hover {
+    z-index: 10;
   }
 `;
 
