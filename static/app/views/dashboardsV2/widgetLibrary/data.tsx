@@ -45,8 +45,8 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   },
   {
     id: undefined,
-    title: t('LCP by Country (Frontend)'),
-    description: t('Map showing page load times by country.'),
+    title: t('LCP by Country'),
+    description: t('Density map showing page load times by country.'),
     displayType: DisplayType.WORLD_MAP,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
@@ -78,7 +78,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
     id: undefined,
     title: t('Slow vs Fast Transactions'),
-    description: t('Breakdown of transaction durations over and under 300ms'),
+    description: t('Percentage breakdown of transaction durations over and under 300ms.'),
     displayType: DisplayType.BAR,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
@@ -87,8 +87,8 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
         name: '',
         conditions: '!event.type:error',
         fields: [
-          'count_if(transaction.duration,greater,300)',
-          'count_if(transaction.duration,lessOrEquals,300)',
+          'equation|(count_if(transaction.duration,greater,300) / count()) * 100',
+          'equation|(count_if(transaction.duration,lessOrEquals,300) / count()) * 100',
         ],
         orderby: '',
       },
