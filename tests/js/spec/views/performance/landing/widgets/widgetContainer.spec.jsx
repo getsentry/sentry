@@ -45,6 +45,8 @@ const issuesPredicate = (url, options) =>
   url.includes('eventsv2') && options.query?.query.includes('error');
 
 describe('Performance > Widgets > WidgetContainer', function () {
+  let wrapper;
+
   let eventStatsMock;
   let eventsV2Mock;
   let metricsMock;
@@ -89,10 +91,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
   });
 
+  afterEach(function () {
+    if (wrapper) {
+      wrapper.unmount();
+      wrapper = undefined;
+    }
+  });
+
   it('Check requests when changing widget props', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
@@ -146,7 +155,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
@@ -209,7 +218,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('TPM Widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
@@ -241,7 +250,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Failure Rate Widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
@@ -273,7 +282,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('User misery Widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
@@ -305,7 +314,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Worst LCP widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
@@ -356,7 +365,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
@@ -409,7 +418,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Worst FCP widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_FCP_VITALS}
@@ -459,7 +468,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_FCP_VITALS}
@@ -512,7 +521,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Worst FID widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_FID_VITALS}
@@ -562,7 +571,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_FID_VITALS}
@@ -615,7 +624,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('LCP Histogram Widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
@@ -635,7 +644,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('FCP Histogram Widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
@@ -681,7 +690,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.P50_DURATION_AREA}
@@ -696,7 +705,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p50 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -707,7 +716,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['p50(transaction.duration)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -725,7 +734,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['p50(transaction.duration)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -763,7 +772,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.P75_DURATION_AREA}
@@ -778,7 +787,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p75 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -789,7 +798,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['p75(transaction.duration)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -807,7 +816,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['p75(transaction.duration)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -845,7 +854,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.P95_DURATION_AREA}
@@ -860,7 +869,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p95 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -871,7 +880,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['p95(transaction.duration)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -889,7 +898,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['p95(transaction.duration)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -927,7 +936,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.P99_DURATION_AREA}
@@ -942,7 +951,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p99 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -953,7 +962,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['p99(transaction.duration)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -971,7 +980,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['p99(transaction.duration)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -1009,7 +1018,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.P75_LCP_AREA}
@@ -1024,7 +1033,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p75 LCP'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -1035,7 +1044,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['p75(measurements.lcp)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -1053,7 +1062,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['p75(measurements.lcp)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -1091,7 +1100,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         ],
       });
 
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
@@ -1106,7 +1115,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'Transactions Per Minute'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('534.302');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('51,292.954');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -1117,7 +1126,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['count(transaction.duration)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
             orderBy: undefined,
             limit: undefined,
@@ -1135,8 +1144,89 @@ describe('Performance > Widgets > WidgetContainer', function () {
             project: [-42],
             environment: ['prod'],
             field: ['count(transaction.duration)'],
-            query: 'transaction:foo',
+            query: undefined,
             groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriodStart: '14d',
+            statsPeriodEnd: '7d',
+          }),
+        })
+      );
+    });
+
+    it('Failure Rate', async function () {
+      metricsMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldAreaByTransactionStatus(),
+        match: [(...args) => !issuesPredicate(...args)],
+      });
+
+      const metricsMockPreviousData = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: TestStubs.SingleFieldAreaByTransactionStatus({
+          previousData: true,
+        }),
+        match: [
+          (...args) => {
+            return (
+              !issuesPredicate(...args) &&
+              args[1].query.statsPeriodStart &&
+              args[1].query.statsPeriodEnd
+            );
+          },
+        ],
+      });
+
+      wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+          isMetricsData
+        />,
+        data.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+        'Failure Rate'
+      );
+
+      expect(wrapper.find('HighlightNumber').text()).toEqual('39%');
+      expect(metricsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+      expect(metricsMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['count(transaction.duration)'],
+            query: undefined,
+            groupBy: ['transaction.status'],
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriod: '7d',
+            start: undefined,
+            end: undefined,
+          }),
+        })
+      );
+      expect(metricsMockPreviousData).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: ['count(transaction.duration)'],
+            query: undefined,
+            groupBy: ['transaction.status'],
             orderBy: undefined,
             limit: undefined,
             interval: '1h',
@@ -1148,94 +1238,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
   });
 
-  it('TPM - Single Area Widget - metrics based', async function () {
-    metricsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.SingleFieldArea({field: 'count(transaction.duration)'}),
-      match: [(...args) => !issuesPredicate(...args)],
-    });
-
-    const metricsMockPreviousData = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.SingleFieldArea({
-        field: 'count(transaction.duration)',
-        previousData: true,
-      }),
-      match: [
-        (...args) => {
-          return (
-            !issuesPredicate(...args) &&
-            args[1].query.statsPeriodStart &&
-            args[1].query.statsPeriodEnd
-          );
-        },
-      ],
-    });
-
-    const data = initializeData();
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
-        isMetricsData
-      />,
-      data.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
-      'Transactions Per Minute'
-    );
-
-    expect(wrapper.find('HighlightNumber').text()).toEqual('534.302');
-    expect(metricsMock).toHaveBeenCalledTimes(1);
-    expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
-
-    expect(metricsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [-42],
-          environment: ['prod'],
-          field: ['count(transaction.duration)'],
-          query: 'transaction:foo',
-          groupBy: undefined,
-          orderBy: undefined,
-          limit: undefined,
-          interval: '1h',
-          statsPeriod: '7d',
-          start: undefined,
-          end: undefined,
-        }),
-      })
-    );
-    expect(metricsMockPreviousData).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [-42],
-          environment: ['prod'],
-          field: ['count(transaction.duration)'],
-          query: 'transaction:foo',
-          groupBy: undefined,
-          orderBy: undefined,
-          limit: undefined,
-          interval: '1h',
-          statsPeriodStart: '14d',
-          statsPeriodEnd: '7d',
-        }),
-      })
-    );
-  });
-
   it('Most errors widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ERRORS}
@@ -1269,7 +1275,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most related issues widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
@@ -1303,7 +1309,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Switching from issues to errors widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
@@ -1335,7 +1341,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most improved trends widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
@@ -1374,7 +1380,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most regressed trends widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_REGRESSED}
@@ -1413,7 +1419,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most slow frames widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
@@ -1449,10 +1455,99 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
   });
 
+  it('Most slow frames widget - metrics based', async function () {
+    const field = 'avg(measurements.frames_slow)';
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.FieldByTransaction({field}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+
+    const previousMetricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.FieldByTransaction({field}),
+      match: [
+        (...args) => {
+          return (
+            !issuesPredicate(...args) &&
+            args[1].query.statsPeriodStart &&
+            args[1].query.statsPeriodEnd
+          );
+        },
+      ],
+    });
+    const data = initializeData();
+
+    wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Slow Frames'
+    );
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+    expect(previousMetricsMock).toHaveBeenCalledTimes(1);
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          groupBy: ['transaction'],
+          interval: '1h',
+          limit: 3,
+          orderBy: field,
+          project: [-42],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(previousMetricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriodEnd: '7d',
+          statsPeriodStart: '14d',
+        }),
+      })
+    );
+  });
+
   it('Most frozen frames widget', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_FROZEN_FRAMES}
@@ -1493,12 +1588,101 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
   });
 
+  it('Most frozen frames widget - metrics based', async function () {
+    const field = 'avg(measurements.frames_frozen)';
+    metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.FieldByTransaction({field}),
+      match: [(...args) => !issuesPredicate(...args)],
+    });
+
+    const previousMetricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.FieldByTransaction({field}),
+      match: [
+        (...args) => {
+          return (
+            !issuesPredicate(...args) &&
+            args[1].query.statsPeriodStart &&
+            args[1].query.statsPeriodEnd
+          );
+        },
+      ],
+    });
+    const data = initializeData();
+
+    wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_FROZEN_FRAMES}
+        isMetricsData
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Most Frozen Frames'
+    );
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+    expect(previousMetricsMock).toHaveBeenCalledTimes(1);
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          groupBy: ['transaction'],
+          interval: '1h',
+          limit: 3,
+          orderBy: field,
+          project: [-42],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    expect(previousMetricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [field],
+          interval: '1h',
+          project: [-42],
+          query: 'transaction:/bar/:ordId/',
+          statsPeriodEnd: '7d',
+          statsPeriodStart: '14d',
+        }),
+      })
+    );
+  });
+
   it('Able to change widget type from menu', async function () {
     const data = initializeData();
 
     const setRowChartSettings = jest.fn(() => {});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
@@ -1539,7 +1723,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
     const setRowChartSettings = jest.fn(() => {});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}

@@ -409,6 +409,7 @@ from .endpoints.team_projects import TeamProjectsEndpoint
 from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
+from .endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
 from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
 from .endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
 from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
@@ -1532,6 +1533,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/time-to-resolution/$",
                     TeamTimeToResolutionEndpoint.as_view(),
                     name="sentry-api-0-team-time-to-resolution",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/unresolved-issue-age/$",
+                    TeamUnresolvedIssueAgeEndpoint.as_view(),
+                    name="sentry-api-0-team-unresolved-issue-age",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/alerts-triggered/$",
