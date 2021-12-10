@@ -149,9 +149,10 @@ class Dashboard extends Component<Props> {
     this.props.onUpdate([...this.props.dashboard.widgets, assignTempId(widget)]);
   };
 
-  handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
+  handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const nextList = [...this.props.dashboard.widgets];
-    nextList[index] = nextWidget;
+    const updateIndex = nextList.indexOf(prevWidget);
+    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
   };
 
@@ -203,7 +204,7 @@ class Dashboard extends Component<Props> {
       widget,
       selection,
       onAddWidget: this.handleAddComplete,
-      onUpdateWidget: this.handleUpdateComplete(index),
+      onUpdateWidget: this.handleUpdateComplete(widget),
     };
     if (widget.widgetType === WidgetType.ISSUE) {
       openAddDashboardIssueWidgetModal(modalProps);
