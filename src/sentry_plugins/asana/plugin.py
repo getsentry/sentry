@@ -82,37 +82,33 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
                 field["label"] = "Notes"
                 field["required"] = False
 
-        return (
-            [
-                {
-                    "name": "workspace",
-                    "label": "Asana Workspace",
-                    "default": workspace,
-                    "type": "select",
-                    "choices": workspace_choices,
-                    "readonly": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "project",
-                    "label": "Project",
-                    "type": "select",
-                    "has_autocomplete": True,
-                    "required": False,
-                    "placeholder": "Start typing to search for a project",
-                },
-                {
-                    "name": "assignee",
-                    "label": "Assignee",
-                    "type": "select",
-                    "has_autocomplete": True,
-                    "required": False,
-                    "placeholder": "Start typing to search for a user",
-                },
-            ]
-        )
+        return [
+            {
+                "name": "workspace",
+                "label": "Asana Workspace",
+                "default": workspace,
+                "type": "select",
+                "choices": workspace_choices,
+                "readonly": True,
+            },
+            *fields,
+            {
+                "name": "project",
+                "label": "Project",
+                "type": "select",
+                "has_autocomplete": True,
+                "required": False,
+                "placeholder": "Start typing to search for a project",
+            },
+            {
+                "name": "assignee",
+                "label": "Assignee",
+                "type": "select",
+                "has_autocomplete": True,
+                "required": False,
+                "placeholder": "Start typing to search for a user",
+            },
+        ]
 
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [

@@ -628,30 +628,26 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        fields = (
-            [
-                {
-                    "name": "project",
-                    "label": "Jira Project",
-                    "choices": [(p["id"], p["key"]) for p in jira_projects],
-                    "default": meta["id"],
-                    "type": "select",
-                    "updatesForm": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "issuetype",
-                    "label": "Issue Type",
-                    "default": issue_type or issue_type_meta["id"],
-                    "type": "select",
-                    "choices": issue_type_choices,
-                    "updatesForm": True,
-                    "required": bool(issue_type_choices),  # required if we have any type choices
-                }
-            ]
-        )
+        fields = [
+            {
+                "name": "project",
+                "label": "Jira Project",
+                "choices": [(p["id"], p["key"]) for p in jira_projects],
+                "default": meta["id"],
+                "type": "select",
+                "updatesForm": True,
+            },
+            *fields,
+            {
+                "name": "issuetype",
+                "label": "Issue Type",
+                "default": issue_type or issue_type_meta["id"],
+                "type": "select",
+                "choices": issue_type_choices,
+                "updatesForm": True,
+                "required": bool(issue_type_choices),  # required if we have any type choices
+            },
+        ]
 
         # title is renamed to summary before sending to Jira
         standard_fields = [f["name"] for f in fields] + ["summary"]

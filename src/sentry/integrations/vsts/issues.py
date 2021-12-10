@@ -143,7 +143,8 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 "label": _("Work Item Type"),
                 "placeholder": _("Bug"),
             },
-        ] + fields
+            *fields,
+        ]
 
     def get_link_issue_config(self, group: "Group", **kwargs: Any) -> Sequence[Mapping[str, str]]:
         fields: Sequence[MutableMapping[str, str]] = super().get_link_issue_config(group, **kwargs)
