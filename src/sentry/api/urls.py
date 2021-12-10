@@ -183,6 +183,7 @@ from .endpoints.organization_events_meta import (
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_performance import (
+    OrganizationEventsSpansEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
@@ -1035,6 +1036,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-span-ops/$",
                     OrganizationEventsSpanOpsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-span-ops",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-spans/$",
+                    OrganizationEventsSpansEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-spans-performance/$",
