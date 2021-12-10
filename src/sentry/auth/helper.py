@@ -437,9 +437,12 @@ class AuthIdentityHandler:
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
-            has_membership = OrganizationMember.objects.filter(
-                user=self.user, organization=self.organization
-            ).exists()
+            has_membership = (
+                isinstance(self.user, User)
+                and OrganizationMember.objects.filter(
+                    user=self.user, organization=self.organization
+                ).exists()
+            )
             if has_membership:
                 try:
                     self._login(self.user)
