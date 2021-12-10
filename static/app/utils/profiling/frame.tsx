@@ -13,7 +13,16 @@ export class Frame extends WeightedNode {
   resource?: string;
   recursive?: Frame;
 
-  constructor(frameInfo: Profiling.FrameInfo, type: 'mobile' | 'web') {
+  static Root = new Frame(
+    {
+      key: 'sentry root',
+      name: 'sentry root',
+      is_application: false,
+    },
+    'mobile'
+  );
+
+  constructor(frameInfo: Profiling.FrameInfo, type?: 'mobile' | 'web') {
     super();
 
     this.key = frameInfo.key;

@@ -9,7 +9,7 @@ namespace Profiling {
 
   // Android traces follow this format
   interface EventedProfile extends RawProfileBase {
-    events: ReadonlyArray<{at: number; frame: number; type: 'O' | 'C'}>;
+    events: ReadonlyArray<Event>;
     type: 'evented';
   }
 
@@ -19,6 +19,8 @@ namespace Profiling {
     samples: number[][];
     type: 'sampled';
   }
+
+  type Event = {at: number; frame: number; type: 'O' | 'C'};
 
   type Span = {
     duration_ms: number;
