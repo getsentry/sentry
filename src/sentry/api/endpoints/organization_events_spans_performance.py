@@ -313,12 +313,12 @@ class Span:
 
     @staticmethod
     def from_str(s: str) -> Span:
-        parts = s.split(":", 1)
+        parts = s.rsplit(":", 1)
         if len(parts) != 2:
             raise ValueError(f"{s} is not a valid span.")
-        if not is_span_id(parts[0]):
-            raise ValueError(f"{parts[0]} is not a valid span group.")
-        return Span(op=parts[1], group=parts[0])
+        if not is_span_id(parts[1]):
+            raise ValueError(f"{parts[1]} is not a valid span group.")
+        return Span(op=parts[0], group=parts[1])
 
 
 @dataclasses.dataclass(frozen=True)

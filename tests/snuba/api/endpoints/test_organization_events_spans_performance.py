@@ -1176,7 +1176,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsSpansEndpointTestBas
                 self.url,
                 data={
                     "project": self.project.id,
-                    "span": [f"{'ab' * 8}:http.server", f"{'cd' * 8}:django.middleware"],
+                    "span": [f"http.server:{'ab' * 8}", f"django.middleware:{'cd' * 8}"],
                     "cursor": "0:10:0",
                 },
                 format="json",
@@ -1198,7 +1198,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsSpansEndpointTestBas
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": self.project.id, "span": f"{'ab' * 8}:http.server"},
+                data={"project": self.project.id, "span": f"http.server:{'ab' * 8}"},
                 format="json",
             )
 
@@ -1225,7 +1225,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsSpansEndpointTestBas
                 self.url,
                 data={
                     "project": self.project.id,
-                    "span": [f"{'ab' * 8}:http.server", f"{'cd' * 8}:django.middleware"],
+                    "span": [f"http.server:{'ab' * 8}", f"django.middleware:{'cd' * 8}"],
                 },
                 format="json",
             )
