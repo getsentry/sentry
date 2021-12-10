@@ -6,6 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
+import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {DashboardState} from 'sentry/views/dashboardsV2/types';
 import * as types from 'sentry/views/dashboardsV2/types';
@@ -118,6 +119,9 @@ describe('Dashboards > Detail', function () {
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
+      await tick();
+      wrapper.update();
+
       // Rename
       const dashboardTitle = wrapper.find('DashboardTitle Label');
       dashboardTitle.simulate('click');
@@ -133,6 +137,7 @@ describe('Dashboards > Detail', function () {
 
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
       await tick();
+      wrapper.update();
 
       expect(updateMock).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/default-overview/',
@@ -178,7 +183,7 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockVisit, mockPut, mockGet;
+    let wrapper, initialData, widgets, mockVisit;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -243,12 +248,12 @@ describe('Dashboards > Detail', function () {
           }),
         ],
       });
-      mockGet = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         method: 'GET',
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
-      mockPut = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
@@ -328,7 +333,6 @@ describe('Dashboards > Detail', function () {
       // Save changes
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
       await tick();
-      await tick();
 
       expect(updateMock).toHaveBeenCalled();
       expect(updateMock).toHaveBeenCalledWith(
@@ -345,7 +349,9 @@ describe('Dashboards > Detail', function () {
       expect(mockVisit).toHaveBeenCalledTimes(1);
     });
 
-    it('can enter edit mode for widgets', async function () {
+    it('opens edit modal for widgets', async function () {
+      const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
+
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -360,6 +366,7 @@ describe('Dashboards > Detail', function () {
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
 
       const card = wrapper.find('WidgetCard').first();
       card.find('StyledPanel').simulate('mouseOver');
@@ -371,17 +378,30 @@ describe('Dashboards > Detail', function () {
         .find('IconClick[data-test-id="widget-edit"]')
         .simulate('click');
 
-      await tick();
-      await wrapper.update();
-      const modal = await mountGlobalModal();
-
-      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            id: '1',
+            interval: '1d',
+            queries: [
+              {
+                conditions: 'event.type:error',
+                fields: ['count()'],
+                name: '',
+              },
+            ],
+            title: 'Errors',
+            type: 'line',
+          },
+        })
+      );
     });
 
     it('does not update if api update fails', async function () {
       const fireEvent = createListeners('window');
 
-      mockPut = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
         statusCode: 400,
@@ -554,6 +574,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can add library widgets', async function () {
+      const openLibraryModal = jest.spyOn(modals, 'openDashboardWidgetLibraryModal');
       types.MAX_WIDGETS = 10;
 
       initialData = initializeOrg({
@@ -588,79 +609,7 @@ describe('Dashboards > Detail', function () {
         .find('Controls Button[data-test-id="add-widget-library"]')
         .simulate('click');
 
-      const modal = await mountGlobalModal();
-      await tick();
-      await modal.update();
-
-      modal.find('WidgetLibraryCard').at(1).simulate('click');
-
-      modal.find('Button[data-test-id="confirm-widgets"]').simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('DashboardDetail').state().dashboardState).toEqual(
-        DashboardState.VIEW
-      );
-      expect(mockGet).toHaveBeenCalledTimes(1);
-      expect(mockPut).toHaveBeenCalledTimes(1);
-      expect(mockPut).toHaveBeenCalledWith(
-        '/organizations/org-slug/dashboards/1/',
-        expect.objectContaining({
-          data: expect.objectContaining({
-            title: 'Custom Errors',
-            widgets: [
-              {
-                id: '1',
-                interval: '1d',
-                queries: [
-                  {conditions: 'event.type:error', fields: ['count()'], name: ''},
-                ],
-                title: 'Errors',
-                type: 'line',
-              },
-              {
-                id: '2',
-                interval: '1d',
-                queries: [
-                  {conditions: 'event.type:transaction', fields: ['count()'], name: ''},
-                ],
-                title: 'Transactions',
-                type: 'line',
-              },
-              {
-                id: '3',
-                interval: '1d',
-                queries: [
-                  {
-                    conditions: 'event.type:transaction transaction:/api/cats',
-                    fields: ['p50()'],
-                    name: '',
-                  },
-                ],
-                title: 'p50 of /api/cats',
-                type: 'line',
-              },
-              {
-                displayType: 'area',
-                id: undefined,
-                interval: '5m',
-                description: 'Area chart reflecting all error and transaction events.',
-                queries: [
-                  {
-                    conditions: '!event.type:transaction',
-                    fields: ['count()'],
-                    name: '',
-                    orderby: '',
-                  },
-                ],
-                title: 'All Events',
-                widgetType: 'discover',
-              },
-            ],
-          }),
-        })
-      );
+      expect(openLibraryModal).toHaveBeenCalledTimes(1);
     });
 
     it('disables add library widgets when max widgets reached', async function () {
