@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from django.urls import reverse
 
-from sentry import analytics, roles
-from sentry.models import InviteStatus, OrganizationMember
+from sentry import analytics
+from sentry.models import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
+from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
+    MemberWriteRoleRecipientStrategy,
+)
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -17,6 +20,8 @@ if TYPE_CHECKING:
 
 # Abstract class for invite and join requests to inherit from
 class AbstractInviteRequestNotification(OrganizationRequestNotification):
+    RoleBasedRecipientStrategyClass = MemberWriteRoleRecipientStrategy
+
     def __init__(self, pending_member: OrganizationMember, requester: User):
         super().__init__(pending_member.organization, requester)
         self.pending_member = pending_member
@@ -31,17 +36,6 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
     def members_url(self) -> str:
         url: str = absolute_uri(reverse("sentry-organization-members", args=[self.org_slug]))
         return url
-
-    def determine_member_recipients(self) -> Iterable[OrganizationMember]:
-        members: Iterable[OrganizationMember] = OrganizationMember.objects.select_related(
-            "user"
-        ).filter(
-            organization_id=self.organization.id,
-            user__isnull=False,
-            invite_status=InviteStatus.APPROVED.value,
-            role__in=(r.id for r in roles.get_all() if r.has_scope("member:write")),
-        )
-        return members
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Access request to {self.org_name}"
