@@ -145,11 +145,11 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
 
         return results
 
-    def assert_span_results(self, result, expected_result, keys, none_keys):
+    def assert_span_results(self, result, expected_result, keys, none_keys=None):
         assert len(result) == len(expected_result)
         for suspect, expected_suspect in zip(result, expected_result):
             for key in keys:
-                if key in none_keys:
+                if none_keys and key in none_keys:
                     assert suspect[key] is None, key
                 else:
                     assert suspect[key] == expected_suspect[key], key
