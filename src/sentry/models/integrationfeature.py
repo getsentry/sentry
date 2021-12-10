@@ -3,12 +3,7 @@ from enum import Enum
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    Model,
-)
+from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model
 
 
 class Feature:
@@ -83,7 +78,6 @@ class IntegrationTypes(Enum):
 class IntegrationFeature(Model):
     __include_in_export__ = False
 
-    sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
     # the id of the sentry_app or doc_integration
     # TODO(CEO): change this to null=False
     target_id = BoundedBigIntegerField(null=True)
@@ -102,7 +96,7 @@ class IntegrationFeature(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_integrationfeature"
-        unique_together = (("sentry_app", "feature"),)
+        unique_together = (("target_id", "target_type", "feature"),)
 
     def feature_str(self):
         return Feature.as_str(self.feature)
