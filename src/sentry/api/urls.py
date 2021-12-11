@@ -1520,7 +1520,7 @@ urlpatterns = [
                     name="sentry-api-0-team-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:issues|groups)/old/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issues/old/$",
                     TeamGroupsOldEndpoint.as_view(),
                     name="sentry-api-0-team-oldest-issues",
                 ),

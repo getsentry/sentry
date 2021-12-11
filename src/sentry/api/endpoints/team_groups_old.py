@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import GroupSerializer, serialize
-from sentry.models import Group, GroupStatus, Project
+from sentry.models import Group, GroupStatus
 
 
 class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
@@ -11,17 +11,11 @@ class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
         """
         Return the oldest issues in a team's projects
         """
-        project_list = Project.objects.get_for_team_ids([team.id])
         limit = min(100, int(request.GET.get("limit", 10)))
-
         group_list = list(
-            Group.objects.filter(
-                status=GroupStatus.UNRESOLVED,
-                project__in=project_list,
-            )
-            .extra(select={"sort_by": "sentry_groupedmessage.first_seen"})
-            .select_related("project")
-            .order_by("sort_by")[:limit]
+            Group.objects.filter_to_team(team)
+            .filter(status=GroupStatus.UNRESOLVED)
+            .order_by("first_seen")[:limit]
         )
 
         return Response(
