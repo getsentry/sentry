@@ -9,7 +9,7 @@ from sentry.models import Group, GroupStatus
 class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
     def get(self, request, team) -> Response:
         """
-        Return the oldest issues in a team's projects
+        Return the oldest issues owned by a team
         """
         limit = min(100, int(request.GET.get("limit", 10)))
         group_list = list(
