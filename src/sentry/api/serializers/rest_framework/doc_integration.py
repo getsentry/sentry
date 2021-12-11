@@ -51,4 +51,4 @@ class DocIntegrationSerializer(Serializer):
 
     def create(self, validated_data: MutableMapping[str, Any]) -> DocIntegration:
         slug = self._generate_slug(validated_data["name"])
-        return DocIntegration.objects.get_or_create(slug=slug, **validated_data)
+        return DocIntegration.objects.create(slug=slug, **validated_data)
