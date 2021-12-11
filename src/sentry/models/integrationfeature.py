@@ -79,11 +79,9 @@ class IntegrationFeature(Model):
     __include_in_export__ = False
 
     # the id of the sentry_app or doc_integration
-    # TODO(CEO): change this to null=False
-    target_id = BoundedBigIntegerField(null=True)
+    target_id = BoundedBigIntegerField()
     target_type = BoundedPositiveIntegerField(
         default=0,
-        null=True,
         choices=(
             (IntegrationTypes.SENTRY_APP, "sentry_app"),
             (IntegrationTypes.DOC_INTEGRATION, "doc_integration"),
