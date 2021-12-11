@@ -35,7 +35,7 @@ class DocIntegration(Model):
     url = models.URLField()
     popularity = models.PositiveSmallIntegerField(null=True, default=1)
     # Quickly hide/show integration, used for logo uploads
-    is_draft = models.BooleanField(null=True)
+    is_draft = models.BooleanField(default=True)
 
     # Allow future extensions by adding more metadata.
     # To start, only { resources: [{title, link}] }
