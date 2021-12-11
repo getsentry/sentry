@@ -400,8 +400,6 @@ from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_alerts_triggered import TeamAlertsTriggeredEndpoint
 from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
-from .endpoints.team_groups_new import TeamGroupsNewEndpoint
-from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
 from .endpoints.team_notification_settings_details import TeamNotificationSettingsDetailsEndpoint
@@ -1521,11 +1519,6 @@ urlpatterns = [
                     name="sentry-api-0-team-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:issues|groups)/new/$",
-                    TeamGroupsNewEndpoint.as_view(),
-                    name="sentry-api-0-team-groups-new",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/release-count/$",
                     TeamReleaseCountEndpoint.as_view(),
                     name="sentry-api-0-team-release-count",
@@ -1544,11 +1537,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/alerts-triggered/$",
                     TeamAlertsTriggeredEndpoint.as_view(),
                     name="sentry-api-0-team-alerts-triggered",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:issues|groups)/trending/$",
-                    TeamGroupsTrendingEndpoint.as_view(),
-                    name="sentry-api-0-team-groups-trending",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issue-breakdown/$",
