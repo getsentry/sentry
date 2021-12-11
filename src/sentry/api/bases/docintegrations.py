@@ -22,16 +22,6 @@ class DocIntegrationsPermission(SentryPermission):
             "member:read",
             "team:read",
         ),
-        "POST": (
-            "event:read",
-            "event:write",
-            "event:admin",
-            "project:releases",
-            "project:read",
-            "org:read",
-            "member:read",
-            "team:read",
-        ),
     }
 
     def has_object_permission(self, request: Request, view, doc_integration: DocIntegration):
@@ -47,7 +37,7 @@ class DocIntegrationsPermission(SentryPermission):
 class DocIntegrationsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (DocIntegrationsPermission,)
 
-    def generate_metadata(self, request: Request) -> JSONData:
+    def generate_incoming_metadata(self, request: Request) -> JSONData:
         metadata_payload = {}
         for metadata_type in METADATA_TYPES:
             metadata_payload[metadata_type] = request.json_body.get(metadata_type)

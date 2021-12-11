@@ -30,7 +30,7 @@ class DocIntegrationSerializer(Serializer):
 
         if obj.metadata:
             for metadata_type in METADATA_TYPES:
-                data[metadata_type] = obj.metadata.get("metadata_type")
+                data[metadata_type] = obj.metadata.get(metadata_type)
 
         features = IntegrationFeature.objects.filter(
             target_type=IntegrationTypes.DOC_INTEGRATION.value, target_id=obj.id
