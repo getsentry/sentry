@@ -29,11 +29,14 @@ export enum MeasurementMetric {
   MEASUREMENTS_STALL_PERCENTAGE = 'sentry.transactions.measurements.stall_percentage',
 }
 
-export const METRICS: Readonly<
-  Record<SessionMetric.TRANSACTION_DURATION | MeasurementMetric, ColumnType>
-> = {
+export const METRICS: Readonly<Record<SessionMetric | MeasurementMetric, ColumnType>> = {
   // Session metrics
   [SessionMetric.TRANSACTION_DURATION]: 'duration',
+  [SessionMetric.USER]: 'integer',
+  [SessionMetric.SESSION_ERROR]: 'integer',
+  [SessionMetric.SESSION_DURATION]: 'duration',
+  [SessionMetric.SESSION]: 'duration',
+
   // Measurement metrics
   [MeasurementMetric.MEASUREMENTS_FP]: 'duration',
   [MeasurementMetric.MEASUREMENTS_FCP]: 'duration',
