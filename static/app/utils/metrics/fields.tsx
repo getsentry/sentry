@@ -1,13 +1,14 @@
 import {ColumnType} from '../discover/fields';
 
-enum SessionMetric {
+export enum SessionMetric {
   SESSION = 'sentry.sessions.session',
   SESSION_DURATION = 'sentry.sessions.session.duration',
   SESSION_ERROR = 'sentry.sessions.session.error',
   USER = 'sentry.sessions.user',
+  TRANSACTION_DURATION = 'sentry.sessions.transaction.duration',
 }
 
-enum MeasurementMetric {
+export enum MeasurementMetric {
   MEASUREMENTS_FP = 'sentry.transactions.measurements.fp',
   MEASUREMENTS_FCP = 'sentry.transactions.measurements.fcp',
   MEASUREMENTS_LCP = 'sentry.transactions.measurements.lcp',
@@ -28,16 +29,11 @@ enum MeasurementMetric {
   MEASUREMENTS_STALL_PERCENTAGE = 'sentry.transactions.measurements.stall_percentage',
 }
 
-const a = 1;
-a = 'oi';
-console.log(a);
-
-export const METRICS: Readonly<Record<SessionMetric | MeasurementMetric, ColumnType>> = {
+export const METRICS: Readonly<
+  Record<SessionMetric.TRANSACTION_DURATION | MeasurementMetric, ColumnType>
+> = {
   // Session metrics
-  [SessionMetric.SESSION]: 'duration',
-  [SessionMetric.SESSION_DURATION]: 'ok',
-  [SessionMetric.SESSION_ERROR]: 'duration',
-  [SessionMetric.USER]: 'duration',
+  [SessionMetric.TRANSACTION_DURATION]: 'duration',
   // Measurement metrics
   [MeasurementMetric.MEASUREMENTS_FP]: 'duration',
   [MeasurementMetric.MEASUREMENTS_FCP]: 'duration',
