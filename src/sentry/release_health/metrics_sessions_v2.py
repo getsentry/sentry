@@ -182,7 +182,7 @@ class _DataPointKey:
 
     """
 
-    metric_name: MetricKey
+    metric_key: MetricKey
     raw_session_status: Optional[str] = None
     release: Optional[int] = None
     environment: Optional[int] = None
@@ -539,7 +539,7 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
             if raw_session_status is not None:
                 raw_session_status = _reverse_resolve_ensured(raw_session_status)
             flat_key = _DataPointKey(
-                metric_name=metric_name,
+                metric_key=metric_name,
                 raw_session_status=raw_session_status,
                 release=row.pop(f"tags[{tag_key_release}]", None),
                 environment=row.pop(f"tags[{tag_key_environment}]", None),
@@ -595,7 +595,7 @@ def run_sessions_query(
 
     for key in data_points.keys():
         try:
-            output_field = metric_to_output_field[key.metric_name, key.column]
+            output_field = metric_to_output_field[key.metric_key, key.column]
         except KeyError:
             continue  # secondary metric, like session.error
 
