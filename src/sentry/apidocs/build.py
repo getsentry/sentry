@@ -2,8 +2,13 @@ from sentry.utils import json
 
 
 def get_old_json_paths(filename):
-    with open(filename) as f:
-        old_raw_paths = json.load(f)["paths"]
+    try:
+        with open(filename) as f:
+            old_raw_paths = json.load(f)["paths"]
+    except OSError:
+        raise Exception(
+            "Generate old OpenAPI files before running this command. Run `make build-api-docs` directly."
+        )
     return old_raw_paths
 
 

@@ -887,7 +887,7 @@ REST_FRAMEWORK = {
 
 
 if os.environ.get("OPENAPIGENERATE", False):
-    OLD_OPENAPI_JSON = "tests/apidocs/openapi-deprecated.json"
+    OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
@@ -903,7 +903,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
         "SERVERS": [{"url": "https://sentry.io/"}],
-        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON),
+        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
     }
 
 
