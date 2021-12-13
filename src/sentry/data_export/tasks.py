@@ -325,7 +325,6 @@ def merge_export_blobs(data_export_id, **kwargs):
                 using=(
                     router.db_for_write(File),
                     router.db_for_write(FileBlobIndex),
-                    router.db_for_write(ExportedData),
                 )
             ):
                 file = File.objects.create(
@@ -354,12 +353,20 @@ def merge_export_blobs(data_export_id, **kwargs):
                 file.size = size
                 file.checksum = file_checksum.hexdigest()
                 file.save()
+
+            # This is in a separate atomic transaction because in prod, files exist
+            # outside of the primary database which means that the transaction to
+            # the primary database is idle the entire time the writes the the files
+            # database is happening. In the event the writes to the files database
+            # takes longer than the idle timeout, the connection to the primary
+            # database can timeout causing a failure.
+            with atomic_transaction(using=router.db_for_write(ExportedData)):
                 data_export.finalize_upload(file=file)
 
-                time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
-                metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)
-                logger.info("dataexport.end", extra={"data_export_id": data_export_id})
-                metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
+            time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
+            metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)
+            logger.info("dataexport.end", extra={"data_export_id": data_export_id})
+            metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
         except Exception as error:
             metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
             metrics.incr(
