@@ -49,6 +49,8 @@ describe('MetricsSwitch', () => {
 
     userEvent.click(screen.getByRole('checkbox'));
 
+    expect(handleSwitch).toHaveBeenCalled();
+
     expect(screen.getByText('using metrics')).toBeInTheDocument();
   });
 });
