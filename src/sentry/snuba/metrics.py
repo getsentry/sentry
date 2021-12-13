@@ -492,7 +492,7 @@ _METRICS = {
         "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
         "tags": _SESSION_TAGS,
     },
-    "sentry.sessions.transaction.duration": {
+    "sentry.transactions.transaction.duration": {
         "type": "distribution",
         "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
         "tags": {

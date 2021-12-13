@@ -5,10 +5,9 @@ export enum SessionMetric {
   SESSION_DURATION = 'sentry.sessions.session.duration',
   SESSION_ERROR = 'sentry.sessions.session.error',
   USER = 'sentry.sessions.user',
-  TRANSACTION_DURATION = 'sentry.sessions.transaction.duration',
 }
 
-export enum MeasurementMetric {
+export enum TransactionMetric {
   MEASUREMENTS_FP = 'sentry.transactions.measurements.fp',
   MEASUREMENTS_FCP = 'sentry.transactions.measurements.fcp',
   MEASUREMENTS_LCP = 'sentry.transactions.measurements.lcp',
@@ -27,33 +26,34 @@ export enum MeasurementMetric {
   MEASUREMENTS_STALL_TOTAL_TIME = 'sentry.transactions.measurements.stall_total_time',
   MEASUREMENTS_STALL_LONGEST_TIME = 'sentry.transactions.measurements.stall_longest_time',
   MEASUREMENTS_STALL_PERCENTAGE = 'sentry.transactions.measurements.stall_percentage',
+  TRANSACTION_DURATION = 'sentry.transactions.transaction.duration',
 }
 
-export const METRICS: Readonly<Record<SessionMetric | MeasurementMetric, ColumnType>> = {
+export const METRICS: Readonly<Record<SessionMetric | TransactionMetric, ColumnType>> = {
   // Session metrics
-  [SessionMetric.TRANSACTION_DURATION]: 'duration',
+  [TransactionMetric.TRANSACTION_DURATION]: 'duration',
   [SessionMetric.USER]: 'integer',
   [SessionMetric.SESSION_ERROR]: 'integer',
   [SessionMetric.SESSION_DURATION]: 'duration',
   [SessionMetric.SESSION]: 'duration',
 
   // Measurement metrics
-  [MeasurementMetric.MEASUREMENTS_FP]: 'duration',
-  [MeasurementMetric.MEASUREMENTS_FCP]: 'duration',
-  [MeasurementMetric.MEASUREMENTS_LCP]: 'duration',
-  [MeasurementMetric.MEASUREMENTS_FID]: 'duration',
-  [MeasurementMetric.MEASUREMENTS_CLS]: 'number',
-  [MeasurementMetric.MEASUREMENTS_TTFB]: 'duration',
-  [MeasurementMetric.MEASUREMENTS_TTFB_REQUESTTIME]: 'duration',
-  [MeasurementMetric.MEASUREMENTS_APP_START_COLD]: 'duration',
-  [MeasurementMetric.MEASUREMENTS_APP_START_WARM]: 'duration',
-  [MeasurementMetric.MEASUREMENTS_FRAMES_TOTAL]: 'integer',
-  [MeasurementMetric.MEASUREMENTS_FRAMES_SLOW]: 'integer',
-  [MeasurementMetric.MEASUREMENTS_FRAMES_FROZEN]: 'integer',
-  [MeasurementMetric.MEASUREMENTS_FRAMES_SLOW_RATE]: 'percentage',
-  [MeasurementMetric.MEASUREMENTS_FRAMES_FROZEN_RATE]: 'percentage',
-  [MeasurementMetric.MEASUREMENTS_STALL_COUNT]: 'integer',
-  [MeasurementMetric.MEASUREMENTS_STALL_TOTAL_TIME]: 'duration',
-  [MeasurementMetric.MEASUREMENTS_STALL_LONGEST_TIME]: 'duration',
-  [MeasurementMetric.MEASUREMENTS_STALL_PERCENTAGE]: 'percentage',
+  [TransactionMetric.MEASUREMENTS_FP]: 'duration',
+  [TransactionMetric.MEASUREMENTS_FCP]: 'duration',
+  [TransactionMetric.MEASUREMENTS_LCP]: 'duration',
+  [TransactionMetric.MEASUREMENTS_FID]: 'duration',
+  [TransactionMetric.MEASUREMENTS_CLS]: 'number',
+  [TransactionMetric.MEASUREMENTS_TTFB]: 'duration',
+  [TransactionMetric.MEASUREMENTS_TTFB_REQUESTTIME]: 'duration',
+  [TransactionMetric.MEASUREMENTS_APP_START_COLD]: 'duration',
+  [TransactionMetric.MEASUREMENTS_APP_START_WARM]: 'duration',
+  [TransactionMetric.MEASUREMENTS_FRAMES_TOTAL]: 'integer',
+  [TransactionMetric.MEASUREMENTS_FRAMES_SLOW]: 'integer',
+  [TransactionMetric.MEASUREMENTS_FRAMES_FROZEN]: 'integer',
+  [TransactionMetric.MEASUREMENTS_FRAMES_SLOW_RATE]: 'percentage',
+  [TransactionMetric.MEASUREMENTS_FRAMES_FROZEN_RATE]: 'percentage',
+  [TransactionMetric.MEASUREMENTS_STALL_COUNT]: 'integer',
+  [TransactionMetric.MEASUREMENTS_STALL_TOTAL_TIME]: 'duration',
+  [TransactionMetric.MEASUREMENTS_STALL_LONGEST_TIME]: 'duration',
+  [TransactionMetric.MEASUREMENTS_STALL_PERCENTAGE]: 'percentage',
 };
