@@ -381,7 +381,7 @@ describe('Dashboards > Detail', function () {
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
     });
 
-    it('shows add wiget option', async function () {
+    it('shows add widget option', async function () {
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -400,7 +400,7 @@ describe('Dashboards > Detail', function () {
       expect(wrapper.find('AddWidget').exists()).toBe(true);
     });
 
-    it('opens custom modal when add wiget option is clicked', async function () {
+    it('opens custom modal when add widget option is clicked', async function () {
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -417,11 +417,10 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
-      // onClick at both InnerWrapper and Button gets called
       expect(openEditModal).toHaveBeenCalledTimes(1);
     });
 
-    it('opens widget library when add wiget option is clicked', async function () {
+    it('opens widget library when add widget option is clicked', async function () {
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [

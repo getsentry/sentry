@@ -273,7 +273,7 @@ class DashboardDetail extends Component<Props, State> {
       widgets: widgets.map(assignTempId),
     };
     this.setState({modifiedDashboard});
-    if (dashboardState === DashboardState.CREATE) {
+    if ([DashboardState.CREATE, DashboardState.EDIT].includes(dashboardState)) {
       return;
     }
     updateDashboard(api, organization.slug, modifiedDashboard).then(
