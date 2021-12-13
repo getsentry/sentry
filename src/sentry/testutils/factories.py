@@ -82,6 +82,7 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
+from sentry.models.integration import DocIntegration
 from sentry.models.integrationfeature import Feature, IntegrationFeature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
@@ -871,6 +872,49 @@ class Factories:
             integration_feature.update(user_description=description)
 
         return integration_feature
+
+    @staticmethod
+    def _doc_integration_kwargs(**kwargs):
+        _kwargs = {
+            "name": kwargs.get("name", petname.Generate(2, " ", letters=10).title()),
+            "author": kwargs.get("author", "me"),
+            "description": kwargs.get("description", "hi im a description"),
+            "url": kwargs.get("url", "https://sentry.io"),
+            "popularity" "is_draft": kwargs.get("is_draft", True),
+            "metadata": kwargs.get("metadata", {}),
+        }
+        _kwargs["slug"] = slugify(_kwargs["name"])
+
+    @staticmethod
+    def create_doc_integration(**kwargs):
+        return DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
+
+    @staticmethod
+    def create_doc_integration_feature(feature=None, doc_integration=None):
+        if not doc_integration:
+            doc_integration = Factories.create_doc_integration()
+
+        return IntegrationFeature.objects.create(
+            target_id=doc_integration.id,
+            target_type=IntegrationTypes.DOC_INTEGRATION.value,
+            feature=feature or Feature.API,
+        )
+
+    # def _sentry_app_kwargs(**kwargs):
+    #     _kwargs = {
+    #         "user": kwargs.get("user", Factories.create_user()),
+    #         "name": kwargs.get("name", petname.Generate(2, " ", letters=10).title()),
+    #         "organization": kwargs.get("organization", Factories.create_organization()),
+    #         "author": kwargs.get("author", "A Company"),
+    #         "scopes": kwargs.get("scopes", ()),
+    #         "verify_install": kwargs.get("verify_install", True),
+    #         "webhook_url": kwargs.get("webhook_url", "https://example.com/webhook"),
+    #         "events": [],
+    #         "schema": {},
+    #     }
+
+    #     _kwargs.update(**kwargs)
+    #     return _kwargs
 
     @staticmethod
     def create_userreport(group, project=None, event_id=None, **kwargs):

@@ -262,6 +262,9 @@ class Fixtures:
     def create_sentry_app_feature(self, *args, **kwargs):
         return Factories.create_sentry_app_feature(*args, **kwargs)
 
+    def create_doc_integration(self, *args, **kwargs):
+        return Factories.create_doc_integration(*args, **kwargs)
+
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
 
