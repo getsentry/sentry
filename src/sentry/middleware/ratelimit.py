@@ -11,6 +11,11 @@ from sentry.ratelimits import (
 )
 from sentry.types.ratelimit import RateLimitCategory
 
+DEFAULT_ERROR_MESSAGE = (
+    "You are attempting to use this endpoint too frequently. Limit is "
+    "{limit} requests in {window} seconds"
+)
+
 
 class RatelimitMiddleware(MiddlewareMixin):
     """Middleware that applies a rate limit to every endpoint."""
@@ -39,11 +44,15 @@ class RatelimitMiddleware(MiddlewareMixin):
             request.will_be_rate_limited = True
             enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
             if enforce_rate_limit:
+                error_message = getattr(
+                    view_func.view_class, "rate_limit_error_message", DEFAULT_ERROR_MESSAGE
+                )
                 return HttpResponse(
                     {
-                        "detail": f"You are attempting to use this endpoint too frequently. "
-                        f"Limit is {rate_limit_check_dict['limit']} requests in "
-                        f"{rate_limit_check_dict['window']} seconds"
+                        "detail": error_message.format(
+                            limit=rate_limit_check_dict["limit"],
+                            window=rate_limit_check_dict["window"],
+                        )
                     },
                     status=429,
                 )

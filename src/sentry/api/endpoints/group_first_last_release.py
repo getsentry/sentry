@@ -3,9 +3,18 @@ from rest_framework.response import Response
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.group_index import get_first_last_release, rate_limit_endpoint
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class GroupFirstLastReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+        }
+    }
+
     @rate_limit_endpoint(limit=5, window=1)
     def get(self, request, group):
         """Get the first and last release for a group.
