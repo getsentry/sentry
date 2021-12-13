@@ -10,11 +10,7 @@ import {
   getDefaultSelection,
   getStateFromQuery,
 } from 'sentry/components/organizations/globalSelectionHeader/utils';
-import {
-  DATE_TIME,
-  LOCAL_STORAGE_KEY,
-  URL_PARAM,
-} from 'sentry/constants/pageFilters';
+import {DATE_TIME, LOCAL_STORAGE_KEY, URL_PARAM} from 'sentry/constants/pageFilters';
 import {
   Environment,
   GlobalSelection,
