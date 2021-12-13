@@ -45,11 +45,21 @@ type Props = {
   fieldOptions: ReturnType<typeof generateFieldOptions>;
 };
 
+type State = {
+  blurTimeout?: ReturnType<typeof setTimeout>;
+};
+
 /**
  * Contain widget queries interactions and signal changes via the onChange
  * callback. This component's state should live in the parent.
  */
-class WidgetQueriesForm extends React.Component<Props> {
+class WidgetQueriesForm extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      blurTimeout: undefined,
+    };
+  }
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
     const {queries, onChange} = this.props;
@@ -84,6 +94,7 @@ class WidgetQueriesForm extends React.Component<Props> {
       fieldOptions,
       onChange,
     } = this.props;
+    const {blurTimeout} = this.state;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
     const explodedFields = queries[0].fields.map(field => explodeField({field}));
@@ -108,8 +119,25 @@ class WidgetQueriesForm extends React.Component<Props> {
                   projectIds={selection.projects}
                   query={widgetQuery.conditions}
                   fields={[]}
-                  onSearch={this.handleFieldChange(queryIndex, 'conditions')}
-                  onBlur={this.handleFieldChange(queryIndex, 'conditions')}
+                  onSearch={field => {
+                    // SearchBar will call handlers for both onSearch and onBlur
+                    // when selecting a value from the autocomplete dropdown. This can
+                    // cause state issues for the search bar in our use case. To prevent
+                    // this, we set a timer in our onSearch handler to block our onBlur
+                    // handler from firing if it is within 200ms, ie from clicking an
+                    // autocomplete value.
+                    this.setState({
+                      blurTimeout: setTimeout(() => {
+                        this.setState({blurTimeout: undefined});
+                      }, 200),
+                    });
+                    return this.handleFieldChange(queryIndex, 'conditions')(field);
+                  }}
+                  onBlur={field => {
+                    if (!blurTimeout) {
+                      this.handleFieldChange(queryIndex, 'conditions')(field);
+                    }
+                  }}
                   useFormWrapper={false}
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />
