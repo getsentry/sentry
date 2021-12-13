@@ -104,10 +104,11 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
             project={project}
             environment={environment}
             query={new MutableSearch(eventView.query)
-              .addFilterValues(
-                'transaction',
-                widgetData.list.data.map(listItem => listItem.transaction) as string[]
-              )
+              .addFilterValues('transaction', [
+                `[${widgetData.list.data
+                  .map(listItem => listItem.transaction)
+                  .join(',')}]`,
+              ])
               .formatString()} // TODO(metrics): not all tags will be compatible with metrics
             field={decodeList(fields)}
             groupBy={['transaction', 'measurement_rating']}
