@@ -19,7 +19,6 @@ SUCCESS_LINKED_MESSAGE = (
 )
 
 
-# TODO MARCOS FIRST?
 def build_linking_url(
     integration: Integration, slack_id: str, channel_id: str, response_url: str
 ) -> str:
