@@ -174,10 +174,10 @@ class _DataPointKey:
 
     would result in data keys
 
-        metric_name=session.duration, column=avg, bucketed_time=<datetime1>
-        metric_name=session.duration, column=max, bucketed_time=<datetime1>
-        metric_name=session.duration, column=avg, bucketed_time=<datetime2>
-        metric_name=session.duration, column=max, bucketed_time=<datetime2>
+        metric_key=MetricKey.SESSION_DURATION, column=avg, bucketed_time=<datetime1>
+        metric_key=MetricKey.SESSION_DURATION, column=max, bucketed_time=<datetime1>
+        metric_key=MetricKey.SESSION_DURATION, column=avg, bucketed_time=<datetime2>
+        metric_key=MetricKey.SESSION_DURATION, column=max, bucketed_time=<datetime2>
         ...
 
     """
@@ -257,7 +257,7 @@ class _SumSessionField(_OutputField):
             started = int(data_points[key])
             abnormal = int(data_points.get(replace(key, raw_session_status="abnormal"), 0))
             crashed = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
-            errored_key = replace(key, metric_name=MetricKey.SESSION_ERROR, raw_session_status=None)
+            errored_key = replace(key, metric_key=MetricKey.SESSION_ERROR, raw_session_status=None)
             individual_errors = int(data_points.get(errored_key, 0))
             aggregated_errors = int(
                 data_points.get(replace(key, raw_session_status="errored_preaggr"), 0)
@@ -533,13 +533,13 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
     tag_key_environment = _resolve_ensured("environment")
     tag_key_session_status = _resolve_ensured("session.status")
 
-    for metric_name, metric_data in data:
+    for metric_key, metric_data in data:
         for row in metric_data:
             raw_session_status = row.pop(f"tags[{tag_key_session_status}]", None)
             if raw_session_status is not None:
                 raw_session_status = _reverse_resolve_ensured(raw_session_status)
             flat_key = _DataPointKey(
-                metric_key=metric_name,
+                metric_key=metric_key,
                 raw_session_status=raw_session_status,
                 release=row.pop(f"tags[{tag_key_release}]", None),
                 environment=row.pop(f"tags[{tag_key_environment}]", None),
