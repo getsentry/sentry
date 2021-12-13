@@ -27,9 +27,6 @@ MESSAGE_LIBRARY = [
     "Like getting notified in {provider}? Sentry can do that. Want to be left alone? Ignore this.",
     "Like this notification? There's more where that came from. Hear from Sentry right here in {provider}.",
     "Notifications aren't always bad. Hear from Sentry right here in {provider}.",
-    "Now, get Sentry notifications in {provider}. You choose the settings, so we'll"
-    " blow up your phone exactly as much as you want us to.",
-    "Push notifications suck. Get more of them.",
     "Remember when email was exciting? It's not 1998 anymore. Get notified in {provider} instead.",
     "Reminisce on the days before your email address was an obligational burden"
     " while signing up for {provider} notifications instead.",
