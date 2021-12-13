@@ -131,7 +131,7 @@ class U2fInterface extends React.Component<Props, State> {
   }
 
   webAuthnSignIn(authenticateRequests) {
-    const credentials = [] as any;
+    const credentials = [] as PublicKeyCredentialDescriptor[];
     // challenge and appId are the same for each device in authenticateRequests
     const challenge = authenticateRequests[0].challenge;
     const appId = authenticateRequests[0].appId;
