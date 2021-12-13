@@ -29,7 +29,9 @@ export enum TransactionMetric {
   SENTRY_TRANSACTIONS_TRANSACTION_DURATION = 'sentry.transactions.transaction.duration',
 }
 
-export const METRICS: Readonly<Record<SessionMetric | TransactionMetric, ColumnType>> = {
+export const METRIC_TO_COLUMN_TYPE: Readonly<
+  Record<SessionMetric | TransactionMetric, ColumnType>
+> = {
   // Session metrics
   [SessionMetric.SENTRY_SESSIONS_USER]: 'integer',
   [SessionMetric.SENTRY_SESSIONS_SESSION_ERROR]: 'integer',

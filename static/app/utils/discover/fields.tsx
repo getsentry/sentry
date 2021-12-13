@@ -4,7 +4,7 @@ import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
 
-import {METRICS} from '../metrics/fields';
+import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
 
 export type Sort = {
   kind: 'asc' | 'desc';
@@ -1053,8 +1053,8 @@ export function aggregateFunctionOutputType(
     }
   }
 
-  if (firstArg && METRICS.hasOwnProperty(firstArg)) {
-    return METRICS[firstArg];
+  if (firstArg && METRIC_TO_COLUMN_TYPE.hasOwnProperty(firstArg)) {
+    return METRIC_TO_COLUMN_TYPE[firstArg];
   }
 
   // If the function is an inherit type it will have a field as
