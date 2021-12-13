@@ -7,7 +7,7 @@ import responses
 from django.utils import timezone
 from exam import patcher
 
-from sentry.release_health.metrics import metric_id, tag_key
+from sentry.release_health.metrics import get_tag_values_list, metric_id, tag_key
 from sentry.sentry_metrics import indexer
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
@@ -250,7 +250,7 @@ class BuildSnubaFilterTest(TestCase):
         ]
 
     def test_simple_sessions_for_metrics(self):
-        for tag in ["session", "session.status"]:
+        for tag in ["session", "session.status", "crashed", "init"]:
             indexer.record(tag)
         entity_subscription = map_aggregate_to_entity_subscription(
             dataset=QueryDatasets.METRICS,
@@ -263,10 +263,15 @@ class BuildSnubaFilterTest(TestCase):
             environment=None,
         )
         org_id = self.organization.id
+        session_status = tag_key(org_id, "session.status")
+        session_status_tag_values = get_tag_values_list(org_id, ["crashed", "init"])
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
-        assert snuba_filter.conditions == [["metric_id", "=", metric_id(org_id, "session")]]
-        assert snuba_filter.groupby == ["project_id", tag_key(org_id, "session.status")]
+        assert snuba_filter.conditions == [
+            ["metric_id", "=", metric_id(org_id, "session")],
+            [session_status, "IN", session_status_tag_values],
+        ]
+        assert snuba_filter.groupby == ["project_id", session_status]
 
     def test_aliased_query_events(self):
         entity_subscription = map_aggregate_to_entity_subscription(

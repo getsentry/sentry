@@ -8,7 +8,7 @@ from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models import Environment
-from sentry.release_health.metrics import metric_id, tag_key, tag_value
+from sentry.release_health.metrics import get_tag_values_list, metric_id, tag_key, tag_value
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.snuba.dataset import EntityKey
@@ -207,10 +207,10 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
                 "building snuba filter for a metrics subscription"
             )
         self.org_id = extra_fields["org_id"]
+        self.session_status = tag_key(self.org_id, "session.status")
 
     def get_query_groupby(self) -> List[str]:
-        session_status = tag_key(self.org_id, "session.status")
-        return ["project_id", session_status]
+        return ["project_id", self.session_status]
 
     def build_snuba_filter(
         self,
@@ -220,10 +220,15 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
     ) -> Filter:
         snuba_filter = get_filter(query, params=params)
         conditions = copy(snuba_filter.conditions)
+        session_status_tag_values = get_tag_values_list(self.org_id, ["crashed", "init"])
         snuba_filter.update_with(
             {
                 "aggregations": [["sum(value)", None, "value"]],
-                "conditions": conditions + [["metric_id", "=", metric_id(self.org_id, "session")]],
+                "conditions": conditions
+                + [
+                    ["metric_id", "=", metric_id(self.org_id, "session")],
+                    [self.session_status, "IN", session_status_tag_values],
+                ],
                 "groupby": self.get_query_groupby(),
             }
         )
