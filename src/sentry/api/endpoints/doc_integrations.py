@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.bases.docintegrations import DocIntegrationsBaseEndpoint
+from sentry.api.bases.doc_integrations import DocIntegrationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DocIntegrationSerializer
@@ -30,7 +30,7 @@ class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
     def post(self, request: Request):
         data = request.json_body
         # Override any incoming JSON for these fields
-        data["is_draft"] = False
+        data["is_draft"] = True
         data["metadata"] = self.generate_incoming_metadata(request)
         serializer = DocIntegrationSerializer(data=data)
         if serializer.is_valid():
