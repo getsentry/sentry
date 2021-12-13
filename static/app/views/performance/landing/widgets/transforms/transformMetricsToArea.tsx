@@ -60,7 +60,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   const totalPerBucket = isFailureRateWidget
     ? response.intervals.map((_intervalValue, intervalIndex) =>
         response.groups.reduce(
-          (acc, group) => acc + group.series[metricsField][intervalIndex],
+          (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
           0
         )
       )
@@ -69,12 +69,18 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   const data = groups.map(group => ({
     seriesName: metricsField,
     totals: group.totals[metricsField],
-    data: response.intervals.map((intervalValue, intervalIndex) => ({
-      name: moment(intervalValue).valueOf(),
-      value: defined(totalPerBucket)
-        ? group.series[metricsField][intervalIndex] / totalPerBucket[intervalIndex]
-        : group.series[metricsField][intervalIndex],
-    })),
+    data: response.intervals.map((intervalValue, intervalIndex) => {
+      const serieBucket = group.series[metricsField][intervalIndex] ?? 0;
+      const totalSerieBucket = totalPerBucket?.[intervalIndex];
+
+      return {
+        name: moment(intervalValue).valueOf(),
+        value:
+          defined(totalSerieBucket) && serieBucket > 0 && totalSerieBucket > 0
+            ? serieBucket / totalSerieBucket
+            : serieBucket,
+      };
+    }),
   }));
 
   const seriesTotal = isFailureRateWidget
@@ -104,7 +110,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   const previousTotalPerBucket = isFailureRateWidget
     ? responsePrevious?.intervals.map((_intervalValue, intervalIndex) =>
         responsePrevious?.groups.reduce(
-          (acc, group) => acc + group.series[metricsField][intervalIndex],
+          (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
           0
         )
       )
@@ -112,13 +118,18 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
   const previousData = previousGroups?.map(group => ({
     seriesName: `previous ${metricsField}`,
-    data: response?.intervals.map((intervalValue, intervalIndex) => ({
-      name: moment(intervalValue).valueOf(),
-      value: defined(previousTotalPerBucket)
-        ? group.series[metricsField][intervalIndex] /
-          previousTotalPerBucket[intervalIndex]
-        : group.series[metricsField][intervalIndex],
-    })),
+    data: response?.intervals.map((intervalValue, intervalIndex) => {
+      const serieBucket = group.series[metricsField][intervalIndex] ?? 0;
+      const totalSerieBucket = previousTotalPerBucket?.[intervalIndex];
+
+      return {
+        name: moment(intervalValue).valueOf(),
+        value:
+          defined(totalSerieBucket) && serieBucket > 0 && totalSerieBucket > 0
+            ? serieBucket / totalSerieBucket
+            : serieBucket,
+      };
+    }),
     stack: 'previous',
   }));
 

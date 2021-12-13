@@ -924,6 +924,95 @@ describe('Performance > Widgets > WidgetContainer', function () {
       );
     });
 
+    it('P95 Duration - with null values', async function () {
+      const field = `p95(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+
+      const metricsData = TestStubs.MetricsField({field});
+      metricsData.groups[0].series[field][0] = null;
+      metricsData.groups[0].series[field][1] = null;
+
+      metricsMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: metricsData,
+        match: [(...args) => !issuesPredicate(...args)],
+      });
+
+      const previousData = TestStubs.MetricsField({field});
+      previousData.groups[0].series[field][0] = null;
+      previousData.groups[0].series[field][1] = null;
+
+      const metricsMockPreviousData = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: previousData,
+        match: [
+          (...args) => {
+            return (
+              !issuesPredicate(...args) &&
+              args[1].query.statsPeriodStart &&
+              args[1].query.statsPeriodEnd
+            );
+          },
+        ],
+      });
+
+      wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.P95_DURATION_AREA}
+          isMetricsData
+        />,
+        data.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+        'p95 Duration'
+      );
+
+      expect(wrapper.find('HighlightNumber').text()).toEqual('525ms');
+      expect(metricsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
+
+      expect(metricsMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: [field],
+            query: undefined,
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriod: '7d',
+            start: undefined,
+            end: undefined,
+          }),
+        })
+      );
+      expect(metricsMockPreviousData).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [-42],
+            environment: ['prod'],
+            field: [field],
+            query: undefined,
+            groupBy: undefined,
+            orderBy: undefined,
+            limit: undefined,
+            interval: '1h',
+            statsPeriodStart: '14d',
+            statsPeriodEnd: '7d',
+          }),
+        })
+      );
+    });
+
     it('P99 Duration', async function () {
       const field = `p99(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
 
