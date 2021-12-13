@@ -1,9 +1,9 @@
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, List, Mapping, Union
 
 # TODO(mgaeta): Continue fleshing out these types.
 SlackAttachment = Mapping[str, Any]
 SlackBlock = Mapping[str, Any]
-SlackBody = Union[SlackAttachment, Sequence[SlackAttachment], Mapping[str, Sequence[SlackBlock]]]
+SlackBody = Union[SlackAttachment, List[SlackAttachment]]
 
 # Attachment colors used for issues with no actions take.
 LEVEL_TO_COLOR = {
