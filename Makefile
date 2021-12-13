@@ -43,6 +43,9 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	yarn deref-api-docs
 
+watch-api-docs:
+	@node api-docs/watch.js
+
 build: locale
 
 merge-locale-catalogs: build-js-po
