@@ -2,8 +2,11 @@ import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 
-const f = (name: string, key: number) => new Frame({name, key, is_application: false});
-const c = (fr: Frame) => new CallTreeNode(fr, null);
+// Test utils to keep the tests code dry
+export const f = (name: string, key: number) =>
+  new Frame({name, key, is_application: false});
+export const c = (fr: Frame) => new CallTreeNode(fr, null);
+export const firstCallee = (node: CallTreeNode) => node.children[0];
 
 const makeTestingBoilerplate = () => {
   const timings: [Frame['name'], string][] = [];
@@ -55,6 +58,34 @@ stack top -> stack bottom`;
 };
 
 describe('Profile', () => {
+  it('forEach - iterates over a single sample', () => {
+    const profile = new Profile(1000, 0, 1000, 'profile', 'ms');
+
+    // Frames
+    const f0 = f('f0', 0);
+    const f1 = f('f1', 1);
+
+    // Call tree nodes
+    const s0 = c(f0);
+    const s1 = c(f1);
+    s0.parent = s1;
+
+    profile.samples = [s0];
+
+    const {open, close, openSpy, closeSpy, timings} = makeTestingBoilerplate();
+    profile.forEach(open, close);
+
+    expect(timings).toEqual([
+      ['f1', 'open'],
+      ['f0', 'open'],
+      ['f0', 'close'],
+      ['f1', 'close'],
+    ]);
+
+    expect(openSpy).toHaveBeenCalledTimes(2);
+    expect(closeSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('forEach - opens new frames when stack is shared', () => {
     const profile = new Profile(1000, 0, 1000, 'profile', 'ms');
 

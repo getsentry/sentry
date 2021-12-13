@@ -33,7 +33,7 @@ export class CallTreeNode extends WeightedNode {
     return this.locked;
   }
 
-  freeze(): void {
+  lock(): void {
     this.locked = true;
   }
 
