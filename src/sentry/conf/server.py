@@ -1044,6 +1044,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enables experimental new-style selection filters to replace the GSH
+    "organizations:selection-filters-v2": False,
     # Enable logging for weekly reports
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
@@ -1093,10 +1095,6 @@ SENTRY_FEATURES = {
     "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
-    # Enable login with WebAuthn
-    "organizations:webauthn-login": False,
-    # Enable registering new key with WebAuthn
-    "organizations:webauthn-register": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1187,6 +1185,9 @@ SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
 
 # sample rate for the relay projectconfig endpoint
 SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
+
+# sample rate for relay's cache invalidation task
+SENTRY_RELAY_TASK_APM_SAMPLING = 0
 
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
