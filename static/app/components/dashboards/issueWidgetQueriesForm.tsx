@@ -4,16 +4,19 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, TagCollection} from 'sentry/types';
+import {GlobalSelection, Organization, SelectValue, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {explodeField, generateFieldAsString} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widget/issueWidget/utils';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import Field from 'sentry/views/settings/components/forms/field';
 
 import WidgetQueryFields from './widgetQueryFields';
@@ -128,6 +131,23 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
             onChange(newQuery);
           }}
         />
+        <Field
+          label={t('Sort by')}
+          inline={false}
+          flexibleControlStateSize
+          stacked
+          error={error?.orderby}
+          style={{marginBottom: space(1)}}
+        >
+          <SelectControl
+            value={query.orderby || IssueSortOptions.DATE}
+            name="orderby"
+            options={generateIssueWidgetOrderOptions()}
+            onChange={(option: SelectValue<string>) =>
+              this.handleFieldChange('orderby')(option.value)
+            }
+          />
+        </Field>
       </QueryWrapper>
     );
   }
