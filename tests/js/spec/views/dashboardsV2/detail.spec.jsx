@@ -480,7 +480,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
-      // onClick at both InnerWrapper and Button gets called
       expect(openEditModal).toHaveBeenCalledTimes(1);
     });
 
