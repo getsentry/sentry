@@ -537,9 +537,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             )
 
             if errors:
-                with push_scope() as scope:
-                    scope.fingerprint = ["release-health-errors", fn_name]
-                    capture_message(f"{fn_name} - Release health metrics mismatch")
+                # We heavily rely on Sentry's message sanitization to properly deduplicate this
+                capture_message(f"{fn_name} - Release health metrics mismatch: {errors[0]}")
         except Exception:
             capture_exception()
             should_compare = False
