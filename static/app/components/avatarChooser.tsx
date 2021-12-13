@@ -281,7 +281,7 @@ const AvatarForm = styled('div')`
 const AvatarSubmit = styled('fieldset')`
   display: flex;
   align-items: center;
-  margin-top: 1.75em;
+  margin-top: 2.25em;
   padding-top: 1.5em;
 `;
 
