@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from django.http import HttpResponse
 
@@ -76,7 +76,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
         }
         return comment
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "issueType"]
 
     def get_persisted_user_default_config_fields(self):

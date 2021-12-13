@@ -48,8 +48,6 @@ const ADD_BUTTON_POSITION = {
 };
 const DEFAULT_WIDGET_WIDTH = 2;
 
-const GridLayout = WidthProvider(RGL);
-
 type Props = {
   api: Client;
   organization: Organization;
@@ -159,9 +157,10 @@ class Dashboard extends Component<Props> {
     this.props.onUpdate([...this.props.dashboard.widgets, assignTempId(widget)]);
   };
 
-  handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
+  handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const nextList = [...this.props.dashboard.widgets];
-    nextList[index] = nextWidget;
+    const updateIndex = nextList.indexOf(prevWidget);
+    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
   };
 
@@ -213,7 +212,7 @@ class Dashboard extends Component<Props> {
       widget,
       selection,
       onAddWidget: this.handleAddComplete,
-      onUpdateWidget: this.handleUpdateComplete(index),
+      onUpdateWidget: this.handleUpdateComplete(widget),
     };
     if (widget.widgetType === WidgetType.ISSUE) {
       openAddDashboardIssueWidgetModal(modalProps);
@@ -289,6 +288,13 @@ export default withApi(withGlobalSelection(Dashboard));
 const GridItem = styled('div')`
   .react-resizable-handle {
     z-index: 1;
+  }
+`;
+
+// HACK: to stack chart tooltips above other grid items
+const GridLayout = styled(WidthProvider(RGL))`
+  .react-grid-item:hover {
+    z-index: 10;
   }
 `;
 

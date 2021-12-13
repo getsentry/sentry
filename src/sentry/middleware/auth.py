@@ -2,7 +2,10 @@ from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
+from rest_framework.authentication import get_authorization_header
+from rest_framework.exceptions import AuthenticationFailed
 
+from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.models import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
@@ -43,9 +46,31 @@ class AuthenticationMiddleware(MiddlewareMixin):
         # If there is a valid signature on the request we override the
         # user with the user contained within the signature.
         user = process_signature(request)
+        auth = get_authorization_header(request).split()
+
         if user is not None:
             request.user = user
             request.user_from_signed_request = True
+        elif auth and auth[0].lower() == TokenAuthentication.token_name:
+            try:
+                result = TokenAuthentication().authenticate(request=request)
+            except AuthenticationFailed:
+                result = None
+            if result:
+                request.user, request.auth = result
+            else:
+                # default to anonymous user and use IP ratelimit
+                request.user = SimpleLazyObject(lambda: get_user(request))
+        elif auth and auth[0].lower() == ApiKeyAuthentication.token_name:
+            try:
+                result = ApiKeyAuthentication().authenticate(request=request)
+            except AuthenticationFailed:
+                result = None
+            if result:
+                request.user, request.auth = result
+            else:
+                # default to anonymous user and use IP ratelimit
+                request.user = SimpleLazyObject(lambda: get_user(request))
         else:
             request.user = SimpleLazyObject(lambda: get_user(request))
 
