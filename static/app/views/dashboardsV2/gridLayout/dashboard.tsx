@@ -351,7 +351,9 @@ function getMobileLayout(desktopLayout, widgets) {
     x: 0,
     y: index * 2,
     w: 2,
-    h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+    // TODO: Kind of a hack because when you delete a widget
+    // and zip, the mismatched lengths creates undefined values
+    h: widget?.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
   }));
 
   return mobileLayout;
