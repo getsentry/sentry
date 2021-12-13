@@ -12,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
@@ -226,7 +225,6 @@ class AvatarChooser extends React.Component<Props, State> {
               )}
               {isDefault && preview}
             </AvatarGroup>
-            {help && <AvatarHelp>{help}</AvatarHelp>}
             <AvatarUploadSection>
               {allowGravatar && avatarType === 'gravatar' && (
                 <Well>
@@ -244,6 +242,7 @@ class AvatarChooser extends React.Component<Props, State> {
                 />
               )}
               <AvatarSubmit className="form-actions">
+                {help && <AvatarHelp>{help}</AvatarHelp>}
                 <Button
                   type="button"
                   priority="primary"
@@ -262,7 +261,7 @@ class AvatarChooser extends React.Component<Props, State> {
 }
 
 const AvatarHelp = styled('p')`
-  margin: ${space(1)} 0 ${space(2)};
+  margin-right: auto;
   color: ${p => p.theme.gray300};
   font-size: 14px;
   width: 50%;
@@ -281,8 +280,9 @@ const AvatarForm = styled('div')`
 
 const AvatarSubmit = styled('fieldset')`
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
   margin-top: 1.25em;
+  padding-top: 1.5em;
 `;
 
 const AvatarUploadSection = styled('div')`
