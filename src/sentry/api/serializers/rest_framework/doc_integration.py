@@ -33,7 +33,7 @@ class DocIntegrationSerializer(Serializer):
     author = serializers.CharField(max_length=255)
     description = serializers.CharField()
     url = URLField()
-    popularity = serializers.IntegerField(min_value=1, allow_null=True)
+    popularity = serializers.IntegerField(min_value=0, max_value=32767, allow_null=True)
     is_draft = serializers.BooleanField(default=True)
     metadata = MetadataField(allow_null=True, required=False)
     features = serializers.MultipleChoiceField(
