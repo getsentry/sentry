@@ -164,7 +164,7 @@ function StatsRequest({
         field,
         chartData: breakDownChartData,
         valueFormatter:
-          metricMeta.name === SessionMetric.SESSION_DURATION
+          metricMeta.name === SessionMetric.SENTRY_SESSIONS_SESSION_DURATION
             ? duration => roundDuration(duration ? duration / 1000 : 0)
             : undefined,
       });
