@@ -131,7 +131,7 @@ class U2fInterface extends React.Component<Props, State> {
   }
 
   webAuthnSignIn(authenticateRequests) {
-    const credentials = [] as PublicKeyCredentialDescriptor[];
+    const credentials: PublicKeyCredentialDescriptor[] = [];
     // challenge and appId are the same for each device in authenticateRequests
     const challenge = authenticateRequests[0].challenge;
     const appId = authenticateRequests[0].appId;
@@ -145,14 +145,14 @@ class U2fInterface extends React.Component<Props, State> {
     });
 
     // publicKeyCredentialRequestOptions is adictionary of the Web Authentication API from https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialRequestOptions
-    const publicKeyCredentialRequestOptions = {
+    const publicKeyCredentialRequestOptions: PublicKeyCredentialRequestOptions = {
       challenge: base64urlToBuffer(challenge),
       allowCredentials: credentials,
       userVerification: 'discouraged',
       extensions: {
         appid: appId,
       },
-    } as PublicKeyCredentialRequestOptions;
+    };
 
     const promise = navigator.credentials.get({
       publicKey: publicKeyCredentialRequestOptions,
