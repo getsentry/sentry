@@ -14,7 +14,7 @@ import {
   DATE_TIME,
   LOCAL_STORAGE_KEY,
   URL_PARAM,
-} from 'sentry/constants/globalSelectionHeader';
+} from 'sentry/constants/pageFilters';
 import {
   Environment,
   GlobalSelection,

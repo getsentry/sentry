@@ -5,7 +5,7 @@ import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

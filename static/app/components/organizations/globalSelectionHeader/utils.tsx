@@ -8,7 +8,7 @@ import {
   DATE_TIME_KEYS,
   LOCAL_STORAGE_KEY,
   URL_PARAM,
-} from 'sentry/constants/globalSelectionHeader';
+} from 'sentry/constants/pageFilters';
 import {GlobalSelection} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
