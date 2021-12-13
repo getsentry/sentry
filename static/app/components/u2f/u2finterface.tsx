@@ -41,10 +41,9 @@ class U2fInterface extends React.Component<Props, State> {
   };
 
   async componentDidMount() {
-    let supported = await u2f.isSupported();
-    if (this.props.isWebauthnSigninFFEnabled) {
-      supported = !!window.PublicKeyCredential;
-    }
+    const supported = this.props.isWebauthnSigninFFEnabled
+      ? !!window.PublicKeyCredential
+      : await u2f.isSupported();
 
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
@@ -55,16 +54,18 @@ class U2fInterface extends React.Component<Props, State> {
   }
 
   getU2FResponse(data) {
-    if (data.response) {
-      const authenticatorData = {
-        keyHandle: data.id,
-        clientData: bufferToBase64url(data.response.clientDataJSON),
-        signatureData: bufferToBase64url(data.response.signature),
-        authenticatorData: bufferToBase64url(data.response.authenticatorData),
-      };
-      return JSON.stringify(authenticatorData);
+    if (!data.response) {
+      return JSON.stringify(data);
     }
-    return JSON.stringify(data);
+
+    const authenticatorData = {
+      keyHandle: data.id,
+      clientData: bufferToBase64url(data.response.clientDataJSON),
+      signatureData: bufferToBase64url(data.response.signature),
+      authenticatorData: bufferToBase64url(data.response.authenticatorData),
+    };
+
+    return JSON.stringify(authenticatorData);
   }
 
   submitU2fResponse(promise) {
@@ -143,6 +144,7 @@ class U2fInterface extends React.Component<Props, State> {
       });
     });
 
+    // publicKeyCredentialRequestOptions is adictionary of the Web Authentication API from https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialRequestOptions
     const publicKeyCredentialRequestOptions = {
       challenge: base64urlToBuffer(challenge),
       allowCredentials: credentials,

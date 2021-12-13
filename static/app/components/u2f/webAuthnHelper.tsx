@@ -11,7 +11,7 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-// below is from https://github.com/github/webauthn-json
+// below is from https://github.com/github/webauthn-json/tree/66322fc5c12184c5269691ab5abaac79545a3916
 
 export function base64urlToBuffer(baseurl64String: string): ArrayBuffer {
   // Base64url to Base64
