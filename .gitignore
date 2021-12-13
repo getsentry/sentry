@@ -50,4 +50,3 @@ package-lock.json
 .webpack.meta
 pip-wheel-metadata/
 Brewfile.lock.json
-**/__pycache__
