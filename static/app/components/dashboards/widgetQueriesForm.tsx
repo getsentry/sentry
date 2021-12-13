@@ -54,12 +54,10 @@ type State = {
  * callback. This component's state should live in the parent.
  */
 class WidgetQueriesForm extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      blurTimeout: undefined,
-    };
-  }
+  state: State = {
+    blurTimeout: undefined,
+  };
+
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
     const {queries, onChange} = this.props;
