@@ -1093,6 +1093,10 @@ SENTRY_FEATURES = {
     "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
+    # Enable login with WebAuthn
+    "organizations:webauthn-login": False,
+    # Enable registering new key with WebAuthn
+    "organizations:webauthn-register": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1184,8 +1188,8 @@ SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
 # sample rate for the relay projectconfig endpoint
 SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
 
-# sample rate for relay's cache invalidation task
-SENTRY_RELAY_TASK_APM_SAMPLING = 0
+# sample rate for ingest consumer processing functions
+SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
 # sample rate for Apple App Store Connect tasks transactions
 SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
