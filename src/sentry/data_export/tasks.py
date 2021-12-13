@@ -360,7 +360,12 @@ def merge_export_blobs(data_export_id, **kwargs):
             # database is happening. In the event the writes to the files database
             # takes longer than the idle timeout, the connection to the primary
             # database can timeout causing a failure.
-            with atomic_transaction(using=router.db_for_write(ExportedData)):
+            with atomic_transaction(
+                using=(
+                    router.db_for_write(ExportedData),
+                    router.db_for_write(File),
+                )
+            ):
                 data_export.finalize_upload(file=file)
 
             time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
