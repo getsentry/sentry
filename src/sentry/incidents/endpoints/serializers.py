@@ -1,4 +1,3 @@
-import json
 import logging
 import operator
 from copy import copy
@@ -8,7 +7,6 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
 from rest_framework import serializers
-from snuba_sdk import Entity
 from snuba_sdk.legacy import json_to_snql
 
 from sentry import analytics
@@ -50,6 +48,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import map_aggregate_to_entity_subscription
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
+from sentry.utils import json
 from sentry.utils.compat import zip
 from sentry.utils.snuba import raw_snql_query
 
@@ -540,8 +539,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             }
 
             try:
-                snql_query = json_to_snql(body, dataset.value)
-                snql_query = snql_query.set_match(Entity(entity_subscription.entity_key))
+                snql_query = json_to_snql(body, entity_subscription.entity_key.value)
                 snql_query.validate()
             except Exception as e:
                 raise serializers.ValidationError(

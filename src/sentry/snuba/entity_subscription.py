@@ -22,11 +22,11 @@ DATASET_CONDITIONS: Mapping[QueryDatasets, str] = {
     QueryDatasets.EVENTS: "event.type:error",
     QueryDatasets.TRANSACTIONS: "event.type:transaction",
 }
-ENTITY_TIME_COLUMNS: Mapping[str, str] = {
-    EntityKey.Events.value: "timestamp",
-    EntityKey.Sessions.value: "started",
-    EntityKey.Transactions.value: "finish_ts",
-    EntityKey.MetricsCounters.value: "timestamp",
+ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
+    EntityKey.Events: "timestamp",
+    EntityKey.Sessions: "started",
+    EntityKey.Transactions: "finish_ts",
+    EntityKey.MetricsCounters: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
@@ -76,8 +76,8 @@ class _EntitySpecificParams(TypedDict):
 
 @dataclass
 class _EntitySubscription:
-    entity_key: str
-    dataset: str
+    entity_key: EntityKey
+    dataset: QueryDatasets
     time_col: str
 
 
@@ -120,7 +120,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         environment: Optional[Environment],
         params: Optional[Mapping[str, Any]] = None,
     ) -> Filter:
-        resolve_func = resolve_column(Dataset(self.dataset))
+        resolve_func = resolve_column(Dataset(self.dataset.value))
 
         query = apply_dataset_query_conditions(QueryDatasets(self.dataset), query, self.event_types)
         snuba_filter = get_filter(query, params=params)
@@ -141,18 +141,18 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
 
 
 class EventsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
-    dataset = Dataset.Events.value
-    entity_key = EntityKey.Events.value
+    dataset = QueryDatasets.EVENTS
+    entity_key = EntityKey.Events
 
 
 class TransactionsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
-    dataset = Dataset.Transactions.value
-    entity_key = EntityKey.Transactions.value
+    dataset = QueryDatasets.TRANSACTIONS
+    entity_key = EntityKey.Transactions
 
 
 class SessionsEntitySubscription(BaseEntitySubscription):
-    dataset = Dataset.Sessions.value
-    entity_key = EntityKey.Sessions.value
+    dataset = QueryDatasets.SESSIONS
+    entity_key = EntityKey.Sessions
 
     def __init__(self, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None):
         super().__init__(aggregate, extra_fields)
@@ -170,7 +170,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
         environment: Optional[Environment],
         params: Optional[Mapping[str, Any]] = None,
     ) -> Filter:
-        resolve_func = resolve_column(Dataset.Sessions)
+        resolve_func = resolve_column(Dataset(self.dataset.value))
         aggregations = [self.aggregate]
         # This aggregation is added to return the total number of sessions in crash
         # rate alerts that is used to identify if we are below a general minimum alert threshold
@@ -200,8 +200,8 @@ class SessionsEntitySubscription(BaseEntitySubscription):
 
 
 class MetricsCountersEntitySubscription(BaseEntitySubscription):
-    dataset = Dataset.Metrics.value
-    entity_key = EntityKey.MetricsCounters.value
+    dataset = QueryDatasets.METRICS
+    entity_key = EntityKey.MetricsCounters
 
     def __init__(self, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None):
         super().__init__(aggregate, extra_fields)

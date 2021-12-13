@@ -1,5 +1,5 @@
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
-from sentry.release_health.metrics import metric_id, tag_key
+from sentry.release_health.metrics import get_tag_values_list, metric_id, tag_key
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
@@ -17,7 +17,7 @@ from sentry.testutils import TestCase
 class EntitySubscriptionTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        for tag in ["session", "session.status"]:
+        for tag in ["session", "session.status", "init", "crashed"]:
             indexer.record(tag)
 
     def test_map_aggregate_to_sessions_entity_subscription_non_supported_aggregate(self) -> None:
@@ -48,9 +48,9 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id
         }
-        assert entity_subscription.entity_key == EntityKey.Sessions.value
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Sessions.value]
-        assert entity_subscription.dataset == QueryDatasets.SESSIONS.value
+        assert entity_subscription.entity_key == EntityKey.Sessions
+        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Sessions]
+        assert entity_subscription.dataset == QueryDatasets.SESSIONS
         snuba_filter = entity_subscription.build_snuba_filter("", None, None)
         assert snuba_filter
         assert snuba_filter.aggregations == [
@@ -102,13 +102,18 @@ class EntitySubscriptionTestCase(TestCase):
             "organization": self.organization.id,
             "groupby": groupby,
         }
-        assert entity_subscription.entity_key == EntityKey.MetricsCounters.value
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsCounters.value]
-        assert entity_subscription.dataset == QueryDatasets.METRICS.value
+        assert entity_subscription.entity_key == EntityKey.MetricsCounters
+        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsCounters]
+        assert entity_subscription.dataset == QueryDatasets.METRICS
+        session_status = tag_key(org_id, "session.status")
+        session_status_tag_values = get_tag_values_list(org_id, ["crashed", "init"])
         snuba_filter = entity_subscription.build_snuba_filter("", None, None)
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
-        assert snuba_filter.conditions == [["metric_id", "=", metric_id(org_id, "session")]]
+        assert snuba_filter.conditions == [
+            ["metric_id", "=", metric_id(org_id, "session")],
+            [session_status, "IN", session_status_tag_values],
+        ]
         assert snuba_filter.groupby == groupby
 
     def test_map_aggregate_to_transactions_entity_subscription(self) -> None:
@@ -119,9 +124,9 @@ class EntitySubscriptionTestCase(TestCase):
         assert isinstance(entity_subscription, TransactionsEntitySubscription)
         assert entity_subscription.aggregate == aggregate
         assert entity_subscription.get_entity_extra_params() == {}
-        assert entity_subscription.entity_key == EntityKey.Transactions.value
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Transactions.value]
-        assert entity_subscription.dataset == QueryDatasets.TRANSACTIONS.value
+        assert entity_subscription.entity_key == EntityKey.Transactions
+        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Transactions]
+        assert entity_subscription.dataset == QueryDatasets.TRANSACTIONS
         snuba_filter = entity_subscription.build_snuba_filter("", None, None)
         assert snuba_filter
         assert snuba_filter.aggregations == [
@@ -136,9 +141,9 @@ class EntitySubscriptionTestCase(TestCase):
         assert isinstance(entity_subscription, EventsEntitySubscription)
         assert entity_subscription.aggregate == aggregate
         assert entity_subscription.get_entity_extra_params() == {}
-        assert entity_subscription.entity_key == EntityKey.Events.value
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Events.value]
-        assert entity_subscription.dataset == QueryDatasets.EVENTS.value
+        assert entity_subscription.entity_key == EntityKey.Events
+        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Events]
+        assert entity_subscription.dataset == QueryDatasets.EVENTS
         snuba_filter = entity_subscription.build_snuba_filter("release:latest", None, None)
         assert snuba_filter
         assert snuba_filter.conditions == [

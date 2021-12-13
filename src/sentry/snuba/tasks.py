@@ -3,7 +3,6 @@ from datetime import timedelta
 
 import sentry_sdk
 from django.utils import timezone
-from snuba_sdk import Entity
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.eventstore import Filter
@@ -167,8 +166,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
 
     try:
         metrics.incr("snuba.snql.subscription.create", tags={"dataset": snuba_query.dataset})
-        snql_query = json_to_snql(body, snuba_query.dataset)
-        snql_query = snql_query.set_match(Entity(entity_subscription.entity_key))
+        snql_query = json_to_snql(body, entity_subscription.entity_key.value)
         snql_query.validate()
         body["query"] = str(snql_query)
         body["type"] = "delegate"  # mark this as a combined subscription
@@ -181,7 +179,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
 
     response = _snuba_pool.urlopen(
         "POST",
-        f"/{snuba_query.dataset}/{entity_subscription.entity_key}/subscriptions",
+        f"/{snuba_query.dataset}/{entity_subscription.entity_key.value}/subscriptions",
         body=json.dumps(body),
     )
     if response.status != 202:
