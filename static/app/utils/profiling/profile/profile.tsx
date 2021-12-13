@@ -20,16 +20,11 @@ export class Profile {
   // Name of the profile
   name = 'Unknown';
 
-  // Frames in stack as we iterate over the samples array
+  appendOrderTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
   framesInStack: Set<Profiling.Event['frame']> = new Set();
-  // FrameIndex for constant lookup of frames as we iterate over profiles
-  frameIndex: Record<number, Frame> = {};
 
   // Min duration of the profile
   minFrameDuration = Number.POSITIVE_INFINITY;
-
-  // Call tree tree representation of the profile
-  appendOrderTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
 
   samples: CallTreeNode[] = [];
   weights: number[] = [];

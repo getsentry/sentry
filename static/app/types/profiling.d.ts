@@ -5,6 +5,9 @@ namespace Profiling {
     name: string;
     unit: string;
     spans?: RawSpan[];
+    shared: {
+      frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
+    };
   }
 
   // Android traces follow this format
