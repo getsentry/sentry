@@ -70,12 +70,12 @@ type Props = {
 };
 
 type State = {
-  breakpoint: string;
+  isMobile: boolean;
 };
 
 class Dashboard extends Component<Props, State> {
   state = {
-    breakpoint: 'desktop',
+    isMobile: false,
   };
 
   async componentDidMount() {
@@ -227,7 +227,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   renderWidget(widget: Widget, index: number) {
-    const {breakpoint} = this.state;
+    const {isMobile} = this.state;
     const {isEditing} = this.props;
 
     const key = constructGridItemKey(widget);
@@ -241,7 +241,7 @@ class Dashboard extends Component<Props, State> {
           isEditing={isEditing}
           onDelete={this.handleDeleteWidget(widget)}
           onEdit={this.handleEditWidget(widget, index)}
-          hideDragHandle={breakpoint === 'mobile'}
+          hideDragHandle={isMobile}
         />
       </GridItem>
     );
@@ -252,17 +252,17 @@ class Dashboard extends Component<Props, State> {
     // HACK: Disable layout change when element is less than mobile width
     const rect = document.querySelector('.react-grid-layout')?.getBoundingClientRect();
     if (rect && rect.width <= MOBILE_BREAKPOINT) {
-      this.setState({breakpoint: 'mobile'});
+      this.setState({isMobile: true});
       return;
     }
 
-    this.setState({breakpoint: 'desktop'});
-
+    this.setState({isMobile: false});
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     onLayoutChange(newLayout.filter(isNotAddButton));
   };
 
   render() {
+    const {isMobile} = this.state;
     const {
       isEditing,
       dashboard: {widgets},
@@ -270,7 +270,7 @@ class Dashboard extends Component<Props, State> {
       layout,
     } = this.props;
 
-    const canModifyLayout = this.state.breakpoint === 'desktop' && isEditing;
+    const canModifyLayout = !isMobile && isEditing;
 
     return (
       <GridLayout
