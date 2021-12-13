@@ -1,40 +1,24 @@
 from rest_framework.request import Request
 
-from sentry.api.bases.sentryapps import IntegrationPlatformEndpoint, ensure_scoped_permission
+from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission
 from sentry.api.validators.doc_integration import METADATA_TYPES
 from sentry.auth.superuser import is_active_superuser
-from sentry.models.integration import DocIntegration
 from sentry.utils.json import JSONData
 
 
 class DocIntegrationsPermission(SentryPermission):
-    scope_map = {
-        # GET is ideally a public endpoint but for now we are allowing for
-        # anyone who has member permissions or above.
-        "GET": (
-            "event:read",
-            "event:write",
-            "event:admin",
-            "project:releases",
-            "project:read",
-            "org:read",
-            "member:read",
-            "team:read",
-        ),
-    }
-
-    def has_object_permission(self, request: Request, view, doc_integration: DocIntegration):
+    def has_permission(self, request: Request, view: Endpoint):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        if is_active_superuser(request):
+        if is_active_superuser(request) or request.method == "GET":
             return True
 
-        return ensure_scoped_permission(request, self.scope_map.get(request.method))
+        return False
 
 
-class DocIntegrationsBaseEndpoint(IntegrationPlatformEndpoint):
+class DocIntegrationsBaseEndpoint(Endpoint):
     permission_classes = (DocIntegrationsPermission,)
 
     def generate_incoming_metadata(self, request: Request) -> JSONData:
