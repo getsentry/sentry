@@ -2,7 +2,7 @@ import re
 from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, TypedDict
 
 from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
@@ -69,6 +69,11 @@ def apply_dataset_query_conditions(
     return event_type_conditions
 
 
+class _EntitySpecificParams(TypedDict):
+    org_id: Optional[int]
+    event_types: Optional[List[SnubaQueryEventType]]
+
+
 @dataclass
 class _EntitySubscription:
     entity_key: str
@@ -84,7 +89,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     entities to support subscriptions (alerts), we need to decouple this logic.
     """
 
-    def __init__(self, aggregate: str, extra_fields: Optional[Mapping[str, Any]] = None):
+    def __init__(self, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None):
         self.time_col = ENTITY_TIME_COLUMNS[self.entity_key]
 
     @abstractmethod
@@ -102,7 +107,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
 
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
-    def __init__(self, aggregate: str, extra_fields: Optional[Mapping[str, Any]] = None):
+    def __init__(self, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None):
         super().__init__(aggregate, extra_fields)
         self.aggregate = aggregate
         self.event_types = None
@@ -149,7 +154,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
     dataset = Dataset.Sessions.value
     entity_key = EntityKey.Sessions.value
 
-    def __init__(self, aggregate: str, extra_fields: Optional[Mapping[str, Any]] = None):
+    def __init__(self, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None):
         super().__init__(aggregate, extra_fields)
         self.aggregate = aggregate
         if not extra_fields or "org_id" not in extra_fields:
@@ -198,7 +203,7 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
     dataset = Dataset.Metrics.value
     entity_key = EntityKey.MetricsCounters.value
 
-    def __init__(self, aggregate: str, extra_fields: Optional[Mapping[str, Any]] = None):
+    def __init__(self, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None):
         super().__init__(aggregate, extra_fields)
         self.aggregate = aggregate
         if not extra_fields or "org_id" not in extra_fields:
@@ -243,7 +248,7 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
 
 
 def map_aggregate_to_entity_subscription(
-    dataset: QueryDatasets, aggregate: str, extra_fields: Optional[Mapping[str, Any]] = None
+    dataset: QueryDatasets, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None
 ) -> BaseEntitySubscription:
     """
     Function that routes to the correct instance of `EntitySubscription` based on the dataset,

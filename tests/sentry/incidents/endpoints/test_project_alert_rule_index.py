@@ -704,7 +704,7 @@ class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAler
     def setUp(self):
         super().setUp()
         self.valid_alert_rule["dataset"] = Dataset.Metrics.value
-        for tag in ["session", "session.status"]:
+        for tag in ["session", "session.status", "init", "crashed"]:
             indexer.record(tag)
 
     def test_simple_crash_rate_alerts_for_users(self):
