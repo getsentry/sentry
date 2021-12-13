@@ -144,7 +144,6 @@ class U2fInterface extends React.Component<Props, State> {
       });
     });
 
-    // publicKeyCredentialRequestOptions is adictionary of the Web Authentication API from https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialRequestOptions
     const publicKeyCredentialRequestOptions: PublicKeyCredentialRequestOptions = {
       challenge: base64urlToBuffer(challenge),
       allowCredentials: credentials,
