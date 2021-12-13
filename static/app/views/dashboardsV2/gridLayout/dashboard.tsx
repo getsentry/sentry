@@ -248,15 +248,13 @@ class Dashboard extends Component<Props, State> {
   }
 
   onLayoutChange = newLayout => {
+    const {isMobile} = this.state;
     const {onLayoutChange} = this.props;
-    // HACK: Disable layout change when element is less than mobile width
-    const rect = document.querySelector('.react-grid-layout')?.getBoundingClientRect();
-    if (rect && rect.width <= MOBILE_BREAKPOINT) {
-      this.setState({isMobile: true});
+
+    if (isMobile) {
       return;
     }
 
-    this.setState({isMobile: false});
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     onLayoutChange(newLayout.filter(isNotAddButton));
   };
@@ -281,6 +279,13 @@ class Dashboard extends Component<Props, State> {
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
         layouts={{desktop: layout, mobile: getMobileLayout(layout, widgets)}}
         onLayoutChange={this.onLayoutChange}
+        onWidthChange={newWidth => {
+          // Add buffer of 50px to switch avoid onLayoutChange on switching
+          // to mobile view
+          if (newWidth <= MOBILE_BREAKPOINT + 50) {
+            this.setState({isMobile: true});
+          }
+        }}
         isDraggable={canModifyLayout}
         isResizable={canModifyLayout}
         isBounded
