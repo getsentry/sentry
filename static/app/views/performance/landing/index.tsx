@@ -9,7 +9,6 @@ import SearchBar from 'sentry/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageHeading from 'sentry/components/pageHeading';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -107,9 +106,9 @@ export function PerformanceLanding(props: Props) {
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
-      <Layout.Header>
+      <Layout.Header noActionWrap>
         <Layout.HeaderContent>
-          <StyledHeading>{t('Performance')}</StyledHeading>
+          <StyledLayoutTitle>{t('Performance')}</StyledLayoutTitle>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           {!showOnboarding && (
@@ -201,8 +200,8 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
+const StyledLayoutTitle = styled(Layout.Title)`
+  margin-top: ${space(0.5)};
 `;
 
 const SearchContainerWithFilter = styled('div')`
