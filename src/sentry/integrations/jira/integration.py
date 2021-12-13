@@ -1,7 +1,7 @@
 import logging
 import re
 from operator import attrgetter
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from django.conf import settings
 from django.urls import reverse
@@ -310,7 +310,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_url(self, key, **kwargs):
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "issuetype", "priority", "labels"]
 
     def get_persisted_user_default_config_fields(self):

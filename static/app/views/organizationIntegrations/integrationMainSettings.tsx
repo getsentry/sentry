@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -17,7 +17,7 @@ type State = {
   integration: Integration;
 };
 
-class IntegrationMainSettings extends React.Component<Props, State> {
+class IntegrationMainSettings extends Component<Props, State> {
   state: State = {
     integration: this.props.integration,
   };

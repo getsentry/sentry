@@ -8,6 +8,7 @@ import memoize from 'lodash/memoize';
 import * as PopperJS from 'popper.js';
 
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
+import space from 'sentry/styles/space';
 import {domId} from 'sentry/utils/domId';
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -202,8 +203,8 @@ class Tooltip extends React.Component<Props, State> {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
       onBlur: this.handleClose,
-      onMouseEnter: this.handleOpen,
-      onMouseLeave: this.handleClose,
+      onPointerEnter: this.handleOpen,
+      onPointerLeave: this.handleClose,
     };
 
     // Use the `type` property of the react instance to detect whether we
@@ -289,7 +290,6 @@ class Tooltip extends React.Component<Props, State> {
                 ref={arrowProps.ref}
                 data-placement={placement}
                 style={arrowProps.style}
-                background={(popperStyle as React.CSSProperties)?.background || '#000'}
               />
             </TooltipContent>
           </PositionWrapper>
@@ -325,73 +325,82 @@ const PositionWrapper = styled('div')`
 const TooltipContent = styled(motion.div)<Pick<Props, 'popperStyle'>>`
   will-change: transform, opacity;
   position: relative;
-  color: ${p => p.theme.white};
-  background: #000;
-  opacity: 0.9;
-  padding: 5px 10px;
+  background: ${p => p.theme.backgroundElevated};
+  padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
+  border: solid 1px ${p => p.theme.border};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
   overflow-wrap: break-word;
   max-width: 225px;
 
-  font-weight: bold;
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1.4;
+  line-height: 1.2;
 
   margin: 6px;
   text-align: center;
   ${p => p.popperStyle as any};
 `;
 
-const TooltipArrow = styled('span')<{background: string | number}>`
+const TooltipArrow = styled('span')`
   position: absolute;
-  width: 10px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
+  border: solid 6px transparent;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: solid 7px transparent;
+    z-index: -1;
+  }
 
   &[data-placement*='bottom'] {
     top: 0;
-    left: 0;
-    margin-top: -5px;
+    margin-top: -12px;
+    border-bottom-color: ${p => p.theme.backgroundElevated};
     &::before {
-      border-width: 0 5px 5px 5px;
-      border-color: transparent transparent ${p => p.background} transparent;
+      bottom: -6px;
+      left: -7px;
+      border-bottom-color: ${p => p.theme.border};
     }
   }
 
   &[data-placement*='top'] {
     bottom: 0;
-    left: 0;
-    margin-bottom: -5px;
+    margin-bottom: -12px;
+    border-top-color: ${p => p.theme.backgroundElevated};
     &::before {
-      border-width: 5px 5px 0 5px;
-      border-color: ${p => p.background} transparent transparent transparent;
+      top: -6px;
+      left: -7px;
+      border-top-color: ${p => p.theme.border};
     }
   }
 
   &[data-placement*='right'] {
     left: 0;
-    margin-left: -5px;
+    margin-left: -12px;
+    border-right-color: ${p => p.theme.backgroundElevated};
     &::before {
-      border-width: 5px 5px 5px 0;
-      border-color: transparent ${p => p.background} transparent transparent;
+      top: -7px;
+      right: -6px;
+      border-right-color: ${p => p.theme.border};
     }
   }
 
   &[data-placement*='left'] {
     right: 0;
-    margin-right: -5px;
+    margin-right: -12px;
+    border-left-color: ${p => p.theme.backgroundElevated};
     &::before {
-      border-width: 5px 0 5px 5px;
-      border-color: transparent transparent transparent ${p => p.background};
+      top: -7px;
+      left: -6px;
+      border-left-color: ${p => p.theme.border};
     }
-  }
-
-  &::before {
-    content: '';
-    margin: auto;
-    display: block;
-    width: 0;
-    height: 0;
-    border-style: solid;
   }
 `;
 

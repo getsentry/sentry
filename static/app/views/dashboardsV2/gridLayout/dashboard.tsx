@@ -17,6 +17,7 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {GlobalSelection, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'sentry/views/dashboardsV2/addWidget';
@@ -33,6 +34,7 @@ import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 import SortableWidget from './sortableWidget';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
+const WIDGET_PREFIX = 'grid-item';
 const NUM_COLS = 6;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
@@ -44,8 +46,6 @@ const ADD_BUTTON_POSITION = {
   isResizable: false,
 };
 const DEFAULT_WIDGET_WIDTH = 2;
-
-const GridLayout = WidthProvider(RGL);
 
 type Props = {
   api: Client;
@@ -144,18 +144,20 @@ class Dashboard extends Component<Props> {
   };
 
   handleAddComplete = (widget: Widget) => {
-    this.props.onUpdate([...this.props.dashboard.widgets, widget]);
+    this.props.onUpdate([...this.props.dashboard.widgets, assignTempId(widget)]);
   };
 
-  handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
+  handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const nextList = [...this.props.dashboard.widgets];
-    nextList[index] = nextWidget;
+    const updateIndex = nextList.indexOf(prevWidget);
+    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
   };
 
-  handleDeleteWidget = (index: number) => () => {
-    const nextList = [...this.props.dashboard.widgets];
-    nextList.splice(index, 1);
+  handleDeleteWidget = (widgetToDelete: Widget) => () => {
+    const nextList = this.props.dashboard.widgets.filter(
+      widget => widget !== widgetToDelete
+    );
     this.props.onUpdate(nextList);
   };
 
@@ -200,7 +202,7 @@ class Dashboard extends Component<Props> {
       widget,
       selection,
       onAddWidget: this.handleAddComplete,
-      onUpdateWidget: this.handleUpdateComplete(index),
+      onUpdateWidget: this.handleUpdateComplete(widget),
     };
     if (widget.widgetType === WidgetType.ISSUE) {
       openAddDashboardIssueWidgetModal(modalProps);
@@ -216,7 +218,7 @@ class Dashboard extends Component<Props> {
   renderWidget(widget: Widget, index: number) {
     const {isEditing} = this.props;
 
-    const key = generateWidgetId(widget, index);
+    const key = constructGridItemKey(widget);
     const dragId = key;
 
     return (
@@ -225,7 +227,7 @@ class Dashboard extends Component<Props> {
           widget={widget}
           dragId={dragId}
           isEditing={isEditing}
-          onDelete={this.handleDeleteWidget(index)}
+          onDelete={this.handleDeleteWidget(widget)}
           onEdit={this.handleEditWidget(widget, index)}
         />
       </GridItem>
@@ -248,7 +250,10 @@ class Dashboard extends Component<Props> {
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
         layout={layout}
-        onLayoutChange={onLayoutChange}
+        onLayoutChange={newLayout => {
+          const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
+          onLayoutChange(newLayout.filter(isNotAddButton));
+        }}
         isDraggable={isEditing}
         isResizable={isEditing}
         isBounded
@@ -276,8 +281,23 @@ const GridItem = styled('div')`
   }
 `;
 
-function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
+// HACK: to stack chart tooltips above other grid items
+const GridLayout = styled(WidthProvider(RGL))`
+  .react-grid-item:hover {
+    z-index: 10;
+  }
+`;
+
+export function constructGridItemKey(widget: Widget) {
+  return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
+}
+
+export function assignTempId(widget) {
+  if (widget.id ?? widget.tempId) {
+    return widget;
+  }
+
+  return {...widget, tempId: uniqueId()};
 }
 
 /**

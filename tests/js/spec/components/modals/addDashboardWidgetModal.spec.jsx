@@ -1011,7 +1011,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
-  it('renders the back button from library', async function () {
+  it('renders the tab button bar from widget library', async function () {
     const onAddLibraryWidgetMock = jest.fn();
     const wrapper = mountModal({
       initialData,
@@ -1020,8 +1020,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.LIBRARY,
     });
 
-    expect(wrapper.find('Button[data-test-id="back-to-library"]')).toHaveLength(1);
-    wrapper.find('Button[data-test-id="back-to-library"] button').simulate('click');
+    expect(wrapper.find('LibraryButton')).toHaveLength(1);
+    expect(wrapper.find('CustomButton')).toHaveLength(1);
+    wrapper.find('LibraryButton button').simulate('click');
     expect(openDashboardWidgetLibraryModal).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });

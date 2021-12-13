@@ -7,6 +7,7 @@ import pytz
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import (
+    And,
     Column,
     Condition,
     Direction,
@@ -16,6 +17,7 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     OrderBy,
     Query,
 )
@@ -27,8 +29,10 @@ from sentry.snuba.metrics import (
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
+    _resolve_tags,
     get_date_range,
     get_intervals,
+    parse_query,
 )
 
 
@@ -39,6 +43,62 @@ class PseudoProject:
 
 
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
+
+
+@pytest.mark.parametrize(
+    "query_string,expected",
+    [
+        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[15])]),
+        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
+        (
+            "release:myapp@2.0.0 and environment:production",
+            [
+                And(
+                    [
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                        Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
+                    ]
+                )
+            ],
+        ),
+        (
+            "release:myapp@2.0.0 environment:production",
+            [
+                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
+            ],
+        ),
+        (
+            "release:myapp@2.0.0 and environment:production or session.status:healthy",
+            [
+                Or(
+                    [
+                        And(
+                            [
+                                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                                Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
+                            ]
+                        ),
+                        Condition(
+                            Column(name="tags[8]"),
+                            Op.EQ,
+                            rhs=4,
+                        ),
+                    ]
+                ),
+            ],
+        ),
+        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[17]"), Op.EQ, rhs=18)]),
+    ],
+)
+@mock.patch("sentry.snuba.metrics.indexer")
+def test_parse_query(mock_indexer, query_string, expected):
+    local_indexer = MockIndexer()
+    for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
+        local_indexer.record(s)
+    mock_indexer.resolve = local_indexer.resolve
+    parsed = _resolve_tags(parse_query(query_string))
+    assert parsed == expected
 
 
 @freeze_time("2018-12-11 03:21:00")
@@ -142,7 +202,7 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
                 Condition(Column("metric_id"), Op.IN, [9, 11, 7]),
                 Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
                 Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
-                Condition(Column("tags[6]"), Op.EQ, 10),
+                Condition(Column("tags[6]"), Op.IN, [10]),
             ],
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
@@ -219,7 +279,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
             Condition(Column("metric_id"), Op.IN, [9]),
             Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
-            Condition(Column("tags[6]", entity=None), Op.EQ, 10),
+            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
         ],
         orderby=[OrderBy(Column("value"), Direction.DESC)],
         limit=Limit(3),
@@ -261,7 +321,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 9,  # session
-                        "tags[8]": 0,  # session.status:abnormal
+                        "tags[8]": 14,  # session.status:abnormal
                         "value": 330,
                     },
                 ],
@@ -276,7 +336,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 9,  # session
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
                         "value": 110,
                     },
@@ -288,7 +348,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 9,  # session
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
                         "value": 220,
                     },
@@ -306,7 +366,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "max": 456.7,
                         "percentiles": [1.5, 2.5, 3.5, 4.5, 5.5],
                     },
@@ -323,7 +383,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
                         "max": 20.2,
                         "percentiles": [1.2, 2.2, 3.2, 4.2, 5.2],
@@ -337,7 +397,7 @@ def test_translate_results(_1, _2, mock_indexer):
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
                         "max": 40.4,
                         "percentiles": [1.4, 2.4, 3.4, 4.4, 5.4],

@@ -1,4 +1,3 @@
-import {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -41,16 +40,32 @@ export const UpperPanel = styled(Panel)`
   }
 `;
 
-export const LowerPanel = styled('div')`
+export const LowerPanel = styled('div')<{expandable: boolean}>`
   > div {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+
+    ${p =>
+      p.expandable &&
+      `
+      margin-bottom: 0;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      `}
   }
+`;
+
+export const FooterPanel = styled(Panel)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(1)} ${space(0)} ${space(1)} ${space(3)};
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 `;
 
 type HeaderItemProps = {
   label: string;
-  value: ReactNode;
+  value: React.ReactNode;
   align: 'left' | 'right';
   isSortKey?: boolean;
 };

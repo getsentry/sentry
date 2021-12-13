@@ -3,11 +3,13 @@ import {DocumentIntegration} from 'sentry/types';
 export const INSTALLED = 'Installed' as const;
 export const NOT_INSTALLED = 'Not Installed' as const;
 export const PENDING = 'Pending' as const;
+export const DISABLED = 'Disabled' as const;
 export const LEARN_MORE = 'Learn More' as const;
 
 export const COLORS = {
   [INSTALLED]: 'success',
   [NOT_INSTALLED]: 'gray300',
+  [DISABLED]: 'gray300',
   [PENDING]: 'pink300',
   [LEARN_MORE]: 'gray300',
 } as const;
@@ -61,6 +63,8 @@ export const POPULARITY_WEIGHT: {
   rocketchat: 8,
   bitbucket_pipelines: 8,
   github_actions: 8,
+  grafana: 10,
+  insight_finder: 8,
   octohook: 8,
 } as const;
 
@@ -231,6 +235,46 @@ export const documentIntegrationList: DocumentIntegration[] = [
       {
         title: 'Report Issue',
         url: 'https://github.com/getsentry/action-release/issues',
+      },
+    ],
+  },
+  {
+    slug: 'grafana',
+    name: 'Grafana',
+    author: 'Grafana',
+    docUrl: 'https://grafana.com/grafana/plugins/grafana-sentry-datasource/',
+    description:
+      'The Sentry Grafana data source plugin allows you to query and visualize Sentry data within Grafana.',
+    features: [
+      {
+        featureGate: 'visualization',
+        description: 'Query and visualize Sentry data in Grafana',
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'Documentation',
+        url: 'https://grafana.com/grafana/plugins/grafana-sentry-datasource/',
+      },
+    ],
+  },
+  {
+    slug: 'insightfinder',
+    name: 'InsightFinder',
+    author: 'InsightFinder',
+    docUrl: 'https://insightfinder.com/insightfinder-sentry-integration/',
+    description:
+      'InsightFinder ingests the errors that Sentry detects through its standard APIs and analyzes them using its patented, unsupervised, neural network algorithms. InsightFinder prioritizes those errors and provides context so anomalous events can be resolved before business is impacted.',
+    features: [
+      {
+        featureGate: 'webhook',
+        description: 'Forward Sentry events to InsightFinder.',
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'Documentation',
+        url: 'https://insightfinder.com/insightfinder-sentry-integration/',
       },
     ],
   },

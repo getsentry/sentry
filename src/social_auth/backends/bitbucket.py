@@ -85,6 +85,8 @@ class BitbucketAuth(BaseOAuth1):
         request = self.oauth_request(access_token, url)
         response = self.fetch_response(request)
         try:
+            email = None
+
             # Then retrieve the user's primary email address or the top email
             email_addresses = json.loads(response)
             for email_address in reversed(email_addresses):
@@ -92,6 +94,10 @@ class BitbucketAuth(BaseOAuth1):
                     email = email_address["email"]
                     if email_address["primary"]:
                         break
+
+            if email is None:
+                return None
+
             # Then return the user data using a normal GET with the
             # BITBUCKET_USER_DATA_URL and the user's email
             response = dsa_urlopen(BITBUCKET_USER_DATA_URL + email)

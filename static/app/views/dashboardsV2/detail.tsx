@@ -28,7 +28,10 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard from './gridLayout/dashboard';
+import GridLayoutDashboard, {
+  assignTempId,
+  constructGridItemKey,
+} from './gridLayout/dashboard';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
@@ -54,7 +57,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   route: PlainRoute;
-  reloadData?: () => void;
+  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
 };
 
@@ -263,7 +266,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddWidget = () => {
-    const {organization, dashboard, api, reloadData, location} = this.props;
+    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
@@ -273,15 +276,15 @@ class DashboardDetail extends Component<Props, State> {
       onAddWidget: (widgets: Widget[]) => {
         const modifiedDashboard = {
           ...cloneDashboard(dashboard),
-          widgets,
+          widgets: widgets.map(assignTempId),
         };
+        this.setState({modifiedDashboard});
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
-            addSuccessMessage(t('Dashboard updated'));
-
-            if (reloadData) {
-              reloadData();
+            if (onDashboardUpdate) {
+              onDashboardUpdate(newDashboard);
             }
+            addSuccessMessage(t('Dashboard updated'));
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -298,15 +301,39 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  /**
+   * Saves a dashboard layout where the layout keys are replaced with the IDs of new widgets.
+   */
+  saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
+    const {layout} = this.state;
+    if (layout.length !== newWidgets.length) {
+      throw new Error('Expected layouts and widgets to be the same length');
+    }
+
+    const newLayout = layout.map((widgetLayout, index) => ({
+      ...widgetLayout,
+      i: constructGridItemKey(newWidgets[index]),
+    }));
+    saveDashboardLayout(organizationId, dashboardId, newLayout);
+    this.setState({layout: newLayout, modifiedDashboard: null});
+  };
+
   onCommit = () => {
-    const {api, organization, location, dashboard, reloadData} = this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
+    const {layout, modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (organization.features.includes('dashboard-grid-layout')) {
+                this.saveLayoutWithNewWidgets(
+                  organization.id,
+                  newDashboard.id,
+                  newDashboard.widgets
+                );
+              }
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.create.complete',
@@ -335,7 +362,7 @@ class DashboardDetail extends Component<Props, State> {
         // TODO(nar): This should only fire when there are changes to the layout
         // and the dashboard can be successfully saved
         if (organization.features.includes('dashboard-grid-layout')) {
-          saveDashboardLayout(organization.id, dashboard.id, this.state.layout);
+          saveDashboardLayout(organization.id, dashboard.id, layout);
         }
 
         // only update the dashboard if there are changes
@@ -349,6 +376,17 @@ class DashboardDetail extends Component<Props, State> {
           }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (onDashboardUpdate) {
+                onDashboardUpdate(newDashboard);
+              }
+
+              if (organization.features.includes('dashboard-grid-layout')) {
+                this.saveLayoutWithNewWidgets(
+                  organization.id,
+                  newDashboard.id,
+                  newDashboard.widgets
+                );
+              }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.edit.complete',
@@ -360,9 +398,6 @@ class DashboardDetail extends Component<Props, State> {
                 modifiedDashboard: null,
               });
 
-              if (reloadData) {
-                reloadData();
-              }
               if (dashboard && newDashboard.id !== dashboard.id) {
                 browserHistory.replace({
                   pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -429,18 +464,19 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddIssueWidget = () => {
-    const {api, organization, location, dashboard, reloadData} = this.props;
+    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
 
     openAddDashboardIssueWidgetModal({
       organization,
       onAddWidget: widget => {
-        updateDashboard(api, organization.slug, {
+        const modifiedDashboard = {
           ...dashboard,
-          widgets: [...dashboard.widgets, widget],
-        }).then(
+          widgets: [...dashboard.widgets, assignTempId(widget)],
+        };
+        updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
-            if (reloadData) {
-              reloadData();
+            if (onDashboardUpdate) {
+              onDashboardUpdate(newDashboard);
             }
             if (dashboard && newDashboard.id !== dashboard.id) {
               browserHistory.replace({
@@ -517,6 +553,7 @@ class DashboardDetail extends Component<Props, State> {
                 onDelete={this.onDelete(dashboard)}
                 onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
+                widgetCount={dashboard.widgets.length}
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
@@ -605,6 +642,7 @@ class DashboardDetail extends Component<Props, State> {
                   onDelete={this.onDelete(dashboard)}
                   onAddIssueWidget={this.onAddIssueWidget}
                   dashboardState={dashboardState}
+                  widgetCount={dashboard.widgets.length}
                 />
               </Layout.HeaderActions>
             </Layout.Header>

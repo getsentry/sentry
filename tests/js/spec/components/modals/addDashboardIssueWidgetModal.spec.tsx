@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, userEvent} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AddDashboardIssueWidgetModal from 'sentry/components/modals/addDashboardIssueWidgetModal';
 
@@ -25,9 +25,9 @@ function mountModal({initialData, onAddWidget, onUpdateWidget, widget}) {
   );
 }
 
-async function clickSubmit(wrapper) {
+async function clickSubmit() {
   // Click on submit.
-  userEvent.click(wrapper.getByText('Add Widget'));
+  userEvent.click(screen.getByText('Add Widget'));
 }
 
 describe('Modals -> AddDashboardIssueWidgetModal', function () {
@@ -64,9 +64,19 @@ describe('Modals -> AddDashboardIssueWidgetModal', function () {
       onUpdateWidget: () => undefined,
       widget: undefined,
     });
-    await clickSubmit(wrapper);
+    await clickSubmit();
 
-    expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({widgetType: 'issue'}));
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        displayType: 'table',
+        interval: '5m',
+        queries: [
+          {conditions: '', fields: ['issue', 'assignee', 'title'], name: '', orderby: ''},
+        ],
+        title: '',
+        widgetType: 'issue',
+      })
+    );
     wrapper.unmount();
   });
 });

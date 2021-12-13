@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 from collections import defaultdict
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
 from sentry.models import ExternalIssue, GroupLink, User
@@ -118,7 +118,7 @@ class IssueBasicMixin:
         """
         return [{"name": "externalIssue", "label": "Issue", "default": "", "type": "string"}]
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         """
         Returns a list of field names that should have their last used values
         persisted on a per-project basis.

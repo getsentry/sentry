@@ -258,6 +258,7 @@ describe('Dashboards > Detail', function () {
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
+        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -282,12 +283,16 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      if (wrapper) {
+        wrapper.unmount();
+      }
     });
 
     it('can remove widgets', async function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
+        body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
       wrapper = mountWithTheme(
         <ViewEditDashboard
@@ -321,6 +326,7 @@ describe('Dashboards > Detail', function () {
 
       // Save changes
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
+      await tick();
 
       expect(updateMock).toHaveBeenCalled();
       expect(updateMock).toHaveBeenCalledWith(
@@ -387,8 +393,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(true);
-
-      wrapper.unmount();
     });
 
     it('hides add widget option', async function () {
@@ -410,8 +414,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(false);
-
-      wrapper.unmount();
     });
 
     it('hides and shows breadcrumbs based on feature', async function () {
@@ -506,6 +508,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can add library widgets', async function () {
+      types.MAX_WIDGETS = 10;
       initialData = initializeOrg({
         organization: TestStubs.Organization({
           features: [
@@ -534,16 +537,14 @@ describe('Dashboards > Detail', function () {
 
       // Enter Add Widget mode
       wrapper
-        .find('Controls Button[data-test-id="add-widget-library"]')
+        .find('Controls Button[data-test-id="add-widget-library"] button')
         .simulate('click');
 
       const modal = await mountGlobalModal();
       await tick();
       await modal.update();
 
-      modal.find('Button').at(3).simulate('click');
-
-      expect(modal.find('SelectedBadge').text()).toEqual('1 Selected');
+      modal.find('WidgetLibraryCard').at(1).simulate('click');
 
       modal.find('Button[data-test-id="confirm-widgets"]').simulate('click');
 
@@ -592,18 +593,19 @@ describe('Dashboards > Detail', function () {
                 type: 'line',
               },
               {
-                displayType: 'area',
+                displayType: 'top_n',
                 id: undefined,
                 interval: '5m',
+                description: 'Top 5 transactions with the largest volume.',
                 queries: [
                   {
-                    conditions: '!event.type:transaction',
-                    fields: ['count()'],
+                    conditions: '!event.type:error',
+                    fields: ['transaction', 'count()'],
                     name: '',
-                    orderby: '',
+                    orderby: '-count',
                   },
                 ],
-                title: 'All Events',
+                title: 'High Throughput Transactions',
                 widgetType: 'discover',
               },
             ],
@@ -648,7 +650,10 @@ describe('Dashboards > Detail', function () {
       await tick();
       await modal.update();
 
-      modal.find('ModalBody input').simulate('change', {target: {value: 'Issue Widget'}});
+      modal
+        .find('ModalBody input')
+        .first()
+        .simulate('change', {target: {value: 'Issue Widget'}});
       modal.find('ModalFooter button').simulate('click');
 
       await tick();
@@ -666,7 +671,14 @@ describe('Dashboards > Detail', function () {
               {
                 displayType: 'table',
                 interval: '5m',
-                queries: [{conditions: '', fields: [], name: '', orderby: ''}],
+                queries: [
+                  {
+                    conditions: '',
+                    fields: ['issue', 'assignee', 'title'],
+                    name: '',
+                    orderby: '',
+                  },
+                ],
                 title: 'Issue Widget',
                 widgetType: 'issue',
               },
