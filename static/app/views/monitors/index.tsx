@@ -27,4 +27,3 @@ const MonitorsContainer: React.FC = ({children}) => (
 );
 
 export default withGlobalSelection(MonitorsContainer);
-export {MonitorsContainer};
