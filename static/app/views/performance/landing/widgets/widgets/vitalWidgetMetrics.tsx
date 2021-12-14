@@ -5,6 +5,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {MetricsApiResponse} from 'sentry/types';
 import {WebVital} from 'sentry/utils/discover/fields';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
@@ -23,10 +24,7 @@ import SelectableList, {
   Subtitle,
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
-import {
-  transformMetricsToVitalList,
-  VitalsMetricsItem,
-} from '../transforms/transformMetricsToVitalList';
+import {transformMetricsToList} from '../transforms/transformMetricsToList';
 import {transformMetricsToVitalSeries} from '../transforms/transformMetricsToVitalSeries';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
@@ -41,7 +39,7 @@ const settingToVital: Record<string, WebVital> = {
 };
 
 type DataType = {
-  list: WidgetDataResult & ReturnType<typeof transformMetricsToVitalList>;
+  list: WidgetDataResult & ReturnType<typeof transformMetricsToList>;
   chart: WidgetDataResult & ReturnType<typeof transformMetricsToVitalSeries>;
 };
 
@@ -66,16 +64,18 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
             statsPeriod={period}
             project={project}
             environment={environment}
-            query={new MutableSearch(eventView.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
+            query={new MutableSearch(eventView.query)
+              .addFilterValues('measurement_rating', ['poor'])
+              .formatString()} // TODO(metrics): not all tags will be compatible with metrics
             field={decodeList(fields)}
-            groupBy={['transaction', 'measurement_rating']}
-            orderBy={decodeList(fields)[0]}
+            groupBy={['transaction']}
+            orderBy={`-${decodeList(fields)[0]}`}
             limit={3}
           >
             {children}
           </MetricsRequest>
         ),
-        transform: transformMetricsToVitalList,
+        transform: transformMetricsToList,
       }),
       [eventView, metricsField, organization.slug]
     ),
@@ -105,18 +105,20 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
             environment={environment}
             query={new MutableSearch(eventView.query)
               .addFilterValues('transaction', [
-                widgetData.list.data[selectedListIndex].transaction,
+                `[${widgetData.list.data
+                  .map(listItem => listItem.transaction)
+                  .join(',')}]`,
               ])
               .formatString()} // TODO(metrics): not all tags will be compatible with metrics
             field={decodeList(fields)}
-            groupBy={['measurement_rating']}
+            groupBy={['transaction', 'measurement_rating']}
           >
             {children}
           </MetricsRequest>
         ),
         transform: transformMetricsToVitalSeries,
       }),
-      [chartSetting, selectedListIndex]
+      [chartSetting]
     ),
   };
 
@@ -129,20 +131,26 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
       {...props}
       Subtitle={provided => {
         const {widgetData} = provided;
-        const listItem = widgetData.list?.data[selectedListIndex];
+        const selectedTransaction = widgetData.list?.data[selectedListIndex]
+          ?.transaction as string;
+        const selectedTransactionData = widgetData.chart?.data[selectedTransaction];
 
-        if (!listItem) {
+        if (!selectedTransactionData) {
           return <Subtitle> </Subtitle>;
         }
 
         const data = {
-          [vital]: getVitalDataForListItem(listItem),
+          [vital]: getVitalData(
+            selectedTransaction,
+            metricsField,
+            widgetData.chart.response
+          ),
         };
 
         return (
           <Subtitle>
             <VitalBar
-              isLoading={widgetData.list?.isLoading}
+              isLoading={widgetData.list.isLoading || widgetData.chart.isLoading}
               vital={vital}
               data={data}
               showBar={false}
@@ -183,6 +191,11 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
           component: provided => (
             <_VitalChart
               {...provided.widgetData.chart}
+              data={
+                provided.widgetData.chart.data[
+                  provided.widgetData.list.data[selectedListIndex].transaction
+                ]
+              }
               {...provided}
               field={field}
               vitalFields={{
@@ -227,7 +240,11 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                   });
 
                   const data = {
-                    [vital]: getVitalDataForListItem(listItem),
+                    [vital]: getVitalData(
+                      transaction,
+                      metricsField,
+                      widgetData.chart.response
+                    ),
                   };
 
                   return (
@@ -237,7 +254,9 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                       </GrowLink>
                       <VitalBarCell>
                         <VitalBar
-                          isLoading={widgetData.list?.isLoading}
+                          isLoading={
+                            widgetData.list.isLoading || widgetData.chart.isLoading
+                          }
                           vital={vital}
                           data={data}
                           showBar
@@ -265,14 +284,24 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   );
 }
 
-function getVitalDataForListItem(listItem: VitalsMetricsItem) {
+function getVitalData(
+  transaction: string,
+  field: string,
+  response: MetricsApiResponse | null
+) {
+  const groups =
+    response?.groups.filter(group => group.by.transaction === transaction) ?? [];
+
   const vitalData: VitalData = {
-    ...listItem.measurement_rating,
+    poor: 0,
+    meh: 0,
+    good: 0,
     p75: 0,
-    total: Object.values(listItem.measurement_rating).reduce(
-      (acc, item) => acc + item,
-      0
-    ),
+    ...groups.reduce((acc, group) => {
+      acc[group.by.measurement_rating] = group.totals[field];
+      return acc;
+    }, {}),
+    total: groups.reduce((acc, group) => acc + group.totals[field], 0),
   };
 
   return vitalData;

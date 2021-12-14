@@ -20,17 +20,22 @@ export function transformMetricsToVitalSeries<T extends WidgetDataConstraint>(
 
   const {errored, loading, reloading, response} = results;
 
-  const data = response?.groups.map(group => {
-    return {
-      seriesName: group.by.measurement_rating,
-      data: response.intervals.map((intervalValue, intervalIndex) => {
-        return {
-          name: moment(intervalValue).valueOf(),
-          value: group.series[metricsField][intervalIndex],
-        };
-      }),
-    };
-  });
+  const data =
+    response?.groups.reduce((acc, group) => {
+      acc[group.by.transaction] = [
+        ...(acc[group.by.transaction] ?? []),
+        {
+          seriesName: group.by.measurement_rating,
+          data: response.intervals.map((intervalValue, intervalIndex) => {
+            return {
+              name: moment(intervalValue).valueOf(),
+              value: group.series[metricsField][intervalIndex],
+            };
+          }),
+        },
+      ];
+      return acc;
+    }, {}) ?? {};
 
   const childData = {
     loading,
@@ -38,6 +43,7 @@ export function transformMetricsToVitalSeries<T extends WidgetDataConstraint>(
     isLoading: loading || reloading,
     isErrored: errored,
     hasData: defined(response) && !!response.groups.length,
+    response,
     data,
 
     utc: utc === 'true',

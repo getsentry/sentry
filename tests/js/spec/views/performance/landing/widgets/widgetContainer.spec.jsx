@@ -360,7 +360,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByTransactionAndRating({
+      body: TestStubs.MetricsFieldByTransaction({
         field: 'count(measurements.lcp)',
       }),
       match: [(...args) => !issuesPredicate(...args)],
@@ -391,10 +391,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           field: ['count(measurements.lcp)'],
-          groupBy: ['transaction', 'measurement_rating'],
+          groupBy: ['transaction'],
           interval: '1h',
           limit: 3,
-          orderBy: 'count(measurements.lcp)',
+          orderBy: '-count(measurements.lcp)',
+          query: 'measurement_rating:poor',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -407,10 +408,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           field: ['count(measurements.lcp)'],
-          groupBy: ['measurement_rating'],
+          groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:/bar/:ordId/',
+          query: 'transaction:[/bar/:ordId/,/foo/:ordId/]',
           statsPeriod: '7d',
         }),
       })
@@ -465,7 +466,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByTransactionAndRating({
+      body: TestStubs.MetricsFieldByTransaction({
         field: 'count(measurements.fcp)',
       }),
       match: [(...args) => !issuesPredicate(...args)],
@@ -496,10 +497,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           field: ['count(measurements.fcp)'],
-          groupBy: ['transaction', 'measurement_rating'],
+          groupBy: ['transaction'],
           interval: '1h',
           limit: 3,
-          orderBy: 'count(measurements.fcp)',
+          orderBy: '-count(measurements.fcp)',
+          query: 'measurement_rating:poor',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -512,10 +514,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           field: ['count(measurements.fcp)'],
-          groupBy: ['measurement_rating'],
+          groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:/bar/:ordId/',
+          query: 'transaction:[/bar/:ordId/,/foo/:ordId/]',
           statsPeriod: '7d',
         }),
       })
@@ -570,7 +572,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByTransactionAndRating({
+      body: TestStubs.MetricsFieldByTransaction({
         field: 'count(measurements.fid)',
       }),
       match: [(...args) => !issuesPredicate(...args)],
@@ -601,10 +603,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           field: ['count(measurements.fid)'],
-          groupBy: ['transaction', 'measurement_rating'],
+          groupBy: ['transaction'],
           interval: '1h',
           limit: 3,
-          orderBy: 'count(measurements.fid)',
+          orderBy: '-count(measurements.fid)',
+          query: 'measurement_rating:poor',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -617,10 +620,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           field: ['count(measurements.fid)'],
-          groupBy: ['measurement_rating'],
+          groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:/bar/:ordId/',
+          query: 'transaction:[/bar/:ordId/,/foo/:ordId/]',
           statsPeriod: '7d',
         }),
       })
