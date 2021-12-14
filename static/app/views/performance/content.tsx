@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import {GlobalSelection} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -42,7 +41,6 @@ type Props = {
 };
 
 type State = {
-  eventView: EventView;
   error?: string;
 };
 
@@ -53,12 +51,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const {isMetricsData} = useMetricsSwitch();
   const previousDateTime = usePrevious(selection.datetime);
 
-  const [state, setState] = useState<State>({
-    eventView: generatePerformanceEventView(location, organization, projects, {
-      isMetricsData,
-    }),
-    error: undefined,
-  });
+  const [state, setState] = useState<State>({error: undefined});
 
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
@@ -72,15 +65,6 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   }, []);
 
   useEffect(() => {
-    setState({
-      ...state,
-      eventView: generatePerformanceEventView(location, organization, projects, {
-        isMetricsData,
-      }),
-    });
-  }, [organization, location, projects]);
-
-  useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
   }, [selection.projects]);
@@ -92,34 +76,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
     }
   }, [selection.datetime]);
 
-  const {eventView, error} = state;
-
-  function shouldShowOnboarding() {
-    // XXX used by getsentry to bypass onboarding for the upsell demo state.
-    if (demoMode) {
-      return false;
-    }
-
-    if (projects.length === 0) {
-      return false;
-    }
-
-    // Current selection is 'my projects' or 'all projects'
-    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
-      return (
-        projects.filter(p => p.firstTransactionEvent === false).length === projects.length
-      );
-    }
-
-    // Any other subset of projects.
-    return (
-      projects.filter(
-        p =>
-          eventView.project.includes(parseInt(p.id, 10)) &&
-          p.firstTransactionEvent === false
-      ).length === eventView.project.length
-    );
-  }
+  const {error} = state;
 
   function setError(newError?: string) {
     if (
@@ -161,6 +118,37 @@ function PerformanceContent({selection, location, demoMode}: Props) {
       <Alert type="error" icon={<IconFlag size="md" />}>
         {error}
       </Alert>
+    );
+  }
+
+  const eventView = generatePerformanceEventView(location, organization, projects, {
+    isMetricsData,
+  });
+
+  function shouldShowOnboarding() {
+    // XXX used by getsentry to bypass onboarding for the upsell demo state.
+    if (demoMode) {
+      return false;
+    }
+
+    if (projects.length === 0) {
+      return false;
+    }
+
+    // Current selection is 'my projects' or 'all projects'
+    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
+      return (
+        projects.filter(p => p.firstTransactionEvent === false).length === projects.length
+      );
+    }
+
+    // Any other subset of projects.
+    return (
+      projects.filter(
+        p =>
+          eventView.project.includes(parseInt(p.id, 10)) &&
+          p.firstTransactionEvent === false
+      ).length === eventView.project.length
     );
   }
 

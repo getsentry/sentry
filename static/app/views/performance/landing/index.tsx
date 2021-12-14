@@ -114,7 +114,7 @@ export function PerformanceLanding(props: Props) {
         <Layout.HeaderActions>
           {!showOnboarding && (
             <ButtonBar gap={3}>
-              <MetricsSwitch />
+              <MetricsSwitch onSwitch={() => handleSearch('')} />
               <Button
                 priority="primary"
                 data-test-id="landing-header-trends"

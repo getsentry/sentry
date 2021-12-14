@@ -14,19 +14,20 @@ const FEATURE_FLAG = 'metrics-performance-ui';
  * This is a temporary component used for debugging metrics data on performance pages.
  * Visible only to small amount of internal users.
  */
-function MetricsSwitch() {
+function MetricsSwitch({onSwitch}: {onSwitch: () => void}) {
   const organization = useOrganization();
   const {isMetricsData, setIsMetricsData} = useMetricsSwitch();
+
+  function handleToggle() {
+    onSwitch();
+    setIsMetricsData(!isMetricsData);
+  }
 
   return (
     <Feature features={[FEATURE_FLAG]} organization={organization}>
       <Label>
         {t('Metrics Data')}
-        <Switch
-          isActive={isMetricsData}
-          toggle={() => setIsMetricsData(!isMetricsData)}
-          size="lg"
-        />
+        <Switch isActive={isMetricsData} toggle={handleToggle} size="lg" />
       </Label>
     </Feature>
   );
