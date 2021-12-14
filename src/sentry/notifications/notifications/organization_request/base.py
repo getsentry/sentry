@@ -4,7 +4,7 @@ import abc
 import logging
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, Type
 
-from sentry import analytics, roles
+from sentry import roles
 from sentry.models import NotificationSetting, OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
-    analytics_event: str = ""
     referrer_base: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
     fine_tuning_key = "approval"
@@ -112,13 +111,12 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_title_link(self) -> str | None:
         return None
 
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        # this event is meant to work for multiple providers but architecture
-        # limitations mean we will fire individual for each provider
-        analytics.record(
-            self.analytics_event,
-            organization_id=self.organization.id,
-            user_id=self.requester.id,
-            target_user_id=recipient.id,
-            providers=provider.name.lower(),
-        )
+    def get_log_params(self, recipient: Team | User) -> MutableMapping[str, Any]:
+        if isinstance(recipient, Team):
+            raise NotImplementedError
+
+        return {
+            **super().get_log_params(recipient),
+            "user_id": self.requester.id,
+            "target_user_id": recipient.id,
+        }
