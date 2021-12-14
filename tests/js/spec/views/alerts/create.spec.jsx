@@ -34,7 +34,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('ProjectAlertsCreate', function () {
-  TeamStore.loadInitialData([]);
+  TeamStore.loadInitialData([], false, null);
   const projectAlertRuleDetailsRoutes = [
     {
       path: '/organizations/:orgId/alerts/',

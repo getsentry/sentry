@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from django.urls import reverse
 
-from sentry import analytics
 from sentry.models import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
@@ -47,7 +46,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
         context["email"] = self.pending_member.email
         context["organization_name"] = self.org_name
         context["pending_requests_link"] = self.members_url + self.get_sentry_query_params(
-            ExternalProviders.EMAIL
+            ExternalProviders.EMAIL, recipient
         )
         if self.pending_member.requested_to_join:
             context["settings_link"] = absolute_uri(
@@ -57,8 +56,10 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
             context["inviter_name"] = self.pending_member.inviter.get_salutation_name
         return context
 
-    def get_message_actions(self) -> Sequence[MessageAction]:
-        members_url = self.members_url + self.get_sentry_query_params(ExternalProviders.SLACK)
+    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+        members_url = self.members_url + self.get_sentry_query_params(
+            ExternalProviders.SLACK, recipient
+        )
         return [
             MessageAction(
                 name="Approve",
@@ -78,12 +79,10 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification):
     def get_callback_data(self) -> Mapping[str, Any]:
         return {"member_id": self.pending_member.id, "member_email": self.pending_member.email}
 
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        analytics.record(
-            self.analytics_event,
-            organization_id=self.organization.id,
-            user_id=self.pending_member.inviter.id if self.pending_member.inviter else None,
-            target_user_id=recipient.id,
-            invited_member_id=self.pending_member.id,
-            providers=provider.name.lower(),
-        )
+    def get_log_params(self, recipient: Team | User) -> MutableMapping[str, Any]:
+        # TODO: figure out who the user should be when pending_member.inviter is None
+        return {
+            **super().get_log_params(recipient),
+            "user_id": self.pending_member.inviter.id if self.pending_member.inviter else None,
+            "invited_member_id": self.pending_member.id,
+        }
