@@ -12,7 +12,7 @@ jest.mock('sentry/utils/analytics');
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
-  TeamStore.loadInitialData([]);
+  TeamStore.loadInitialData([], false, null);
   let rulesMock;
   let projectMock;
   const pageLinks =

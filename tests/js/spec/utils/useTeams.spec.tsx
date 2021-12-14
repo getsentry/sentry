@@ -58,7 +58,7 @@ describe('useTeams', function () {
   it('provides only the users teams', async function () {
     const userTeams = [TestStubs.Team({isMember: true})];
     const nonUserTeams = [TestStubs.Team({isMember: false})];
-    TeamStore.loadInitialData([...userTeams, ...nonUserTeams]);
+    TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
 
     const {result} = renderHook(props => useTeams(props), {
       initialProps: {provideUserTeams: true},

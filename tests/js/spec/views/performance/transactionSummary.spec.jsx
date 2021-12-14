@@ -35,7 +35,7 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
     },
   });
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
-  act(() => TeamStore.loadInitialData(teams));
+  act(() => TeamStore.loadInitialData(teams, false, null));
 
   return initialData;
 }

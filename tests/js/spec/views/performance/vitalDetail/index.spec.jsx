@@ -42,7 +42,7 @@ describe('Performance > VitalDetail', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
-    act(() => void TeamStore.loadInitialData([]));
+    act(() => void TeamStore.loadInitialData([], false, null));
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

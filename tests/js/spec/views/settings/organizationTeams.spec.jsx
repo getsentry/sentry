@@ -59,7 +59,7 @@ describe('OrganizationTeams', function () {
 
     it('can join team and have link to details', function () {
       const mockTeams = [TestStubs.Team({hasAccess: true, isMember: false})];
-      act(() => void TeamStore.loadInitialData(mockTeams));
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       const wrapper = createWrapper({
         access: new Set([]),
       });
@@ -93,7 +93,7 @@ describe('OrganizationTeams', function () {
 
     it('can request access to team and does not have link to details', function () {
       const mockTeams = [TestStubs.Team({hasAccess: false, isMember: false})];
-      act(() => void TeamStore.loadInitialData(mockTeams));
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       const wrapper = createWrapper({
         access: new Set([]),
       });
@@ -105,7 +105,7 @@ describe('OrganizationTeams', function () {
 
     it('can leave team when you are a member', function () {
       const mockTeams = [TestStubs.Team({hasAccess: true, isMember: true})];
-      act(() => void TeamStore.loadInitialData(mockTeams));
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       const wrapper = createWrapper({
         access: new Set([]),
       });

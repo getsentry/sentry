@@ -76,7 +76,7 @@ describe('Performance > Content', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
-    act(() => void TeamStore.loadInitialData([]));
+    act(() => void TeamStore.loadInitialData([], false, null));
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
 

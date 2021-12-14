@@ -54,6 +54,11 @@ export type Result = {
    * Will always add new options into the store.
    */
   onSearch: (searchTerm: string) => Promise<void>;
+  /**
+   * This is an action provided to consumers for them to request more teams
+   * to be loaded. Additional teams will be fetched and loaded into the store.
+   */
+  loadMore: (searchTerm?: string) => Promise<void>;
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
 type Options = {
@@ -131,7 +136,7 @@ async function fetchTeams(
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
-    hasMore = paginationObject?.next?.results || paginationObject?.previous?.results;
+    hasMore = paginationObject?.next?.results;
     nextCursor = paginationObject?.next?.cursor;
   }
 
@@ -175,9 +180,9 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
   const [state, setState] = useState<State>({
     initiallyLoaded,
     fetching: false,
-    hasMore: null,
+    hasMore: store.hasMore,
     lastSearch: null,
-    nextCursor: null,
+    nextCursor: store.cursor,
     fetchError: null,
   });
 
@@ -247,16 +252,30 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
   }
 
   async function handleSearch(search: string) {
-    const {lastSearch} = state;
-    const cursor = state.nextCursor;
-
     if (search === '') {
+      // Reset pagination state to match store if doing an empty search
+      if (state.hasMore !== store.hasMore || state.nextCursor !== store.cursor) {
+        setState({
+          ...state,
+          lastSearch: search,
+          hasMore: store.hasMore,
+          nextCursor: store.cursor,
+        });
+      }
+
       return;
     }
+    handleFetchAdditionalTeams(search);
+  }
+
+  async function handleFetchAdditionalTeams(search?: string) {
+    const {lastSearch} = state;
+    // Use the store cursor if there is no search keyword provided
+    const cursor = search ? state.nextCursor : store.cursor;
 
     if (orgId === undefined) {
       // eslint-disable-next-line no-console
-      console.error('Cannot use useTeam.onSearch without an organization in context');
+      console.error('Cannot fetch teams without an organization in context');
       return;
     }
 
@@ -273,16 +292,21 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
 
       const fetchedTeams = uniqBy([...store.teams, ...results], ({slug}) => slug);
 
-      // Only update the store if we have more items
-      if (fetchedTeams.length > store.teams.length) {
-        TeamActions.loadTeams(fetchedTeams);
+      if (search) {
+        // Only update the store if we have more items
+        if (fetchedTeams.length > store.teams.length) {
+          TeamActions.loadTeams(fetchedTeams);
+        }
+      } else {
+        // If we fetched a page of teams without a search query, add cursor data to the store
+        TeamActions.loadTeams(fetchedTeams, hasMore, nextCursor);
       }
 
       setState({
         ...state,
-        hasMore,
+        hasMore: hasMore && store.hasMore,
         fetching: false,
-        lastSearch: search,
+        lastSearch: search ?? null,
         nextCursor,
       });
     } catch (err) {
@@ -322,6 +346,7 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     fetchError: state.fetchError,
     hasMore: state.hasMore,
     onSearch: handleSearch,
+    loadMore: handleFetchAdditionalTeams,
   };
 
   return result;
