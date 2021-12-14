@@ -76,7 +76,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
           query={new MutableSearch(eventView.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
           field={[field]}
           groupBy={['transaction']}
-          orderBy={field}
+          orderBy={`-${field}`}
           limit={3}
         >
           {children}
