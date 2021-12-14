@@ -82,7 +82,7 @@ describe('Dashboards > Dashboard', () => {
     expect(mock).toHaveBeenCalled();
   });
 
-  it('displays widgets with drag handle when in edit mode', async () => {
+  it('displays widgets with drag handle when in edit mode', () => {
     const dashboardWithOneWidget = {...mockDashboard, widgets: [newWidget]};
     const wrapper = mountWithTheme(
       <Dashboard
