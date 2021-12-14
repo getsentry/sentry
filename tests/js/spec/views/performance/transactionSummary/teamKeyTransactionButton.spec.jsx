@@ -36,7 +36,7 @@ describe('TeamKeyTransactionButton', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.loadInitialData([project]));
-    act(() => void TeamStore.loadInitialData(teams));
+    act(() => void TeamStore.loadInitialData(teams, false, null));
   });
 
   it('fetches key transactions with project param', async function () {
