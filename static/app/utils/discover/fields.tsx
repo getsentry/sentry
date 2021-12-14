@@ -4,6 +4,8 @@ import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
 
+import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
+
 export type Sort = {
   kind: 'asc' | 'desc';
   field: string;
@@ -1051,14 +1053,20 @@ export function aggregateFunctionOutputType(
     }
   }
 
+  if (firstArg && METRIC_TO_COLUMN_TYPE.hasOwnProperty(firstArg)) {
+    return METRIC_TO_COLUMN_TYPE[firstArg];
+  }
+
   // If the function is an inherit type it will have a field as
   // the first parameter and we can use that to get the type.
   if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
     return FIELDS[firstArg];
   }
+
   if (firstArg && isMeasurement(firstArg)) {
     return measurementType(firstArg);
   }
+
   if (firstArg && isSpanOperationBreakdownField(firstArg)) {
     return 'duration';
   }

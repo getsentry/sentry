@@ -353,24 +353,24 @@ def _filter_option_to_config_setting(flt, setting):
 
 ALL_MEASUREMENT_METRICS = frozenset(
     [
-        "measurements.fp",
-        "measurements.fcp",
-        "measurements.lcp",
-        "measurements.fid",
-        "measurements.cls",
-        "measurements.ttfb",
-        "measurements.ttfb.requesttime",
-        "measurements.app_start_cold",
-        "measurements.app_start_warm",
-        "measurements.frames_total",
-        "measurements.frames_slow",
-        "measurements.frames_frozen",
-        "measurements.frames_slow_rate",
-        "measurements.frames_frozen_rate",
-        "measurements.stall_count",
-        "measurements.stall_total_time",
-        "measurements.stall_longest_time",
-        "measurements.stall_percentage",
+        "sentry.transactions.measurements.fp",
+        "sentry.transactions.measurements.fcp",
+        "sentry.transactions.measurements.lcp",
+        "sentry.transactions.measurements.fid",
+        "sentry.transactions.measurements.cls",
+        "sentry.transactions.measurements.ttfb",
+        "sentry.transactions.measurements.ttfb.requesttime",
+        "sentry.transactions.measurements.app_start_cold",
+        "sentry.transactions.measurements.app_start_warm",
+        "sentry.transactions.measurements.frames_total",
+        "sentry.transactions.measurements.frames_slow",
+        "sentry.transactions.measurements.frames_frozen",
+        "sentry.transactions.measurements.frames_slow_rate",
+        "sentry.transactions.measurements.frames_frozen_rate",
+        "sentry.transactions.measurements.stall_count",
+        "sentry.transactions.measurements.stall_total_time",
+        "sentry.transactions.measurements.stall_longest_time",
+        "sentry.transactions.measurements.stall_percentage",
     ]
 )
 
@@ -397,7 +397,7 @@ def get_transaction_metrics_settings(
                     assert breakdown_config["type"] == "spanOperations"
 
                     for op_name in breakdown_config["matches"]:
-                        metrics.append(f"breakdown.{breakdown_name}.{op_name}")
+                        metrics.append(f"sentry.transactions.breakdowns.{breakdown_name}.{op_name}")
             except Exception:
                 capture_exception()
 

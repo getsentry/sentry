@@ -32,6 +32,7 @@ from sentry.models import Project
 from sentry.relay.config import ALL_MEASUREMENT_METRICS
 from sentry.search.events.filter import QueryFilter
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     ONE_DAY,
@@ -470,28 +471,28 @@ _MEASUREMENT_TAGS = dict(
 )
 
 _METRICS = {
-    "session": {
+    SessionMetricKey.SESSION.value: {
         "type": "counter",
         "operations": _AVAILABLE_OPERATIONS["metrics_counters"],
         "tags": _SESSION_TAGS,
     },
-    "user": {
+    SessionMetricKey.USER.value: {
         "type": "set",
         "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
         "tags": _SESSION_TAGS,
     },
-    "session.duration": {
+    SessionMetricKey.SESSION_DURATION.value: {
         "type": "distribution",
         "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
         "tags": _SESSION_TAGS,
         "unit": "seconds",
     },
-    "session.error": {
+    SessionMetricKey.SESSION_ERROR.value: {
         "type": "set",
         "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
         "tags": _SESSION_TAGS,
     },
-    "transaction.duration": {
+    "sentry.transactions.transaction.duration": {
         "type": "distribution",
         "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
         "tags": {

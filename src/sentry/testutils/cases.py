@@ -97,6 +97,7 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
@@ -985,29 +986,41 @@ class SessionMetricsTestCase(SnubaTestCase):
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            self._push_metric(session, "counter", "session", {"session.status": "init"}, +1)
+            self._push_metric(
+                session, "counter", SessionMetricKey.SESSION, {"session.status": "init"}, +1
+            )
             if not user_is_nil:
-                self._push_metric(session, "set", "user", {"session.status": "init"}, user)
+                self._push_metric(
+                    session, "set", SessionMetricKey.USER, {"session.status": "init"}, user
+                )
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            self._push_metric(session, "set", "session.error", {}, session["session_id"])
+            self._push_metric(
+                session, "set", SessionMetricKey.SESSION_ERROR, {}, session["session_id"]
+            )
             if not user_is_nil:
-                self._push_metric(session, "set", "user", {"session.status": "errored"}, user)
+                self._push_metric(
+                    session, "set", SessionMetricKey.USER, {"session.status": "errored"}, user
+                )
 
         if status in ("abnormal", "crashed"):  # fatal
-            self._push_metric(session, "counter", "session", {"session.status": status}, +1)
+            self._push_metric(
+                session, "counter", SessionMetricKey.SESSION, {"session.status": status}, +1
+            )
             if not user_is_nil:
-                self._push_metric(session, "set", "user", {"session.status": status}, user)
+                self._push_metric(
+                    session, "set", SessionMetricKey.USER, {"session.status": status}, user
+                )
 
         if status != "ok":  # terminal
             if session["duration"] is not None:
                 self._push_metric(
                     session,
                     "distribution",
-                    "session.duration",
+                    SessionMetricKey.SESSION_DURATION,
                     {"session.status": status},
                     session["duration"],
                 )
@@ -1017,10 +1030,10 @@ class SessionMetricsTestCase(SnubaTestCase):
             self.store_session(session)
 
     @classmethod
-    def _push_metric(cls, session, type, name, tags, value):
-        def metric_id(name):
-            res = indexer.record(name)
-            assert res is not None, name
+    def _push_metric(cls, session, type, key: SessionMetricKey, tags, value):
+        def metric_id(key: SessionMetricKey):
+            res = indexer.record(key.value)
+            assert res is not None, key
             return res
 
         def tag_key(name):
@@ -1052,7 +1065,7 @@ class SessionMetricsTestCase(SnubaTestCase):
         msg = {
             "org_id": session["org_id"],
             "project_id": session["project_id"],
-            "metric_id": metric_id(name),
+            "metric_id": metric_id(key),
             "timestamp": session["started"],
             "tags": {**base_tags, **extra_tags},
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
