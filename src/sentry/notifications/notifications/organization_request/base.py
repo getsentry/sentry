@@ -39,12 +39,13 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 
-    def get_referrer(self, provider: ExternalProviders) -> str:
-        # referrer needs the provider as wellx
-        return f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
+    def get_referrer(self, provider: ExternalProviders, recipient: Team | User) -> str:
+        # referrer needs the provider and recipient
+        recipient_type = recipient.__class__.__name__.lower()
+        return f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}-{recipient_type}"
 
-    def get_sentry_query_params(self, provider: ExternalProviders) -> str:
-        return f"?referrer={self.get_referrer(provider)}"
+    def get_sentry_query_params(self, provider: ExternalProviders, recipient: Team | User) -> str:
+        return f"?referrer={self.get_referrer(provider, recipient)}"
 
     def determine_recipients(self) -> Iterable[Team | User]:
         return self.role_based_recipient_strategy.determine_recipients()
@@ -91,7 +92,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_message_description(self) -> str:
         raise NotImplementedError
 
-    def get_message_actions(self) -> Sequence[MessageAction]:
+    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         raise NotImplementedError
 
     def get_role_string(self, member: OrganizationMember) -> str:
