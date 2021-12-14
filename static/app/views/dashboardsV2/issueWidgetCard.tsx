@@ -69,7 +69,8 @@ class IssueWidgetCard extends React.Component<Props> {
       !isSelectionEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
       this.props.isSorting !== nextProps.isSorting ||
-      this.props.hideToolbar !== nextProps.hideToolbar
+      this.props.hideToolbar !== nextProps.hideToolbar ||
+      this.props.hideDragHandle !== nextProps.hideDragHandle
     ) {
       return true;
     }
