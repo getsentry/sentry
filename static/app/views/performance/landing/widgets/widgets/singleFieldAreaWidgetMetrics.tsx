@@ -11,7 +11,7 @@ import _DurationChart from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformMetricsToArea} from '../transforms/transformMetricsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {DurationChart, HighlightNumber, Subtitle} from './singleFieldAreaWidget';
 
@@ -19,11 +19,7 @@ type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformMetricsToArea>;
 };
 
-export function SingleFieldAreaWidgetMetrics(
-  props: PerformanceWidgetProps & {
-    widgetDefinitions: Record<PerformanceWidgetSetting, ChartDefinition>;
-  }
-) {
+export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
   const api = useApi();
   const {
     ContainerActions,
@@ -33,7 +29,6 @@ export function SingleFieldAreaWidgetMetrics(
     chartColor,
     chartHeight,
     fields,
-    widgetDefinitions,
   } = props;
 
   const globalSelection = eventView.getGlobalSelection();
@@ -44,16 +39,9 @@ export function SingleFieldAreaWidgetMetrics(
 
   const field = fields[0];
 
-  const metricsFieldMap = {
-    [widgetDefinitions.tpm_area.fields[0]]: 'count(transaction.duration)',
-    [widgetDefinitions.failure_rate_area.fields[0]]: 'count(transaction.duration)',
-  };
-
-  const metricsField = metricsFieldMap[field] ?? field;
-
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
-      fields: metricsField,
+      fields: field,
       component: ({
         start,
         end,
@@ -74,7 +62,7 @@ export function SingleFieldAreaWidgetMetrics(
           query={new MutableSearch(eventView.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
           field={decodeList(chartFields)}
           groupBy={
-            field === widgetDefinitions.failure_rate_area.fields[0]
+            chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA
               ? ['transaction.status']
               : undefined
           }
@@ -93,7 +81,7 @@ export function SingleFieldAreaWidgetMetrics(
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
-      fields={[metricsField]}
+      fields={[field]}
       Subtitle={() => (
         <Subtitle>
           {globalSelection.datetime.period
