@@ -21,7 +21,7 @@ METADATA_SCHEMA = {
     "additionalProperties": False,
 }
 
-METADATA_TYPES = ["resources"]
+METADATA_TYPES = list(METADATA_SCHEMA["properties"].keys())
 
 
 def validate_metadata_schema(instance: JSONData):

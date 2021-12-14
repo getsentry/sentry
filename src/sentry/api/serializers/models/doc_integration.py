@@ -17,7 +17,7 @@ class DocIntegrationSerializer(Serializer):
         user: User,
         **kwargs: Any,
     ) -> JSONData:
-        from sentry.api.validators.doc_integration import METADATA_TYPES
+        from sentry.api.validators.doc_integration import METADATA_PROPERTIES
 
         data = {
             "name": obj.name,
@@ -29,8 +29,8 @@ class DocIntegrationSerializer(Serializer):
         }
 
         if obj.metadata:
-            for metadata_type in METADATA_TYPES:
-                data[metadata_type] = obj.metadata.get(metadata_type)
+            for metadata_property in METADATA_PROPERTIES:
+                data[metadata_property] = obj.metadata.get(metadata_property)
 
         features = IntegrationFeature.objects.filter(
             target_type=IntegrationTypes.DOC_INTEGRATION.value, target_id=obj.id
