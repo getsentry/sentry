@@ -133,7 +133,7 @@ function OrganizationTeams({
       {hasMore && (
         <LoadMoreWrapper>
           {fetching && <LoadingIndicator mini />}
-          <Button onClick={() => loadMore(teamQuery)}>{t('Load more')}</Button>
+          <Button onClick={() => loadMore(teamQuery)}>{t('Show more')}</Button>
         </LoadMoreWrapper>
       )}
     </div>
