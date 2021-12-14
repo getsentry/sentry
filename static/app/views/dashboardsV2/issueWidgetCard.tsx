@@ -58,8 +58,8 @@ type Props = WithRouterProps & {
   hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-  hideDragHandle?: boolean;
   noLazyLoad?: boolean;
+  hideDragHandle?: boolean;
 };
 
 class IssueWidgetCard extends React.Component<Props> {
