@@ -105,11 +105,14 @@ function IssueListHeader({
           <Button
             size="small"
             data-test-id="real-time"
-            title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
+            title={
+              realtimeActive
+                ? t('Pause real-time updates')
+                : t('Enable real-time updates')
+            }
+            icon={realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
             onClick={() => onRealtimeChange(!realtimeActive)}
-          >
-            {realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
-          </Button>
+          />
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
