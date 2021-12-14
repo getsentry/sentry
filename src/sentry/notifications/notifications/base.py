@@ -16,6 +16,7 @@ class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     fine_tuning_key: str | None = None
     metrics_key: str = ""
+    analytics_event: str = ""
 
     def __init__(self, organization: Organization):
         self.organization = organization
@@ -88,9 +89,6 @@ class BaseNotification(abc.ABC):
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
 
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        raise NotImplementedError
-
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {
             "organization_id": self.organization.id,
@@ -103,6 +101,24 @@ class BaseNotification(abc.ABC):
     def get_callback_data(self) -> Mapping[str, Any] | None:
         return None
 
+    def record_analytics(self, event_name: str, **kwargs: Any) -> None:
+        analytics.record(event_name, **kwargs)
+
+    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
+        # may want to explicitly pass in the parameters for this event
+        self.record_analytics(
+            f"integrations.{provider.name}.notification_sent",
+            category=self.get_category(),
+            **self.get_log_params(recipient),
+        )
+        # record an optional second event
+        if self.analytics_event:
+            self.record_analytics(
+                self.analytics_event,
+                providers=provider.name.lower(),
+                **self.get_log_params(recipient),
+            )
+
 
 class ProjectNotification(BaseNotification, abc.ABC):
     def __init__(self, project: Project) -> None:
@@ -113,15 +129,6 @@ class ProjectNotification(BaseNotification, abc.ABC):
         # Explicitly typing to satisfy mypy.
         project_link: str = absolute_uri(f"/{self.organization.slug}/{self.project.slug}/")
         return project_link
-
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        analytics.record(
-            f"integrations.{provider.name.lower()}.notification_sent",
-            actor_id=recipient.id,
-            category=self.get_category(),
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-        )
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {"project_id": self.project.id, **super().get_log_params(recipient)}
