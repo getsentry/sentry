@@ -59,6 +59,7 @@ type Props = WithRouterProps & {
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   hideDragHandle?: boolean;
+  noLazyLoad?: boolean;
 };
 
 class IssueWidgetCard extends React.Component<Props> {
@@ -192,8 +193,33 @@ class IssueWidgetCard extends React.Component<Props> {
     );
   }
 
-  render() {
+  renderChart() {
     const {widget, api, organization, selection, renderErrorMessage} = this.props;
+    return (
+      <IssueWidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+      >
+        {({tableResults, errorMessage, loading}) => {
+          return (
+            <React.Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <LoadingScreen loading={loading} />
+              {this.tableResultComponent({tableResults, loading, errorMessage})}
+              {this.renderToolbar()}
+            </React.Fragment>
+          );
+        }}
+      </IssueWidgetQueries>
+    );
+  }
+
+  render() {
+    const {widget, noLazyLoad} = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -203,27 +229,13 @@ class IssueWidgetCard extends React.Component<Props> {
             <WidgetTitle>{widget.title}</WidgetTitle>
             {this.renderContextMenu()}
           </WidgetHeader>
-          <LazyLoad once height={200}>
-            <IssueWidgetQueries
-              api={api}
-              organization={organization}
-              widget={widget}
-              selection={selection}
-            >
-              {({tableResults, errorMessage, loading}) => {
-                return (
-                  <React.Fragment>
-                    {typeof renderErrorMessage === 'function'
-                      ? renderErrorMessage(errorMessage)
-                      : null}
-                    <LoadingScreen loading={loading} />
-                    {this.tableResultComponent({tableResults, loading, errorMessage})}
-                    {this.renderToolbar()}
-                  </React.Fragment>
-                );
-              }}
-            </IssueWidgetQueries>
-          </LazyLoad>
+          {noLazyLoad ? (
+            this.renderChart()
+          ) : (
+            <LazyLoad once resize height={200}>
+              {this.renderChart()}
+            </LazyLoad>
+          )}
         </StyledPanel>
       </ErrorBoundary>
     );

@@ -10,10 +10,7 @@ import {
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {
-  openAddDashboardIssueWidgetModal,
-  openDashboardWidgetLibraryModal,
-} from 'sentry/actionCreators/modal';
+import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -463,37 +460,6 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  onAddIssueWidget = () => {
-    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
-
-    openAddDashboardIssueWidgetModal({
-      organization,
-      onAddWidget: widget => {
-        const modifiedDashboard = {
-          ...dashboard,
-          widgets: [...dashboard.widgets, assignTempId(widget)],
-        };
-        updateDashboard(api, organization.slug, modifiedDashboard).then(
-          (newDashboard: DashboardDetails) => {
-            if (onDashboardUpdate) {
-              onDashboardUpdate(newDashboard);
-            }
-            if (dashboard && newDashboard.id !== dashboard.id) {
-              browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                query: {
-                  ...location.query,
-                },
-              });
-              return;
-            }
-          },
-          () => undefined
-        );
-      },
-    });
-  };
-
   renderWidgetBuilder(dashboard: DashboardDetails) {
     const {children} = this.props;
     const {modifiedDashboard, widgetToBeUpdated} = this.state;
@@ -551,7 +517,6 @@ class DashboardDetail extends Component<Props, State> {
                 onCommit={this.onCommit}
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
-                onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
                 widgetCount={dashboard.widgets.length}
               />
@@ -640,7 +605,6 @@ class DashboardDetail extends Component<Props, State> {
                   onCommit={this.onCommit}
                   onAddWidget={this.onAddWidget}
                   onDelete={this.onDelete(dashboard)}
-                  onAddIssueWidget={this.onAddIssueWidget}
                   dashboardState={dashboardState}
                   widgetCount={dashboard.widgets.length}
                 />
