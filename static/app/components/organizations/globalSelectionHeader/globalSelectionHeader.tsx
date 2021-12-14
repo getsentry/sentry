@@ -53,7 +53,7 @@ const defaultProps = {
 };
 
 type Props = {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   organization: Organization;
 
   memberProjects: Project[];

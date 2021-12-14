@@ -1,3 +1,5 @@
+import {browserHistory} from 'react-router';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -30,7 +32,9 @@ const WrappedComponent = ({data}) => {
 describe('Performance > Landing > Index', function () {
   let eventStatsMock: any;
   let eventsV2Mock: any;
-  act(() => void TeamStore.loadInitialData([]));
+  let wrapper: any;
+
+  act(() => void TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
@@ -69,12 +73,16 @@ describe('Performance > Landing > Index', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    if (wrapper) {
+      wrapper.unmount();
+      wrapper = undefined;
+    }
   });
 
   it('renders basic UI elements', async function () {
     const data = initializeData();
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -88,7 +96,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -113,7 +121,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -125,7 +133,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.BACKEND},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -137,7 +145,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.MOBILE},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -149,7 +157,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.ALL},
     });
 
-    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();
     wrapper.update();
 
@@ -174,7 +182,7 @@ describe('Performance > Landing > Index', function () {
       })
     );
 
-    expect(eventsV2Mock).toHaveBeenCalledTimes(2);
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
 
     const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
     expect(titles).toHaveLength(5);
@@ -182,7 +190,75 @@ describe('Performance > Landing > Index', function () {
     expect(titles.at(0).text()).toEqual('User Misery');
     expect(titles.at(1).text()).toEqual('Transactions Per Minute');
     expect(titles.at(2).text()).toEqual('Failure Rate');
-    expect(titles.at(3).text()).toEqual('Most Related Errors');
-    expect(titles.at(4).text()).toEqual('Most Related Issues');
+    expect(titles.at(3).text()).toEqual('Most Related Issues');
+    expect(titles.at(4).text()).toEqual('Most Improved');
+  });
+
+  it('Can switch between landing displays', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD, abc: '123'},
+    });
+
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
+      true
+    );
+
+    wrapper.find('a[data-test-id="landing-tab-all"]').simulate('click');
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        pathname: data.location.pathname,
+        query: {query: '', abc: '123'},
+      })
+    );
+  });
+
+  it('Updating projects switches performance view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
+    });
+
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
+      true
+    );
+
+    const updatedData = initializeData({
+      projects: [TestStubs.Project({id: 123, platform: 'unknown'})],
+      project: 123 as any,
+    });
+
+    wrapper.setProps({
+      data: updatedData,
+    } as any);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="all-transactions-view"]').exists()).toBe(true);
+  });
+
+  it('View correctly defaults based on project without url param', async function () {
+    const data = initializeData({
+      projects: [TestStubs.Project({id: 99, platform: 'javascript-react'})],
+      project: 99 as any,
+    });
+
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
+      true
+    );
   });
 });

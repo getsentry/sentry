@@ -97,7 +97,7 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
-    def _check_webauthn_register_ff(self, user):
+    def _check_can_webauthn_register(self, user):
         orgs = user.get_orgs()
         return any(features.has("organizations:webauthn-register", org, actor=user) for org in orgs)
 
@@ -144,7 +144,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             response["qrcode"] = interface.get_provision_url(user.email)
 
         if interface_id == "u2f":
-            if self._check_webauthn_register_ff(user):
+            if self._check_can_webauthn_register(user):
                 publicKeyCredentialCreate, state = interface.start_enrollment(user, True)
                 response["challenge"] = {}
                 response["challenge"]["webAuthnRegisterData"] = b64encode(publicKeyCredentialCreate)
@@ -235,12 +235,12 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         # Try u2f enrollment
         if interface_id == "u2f":
             # What happens when this fails?
-            is_webauthn_register_ff = self._check_webauthn_register_ff(user)
-            state = request.session["webauthn_register_state"] if is_webauthn_register_ff else None
+            has_webauthn_register = self._check_can_webauthn_register(user)
+            state = request.session["webauthn_register_state"] if has_webauthn_register else None
             interface.try_enroll(
                 serializer.data["challenge"],
                 serializer.data["response"],
-                is_webauthn_register_ff,
+                has_webauthn_register,
                 serializer.data["deviceName"],
                 state,
             )

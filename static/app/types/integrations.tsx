@@ -1,13 +1,14 @@
 import Alert from 'sentry/components/alert';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {
+  DISABLED as DISABLED_STATUS,
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
 } from 'sentry/views/organizationIntegrations/constants';
 import {Field} from 'sentry/views/settings/components/forms/type';
 
-import {Choices, ObjectStatus, Scope} from './core';
+import {Avatar, Choices, ObjectStatus, Scope} from './core';
 import {BaseRelease} from './release';
 import {User} from './user';
 
@@ -161,6 +162,15 @@ export type SentryApp = {
     slug: string;
   };
   featureData: IntegrationFeature[];
+  avatars?: Avatar[];
+};
+
+// Minimal Sentry App representation for use with avatars
+export type AvatarSentryApp = {
+  name: string;
+  slug: string;
+  uuid: string;
+  avatars?: Avatar[];
 };
 
 export type SentryAppInstallation = {
@@ -182,17 +192,9 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug:
-      | 'calixa'
-      | 'clickup'
-      | 'komodor'
-      | 'linear'
-      | 'rookout'
-      | 'shortcut'
-      | 'spikesh'
-      | 'taskcall'
-      | 'teamwork';
+    slug: string;
     name: string;
+    avatars: Avatar[];
   };
 };
 
@@ -222,7 +224,8 @@ export type IntegrationFeature = {
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
-  | typeof PENDING;
+  | typeof PENDING
+  | typeof DISABLED_STATUS;
 
 type IntegrationDialog = {
   actionText: string;
@@ -275,6 +278,10 @@ export type IntegrationProvider = BaseIntegrationProvider & {
   };
 };
 
+type OrganizationIntegrationProvider = BaseIntegrationProvider & {
+  aspects: IntegrationAspects;
+};
+
 export type Integration = {
   id: string;
   name: string;
@@ -283,7 +290,9 @@ export type Integration = {
   accountType: string;
   scopes?: string[];
   status: ObjectStatus;
-  provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
+  organizationIntegrationStatus: ObjectStatus;
+  gracePeriodEnd: string;
+  provider: OrganizationIntegrationProvider;
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -294,10 +303,30 @@ export type Integration = {
   };
 };
 
+type ConfigData = {
+  installationType?: string;
+};
+
+export type OrganizationIntegration = {
+  id: string;
+  name: string;
+  status: ObjectStatus;
+  organizationIntegrationStatus: ObjectStatus;
+  gracePeriodEnd: string;
+  provider: OrganizationIntegrationProvider;
+  configOrganization: Field[];
+  configData: ConfigData | null;
+  organizationId: string;
+  externalId: string;
+  icon: string | null;
+  domainName: string | null;
+  accountType: string | null;
+};
+
 // we include the configOrganization when we need it
 export type IntegrationWithConfig = Integration & {
   configOrganization: Field[];
-  configData: object | null;
+  configData: ConfigData;
 };
 
 /**
@@ -367,6 +396,7 @@ export type PluginNoProject = {
   features: string[];
   featureDescriptions: IntegrationFeature[];
   isHidden: boolean;
+  isDeprecated: boolean;
   version?: string;
   author?: {name: string; url: string};
   description?: string;

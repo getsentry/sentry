@@ -43,8 +43,6 @@ class OrganizationSerializerTest(TestCase):
             "issue-percent-filters",
             "minute-resolution-sessions",
             "open-membership",
-            "performance-tag-page",
-            "performance-tag-explorer",
             "relay",
             "release-adoption-chart",
             "release-adoption-stage",

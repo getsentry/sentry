@@ -184,7 +184,7 @@ export async function fetchOrganizationDetails(
   }
 
   if (loadTeam) {
-    TeamStore.loadInitialData(data.teams);
+    TeamStore.loadInitialData(data.teams, false, null);
   }
 
   if (loadProjects) {

@@ -1,5 +1,6 @@
 from base64 import urlsafe_b64encode
 from time import time
+from urllib.parse import urlparse
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.urls import reverse
@@ -47,8 +48,7 @@ class U2fInterface(AuthenticatorInterface):
         "Chrome)."
     )
     allow_multi_enrollment = True
-    rp_id = options.get("system.url-prefix").replace("https://", "")
-    rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
+    rp = PublicKeyCredentialRpEntity(urlparse(options.get("system.url-prefix")).hostname, "Sentry")
     webauthn_registration_server = Fido2Server(rp)
 
     def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
@@ -57,6 +57,9 @@ class U2fInterface(AuthenticatorInterface):
         self.webauthn_authentication_server = U2FFido2Server(
             app_id=self.u2f_app_id, rp={"id": self.rp_id, "name": "Sentry"}
         )
+
+    # rp is a relying party for webauthn, this would be sentry.io for SAAS
+    # and the prefix for on-premise / dev environments
 
     @classproperty
     def u2f_app_id(cls):
@@ -90,8 +93,8 @@ class U2fInterface(AuthenticatorInterface):
     def generate_new_config(self):
         return {}
 
-    def start_enrollment(self, user, is_webauthn_register_ff):
-        if is_webauthn_register_ff:
+    def start_enrollment(self, user, has_webauthn_register):
+        if has_webauthn_register:
             credentials = []
             for registeredKey in self.get_u2f_devices():
                 if type(registeredKey) == AuthenticatorData:
@@ -103,6 +106,8 @@ class U2fInterface(AuthenticatorInterface):
             registration_data, state = self.webauthn_registration_server.register_begin(
                 user={"id": bytes(user.id), "name": user.username, "displayName": user.username},
                 credentials=credentials,
+                # user_verification is where the authenticator verifies that the user is authorized
+                # to use the authenticator, this isn't needed for our usecase so set a discouraged
                 user_verification="discouraged",
             )
             return cbor.encode(registration_data), state
@@ -166,9 +171,9 @@ class U2fInterface(AuthenticatorInterface):
         return rv
 
     def try_enroll(
-        self, enrollment_data, response_data, is_webauthn_register_ff, device_name=None, state=None
+        self, enrollment_data, response_data, has_webauthn_register, device_name=None, state=None
     ):
-        if is_webauthn_register_ff:
+        if has_webauthn_register:
             data = json.loads(response_data)
             client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
             att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
@@ -218,12 +223,11 @@ class U2fInterface(AuthenticatorInterface):
 
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
-    def validate_response(self, request, challenge, response, is_webauthn_signin_ff_enabled):
+    def validate_response(self, request, challenge, response, has_webauthn_register):
         try:
-            if not is_webauthn_signin_ff_enabled:
+            if not has_webauthn_register:
                 u2f.complete_authentication(challenge, response, self.u2f_facets)
                 return True
-
             credentials = []
             for device in self.get_u2f_devices():
                 if type(device) == AuthenticatorData:
