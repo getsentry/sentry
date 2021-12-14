@@ -48,13 +48,12 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   const {ContainerActions, eventView, organization, location, chartSetting} = props;
   const [selectedListIndex, setSelectListIndex] = useState(0);
   const field = props.fields[0];
-  const metricsField = `count(${field})`;
   const vital = settingToVital[chartSetting];
 
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
-        fields: [metricsField],
+        fields: [field],
         component: ({start, end, period, project, environment, children, fields}) => (
           <MetricsRequest
             api={api}
@@ -77,14 +76,14 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         ),
         transform: transformMetricsToList,
       }),
-      [eventView, metricsField, organization.slug]
+      [eventView, field, organization.slug]
     ),
     chart: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
         enabled: widgetData => {
           return !!widgetData?.list?.data?.length;
         },
-        fields: [metricsField],
+        fields: [field],
         component: ({
           start,
           end,
@@ -140,11 +139,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         }
 
         const data = {
-          [vital]: getVitalData(
-            selectedTransaction,
-            metricsField,
-            widgetData.chart.response
-          ),
+          [vital]: getVitalData(selectedTransaction, field, widgetData.chart.response),
         };
 
         return (
@@ -240,11 +235,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                   });
 
                   const data = {
-                    [vital]: getVitalData(
-                      transaction,
-                      metricsField,
-                      widgetData.chart.response
-                    ),
+                    [vital]: getVitalData(transaction, field, widgetData.chart.response),
                   };
 
                   return (

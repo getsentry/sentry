@@ -180,9 +180,9 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
             ],  # weird release but we need a string exising in mock indexer
             "groupBy": ["session.status", "environment"],
             "field": [
-                "sum(session)",
-                "count_unique(user)",
-                "p95(session.duration)",
+                "sum(sentry.sessions.session)",
+                "count_unique(sentry.sessions.user)",
+                "p95(sentry.sessions.session.duration)",
             ],
         }
     )
@@ -251,9 +251,9 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
             ],  # weird release but we need a string exising in mock indexer
             "groupBy": ["session.status", "environment"],
             "field": [
-                "sum(session)",
+                "sum(sentry.sessions.session)",
             ],
-            "orderBy": ["-sum(session)"],
+            "orderBy": ["-sum(sentry.sessions.session)"],
             "limit": [3],
         }
     )
@@ -298,10 +298,10 @@ def test_translate_results(_1, _2, mock_indexer):
         {
             "groupBy": ["session.status"],
             "field": [
-                "sum(session)",
-                "max(session.duration)",
-                "p50(session.duration)",
-                "p95(session.duration)",
+                "sum(sentry.sessions.session)",
+                "max(sentry.sessions.session.duration)",
+                "p50(sentry.sessions.session.duration)",
+                "p95(sentry.sessions.session.duration)",
             ],
             "interval": ["1d"],
             "statsPeriod": ["2d"],
@@ -411,31 +411,31 @@ def test_translate_results(_1, _2, mock_indexer):
         {
             "by": {"session.status": "healthy"},
             "totals": {
-                "sum(session)": 300,
-                "max(session.duration)": 123.4,
-                "p50(session.duration)": 1,
-                "p95(session.duration)": 4,
+                "sum(sentry.sessions.session)": 300,
+                "max(sentry.sessions.session.duration)": 123.4,
+                "p50(sentry.sessions.session.duration)": 1,
+                "p95(sentry.sessions.session.duration)": 4,
             },
             "series": {
-                "sum(session)": [100, 200],
-                "max(session.duration)": [10.1, 30.3],
-                "p50(session.duration)": [1.1, 1.3],
-                "p95(session.duration)": [4.1, 4.3],
+                "sum(sentry.sessions.session)": [100, 200],
+                "max(sentry.sessions.session.duration)": [10.1, 30.3],
+                "p50(sentry.sessions.session.duration)": [1.1, 1.3],
+                "p95(sentry.sessions.session.duration)": [4.1, 4.3],
             },
         },
         {
             "by": {"session.status": "abnormal"},
             "totals": {
-                "sum(session)": 330,
-                "max(session.duration)": 456.7,
-                "p50(session.duration)": 1.5,
-                "p95(session.duration)": 4.5,
+                "sum(sentry.sessions.session)": 330,
+                "max(sentry.sessions.session.duration)": 456.7,
+                "p50(sentry.sessions.session.duration)": 1.5,
+                "p95(sentry.sessions.session.duration)": 4.5,
             },
             "series": {
-                "sum(session)": [110, 220],
-                "max(session.duration)": [20.2, 40.4],
-                "p50(session.duration)": [1.2, 1.4],
-                "p95(session.duration)": [4.2, 4.4],
+                "sum(sentry.sessions.session)": [110, 220],
+                "max(sentry.sessions.session.duration)": [20.2, 40.4],
+                "p50(sentry.sessions.session.duration)": [1.2, 1.4],
+                "p95(sentry.sessions.session.duration)": [4.2, 4.4],
             },
         },
     ]
@@ -449,7 +449,7 @@ def test_translate_results_missing_slots(_1, _2, mock_indexer):
     query_params = MultiValueDict(
         {
             "field": [
-                "sum(session)",
+                "sum(sentry.sessions.session)",
             ],
             "interval": ["1d"],
             "statsPeriod": ["3d"],
@@ -490,11 +490,11 @@ def test_translate_results_missing_slots(_1, _2, mock_indexer):
         {
             "by": {},
             "totals": {
-                "sum(session)": 400,
+                "sum(sentry.sessions.session)": 400,
             },
             "series": {
                 # No data for 2021-08-24
-                "sum(session)": [100, 0, 300],
+                "sum(sentry.sessions.session)": [100, 0, 300],
             },
         },
     ]
