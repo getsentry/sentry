@@ -20,6 +20,7 @@ import {Client} from 'sentry/api';
 import {GlobalSelection, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {uniqueId} from 'sentry/utils/guid';
+import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'sentry/views/dashboardsV2/addWidget';
@@ -48,7 +49,7 @@ const ADD_BUTTON_POSITION = {
   isResizable: false,
 };
 const DEFAULT_WIDGET_WIDTH = 2;
-const MOBILE_BREAKPOINT = 700;
+const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 
 type Props = {
   api: Client;
