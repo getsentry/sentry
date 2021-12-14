@@ -57,7 +57,7 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
             onClick={handleNavigateToSettings}
             href="#"
             icon={<IconSettings size="sm" />}
-            aria-label="Settings"
+            label={t('Settings')}
           />
         </Actions>
       </Layout.HeaderActions>
