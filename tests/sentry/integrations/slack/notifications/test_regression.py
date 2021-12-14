@@ -32,5 +32,5 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert text == "Issue marked as regression"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression-activity-slack|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression-activity-slack-user|Notification Settings>"
         )

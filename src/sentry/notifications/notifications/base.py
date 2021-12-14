@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
 from urllib.parse import urljoin
 
 from sentry import analytics
@@ -133,10 +133,15 @@ class BaseNotification(abc.ABC):
                 **self.get_log_params(recipient),
             )
 
-    def get_referrer(self, provider: ExternalProviders, recipient: Team | User) -> str:
+    # TODO: make recipient required
+    def get_referrer(
+        self, provider: ExternalProviders, recipient: Optional[Team | User] = None
+    ) -> str:
         # referrer needs the provider and recipient
-        recipient_type = recipient.__class__.__name__.lower()
-        return f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}-{recipient_type}"
+        referrer = f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
+        if recipient:
+            referrer += "-" + recipient.__class__.__name__.lower()
+        return referrer
 
     def get_sentry_query_params(self, provider: ExternalProviders, recipient: Team | User) -> str:
         return f"?referrer={self.get_referrer(provider, recipient)}"

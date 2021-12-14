@@ -89,6 +89,7 @@ class GroupActivityNotification(ActivityNotification, ABC):
 
     def get_group_link(self) -> str:
         # method only used for emails
+        # TODO: pass in recipient so we can add that to the referrer
         referrer = self.get_referrer(ExternalProviders.EMAIL)
         return str(self.group.get_absolute_url(params={"referrer": referrer}))
 
