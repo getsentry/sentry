@@ -76,7 +76,7 @@ describe('Performance > Content', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
-    act(() => void TeamStore.loadInitialData([]));
+    act(() => void TeamStore.loadInitialData([], false, null));
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
 
@@ -288,6 +288,7 @@ describe('Performance > Content', function () {
     // Chart and Table should render.
     expect(wrapper.find('ChartFooter')).toHaveLength(1);
     expect(wrapper.find('Table')).toHaveLength(1);
+    wrapper.unmount();
   });
 
   it('renders onboarding state when the selected project has no events', async function () {
@@ -312,6 +313,7 @@ describe('Performance > Content', function () {
     // Chart and table should not show.
     expect(wrapper.find('ChartFooter')).toHaveLength(0);
     expect(wrapper.find('Table')).toHaveLength(0);
+    wrapper.unmount();
   });
 
   it('does not render onboarding for "my projects"', async function () {
@@ -331,6 +333,7 @@ describe('Performance > Content', function () {
     await tick();
 
     expect(wrapper.find('Onboarding')).toHaveLength(0);
+    wrapper.unmount();
   });
 
   it('forwards conditions to transaction summary', async function () {
@@ -358,11 +361,12 @@ describe('Performance > Content', function () {
         }),
       })
     );
+    wrapper.unmount();
   });
 
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
-    mountWithTheme(
+    const wrapper = mountWithTheme(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -370,7 +374,9 @@ describe('Performance > Content', function () {
       data.routerContext
     );
     await tick();
+    wrapper.update();
     expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
+    wrapper.unmount();
   });
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
@@ -402,6 +408,7 @@ describe('Performance > Content', function () {
         },
       })
     );
+    wrapper.unmount();
   });
 
   it('Default page (transactions) without trends feature will not update filters if none are set', async function () {
@@ -411,7 +418,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {view: undefined});
 
-    mountWithTheme(
+    const wrapper = mountWithTheme(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -421,12 +428,13 @@ describe('Performance > Content', function () {
     await tick();
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
+    wrapper.unmount();
   });
 
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
 
-    mountWithTheme(
+    const wrapper = mountWithTheme(
       <WrappedComponent
         organization={data.organization}
         location={data.router.location}
@@ -436,6 +444,7 @@ describe('Performance > Content', function () {
     await tick();
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
+    wrapper.unmount();
   });
 
   it('Tags are replaced with trends default query if navigating to trends', async function () {
@@ -461,6 +470,7 @@ describe('Performance > Content', function () {
         },
       })
     );
+    wrapper.unmount();
   });
 
   it('Vitals cards are not shown with overview feature without frontend platform', async function () {
@@ -480,6 +490,7 @@ describe('Performance > Content', function () {
 
     const vitalsContainer = wrapper.find('VitalsContainer');
     expect(vitalsContainer).toHaveLength(0);
+    wrapper.unmount();
   });
 
   it('Vitals cards are shown with overview feature with frontend platform project', async function () {
@@ -515,6 +526,7 @@ describe('Performance > Content', function () {
       const link = wrapper.find(selector);
       expect(link).toHaveLength(1);
     }
+    wrapper.unmount();
   });
 
   it('Display Create Sample Transaction Button with feature flag on', async function () {
@@ -531,10 +543,13 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
+    await tick();
+    wrapper.update();
 
     expect(
       wrapper.find('Button[data-test-id="create-sample-transaction-btn"]').exists()
     ).toBe(true);
+    wrapper.unmount();
   });
 
   it('Displays new landing component with feature flag on', async function () {
@@ -550,9 +565,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
+    await tick();
 
     expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
       true
     );
+    wrapper.unmount();
   });
 });

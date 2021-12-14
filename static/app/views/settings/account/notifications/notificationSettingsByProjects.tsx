@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -85,7 +85,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         {canSearch &&
           this.renderSearchInput({
             stateKey: 'projects',
@@ -117,7 +117,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
         {canSearch && shouldPaginate && (
           <Pagination pageLinks={projectsPageLinks} {...this.props} />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

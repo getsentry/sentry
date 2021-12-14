@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as Sentry from '@sentry/react';
-// @ts-ignore
 import * as cbor from 'cbor-web';
 import u2f from 'u2f-api';
 
@@ -45,10 +44,9 @@ class U2fInterface extends React.Component<Props, State> {
   };
 
   async componentDidMount() {
-    let supported = await u2f.isSupported();
-    if (this.props.isWebauthnSigninFFEnabled) {
-      supported = !!window.PublicKeyCredential;
-    }
+    const supported = this.props.isWebauthnSigninFFEnabled
+      ? !!window.PublicKeyCredential
+      : await u2f.isSupported();
 
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
@@ -59,30 +57,33 @@ class U2fInterface extends React.Component<Props, State> {
   }
 
   getU2FResponse(data) {
-    if (data.response) {
-      if (this.props.flowMode === 'sign') {
-        const authenticatorData = {
-          keyHandle: data.id,
-          clientData: bufferToBase64url(data.response.clientDataJSON),
-          signatureData: bufferToBase64url(data.response.signature),
-          authenticatorData: bufferToBase64url(data.response.authenticatorData),
-        };
-        return JSON.stringify(authenticatorData);
-      }
-      if (this.props.flowMode === 'enroll') {
-        const authenticatorData = {
-          id: data.id,
-          rawId: bufferToBase64url(data.rawId),
-          response: {
-            attestationObject: bufferToBase64url(data.response.attestationObject),
-            clientDataJSON: bufferToBase64url(data.response.clientDataJSON),
-          },
-          type: bufferToBase64url(data.type),
-        };
-        return JSON.stringify(authenticatorData);
-      }
+    if (!data.response) {
+      return JSON.stringify(data);
     }
-    return JSON.stringify(data);
+
+    if (this.props.flowMode === 'sign') {
+      const authenticatorData = {
+        keyHandle: data.id,
+        clientData: bufferToBase64url(data.response.clientDataJSON),
+        signatureData: bufferToBase64url(data.response.signature),
+        authenticatorData: bufferToBase64url(data.response.authenticatorData),
+      };
+      return JSON.stringify(authenticatorData);
+    }
+    if (this.props.flowMode === 'enroll') {
+      const authenticatorData = {
+        id: data.id,
+        rawId: bufferToBase64url(data.rawId),
+        response: {
+          attestationObject: bufferToBase64url(data.response.attestationObject),
+          clientDataJSON: bufferToBase64url(data.response.clientDataJSON),
+        },
+        type: bufferToBase64url(data.type),
+      };
+      return JSON.stringify(authenticatorData);
+    }
+
+    throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
   }
 
   submitU2fResponse(promise) {
@@ -191,8 +192,20 @@ class U2fInterface extends React.Component<Props, State> {
         const challengeArray = base64urlToBuffer(
           this.props.challengeData.webAuthnRegisterData
         );
-        const challenge = cbor.decodeAllSync(challengeArray);
-        this.webAuthnRegister(challenge[0].publicKey);
+        const challenge = cbor.decodeFirst(challengeArray);
+        // challenge contains a PublicKeyCredentialRequestOptions object for webauthn registration
+        challenge
+          .then(data => {
+            this.webAuthnRegister(data.publicKey);
+          })
+          .catch(err => {
+            const failure = 'DEVICE_ERROR';
+            Sentry.captureException(err);
+            this.setState({
+              deviceFailure: failure,
+              hasBeenTapped: false,
+            });
+          });
       } else {
         const {registerRequests, registeredKeys} = this.props.challengeData;
         promise = u2f.register(registerRequests as any, registeredKeys as any);

@@ -148,15 +148,21 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
   const datasetAndEventtypes = parsedQuery
     ? DATA_SOURCE_TO_SET_AND_EVENT_TYPES[parsedQuery.source]
     : DATA_SOURCE_TO_SET_AND_EVENT_TYPES.error;
+
+  let aggregate = eventView.getYAxis();
+  if (
+    datasetAndEventtypes.dataset === 'transactions' &&
+    /^p\d{2,3}\(\)/.test(eventView.getYAxis())
+  ) {
+    // p95() -> p95(transaction.duration)
+    aggregate = eventView.getYAxis().slice(0, 3) + '(transaction.duration)';
+  }
+
   return {
     ...createDefaultRule(),
     ...datasetAndEventtypes,
     query: parsedQuery?.query ?? eventView.query,
-    // If creating a metric alert for transactions, default to the p95 metric
-    aggregate:
-      datasetAndEventtypes.dataset === 'transactions'
-        ? 'p95(transaction.duration)'
-        : eventView.getYAxis(),
+    aggregate,
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }

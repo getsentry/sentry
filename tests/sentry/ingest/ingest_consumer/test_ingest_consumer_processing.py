@@ -5,7 +5,6 @@ from unittest.mock import Mock
 
 import pytest
 
-from sentry import options
 from sentry.event_manager import EventManager
 from sentry.ingest.ingest_consumer import (
     process_attachment_chunk,
@@ -41,20 +40,6 @@ def preprocess_event(monkeypatch):
     return calls
 
 
-# TODO(michal): Remove when fully on save_event_transaction
-@pytest.fixture
-def save_event_transaction_rate():
-    orig_rate = options.get("store.save-transactions-ingest-consumer-rate")
-
-    def set_rate(rate):
-        options.set("store.save-transactions-ingest-consumer-rate", rate)
-
-    try:
-        yield set_rate
-    finally:
-        set_rate(orig_rate)
-
-
 @pytest.mark.django_db
 def test_deduplication_works(default_project, task_runner, preprocess_event):
     payload = get_normalized_event({"message": "hello world"}, default_project)
@@ -85,12 +70,11 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
 
 
 @pytest.mark.django_db
-def test_transactions_spawn_save_event(
+def test_transactions_spawn_save_event_transaction(
     default_project,
     task_runner,
     preprocess_event,
     save_event_transaction,
-    save_event_transaction_rate,
 ):
     project_id = default_project.id
     now = datetime.datetime.now()
@@ -110,35 +94,6 @@ def test_transactions_spawn_save_event(
             }
         },
     }
-    payload = get_normalized_event(event, default_project)
-    event_id = payload["event_id"]
-    start_time = time.time() - 3600
-
-    # Use the old way through preprocess_event
-    save_event_transaction_rate(0.0)
-    process_event(
-        {
-            "payload": json.dumps(payload),
-            "start_time": start_time,
-            "event_id": event_id,
-            "project_id": project_id,
-            "remote_addr": "127.0.0.1",
-        },
-        projects={default_project.id: default_project},
-    )
-    (kwargs,) = preprocess_event
-    assert kwargs == {
-        "cache_key": f"e:{event_id}:{project_id}",
-        "data": payload,
-        "event_id": event_id,
-        "project": default_project,
-        "start_time": start_time,
-    }
-    preprocess_event.clear()
-
-    # TODO(michal): After we are fully on save_event_transaction remove the
-    # option and keep only this part of test
-    save_event_transaction_rate(1.0)
     payload = get_normalized_event(event, default_project)
     event_id = payload["event_id"]
     start_time = time.time() - 3600

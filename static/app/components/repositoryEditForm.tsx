@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconWarning} from 'sentry/icons';
@@ -17,7 +17,7 @@ type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> & {
   closeModal: () => void;
 };
 
-export default class RepositoryEditForm extends React.Component<Props> {
+export default class RepositoryEditForm extends Component<Props> {
   get initialData() {
     const {repository} = this.props;
 

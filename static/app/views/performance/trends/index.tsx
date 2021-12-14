@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -30,20 +30,30 @@ type State = {
   error?: string;
 };
 
-class TrendsSummary extends React.Component<Props, State> {
+class TrendsSummary extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceEventView(nextProps.location, nextProps.projects, {
-        isTrends: true,
-      }),
+      eventView: generatePerformanceEventView(
+        nextProps.location,
+        nextProps.organization,
+        nextProps.projects,
+        {
+          isTrends: true,
+        }
+      ),
     };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(this.props.location, this.props.projects, {
-      isTrends: true,
-    }),
+    eventView: generatePerformanceEventView(
+      this.props.location,
+      this.props.organization,
+      this.props.projects,
+      {
+        isTrends: true,
+      }
+    ),
     error: undefined,
   };
 

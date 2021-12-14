@@ -33,8 +33,8 @@ describe('NotificationSettings', function () {
       workflow: {user: {me: {email: 'never', slack: 'never'}}},
     });
 
-    // There are 7 notification setting Selects/Toggles.
+    // There are 8 notification setting Selects/Toggles.
     const fields = wrapper.find('Field');
-    expect(fields).toHaveLength(7);
+    expect(fields).toHaveLength(8);
   });
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 type CreateContextReturn<T> = [React.Provider<T>, () => T, React.Context<T>];
 /*

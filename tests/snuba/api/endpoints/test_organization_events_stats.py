@@ -878,6 +878,25 @@ class OrganizationEventsStatsEndpointTestWithSnql(OrganizationEventsStatsEndpoin
         # Should've reset to the default for 24h
         assert mock_query.mock_calls[1].args[0][0].granularity.granularity == 300
 
+    def test_equations_divide_by_zero(self):
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                # force a 0 in the denominator by doing 1 - 1
+                # since a 0 literal is illegal as the denominator
+                "yAxis": ["equation|count() / (1-1)"],
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": None}],
+            [{"count": None}],
+        ]
+
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):
@@ -1164,6 +1183,38 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         other = data["Other"]
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
+
+    @mock.patch("sentry.models.Group.issues_mapping")
+    def test_top_events_with_unknown_issue(self, mock_issues_mapping):
+        event = self.events[0]
+        event_data = self.event_data[0]
+
+        # ensure that the issue mapping returns None for the issue
+        mock_issues_mapping.return_value = {event.group.id: None}
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "issue"],
+                    "topEvents": 5,
+                    # narrow the search to just one issue
+                    "query": f"issue.id:{event.group.id}",
+                },
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+
+        data = response.data
+        assert len(data) == 1
+        results = data["unknown"]
+        assert results["order"] == 0
+        assert [{"count": event_data["count"]}] in [attrs for time, attrs in results["data"]]
 
     @mock.patch(
         "sentry.snuba.discover.raw_query",

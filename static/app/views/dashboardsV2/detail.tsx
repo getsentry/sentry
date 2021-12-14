@@ -10,10 +10,7 @@ import {
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {
-  openAddDashboardIssueWidgetModal,
-  openDashboardWidgetLibraryModal,
-} from 'sentry/actionCreators/modal';
+import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -28,7 +25,10 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard, {generateWidgetId} from './gridLayout/dashboard';
+import GridLayoutDashboard, {
+  assignTempId,
+  constructGridItemKey,
+} from './gridLayout/dashboard';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import DnDKitDashboard from './dashboard';
@@ -54,7 +54,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   route: PlainRoute;
-  reloadData?: () => void;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
 };
@@ -274,13 +273,13 @@ class DashboardDetail extends Component<Props, State> {
       onAddWidget: (widgets: Widget[]) => {
         const modifiedDashboard = {
           ...cloneDashboard(dashboard),
-          widgets,
+          widgets: widgets.map(assignTempId),
         };
         this.setState({modifiedDashboard});
         updateDashboard(api, organization.slug, modifiedDashboard).then(
           (newDashboard: DashboardDetails) => {
             if (onDashboardUpdate) {
-              onDashboardUpdate(modifiedDashboard);
+              onDashboardUpdate(newDashboard);
             }
             addSuccessMessage(t('Dashboard updated'));
             if (dashboard && newDashboard.id !== dashboard.id) {
@@ -308,14 +307,12 @@ class DashboardDetail extends Component<Props, State> {
       throw new Error('Expected layouts and widgets to be the same length');
     }
 
-    saveDashboardLayout(
-      organizationId,
-      dashboardId,
-      layout.map((widgetLayout, index) => ({
-        ...widgetLayout,
-        i: generateWidgetId(newWidgets[index], index),
-      }))
-    );
+    const newLayout = layout.map((widgetLayout, index) => ({
+      ...widgetLayout,
+      i: constructGridItemKey(newWidgets[index]),
+    }));
+    saveDashboardLayout(organizationId, dashboardId, newLayout);
+    this.setState({layout: newLayout, modifiedDashboard: null});
   };
 
   onCommit = () => {
@@ -377,7 +374,7 @@ class DashboardDetail extends Component<Props, State> {
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
-                onDashboardUpdate(modifiedDashboard);
+                onDashboardUpdate(newDashboard);
               }
 
               if (organization.features.includes('dashboard-grid-layout')) {
@@ -463,37 +460,6 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  onAddIssueWidget = () => {
-    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
-
-    openAddDashboardIssueWidgetModal({
-      organization,
-      onAddWidget: widget => {
-        const modifiedDashboard = {
-          ...dashboard,
-          widgets: [...dashboard.widgets, widget],
-        };
-        updateDashboard(api, organization.slug, modifiedDashboard).then(
-          (newDashboard: DashboardDetails) => {
-            if (onDashboardUpdate) {
-              onDashboardUpdate(modifiedDashboard);
-            }
-            if (dashboard && newDashboard.id !== dashboard.id) {
-              browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                query: {
-                  ...location.query,
-                },
-              });
-              return;
-            }
-          },
-          () => undefined
-        );
-      },
-    });
-  };
-
   renderWidgetBuilder(dashboard: DashboardDetails) {
     const {children} = this.props;
     const {modifiedDashboard, widgetToBeUpdated} = this.state;
@@ -551,8 +517,8 @@ class DashboardDetail extends Component<Props, State> {
                 onCommit={this.onCommit}
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
-                onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
+                widgetCount={dashboard.widgets.length}
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
@@ -639,8 +605,8 @@ class DashboardDetail extends Component<Props, State> {
                   onCommit={this.onCommit}
                   onAddWidget={this.onAddWidget}
                   onDelete={this.onDelete(dashboard)}
-                  onAddIssueWidget={this.onAddIssueWidget}
                   dashboardState={dashboardState}
+                  widgetCount={dashboard.widgets.length}
                 />
               </Layout.HeaderActions>
             </Layout.Header>

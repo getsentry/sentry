@@ -843,7 +843,7 @@ function buildRoutes() {
           component={SafeLazyLoad}
         />
         <Route
-          name={t('New Public Integration')}
+          name={t('Create Integration')}
           path="new-public/"
           componentPromise={() =>
             import(
@@ -853,7 +853,7 @@ function buildRoutes() {
           component={SafeLazyLoad}
         />
         <Route
-          name={t('New Internal Integration')}
+          name={t('Create Integration')}
           path="new-internal/"
           componentPromise={() =>
             import(
@@ -1109,11 +1109,7 @@ function buildRoutes() {
   );
 
   const releasesRoutes = (
-    <Route
-      path="/organizations/:orgId/releases/"
-      componentPromise={() => import('sentry/views/releases')}
-      component={SafeLazyLoad}
-    >
+    <Route path="/organizations/:orgId/releases/">
       <IndexRoute
         componentPromise={() => import('sentry/views/releases/list')}
         component={SafeLazyLoad}
