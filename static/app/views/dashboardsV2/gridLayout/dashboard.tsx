@@ -346,7 +346,28 @@ function getDefaultPosition(index: number, displayType: DisplayType) {
 }
 
 function getMobileLayout(desktopLayout, widgets) {
-  const layoutWidgetPairs = zip(desktopLayout, widgets);
+  if (desktopLayout.length === 0) {
+    // Initial case where the user has no layout saved, but
+    // dashboard has widgets
+    return [];
+  }
+
+  // Filter out layouts to only those that haven't been deleted
+  const expectedGridKeys = new Set(widgets.map(constructGridItemKey));
+  const survivingLayouts = desktopLayout.filter(({i}) => expectedGridKeys.has(i));
+
+  const layoutWidgetPairs = zip(survivingLayouts, widgets);
+
+  const checkIdsMismatch = ([layout, widget]) => {
+    if (!layout) {
+      // Newly added widget, there might not be a layout entry yet
+      return false;
+    }
+    return layout.i !== constructGridItemKey(widget);
+  };
+  if (layoutWidgetPairs.some(checkIdsMismatch)) {
+    throw new Error('They keys mismatch');
+  }
 
   // Sort by y and then subsort by x
   const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']) as [Layout, Widget][];
@@ -356,9 +377,7 @@ function getMobileLayout(desktopLayout, widgets) {
     x: 0,
     y: index * 2,
     w: 2,
-    // TODO: Kind of a hack because when you delete a widget
-    // and zip, the mismatched lengths creates undefined values
-    h: widget?.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+    h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
   }));
 
   return mobileLayout;
