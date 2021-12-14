@@ -388,12 +388,18 @@ class AuthIdentityHandler:
             and verification_value["user_id"] == self.user.id
         )
 
-    def _has_usable_password(self):
-        return isinstance(self.user, User) and self.user.has_usable_password()
-
     @property
     def _logged_in_user(self) -> Optional[User]:
+        """The user, if they have authenticated on this session."""
         return self.request.user if self.request.user.is_authenticated else None
+
+    @property
+    def _app_user(self) -> Optional[User]:
+        """The user, if they are represented persistently in our app."""
+        return self.user if isinstance(self.user, User) else None
+
+    def _has_usable_password(self):
+        return self._app_user and self._app_user.has_usable_password()
 
     def handle_unknown_identity(
         self,
@@ -421,7 +427,7 @@ class AuthIdentityHandler:
             else AuthenticationForm(
                 self.request,
                 self.request.POST if self.request.POST.get("op") == "login" else None,
-                initial={"username": self.user.username if isinstance(self.user, User) else None},
+                initial={"username": self._app_user and self._app_user.username},
             )
         )
         # we don't trust all IDP email verification, so users can also confirm via one time email link
@@ -433,16 +439,13 @@ class AuthIdentityHandler:
                 is_account_verified = self.has_verified_account(verification_value)
 
         is_new_account = not self.user.is_authenticated  # stateful
-        if self.identity.get("email_verified") or is_account_verified:
+        if self._app_user and self.identity.get("email_verified") or is_account_verified:
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
-            has_membership = (
-                isinstance(self.user, User)
-                and OrganizationMember.objects.filter(
-                    user=self.user, organization=self.organization
-                ).exists()
-            )
+            has_membership = OrganizationMember.objects.filter(
+                user=self._app_user, organization=self.organization
+            ).exists()
             if has_membership:
                 try:
                     self._login(self.user)
@@ -540,9 +543,9 @@ class AuthIdentityHandler:
             return self._logged_in_user, "auth-confirm-link"
 
         if features.has("organizations:idp-automatic-migration", self.organization):
-            if not self._has_usable_password():
+            if self._app_user and not self._has_usable_password():
                 send_one_time_account_confirm_link(
-                    self.user,
+                    self._app_user,
                     self.organization,
                     self.auth_provider,
                     self.identity["email"],
