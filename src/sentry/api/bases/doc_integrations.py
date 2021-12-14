@@ -24,5 +24,5 @@ class DocIntegrationsBaseEndpoint(Endpoint):
     def generate_incoming_metadata(self, request: Request) -> JSONData:
         metadata_payload = {}
         for metadata_type in METADATA_TYPES:
-            metadata_payload[metadata_type] = request.json_body.get(metadata_type)
+            metadata_payload[metadata_type] = request.json_body.get(metadata_type, [])
         return metadata_payload

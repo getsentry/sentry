@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.api.serializers.base import serialize
+from sentry.models.integration import DocIntegration
 from sentry.models.integrationfeature import IntegrationFeature, IntegrationTypes
 from sentry.testutils import APITestCase
 
@@ -24,14 +25,16 @@ class DocIntegrationsTest(APITestCase):
 
 class GetDocIntegrationsTest(DocIntegrationsTest):
     def test_read_docs_for_superuser(self):
-        # Check that all DocIntegrations were returned
+        """
+        Tests that all DocIntegrations are returned for super users,
+        along with serialized versions of their IntegrationFeatures
+        """
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(self.url, format="json")
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 3
         for doc in [self.doc_1, self.doc_2, self.doc_3]:
             assert serialize(doc) in response.data
-        # Check that IntegrationFeatures were also serialized
         features = IntegrationFeature.objects.filter(
             target_id=self.doc_3.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
         )
@@ -39,7 +42,10 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
             assert serialize(feature) in serialize(self.doc_3)["features"]
 
     def test_read_docs_public(self):
-        # Check that only non-draft DocIntegrations were returned
+        """
+        Tests that only non-draft DocIntegrations are returned for users,
+        along with serialized versions of their IntegrationFeatures
+        """
         self.login_as(user=self.user)
         response = self.client.get(self.url, format="json")
         assert response.status_code == status.HTTP_200_OK
@@ -50,6 +56,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
         features = IntegrationFeature.objects.filter(
             target_id=self.doc_3.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
         )
+        assert len(features) == 3
         for feature in features:
             assert serialize(feature) in serialize(self.doc_3)["features"]
 
@@ -64,21 +71,85 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         "resources": [{"title": "Docs", "url": "https://github.com/getsentry/sentry/"}],
         "features": [1, 2, 3],
     }
+    ignored_keys = ["is_draft", "metadata"]
 
     def test_create_doc_for_superuser(self):
+        """
+        Tests that a draft DocIntegration is created for superuser requests along
+        with all the appropriate IntegrationFeatures
+        """
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.post(self.url, self.payload, format="json")
+        doc = DocIntegration.objects.get(name=self.payload["name"], author=self.payload["author"])
         assert response.status_code == status.HTTP_201_CREATED
-        # DocIntegration.objects.get()
+        assert serialize(doc) == response.data
+        assert doc.is_draft
+        features = IntegrationFeature.objects.filter(
+            target_id=doc.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+        )
+        assert features.exists()
+        assert len(features) == 3
+        for feature in features:
+            assert serialize(feature) in response.data["features"]
 
     def test_create_invalid_auth(self):
-        pass
+        """
+        Tests that the POST endpoint is only accessible for superusers
+        """
+        self.login_as(user=self.user)
+        response = self.client.post(self.url, self.payload, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_create_repeated_slug(self):
-        pass
+        """
+        Tests that repeated names throw errors when generating slugs
+        """
+        self.login_as(user=self.superuser, superuser=True)
+        payload = {**self.payload, "name": self.doc_1.name}
+        response = self.client.post(self.url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "name" in response.data.keys()
 
     def test_create_invalid_metadata(self):
-        pass
+        """
+        Tests that incorrectly structured metadata throws an error
+        """
+        self.login_as(user=self.superuser, superuser=True)
+        invalid_resources = {
+            "not_an_array": {},
+            "extra_keys": [{**self.payload["resources"][0], "extra": "key"}],
+            "missing_keys": [{"title": "Missing URL field"}],
+        }
+        for resources in invalid_resources.values():
+            response = self.client.post(
+                self.url, {**self.payload, "resources": resources}, format="json"
+            )
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "metadata" in response.data.keys()
 
-    def test_create_ignore_draft(self):
-        pass
+    def test_create_empty_metadata(self):
+        """
+        Tests that sending no metadata keys does not trigger errors
+        and resolves to an appropriate default
+        """
+        self.login_as(user=self.superuser, superuser=True)
+        payload = {**self.payload}
+        del payload["resources"]
+        response = self.client.post(self.url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "resources" in response.data.keys()
+        assert len(response.data["resources"]) == 0
+
+    def test_create_ignore_keys(self):
+        """
+        Test that certain reserved keys cannot be overridden by the
+        request payload. They must be created by the API.
+        """
+        self.login_as(user=self.superuser, superuser=True)
+        payload = {**self.payload, "is_draft": False, "metadata": {"should": "not override"}}
+        response = self.client.post(self.url, payload, format="json")
+        doc = DocIntegration.objects.get(name=self.payload["name"], author=self.payload["author"])
+        assert response.status_code == status.HTTP_201_CREATED
+        for key in self.ignored_keys:
+            assert key not in response.data.keys()
+            assert getattr(doc, key) is not payload[key]
