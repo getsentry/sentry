@@ -79,6 +79,7 @@ export const TreeToggle = styled('div')<SpanTreeTogglerAndDivProps>`
   font-size: 10px;
   line-height: 0;
   z-index: 1;
+  box-shadow: ${p => p.theme.dropShadowLightest};
 
   ${p => getToggleTheme(p)}
 `;
@@ -93,7 +94,6 @@ export const TreeToggleContainer = styled('div')<TogglerTypes>`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  box-shadow: ${p => p.theme.dropShadowLightest};
 `;
 
 export const TreeToggleIcon = styled(IconChevron)`

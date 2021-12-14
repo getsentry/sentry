@@ -233,7 +233,7 @@ class SpanGroupBar extends React.Component<Props> {
         // which does not exist.
         return null;
       }
-      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 2) * -1;
 
       return (
         <ConnectorBar
