@@ -3,12 +3,15 @@ from __future__ import annotations
 import functools
 import logging
 import time
+from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Mapping
+from typing import Any, Callable, Mapping, Optional
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
+from django.http.response import Http404
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
@@ -400,6 +403,148 @@ class Endpoint(APIView):
         self.add_cursor_headers(request, response, cursor_result)
 
         return response
+
+
+@dataclass
+class _VersionedMethodBody:
+    """Wraps an object method that handles versioned requests to an endpoint."""
+
+    http_method: str
+    version: int
+    wrapped: Callable
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self.wrapped(*args, **kwargs)
+
+
+def method_version(http_method: str, version: int = 0):
+    """Decorate an endpoint method to handle versioned requests.
+
+    This decorator should be used only on endpoint classes that extend
+    `VersionedEndpoint`. The default version (0) should be applied to methods
+    that existed before the platform supported versioning.
+
+    Example usage:
+
+        class AnEndpoint(VersionedEndpoint):
+            @method_version("get")
+            def get_v0(self, request):
+                return get_stuff(request)
+
+            @method_version("get", 1)
+            def get_v1(self, request):
+                return get_other_stuff(request)
+    """
+
+    if http_method not in APIView.http_method_names:
+        raise ValueError(f"http_method must be one of: {APIView.http_method_names}")
+
+    def decorator(wrapped: Callable) -> _VersionedMethodBody:
+        if wrapped.__name__ in APIView.http_method_names:
+            raise Exception(
+                "Methods decorated with @method_version must not "
+                f"override HTTP handler methods such as `{wrapped.__name__}`. "
+                "Give it a descriptive name or change it to "
+                f"`{wrapped.__name__}_v{version}`."
+            )
+
+        return _VersionedMethodBody(http_method, version, wrapped)
+
+    return decorator
+
+
+class _MethodVersionTable:
+    """A table of all handler methods on a versioned endpoint."""
+
+    def __init__(self, endpoint_cls) -> None:
+        self.table: Mapping[str, Mapping[int, _VersionedMethodBody]] = self._build(endpoint_cls)
+
+    def _build(self, endpoint_cls) -> Mapping[str, Mapping[int, _VersionedMethodBody]]:
+        table = defaultdict(dict)
+        for attr_name in dir(endpoint_cls):
+            attr_obj = getattr(endpoint_cls, attr_name)
+            if isinstance(attr_obj, _VersionedMethodBody):
+                method_table = table[attr_obj.http_method]
+                if attr_obj.version in method_table:
+                    raise Exception(
+                        "Multiple methods mapped to "
+                        f"[method={attr_obj.http_method!r}, version={attr_obj.version!r}] "
+                        f"in {endpoint_cls!r}"
+                    )
+                table[attr_obj.http_method][attr_obj.version] = attr_obj
+        return table
+
+    def supports_http_method(self, http_method: str) -> bool:
+        """Check whether the endpoint supports an HTTP method.
+
+        This determines whether a 405 response status is appropriate.
+        """
+        return bool(self.table[http_method])
+
+    def get_method_version(self, http_method: str, version: int) -> Optional[_VersionedMethodBody]:
+        """Look up a method version, or None if it doesn't exist."""
+        return self.table[http_method].get(version)
+
+
+class VersionedEndpoint(Endpoint):
+    """An endpoint with that takes requests for multiple versions.
+
+    Do not implement the handlers for HTTP methods (such as `get`) as you would
+    in a regular Endpoint class. Instead, decorate the handler methods with
+    `@method_version`.
+    """
+
+    _method_version_table = None
+
+    @classmethod
+    def _get_method_versions(cls) -> _MethodVersionTable:
+        table = cls._method_version_table  # for thread safety
+        if table is None:
+            cls._method_version_table = table = _MethodVersionTable(cls)
+        return table
+
+    def _dispatch_to_version(self, http_method: str, request, *args, **kwargs):
+        if http_method not in self.http_method_names:
+            raise ValueError(
+                f"Method name ({http_method!r}) must be one of: {self.http_method_names!r} "
+                "(don't call _dispatch_to_version from VersionedEndpoint subclasses)"
+            )
+
+        method_table = _MethodVersionTable(type(self))
+        if not method_table.supports_http_method(http_method):
+            return self.http_method_not_allowed(request)
+        version = 0 if request.version is None else int(request.version)
+        method_version = method_table.get_method_version(http_method, version)
+        if method_version is None:
+            raise Http404("Version does not exist")
+        return method_version(self, request, *args, **kwargs)
+
+    # We expect Endpoint.dispatch to hit the methods below.
+    # Subclasses must use different names to avoid overriding these.
+
+    def get(self, request, *args, **kwargs):
+        return self._dispatch_to_version("get", request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self._dispatch_to_version("post", request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self._dispatch_to_version("put", request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self._dispatch_to_version("patch", request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self._dispatch_to_version("delete", request, *args, **kwargs)
+
+    def head(self, request, *args, **kwargs):
+        return self._dispatch_to_version("head", request, *args, **kwargs)
+
+    def options(self, request, *args, **kwargs):
+        return self._dispatch_to_version("options", request, *args, **kwargs)
+
+    def trace(self, request, *args, **kwargs):
+        return self._dispatch_to_version("trace", request, *args, **kwargs)
 
 
 class EnvironmentMixin:
