@@ -139,11 +139,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         }
 
         const data = {
-          [vital]: getVitalData(
-            selectedTransaction,
-            metricsField,
-            widgetData.chart.response
-          ),
+          [vital]: getVitalData(selectedTransaction, field, widgetData.chart.response),
         };
 
         return (
@@ -239,11 +235,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                   });
 
                   const data = {
-                    [vital]: getVitalData(
-                      transaction,
-                      metricsField,
-                      widgetData.chart.response
-                    ),
+                    [vital]: getVitalData(transaction, field, widgetData.chart.response),
                   };
 
                   return (
