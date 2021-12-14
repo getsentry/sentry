@@ -97,7 +97,7 @@ class BaseNotification(abc.ABC):
             "actor_id": recipient.actor_id,
         }
 
-    def get_message_actions(self) -> Sequence[MessageAction]:
+    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         return []
 
     def get_callback_data(self) -> Mapping[str, Any] | None:

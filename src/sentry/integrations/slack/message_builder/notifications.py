@@ -41,7 +41,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
             title_link=self.notification.get_title_link(),
             text=self.notification.get_message_description(),
             footer=self.notification.build_notification_footer(self.recipient),
-            actions=self.notification.get_message_actions(),
+            actions=self.notification.get_message_actions(self.recipient),
             callback_id=json.dumps(callback_id_raw) if callback_id_raw else None,
         )
 
