@@ -1,27 +1,27 @@
-import {Component} from 'react';
+import {useEffect, useRef} from 'react';
 import {Location} from 'history';
-
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
   location: Location;
   disable: (location: Location, prevLocation: Location) => boolean;
 };
 
-class ScrollToTop extends Component<Props> {
-  componentDidUpdate(prevProps: Props) {
-    const {disable, location} = this.props;
+function ScrollToTop({location, disable}: Props) {
+  const lastLocation = useRef(location);
 
-    const shouldDisable = callIfFunction(disable, location, prevProps.location);
+  // Check if we should scroll to the top any time the location changes
+  useEffect(() => {
+    const shouldDisable = disable?.(location, lastLocation.current);
+    lastLocation.current = location;
 
-    if (!shouldDisable && this.props.location !== prevProps.location) {
-      window.scrollTo(0, 0);
+    if (shouldDisable) {
+      return;
     }
-  }
 
-  render() {
-    return this.props.children;
-  }
+    window.scrollTo(0, 0);
+  }, [location]);
+
+  return null;
 }
 
 export default ScrollToTop;

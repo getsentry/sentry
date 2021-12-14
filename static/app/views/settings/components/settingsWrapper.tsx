@@ -18,9 +18,8 @@ function SettingsWrapper({location, children}: Props) {
           newLocation.pathname === prevLocation.pathname &&
           newLocation.query?.query !== prevLocation.query?.query
         }
-      >
-        {children}
-      </ScrollToTop>
+      />
+      {children}
     </StyledSettingsWrapper>
   );
 }

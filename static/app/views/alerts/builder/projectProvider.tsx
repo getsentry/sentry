@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, Fragment, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -45,16 +45,17 @@ function AlertBuilderProjectProvider(props: Props) {
         fetchOrgMembers(api, organization.slug, [project.id]);
 
         return (
-          <ScrollToTop location={props.location} disable={() => false}>
-            {children && React.isValidElement(children)
-              ? React.cloneElement(children, {
+          <Fragment>
+            <ScrollToTop location={props.location} disable={() => false} />
+            {children && isValidElement(children)
+              ? cloneElement(children, {
                   ...other,
                   ...children.props,
                   project,
                   organization,
                 })
               : children}
-          </ScrollToTop>
+          </Fragment>
         );
       }}
     </Projects>
