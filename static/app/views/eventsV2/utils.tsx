@@ -3,7 +3,7 @@ import {Location, Query} from 'history';
 import Papa from 'papaparse';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import {Event} from 'sentry/types/event';
