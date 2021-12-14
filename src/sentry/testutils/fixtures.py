@@ -265,6 +265,9 @@ class Fixtures:
     def create_doc_integration(self, *args, **kwargs):
         return Factories.create_doc_integration(*args, **kwargs)
 
+    def create_doc_integration_features(self, *args, **kwargs):
+        return Factories.create_doc_integration_features(*args, **kwargs)
+
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
 
