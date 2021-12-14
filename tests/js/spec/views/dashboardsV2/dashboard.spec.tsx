@@ -81,4 +81,22 @@ describe('Dashboards > Dashboard', () => {
     wrapper.update();
     expect(mock).toHaveBeenCalled();
   });
+
+  it('displays widgets with drag handle when in edit mode', async () => {
+    const dashboardWithOneWidget = {...mockDashboard, widgets: [newWidget]};
+    const wrapper = mountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={dashboardWithOneWidget}
+        organization={initialData.organization}
+        onUpdate={() => undefined}
+        onSetWidgetToBeUpdated={() => undefined}
+        router={initialData.router}
+        location={initialData.location}
+        isEditing
+      />,
+      initialData.routerContext
+    );
+    expect(wrapper.find('StyledIconGrabbable')).toHaveLength(1);
+  });
 });
