@@ -1,6 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 
+import {TransactionMetric} from 'sentry/utils/metrics/fields';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
@@ -357,10 +358,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Worst LCP widget - metrics based', async function () {
+    const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP})`;
+
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.VitalByTransactionAndRating({measurement: 'lcp'}),
+      body: TestStubs.MetricsFieldByTransaction({
+        field,
+      }),
       match: [(...args) => !issuesPredicate(...args)],
     });
     const data = initializeData();
@@ -388,11 +393,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['count(measurements.lcp)'],
-          groupBy: ['transaction', 'measurement_rating'],
+          field: [field],
+          groupBy: ['transaction'],
           interval: '1h',
           limit: 3,
-          orderBy: 'count(measurements.lcp)',
+          orderBy: `-${field}`,
+          query: 'measurement_rating:poor',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -404,11 +410,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['count(measurements.lcp)'],
-          groupBy: ['measurement_rating'],
+          field: [field],
+          groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:/bar/:ordId/',
+          query: 'transaction:[/bar/:ordId/,/foo/:ordId/]',
           statsPeriod: '7d',
         }),
       })
@@ -460,10 +466,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Worst FCP widget - metrics based', async function () {
+    const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FCP})`;
+
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.VitalByTransactionAndRating({measurement: 'fcp'}),
+      body: TestStubs.MetricsFieldByTransaction({
+        field,
+      }),
       match: [(...args) => !issuesPredicate(...args)],
     });
     const data = initializeData();
@@ -491,11 +501,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['count(measurements.fcp)'],
-          groupBy: ['transaction', 'measurement_rating'],
+
+          field: [field],
+          groupBy: ['transaction'],
           interval: '1h',
           limit: 3,
-          orderBy: 'count(measurements.fcp)',
+          orderBy: `-${field}`,
+          query: 'measurement_rating:poor',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -507,11 +519,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['count(measurements.fcp)'],
-          groupBy: ['measurement_rating'],
+          field: [field],
+          groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:/bar/:ordId/',
+          query: 'transaction:[/bar/:ordId/,/foo/:ordId/]',
           statsPeriod: '7d',
         }),
       })
@@ -563,10 +575,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Worst FID widget - metrics based', async function () {
+    const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID})`;
+
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.VitalByTransactionAndRating({measurement: 'fid'}),
+      body: TestStubs.MetricsFieldByTransaction({
+        field,
+      }),
       match: [(...args) => !issuesPredicate(...args)],
     });
     const data = initializeData();
@@ -594,11 +610,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['count(measurements.fid)'],
-          groupBy: ['transaction', 'measurement_rating'],
+          field: [field],
+          groupBy: ['transaction'],
           interval: '1h',
           limit: 3,
-          orderBy: 'count(measurements.fid)',
+          orderBy: `-${field}`,
+          query: 'measurement_rating:poor',
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -610,11 +627,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['count(measurements.fid)'],
-          groupBy: ['measurement_rating'],
+          field: [field],
+          groupBy: ['transaction', 'measurement_rating'],
           interval: '1h',
           project: [-42],
-          query: 'transaction:/bar/:ordId/',
+          query: 'transaction:[/bar/:ordId/,/foo/:ordId/]',
           statsPeriod: '7d',
         }),
       })
@@ -665,20 +682,19 @@ describe('Performance > Widgets > WidgetContainer', function () {
     const data = initializeData();
 
     it('P50 Duration', async function () {
+      const field = `p50(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p50(transaction.duration)'}),
+        body: TestStubs.MetricsField({field}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
-          field: 'p50(transaction.duration)',
-          previousData: true,
-        }),
+        body: TestStubs.MetricsField({field}),
         match: [
           (...args) => {
             return (
@@ -705,7 +721,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p50 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -715,7 +731,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['p50(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -733,7 +749,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['p50(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -747,20 +763,19 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('P75 Duration', async function () {
+      const field = `p75(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p75(transaction.duration)'}),
+        body: TestStubs.MetricsField({field}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
-          field: 'p75(transaction.duration)',
-          previousData: true,
-        }),
+        body: TestStubs.MetricsField({field}),
         match: [
           (...args) => {
             return (
@@ -787,7 +802,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p75 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -797,7 +812,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['p75(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -815,7 +830,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['p75(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -829,20 +844,19 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('P95 Duration', async function () {
+      const field = `p95(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p95(transaction.duration)'}),
+        body: TestStubs.MetricsField({field}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
-          field: 'p95(transaction.duration)',
-          previousData: true,
-        }),
+        body: TestStubs.MetricsField({field}),
         match: [
           (...args) => {
             return (
@@ -869,7 +883,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p95 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -879,7 +893,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['p95(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -897,7 +911,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['p95(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -911,20 +925,19 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('P99 Duration', async function () {
+      const field = `p99(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p99(transaction.duration)'}),
+        body: TestStubs.MetricsField({field}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
-          field: 'p99(transaction.duration)',
-          previousData: true,
-        }),
+        body: TestStubs.MetricsField({field}),
         match: [
           (...args) => {
             return (
@@ -951,7 +964,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p99 Duration'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -961,7 +974,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['p99(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -979,7 +992,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['p99(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -993,20 +1006,19 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('P75 LCP', async function () {
+      const field = `p75(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP})`;
+
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'p75(measurements.lcp)'}),
+        body: TestStubs.MetricsField({field}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
-          field: 'p75(measurements.lcp)',
-          previousData: true,
-        }),
+        body: TestStubs.MetricsField({field}),
         match: [
           (...args) => {
             return (
@@ -1033,7 +1045,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'p75 LCP'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('51s');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534ms');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -1043,7 +1055,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['p75(measurements.lcp)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -1061,7 +1073,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['p75(measurements.lcp)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -1075,20 +1087,19 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('TPM', async function () {
+      const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({field: 'count(transaction.duration)'}),
+        body: TestStubs.MetricsField({field}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldArea({
-          field: 'count(transaction.duration)',
-          previousData: true,
-        }),
+        body: TestStubs.MetricsField({field}),
         match: [
           (...args) => {
             return (
@@ -1115,7 +1126,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
         'Transactions Per Minute'
       );
 
-      expect(wrapper.find('HighlightNumber').text()).toEqual('51,292.954');
+      expect(wrapper.find('HighlightNumber').text()).toEqual('534.302');
       expect(metricsMock).toHaveBeenCalledTimes(1);
       expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
 
@@ -1125,7 +1136,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['count(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -1143,7 +1154,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['count(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: undefined,
             orderBy: undefined,
@@ -1157,19 +1168,19 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     it('Failure Rate', async function () {
+      const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+
       metricsMock = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldAreaByTransactionStatus(),
+        body: TestStubs.MetricsFieldByTransactionStatus({field}),
         match: [(...args) => !issuesPredicate(...args)],
       });
 
       const metricsMockPreviousData = MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
-        body: TestStubs.SingleFieldAreaByTransactionStatus({
-          previousData: true,
-        }),
+        body: TestStubs.MetricsFieldByTransactionStatus({field}),
         match: [
           (...args) => {
             return (
@@ -1206,7 +1217,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['count(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: ['transaction.status'],
             orderBy: undefined,
@@ -1224,7 +1235,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: expect.objectContaining({
             project: [-42],
             environment: ['prod'],
-            field: ['count(transaction.duration)'],
+            field: [field],
             query: undefined,
             groupBy: ['transaction.status'],
             orderBy: undefined,
@@ -1456,18 +1467,19 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most slow frames widget - metrics based', async function () {
-    const field = 'avg(measurements.frames_slow)';
+    const field = `avg(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FRAMES_SLOW})`;
+
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.FieldByTransaction({field}),
+      body: TestStubs.MetricsFieldByTransaction({field}),
       match: [(...args) => !issuesPredicate(...args)],
     });
 
     const previousMetricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.FieldByTransaction({field}),
+      body: TestStubs.MetricsFieldByTransaction({field}),
       match: [
         (...args) => {
           return (
@@ -1507,7 +1519,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           groupBy: ['transaction'],
           interval: '1h',
           limit: 3,
-          orderBy: field,
+          orderBy: `-${field}`,
           project: [-42],
           statsPeriod: '7d',
         }),
@@ -1589,18 +1601,19 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most frozen frames widget - metrics based', async function () {
-    const field = 'avg(measurements.frames_frozen)';
+    const field = `avg(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FRAMES_FROZEN})`;
+
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.FieldByTransaction({field}),
+      body: TestStubs.MetricsFieldByTransaction({field}),
       match: [(...args) => !issuesPredicate(...args)],
     });
 
     const previousMetricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.FieldByTransaction({field}),
+      body: TestStubs.MetricsFieldByTransaction({field}),
       match: [
         (...args) => {
           return (
@@ -1640,7 +1653,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           groupBy: ['transaction'],
           interval: '1h',
           limit: 3,
-          orderBy: field,
+          orderBy: `-${field}`,
           project: [-42],
           statsPeriod: '7d',
         }),

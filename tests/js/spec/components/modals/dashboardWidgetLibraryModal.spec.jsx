@@ -55,12 +55,14 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     // Checking initial modal states
     container = mountModal({initialData});
 
-    expect(screen.queryByText('All Events')).toBeInTheDocument();
-    expect(screen.queryByText('Total Errors')).toBeInTheDocument();
-    expect(screen.queryByText('Affected Users')).toBeInTheDocument();
-    expect(screen.queryByText('Handled vs. Unhandled')).toBeInTheDocument();
-    expect(screen.queryByText('Errors by Country')).toBeInTheDocument();
-    expect(screen.queryByText('Errors by Browser')).toBeInTheDocument();
+    expect(screen.queryByText('Duration Distribution')).toBeInTheDocument();
+    expect(screen.queryByText('High Throughput Transactions')).toBeInTheDocument();
+    expect(screen.queryByText('LCP by Country')).toBeInTheDocument();
+    expect(screen.queryByText('Miserable Users')).toBeInTheDocument();
+    expect(screen.queryByText('Slow vs Fast Transactions')).toBeInTheDocument();
+    expect(screen.queryByText('Top Issues')).toBeInTheDocument();
+    expect(screen.queryByText('Top Unhandled Error Types')).toBeInTheDocument();
+    expect(screen.queryByText('Users Affected by Errors')).toBeInTheDocument();
 
     expect(
       screen.getByRole('button', {name: 'Widget Library', current: true})
@@ -92,7 +94,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     ]);
 
     // Select some widgets
-    const allEvents = screen.queryByText('All Events');
+    const allEvents = screen.queryByText('High Throughput Transactions');
     userEvent.click(allEvents);
 
     expect(screen.getByTestId('confirm-widgets')).toBeEnabled();
@@ -115,19 +117,19 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
         title: 'Errors',
       }),
       {
-        displayType: 'area',
+        displayType: 'top_n',
         id: undefined,
         interval: '5m',
-        description: 'Area chart reflecting all error and transaction events.',
+        description: 'Top 5 transactions with the largest volume.',
         queries: [
           {
-            conditions: '!event.type:transaction',
-            fields: ['count()'],
+            conditions: '!event.type:error',
+            fields: ['transaction', 'count()'],
             name: '',
-            orderby: '',
+            orderby: '-count',
           },
         ],
-        title: 'All Events',
+        title: 'High Throughput Transactions',
         widgetType: 'discover',
       },
     ]);
@@ -156,10 +158,10 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     container = mountModal({initialData}, mockApply, closeModal);
 
     // Select some widgets
-    const allEvents = screen.queryByText('All Events');
+    const allEvents = screen.queryByText('High Throughput Transactions');
     userEvent.click(allEvents);
 
-    const totalErrors = screen.queryByText('Total Errors');
+    const totalErrors = screen.queryByText('Users Affected by Errors');
     userEvent.click(totalErrors);
 
     expect(screen.getByTestId('confirm-widgets')).toBeDisabled();

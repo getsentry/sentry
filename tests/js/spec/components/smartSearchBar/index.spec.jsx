@@ -374,6 +374,30 @@ describe('SmartSearchBar', function () {
     });
   });
 
+  describe('onPaste()', function () {
+    it('trims pasted content', function () {
+      const onChange = jest.fn();
+      const wrapper = mountWithTheme(
+        <SmartSearchBar
+          organization={organization}
+          location={location}
+          supportedTags={supportedTags}
+          onChange={onChange}
+        />,
+        options
+      );
+      wrapper.setState({inputHasFocus: true});
+
+      const input = ' something ';
+      wrapper
+        .find('textarea')
+        .simulate('paste', {clipboardData: {getData: () => input, value: input}});
+      wrapper.update();
+
+      expect(onChange).toHaveBeenCalledWith('something', expect.anything());
+    });
+  });
+
   describe('onKeyUp()', function () {
     describe('escape', function () {
       it('blurs the textarea', function () {

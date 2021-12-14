@@ -2,10 +2,14 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {explodeField, generateFieldAsString} from 'sentry/utils/discover/fields';
+import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -15,6 +19,7 @@ import Field from 'sentry/views/settings/components/forms/field';
 import WidgetQueryFields from './widgetQueryFields';
 
 type Props = {
+  api: Client;
   organization: Organization;
   selection: GlobalSelection;
   query: WidgetQuery;
@@ -48,6 +53,19 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
       const newQuery = {...widgetQuery, [field]: value};
       onChange(newQuery);
     };
+  };
+
+  tagValueLoader = (key: string, search: string) => {
+    const {organization, selection, api} = this.props;
+    const orgId = organization.slug;
+    const projectIds = selection.projects.map(id => id.toString());
+    const endpointParams = {
+      start: getUtcDateString(selection.datetime.start),
+      end: getUtcDateString(selection.datetime.end),
+      statsPeriod: selection.datetime.period,
+    };
+
+    return fetchTagValues(api, orgId, key, search, projectIds, endpointParams);
   };
 
   render() {
@@ -91,8 +109,7 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
               }}
               excludeEnvironment
               supportedTags={tags}
-              tagValueLoader={() => new Promise(() => [])}
-              savedSearch={undefined}
+              tagValueLoader={this.tagValueLoader}
               onSidebarToggle={() => undefined}
             />
           </SearchConditionsWrapper>
@@ -137,4 +154,4 @@ const StyledIssueListSearchBar = styled(IssueListSearchBar)`
   }
 `;
 
-export default withIssueTags(IssueWidgetQueriesForm);
+export default withApi(withIssueTags(IssueWidgetQueriesForm));

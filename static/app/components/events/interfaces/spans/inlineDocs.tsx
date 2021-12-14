@@ -1,3 +1,5 @@
+import 'prism-sentry/index.css';
+
 import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';

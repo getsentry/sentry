@@ -188,7 +188,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/integrations/                     @getsentry/ecosystem
 /src/sentry/mail/                             @getsentry/ecosystem
 /src/sentry/mediators/                        @getsentry/ecosystem
-/src/sentry/notifications/                    @getsentry/ecosystem
+/src/sentry/notifications/                    @getsentry/ecosystem @getsentry/growth
 /src/sentry/plugins/                          @getsentry/ecosystem
 /src/sentry/ratelimits/                       @getsentry/ecosystem
 /src/sentry/shared_integrations/              @getsentry/ecosystem
@@ -258,9 +258,12 @@ build-utils/        @getsentry/owners-js-build
 
 ### Workflow ###
 
-/src/sentry/api/endpoints/organization_activity.py  @getsentry/workflow
-/src/sentry/api/endpoints/organization_searches.py  @getsentry/workflow
-/src/sentry/tasks/releasemonitor.py                 @getsentry/workflow
+/src/sentry/api/endpoints/organization_activity.py    @getsentry/workflow
+/src/sentry/api/endpoints/organization_searches.py    @getsentry/workflow
+/src/sentry/tasks/releasemonitor.py                   @getsentry/workflow
+
+/static/app/views/organizationStats/teamInsights      @getsentry/workflow
+/tests/js/spec/views/organizationStats/teamInsights/  @getsentry/workflow
 
 ## End of Workflow ##
 
