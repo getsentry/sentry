@@ -3,7 +3,7 @@ import time
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 
-from sentry import options
+from sentry import features, options
 from sentry.app import ratelimiter
 from sentry.models import Authenticator
 from sentry.utils import auth, json
@@ -17,6 +17,14 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 
 class TwoFactorAuthView(BaseView):
     auth_required = False
+
+    def _is_webauthn_signin_ff_enabled(self, user, request_user):
+        orgs = user.get_orgs()
+        if any(
+            features.has("organizations:webauthn-login", org, actor=request_user) for org in orgs
+        ):
+            return True
+        return False
 
     def perform_signin(self, request, user, interface=None):
         assert auth.login(request, user, passed_2fa=True)
@@ -142,12 +150,15 @@ class TwoFactorAuthView(BaseView):
                 return self.perform_signin(request, user, used_interface)
             self.fail_signin(request, user, form)
 
-        # If a challenge and response exists, validate
+        # check if webauthn-login feature flag is enabled for frontend
+        webauthn_signin_ff = self._is_webauthn_signin_ff_enabled(user, request.user)
+
+        #  If a challenge and response exists, validate
         if challenge:
             response = request.POST.get("response")
             if response:
                 response = json.loads(response)
-                if interface.validate_response(request, challenge, response):
+                if interface.validate_response(request, challenge, response, webauthn_signin_ff):
                     return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
 
@@ -158,6 +169,7 @@ class TwoFactorAuthView(BaseView):
                 "interface": interface,
                 "other_interfaces": self.get_other_interfaces(interface, interfaces),
                 "activation": activation,
+                "isWebauthnSigninFFEnabled": webauthn_signin_ff,
             },
             request,
             status=200,

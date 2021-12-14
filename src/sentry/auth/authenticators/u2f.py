@@ -3,6 +3,10 @@ from time import time
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from fido2.client import ClientData
+from fido2.ctap2 import AuthenticatorData, base
+from fido2.server import U2FFido2Server
+from fido2.utils import websafe_decode
 from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
@@ -99,9 +103,11 @@ class U2fInterface(AuthenticatorInterface):
 
     def activate(self, request):
         challenge = dict(u2f.begin_authentication(self.u2f_app_id, self.get_u2f_devices()))
+
         # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
         # format. Our current js u2f library expects the old format, so
         # massaging the data to include the old `authenticateRequests` key here.
+
         authenticate_requests = []
         for registered_key in challenge["registeredKeys"]:
             authenticate_requests.append(
@@ -116,9 +122,35 @@ class U2fInterface(AuthenticatorInterface):
 
         return ActivationChallengeResult(challenge=challenge)
 
-    def validate_response(self, request, challenge, response):
+    def validate_response(self, request, challenge, response, is_webauthn_signin_ff_enabled):
         try:
-            u2f.complete_authentication(challenge, response, self.u2f_facets)
+            if not is_webauthn_signin_ff_enabled:
+                u2f.complete_authentication(challenge, response, self.u2f_facets)
+                return True
+            # TODO change rp.id later when register is implemented
+            server = U2FFido2Server(
+                app_id=challenge["appId"],
+                rp={"id": challenge["appId"], "name": "Sentry"},
+            )
+            state = {
+                "challenge": challenge["challenge"],
+                "user_verification": None,
+            }
+            credentials = []
+            for registeredKey in challenge["registeredKeys"]:
+                c = base.AttestedCredentialData.from_ctap1(
+                    websafe_decode(registeredKey["keyHandle"]),
+                    websafe_decode(registeredKey["publicKey"]),
+                )
+                credentials.append(c)
+            server.authenticate_complete(
+                state=state,
+                credentials=credentials,
+                credential_id=websafe_decode(response["keyHandle"]),
+                client_data=ClientData(websafe_decode(response["clientData"])),
+                auth_data=AuthenticatorData(websafe_decode(response["authenticatorData"])),
+                signature=websafe_decode(response["signatureData"]),
+            )
         except (InvalidSignature, InvalidKey, StopIteration):
             return False
         return True
