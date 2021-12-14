@@ -279,17 +279,14 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         interval: widgetData.interval,
         title: widgetData.title,
         ...queryData,
+        // Propagate global header selection
+        ...selection.datetime,
+        project: selection.projects,
+        environment: selection.environments,
       };
 
       trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.confirm', {
         organization,
-      });
-
-      // Propagate global header selection
-      Object.assign(pathQuery, {
-        ...selection.datetime,
-        project: selection.projects,
-        environment: selection.environments,
       });
 
       if (selectedDashboard.value === 'new') {

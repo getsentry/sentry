@@ -8,7 +8,7 @@ import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 describe('Dashboards > ViewEditDashboard', function () {
   const initialData = initializeOrg();
 
-  it('removes widget params from url and preserves selection params', async function () {
+  it('removes widget params from url and preserves selection params', function () {
     const location = {
       pathname: '/',
       query: {
@@ -44,8 +44,7 @@ describe('Dashboards > ViewEditDashboard', function () {
       </ViewEditDashboard>
     );
 
-    expect(browserHistory.replace).toHaveBeenNthCalledWith(
-      1,
+    expect(browserHistory.replace).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/',
         query: {
