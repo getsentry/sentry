@@ -68,25 +68,20 @@ class TeamIssuesAge extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, teamSlug} = this.props;
 
-    const query = {
-      limit: '7',
-      query: `is:unresolved assigned:#${teamSlug}`,
-      sort: 'new',
-      statsPeriod: '14d',
-    };
-
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
-      ['oldestIssues', `/organizations/${organization.slug}/issues/`, {query}],
+    return [
+      [
+        'oldestIssues',
+        `/teams/${organization.slug}/${teamSlug}/issues/old/`,
+        {query: {limit: 7}},
+      ],
       [
         'unresolvedIssueAge',
         `/teams/${organization.slug}/${teamSlug}/unresolved-issue-age/`,
       ],
     ];
-
-    return endpoints;
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -135,7 +130,7 @@ class TeamIssuesAge extends AsyncComponent<Props, State> {
               }}
               series={[
                 {
-                  seriesName: t('This Period'),
+                  seriesName: t('Unresolved Issues'),
                   silent: true,
                   data: seriesData,
                 },

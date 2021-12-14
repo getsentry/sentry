@@ -25,7 +25,7 @@ describe('TeamIssuesAge', () => {
       },
     });
     const issuesApi = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/`,
+      url: `/teams/${organization.slug}/${team.slug}/issues/old/`,
       body: [TestStubs.Group()],
     });
     mountWithTheme(<TeamIssuesAge organization={organization} teamSlug={team.slug} />);
