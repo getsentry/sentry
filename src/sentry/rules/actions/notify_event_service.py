@@ -148,9 +148,9 @@ class NotifyEventServiceAction(EventAction):
         }
 
     def transform_title(self, title):
-        if title not in PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS:
-            return title
-        return "(Legacy) " + title
+        if title in PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS:
+            return f"(Legacy) {title}"
+        return title
 
     def after(self, event, state):
         service = self.get_option("service")
