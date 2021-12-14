@@ -541,6 +541,7 @@ class PostProcessGroupTest(TestCase):
 class PostProcessGroupAssignmentTest(TestCase):
     def make_ownership(self, extra_rules=None):
         self.user_2 = self.create_user()
+        self.create_team_membership(team=self.team, user=self.user_2)
         rules = [
             Rule(Matcher("path", "src/app/*"), [Owner("team", self.team.name)]),
             Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)]),
@@ -719,6 +720,51 @@ class PostProcessGroupAssignmentTest(TestCase):
         assignee = event.group.assignee_set.first()
         assert assignee.user is None
         assert assignee.team == self.team
+
+    def test_only_first_assignment_works(self):
+        self.make_ownership()
+        event = self.store_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user == self.user
+        assert assignee.team is None
+
+        event = self.store_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "tests/src/app/test_example.py"}]},
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assignee = event.group.assignee_set.first()
+        # Assignment shouldn't change.
+        assert assignee.user == self.user
+        assert assignee.team is None
 
     def test_owner_assignment_owner_is_gone(self):
         self.make_ownership()
