@@ -284,7 +284,9 @@ class Dashboard extends Component<Props, State> {
           // to mobile view
           if (newWidth <= MOBILE_BREAKPOINT + 50) {
             this.setState({isMobile: true});
+            return;
           }
+          this.setState({isMobile: false});
         }}
         isDraggable={canModifyLayout}
         isResizable={canModifyLayout}
@@ -366,7 +368,7 @@ function getMobileLayout(desktopLayout, widgets) {
     return layout.i !== constructGridItemKey(widget);
   };
   if (layoutWidgetPairs.some(checkIdsMismatch)) {
-    throw new Error('They keys mismatch');
+    throw new Error('The keys mismatch');
   }
 
   // Sort by y and then subsort by x
