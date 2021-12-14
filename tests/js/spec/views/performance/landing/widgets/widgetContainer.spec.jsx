@@ -363,7 +363,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByTransactionAndRating({
+      body: TestStubs.MetricsFieldByTransaction({
         field,
       }),
       match: [(...args) => !issuesPredicate(...args)],
@@ -471,7 +471,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByTransactionAndRating({
+      body: TestStubs.MetricsFieldByTransaction({
         field,
       }),
       match: [(...args) => !issuesPredicate(...args)],
@@ -580,7 +580,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByTransactionAndRating({
+      body: TestStubs.MetricsFieldByTransaction({
         field,
       }),
       match: [(...args) => !issuesPredicate(...args)],
