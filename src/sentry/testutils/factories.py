@@ -880,41 +880,37 @@ class Factories:
             "author": kwargs.get("author", "me"),
             "description": kwargs.get("description", "hi im a description"),
             "url": kwargs.get("url", "https://sentry.io"),
-            "popularity" "is_draft": kwargs.get("is_draft", True),
+            "popularity": kwargs.get("popularity", 1),
+            "is_draft": kwargs.get("is_draft", True),
             "metadata": kwargs.get("metadata", {}),
         }
         _kwargs["slug"] = slugify(_kwargs["name"])
+        _kwargs.update(**kwargs)
+        return _kwargs
 
     @staticmethod
-    def create_doc_integration(**kwargs):
-        return DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
+    def create_doc_integration(features=None, **kwargs):
+        doc = DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
+        if features:
+            Factories.create_doc_integration_features(features=features, doc_integration=doc)
+        return doc
 
     @staticmethod
-    def create_doc_integration_feature(feature=None, doc_integration=None):
+    def create_doc_integration_features(features=None, doc_integration=None):
+        if not features:
+            features = [Feature.API]
         if not doc_integration:
             doc_integration = Factories.create_doc_integration()
-
-        return IntegrationFeature.objects.create(
-            target_id=doc_integration.id,
-            target_type=IntegrationTypes.DOC_INTEGRATION.value,
-            feature=feature or Feature.API,
+        return IntegrationFeature.objects.bulk_create(
+            [
+                IntegrationFeature(
+                    target_id=doc_integration.id,
+                    target_type=IntegrationTypes.DOC_INTEGRATION.value,
+                    feature=feature,
+                )
+                for feature in features
+            ]
         )
-
-    # def _sentry_app_kwargs(**kwargs):
-    #     _kwargs = {
-    #         "user": kwargs.get("user", Factories.create_user()),
-    #         "name": kwargs.get("name", petname.Generate(2, " ", letters=10).title()),
-    #         "organization": kwargs.get("organization", Factories.create_organization()),
-    #         "author": kwargs.get("author", "A Company"),
-    #         "scopes": kwargs.get("scopes", ()),
-    #         "verify_install": kwargs.get("verify_install", True),
-    #         "webhook_url": kwargs.get("webhook_url", "https://example.com/webhook"),
-    #         "events": [],
-    #         "schema": {},
-    #     }
-
-    #     _kwargs.update(**kwargs)
-    #     return _kwargs
 
     @staticmethod
     def create_userreport(group, project=None, event_id=None, **kwargs):
