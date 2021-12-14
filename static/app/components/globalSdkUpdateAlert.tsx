@@ -15,7 +15,7 @@ import {
   ProjectSdkUpdates,
   SDKUpdatesSuggestion,
 } from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
@@ -42,25 +42,13 @@ type AnalyticsOpts = {
 };
 
 const recordAnalyticsSeen = ({organization}: AnalyticsOpts) =>
-  trackAnalyticsEvent({
-    eventKey: 'sdk_updates.seen',
-    eventName: 'SDK Updates: Seen',
-    organization_id: organization.id,
-  });
+  trackAdvancedAnalyticsEvent('sdk_updates.seen', {organization});
 
 const recordAnalyticsSnoozed = ({organization}: AnalyticsOpts) =>
-  trackAnalyticsEvent({
-    eventKey: 'sdk_updates.snoozed',
-    eventName: 'SDK Updates: Snoozed',
-    organization_id: organization.id,
-  });
+  trackAdvancedAnalyticsEvent('sdk_updates.snoozed', {organization});
 
 const recordAnalyticsClicked = ({organization}: AnalyticsOpts) =>
-  trackAnalyticsEvent({
-    eventKey: 'sdk_updates.clicked',
-    eventName: 'SDK Updates: Clicked',
-    organization_id: organization.id,
-  });
+  trackAdvancedAnalyticsEvent('sdk_updates.clicked', {organization});
 
 const flattenSuggestions = (list: ProjectSdkUpdates[]) =>
   list.reduce<SDKUpdatesSuggestion[]>(

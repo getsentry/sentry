@@ -87,6 +87,9 @@ export type GrowthEventParameters = {
   'invite_modal.invites_sent': InviteModal;
   'invite_modal.requests_sent': InviteModal;
   'invite_modal.add_more': InviteModal;
+  'sdk_updates.seen': {};
+  'sdk_updates.snoozed': {};
+  'sdk_updates.clicked': {};
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -131,4 +134,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'invite_modal.add_more': 'Invite Modal: Add More',
   'invite_modal.invites_sent': 'Invite Modal: Invites Sent',
   'invite_modal.requests_sent': 'Invite Modal: Requests Sent',
+  'sdk_updates.seen': 'SDK Updates: Seen',
+  'sdk_updates.snoozed': 'SDK Updates: Snoozed',
+  'sdk_updates.clicked': 'SDK Updates: Clicked',
 };
