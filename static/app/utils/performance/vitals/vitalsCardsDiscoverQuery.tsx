@@ -47,6 +47,7 @@ type Props = RequestProps & {
 function getRequestPayload(props: RequestProps) {
   const {eventView, vitals} = props;
   const apiPayload = eventView?.getEventsAPIPayload(props.location);
+
   return {
     vital: vitals,
     ...pick(apiPayload, ['query', ...Object.values(PERFORMANCE_URL_PARAM)]),

@@ -53,7 +53,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
       }) => (
         <MetricsRequest
           api={api}
-          organization={organization}
+          orgSlug={organization.slug}
           start={start}
           end={end}
           statsPeriod={period}

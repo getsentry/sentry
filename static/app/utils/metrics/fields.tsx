@@ -29,6 +29,13 @@ export enum TransactionMetric {
   SENTRY_TRANSACTIONS_TRANSACTION_DURATION = 'sentry.transactions.transaction.duration',
 }
 
+export const webVitalMetrics = [
+  TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FCP,
+  TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP,
+  TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID,
+  TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS,
+];
+
 export const METRIC_TO_COLUMN_TYPE: Readonly<
   Record<SessionMetric | TransactionMetric, ColumnType>
 > = {

@@ -14,7 +14,7 @@ type Props = {
   hideDurationDetail?: boolean;
 };
 
-export default function vitalInfo(props: Props) {
+export default function VitalInfo(props: Props) {
   const {
     vital,
     location,

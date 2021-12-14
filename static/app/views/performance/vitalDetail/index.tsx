@@ -21,6 +21,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 
 import {generatePerformanceVitalDetailView} from '../data';
+import {MetricsSwitchContext} from '../metricsSwitch';
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
 
 import VitalDetailContent from './vitalDetailContent';
@@ -99,10 +100,6 @@ class VitalDetail extends Component<Props, State> {
     }
 
     const vitalNameQuery = decodeScalar(location.query.vitalName);
-    const vitalName =
-      Object.values(WebVital).indexOf(vitalNameQuery as WebVital) === -1
-        ? undefined
-        : (vitalNameQuery as WebVital);
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
@@ -110,13 +107,23 @@ class VitalDetail extends Component<Props, State> {
           <GlobalSelectionHeader>
             <StyledPageContent>
               <NoProjectMessage organization={organization}>
-                <VitalDetailContent
-                  location={location}
-                  organization={organization}
-                  eventView={eventView}
-                  router={router}
-                  vitalName={vitalName || WebVital.LCP}
-                />
+                <MetricsSwitchContext.Consumer>
+                  {({isMetricsData}) => (
+                    <VitalDetailContent
+                      location={location}
+                      organization={organization}
+                      eventView={eventView}
+                      router={router}
+                      isMetricsData={isMetricsData}
+                      vitalName={
+                        (vitalNameQuery &&
+                        Object.values(WebVital).indexOf(vitalNameQuery as WebVital) !== -1
+                          ? vitalNameQuery
+                          : WebVital.LCP) as WebVital
+                      }
+                    />
+                  )}
+                </MetricsSwitchContext.Consumer>
               </NoProjectMessage>
             </StyledPageContent>
           </GlobalSelectionHeader>

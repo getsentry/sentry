@@ -48,6 +48,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   const {ContainerActions, eventView, organization, location, chartSetting} = props;
   const [selectedListIndex, setSelectListIndex] = useState(0);
   const field = props.fields[0];
+
   const vital = settingToVital[chartSetting];
 
   const Queries = {
@@ -57,7 +58,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         component: ({start, end, period, project, environment, children, fields}) => (
           <MetricsRequest
             api={api}
-            organization={organization}
+            orgSlug={organization.slug}
             start={start}
             end={end}
             statsPeriod={period}
@@ -96,7 +97,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         }) => (
           <MetricsRequest
             api={api}
-            organization={organization}
+            orgSlug={organization.slug}
             start={start}
             end={end}
             statsPeriod={period}
@@ -275,7 +276,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   );
 }
 
-function getVitalData(
+export function getVitalData(
   transaction: string,
   field: string,
   response: MetricsApiResponse | null
