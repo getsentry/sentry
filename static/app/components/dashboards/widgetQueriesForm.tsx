@@ -50,7 +50,7 @@ type Props = {
  * callback. This component's state should live in the parent.
  */
 class WidgetQueriesForm extends React.Component<Props> {
-  blurTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
+  blurTimeout: number | null = null;
 
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
@@ -117,8 +117,8 @@ class WidgetQueriesForm extends React.Component<Props> {
                     // this, we set a timer in our onSearch handler to block our onBlur
                     // handler from firing if it is within 200ms, ie from clicking an
                     // autocomplete value.
-                    this.blurTimeout = setTimeout(() => {
-                      this.blurTimeout = undefined;
+                    this.blurTimeout = window.setTimeout(() => {
+                      this.blurTimeout = null;
                     }, 200);
                     return this.handleFieldChange(queryIndex, 'conditions')(field);
                   }}
