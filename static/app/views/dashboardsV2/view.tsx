@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
@@ -43,13 +44,7 @@ function ViewEditDashboard(props: Props) {
     if (constructedWidget) {
       browserHistory.replace({
         pathname: location.pathname,
-        query: {
-          ...Object.keys(location.query)
-            .filter(key => ALLOWED_PARAMS.includes(key))
-            .reduce((acc, key) => {
-              return {...acc, [key]: location.query[key]};
-            }, {}),
-        },
+        query: pick(location.query, ALLOWED_PARAMS),
       });
     }
   }, [api, orgSlug, dashboardId]);
