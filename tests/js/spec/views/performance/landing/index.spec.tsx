@@ -34,7 +34,7 @@ describe('Performance > Landing > Index', function () {
   let eventsV2Mock: any;
   let wrapper: any;
 
-  act(() => void TeamStore.loadInitialData([]));
+  act(() => void TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
