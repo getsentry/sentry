@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import datetime
 from typing import List, Mapping, Optional, Union
 
@@ -11,3 +12,6 @@ ParamsType = Mapping[str, Union[List[int], int, str, datetime]]
 SelectType = Union[Column, Function, CurriedFunction]
 
 NormalizedArg = Optional[Union[str, float]]
+HistogramParams = namedtuple(
+    "HistogramParams", ["num_buckets", "bucket_size", "start_offset", "multiplier"]
+)

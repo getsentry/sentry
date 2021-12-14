@@ -258,6 +258,7 @@ describe('Dashboards > Detail', function () {
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
+        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -278,6 +279,11 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/issues/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -291,7 +297,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: {widgets: [widgets[0]]},
+        body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
       wrapper = mountWithTheme(
         <ViewEditDashboard
@@ -592,86 +598,22 @@ describe('Dashboards > Detail', function () {
                 type: 'line',
               },
               {
-                displayType: 'area',
+                displayType: 'top_n',
                 id: undefined,
-                description: 'Area chart reflecting all error and transaction events.',
                 interval: '5m',
+                description: 'Top 5 transactions with the largest volume.',
                 queries: [
                   {
-                    conditions: '!event.type:transaction',
-                    fields: ['count()'],
+                    conditions: '!event.type:error',
+                    fields: ['transaction', 'count()'],
                     name: '',
-                    orderby: '',
+                    orderby: '-count',
                   },
                 ],
-                title: 'All Events',
+                title: 'High Throughput Transactions',
                 widgetType: 'discover',
               },
             ],
-          }),
-        })
-      );
-    });
-
-    it('adds an Issue widget to the dashboard', async function () {
-      initialData = initializeOrg({
-        organization: TestStubs.Organization({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-            'issues-in-dashboards',
-            'dashboard-grid-layout',
-          ],
-          projects: [TestStubs.Project()],
-        }),
-      });
-
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      // Enter Add Issue Widget mode
-      wrapper
-        .find('Controls Button[data-test-id="dashboard-add-issues-widget"]')
-        .simulate('click');
-
-      const modal = await mountGlobalModal();
-      await tick();
-      await modal.update();
-
-      modal.find('ModalBody input').simulate('change', {target: {value: 'Issue Widget'}});
-      modal.find('ModalFooter button').simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('DashboardDetail').state().dashboardState).toEqual(
-        DashboardState.VIEW
-      );
-      expect(mockPut).toHaveBeenCalledTimes(1);
-      expect(mockPut).toHaveBeenCalledWith(
-        '/organizations/org-slug/dashboards/1/',
-        expect.objectContaining({
-          data: expect.objectContaining({
-            widgets: expect.arrayContaining([
-              {
-                displayType: 'table',
-                interval: '5m',
-                queries: [{conditions: '', fields: [], name: '', orderby: ''}],
-                title: 'Issue Widget',
-                widgetType: 'issue',
-              },
-            ]),
           }),
         })
       );
