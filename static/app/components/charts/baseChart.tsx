@@ -366,7 +366,7 @@ function BaseChartUnwrapped({
               type: 'solid',
               width: 1.5,
             },
-            data: [{yAxis: s?.data?.[0][1]}],
+            data: [{yAxis: s?.data?.[0]?.[1]}],
             label: {
               show: false,
             },
