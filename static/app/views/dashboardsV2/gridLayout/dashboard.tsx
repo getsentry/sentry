@@ -356,17 +356,6 @@ function getMobileLayout(desktopLayout, widgets) {
 
   const layoutWidgetPairs = zip(survivingLayouts, widgets);
 
-  const checkIdsMismatch = ([layout, widget]) => {
-    if (!layout) {
-      // Newly added widget, there might not be a layout entry yet
-      return false;
-    }
-    return layout.i !== constructGridItemKey(widget);
-  };
-  if (layoutWidgetPairs.some(checkIdsMismatch)) {
-    throw new Error('The keys mismatch');
-  }
-
   // Sort by y and then subsort by x
   const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']) as [Layout, Widget][];
 
