@@ -15,7 +15,7 @@ import {
   ResolutionStatusDetails,
   UpdateResolutionStatus,
 } from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatVersion} from 'sentry/utils/formatters';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -52,11 +52,9 @@ class ResolveActions extends React.Component<Props> {
       status: ResolutionStatus.RESOLVED,
       statusDetails,
     });
-    trackAnalyticsEvent({
-      eventKey: 'resolve_issue',
-      eventName: 'Resolve Issue',
+    trackAdvancedAnalyticsEvent('resolve_issue', {
+      organization,
       release: 'anotherExisting',
-      organization_id: organization.id,
     });
   }
 
@@ -69,11 +67,9 @@ class ResolveActions extends React.Component<Props> {
           inRelease: latestRelease ? latestRelease.version : 'latest',
         },
       });
-    trackAnalyticsEvent({
-      eventKey: 'resolve_issue',
-      eventName: 'Resolve Issue',
+    trackAdvancedAnalyticsEvent('resolve_issue', {
+      organization,
       release: 'current',
-      organization_id: organization.id,
     });
   };
 
@@ -86,11 +82,9 @@ class ResolveActions extends React.Component<Props> {
           inNextRelease: true,
         },
       });
-    trackAnalyticsEvent({
-      eventKey: 'resolve_issue',
-      eventName: 'Resolve Issue',
+    trackAdvancedAnalyticsEvent('resolve_issue', {
+      organization,
       release: 'next',
-      organization_id: organization.id,
     });
   };
 
