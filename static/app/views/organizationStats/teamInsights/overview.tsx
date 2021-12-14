@@ -304,7 +304,7 @@ function TeamInsightsOverview({location, router}: Props) {
                 location={location}
               />
             </DescriptionCard>
-            {!isInsightsV2 && (
+            {isInsightsV2 && (
               <DescriptionCard
                 title={t('Age of Unresolved Issues')}
                 description={t(
