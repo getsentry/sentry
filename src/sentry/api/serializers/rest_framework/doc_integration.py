@@ -70,3 +70,25 @@ class DocIntegrationSerializer(Serializer):
                 ]
             )
         return doc_integration
+
+    def update(
+        self, doc_integration: DocIntegration, validated_data: MutableMapping[str, Any]
+    ) -> DocIntegration:
+        features = validated_data.pop("features")
+        # Delete any unused features
+        unused_features = IntegrationFeature.objects.filter(
+            target_id=doc_integration.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+        ).exclude(feature__in=features)
+        for unused_feature in unused_features:
+            unused_feature.delete()
+        # Create any new features
+        for feature in features:
+            IntegrationFeature.objects.get_or_create(
+                target_id=doc_integration.id,
+                target_type=IntegrationTypes.DOC_INTEGRATION.value,
+                feature=feature,
+            )
+        # Update the DocIntegration
+        for key, value in validated_data.items():
+            setattr(doc_integration, key, value)
+        doc_integration.save()
