@@ -44,12 +44,9 @@ class RatelimitMiddleware(MiddlewareMixin):
             request.will_be_rate_limited = True
             enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
             if enforce_rate_limit:
-                error_message = getattr(
-                    view_func.view_class, "rate_limit_error_message", DEFAULT_ERROR_MESSAGE
-                )
                 return HttpResponse(
                     {
-                        "detail": error_message.format(
+                        "detail": DEFAULT_ERROR_MESSAGE.format(
                             limit=rate_limit_check_dict["limit"],
                             window=rate_limit_check_dict["window"],
                         )
