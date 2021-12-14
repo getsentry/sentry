@@ -400,6 +400,7 @@ from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_alerts_triggered import TeamAlertsTriggeredEndpoint
 from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
+from .endpoints.team_groups_old import TeamGroupsOldEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
 from .endpoints.team_notification_settings_details import TeamNotificationSettingsDetailsEndpoint
@@ -1517,6 +1518,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/$",
                     TeamDetailsEndpoint.as_view(),
                     name="sentry-api-0-team-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issues/old/$",
+                    TeamGroupsOldEndpoint.as_view(),
+                    name="sentry-api-0-team-oldest-issues",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/release-count/$",
