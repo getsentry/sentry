@@ -16,7 +16,7 @@ import {
   ErrorTitle,
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {PAGE_URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconAnchor, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';

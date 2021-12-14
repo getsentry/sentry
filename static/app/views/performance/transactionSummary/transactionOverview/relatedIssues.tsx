@@ -9,7 +9,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';

@@ -26,7 +26,7 @@ import {
   generateIssueEventTarget,
   generateTraceTarget,
 } from 'sentry/components/quickTrace/utils';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAnchor, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';

@@ -33,7 +33,7 @@ import {
 } from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {GlobalSelection, Organization, SessionApiResponse} from 'sentry/types';

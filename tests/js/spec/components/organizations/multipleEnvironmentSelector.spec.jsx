@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('MultipleEnvironmentSelector', function () {

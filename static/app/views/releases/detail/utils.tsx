@@ -4,7 +4,7 @@ import moment from 'moment';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
   Commit,

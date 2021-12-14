@@ -9,7 +9,7 @@ import Link from 'sentry/components/links/link';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import PlatformList from 'sentry/components/platformList';
 import Tooltip from 'sentry/components/tooltip';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {growIn} from 'sentry/styles/animations';

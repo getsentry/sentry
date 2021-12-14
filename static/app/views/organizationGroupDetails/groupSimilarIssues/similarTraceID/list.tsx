@@ -14,7 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import StreamGroup from 'sentry/components/stream/group';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {GroupResolution} from 'sentry/types';

@@ -12,7 +12,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
-import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';

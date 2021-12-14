@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import Duration from 'sentry/components/duration';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {
   GlobalSelection,
