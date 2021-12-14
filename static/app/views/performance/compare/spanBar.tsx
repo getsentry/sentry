@@ -93,7 +93,7 @@ class SpanBar extends React.Component<Props, State> {
       if (hasToggler) {
         return (
           <ConnectorBar
-            style={{right: '16px', height: '10px', bottom: '-5px', top: 'auto'}}
+            style={{right: '15px', height: '10px', bottom: '-5px', top: 'auto'}}
             key={`${spanID}-last`}
             orphanBranch={false}
           />
@@ -129,7 +129,7 @@ class SpanBar extends React.Component<Props, State> {
       connectorBars.push(
         <ConnectorBar
           style={{
-            right: '16px',
+            right: '15px',
             height: '10px',
             bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
             top: 'auto',

@@ -105,7 +105,7 @@ class TransactionBar extends React.Component<Props, State> {
       if (hasToggle) {
         return (
           <ConnectorBar
-            style={{right: '16px', height: '10px', bottom: '-5px', top: 'auto'}}
+            style={{right: '15px', height: '10px', bottom: '-5px', top: 'auto'}}
             orphanBranch={false}
           />
         );
@@ -122,7 +122,7 @@ class TransactionBar extends React.Component<Props, State> {
           return null;
         }
 
-        const left = -1 * getOffset(generation - depth - 1) - 1;
+        const left = -1 * getOffset(generation - depth - 1) - 2;
 
         return (
           <ConnectorBar
@@ -138,9 +138,9 @@ class TransactionBar extends React.Component<Props, State> {
       connectorBars.push(
         <ConnectorBar
           style={{
-            right: '16px',
+            right: '15px',
             height: '10px',
-            bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
+            bottom: isLast ? `-${ROW_HEIGHT / 2 + 1}px` : '0',
             top: 'auto',
           }}
           key={`${eventId}-last`}
