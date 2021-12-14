@@ -141,7 +141,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           const _eventView = provided.eventView.clone();
 
           _eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex].transaction as string,
+            provided.widgetData.list.data[selectedListIndex]?.transaction as string,
           ]);
 
           return (
@@ -258,7 +258,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
               items={provided.widgetData.list.data.map(listItem => () => {
-                const transaction = listItem.transaction as string;
+                const transaction = listItem?.transaction as string;
                 const _eventView = eventView.clone();
 
                 const initialConditions = new MutableSearch(_eventView.query);
