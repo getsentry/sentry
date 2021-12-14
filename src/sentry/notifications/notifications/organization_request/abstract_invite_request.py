@@ -47,7 +47,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
         context["email"] = self.pending_member.email
         context["organization_name"] = self.org_name
         context["pending_requests_link"] = self.members_url + self.get_sentry_query_params(
-            ExternalProviders.EMAIL
+            ExternalProviders.EMAIL, recipient
         )
         if self.pending_member.requested_to_join:
             context["settings_link"] = absolute_uri(
@@ -57,8 +57,10 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
             context["inviter_name"] = self.pending_member.inviter.get_salutation_name
         return context
 
-    def get_message_actions(self) -> Sequence[MessageAction]:
-        members_url = self.members_url + self.get_sentry_query_params(ExternalProviders.SLACK)
+    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+        members_url = self.members_url + self.get_sentry_query_params(
+            ExternalProviders.SLACK, recipient
+        )
         return [
             MessageAction(
                 name="Approve",

@@ -217,7 +217,7 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
             {
                 "text": "See Members & Requests",
                 "name": "See Members & Requests",
-                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack",
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack-user",
                 "type": "button",
             },
         ]

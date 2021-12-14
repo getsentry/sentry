@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     notification_setting_type = NotificationSettingTypes.APPROVAL
+    referrer_base: str = ""
     RoleBasedRecipientStrategyClass: Type[RoleBasedRecipientStrategy]
 
     def __init__(self, organization: Organization, requester: User) -> None:
@@ -30,7 +31,10 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_reference(self) -> Any:
         return self.organization
 
-    def determine_recipients(self) -> Iterable[User]:
+    def get_context(self) -> MutableMapping[str, Any]:
+        return {}
+
+    def determine_recipients(self) -> Iterable[Team | User]:
         return self.role_based_recipient_strategy.determine_recipients()
 
     def get_notification_title(self) -> str:

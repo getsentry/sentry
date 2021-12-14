@@ -10,7 +10,7 @@ from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models import Organization, Team, User
 
 
 def get_url(organization: Organization, provider_type: str, provider_slug: str) -> str:
@@ -91,5 +91,6 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         )
         return f"{requester_name} is requesting to install the {self.provider_name} integration into {self.organization.name}.{optional_message}"
 
-    def get_message_actions(self) -> Sequence[MessageAction]:
+    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+        # TODO: update referrer
         return [MessageAction(name="Check it out", url=self.integration_link)]

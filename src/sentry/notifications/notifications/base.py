@@ -109,7 +109,7 @@ class BaseNotification(abc.ABC):
             "actor_id": recipient.actor_id,
         }
 
-    def get_message_actions(self) -> Sequence[MessageAction]:
+    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         return []
 
     def get_callback_data(self) -> Mapping[str, Any] | None:
@@ -133,12 +133,13 @@ class BaseNotification(abc.ABC):
                 **self.get_log_params(recipient),
             )
 
-    def get_referrer(self, provider: ExternalProviders) -> str:
-        # referrer needs the provider as well
-        return f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
+    def get_referrer(self, provider: ExternalProviders, recipient: Team | User) -> str:
+        # referrer needs the provider and recipient
+        recipient_type = recipient.__class__.__name__.lower()
+        return f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}-{recipient_type}"
 
-    def get_sentry_query_params(self, provider: ExternalProviders) -> str:
-        return f"?referrer={self.get_referrer(provider)}"
+    def get_sentry_query_params(self, provider: ExternalProviders, recipient: Team | User) -> str:
+        return f"?referrer={self.get_referrer(provider, recipient)}"
 
     def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
         # settings url is dependant on the provider so we know which provider is sending them into Sentry
@@ -149,7 +150,9 @@ class BaseNotification(abc.ABC):
             url_str = "/settings/account/notifications/"
             if self.fine_tuning_key:
                 url_str += f"{self.fine_tuning_key}/"
-        return str(urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider)))
+        return str(
+            urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider, recipient))
+        )
 
     def determine_recipients(self) -> Iterable[Team | User]:
         raise NotImplementedError
