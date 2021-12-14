@@ -45,18 +45,12 @@ type Props = {
   fieldOptions: ReturnType<typeof generateFieldOptions>;
 };
 
-type State = {
-  blurTimeout?: ReturnType<typeof setTimeout>;
-};
-
 /**
  * Contain widget queries interactions and signal changes via the onChange
  * callback. This component's state should live in the parent.
  */
-class WidgetQueriesForm extends React.Component<Props, State> {
-  state: State = {
-    blurTimeout: undefined,
-  };
+class WidgetQueriesForm extends React.Component<Props> {
+  blurTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
 
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
@@ -92,7 +86,6 @@ class WidgetQueriesForm extends React.Component<Props, State> {
       fieldOptions,
       onChange,
     } = this.props;
-    const {blurTimeout} = this.state;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
     const explodedFields = queries[0].fields.map(field => explodeField({field}));
@@ -124,15 +117,13 @@ class WidgetQueriesForm extends React.Component<Props, State> {
                     // this, we set a timer in our onSearch handler to block our onBlur
                     // handler from firing if it is within 200ms, ie from clicking an
                     // autocomplete value.
-                    this.setState({
-                      blurTimeout: setTimeout(() => {
-                        this.setState({blurTimeout: undefined});
-                      }, 200),
-                    });
+                    this.blurTimeout = setTimeout(() => {
+                      this.blurTimeout = undefined;
+                    }, 200);
                     return this.handleFieldChange(queryIndex, 'conditions')(field);
                   }}
                   onBlur={field => {
-                    if (!blurTimeout) {
+                    if (!this.blurTimeout) {
                       this.handleFieldChange(queryIndex, 'conditions')(field);
                     }
                   }}
