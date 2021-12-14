@@ -52,6 +52,7 @@ from sentry.release_health.base import (
 )
 from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey as MetricKey
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
 from sentry.snuba.sessions_v2 import QueryDefinition
@@ -77,10 +78,10 @@ def get_tag_values_list(org_id: int, values: Sequence[str]) -> Sequence[int]:
     return [x for x in [try_get_string_index(org_id, x) for x in values] if x is not None]
 
 
-def metric_id(org_id: int, name: str) -> int:
-    index = indexer.resolve(name)  # type: ignore
+def metric_id(org_id: int, metric_key: MetricKey) -> int:
+    index = indexer.resolve(metric_key.value)  # type: ignore
     if index is None:
-        raise MetricIndexNotFound(name)
+        raise MetricIndexNotFound(metric_key.value)
     return index  # type: ignore
 
 
@@ -220,7 +221,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             where=[
                 Condition(Column("org_id"), Op.EQ, org_id),
                 Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION)),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, end),
             ],
@@ -327,7 +328,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=[Function("sum", [Column("value")], "value")],
                 where=_get_common_where(total)
                 + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION)),
                 ],
                 groupby=_get_common_groupby(total),
             )
@@ -348,7 +349,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=[Function("uniq", [Column("value")], "value")],
                 where=_get_common_where(total)
                 + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.USER)),
                 ],
                 groupby=_get_common_groupby(total),
             )
@@ -487,7 +488,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=select,
                 where=where
                 + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION)),
                     Condition(
                         Column(tag_key(org_id, "session.status")), Op.EQ, tag_value(org_id, "init")
                     ),
@@ -515,7 +516,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=select,
                 where=where
                 + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")),
+                    Condition(
+                        Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION_DURATION)
+                    ),
                 ],
             )
             rows.extend(
@@ -581,7 +584,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         where_clause = [
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION)),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, now),
         ]
@@ -636,7 +639,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Set[ReleaseName]:
 
         try:
-            metric_id_session = metric_id(organization_id, "session")
+            metric_id_session = metric_id(organization_id, MetricKey.SESSION)
             release_column_name = tag_key(organization_id, "release")
         except MetricIndexNotFound:
             return set()
@@ -699,7 +702,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 where=where
                 + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")),
+                    Condition(
+                        Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION_DURATION)
+                    ),
                     Condition(
                         Column(tag_key(org_id, "session.status")),
                         Op.EQ,
@@ -745,7 +750,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=aggregates + [Function("uniq", [Column("value")], "value")],
                 where=where
                 + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.error")),
+                    Condition(
+                        Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION_ERROR)
+                    ),
                 ],
                 groupby=aggregates,
                 granularity=Granularity(rollup),
@@ -782,7 +789,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=aggregates + [Function("sum", [Column("value")], "value")],
                 where=where
                 + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION)),
                     Condition(
                         Column(session_status_column_name),
                         Op.IN,
@@ -824,7 +831,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # Avoid mutating input parameters here
         select = aggregates + [Function("uniq", [Column("value")], "value")]
         where = where + [
-            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.USER)),
             Condition(
                 Column(session_status_column_name),
                 Op.IN,
@@ -886,7 +893,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             "sessions": Function("sum", [Column("value")], "value"),
         }[stat]
 
-        metric_name = metric_id(org_id, {"sessions": "session", "users": "user"}[stat])
+        metric_name = metric_id(
+            org_id, {"sessions": MetricKey.SESSION, "users": MetricKey.USER}[stat]
+        )
 
         for row in raw_snql_query(
             Query(
@@ -1097,10 +1106,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             conditions.append(Condition(Column(environment_key), Op.IN, environment_values))
 
         def query_stats(end: datetime) -> CrashFreeBreakdown:
-            def _get_data(entity_key: EntityKey, metric_name: str) -> Tuple[int, int]:
+            def _get_data(entity_key: EntityKey, metric_key: MetricKey) -> Tuple[int, int]:
                 total = 0
                 crashed = 0
-                metric_id = try_get_string_index(org_id, metric_name)
+                metric_id = try_get_string_index(org_id, metric_key.value)
                 if metric_id is not None:
                     where = conditions + [
                         Condition(Column("metric_id"), Op.EQ, metric_id),
@@ -1133,8 +1142,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
                 return total, crashed
 
-            sessions_total, sessions_crashed = _get_data(EntityKey.MetricsCounters, "session")
-            users_total, users_crashed = _get_data(EntityKey.MetricsSets, "user")
+            sessions_total, sessions_crashed = _get_data(
+                EntityKey.MetricsCounters, MetricKey.SESSION
+            )
+            users_total, users_crashed = _get_data(EntityKey.MetricsSets, MetricKey.USER)
 
             return {
                 "date": end,
@@ -1209,7 +1220,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         where_clause = [
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION)),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, now),
         ]
@@ -1265,7 +1276,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         where_clause = [
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION)),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, now),
             Condition(Column(release_column_name), Op.IN, releases_ids),
@@ -1388,7 +1399,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     where=where
                     + [
                         Condition(
-                            Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")
+                            Column("metric_id"),
+                            Op.EQ,
+                            metric_id(org_id, MetricKey.SESSION_DURATION),
                         ),
                         Condition(Column(session_status_key), Op.EQ, session_status_healthy),
                     ],
@@ -1428,7 +1441,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         session_series_data = raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
-                where=where + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session"))],
+                where=where
+                + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION))],
                 granularity=Granularity(rollup),
                 match=Entity(EntityKey.MetricsCounters.value),
                 select=[
@@ -1467,7 +1481,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Query(
                 dataset=Dataset.Metrics.value,
                 where=where
-                + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.error"))],
+                + [
+                    Condition(
+                        Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION_ERROR)
+                    )
+                ],
                 granularity=Granularity(rollup),
                 match=Entity(EntityKey.MetricsSets.value),
                 select=[
@@ -1518,7 +1536,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         user_series_data = raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
-                where=where + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user"))],
+                where=where
+                + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.USER))],
                 granularity=Granularity(rollup),
                 match=Entity(EntityKey.MetricsSets.value),
                 select=[
@@ -1531,7 +1550,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         user_totals_data = raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
-                where=where + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user"))],
+                where=where
+                + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.USER))],
                 granularity=Granularity(rollup),
                 match=Entity(EntityKey.MetricsSets.value),
                 select=[
@@ -1711,7 +1731,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         where_clause = [
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION)),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column(status_key), Op.EQ, status_init),
@@ -1768,7 +1788,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         where_clause = [
             Condition(Column("org_id"), Op.EQ, org_id),
-            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION)),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column(status_key), Op.EQ, status_init),
@@ -1893,13 +1913,17 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     direction=Direction.DESC,
                 )
             ]
-            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")))
+            where_clause.append(
+                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION))
+            )
             entity = Entity(EntityKey.MetricsCounters.value)
         elif scope == "sessions":
             order_by_clause = [
                 OrderBy(exp=Function("sum", [Column("value")], "value"), direction=Direction.DESC)
             ]
-            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")))
+            where_clause.append(
+                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.SESSION))
+            )
             entity = Entity(EntityKey.MetricsCounters.value)
         elif scope == "crash_free_users":
             order_by_clause = [
@@ -1931,13 +1955,17 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     direction=Direction.DESC,
                 )
             ]
-            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")))
+            where_clause.append(
+                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.USER))
+            )
             entity = Entity(EntityKey.MetricsSets.value)
             having_clause = [Condition(Function("uniq", [Column("value")], "users"), Op.GT, 0)]
         else:  # users
             users_column = Function("uniq", [Column("value")], "users")
             order_by_clause = [OrderBy(exp=users_column, direction=Direction.DESC)]
-            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")))
+            where_clause.append(
+                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, MetricKey.USER))
+            )
             entity = Entity(EntityKey.MetricsSets.value)
             having_clause = [Condition(users_column, Op.GT, 0)]
 
