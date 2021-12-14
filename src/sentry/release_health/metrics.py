@@ -673,7 +673,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _get_session_duration_data_for_overview(
-        where: List[Condition], org_id: int
+        where: List[Condition],
+        org_id: int,
+        rollup: int,
     ) -> Mapping[Tuple[int, str], Any]:
         """
         Percentiles of session duration
@@ -710,6 +712,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     ),
                 ],
                 groupby=aggregates,
+                granularity=Granularity(rollup),
             ),
             referrer="release_health.metrics.get_session_duration_data_for_overview",
         )["data"]:
@@ -724,7 +727,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _get_errored_sessions_for_overview(
-        where: List[Condition], org_id: int
+        where: List[Condition],
+        org_id: int,
+        rollup: int,
     ) -> Mapping[Tuple[int, str], int]:
         """
         Count of errored sessions, incl fatal (abnormal, crashed) sessions,
@@ -750,6 +755,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     ),
                 ],
                 groupby=aggregates,
+                granularity=Granularity(rollup),
             ),
             referrer="release_health.metrics.get_errored_sessions_for_overview",
         )["data"]:
@@ -760,7 +766,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _get_session_by_status_for_overview(
-        where: List[Condition], org_id: int
+        where: List[Condition], org_id: int, rollup: int
     ) -> Mapping[Tuple[int, str, str], int]:
         """
         Counts of init, abnormal and crashed sessions, purpose-built for overview
@@ -793,6 +799,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     ),
                 ],
                 groupby=aggregates,
+                granularity=Granularity(rollup),
             ),
             referrer="release_health.metrics.get_abnormal_and_crashed_sessions_for_overview",
         )["data"]:
@@ -807,7 +814,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _get_users_and_crashed_users_for_overview(
-        where: List[Condition], org_id: int
+        where: List[Condition], org_id: int, rollup: int
     ) -> Mapping[Tuple[int, str, str], int]:
         release_column_name = tag_key(org_id, "release")
         session_status_column_name = tag_key(org_id, "session.status")
@@ -839,6 +846,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=select,
                 where=where,
                 groupby=aggregates,
+                granularity=Granularity(rollup),
             ),
             referrer="release_health.metrics.get_users_and_crashed_users_for_overview",
         )["data"]:
@@ -933,7 +941,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             stat = "sessions"
         assert stat in ("sessions", "users")
         now = datetime.now(pytz.utc)
-        _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
+        rollup, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
 
         org_id = self._get_org_id([x for x, _ in project_releases])
 
@@ -960,10 +968,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         else:
             health_stats_data = {}
 
-        rv_durations = self._get_session_duration_data_for_overview(where, org_id)
-        rv_errored_sessions = self._get_errored_sessions_for_overview(where, org_id)
-        rv_sessions = self._get_session_by_status_for_overview(where, org_id)
-        rv_users = self._get_users_and_crashed_users_for_overview(where, org_id)
+        rv_durations = self._get_session_duration_data_for_overview(where, org_id, rollup)
+        rv_errored_sessions = self._get_errored_sessions_for_overview(where, org_id, rollup)
+        rv_sessions = self._get_session_by_status_for_overview(where, org_id, rollup)
+        rv_users = self._get_users_and_crashed_users_for_overview(where, org_id, rollup)
 
         # XXX: In order to be able to dual-read and compare results from both
         # old and new backend, this should really go back through the
