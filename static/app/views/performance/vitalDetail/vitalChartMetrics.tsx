@@ -1,25 +1,35 @@
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location} from 'history';
+import moment from 'moment';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkLine from 'sentry/components/charts/components/markLine';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import LineChart from 'sentry/components/charts/lineChart';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {WebVital} from 'sentry/utils/discover/fields';
-import {TransactionMetric} from 'sentry/utils/metrics/fields';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 
+import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
+
 import {ViewProps} from './types';
-import {vitalToMetricsField, webVitalMeh, webVitalPoor} from './utils';
+import {getMaxOfSeries, vitalToMetricsField, webVitalMeh, webVitalPoor} from './utils';
 
 type Props = WithRouterProps &
   ViewProps & {
@@ -68,14 +78,8 @@ function VitalChart({
     selected: getSeriesSelection(location),
   };
 
-  const datetimeSelection = {
-    start,
-    end,
-    period: statsPeriod,
-  };
-
-  const vitalPoor = webVitalPoor[vitalName];
-  const vitalMeh = webVitalMeh[vitalName];
+  const vitalPoor = webVitalPoor[vital];
+  const vitalMeh = webVitalMeh[vital];
 
   const markLines = [
     {
@@ -139,7 +143,7 @@ function VitalChart({
     tooltip: {
       trigger: 'axis' as const,
       valueFormatter: (value: number, seriesName?: string) =>
-        tooltipFormatter(value, vitalName === WebVital.CLS ? seriesName : yAxis),
+        tooltipFormatter(value, vital === WebVital.CLS ? seriesName : field),
     },
     yAxis: {
       min: 0,
@@ -148,7 +152,7 @@ function VitalChart({
         color: theme.chartLabel,
         showMaxLabel: false,
         // coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, yAxis),
+        formatter: (value: number) => axisLabelFormatter(value, field),
       },
     },
   };
@@ -172,13 +176,80 @@ function VitalChart({
               start={start}
               end={end}
               statsPeriod={statsPeriod}
-              project={projectIds}
+              project={project}
               environment={environment}
               field={[field]}
-              query={mutableSearch.formatString()} // TODO(metrics): not all tags will be compatible with metrics
-              groupBy={['transaction', 'measurement_rating']}
+              query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
             >
-              {() => null}
+              {({errored, response, loading, reloading}) => {
+                if (errored) {
+                  return (
+                    <ErrorPanel>
+                      <IconWarning color="gray500" size="lg" />
+                    </ErrorPanel>
+                  );
+                }
+
+                const data = response?.groups.map(group => ({
+                  seriesName: field,
+                  data: response.intervals.map((intervalValue, intervalIndex) => ({
+                    name: moment(intervalValue).valueOf(),
+                    value: group.series[field][intervalIndex],
+                  })),
+                }));
+
+                const colors =
+                  (data && theme.charts.getColorPalette(data.length - 2)) || [];
+
+                const {smoothedResults} = transformEventStatsSmoothed(data);
+
+                const smoothedSeries = smoothedResults
+                  ? smoothedResults.map(({seriesName, ...rest}, i: number) => {
+                      return {
+                        seriesName: replaceSeriesName(seriesName) || 'p75',
+                        ...rest,
+                        color: colors[i],
+                        lineStyle: {
+                          opacity: 1,
+                          width: 2,
+                        },
+                      };
+                    })
+                  : [];
+
+                const seriesMax = getMaxOfSeries(smoothedSeries);
+                const yAxisMax = Math.max(seriesMax, vitalPoor);
+                chartOptions.yAxis.max = yAxisMax * 1.1;
+
+                return (
+                  <ReleaseSeries
+                    start={start}
+                    end={end}
+                    period={statsPeriod}
+                    utc={utc}
+                    projects={project}
+                    environments={environment}
+                  >
+                    {({releaseSeries}) => (
+                      <TransitionChart loading={loading} reloading={reloading}>
+                        <TransparentLoadingMask visible={reloading} />
+                        {getDynamicText({
+                          value: (
+                            <LineChart
+                              {...zoomRenderProps}
+                              {...chartOptions}
+                              legend={legend}
+                              onLegendSelectChanged={handleLegendSelectChanged}
+                              series={[...markLines, ...releaseSeries, ...smoothedSeries]}
+                            />
+                          ),
+                          fixed: 'Web Vitals Chart',
+                        })}
+                      </TransitionChart>
+                    )}
+                  </ReleaseSeries>
+                );
+              }}
             </MetricsRequest>
           )}
         </ChartZoom>
