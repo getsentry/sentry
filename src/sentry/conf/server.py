@@ -1095,7 +1095,7 @@ SENTRY_FEATURES = {
     "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
-    "organizations:team-insights-age-unresolved": True,
+    "organizations:team-insights-age-unresolved": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
