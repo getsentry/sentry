@@ -130,7 +130,7 @@ function TeamMisery({
 
           return (
             <Fragment key={idx}>
-              <FlexCenter>
+              <KeyTransactionTitleWrapper>
                 <div>
                   <StyledIconStar isSolid color="yellow300" />
                 </div>
@@ -146,7 +146,7 @@ function TeamMisery({
                     {dataRow.transaction}
                   </Link>
                 </TransactionWrapper>
-              </FlexCenter>
+              </KeyTransactionTitleWrapper>
               <FlexCenter>
                 <ProjectBadgeContainer>
                   {project && <ProjectBadge avatarSize={18} project={project} />}
@@ -306,6 +306,12 @@ const FlexCenter = styled('div')`
   align-items: center;
 `;
 
+const KeyTransactionTitleWrapper = styled('div')`
+  ${overflowEllipsis};
+  display: flex;
+  align-items: center;
+`;
+
 const StyledIconStar = styled(IconStar)`
   display: block;
   margin-right: ${space(1)};
@@ -322,8 +328,6 @@ const ProjectBadge = styled(IdBadge)`
 
 const TransactionWrapper = styled('div')`
   ${overflowEllipsis};
-  display: flex;
-  align-items: center;
 `;
 
 const RightAligned = styled('span')`
