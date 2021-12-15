@@ -1,16 +1,32 @@
 import functools
 import logging
-from typing import Any, Dict, MutableMapping, Optional, Sequence
+import time
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypeVar,
+)
 
-from arroyo import Topic
-from arroyo.backends.kafka import KafkaConsumer
+from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
 from arroyo.processing import StreamProcessor
+from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.processing.strategies.streaming import KafkaConsumerStrategyFactory
-from confluent_kafka import Producer
+from arroyo.processing.strategies import ProcessingStrategyFactory
+from arroyo.processing.strategies.streaming.transform import ParallelTransformStep
+from arroyo.types import Message, Partition, Position, Topic
 from django.conf import settings
 
 from sentry.utils import json, kafka_config
+
+TPayload = TypeVar("TPayload")
+TProcessed = TypeVar("TProcessed")
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 10000
@@ -40,78 +56,129 @@ def get_config(topic: str, **options) -> MutableMapping[str, Any]:
     return consumer_config
 
 
-class FlushBatchStep(ProcessingStep):
-    def __init__(self) -> None:
+class MetricsBatchBuilder(Generic[TPayload]):
+    def __init__(self, max_batch_size: int, max_batch_time: float) -> None:
+        self.__messages = []
+        self.__max_batch_size = max_batch_size
+        self.__deadline = time.time() + max_batch_time
+
+    def __len__(self) -> int:
+        return len(self.__messages)
+
+    @property
+    def messages(self):
+        return self.__messages
+
+    def append(self, message: Message[TPayload]) -> None:
+        self.__messages.append(message)
+
+    def ready(self) -> bool:
+        if len(self.messages) >= self.__max_batch_size:
+            return True
+        elif time.time() >= self.__deadline:
+            return True
+        else:
+            return False
+
+
+class BatchMessages(ProcessingStep):
+    def __init__(
+        self,
+        next_step: ProcessingStrategy[TProcessed],
+        max_batch_time: float,
+        max_batch_size: int,
+    ):
+        self.__max_batch_size = 2
+        self.__max_batch_time = max_batch_time
+
+        self.__next_step = next_step
+        self.__batch: Optional[MetricsBatchBuilder] = None
+        self.__closed = False
+
+    def poll(self) -> None:
+        assert not self.__closed
+
+        self.__next_step.poll()
+
+        if self.__batch and self.__batch.ready():
+            self.__flush()
+
+    def submit(self, message: Any) -> None:
+        if self.__batch is None:
+            self.__batch = MetricsBatchBuilder(self.__max_batch_size, self.__max_batch_time)
+
+        self.__batch.append(message)
+
+    def __flush(self) -> None:
+        if not self.__batch:
+            return
+        last = self.__batch.messages[-1]
+
+        new_message = Message(last.partition, last.offset, self.__batch.messages, last.timestamp)
+        self.__next_step.submit(new_message)
+        self.__batch = None
+
+    def terminate(self) -> None:
+        self.__closed = True
+
+    def close(self) -> None:
+        self.__closed = True
+        pass
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        self.__next_step.join(timeout)
+
+
+class ProduceStep(ProcessingStep):
+    """
+    Step that produces to the snuba-metrics topic, collecting the futures returned by
+    the producer. Continously checks to see if futures are done, and once that's the case
+    can commit up to the last future that is done.
+    """
+
+    def __init__(self, commit_function: Callable[[Mapping[Partition, Position]], None]) -> None:
         snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
-        snuba_metrics_producer = Producer(
+        snuba_metrics_producer = KafkaProducer(
             kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
         )
         self.__producer = snuba_metrics_producer
         self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
             "topic", "snuba-metrics"
         )
+        self.__commit_function = commit_function
 
-        self.__messages = []
+        self.__futures = []
         self.__closed = False
 
     def poll(self) -> None:
+        # TODO: continously check if futures are done i.e. future.done()
+        # and if so then we know we can commit
         pass
 
-    def submit(self, message: Any) -> None:
+    def submit(self, outer_message: Message[TPayload]) -> None:
         assert not self.__closed
 
-        self.__producer.produce(
-            topic=self.__producer_topic,
-            key=None,
-            value=json.dumps(message.payload).encode(),
-            on_delivery=self._callback,
-        )
-
-        messages_left = self.__producer.flush(1.0)
-
-        if messages_left != 0:
-            # TODO(meredith): We are not currently keeping track of
-            # which callbacks failed. This means could potentially
-            # be duplicating messages since we don't commit offsets
-            # unless all the callbacks are successful.
-            #
-            # In the future if we know which callback failed, we can
-            # commit only up to that point and retry on the remaining
-            # messages.
-            raise Exception(f"didn't get all the callbacks: {messages_left} left")
-
-        self.__messages.append(message)
-
-    def _callback(self, error: Any, message: Any) -> None:
-        if error is not None:
-            raise Exception(error.str())
+        for message in outer_message.payload:
+            payload = message.payload
+            future = self.__producer.produce(
+                destination=Topic(self.__producer_topic),
+                payload=payload,
+            )
+            self.__futures.append(future)
 
     def close(self) -> None:
         self.__closed = True
-
-        if not self.__messages:
-            return
-
-        # if we have successfully produced messages to the snuba-metrics topic
-        # then enque task to send a slimmed down payload to the product metrics data model.
-        # TODO(meredith): once we know more about what the product data model needs
-        # adjust payload to send the necessary data
-        # messages = [
-        #     {"tags": m.payload["tags"], "name": m.payload["name"], "org_id": m.payload["org_id"]}
-        #     for m in self.__messages
-        # ]
-        # process_indexed_metrics.apply_async(kwargs={"messages": messages})
-        self.__messages = []
 
     def terminate(self) -> None:
         self.__closed = True
 
     def join(self, timeout: Optional[float] = None) -> None:
+        # need to implement
         pass
 
 
-def flush_batch():
-    return FlushBatchStep()
+def produce_step(commit_function: Callable[[Mapping[Partition, Position]], None]):
+    return ProduceStep(commit_function)
 
 
 @functools.lru_cache(maxsize=10)
@@ -121,15 +188,34 @@ def get_indexer():
     return indexer
 
 
-def process_messages(messages: Any) -> Sequence[MutableMapping[str, Any]]:
+def process_messages(outer_message: Message[TPayload]) -> List[Message[TPayload]]:
+    """
+    We have an outer_message Message() whose payload is a batch of Message() objects.
+
+        Message(
+            partition=...,
+            offset=...
+            timestamp=...
+            payload=[Message(...), Message(...), etc]
+        )
+
+    The inner messages payloads are KafkaPayload's that have:
+        * key
+        * headers
+        * value
+
+    The value of the message is what we need to parse and then translate
+    using the indexer.
+    """
     indexer = get_indexer()
 
     strings = set()
-    parsed_messages = [
-        json.loads(message.payload.value, use_rapid_json=True) for message in messages
-    ]
+    parsed_payloads_by_offset = {
+        msg.offset: json.loads(msg.payload.value, use_rapid_json=True)
+        for msg in outer_message.payload
+    }
 
-    for message in parsed_messages:
+    for message in parsed_payloads_by_offset.values():
         metric_name = message["name"]
         tags = message.get("tags", {})
 
@@ -142,32 +228,104 @@ def process_messages(messages: Any) -> Sequence[MutableMapping[str, Any]]:
 
     mapping = indexer.bulk_record(list(strings))  # type: ignore
 
-    for i, message in enumerate(parsed_messages):
-        metric_name = parsed_messages[i]["name"]
-        tags = parsed_messages[i].get("tags", {})
+    new_messages: Sequence[Message[KafkaPayload]] = []
+
+    for message in outer_message.payload:
+        parsed_payload_value = parsed_payloads_by_offset[message.offset]
+        new_payload_value = parsed_payload_value
+
+        metric_name = parsed_payload_value["name"]
+        tags = parsed_payload_value.get("tags", {})
 
         new_tags = {mapping[k]: mapping[v] for k, v in tags.items()}
 
-        message["tags"] = new_tags
-        message["metric_id"] = mapping[metric_name]
-        message["retention_days"] = 90
+        new_payload_value["tags"] = new_tags
+        new_payload_value["metric_id"] = mapping[metric_name]
+        new_payload_value["retention_days"] = 90
 
-    return parsed_messages
+        new_payload = KafkaPayload(
+            key=message.payload.key,
+            value=json.dumps(new_payload_value).encode(),
+            headers=message.payload.headers,
+        )
+        new_message = Message(
+            partition=message.partition,
+            offset=message.offset,
+            payload=new_payload,
+            timestamp=message.timestamp,
+        )
+        new_messages.append(new_message)
+
+    # TODO(meredith): Need to add kickin off the celery task in here, eventually
+    # we will use kafka to forward messages to the product data model
+    # messages = [
+    #     {"tags": m.payload["tags"], "name": m.payload["name"], "org_id": m.payload["org_id"]}
+    #     for m in self.__messages
+    # ]
+    # process_indexed_metrics.apply_async(kwargs={"messages": messages})
+
+    return new_messages
+
+
+class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):
+    def __init__(
+        self,
+        process_messages: Callable[[Message[TPayload]], TProcessed],
+        next_step: Callable[
+            [Callable[[Mapping[Partition, Position]], None]], ProcessingStrategy[TProcessed]
+        ],
+        max_batch_size: int,
+        max_batch_time: float,
+        processes: int,
+        input_block_size: int,
+        output_block_size: int,
+        initialize_parallel_transform: Optional[Callable[[], None]] = None,
+    ):
+        self.__process_messages = process_messages
+        self.__next_step = next_step
+
+        self.__max_batch_time = max_batch_time
+        self.__max_batch_size = max_batch_size
+
+        self.__processes = processes
+
+        self.__input_block_size = input_block_size
+        self.__output_block_size = output_block_size
+
+        self.__initialize_parallel_transform = initialize_parallel_transform
+
+    def create(
+        self, commit: Callable[[Mapping[Partition, Position]], None]
+    ) -> ProcessingStrategy[TPayload]:
+        transform_function = self.__process_messages
+
+        parallel_strategy = ParallelTransformStep(
+            transform_function,
+            self.__next_step(commit),
+            self.__processes,
+            max_batch_size=self.__max_batch_size,
+            max_batch_time=self.__max_batch_time,
+            input_block_size=self.__input_block_size,
+            output_block_size=self.__output_block_size,
+            initializer=self.__initialize_parallel_transform,
+        )
+
+        strategy = BatchMessages(parallel_strategy, self.__max_batch_time, self.__max_batch_size)
+
+        return strategy
 
 
 def get_streaming_metrics_consumer(topic: str, **options: Dict[str, str]) -> StreamProcessor:
     DEFAULT_BLOCK_SIZE = int(32 * 1e6)
-    processing_factory = KafkaConsumerStrategyFactory(
-        None,
+    processing_factory = MetricsConsumerStrategyFactory(
         process_messages,
-        flush_batch,
-        max_batch_size=4,
+        produce_step,
+        max_batch_size=2,
         max_batch_time=1000.0,
-        processes=2,
+        processes=1,
         input_block_size=DEFAULT_BLOCK_SIZE,
         output_block_size=DEFAULT_BLOCK_SIZE,
         initialize_parallel_transform=initializer,
-        batch_execute=True,
     )
     return StreamProcessor(
         KafkaConsumer(get_config(topic, **options)),
