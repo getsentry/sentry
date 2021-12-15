@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -267,29 +268,48 @@ class GitHubInstallationRedirect(PipelineView):  # type: ignore
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
+            organization = self.get_active_organization(request)
+
+            # We want to wait until the scheduled deletions finish or else the post install to migrate repos do not work.
+            integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                organization=organization,
+                status__in=[ObjectStatus.DISABLED, ObjectStatus.PENDING_DELETION],
+            ).exists()
+
+            if integration_pending_deletion_exists:
+                context = {
+                    "payload": {
+                        "success": False,
+                        "data": {"error": _("Github installation pending deletion.")},
+                    }
+                }
+                return render_to_response(
+                    "sentry/integrations/integration-pending-deletion.html",
+                    context=context,
+                    request=request,
+                )
+
             try:
                 # We want to limit GitHub integrations to 1 organization
                 installations_exist = OrganizationIntegration.objects.filter(
                     integration=Integration.objects.get(external_id=request.GET["installation_id"])
                 ).exists()
-
-                if installations_exist:
-                    context = {
-                        "payload": {
-                            "success": False,
-                            "data": {
-                                "error": _("Github installed on another Sentry organization.")
-                            },
-                        }
-                    }
-                    return render_to_response(
-                        "sentry/integrations/github-integration-exists-on-another-org.html",
-                        context=context,
-                        request=request,
-                    )
-
             except Integration.DoesNotExist:
                 pipeline.bind_state("installation_id", request.GET["installation_id"])
                 return pipeline.next_step()
+
+            if installations_exist:
+                context = {
+                    "payload": {
+                        "success": False,
+                        "data": {"error": _("Github installed on another Sentry organization.")},
+                    }
+                }
+                return render_to_response(
+                    "sentry/integrations/github-integration-exists-on-another-org.html",
+                    context=context,
+                    request=request,
+                )
 
         return self.redirect(self.get_app_url())
