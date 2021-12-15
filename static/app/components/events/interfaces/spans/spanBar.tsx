@@ -4,7 +4,6 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
