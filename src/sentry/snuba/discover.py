@@ -212,6 +212,7 @@ def query(
     auto_aggregations=False,
     use_aggregate_conditions=False,
     conditions=None,
+    extra_snql_condition=None,
     functions_acl=None,
     use_snql=False,
 ):
@@ -239,6 +240,7 @@ def query(
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
                     any additional processing.
+    extra_snql_condition (Sequence[Condition]) Replacement for conditions while migrating to snql
     use_snql (bool) Whether to directly build the query in snql, instead of using the older
                     json construction
     """
@@ -263,6 +265,8 @@ def query(
             limit=limit,
             offset=offset,
         )
+        if extra_snql_condition is not None:
+            builder.add_conditions(extra_snql_condition)
         snql_query = builder.get_snql_query()
 
         result = raw_snql_query(snql_query, referrer)
