@@ -64,8 +64,6 @@ def add_integration_platform_metric_tag(func):
 
 class SentryAppsPermission(SentryPermission):
     scope_map = {
-        # GET is ideally a public endpoint but for now we are allowing for
-        # anyone who has member permissions or above.
         "GET": PARANOID_GET,
         "POST": ("org:write", "org:admin"),
     }
@@ -168,8 +166,6 @@ class SentryAppPermission(SentryPermission):
     }
 
     published_scope_map = {
-        # GET is ideally a public endpoint but for now we are allowing for
-        # anyone who has member permissions or above.
         "GET": PARANOID_GET,
         "PUT": ("org:write", "org:admin"),
         "POST": ("org:write", "org:admin"),
