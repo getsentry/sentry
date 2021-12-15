@@ -11,7 +11,10 @@ import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {
+  openAddDashboardWidgetModal,
+  openDashboardWidgetLibraryModal,
+} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {GlobalSelection, Organization} from 'sentry/types';
@@ -63,6 +66,7 @@ type Props = {
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
+  handleAddLibraryWidgets: (widgets: Widget[]) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
   layout: Layout[];
@@ -119,11 +123,19 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard, selection} = this.props;
+    const {organization, dashboard, selection, handleAddLibraryWidgets} = this.props;
 
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
+    if (organization.features.includes('widget-library')) {
+      openDashboardWidgetLibraryModal({
+        organization,
+        dashboard,
+        onAddWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+      });
+      return;
+    }
     openAddDashboardWidgetModal({
       organization,
       dashboard,

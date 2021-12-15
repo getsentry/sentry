@@ -38,3 +38,8 @@ export type SpansTotalValues = {
   count: number;
   sum_transaction_duration: number;
 };
+
+export type SpanSlug = {
+  op: string;
+  group: string;
+};

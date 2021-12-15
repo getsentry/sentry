@@ -924,6 +924,53 @@ describe('Performance > Widgets > WidgetContainer', function () {
       );
     });
 
+    it('P95 Duration - with null values', async function () {
+      const field = `p95(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+
+      const metricsData = TestStubs.MetricsField({field});
+      metricsData.groups[0].series[field][0] = null;
+      metricsData.groups[0].series[field][1] = null;
+
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: metricsData,
+        match: [(...args) => !issuesPredicate(...args)],
+      });
+
+      const previousData = TestStubs.MetricsField({field});
+      previousData.groups[0].series[field][0] = null;
+      previousData.groups[0].series[field][1] = null;
+
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/org-slug/metrics/data/`,
+        body: previousData,
+        match: [
+          (...args) => {
+            return (
+              !issuesPredicate(...args) &&
+              args[1].query.statsPeriodStart &&
+              args[1].query.statsPeriodEnd
+            );
+          },
+        ],
+      });
+
+      wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.P95_DURATION_AREA}
+          isMetricsData
+        />,
+        data.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('HighlightNumber').text()).toEqual('536ms');
+    });
+
     it('P99 Duration', async function () {
       const field = `p99(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
 
