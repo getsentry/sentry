@@ -931,7 +931,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       metricsData.groups[0].series[field][0] = null;
       metricsData.groups[0].series[field][1] = null;
 
-      metricsMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
         body: metricsData,
@@ -942,7 +942,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       previousData.groups[0].series[field][0] = null;
       previousData.groups[0].series[field][1] = null;
 
-      const metricsMockPreviousData = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         method: 'GET',
         url: `/organizations/org-slug/metrics/data/`,
         body: previousData,
@@ -968,49 +968,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
-        'p95 Duration'
-      );
-
-      expect(wrapper.find('HighlightNumber').text()).toEqual('525ms');
-      expect(metricsMock).toHaveBeenCalledTimes(1);
-      expect(metricsMockPreviousData).toHaveBeenCalledTimes(1);
-
-      expect(metricsMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            project: [-42],
-            environment: ['prod'],
-            field: [field],
-            query: undefined,
-            groupBy: undefined,
-            orderBy: undefined,
-            limit: undefined,
-            interval: '1h',
-            statsPeriod: '7d',
-            start: undefined,
-            end: undefined,
-          }),
-        })
-      );
-      expect(metricsMockPreviousData).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            project: [-42],
-            environment: ['prod'],
-            field: [field],
-            query: undefined,
-            groupBy: undefined,
-            orderBy: undefined,
-            limit: undefined,
-            interval: '1h',
-            statsPeriodStart: '14d',
-            statsPeriodEnd: '7d',
-          }),
-        })
-      );
+      expect(wrapper.find('HighlightNumber').text()).toEqual('536ms');
     });
 
     it('P99 Duration', async function () {

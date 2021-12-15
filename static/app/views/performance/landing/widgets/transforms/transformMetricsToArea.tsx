@@ -2,6 +2,7 @@ import mean from 'lodash/mean';
 import moment from 'moment';
 
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
@@ -66,22 +67,28 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
       )
     : undefined;
 
-  const data = groups.map(group => ({
-    seriesName: metricsField,
-    totals: group.totals[metricsField],
-    data: response.intervals.map((intervalValue, intervalIndex) => {
-      const serieBucket = group.series[metricsField][intervalIndex] ?? 0;
+  const data = groups.map(group => {
+    const series = response.intervals.map((intervalValue, intervalIndex) => {
+      const serieBucket = group.series[metricsField][intervalIndex];
       const totalSerieBucket = totalPerBucket?.[intervalIndex];
-
       return {
         name: moment(intervalValue).valueOf(),
         value:
-          defined(totalSerieBucket) && serieBucket > 0 && totalSerieBucket > 0
+          defined(totalSerieBucket) &&
+          defined(serieBucket) &&
+          serieBucket > 0 &&
+          totalSerieBucket > 0
             ? serieBucket / totalSerieBucket
             : serieBucket,
       };
-    }),
-  }));
+    });
+
+    return {
+      seriesName: metricsField,
+      totals: group.totals[metricsField],
+      data: series.some(serie => defined(serie.value)) ? series : [],
+    };
+  });
 
   const seriesTotal = isFailureRateWidget
     ? response.groups.reduce((acc, group) => acc + group.totals[metricsField], 0)
@@ -90,7 +97,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   const dataMean = data.map(serie => {
     const meanData = defined(seriesTotal)
       ? serie.totals / seriesTotal
-      : mean(serie.data.map(({value}) => value));
+      : mean(serie.data.filter(({value}) => defined(value)).map(({value}) => value));
 
     const seriesName = defined(seriesTotal) ? 'failure_rate()' : serie.seriesName;
 
@@ -116,27 +123,34 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
       )
     : undefined;
 
-  const previousData = previousGroups?.map(group => ({
-    seriesName: `previous ${metricsField}`,
-    data: response?.intervals.map((intervalValue, intervalIndex) => {
-      const serieBucket = group.series[metricsField][intervalIndex] ?? 0;
+  const previousData = previousGroups?.map(group => {
+    const series = response?.intervals.map((intervalValue, intervalIndex) => {
+      const serieBucket = group.series[metricsField][intervalIndex];
       const totalSerieBucket = previousTotalPerBucket?.[intervalIndex];
 
       return {
         name: moment(intervalValue).valueOf(),
         value:
-          defined(totalSerieBucket) && serieBucket > 0 && totalSerieBucket > 0
+          defined(totalSerieBucket) &&
+          defined(serieBucket) &&
+          serieBucket > 0 &&
+          totalSerieBucket > 0
             ? serieBucket / totalSerieBucket
             : serieBucket,
       };
-    }),
-    stack: 'previous',
-  }));
+    });
+
+    return {
+      seriesName: `previous ${metricsField}`,
+      stack: 'previous',
+      data: series.some(serie => defined(serie.value)) ? series : [],
+    };
+  }) as undefined | Series[];
 
   return {
     ...commonChildData,
     hasData: defined(data) && !!data.length && !!data[0].data.length,
-    data,
+    data: data as Series[],
     dataMean,
     previousData: previousData ?? undefined,
   };
