@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
@@ -12,7 +13,7 @@ from sentry.models.actor import ACTOR_TYPES
 
 
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
-    def get(self, request, organization, alert_rule):
+    def get(self, request: Request, organization, alert_rule) -> Response:
         """
         Fetch an alert rule.
         ``````````````````
@@ -21,7 +22,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         data = serialize(alert_rule, request.user, DetailedAlertRuleSerializer())
         return Response(data)
 
-    def put(self, request, organization, alert_rule):
+    def put(self, request: Request, organization, alert_rule) -> Response:
         serializer = DrfAlertRuleSerializer(
             context={"organization": organization, "access": request.access, "user": request.user},
             instance=alert_rule,
@@ -43,7 +44,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, organization, alert_rule):
+    def delete(self, request: Request, organization, alert_rule) -> Response:
         if not self._verify_user_has_permission(request, alert_rule):
             return Response(
                 {
