@@ -48,6 +48,8 @@ class U2fInterface(AuthenticatorInterface):
         "Chrome)."
     )
     allow_multi_enrollment = True
+    # rp is a relying party for webauthn, this would be sentry.io for SAAS
+    # and the prefix for on-premise / dev environments
     rp_id = urlparse(options.get("system.url-prefix")).hostname
     rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
     webauthn_registration_server = Fido2Server(rp)
@@ -58,9 +60,6 @@ class U2fInterface(AuthenticatorInterface):
         self.webauthn_authentication_server = U2FFido2Server(
             app_id=self.u2f_app_id, rp={"id": self.rp_id, "name": "Sentry"}
         )
-
-    # rp is a relying party for webauthn, this would be sentry.io for SAAS
-    # and the prefix for on-premise / dev environments
 
     @classproperty
     def u2f_app_id(cls):
@@ -80,16 +79,13 @@ class U2fInterface(AuthenticatorInterface):
         return url_prefix and url_prefix.startswith("https://")
 
     def _get_kept_devices(self, key):
-        # return a list of devices that doesn't match the key
-        return [
-            x
-            for x in self.config.get("devices") or ()
-            if (
-                decode_credential_id(x) != key
-                if type(x["binding"]) == AuthenticatorData
-                else x["binding"]["keyHandle"] != key
-            )
-        ]
+        def _key_does_not_match(device):
+            if type(device["binding"]) == AuthenticatorData:
+                return decode_credential_id(device) != key
+            else:
+                return device["binding"]["keyHandle"] != key
+
+        return [device for device in self.config.get("devices", ()) if _key_does_not_match(device)]
 
     def generate_new_config(self):
         return {}
@@ -117,7 +113,7 @@ class U2fInterface(AuthenticatorInterface):
 
     def get_u2f_devices(self):
         rv = []
-        for data in self.config.get("devices") or ():
+        for data in self.config.get("devices", ()):
             # XXX: The previous version of python-u2flib-server didn't store
             # the `version` in the device binding. Defaulting to `U2F_V2` here
             # so that we don't break existing u2f registrations.
@@ -140,7 +136,7 @@ class U2fInterface(AuthenticatorInterface):
         return False
 
     def get_device_name(self, key):
-        for device in self.config.get("devices") or ():
+        for device in self.config.get("devices", ()):
             if type(device["binding"]) == AuthenticatorData:
                 if decode_credential_id(device) == key:
                     return device["name"]
@@ -149,7 +145,7 @@ class U2fInterface(AuthenticatorInterface):
 
     def get_registered_devices(self):
         rv = []
-        for device in self.config.get("devices") or ():
+        for device in self.config.get("devices", ()):
             if type(device["binding"]) == AuthenticatorData:
                 rv.append(
                     {

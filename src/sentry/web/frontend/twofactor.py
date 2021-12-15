@@ -6,6 +6,7 @@ from django.utils.translation import ugettext as _
 
 from sentry import features, options
 from sentry.app import ratelimiter
+from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.models import Authenticator
 from sentry.utils import auth, json
 from sentry.web.forms.accounts import TwoFactorForm
@@ -17,7 +18,6 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 
 
 class TwoFactorAuthView(BaseView):
-    U2F_INTERFACE = 3
     auth_required = False
 
     def _is_webauthn_signin_ff_enabled(self, user, request_user):
@@ -138,7 +138,7 @@ class TwoFactorAuthView(BaseView):
         webauthn_signin_ff = self._is_webauthn_signin_ff_enabled(user, request.user)
 
         if request.method == "GET":
-            if interface.type == self.U2F_INTERFACE:
+            if interface.type == U2fInterface.type:
                 activation = interface.activate(request, webauthn_signin_ff)
             else:
                 activation = interface.activate(request)
@@ -146,7 +146,7 @@ class TwoFactorAuthView(BaseView):
             if activation is not None and activation.type == "challenge":
                 challenge = activation.challenge
 
-                if webauthn_signin_ff and interface.type == self.U2F_INTERFACE:
+                if webauthn_signin_ff and interface.type == U2fInterface.type:
                     activation.challenge = {}
                     activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
 
