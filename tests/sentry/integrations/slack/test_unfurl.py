@@ -297,7 +297,6 @@ class UnfurlTest(TestCase):
                 "organizations:discover",
                 "organizations:discover-basic",
                 "organizations:chart-unfurls",
-                "organizations:discover-top-events",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
@@ -364,7 +363,6 @@ class UnfurlTest(TestCase):
                 "organizations:discover",
                 "organizations:discover-basic",
                 "organizations:chart-unfurls",
-                "organizations:discover-top-events",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
@@ -409,7 +407,6 @@ class UnfurlTest(TestCase):
                 "organizations:discover",
                 "organizations:discover-basic",
                 "organizations:chart-unfurls",
-                "organizations:discover-top-events",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
@@ -456,7 +453,6 @@ class UnfurlTest(TestCase):
                 "organizations:discover",
                 "organizations:discover-basic",
                 "organizations:chart-unfurls",
-                "organizations:discover-top-events",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
