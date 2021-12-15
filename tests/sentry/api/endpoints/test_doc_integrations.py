@@ -89,6 +89,9 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         assert features.exists()
         assert len(features) == 3
         for feature in features:
+            # Ensure payload features are in the database
+            assert feature.feature in self.payload["features"]
+            # Ensure they are also serialized in the response
             assert serialize(feature) in response.data["features"]
 
     def test_create_invalid_auth(self):
