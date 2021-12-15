@@ -64,7 +64,7 @@ describe('Performance > Transaction Spans', function () {
     });
     eventsV2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
-      body: 100,
+      body: [{count: 100}],
     });
     eventsSpanOpsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-span-ops/',

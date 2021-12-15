@@ -168,7 +168,7 @@ function PageLayout(props: Props) {
   );
 }
 
-function NoAccess() {
+export function NoAccess() {
   return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
 }
 

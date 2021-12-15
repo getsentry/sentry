@@ -141,11 +141,11 @@ function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
     frequency: 1,
     count: 1,
     avgOccurrences: 1,
-    sumExclusiveTime: 1,
+    sumExclusiveTime: 5,
     p50ExclusiveTime: 1,
-    p75ExclusiveTime: 1,
-    p95ExclusiveTime: 1,
-    p99ExclusiveTime: 1,
+    p75ExclusiveTime: 2,
+    p95ExclusiveTime: 3,
+    p99ExclusiveTime: 4,
     examples: examples.map(makeExample),
   };
 }
