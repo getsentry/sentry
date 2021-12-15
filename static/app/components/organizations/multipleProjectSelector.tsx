@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import PlatformList from 'sentry/components/platformList';
@@ -35,6 +36,11 @@ type Props = WithRouterProps & {
   showProjectSettingsLink?: boolean;
   lockedMessageSubject?: React.ReactNode;
   footerMessage?: React.ReactNode;
+  customDropdownButton?: (config: {
+    getActorProps: GetActorPropsFn;
+    selectedProjects: Project[];
+    isOpen: boolean;
+  }) => React.ReactElement;
 };
 
 type State = {
@@ -195,6 +201,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       forceProject,
       showProjectSettingsLink,
       footerMessage,
+      customDropdownButton,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -271,6 +278,9 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
             )}
           >
             {({getActorProps, selectedProjects, isOpen}) => {
+              if (customDropdownButton) {
+                return customDropdownButton({getActorProps, selectedProjects, isOpen});
+              }
               const hasSelected = !!selectedProjects.length;
               const title = hasSelected
                 ? selectedProjects.map(({slug}) => slug).join(', ')
