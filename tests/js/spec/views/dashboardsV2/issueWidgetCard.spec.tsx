@@ -172,8 +172,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-
-    userEvent.click(screen.getByTestId('duplicate-widget'));
+    userEvent.click(screen.getByTitle('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
   });
 });
