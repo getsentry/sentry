@@ -193,11 +193,15 @@ class ActivityMailPreview:
             raise
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class ActivityMailDebugView(View):
     def get_activity(self, request, event):
         raise NotImplementedError
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 
