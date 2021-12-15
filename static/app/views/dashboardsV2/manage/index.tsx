@@ -253,10 +253,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                 <StyledPageHeader>
                   {t('Dashboards')}
                   <ButtonContainer>
-                    <Feature
-                      organization={organization}
-                      features={['dashboards-edit']}
-                    >
+                    <Feature organization={organization} features={['dashboards-edit']}>
                       <SwitchContainer>
                         Show Templates
                         <TemplateSwitch
