@@ -56,7 +56,6 @@ function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
       <InnerWrapper onClick={onClick}>
         <AddButton
           data-test-id="widget-add"
-          onClick={onClick}
           icon={<IconAdd size="lg" isCircled color="inactive" />}
         />
       </InnerWrapper>

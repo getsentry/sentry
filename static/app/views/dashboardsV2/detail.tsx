@@ -262,39 +262,46 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  onAddWidget = () => {
+  handleAddLibraryWidgets = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
+    const {dashboardState} = this.state;
+    const modifiedDashboard = {
+      ...cloneDashboard(dashboard),
+      widgets: widgets.map(assignTempId),
+    };
+    this.setState({modifiedDashboard});
+    if ([DashboardState.CREATE, DashboardState.EDIT].includes(dashboardState)) {
+      return;
+    }
+    updateDashboard(api, organization.slug, modifiedDashboard).then(
+      (newDashboard: DashboardDetails) => {
+        if (onDashboardUpdate) {
+          onDashboardUpdate(newDashboard);
+        }
+        addSuccessMessage(t('Dashboard updated'));
+        if (dashboard && newDashboard.id !== dashboard.id) {
+          browserHistory.replace({
+            pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+            query: {
+              ...location.query,
+            },
+          });
+          return;
+        }
+      },
+      () => undefined
+    );
+  };
+
+  onAddWidget = () => {
+    const {organization, dashboard} = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
     openDashboardWidgetLibraryModal({
       organization,
       dashboard,
-      onAddWidget: (widgets: Widget[]) => {
-        const modifiedDashboard = {
-          ...cloneDashboard(dashboard),
-          widgets: widgets.map(assignTempId),
-        };
-        this.setState({modifiedDashboard});
-        updateDashboard(api, organization.slug, modifiedDashboard).then(
-          (newDashboard: DashboardDetails) => {
-            if (onDashboardUpdate) {
-              onDashboardUpdate(newDashboard);
-            }
-            addSuccessMessage(t('Dashboard updated'));
-            if (dashboard && newDashboard.id !== dashboard.id) {
-              browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                query: {
-                  ...location.query,
-                },
-              });
-              return;
-            }
-          },
-          () => undefined
-        );
-      },
+      onAddWidget: (widgets: Widget[]) => this.handleAddLibraryWidgets(widgets),
     });
   };
 
@@ -485,6 +492,7 @@ class DashboardDetail extends Component<Props, State> {
       isEditing: this.isEditing,
       onUpdate: this.onUpdateWidget,
       onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
+      handleAddLibraryWidgets: this.handleAddLibraryWidgets,
       router,
       location,
     };
@@ -549,6 +557,7 @@ class DashboardDetail extends Component<Props, State> {
       organization,
       isEditing: this.isEditing,
       onUpdate: this.onUpdateWidget,
+      handleAddLibraryWidgets: this.handleAddLibraryWidgets,
       onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
       router,
       location,
