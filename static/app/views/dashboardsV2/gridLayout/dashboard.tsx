@@ -34,7 +34,8 @@ import SortableWidget from './sortableWidget';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const WIDGET_PREFIX = 'grid-item';
-const NUM_COLS = 6;
+const NUM_DESKTOP_COLS = 6;
+const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
 const ADD_BUTTON_POSITION = {
@@ -46,6 +47,8 @@ const ADD_BUTTON_POSITION = {
 };
 const DEFAULT_WIDGET_WIDTH = 2;
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
+const BREAKPOINTS = {mobile: 0, desktop: MOBILE_BREAKPOINT};
+const COLUMNS = {mobile: NUM_MOBILE_COLS, desktop: NUM_DESKTOP_COLS};
 
 type Props = {
   api: Client;
@@ -270,8 +273,8 @@ class Dashboard extends Component<Props, State> {
 
     return (
       <GridLayout
-        breakpoints={{mobile: 0, desktop: MOBILE_BREAKPOINT}}
-        cols={{mobile: 2, desktop: 6}}
+        breakpoints={BREAKPOINTS}
+        cols={COLUMNS}
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
@@ -328,7 +331,7 @@ export function assignTempId(widget) {
  */
 function getDefaultPosition(index: number, displayType: DisplayType) {
   return {
-    x: (DEFAULT_WIDGET_WIDTH * index) % NUM_COLS,
+    x: (DEFAULT_WIDGET_WIDTH * index) % NUM_DESKTOP_COLS,
     y: Number.MAX_VALUE,
     w: DEFAULT_WIDGET_WIDTH,
     h: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
