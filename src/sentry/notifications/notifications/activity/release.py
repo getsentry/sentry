@@ -131,7 +131,7 @@ class ReleaseActivityNotification(ActivityNotification):
     def get_category(self) -> str:
         return "release_activity_email"
 
-    def get_message_actions(self) -> Sequence[MessageAction]:
+    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         if self.release:
             release = get_release(self.activity, self.project.organization)
             if release:

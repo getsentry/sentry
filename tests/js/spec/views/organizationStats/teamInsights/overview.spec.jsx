@@ -144,7 +144,7 @@ describe('TeamInsightsOverview', () => {
       features: ['team-insights-v2'],
     });
     const context = TestStubs.routerContext([{organization}]);
-    TeamStore.loadInitialData(teams);
+    TeamStore.loadInitialData(teams, false, null);
 
     return mountWithTheme(
       <OrganizationContext.Provider value={organization}>
@@ -195,7 +195,7 @@ describe('TeamInsightsOverview', () => {
   it('shows users with no teams the join team button', () => {
     createWrapper();
     ProjectsStore.loadInitialData([{...project1, isMember: false}]);
-    TeamStore.loadInitialData([]);
+    TeamStore.loadInitialData([], false, null);
 
     expect(screen.getByText('Join a Team')).toBeInTheDocument();
   });
