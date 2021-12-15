@@ -653,6 +653,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 onDelete={() => undefined}
                 onEdit={() => undefined}
                 onDuplicate={() => undefined}
+                widgetLimitReached={false}
                 renderErrorMessage={errorMessage =>
                   typeof errorMessage === 'string' && (
                     <PanelAlert type="error">{errorMessage}</PanelAlert>
