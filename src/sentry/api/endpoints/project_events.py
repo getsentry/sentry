@@ -2,6 +2,8 @@ from datetime import timedelta
 from functools import partial
 
 from django.utils import timezone
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
@@ -11,7 +13,7 @@ from sentry.api.serializers import EventSerializer, SimpleEventSerializer, seria
 
 class ProjectEventsEndpoint(ProjectEndpoint):
     @rate_limit_endpoint(limit=5, window=1)
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a Project's Events
         ```````````````````````
