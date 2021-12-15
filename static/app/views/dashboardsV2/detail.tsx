@@ -273,42 +273,6 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  onAddWidget = () => {
-    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
-    this.setState({
-      modifiedDashboard: cloneDashboard(dashboard),
-    });
-    openDashboardWidgetLibraryModal({
-      organization,
-      dashboard,
-      onAddWidget: (widgets: Widget[]) => {
-        const modifiedDashboard = {
-          ...cloneDashboard(dashboard),
-          widgets: widgets.map(assignTempId),
-        };
-        this.setState({modifiedDashboard});
-        updateDashboard(api, organization.slug, modifiedDashboard).then(
-          (newDashboard: DashboardDetails) => {
-            if (onDashboardUpdate) {
-              onDashboardUpdate(newDashboard);
-            }
-            addSuccessMessage(t('Dashboard updated'));
-            if (dashboard && newDashboard.id !== dashboard.id) {
-              browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                query: {
-                  ...location.query,
-                },
-              });
-              return;
-            }
-          },
-          () => undefined
-        );
-      },
-    });
-  };
-
   handleAddLibraryWidgets = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {dashboardState} = this.state;
@@ -338,6 +302,18 @@ class DashboardDetail extends Component<Props, State> {
       },
       () => undefined
     );
+  };
+
+  onAddWidget = () => {
+    const {organization, dashboard} = this.props;
+    this.setState({
+      modifiedDashboard: cloneDashboard(dashboard),
+    });
+    openDashboardWidgetLibraryModal({
+      organization,
+      dashboard,
+      onAddWidget: (widgets: Widget[]) => this.handleAddLibraryWidgets(widgets),
+    });
   };
 
   /**
@@ -520,10 +496,10 @@ class DashboardDetail extends Component<Props, State> {
       dashboard: modifiedDashboard ?? dashboard,
       organization,
       isEditing: this.isEditing,
+      widgetLimitReached: dashboard.widgets.length >= MAX_WIDGETS,
       onUpdate: this.onUpdateWidget,
       onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
       handleAddLibraryWidgets: this.handleAddLibraryWidgets,
-      widgetLimitReached: dashboard.widgets.length >= MAX_WIDGETS,
       router,
       location,
     };
@@ -589,8 +565,8 @@ class DashboardDetail extends Component<Props, State> {
       isEditing: this.isEditing,
       widgetLimitReached: dashboard.widgets.length >= MAX_WIDGETS,
       onUpdate: this.onUpdateWidget,
-      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
       handleAddLibraryWidgets: this.handleAddLibraryWidgets,
+      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
       router,
       location,
       newWidget,
