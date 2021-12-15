@@ -81,7 +81,7 @@ class AuthHelperSessionStore(PipelineSessionStore):
         self.request.session.modified = True
 
 
-def _using_okta_migration_workaround(
+def using_okta_migration_workaround(
     organization: Organization, user: User, auth_provider: Optional[AuthProvider]
 ) -> bool:
     # XXX(leedongwei): Workaround for migrating Okta instance
@@ -453,7 +453,7 @@ class AuthIdentityHandler:
                     if (
                         self._has_usable_password()
                         or is_account_verified
-                        or _using_okta_migration_workaround(
+                        or using_okta_migration_workaround(
                             self.organization, self.user, self.auth_provider
                         )
                     ):
@@ -742,7 +742,7 @@ class AuthHelper(Pipeline):
 
             auth_handler = self.auth_handler(identity)
             if not auth_identity:
-                if _using_okta_migration_workaround(
+                if using_okta_migration_workaround(
                     self.organization, self.request.user, auth_provider
                 ):
                     identity["email_verified"] = True
