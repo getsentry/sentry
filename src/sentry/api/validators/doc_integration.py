@@ -28,3 +28,4 @@ def validate_metadata_schema(instance: JSONData):
     v = Draft7Validator(METADATA_SCHEMA)
     if not v.is_valid(instance):
         raise best_match(v.iter_errors(instance))
+    return instance

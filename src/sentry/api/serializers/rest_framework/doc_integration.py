@@ -21,11 +21,11 @@ class MetadataField(serializers.JSONField):
             return {}
 
         try:
-            validate_metadata_schema(data)
+            validated_data = validate_metadata_schema(data)
         except SchemaValidationError as e:
             raise ValidationError(e.message)  # noqa: B306
 
-        return data
+        return validated_data
 
 
 class DocIntegrationSerializer(Serializer):
