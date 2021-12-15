@@ -144,8 +144,8 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    // userEvent.click(screen.getByTestId('duplicate-widget'));
-    // expect(mock).toHaveBeenCalledTimes(1);
+    userEvent.click(screen.getByTitle('Duplicate Widget'));
+    expect(mock).toHaveBeenCalledTimes(1);
   });
 
   it('disables the duplicate widget button if max widgets is reached', async function () {
