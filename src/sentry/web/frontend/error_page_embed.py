@@ -63,6 +63,10 @@ class UserReportForm(forms.ModelForm):
         fields = ("name", "email", "comments")
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class ErrorPageEmbedView(View):
     def _get_project_key(self, request):
         try:
@@ -100,7 +104,7 @@ class ErrorPageEmbedView(View):
         return response
 
     @csrf_exempt
-    def dispatch(self, request):
+    def dispatch(self, request: Request) -> Response:
         try:
             event_id = request.GET["eventId"]
         except KeyError:

@@ -19,6 +19,10 @@ MSG_RESTORE_SUCCESS = _("Organization restored successfully.")
 delete_logger = logging.getLogger("sentry.deletions.ui")
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class RestoreOrganizationView(OrganizationView):
     required_scope = "org:admin"
     sudo_required = True
@@ -34,7 +38,7 @@ class RestoreOrganizationView(OrganizationView):
         except StopIteration:
             return None
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if organization.status == OrganizationStatus.VISIBLE:
             return self.redirect(organization.get_url())
 
@@ -48,7 +52,7 @@ class RestoreOrganizationView(OrganizationView):
 
         return render_to_response("sentry/restore-organization.html", context, self.request)
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         deletion_statuses = [
             OrganizationStatus.PENDING_DELETION,
             OrganizationStatus.DELETION_IN_PROGRESS,

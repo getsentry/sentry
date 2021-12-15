@@ -6,6 +6,8 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
@@ -254,11 +256,11 @@ class AuthLoginView(BaseView):
 
     @never_cache
     @transaction.atomic
-    def handle(self, request, *args, **kwargs):
+    def handle(self, request: Request, *args, **kwargs) -> Response:
         return super().handle(request, *args, **kwargs)
 
     # XXX(dcramer): OAuth provider hooks this view
-    def get(self, request, **kwargs):
+    def get(self, request: Request, **kwargs) -> Response:
         next_uri = self.get_next_uri(request)
         if request.user.is_authenticated:
             # if the user is a superuser, but not 'superuser authenticated'
@@ -289,7 +291,7 @@ class AuthLoginView(BaseView):
         return response
 
     # XXX(dcramer): OAuth provider hooks this view
-    def post(self, request, **kwargs):
+    def post(self, request: Request, **kwargs) -> Response:
         op = request.POST.get("op")
         if op == "sso" and request.POST.get("organization"):
             auth_provider = self.get_auth_provider(request.POST["organization"])

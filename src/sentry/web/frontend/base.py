@@ -11,6 +11,8 @@ from django.template.context_processors import csrf
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.serializers import serialize
@@ -237,10 +239,10 @@ class BaseView(View, OrganizationMixin):
     def get_access(self, request, *args, **kwargs):
         return access.DEFAULT
 
-    def convert_args(self, request, *args, **kwargs):
+    def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle(self, request, *args, **kwargs):
+    def handle(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
     def is_auth_required(self, request, *args, **kwargs):
@@ -398,7 +400,7 @@ class OrganizationView(BaseView):
             return True
         return False
 
-    def convert_args(self, request, organization_slug=None, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
         active_organization = self.get_active_organization(
             request=request, organization_slug=organization_slug
         )
@@ -465,7 +467,7 @@ class TeamView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request, organization_slug, team_slug, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, team_slug, *args, **kwargs):
         active_organization = self.get_active_organization(
             request=request, organization_slug=organization_slug
         )
@@ -523,7 +525,7 @@ class ProjectView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, project_slug, *args, **kwargs):
         active_organization = self.get_active_organization(
             request=request, organization_slug=organization_slug
         )
@@ -544,7 +546,7 @@ class ProjectView(OrganizationView):
 class AvatarPhotoView(View):
     model = None
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args, **kwargs) -> Response:
         avatar_id = kwargs["avatar_id"]
         try:
             avatar = self.model.objects.get(ident=avatar_id)

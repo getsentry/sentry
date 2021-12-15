@@ -13,6 +13,10 @@ from sentry.utils import json
 logger = logging.getLogger("sentry.api")
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class OAuthTokenView(View):
     @csrf_exempt
     @never_cache
@@ -39,7 +43,7 @@ class OAuthTokenView(View):
         )
 
     @never_cache
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         grant_type = request.POST.get("grant_type")
 
         if grant_type == GrantTypes.AUTHORIZATION:

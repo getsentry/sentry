@@ -12,6 +12,10 @@ from sentry.web.frontend.auth_login import AuthLoginView
 logger = logging.getLogger("sentry.api")
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class OAuthAuthorizeView(AuthLoginView):
     auth_required = False
 
@@ -67,7 +71,7 @@ class OAuthAuthorizeView(AuthLoginView):
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
-    def get(self, request, **kwargs):
+    def get(self, request: Request, **kwargs) -> Response:
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
@@ -203,7 +207,7 @@ class OAuthAuthorizeView(AuthLoginView):
         }
         return self.respond("sentry/oauth-authorize.html", context)
 
-    def post(self, request, **kwargs):
+    def post(self, request: Request, **kwargs) -> Response:
         try:
             payload = request.session["oa2"]
         except KeyError:
