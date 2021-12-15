@@ -245,7 +245,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         <StyledPanelTable
           isEmpty={projects.length === 0}
           headers={[
-            t('Project'),
+            t('Releases Per Project'),
             <RightAligned key="last">
               {tct('Last [period] Average', {period})}
             </RightAligned>,
@@ -256,7 +256,14 @@ class TeamReleases extends AsyncComponent<Props, State> {
           {groupedProjects.map(({project}) => (
             <Fragment key={project.id}>
               <ProjectBadgeContainer>
-                <ProjectBadge avatarSize={18} project={project} />
+                <ProjectBadge
+                  avatarSize={18}
+                  project={project}
+                  to={{
+                    pathname: `/organizations/${organization.slug}/releases/`,
+                    query: {project: project.id},
+                  }}
+                />
               </ProjectBadgeContainer>
 
               <ScoreWrapper>{this.renderReleaseCount(project.id, 'period')}</ScoreWrapper>
