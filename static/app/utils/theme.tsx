@@ -201,6 +201,7 @@ const generateAliases = (colors: BaseColors) => ({
    * Indicates that something is "active" or "selected"
    */
   active: colors.purple300,
+  activeHover: colors.purple400,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal

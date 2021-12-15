@@ -270,6 +270,7 @@ const StyledButton = styled(
   ${p => getBoxShadow(p.theme)};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
+  transition: background 0.1s, border 0.1s, box-shadow 0.1s;
 
   &:focus {
     outline: none;
