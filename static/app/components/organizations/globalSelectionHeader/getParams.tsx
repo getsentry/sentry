@@ -39,7 +39,7 @@ function coerceStatsPeriod(input: string) {
 }
 
 /**
- * Noramlizes a string or string[] into a standard stats period string.
+ * Normalizes a string or string[] into a standard stats period string.
  *
  * Undefined and null inputs are returned as undefined.
  */
