@@ -145,7 +145,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
       stack: 'previous',
       data: series.some(serie => defined(serie.value)) ? series : [],
     };
-  }) as undefined | Series[];
+  }) as null | Series[];
 
   return {
     ...commonChildData,
