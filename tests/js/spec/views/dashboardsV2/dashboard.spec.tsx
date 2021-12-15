@@ -93,6 +93,7 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         onUpdate={() => undefined}
         onSetWidgetToBeUpdated={() => undefined}
+        handleAddLibraryWidgets={() => undefined}
         router={initialData.router}
         location={initialData.location}
         isEditing
