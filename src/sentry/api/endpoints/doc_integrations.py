@@ -37,7 +37,7 @@ class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
         if serializer.is_valid():
             doc_integration = serializer.save()
             return Response(
-                serialize(doc_integration, request.user, access=request.access),
+                serialize(doc_integration, request.user),
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

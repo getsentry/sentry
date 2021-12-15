@@ -49,9 +49,11 @@ class DocIntegrationSerializer(Serializer):
             raise ValidationError(
                 f"Generated slug '{slug}' is too long, please use a shorter name."
             )
-        queryset = DocIntegration.objects.filter(slug=slug)
-        if queryset.exists():
-            raise ValidationError(f"Name '{value}' is already taken, please use another.")
+        # Only check this for validating creation, not updates
+        if self.instance is None:
+            queryset = DocIntegration.objects.filter(slug=slug)
+            if queryset.exists():
+                raise ValidationError(f"Name '{value}' is already taken, please use another.")
         return value
 
     def create(self, validated_data: MutableMapping[str, Any]) -> DocIntegration:
@@ -69,4 +71,27 @@ class DocIntegrationSerializer(Serializer):
                     for feature in features
                 ]
             )
+        return doc_integration
+
+    def update(
+        self, doc_integration: DocIntegration, validated_data: MutableMapping[str, Any]
+    ) -> DocIntegration:
+        features = validated_data.pop("features")
+        # Delete any unused features
+        unused_features = IntegrationFeature.objects.filter(
+            target_id=doc_integration.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+        ).exclude(feature__in=features)
+        for unused_feature in unused_features:
+            unused_feature.delete()
+        # Create any new features
+        for feature in features:
+            IntegrationFeature.objects.get_or_create(
+                target_id=doc_integration.id,
+                target_type=IntegrationTypes.DOC_INTEGRATION.value,
+                feature=feature,
+            )
+        # Update the DocIntegration
+        for key, value in validated_data.items():
+            setattr(doc_integration, key, value)
+        doc_integration.save()
         return doc_integration
