@@ -124,15 +124,14 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
 
     def test_create_empty_metadata(self):
         """
-        Tests that sending no metadata keys does not trigger errors
-        and resolves to an appropriate default
+        Tests that sending no metadata keys does not trigger any
+        server/database errors
         """
         self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload}
         del payload["resources"]
         response = self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
-        assert "resources" in response.data.keys()
-        assert len(response.data["resources"]) == 0
+        assert "resources" not in response.data.keys()
 
     def test_create_ignore_keys(self):
         """
