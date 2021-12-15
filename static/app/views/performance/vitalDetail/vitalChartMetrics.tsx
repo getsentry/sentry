@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -27,18 +26,8 @@ import useApi from 'sentry/utils/useApi';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
+import {ViewProps} from './types';
 import {getMaxOfSeries, vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';
-
-const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
-
-type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = WithRouterProps &
   ViewProps & {
