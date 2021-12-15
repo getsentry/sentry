@@ -81,7 +81,7 @@ function normalizeDateTimeString(input: Date | SingleParamValue) {
 }
 
 /**
- * Normalizes a sring or string[] into the a date time string.
+ * Normalizes a string or string[] into the date time string.
  *
  * Undefined and null inputs are returned as undefined.
  */
