@@ -10,8 +10,8 @@ class ProjectConfigCache(Service):
     def set_many(self, configs):
         pass
 
-    def delete_many(self, project_ids):
+    def delete_many(self, public_keys):
         pass
 
-    def get(self, project_id):
+    def get(self, public_key):
         raise NotImplementedError()
