@@ -166,7 +166,12 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
               items={provided.widgetData.list.data.map(listItem => () => {
-                const transaction = listItem.transaction as string;
+                const transaction = listItem.transaction as string | null;
+                const countValue = listItem[field];
+
+                if (!transaction) {
+                  return null;
+                }
 
                 const transactionTarget = transactionSummaryRouteWithQuery({
                   orgSlug: organization.slug,
@@ -175,23 +180,17 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
                   query: props.eventView.getGlobalSelectionQuery(),
                 });
 
-                const countValue = listItem[field];
-
                 return (
                   <Fragment>
                     <GrowLink to={transactionTarget} className="truncate">
                       <Truncate value={transaction} maxLength={40} />
                     </GrowLink>
                     <RightAlignedCell>
-                      {defined(countValue) && <Count value={countValue} />}
+                      {defined(countValue) ? <Count value={countValue} /> : '\u2014'}
                     </RightAlignedCell>
                     <ListClose
                       setSelectListIndex={setSelectListIndex}
-                      onClick={() =>
-                        defined(listItem.transaction)
-                          ? excludeTransaction(listItem.transaction, props)
-                          : undefined
-                      }
+                      onClick={() => excludeTransaction(transaction, props)}
                     />
                   </Fragment>
                 );
