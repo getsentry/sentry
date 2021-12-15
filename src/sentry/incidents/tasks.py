@@ -118,7 +118,12 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
         aggregation_value = int(processor.get_aggregation_value(subscription_update))
         processor.alert_rule.comparison_delta = int(timedelta(days=7).total_seconds())
         comparison_value = processor.get_aggregation_value(subscription_update)
-        tags = {"project_id": subscription.project_id, "subscription_id": subscription.id}
+        tags = {
+            "project_id": subscription.project_id,
+            "project_slug": subscription.project.slug,
+            "subscription_id": subscription.id,
+            "time_window": subscription.snuba_query.time_window,
+        }
         metrics.incr("subscriptions.result.value", aggregation_value, tags=tags, sample_rate=1.0)
         if comparison_value is not None:
             metrics.incr(
