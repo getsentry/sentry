@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import {IconAdd, IconGeneric} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
@@ -19,13 +20,15 @@ function TemplateCard({title, widgetCount}: Props) {
         <IconGeneric size="48" />
         <CardText>
           <Title>{title}</Title>
-          <Detail>{widgetCount} Starter Widgets</Detail>
+          <Detail>
+            {widgetCount} {t('Starter Widgets')}
+          </Detail>
         </CardText>
       </Header>
       <ButtonContainer>
-        <StyledButton priority="default">Preview</StyledButton>
+        <StyledButton priority="default">{t('Preview')}</StyledButton>
         <StyledButton priority="primary" icon={<IconAdd size="xs" isCircled />}>
-          Add Dash
+          {t('Add Dashboard')}
         </StyledButton>
       </ButtonContainer>
     </StyledCard>
@@ -64,10 +67,17 @@ const ButtonContainer = styled('div')`
   width: 100%;
 `;
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(Button)<{priority: string}>`
   display: block;
   margin: 0 auto;
   width: 100%;
+  ${overflowEllipsis};
+
+  ${p =>
+    p.priority === 'default' &&
+    `width: auto;
+    margin-right: ${space(2)};
+    padding: 0 ${space(2)};`};
 `;
 
 export default TemplateCard;

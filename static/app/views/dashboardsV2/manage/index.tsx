@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -52,18 +52,12 @@ type State = {
 } & AsyncView['state'];
 
 class ManageDashboards extends AsyncView<Props, State> {
-  state: State = {
-    // AsyncComponent state
-    loading: true,
-    reloading: false,
-    error: false,
-    errors: {},
-
-    // local component state
-    dashboards: null,
-    dashboardsPageLinks: '',
-    showTemplates: shouldShowTemplates(),
-  };
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      showTemplates: shouldShowTemplates(),
+    };
+  }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
@@ -94,11 +88,9 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   handleSearch(query: string) {
-    const {location, router} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.search',
-      eventName: 'Dashboards Manager: Search',
-      organization_id: parseInt(this.props.organization.id, 10),
+    const {location, router, organization} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.search', {
+      organization,
     });
 
     router.push({
@@ -108,11 +100,9 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   handleSortChange = (value: string) => {
-    const {location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.change_sort',
-      eventName: 'Dashboards Manager: Sort By Changed',
-      organization_id: parseInt(this.props.organization.id, 10),
+    const {location, organization} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.change_sort', {
+      organization,
       sort: value,
     });
     browserHistory.push({
@@ -129,10 +119,8 @@ class ManageDashboards extends AsyncView<Props, State> {
     const {showTemplates} = this.state;
     const {organization} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.templates.toggle',
-      eventName: 'Dashboards Manager: Template Toggle Changed',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.toggle', {
+      organization,
       show_templates: !showTemplates,
     });
 
@@ -150,7 +138,7 @@ class ManageDashboards extends AsyncView<Props, State> {
   renderTemplates() {
     const {organization} = this.props;
     return (
-      <Feature organization={organization} features={['dashboards-edit']}>
+      <Feature organization={organization} features={['dashboards-template']}>
         <TemplateContainer>
           <TemplateCard title="Default" widgetCount={10} />
           <TemplateCard title="Frontend" widgetCount={9} />
@@ -217,11 +205,10 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   onCreate() {
     const {organization, location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.create.start',
-      eventName: 'Dashboards Manager: Dashboard Create Started',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('dashboards_manage.create.start', {
+      organization,
     });
+
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
       query: location.query,
@@ -253,7 +240,10 @@ class ManageDashboards extends AsyncView<Props, State> {
                 <StyledPageHeader>
                   {t('Dashboards')}
                   <ButtonContainer>
-                    <Feature organization={organization} features={['dashboards-edit']}>
+                    <Feature
+                      organization={organization}
+                      features={['dashboards-template']}
+                    >
                       <SwitchContainer>
                         Show Templates
                         <TemplateSwitch
@@ -331,6 +321,9 @@ const ButtonContainer = styled('div')`
 const TemplateContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
   grid-gap: ${space(2)};
   padding-bottom: ${space(4)};
 `;
