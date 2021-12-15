@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
@@ -16,6 +17,8 @@ import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
 import {DashboardState, Widget} from './types';
 import {constructWidgetFromQuery} from './utils';
+
+const ALLOWED_PARAMS = ['start', 'end', 'utc', 'period', 'project', 'environment'];
 
 type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
   organization: Organization;
@@ -37,9 +40,12 @@ function ViewEditDashboard(props: Props) {
 
     const constructedWidget = constructWidgetFromQuery(location.query);
     setNewWidget(constructedWidget);
-    // Clean up url after constructing widget from query string
+    // Clean up url after constructing widget from query string, only allow GHS params
     if (constructedWidget) {
-      browserHistory.replace(location.pathname);
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: pick(location.query, ALLOWED_PARAMS),
+      });
     }
   }, [api, orgSlug, dashboardId]);
 
