@@ -31,7 +31,10 @@ class UserAuthenticatorEnrollTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
     def setUp(self):
+        super().setUp()
         self.login_as(user=self.user)
+        self.org = self.create_organization(owner=self.user, name="foo")
+        self.features = {"organizations:webauthn-register": False}
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
     def test_totp_can_enroll(self, validate_otp):
@@ -233,47 +236,46 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
             assert_security_email_sent("mfa-added")
 
-    @mock.patch(
-        "sentry.api.endpoints.user_authenticator_enroll.UserAuthenticatorEnrollEndpoint._check_can_webauthn_register",
-        return_value=True,
-    )
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
-    def test_u2f_can_enroll_webauthn(self, try_enroll, check_can_webauthn_register):
+    def test_u2f_can_enroll_webauthn(self, try_enroll):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["system.url-prefix"] = "https://testserver"
-        with self.settings(SENTRY_OPTIONS=new_options):
-            resp = self.get_success_response("me", "u2f")
-            assert resp.data["form"]
-            assert "secret" not in resp.data
-            assert "qrcode" not in resp.data
-            assert resp.data["challenge"]
+        self.features["organizations:webauthn-register"] = True
 
-            with self.tasks():
-                self.get_success_response(
-                    "me",
-                    "u2f",
-                    method="post",
-                    **{
-                        "deviceName": "device name",
-                        "challenge": "challenge",
-                        "response": "response",
+        with self.settings(SENTRY_OPTIONS=new_options):
+            with self.feature(self.features):
+                resp = self.get_success_response("me", "u2f")
+                assert resp.data["form"]
+                assert "secret" not in resp.data
+                assert "qrcode" not in resp.data
+                assert resp.data["challenge"]
+
+                with self.tasks():
+                    self.get_success_response(
+                        "me",
+                        "u2f",
+                        method="post",
+                        **{
+                            "deviceName": "device name",
+                            "challenge": "challenge",
+                            "response": "response",
+                        },
+                    )
+
+                assert try_enroll.call_count == 1
+                mock_challenge = try_enroll.call_args.args[4]["challenge"]
+                assert try_enroll.call_args == mock.call(
+                    "challenge",
+                    "response",
+                    True,
+                    "device name",
+                    {
+                        "challenge": mock_challenge,
+                        "user_verification": "discouraged",
                     },
                 )
 
-            assert try_enroll.call_count == 1
-            mock_challenge = try_enroll.call_args.args[4]["challenge"]
-            assert try_enroll.call_args == mock.call(
-                "challenge",
-                "response",
-                True,
-                "device name",
-                {
-                    "challenge": mock_challenge,
-                    "user_verification": "discouraged",
-                },
-            )
-
-            assert_security_email_sent("mfa-added")
+                assert_security_email_sent("mfa-added")
 
 
 class AcceptOrganizationInviteTest(APITestCase):
