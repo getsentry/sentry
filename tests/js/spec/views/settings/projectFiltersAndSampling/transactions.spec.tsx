@@ -3,7 +3,7 @@ import {
   userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
-import {getByTextContent} from 'sentry-test/utils';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   DYNAMIC_SAMPLING_DOC_LINK,
@@ -234,10 +234,12 @@ describe('Filters and Sampling - Transaction rule', function () {
         expect(screen.getByText('Tracing')).toBeInTheDocument();
         expect(screen.getByRole('checkbox')).toBeChecked();
         expect(
-          getByTextContent(
-            'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. Learn more about tracing.'
+          screen.getByText(
+            textWithMarkupMatcher(
+              'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. Learn more about tracing.'
+            )
           )
-        ).toBeTruthy();
+        ).toBeInTheDocument();
         expect(
           screen.getByRole('link', {
             name: 'Learn more about tracing',

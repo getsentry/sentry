@@ -628,7 +628,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   describe('forceProject selection mode', function () {
-    beforeEach(function () {
+    beforeEach(async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [],
@@ -655,6 +655,9 @@ describe('GlobalSelectionHeader', function () {
         />,
         initialData.routerContext
       );
+
+      await tick();
+      wrapper.update();
     });
 
     it('renders a back button to the forced project', function () {
@@ -662,9 +665,9 @@ describe('GlobalSelectionHeader', function () {
       expect(back).toHaveLength(1);
     });
 
-    it('renders only environments from the forced project', async function () {
-      await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-      await wrapper.update();
+    it('renders only environments from the forced project', function () {
+      wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+      wrapper.update();
 
       const items = wrapper.find('MultipleEnvironmentSelector EnvironmentSelectorItem');
       expect(items.length).toEqual(1);
@@ -931,7 +934,8 @@ describe('GlobalSelectionHeader', function () {
 
   describe('projects list', function () {
     let memberProject, nonMemberProject, initialData;
-    beforeEach(function () {
+
+    beforeEach(async function () {
       memberProject = TestStubs.Project({id: '3', isMember: true});
       nonMemberProject = TestStubs.Project({id: '4', isMember: false});
       initialData = initializeOrg({
@@ -950,6 +954,9 @@ describe('GlobalSelectionHeader', function () {
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );
+
+      await tick();
+      wrapper.update();
     });
 
     it('gets member projects', function () {
@@ -958,7 +965,7 @@ describe('GlobalSelectionHeader', function () {
       ]);
     });
 
-    it('gets all projects if superuser', function () {
+    it('gets all projects if superuser', async function () {
       ConfigStore.config = {
         user: {
           isSuperuser: true,
@@ -969,6 +976,9 @@ describe('GlobalSelectionHeader', function () {
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );
+
+      await tick();
+      wrapper.update();
 
       expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
         memberProject,
