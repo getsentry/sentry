@@ -94,7 +94,7 @@ const AutoCompleteItem = styled('div')<{
   justify-content: center;
 
   font-size: 0.9em;
-  background-color: ${p => (p.isHighlighted ? p.theme.focus : 'transparent')};
+  background-color: ${p => (p.isHighlighted ? p.theme.hover : 'transparent')};
   color: ${p => (p.isHighlighted ? p.theme.textColor : 'inherit')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
@@ -106,6 +106,6 @@ const AutoCompleteItem = styled('div')<{
 
   :hover {
     color: ${p => p.theme.textColor};
-    background-color: ${p => p.theme.focus};
+    background-color: ${p => p.theme.hover};
   }
 `;
