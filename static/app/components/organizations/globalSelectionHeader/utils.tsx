@@ -19,6 +19,7 @@ type GetStateFromQueryOptions = {
   allowEmptyPeriod?: boolean;
   allowAbsoluteDatetime?: boolean;
 };
+
 export function getStateFromQuery(
   query: Location['query'],
   {allowEmptyPeriod = false, allowAbsoluteDatetime = true}: GetStateFromQueryOptions = {}
@@ -76,6 +77,7 @@ export function extractSelectionParameters(query) {
 export function extractDatetimeSelectionParameters(query) {
   return pickBy(pick(query, Object.values(DATE_TIME_KEYS)), identity);
 }
+
 export function getDefaultSelection(): GlobalSelection {
   const utc = DEFAULT_PARAMS.utc;
   return {
@@ -108,6 +110,7 @@ export function isSelectionEqual(
   ) {
     return false;
   }
+
   // Use string comparison as we aren't interested in the identity of the datetimes.
   if (
     selection.datetime.period !== other.datetime.period ||
@@ -116,13 +119,14 @@ export function isSelectionEqual(
   ) {
     return false;
   }
+
   return true;
 }
 
 /**
  * Removes globalselection from localstorage
  */
-export function removeGlobalSelectionStorage(orgId) {
+export function removeGlobalSelectionStorage(orgId: string) {
   const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgId}`;
   localStorage.removeItem(localStorageKey);
 }
