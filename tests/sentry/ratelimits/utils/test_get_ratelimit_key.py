@@ -1,11 +1,10 @@
-from unittest import TestCase
-
 from django.test import RequestFactory
 
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
-from sentry.auth.access import Access
-from sentry.models import Organization, User
+from sentry.mediators.token_exchange import GrantExchanger
+from sentry.models import User
 from sentry.ratelimits import get_rate_limit_key
+from sentry.testutils.cases import TestCase
 
 
 class GetRateLimitKeyTest(TestCase):
@@ -40,20 +39,26 @@ class GetRateLimitKeyTest(TestCase):
         )
 
     def test_organization(self):
-        organization = Organization(id=1)
         self.request.session = {}
-        self.request.user = User(id=1, is_sentry_app=True)
-        self.request.access = Access(
-            scopes=[],
-            is_active=True,
-            organization_id=organization.id,
-            teams=[],
-            projects=[],
-            has_global_access=False,
-            sso_is_valid=True,
-            requires_sso=False,
+        sentry_app = self.create_sentry_app(
+            name="Tesla App", published=True, organization=self.organization
         )
+        install = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        client_id = sentry_app.application.client_id
+        user = sentry_app.proxy_user
+
+        api_token = GrantExchanger.run(
+            install=install, code=install.api_grant.code, client_id=client_id, user=user
+        )
+
+        self.request.user = sentry_app.proxy_user
+
+        self.request.auth = api_token
+
         assert (
             get_rate_limit_key(self.view, self.request)
-            == f"org:OrganizationGroupIndexEndpoint:GET:{organization.id}"
+            == f"org:OrganizationGroupIndexEndpoint:GET:{install.organization_id}"
         )

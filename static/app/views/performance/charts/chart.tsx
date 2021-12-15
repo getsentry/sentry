@@ -85,6 +85,7 @@ function Chart({
   const durationOnly = data.every(
     value => aggregateOutputType(value.seriesName) === 'duration'
   );
+
   const dataMax = durationOnly ? computeAxisMax(data) : undefined;
 
   const xAxes = disableMultiAxis

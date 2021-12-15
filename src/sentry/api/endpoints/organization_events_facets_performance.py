@@ -5,6 +5,8 @@ import sentry_sdk
 from django.http import Http404
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
+from snuba_sdk.column import Column
+from snuba_sdk.conditions import Condition, Op
 
 from sentry import features, tagstore
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -29,21 +31,13 @@ DEFAULT_TAG_KEY_LIMIT = 5
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
-        return features.has(
-            "organizations:performance-tag-explorer", organization, actor=request.user
-        )
-
-    def has_tag_page_feature(self, organization, request):
-        return features.has("organizations:performance-tag-page", organization, actor=request.user)
+        return features.has("organizations:performance-view", organization, actor=request.user)
 
     # NOTE: This used to be called setup, but since Django 2.2 it's a View method.
     #       We don't fit its semantics, but I couldn't think of a better name, and
     #       it's only used in child classes.
     def _setup(self, request, organization):
-        if not (
-            self.has_feature(organization, request)
-            or self.has_tag_page_feature(organization, request)
-        ):
+        if not self.has_feature(organization, request):
             raise Http404
 
         params = self.get_snuba_params(request, organization)
@@ -73,12 +67,15 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
         all_tag_keys = None
         tag_key = None
 
-        if self.has_tag_page_feature(organization, request):
-            all_tag_keys = request.GET.get("allTagKeys")
-            tag_key = request.GET.get("tagKey")
+        all_tag_keys = request.GET.get("allTagKeys")
+        tag_key = request.GET.get("tagKey")
 
         if tag_key in TAG_ALIASES:
             tag_key = TAG_ALIASES.get(tag_key)
+
+        use_snql = features.has(
+            "organizations:performance-use-snql", organization, actor=request.user
+        )
 
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
@@ -87,6 +84,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
                     filter_query=filter_query,
                     aggregate_column=aggregate_column,
                     referrer=referrer,
+                    use_snql=use_snql,
                     params=params,
                 )
 
@@ -132,9 +130,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
 class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
-    def has_feature(self, organization, request):
-        return self.has_tag_page_feature(organization, request)
-
     def get(self, request, organization):
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)
@@ -166,6 +161,10 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         if tag_key in TAG_ALIASES:
             tag_key = TAG_ALIASES.get(tag_key)
 
+        use_snql = features.has(
+            "organizations:performance-use-snql", organization, actor=request.user
+        )
+
         def data_fn(offset, limit, raw_limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
                 referrer = "api.organization-events-facets-performance-histogram"
@@ -178,6 +177,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     orderby=self.get_orderby(request),
                     offset=offset,
                     referrer=referrer,
+                    use_snql=use_snql,
                 )
 
                 if not top_tags:
@@ -192,6 +192,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     filter_query=filter_query,
                     aggregate_column=aggregate_column,
                     referrer=referrer,
+                    use_snql=use_snql,
                     params=params,
                     limit=raw_limit,
                     num_buckets_per_key=num_buckets_per_key,
@@ -250,6 +251,7 @@ class HistogramPaginator(GenericOffsetPaginator):
 def query_tag_data(
     params: Mapping[str, str],
     referrer: str,
+    use_snql: bool,
     filter_query: Optional[str] = None,
     aggregate_column: Optional[str] = None,
 ) -> Optional[Dict]:
@@ -283,8 +285,8 @@ def query_tag_data(
             ],
             query=filter_query,
             params=params,
-            orderby=["-count", "tags_value"],
             referrer=f"{referrer}.all_transactions",
+            use_snql=use_snql,
             limit=1,
         )
 
@@ -307,6 +309,7 @@ def query_top_tags(
     tag_key: str,
     limit: int,
     referrer: str,
+    use_snql: bool,
     orderby: Optional[List[str]],
     offset: Optional[int] = None,
     aggregate_column: Optional[str] = None,
@@ -355,8 +358,13 @@ def query_top_tags(
                 [translated_aggregate_column, "IS NOT NULL", None],
                 ["tags_key", "IN", [tag_key]],
             ],
+            extra_snql_condition=[
+                Condition(Column(translated_aggregate_column), Op.IS_NOT_NULL),
+                Condition(Column("tags_key"), Op.EQ, tag_key),
+            ],
             functions_acl=["array_join"],
             referrer=f"{referrer}.top_tags",
+            use_snql=use_snql,
             limit=limit,
             offset=offset,
         )
@@ -490,6 +498,7 @@ def query_facet_performance_key_histogram(
     num_buckets_per_key: int,
     limit: int,
     referrer: str,
+    use_snql: bool,
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
 ) -> Dict:
@@ -510,8 +519,13 @@ def query_facet_performance_key_histogram(
             ["tags_key", "IN", [tag_key]],
             ["tags_value", "IN", tag_values],
         ],
+        extra_snql_condition=[
+            Condition(Column("tags_key"), Op.EQ, tag_key),
+            Condition(Column("tags_value"), Op.IN, tag_values),
+        ],
         histogram_rows=limit,
         referrer="api.organization-events-facets-performance-histogram",
+        use_snql=use_snql,
         normalize_results=False,
     )
     return results

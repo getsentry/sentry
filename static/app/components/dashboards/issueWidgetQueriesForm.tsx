@@ -1,21 +1,32 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
+import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {explodeField, generateFieldAsString} from 'sentry/utils/discover/fields';
+import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
-import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 import Field from 'sentry/views/settings/components/forms/field';
 
+import WidgetQueryFields from './widgetQueryFields';
+
 type Props = {
+  api: Client;
   organization: Organization;
   selection: GlobalSelection;
   query: WidgetQuery;
   error?: Record<string, any>;
   onChange: (widgetQuery: WidgetQuery) => void;
   tags: TagCollection;
+  fieldOptions: ReturnType<typeof generateFieldOptions>;
 };
 
 type State = {
@@ -44,18 +55,22 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
     };
   };
 
-  getFirstQueryError() {
-    const {error} = this.props;
+  tagValueLoader = (key: string, search: string) => {
+    const {organization, selection, api} = this.props;
+    const orgId = organization.slug;
+    const projectIds = selection.projects.map(id => id.toString());
+    const endpointParams = {
+      start: getUtcDateString(selection.datetime.start),
+      end: getUtcDateString(selection.datetime.end),
+      statsPeriod: selection.datetime.period,
+    };
 
-    if (!error) {
-      return undefined;
-    }
-
-    return error;
-  }
+    return fetchTagValues(api, orgId, key, search, projectIds, endpointParams);
+  };
 
   render() {
-    const {organization, error, query, tags} = this.props;
+    const {organization, error, query, tags, fieldOptions, onChange} = this.props;
+    const explodedFields = query.fields.map(field => explodeField({field}));
     const {blurTimeout} = this.state;
 
     return (
@@ -94,12 +109,25 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
               }}
               excludeEnvironment
               supportedTags={tags}
-              tagValueLoader={() => new Promise(() => [])}
-              savedSearch={undefined}
+              tagValueLoader={this.tagValueLoader}
               onSidebarToggle={() => undefined}
             />
           </SearchConditionsWrapper>
         </Field>
+        <WidgetQueryFields
+          widgetType={WidgetType.ISSUE}
+          displayType={DisplayType.TABLE}
+          fieldOptions={fieldOptions}
+          errors={error}
+          fields={explodedFields}
+          organization={organization}
+          onChange={fields => {
+            const fieldStrings = fields.map(field => generateFieldAsString(field));
+            const newQuery = cloneDeep(query);
+            newQuery.fields = fieldStrings;
+            onChange(newQuery);
+          }}
+        />
       </QueryWrapper>
     );
   }
@@ -126,4 +154,4 @@ const StyledIssueListSearchBar = styled(IssueListSearchBar)`
   }
 `;
 
-export default withIssueTags(IssueWidgetQueriesForm);
+export default withApi(withIssueTags(IssueWidgetQueriesForm));

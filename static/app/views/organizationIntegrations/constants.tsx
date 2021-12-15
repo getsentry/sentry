@@ -3,11 +3,13 @@ import {DocumentIntegration} from 'sentry/types';
 export const INSTALLED = 'Installed' as const;
 export const NOT_INSTALLED = 'Not Installed' as const;
 export const PENDING = 'Pending' as const;
+export const DISABLED = 'Disabled' as const;
 export const LEARN_MORE = 'Learn More' as const;
 
 export const COLORS = {
   [INSTALLED]: 'success',
   [NOT_INSTALLED]: 'gray300',
+  [DISABLED]: 'gray300',
   [PENDING]: 'pink300',
   [LEARN_MORE]: 'gray300',
 } as const;
@@ -257,16 +259,16 @@ export const documentIntegrationList: DocumentIntegration[] = [
     ],
   },
   {
-    slug: 'insight_finder',
-    name: 'Insight Finder',
-    author: 'Insight Finder',
+    slug: 'insightfinder',
+    name: 'InsightFinder',
+    author: 'InsightFinder',
     docUrl: 'https://insightfinder.com/insightfinder-sentry-integration/',
     description:
       'InsightFinder ingests the errors that Sentry detects through its standard APIs and analyzes them using its patented, unsupervised, neural network algorithms. InsightFinder prioritizes those errors and provides context so anomalous events can be resolved before business is impacted.',
     features: [
       {
         featureGate: 'webhook',
-        description: 'Forward Sentry events to Insight Finder.',
+        description: 'Forward Sentry events to InsightFinder.',
       },
     ],
     resourceLinks: [

@@ -23,13 +23,13 @@ describe('Tooltip', function () {
     wrapper.setProps({title: 'bar'});
     wrapper.update();
     const trigger = wrapper.find('span');
-    trigger.simulate('mouseEnter');
+    trigger.simulate('pointerEnter');
 
     const tooltip = document.querySelector('#tooltip-portal .tooltip-content');
     // Check the text node.
     expect(tooltip.childNodes[0].nodeValue).toEqual('bar');
 
-    trigger.simulate('mouseLeave');
+    trigger.simulate('pointerLeave');
 
     // XXX(epurkhiser): AnimatePresence will remove the element, but for
     // testing it's easier to just remove it
@@ -44,12 +44,12 @@ describe('Tooltip', function () {
       TestStubs.routerContext()
     );
     const trigger = wrapper.find('span');
-    trigger.simulate('mouseEnter');
+    trigger.simulate('pointerEnter');
 
     const tooltip = document.querySelector('#tooltip-portal .tooltip-content');
     expect(tooltip).toBeFalsy();
 
-    trigger.simulate('mouseLeave');
+    trigger.simulate('pointerLeave');
   });
 
   it('does not render an empty tooltip', function () {
@@ -60,10 +60,10 @@ describe('Tooltip', function () {
       TestStubs.routerContext()
     );
     const trigger = wrapper.find('span');
-    trigger.simulate('mouseEnter');
+    trigger.simulate('pointerEnter');
 
     expect(wrapper.find('TooltipContent')).toHaveLength(0);
 
-    trigger.simulate('mouseLeave');
+    trigger.simulate('pointerLeave');
   });
 });

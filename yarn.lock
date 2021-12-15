@@ -6753,16 +6753,16 @@ eslint-config-prettier@6.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@1.67.0:
-  version "1.67.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.67.0.tgz#d1e8a445c13a56726a32d875301817852d9974ca"
-  integrity sha512-erZU5bJNzT04JtN01ZByDZ27UXgw117qmCfiOB6U6UN2lkTiNAJkk2jBBOdkBgmgQ235bqNMOBPhILbgQLgbHA==
+eslint-config-sentry-app@1.69.0:
+  version "1.69.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.69.0.tgz#9c07ebbd055d6715813784ee5dd84d73476ac44d"
+  integrity sha512-2Kx1hzY1c//2fRtAmo69yOH+r4ekGFxBUrfx+801vzt2ZnVZE8JTnNgga3FIwQ0XxHuiL+c6qNVh2BZAPFYkRw==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^4.31.0"
     "@typescript-eslint/parser" "^4.31.0"
     eslint-config-prettier "6.3.0"
-    eslint-config-sentry "^1.67.0"
-    eslint-config-sentry-react "^1.67.0"
+    eslint-config-sentry "^1.69.0"
+    eslint-config-sentry-react "^1.69.0"
     eslint-import-resolver-typescript "^2.4.0"
     eslint-import-resolver-webpack "^0.13.1"
     eslint-plugin-emotion "^10.0.27"
@@ -6770,22 +6770,22 @@ eslint-config-sentry-app@1.67.0:
     eslint-plugin-jest "22.17.0"
     eslint-plugin-prettier "3.1.1"
     eslint-plugin-react "7.15.1"
-    eslint-plugin-sentry "^1.67.0"
+    eslint-plugin-sentry "^1.69.0"
     eslint-plugin-simple-import-sort "^7.0.0"
 
-eslint-config-sentry-react@^1.67.0:
-  version "1.67.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.67.0.tgz#fdfef782407809707e16b9acbacc071ee7c5d467"
-  integrity sha512-XjbmS3AWTXvnu1W2uLzvU69Nziw6AvX09fE8rU3NHUmehH/Xw5XPwGuRNJKaM/v1JTMasIRY1R7KCVFbb0IIPQ==
+eslint-config-sentry-react@^1.69.0:
+  version "1.69.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.69.0.tgz#805f107c19c4108c78641e8bc0ea108062ff285b"
+  integrity sha512-R14XPoKqOPCwjP19AKZ5a6HF3gQrFZBXky1QBr85ebx3oNlGf+lXGE+nMpwv0oIrgOAFFKfjgHknn01boNcS5w==
   dependencies:
-    eslint-config-sentry "^1.67.0"
+    eslint-config-sentry "^1.69.0"
     eslint-plugin-jest-dom "^3.9.2"
     eslint-plugin-testing-library "^4.12.4"
 
-eslint-config-sentry@^1.67.0:
-  version "1.67.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.67.0.tgz#924f3c3655fad61dce3c533f4bd8703cbd08f8ac"
-  integrity sha512-oSGkduPUzja317VJ0093q+ANMu9D7+seH9ElfrYoj3DWPl8zCnRn/LatbVRbAs1JaImg+iqqHhfjLS0KARRdEg==
+eslint-config-sentry@^1.69.0:
+  version "1.69.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.69.0.tgz#57ab856b01fb941d9edcdcfcfc215bdf389a4454"
+  integrity sha512-N9pWglTq/PBJ+j2t2UkqHVDz+TxnUTPZH/9z9k83164VNVlBL2AGZhUqB0dXNdJenmQ3yX4AXSuH8Mu0Ei4Mgg==
 
 eslint-import-resolver-node@^0.3.4:
   version "0.3.4"
@@ -6895,10 +6895,10 @@ eslint-plugin-react@7.15.1:
     prop-types "^15.7.2"
     resolve "^1.12.0"
 
-eslint-plugin-sentry@^1.67.0:
-  version "1.67.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.67.0.tgz#7d0970be9429453e5dd5a93da6b249febbd83448"
-  integrity sha512-jY3h9CXTAaK7ko1+gF/EGmWU4QR7azyTxX1CBxbcFExEv1ImxBjCSwVEaI7hl+e3m+aaIlsiuGnHESwWaeJUVg==
+eslint-plugin-sentry@^1.69.0:
+  version "1.69.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.69.0.tgz#6cd9d81e7a495d3b5a6da0e1e78fa109d8720cf5"
+  integrity sha512-rkPXNbEC/U+gxSRnoE/5x+6FgS+Xc08LDsOQ4ewVSXJ/rSajEIuvobiWdfRy/5GWKQabcWSjuy97WnvKqPlyNA==
   dependencies:
     requireindex "~1.1.0"
 
@@ -14488,10 +14488,10 @@ typescript-template-language-service-decorator@^2.2.0:
   resolved "https://registry.yarnpkg.com/typescript-template-language-service-decorator/-/typescript-template-language-service-decorator-2.2.0.tgz#4ee6d580f307fb9239978e69626f2775b8a59b2a"
   integrity sha512-xiolqt1i7e22rpqMaprPgSFVgU64u3b9n6EJlAaUYE61jumipKAdI1+O5khPlWslpTUj80YzjUKjJ2jxT0D74w==
 
-typescript@^4.4.4:
-  version "4.4.4"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.4.4.tgz#2cd01a1a1f160704d3101fd5a58ff0f9fcb8030c"
-  integrity sha512-DqGhF5IKoBl8WNf8C1gu8q0xZSInh9j1kJJMqT3a94w1JzVaBU4EXOSMrz9yDqMT0xt3selp83fuFMQ0uzv6qA==
+typescript@^4.5.4:
+  version "4.5.4"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.5.4.tgz#a17d3a0263bf5c8723b9c52f43c5084edf13c2e8"
+  integrity sha512-VgYs2A2QIRuGphtzFV7aQJduJ2gyfTljngLzjpfW9FoYZF6xuw1W0vW9ghCKLfcWrCFxK81CSGRAvS1pn4fIUg==
 
 u2f-api@1.0.10:
   version "1.0.10"

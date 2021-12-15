@@ -15,7 +15,7 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
   GlobalSelection,

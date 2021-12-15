@@ -82,7 +82,7 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
-from sentry.models.integrationfeature import Feature, IntegrationFeature
+from sentry.models.integrationfeature import Feature, IntegrationFeature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
@@ -761,6 +761,10 @@ class Factories:
         return install
 
     @staticmethod
+    def create_stacktrace_link_schema():
+        return {"type": "stacktrace-link", "uri": "/redirect/"}
+
+    @staticmethod
     def create_issue_link_schema():
         return {
             "type": "issue-link",
@@ -858,7 +862,9 @@ class Factories:
             sentry_app = Factories.create_sentry_app()
 
         integration_feature = IntegrationFeature.objects.create(
-            sentry_app=sentry_app, feature=feature or Feature.API
+            target_id=sentry_app.id,
+            target_type=IntegrationTypes.SENTRY_APP.value,
+            feature=feature or Feature.API,
         )
 
         if description:

@@ -10,11 +10,11 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
-import Feature from 'sentry/components/acl/feature';
 import Avatar from 'sentry/components/avatar';
 import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
 import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
@@ -43,12 +43,20 @@ const AVATAR_STYLES = {
   color: {
     size: 50,
     title: t('Default Logo'),
-    description: t('The default icon for integrations'),
+    previewText: t('The default icon for integrations'),
+    help: t('Image must be between 256px by 256px and 1024px by 1024px.'),
   },
   simple: {
     size: 20,
     title: t('Default Icon'),
-    description: t('This is an optional icon used for Issue Linking'),
+    previewText: tct('This is a silhouette icon used only for [uiDocs:UI Components]', {
+      uiDocs: (
+        <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/ui-components/" />
+      ),
+    }),
+    help: t(
+      'Image must be between 256px by 256px and 1024px by 1024px, and may only use black and transparent pixels.'
+    ),
   },
 };
 
@@ -335,7 +343,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           isDefault
         />
         <AvatarPreviewTitle>{AVATAR_STYLES[avatarStyle].title}</AvatarPreviewTitle>
-        <AvatarPreviewText>{AVATAR_STYLES[avatarStyle].description}</AvatarPreviewText>
+        <AvatarPreviewText>{AVATAR_STYLES[avatarStyle].previewText}</AvatarPreviewText>
       </AvatarPreview>
     );
   };
@@ -345,24 +353,26 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     if (!app) {
       return null;
     }
+    const avatarStyle = isColor ? 'color' : 'simple';
     return (
-      <Feature features={['organizations:sentry-app-logo-upload']}>
-        <AvatarChooser
-          type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
-          allowGravatar={false}
-          allowLetter={false}
-          endpoint={`/sentry-apps/${app.slug}/avatar/`}
-          model={this.getAvatarModel(isColor)}
-          onSave={this.addAvatar}
-          title={isColor ? t('Logo') : t('Small Icon')}
-          savedDataUrl={undefined}
-          defaultChoice={{
-            allowDefault: true,
-            choiceText: isColor ? t('Default logo') : t('Default small icon'),
-            preview: this.getAvatarPreview(isColor),
-          }}
-        />
-      </Feature>
+      <AvatarChooser
+        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
+        allowGravatar={false}
+        allowLetter={false}
+        endpoint={`/sentry-apps/${app.slug}/avatar/`}
+        model={this.getAvatarModel(isColor)}
+        onSave={this.addAvatar}
+        title={isColor ? t('Logo') : t('Small Icon')}
+        help={AVATAR_STYLES[avatarStyle].help.concat(
+          this.isInternal ? '' : t(' Required for publishing.')
+        )}
+        savedDataUrl={undefined}
+        defaultChoice={{
+          allowDefault: true,
+          choiceText: isColor ? t('Default logo') : t('Default small icon'),
+          preview: this.getAvatarPreview(isColor),
+        }}
+      />
     );
   };
 

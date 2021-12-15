@@ -129,7 +129,7 @@ class BaseButton extends React.Component<ButtonProps, {}> {
     // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
     if (title) {
       return (
-        <Tooltip skipWrapper={!disabled} {...tooltipProps} title={title}>
+        <Tooltip skipWrapper {...tooltipProps} title={title}>
           {button}
         </Tooltip>
       );
@@ -151,15 +151,15 @@ type StyledButtonProps = ButtonProps & {theme: Theme};
 
 const getFontSize = ({size, priority, theme}: StyledButtonProps) => {
   if (priority === 'link') {
-    return 'inherit';
+    return 'font-size: inherit';
   }
 
   switch (size) {
     case 'xsmall':
     case 'small':
-      return theme.fontSizeSmall;
+      return `font-size: ${theme.fontSizeSmall}`;
     default:
-      return theme.fontSizeMedium;
+      return `font-size: ${theme.fontSizeMedium}`;
   }
 };
 
@@ -167,13 +167,18 @@ const getFontWeight = ({priority, borderless}: StyledButtonProps) =>
   `font-weight: ${priority === 'link' || borderless ? 'inherit' : 600};`;
 
 const getBoxShadow =
-  (active: boolean) =>
+  (theme: Theme) =>
   ({priority, borderless, disabled}: StyledButtonProps) => {
     if (disabled || borderless || priority === 'link') {
       return 'box-shadow: none';
     }
 
-    return `box-shadow: ${active ? 'inset' : ''} 0 2px rgba(0, 0, 0, 0.05)`;
+    return `
+      box-shadow: ${theme.dropShadowLight};
+      &:active {
+        box-shadow: inset ${theme.dropShadowLight};
+      }
+    `;
   };
 
 const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) => {
@@ -185,14 +190,14 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
     backgroundActive,
     border,
     borderActive,
+    focusBorder,
     focusShadow,
   } = theme.button[themeName];
 
   return css`
     color: ${color};
     background-color: ${background};
-    border: 1px solid
-      ${priority !== 'link' && !borderless && !!border ? border : 'transparent'};
+    border: 1px solid ${borderless ? 'transparent' : border};
 
     &:hover {
       color: ${color};
@@ -203,13 +208,12 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
     &:active {
       color: ${colorActive || color};
       background: ${backgroundActive};
-      border-color: ${priority !== 'link' && !borderless && (borderActive || border)
-        ? borderActive || border
-        : 'transparent'};
+      border-color: ${borderless ? 'transparent' : borderActive};
     }
 
     &.focus-visible {
-      ${focusShadow && `box-shadow: ${focusShadow} 0 0 0 3px;`}
+      border: 1px solid ${focusBorder};
+      box-shadow: ${focusBorder} 0 0 0 1px, ${focusShadow} 0 0 0 4px;
     }
   `;
 };
@@ -261,20 +265,15 @@ const StyledButton = styled(
   padding: 0;
   text-transform: none;
   ${getFontWeight};
-  font-size: ${getFontSize};
+  ${getFontSize};
   ${getColors};
-  ${getBoxShadow(false)};
+  ${p => getBoxShadow(p.theme)};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
 
-  &:active {
-    ${getBoxShadow(true)};
-  }
   &:focus {
     outline: none;
   }
-
-  ${p => (p.borderless || p.priority === 'link') && 'border-color: transparent'};
 `;
 
 /**

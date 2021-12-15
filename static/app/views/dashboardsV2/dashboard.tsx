@@ -8,8 +8,8 @@ import {Location} from 'history';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
-  openAddDashboardIssueWidgetModal,
   openAddDashboardWidgetModal,
+  openDashboardWidgetLibraryModal,
 } from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -22,13 +22,7 @@ import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  MAX_WIDGETS,
-  Widget,
-  WidgetType,
-} from './types';
+import {DashboardDetails, DashboardWidgetSource, MAX_WIDGETS, Widget} from './types';
 
 type Props = {
   api: Client;
@@ -43,6 +37,7 @@ type Props = {
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
+  handleAddLibraryWidgets: (widgets: Widget[]) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
 };
@@ -89,11 +84,19 @@ class Dashboard extends Component<Props> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard, selection} = this.props;
-
+    const {organization, dashboard, selection, handleAddLibraryWidgets} = this.props;
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
+
+    if (organization.features.includes('widget-library')) {
+      openDashboardWidgetLibraryModal({
+        organization,
+        dashboard,
+        onAddWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+      });
+      return;
+    }
     openAddDashboardWidgetModal({
       organization,
       dashboard,
@@ -183,15 +186,11 @@ class Dashboard extends Component<Props> {
       onAddWidget: this.handleAddComplete,
       onUpdateWidget: this.handleUpdateComplete(index),
     };
-    if (widget.widgetType === WidgetType.ISSUE) {
-      openAddDashboardIssueWidgetModal(modalProps);
-    } else {
-      openAddDashboardWidgetModal({
-        ...modalProps,
-        dashboard,
-        source: DashboardWidgetSource.DASHBOARDS,
-      });
-    }
+    openAddDashboardWidgetModal({
+      ...modalProps,
+      dashboard,
+      source: DashboardWidgetSource.DASHBOARDS,
+    });
   };
 
   getWidgetIds() {

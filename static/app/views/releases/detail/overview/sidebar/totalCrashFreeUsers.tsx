@@ -7,7 +7,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import SidebarSection from 'sentry/components/sidebarSection';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';

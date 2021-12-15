@@ -61,6 +61,31 @@ export const LANDING_DISPLAYS = [
   },
 ];
 
+export const LANDING_V3_DISPLAYS = [
+  {
+    label: 'All Transactions',
+    field: LandingDisplayField.ALL,
+  },
+  {
+    label: 'Web Vitals',
+    field: LandingDisplayField.FRONTEND_PAGELOAD,
+  },
+  {
+    label: 'Frontend',
+    field: LandingDisplayField.FRONTEND_OTHER,
+  },
+  {
+    label: 'Backend',
+    field: LandingDisplayField.BACKEND,
+  },
+  {
+    label: 'Mobile',
+    field: LandingDisplayField.MOBILE,
+    isShown: (organization: Organization) =>
+      organization.features.includes('performance-mobile-vitals'),
+  },
+];
+
 export function excludeTransaction(
   transaction: string | React.ReactText,
   props: {eventView: EventView; location: Location}
@@ -80,18 +105,14 @@ export function excludeTransaction(
   });
 }
 
-export function getCurrentLandingDisplay(
-  location: Location,
-  projects: Project[],
-  eventView?: EventView
-): LandingDisplay {
+export function getLandingDisplayFromParam(location: Location) {
   const landingField = decodeScalar(location?.query?.landingDisplay);
 
   const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
-  if (display) {
-    return display;
-  }
+  return display;
+}
 
+export function getDefaultDisplayForPlatform(projects: Project[], eventView?: EventView) {
   const defaultDisplayField = getDefaultDisplayFieldForPlatform(projects, eventView);
 
   const defaultDisplay = LANDING_DISPLAYS.find(
@@ -100,8 +121,21 @@ export function getCurrentLandingDisplay(
   return defaultDisplay || LANDING_DISPLAYS[0];
 }
 
+export function getCurrentLandingDisplay(
+  location: Location,
+  projects: Project[],
+  eventView?: EventView
+): LandingDisplay {
+  const display = getLandingDisplayFromParam(location);
+  if (display) {
+    return display;
+  }
+
+  return getDefaultDisplayForPlatform(projects, eventView);
+}
+
 export function handleLandingDisplayChange(
-  field: string,
+  field: LandingDisplayField,
   location: Location,
   projects: Project[],
   organization: Organization,
@@ -123,7 +157,7 @@ export function handleLandingDisplayChange(
   const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
   const currentDisplay = getCurrentLandingDisplay(location, projects, eventView).field;
 
-  const newQuery =
+  const newQuery: {query: string; landingDisplay?: LandingDisplayField} =
     defaultDisplay === field
       ? {...queryWithConditions}
       : {...queryWithConditions, landingDisplay: field};
