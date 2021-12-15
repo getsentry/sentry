@@ -1,6 +1,7 @@
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.release_health.metrics import get_tag_values_list, metric_id, tag_key
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -17,7 +18,7 @@ from sentry.testutils import TestCase
 class EntitySubscriptionTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        for tag in ["session", "session.status", "init", "crashed"]:
+        for tag in [SessionMetricKey.SESSION.value, "session.status", "init", "crashed"]:
             indexer.record(tag)
 
     def test_map_aggregate_to_sessions_entity_subscription_non_supported_aggregate(self) -> None:
@@ -97,7 +98,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert isinstance(entity_subscription, MetricsCountersEntitySubscription)
         assert entity_subscription.aggregate == aggregate
         org_id = self.organization.id
-        groupby = ["project_id", tag_key(org_id, "session.status")]
+        groupby = [tag_key(org_id, "session.status")]
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id,
             "groupby": groupby,
@@ -111,7 +112,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", metric_id(org_id, "session")],
+            ["metric_id", "=", metric_id(org_id, SessionMetricKey.SESSION)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == groupby

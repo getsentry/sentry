@@ -9,6 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.models import Integration
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils import APITestCase
@@ -704,7 +705,7 @@ class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAler
     def setUp(self):
         super().setUp()
         self.valid_alert_rule["dataset"] = Dataset.Metrics.value
-        for tag in ["session", "session.status", "init", "crashed"]:
+        for tag in [SessionMetricKey.SESSION.value, "session.status", "init", "crashed"]:
             indexer.record(tag)
 
     def test_simple_crash_rate_alerts_for_users(self):

@@ -11,6 +11,7 @@ from sentry.models import Environment
 from sentry.release_health.metrics import get_tag_values_list, metric_id, tag_key, tag_value
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.utils.snuba import Dataset, resolve_column, resolve_snuba_aliases
@@ -71,7 +72,7 @@ def apply_dataset_query_conditions(
 
 class _EntitySpecificParams(TypedDict):
     org_id: Optional[int]
-    event_types: Optional[List[SnubaQueryEventType]]
+    event_types: Optional[List[SnubaQueryEventType.EventType]]
 
 
 @dataclass
@@ -215,7 +216,7 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
         self.session_status = tag_key(self.org_id, "session.status")
 
     def get_query_groupby(self) -> List[str]:
-        return ["project_id", self.session_status]
+        return [self.session_status]
 
     def build_snuba_filter(
         self,
@@ -229,9 +230,8 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
         snuba_filter.update_with(
             {
                 "aggregations": [["sum(value)", None, "value"]],
-                "conditions": conditions
-                + [
-                    ["metric_id", "=", metric_id(self.org_id, "session")],
+                "conditions": [
+                    ["metric_id", "=", metric_id(self.org_id, SessionMetricKey.SESSION)],
                     [self.session_status, "IN", session_status_tag_values],
                 ],
                 "groupby": self.get_query_groupby(),
@@ -241,6 +241,20 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
             snuba_filter.conditions.append(
                 [tag_key(self.org_id, "environment"), "=", tag_value(self.org_id, environment.name)]
             )
+        if query and len(conditions) > 0:
+            release_conditions = [
+                condition for condition in conditions if condition[0] == "release"
+            ]
+
+            for release_condition in release_conditions:
+                snuba_filter.conditions.append(
+                    [
+                        tag_key(self.org_id, release_condition[0]),
+                        release_condition[1],
+                        tag_value(self.org_id, release_condition[2]),
+                    ]
+                )
+
         return snuba_filter
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
