@@ -30,8 +30,12 @@ class EmailSerializer(serializers.Serializer):
     email = AllowedEmailField(required=True)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class UserEmailsConfirmEndpoint(UserEndpoint):
-    def post(self, request, user):
+    def post(self, request: Request, user) -> Response:
         """
         Sends a confirmation email to user
         ``````````````````````````````````

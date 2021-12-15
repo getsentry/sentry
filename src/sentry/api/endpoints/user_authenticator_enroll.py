@@ -4,6 +4,7 @@ import petname
 from django.http import HttpResponse
 from rest_framework import serializers, status
 from rest_framework.fields import SkipField
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
@@ -96,7 +97,7 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
     @sudo_required
-    def get(self, request, user, interface_id):
+    def get(self, request: Request, user, interface_id) -> Response:
         """
         Get Authenticator Interface
         ```````````````````````````
@@ -150,7 +151,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
     @sudo_required
     @email_verification_required
-    def post(self, request, user, interface_id):
+    def post(self, request: Request, user, interface_id) -> Response:
         """
         Enroll in authenticator interface
         `````````````````````````````````
