@@ -225,7 +225,12 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                 selectedIndex={selectedListIndex}
                 setSelectedIndex={setSelectListIndex}
                 items={widgetData.list.data.map(listItem => () => {
-                  const transaction = listItem.transaction as string;
+                  const transaction = listItem.transaction as string | null;
+
+                  if (!transaction) {
+                    return null;
+                  }
+
                   const _eventView = eventView.clone();
 
                   const initialConditions = new MutableSearch(_eventView.query);
@@ -264,11 +269,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                       </VitalBarCell>
                       <ListClose
                         setSelectListIndex={setSelectListIndex}
-                        onClick={() =>
-                          defined(listItem.transaction)
-                            ? excludeTransaction(listItem.transaction, props)
-                            : undefined
-                        }
+                        onClick={() => excludeTransaction(transaction, props)}
                       />
                     </Fragment>
                   );
