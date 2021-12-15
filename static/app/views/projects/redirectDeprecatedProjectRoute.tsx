@@ -119,12 +119,15 @@ type RedirectOptions = {
 
 type RedirectCallback = (options: RedirectOptions) => string;
 
-const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) => {
-  class RedirectDeprecatedProjectRoute extends React.Component<Props> {
-    trackRedirect = (organizationId: string, nextRoute: string) => {
+const redirectDeprecatedProjectRoute =
+  (generateRedirectRoute: RedirectCallback) =>
+  ({params, router, routes}: Props) => {
+    // TODO(epurkhiser): The way this function get's called as a side-effect of
+    // the render is pretty janky and incorrect... we should fix it.
+    function trackRedirect(organizationId: string, nextRoute: string) {
       const payload = {
         feature: 'global_views',
-        url: getRouteStringFromRoutes(this.props.routes), // the URL being redirected from
+        url: getRouteStringFromRoutes(routes), // the URL being redirected from
         org_id: parseInt(organizationId, 10),
       };
 
@@ -132,56 +135,47 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
       analytics('deprecated_urls.redirect', payload);
 
       return nextRoute;
-    };
-
-    render() {
-      const {params} = this.props;
-      const {orgId} = params;
-
-      return (
-        <Wrapper>
-          <ProjectDetails orgId={orgId} projectSlug={params.projectId}>
-            {({loading, error, hasProjectId, projectId, organizationId}) => {
-              if (loading) {
-                return <LoadingIndicator />;
-              }
-
-              if (!hasProjectId || !organizationId) {
-                if (error && error.status === 404) {
-                  return (
-                    <Alert type="error">
-                      {t('The project you were looking for was not found.')}
-                    </Alert>
-                  );
-                }
-
-                return <LoadingError />;
-              }
-
-              const routeProps: RedirectOptions = {
-                orgId,
-                projectId,
-                router: {params},
-              };
-
-              return (
-                <Redirect
-                  router={this.props.router}
-                  to={this.trackRedirect(
-                    organizationId,
-                    generateRedirectRoute(routeProps)
-                  )}
-                />
-              );
-            }}
-          </ProjectDetails>
-        </Wrapper>
-      );
     }
-  }
 
-  return RedirectDeprecatedProjectRoute;
-};
+    const {orgId} = params;
+
+    return (
+      <Wrapper>
+        <ProjectDetails orgId={orgId} projectSlug={params.projectId}>
+          {({loading, error, hasProjectId, projectId, organizationId}) => {
+            if (loading) {
+              return <LoadingIndicator />;
+            }
+
+            if (!hasProjectId || !organizationId) {
+              if (error && error.status === 404) {
+                return (
+                  <Alert type="error">
+                    {t('The project you were looking for was not found.')}
+                  </Alert>
+                );
+              }
+
+              return <LoadingError />;
+            }
+
+            const routeProps: RedirectOptions = {
+              orgId,
+              projectId,
+              router: {params},
+            };
+
+            return (
+              <Redirect
+                router={router}
+                to={trackRedirect(organizationId, generateRedirectRoute(routeProps))}
+              />
+            );
+          }}
+        </ProjectDetails>
+      </Wrapper>
+    );
+  };
 
 export default redirectDeprecatedProjectRoute;
 
