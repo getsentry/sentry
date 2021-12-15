@@ -4,6 +4,7 @@ import {Location, Query} from 'history';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {Series} from 'sentry/types/echarts';
 import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
+import {TransactionMetric} from 'sentry/utils/metrics/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {Color} from 'sentry/utils/theme';
 
@@ -139,3 +140,10 @@ export function getMaxOfSeries(series: Series[]) {
   }
   return max;
 }
+
+export const vitalToMetricsField: Record<string, TransactionMetric> = {
+  [WebVital.LCP]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP,
+  [WebVital.FCP]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FCP,
+  [WebVital.FID]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID,
+  [WebVital.CLS]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS,
+};

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
@@ -22,6 +23,7 @@ import {Organization, Project} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
+import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -33,13 +35,15 @@ import {MetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
 import Table from './table';
-import {vitalDescription, vitalMap} from './utils';
+import {vitalDescription, vitalMap, vitalToMetricsField} from './utils';
 import VitalChart from './vitalChart';
 import VitalInfo from './vitalInfo';
+import VitalInfoMetrics from './vitalInfoMetrics';
 
 const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
 type Props = {
+  api: Client;
   location: Location;
   eventView: EventView;
   organization: Organization;
@@ -179,21 +183,60 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 
   renderContent(vital: WebVital) {
-    const {isMetricsData, location, organization, eventView} = this.props;
+    const {isMetricsData, location, organization, eventView, api} = this.props;
     const query = decodeScalar(location.query.query, '');
+    const orgSlug = organization.slug;
+    const {fields, start, end, statsPeriod, environment, project: projectIds} = eventView;
 
     if (isMetricsData) {
+      const field = `p75(${vitalToMetricsField[vital]})`;
       return (
         <React.Fragment>
           <StyledMetricsSearchBar
             searchSource="performance_vitals_metrics"
-            orgSlug={organization.slug}
+            orgSlug={orgSlug}
             projectIds={eventView.project}
             query={query}
             onSearch={this.handleSearch}
           />
-          <div>{'TODO'}</div>
-          <StyledVitalInfo>{'TODO'}</StyledVitalInfo>
+          <MetricsRequest
+            api={api}
+            orgSlug={orgSlug}
+            start={start}
+            end={end}
+            statsPeriod={statsPeriod}
+            project={projectIds}
+            environment={environment}
+            field={[field]}
+            query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
+          >
+            {({loading: isLoading, response}) => {
+              const p75AllTransactions = response?.groups.reduce(
+                (acc, group) => acc + group.totals[field],
+                0
+              );
+              return (
+                <React.Fragment>
+                  <div>{'TODO'}</div>
+                  <StyledVitalInfo>
+                    <VitalInfoMetrics
+                      api={api}
+                      orgSlug={orgSlug}
+                      start={start}
+                      end={end}
+                      statsPeriod={statsPeriod}
+                      project={projectIds}
+                      environment={environment}
+                      vital={vital}
+                      query={query}
+                      p75AllTransactions={p75AllTransactions}
+                      isLoading={isLoading}
+                    />
+                  </StyledVitalInfo>
+                </React.Fragment>
+              );
+            }}
+          </MetricsRequest>
         </React.Fragment>
       );
     }
@@ -203,19 +246,19 @@ class VitalDetailContent extends React.Component<Props, State> {
         <StyledSearchBar
           searchSource="performance_vitals"
           organization={organization}
-          projectIds={eventView.project}
+          projectIds={projectIds}
           query={query}
-          fields={eventView.fields}
+          fields={fields}
           onSearch={this.handleSearch}
         />
         <VitalChart
           organization={organization}
-          query={eventView.query}
-          project={eventView.project}
-          environment={eventView.environment}
-          start={eventView.start}
-          end={eventView.end}
-          statsPeriod={eventView.statsPeriod}
+          query={query}
+          project={projectIds}
+          environment={environment}
+          start={start}
+          end={end}
+          statsPeriod={statsPeriod}
         />
         <StyledVitalInfo>
           <VitalInfo location={location} vital={vital} />

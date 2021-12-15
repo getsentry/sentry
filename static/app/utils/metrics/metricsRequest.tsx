@@ -33,7 +33,7 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   api: Client;
-  organization: Organization;
+  orgSlug: Organization['slug'];
   field: string[];
   children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
   project?: Readonly<number[]>;
@@ -87,9 +87,9 @@ class MetricsRequest extends React.Component<Props, State> {
   private unmounting: boolean = false;
 
   get path() {
-    const {organization} = this.props;
+    const {orgSlug} = this.props;
 
-    return `/organizations/${organization.slug}/metrics/data/`;
+    return `/organizations/${orgSlug}/metrics/data/`;
   }
 
   baseQueryParams({previousPeriod = false} = {}) {
