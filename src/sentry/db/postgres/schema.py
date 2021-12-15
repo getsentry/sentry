@@ -1,6 +1,8 @@
 from django.db.backends.postgresql.schema import (
     DatabaseSchemaEditor as PostgresDatabaseSchemaEditor,
 )
+from django.db.models import Field
+from django.db.models.base import ModelBase
 from django_zero_downtime_migrations.backends.postgres.schema import (
     DatabaseSchemaEditorMixin,
     Unsafe,
@@ -8,54 +10,79 @@ from django_zero_downtime_migrations.backends.postgres.schema import (
 )
 
 unsafe_mapping = {
+    Unsafe.ADD_COLUMN_DEFAULT: (
+        "Adding {}.{} as column with a default is unsafe.\n"
+        "More info: https://develop.sentry.dev/database-migrations/#adding-columns-with-a-default"
+    ),
     Unsafe.ADD_COLUMN_NOT_NULL: (
-        "Adding {model}.{field} as a not null column is unsafe.\n"
+        "Adding {}.{} as a not null column is unsafe.\n"
         "More info: https://develop.sentry.dev/database-migrations/#adding-not-null-to-columns"
     ),
     Unsafe.ADD_COLUMN_DEFAULT: (
-        "Adding {model}.{field} as column with a default is unsafe.\n"
+        "Adding {}.{} as column with a default is unsafe.\n"
         "More info: https://develop.sentry.dev/database-migrations/#adding-columns-with-a-default"
     ),
-    # TODO: Add info about which model/column/type
     Unsafe.ALTER_COLUMN_TYPE: (
-        "ALTER COLUMN TYPE is unsafe operation\n"
-        "See details for safe alternative "
-        "https://develop.sentry.dev/database-migrations/#altering-column-types"
+        "Altering the type of column {}.{} in this way is unsafe\n"
+        "More info here: https://develop.sentry.dev/database-migrations/#altering-column-types"
     ),
+    # TODO: If we use > 3.0 we can add tests to verify this
     Unsafe.ADD_CONSTRAINT_EXCLUDE: (
         "Adding an exclusion constraint is unsafe\n"
         "We don't use these at Sentry currently, bring this up in #discuss-backend"
-    ),
-    # TODO: Add info about which model is being renamed
-    Unsafe.ALTER_TABLE_RENAME: (
-        "Renaming a table is unsafe.\n"
-        "More info here: https://develop.sentry.dev/database-migrations/#renaming-tables"
     ),
     Unsafe.ALTER_TABLE_SET_TABLESPACE: (
         "Changing the tablespace for a table is unsafe\n"
         "There's probably no reason to do this via a migration. Bring this up in #discuss-backend"
     ),
-    # TODO: Add info about which column is being renamed
     Unsafe.ALTER_TABLE_RENAME_COLUMN: (
-        "Renaming a column is unsafe.\n"
+        "Renaming column {}.{} to {} is unsafe.\n"
         "More info here: https://develop.sentry.dev/database-migrations/#renaming-columns"
     ),
     # TODO: Add DROP_COLUMN warnings
 }
 
 
-class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDatabaseSchemaEditor):
-    def add_field(self, model, field):
-        """
-        Just exists to translate error messages from zero-downtime-migrations to our
-        custom error messages.
-        """
+def value_translator(value):
+    if isinstance(value, Field):
+        return value.name
+    if isinstance(value, ModelBase):
+        return value.__name__
+    return value
+
+
+def translate_unsafeoperation_exception(func):
+    def inner(self, *args, **kwargs):
         try:
-            super().add_field(model, field)
+            func(self, *args, **kwargs)
         except UnsafeOperationException as e:
-            raise UnsafeOperationException(
-                unsafe_mapping[str(e)].format(model=model.__name__, field=field.name)
-            )
+            exc_str = unsafe_mapping.get(str(e))
+            if exc_str is None:
+                raise
+
+            formatted_args = [value_translator(arg) for arg in args]
+
+            raise UnsafeOperationException(exc_str.format(*formatted_args))
+
+    return inner
+
+
+class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDatabaseSchemaEditor):
+    add_field = translate_unsafeoperation_exception(PostgresDatabaseSchemaEditor.add_field)
+    alter_field = translate_unsafeoperation_exception(PostgresDatabaseSchemaEditor.alter_field)
+    alter_db_tablespace = translate_unsafeoperation_exception(
+        PostgresDatabaseSchemaEditor.alter_db_tablespace
+    )
+
+    def alter_db_table(self, model, old_db_table, new_db_table):
+        """
+        This didn't work correctly in  django_zero_downtime_migrations, so implementing here. This
+        method is only used to modify table name, so we just need to raise.
+        """
+        raise UnsafeOperationException(
+            f"Renaming table for model {model.__name__} from {old_db_table} to {new_db_table} is unsafe.\n"
+            "More info here: https://develop.sentry.dev/database-migrations/#renaming-tables"
+        )
 
 
 class DatabaseSchemaEditorProxy:
