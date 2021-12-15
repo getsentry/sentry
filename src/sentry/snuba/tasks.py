@@ -1,70 +1,25 @@
 import logging
-import re
 from datetime import timedelta
 
 import sentry_sdk
 from django.utils import timezone
 from snuba_sdk.legacy import json_to_snql
 
-from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
-from sentry.search.events.fields import resolve_field_list
-from sentry.search.events.filter import get_filter
+from sentry.eventstore import Filter
+from sentry.models import Any, Environment, Mapping, Optional
+from sentry.snuba.entity_subscription import (
+    BaseEntitySubscription,
+    map_aggregate_to_entity_subscription,
+)
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
-from sentry.utils.snuba import (
-    Dataset,
-    SnubaError,
-    _snuba_pool,
-    resolve_column,
-    resolve_snuba_aliases,
-)
+from sentry.utils.snuba import SnubaError, _snuba_pool
 
 logger = logging.getLogger(__name__)
 
 
-# TODO: If we want to support security events here we'll need a way to
-# differentiate within the dataset. For now we can just assume all subscriptions
-# created within this dataset are just for errors.
-DATASET_CONDITIONS = {
-    QueryDatasets.EVENTS: "event.type:error",
-    QueryDatasets.TRANSACTIONS: "event.type:transaction",
-}
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
-
-
-def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
-    """
-    Applies query dataset conditions to a query. This essentially turns a query like
-    'release:123 or release:456' into '(event.type:error) AND (release:123 or release:456)'.
-    :param dataset: The `QueryDataset` that the query applies to
-    :param query: A string containing query to apply conditions to
-    :param event_types: A list of EventType(s) to apply to the query
-    :param discover: Whether this is intended for use with the discover dataset or not.
-    When False, we won't modify queries for `QueryDatasets.TRANSACTIONS` at all. This is
-    because the discover dataset requires that we always specify `event.type` so we can
-    differentiate between errors and transactions, but the TRANSACTIONS dataset doesn't
-    need it specified, and `event.type` ends up becoming a tag search.
-    """
-    if not discover and dataset == QueryDatasets.TRANSACTIONS:
-        return query
-
-    if dataset == QueryDatasets.SESSIONS:
-        return query
-
-    if event_types:
-        event_type_conditions = " OR ".join(
-            f"event.type:{event_type.name.lower()}" for event_type in event_types
-        )
-    elif dataset in DATASET_CONDITIONS:
-        event_type_conditions = DATASET_CONDITIONS[dataset]
-    else:
-        return query
-
-    if query:
-        return f"({event_type_conditions}) AND ({query})"
-
-    return event_type_conditions
 
 
 @instrumented_task(
@@ -173,48 +128,29 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
 
-def build_snuba_filter(dataset, query, aggregate, environment, event_types, params=None):
-    resolve_func = {
-        QueryDatasets.EVENTS: resolve_column(Dataset.Events),
-        QueryDatasets.SESSIONS: resolve_column(Dataset.Sessions),
-        QueryDatasets.TRANSACTIONS: resolve_column(Dataset.Transactions),
-    }[dataset]
-
-    functions_acl = None
-
-    aggregations = [aggregate]
-    if dataset == QueryDatasets.SESSIONS:
-        # This aggregation is added to return the total number of sessions in crash
-        # rate alerts that is used to identify if we are below a general minimum alert threshold
-        count_col = re.search(r"(sessions|users)", aggregate)
-        count_col_matched = count_col.group()
-
-        aggregations += [f"identity({count_col_matched}) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
-        functions_acl = ["identity"]
-
-    query = apply_dataset_query_conditions(dataset, query, event_types)
-    snuba_filter = get_filter(query, params=params)
-    snuba_filter.update_with(
-        resolve_field_list(
-            aggregations, snuba_filter, auto_fields=False, functions_acl=functions_acl
-        )
-    )
-    snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
-    if snuba_filter.group_ids:
-        snuba_filter.conditions.append(["group_id", "IN", list(map(int, snuba_filter.group_ids))])
-    if environment:
-        snuba_filter.conditions.append(["environment", "=", environment.name])
-    return snuba_filter
+def build_snuba_filter(
+    entity_subscription: BaseEntitySubscription,
+    query: str,
+    environment: Optional[Environment],
+    params: Optional[Mapping[str, Any]] = None,
+) -> Filter:
+    return entity_subscription.build_snuba_filter(query, environment, params)
 
 
-def _create_in_snuba(subscription):
+def _create_in_snuba(subscription: QuerySubscription) -> str:
     snuba_query = subscription.snuba_query
+    entity_subscription = map_aggregate_to_entity_subscription(
+        dataset=QueryDatasets(snuba_query.dataset),
+        aggregate=snuba_query.aggregate,
+        extra_fields={
+            "org_id": subscription.project.organization_id,
+            "event_types": snuba_query.event_types,
+        },
+    )
     snuba_filter = build_snuba_filter(
-        QueryDatasets(snuba_query.dataset),
+        entity_subscription,
         snuba_query.query,
-        snuba_query.aggregate,
         snuba_query.environment,
-        snuba_query.event_types,
     )
 
     body = {
@@ -225,18 +161,12 @@ def _create_in_snuba(subscription):
         "aggregations": snuba_filter.aggregations,
         "time_window": snuba_query.time_window,
         "resolution": snuba_query.resolution,
+        **entity_subscription.get_entity_extra_params(),
     }
-
-    if Dataset(snuba_query.dataset) == Dataset.Sessions:
-        body.update(
-            {
-                "organization": subscription.project.organization_id,
-            }
-        )
 
     try:
         metrics.incr("snuba.snql.subscription.create", tags={"dataset": snuba_query.dataset})
-        snql_query = json_to_snql(body, snuba_query.dataset)
+        snql_query = json_to_snql(body, entity_subscription.entity_key.value)
         snql_query.validate()
         body["query"] = str(snql_query)
         body["type"] = "delegate"  # mark this as a combined subscription
@@ -249,7 +179,7 @@ def _create_in_snuba(subscription):
 
     response = _snuba_pool.urlopen(
         "POST",
-        f"/{snuba_query.dataset}/subscriptions",
+        f"/{snuba_query.dataset}/{entity_subscription.entity_key.value}/subscriptions",
         body=json.dumps(body),
     )
     if response.status != 202:

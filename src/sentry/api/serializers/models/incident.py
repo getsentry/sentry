@@ -11,8 +11,8 @@ from sentry.incidents.models import (
     IncidentSeen,
     IncidentSubscription,
 )
+from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import QueryDatasets
-from sentry.snuba.tasks import apply_dataset_query_conditions
 
 
 @register(Incident)
