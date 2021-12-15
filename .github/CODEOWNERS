@@ -25,6 +25,8 @@
 /src/sentry/web/api.py             @getsentry/owners-ingest
 /src/sentry/scripts/quotas/        @getsentry/owners-ingest
 /src/sentry/scripts/tsdb/          @getsentry/owners-ingest
+/src/sentry/tasks/reprocessing.py  @getsentry/owners-ingest
+/src/sentry/tasks/reprocessing2.py @getsentry/owners-ingest
 /src/sentry/tasks/store.py         @getsentry/owners-ingest
 /src/sentry/tasks/unmerge.py       @getsentry/owners-ingest
 
