@@ -196,20 +196,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
     const totalPeriodAverage = Math.ceil(projectAvgSum / averageValues.length);
 
     return (
-      <StyledPanelTable
-        isEmpty={!periodReleases}
-        emptyMessage={t("No Releases Were Setup For This Team's Projects")}
-        emptyAction={
-          <Button
-            size="small"
-            external
-            href="https://docs.sentry.io/product/releases/setup/"
-          >
-            {t('Learn More')}
-          </Button>
-        }
-        headers={[]}
-      >
+      <div>
         <ChartWrapper>
           <BarChart
             style={{height: 190}}
@@ -256,8 +243,18 @@ class TeamReleases extends AsyncComponent<Props, State> {
             }}
           />
         </ChartWrapper>
-        <StyledProjectsTable
+        <StyledPanelTable
           isEmpty={projects.length === 0}
+          emptyMessage={t("No Releases Were Setup For This Team's Projects")}
+          emptyAction={
+            <Button
+              size="small"
+              external
+              href="https://docs.sentry.io/product/releases/setup/"
+            >
+              {t('Learn More')}
+            </Button>
+          }
           headers={[
             t('Releases Per Project'),
             <RightAligned key="last">
@@ -294,20 +291,25 @@ class TeamReleases extends AsyncComponent<Props, State> {
               <ScoreWrapper>{this.renderTrend(project.id)}</ScoreWrapper>
             </Fragment>
           ))}
-        </StyledProjectsTable>
-      </StyledPanelTable>
+        </StyledPanelTable>
+      </div>
     );
   }
 }
 
 export default withTheme(TeamReleases as ComponentType<Props>);
 
+const ChartWrapper = styled('div')`
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
-  grid-template-columns: 1fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
+  font-size: ${p => p.theme.fontSizeMedium};
   box-shadow: unset;
 
   & > div {
@@ -321,24 +323,6 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
         padding: 48px ${space(2)};
       }
     `}
-`;
-
-const ChartWrapper = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const StyledProjectsTable = styled(PanelTable)`
-  grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
-  box-shadow: unset;
-
-  & > div {
-    padding: ${space(1)} ${space(2)};
-  }
 `;
 
 const RightAligned = styled('span')`
