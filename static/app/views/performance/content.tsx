@@ -13,7 +13,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
 import PageHeading from 'sentry/components/pageHeading';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
@@ -210,6 +210,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
         organization={organization}
         location={location}
         projects={projects}
+        selection={selection}
       />
     );
   }
