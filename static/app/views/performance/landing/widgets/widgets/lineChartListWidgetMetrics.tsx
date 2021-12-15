@@ -5,6 +5,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import Count from 'sentry/components/count';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -174,17 +175,23 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
                   query: props.eventView.getGlobalSelectionQuery(),
                 });
 
+                const countValue = listItem[field];
+
                 return (
                   <Fragment>
                     <GrowLink to={transactionTarget} className="truncate">
                       <Truncate value={transaction} maxLength={40} />
                     </GrowLink>
                     <RightAlignedCell>
-                      <Count value={listItem[field]} />
+                      {defined(countValue) && <Count value={countValue} />}
                     </RightAlignedCell>
                     <ListClose
                       setSelectListIndex={setSelectListIndex}
-                      onClick={() => excludeTransaction(listItem.transaction, props)}
+                      onClick={() =>
+                        defined(listItem.transaction)
+                          ? excludeTransaction(listItem.transaction, props)
+                          : undefined
+                      }
                     />
                   </Fragment>
                 );

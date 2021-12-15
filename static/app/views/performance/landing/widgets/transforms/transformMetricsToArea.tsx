@@ -91,20 +91,35 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   });
 
   const seriesTotal = isFailureRateWidget
-    ? response.groups.reduce((acc, group) => acc + group.totals[metricsField], 0)
+    ? response.groups.reduce((acc, group) => acc + (group.totals[metricsField] ?? 0), 0)
     : undefined;
 
   const dataMean = data.map(serie => {
-    const meanData = defined(seriesTotal)
-      ? serie.totals / seriesTotal
-      : mean(serie.data.filter(({value}) => defined(value)).map(({value}) => value));
+    let meanData: undefined | number = undefined;
+
+    if (
+      defined(seriesTotal) &&
+      defined(serie.totals) &&
+      serie.totals > 0 &&
+      seriesTotal > 0
+    ) {
+      meanData = serie.totals / seriesTotal;
+    } else {
+      const serieData = serie.data
+        .filter(({value}) => defined(value))
+        .map(({value}) => value);
+
+      if (serieData.length > 0) {
+        meanData = mean(serieData);
+      }
+    }
 
     const seriesName = defined(seriesTotal) ? 'failure_rate()' : serie.seriesName;
 
     return {
       mean: meanData,
       outputType: aggregateOutputType(seriesName),
-      label: axisLabelFormatter(meanData, seriesName),
+      label: meanData ? axisLabelFormatter(meanData, seriesName) : undefined,
     };
   });
 
