@@ -1,7 +1,7 @@
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-import {Component} from 'react';
+import {Component, createRef} from 'react';
 import {Layout, Responsive, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
@@ -103,6 +103,11 @@ class Dashboard extends Component<Props, State> {
       this.addNewWidget();
     }
   }
+
+  // Used for retreiving width of the grid container
+  // because onLayoutChange can trigger before we can set
+  // the mobile breakpoint state
+  private gridContainer = createRef<HTMLDivElement>();
 
   async addNewWidget() {
     const {api, organization, newWidget} = this.props;
@@ -258,11 +263,11 @@ class Dashboard extends Component<Props, State> {
   onLayoutChange = newLayout => {
     const {onLayoutChange} = this.props;
 
-    // Check component width because onLayoutChange can trigger
-    // before setting mobile breakpoint state
-    const rect = document.querySelector('.react-grid-layout')?.getBoundingClientRect();
-    if (rect && rect.width < MOBILE_BREAKPOINT) {
-      // Don't save the layout if width is mobile-sized
+    if (!this?.gridContainer?.current?.offsetWidth) {
+      return;
+    }
+
+    if (this.gridContainer.current.offsetWidth < MOBILE_BREAKPOINT) {
       this.setState({isMobile: true});
       return;
     }
@@ -284,29 +289,31 @@ class Dashboard extends Component<Props, State> {
     const canModifyLayout = !isMobile && isEditing;
 
     return (
-      <GridLayout
-        breakpoints={BREAKPOINTS}
-        cols={COLUMNS}
-        rowHeight={ROW_HEIGHT}
-        margin={WIDGET_MARGINS}
-        draggableHandle={`.${DRAG_HANDLE_CLASS}`}
-        layouts={{desktop: layout, mobile: getMobileLayout(layout, widgets)}}
-        onLayoutChange={this.onLayoutChange}
-        isDraggable={canModifyLayout}
-        isResizable={canModifyLayout}
-        isBounded
-      >
-        {widgets.map((widget, index) => this.renderWidget(widget, index))}
-        {isEditing && widgets.length < MAX_WIDGETS && (
-          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={ADD_BUTTON_POSITION}>
-            <AddWidget
-              orgFeatures={organization.features}
-              onAddWidget={this.handleStartAdd}
-              onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
-            />
-          </div>
-        )}
-      </GridLayout>
+      <div ref={this.gridContainer}>
+        <GridLayout
+          breakpoints={BREAKPOINTS}
+          cols={COLUMNS}
+          rowHeight={ROW_HEIGHT}
+          margin={WIDGET_MARGINS}
+          draggableHandle={`.${DRAG_HANDLE_CLASS}`}
+          layouts={{desktop: layout, mobile: getMobileLayout(layout, widgets)}}
+          onLayoutChange={this.onLayoutChange}
+          isDraggable={canModifyLayout}
+          isResizable={canModifyLayout}
+          isBounded
+        >
+          {widgets.map((widget, index) => this.renderWidget(widget, index))}
+          {isEditing && widgets.length < MAX_WIDGETS && (
+            <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={ADD_BUTTON_POSITION}>
+              <AddWidget
+                orgFeatures={organization.features}
+                onAddWidget={this.handleStartAdd}
+                onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
+              />
+            </div>
+          )}
+        </GridLayout>
+      </div>
     );
   }
 }
