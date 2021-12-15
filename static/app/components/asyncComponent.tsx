@@ -339,24 +339,6 @@ export default class AsyncComponent<
   }
 
   /**
-   * @deprecated use getEndpoints
-   */
-  getEndpointParams() {
-    // eslint-disable-next-line no-console
-    console.warn('getEndpointParams is deprecated');
-    return {};
-  }
-
-  /**
-   * @deprecated use getEndpoints
-   */
-  getEndpoint() {
-    // eslint-disable-next-line no-console
-    console.warn('getEndpoint is deprecated');
-    return null;
-  }
-
-  /**
    * Return a list of endpoint queries to make.
    *
    * return [
@@ -364,11 +346,7 @@ export default class AsyncComponent<
    * ]
    */
   getEndpoints(): Array<[string, string, any?, any?]> {
-    const endpoint = this.getEndpoint();
-    if (!endpoint) {
-      return [];
-    }
-    return [['data', endpoint, this.getEndpointParams()]];
+    return [];
   }
 
   renderSearchInput({stateKey, url, ...props}: RenderSearchInputArgs) {
