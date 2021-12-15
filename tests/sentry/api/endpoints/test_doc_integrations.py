@@ -1,4 +1,3 @@
-from django.urls import reverse
 from rest_framework import status
 
 from sentry.api.serializers.base import serialize
@@ -8,7 +7,7 @@ from sentry.testutils import APITestCase
 
 
 class DocIntegrationsTest(APITestCase):
-    url = reverse("sentry-api-0-doc-integrations")
+    endpoint = "sentry-api-0-doc-integrations"
 
     def setUp(self):
         self.user = self.create_user(email="jinx@lol.com")
@@ -24,14 +23,15 @@ class DocIntegrationsTest(APITestCase):
 
 
 class GetDocIntegrationsTest(DocIntegrationsTest):
+    method = "GET"
+
     def test_read_docs_for_superuser(self):
         """
         Tests that all DocIntegrations are returned for super users,
         along with serialized versions of their IntegrationFeatures
         """
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == status.HTTP_200_OK
+        response = self.get_success_response(status_code=status.HTTP_200_OK)
         assert len(response.data) == 3
         for doc in [self.doc_1, self.doc_2, self.doc_3]:
             assert serialize(doc) in response.data
@@ -47,8 +47,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
         along with serialized versions of their IntegrationFeatures
         """
         self.login_as(user=self.user)
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == status.HTTP_200_OK
+        response = self.get_success_response(status_code=status.HTTP_200_OK)
         assert len(response.data) == 2
         for doc in [self.doc_1, self.doc_3]:
             assert serialize(doc) in response.data
@@ -62,6 +61,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
 
 
 class PostDocIntegrationsTest(DocIntegrationsTest):
+    method = "POST"
     payload = {
         "name": "Enemy",
         "author": "Imagine Dragons",
@@ -79,9 +79,8 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         with all the appropriate IntegrationFeatures
         """
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.post(self.url, self.payload, format="json")
+        response = self.get_success_response(status_code=status.HTTP_201_CREATED, **self.payload)
         doc = DocIntegration.objects.get(name=self.payload["name"], author=self.payload["author"])
-        assert response.status_code == status.HTTP_201_CREATED
         assert serialize(doc) == response.data
         assert doc.is_draft
         features = IntegrationFeature.objects.filter(
@@ -97,8 +96,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         Tests that the POST endpoint is only accessible for superusers
         """
         self.login_as(user=self.user)
-        response = self.client.post(self.url, self.payload, format="json")
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        self.get_error_response(status_code=status.HTTP_403_FORBIDDEN, **self.payload)
 
     def test_create_repeated_slug(self):
         """
@@ -106,8 +104,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         """
         self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "name": self.doc_1.name}
-        response = self.client.post(self.url, payload, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        response = self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST, **payload)
         assert "name" in response.data.keys()
 
     def test_create_invalid_metadata(self):
@@ -121,10 +118,8 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
             "missing_keys": [{"title": "Missing URL field"}],
         }
         for resources in invalid_resources.values():
-            response = self.client.post(
-                self.url, {**self.payload, "resources": resources}, format="json"
-            )
-            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            payload = {**self.payload, "resources": resources}
+            response = self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST, **payload)
             assert "metadata" in response.data.keys()
 
     def test_create_empty_metadata(self):
@@ -135,8 +130,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload}
         del payload["resources"]
-        response = self.client.post(self.url, payload, format="json")
-        assert response.status_code == status.HTTP_201_CREATED
+        response = self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
         assert "resources" in response.data.keys()
         assert len(response.data["resources"]) == 0
 
@@ -147,9 +141,8 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         """
         self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "is_draft": False, "metadata": {"should": "not override"}}
-        response = self.client.post(self.url, payload, format="json")
+        self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
         doc = DocIntegration.objects.get(name=self.payload["name"], author=self.payload["author"])
-        assert response.status_code == status.HTTP_201_CREATED
+        # Ensure the DocIntegration was not created with the ignored keys' values
         for key in self.ignored_keys:
-            assert key not in response.data.keys()
             assert getattr(doc, key) is not payload[key]
