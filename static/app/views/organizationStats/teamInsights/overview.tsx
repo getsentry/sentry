@@ -318,9 +318,7 @@ function TeamInsightsOverview({location, router}: Props) {
             </DescriptionCard>
             <DescriptionCard
               title={t('Number of Releases')}
-              description={t(
-                'A breakdown showing how your team shipped releases over time.'
-              )}
+              description={t("The releases that were created in your team's projects.")}
             >
               <TeamReleases
                 projects={projects}
@@ -352,7 +350,7 @@ const Body = styled(Layout.Body)`
 const ControlsWrapper = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

@@ -119,12 +119,12 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == f"{self.group.title}"
         assert (
             attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=NoteActivitySlack"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note-activity-slack"
         )
         assert attachment["text"] == "blah blah"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=NoteActivitySlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=note-activity-slack-user|Notification Settings>"
         )
 
     @responses.activate
@@ -151,7 +151,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=AssignedActivitySlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned-activity-slack-user|Notification Settings>"
         )
 
     @responses.activate
@@ -180,7 +180,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=UnassignedActivitySlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned-activity-slack-user|Notification Settings>"
         )
 
     @responses.activate
@@ -209,7 +209,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedActivitySlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved-activity-slack-user|Notification Settings>"
         )
 
     @responses.activate
@@ -249,7 +249,7 @@ class ActivityNotificationTest(APITestCase):
         )
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=ReleaseActivitySlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release-activity-slack-user|Notification Settings>"
         )
 
     @responses.activate
@@ -288,7 +288,7 @@ class ActivityNotificationTest(APITestCase):
         assert text == "Issue marked as regression"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=RegressionActivitySlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression-activity-slack-user|Notification Settings>"
         )
 
     @responses.activate
@@ -323,7 +323,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=ResolvedInReleaseActivitySlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved-in-release-activity-slack-user|Notification Settings>"
         )
 
     @responses.activate
@@ -383,5 +383,5 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == "Hello world"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=alert-rule-slack-user|Notification Settings>"
         )

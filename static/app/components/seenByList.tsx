@@ -79,11 +79,12 @@ const SeenByWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
 `;
 
 const IconWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
+  display: flex;
+  align-items: center;
   background-color: transparent;
   color: ${p => p.theme.textColor};
   height: 28px;
   width: 24px;
-  line-height: 26px;
   text-align: center;
   padding-top: ${space(0.5)};
   ${p => (p.iconPosition === 'left' ? 'margin-right: 10px' : '')};

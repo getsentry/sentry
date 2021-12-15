@@ -8,6 +8,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 
 import Tab from './transactionSummary/tabs';
 import {eventsRouteWithQuery} from './transactionSummary/transactionEvents/utils';
+import {spansRouteWithQuery} from './transactionSummary/transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionSummary/transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionSummary/transactionVitals/utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
@@ -101,6 +102,15 @@ class Breadcrumb extends Component<Props> {
           crumbs.push({
             to: webVitalsTarget,
             label: t('Web Vitals'),
+            preserveGlobalSelection: true,
+          });
+          break;
+        }
+        case Tab.Spans: {
+          const spansTarget = spansRouteWithQuery(routeQuery);
+          crumbs.push({
+            to: spansTarget,
+            label: t('Spans'),
             preserveGlobalSelection: true,
           });
           break;

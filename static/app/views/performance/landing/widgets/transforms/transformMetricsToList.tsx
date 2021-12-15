@@ -5,16 +5,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
 
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
 
-export type VitalsMetricsItem = {
-  transaction: string;
-  measurement_rating: {
-    poor: number;
-    meh: number;
-    good: number;
-  };
-};
-
-export function transformMetricsToVitalList<T extends WidgetDataConstraint>(
+export function transformMetricsToList<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
   results: MetricsRequestRenderProps,
   _: QueryDefinitionWithKey<T>
@@ -23,34 +14,13 @@ export function transformMetricsToVitalList<T extends WidgetDataConstraint>(
     defaultStatsPeriod: DEFAULT_STATS_PERIOD,
   });
 
-  const metricsField = widgetProps.Queries.list.fields[0];
-
   const {errored, loading, reloading, response} = results;
 
   const data =
-    results.response?.groups.reduce((acc, group) => {
-      const foundTransaction = acc.find(
-        item => item.transaction === group.by.transaction
-      );
-      if (foundTransaction) {
-        foundTransaction.measurement_rating = {
-          ...foundTransaction.measurement_rating,
-          [group.by.measurement_rating]: group.totals[metricsField],
-        };
-        return acc;
-      }
-
-      acc.push({
-        transaction: String(group.by.transaction),
-        measurement_rating: {
-          poor: 0,
-          meh: 0,
-          good: 0,
-          [group.by.measurement_rating]: group.totals[metricsField],
-        },
-      });
-      return acc;
-    }, [] as VitalsMetricsItem[]) ?? [];
+    results.response?.groups.map(group => ({
+      ...group.by,
+      ...group.totals,
+    })) ?? [];
 
   const childData = {
     loading,

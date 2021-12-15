@@ -70,7 +70,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachment["title"] == "Hello world"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=alert-rule-slack-user|Notification Settings>"
         )
 
     @responses.activate
@@ -141,7 +141,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachment["title"] == "Hello world"
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=alert-rule-slack-user|Notification Settings>"
         )
 
     @responses.activate
@@ -231,12 +231,13 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlackTeam|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=alert-rule-slack-team|Notification Settings>"
         )
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_disabled_org_integration_for_team(self, mock_func):
+
         # update the team's notification settings
         ExternalActor.objects.create(
             actor=self.team.actor,
@@ -396,13 +397,16 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlackTeam|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=alert-rule-slack-team|Notification Settings>"
         )
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_team(self, mock_func):
         """Test that issue alerts are sent to a team in Slack."""
+        # add a second organization
+        org = self.create_organization(owner=self.user)
+        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
 
         # add a second user to the team so we can be sure it's only
         # sent once (to the team, and not to each individual user)
@@ -472,7 +476,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlackTeam|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=alert-rule-slack-team|Notification Settings>"
         )
 
     @responses.activate
@@ -552,7 +556,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=AlertRuleSlackTeam|Notification Settings>"
+            == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=alert-rule-slack-team|Notification Settings>"
         )
 
     @responses.activate
@@ -660,7 +664,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=alert-rule-slack-user|Notification Settings>"
         )
 
         # check that user2 got a notification as well
@@ -671,7 +675,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachments[0]["title"] == "Hello world"
         assert (
             attachments[0]["footer"]
-            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=AlertRuleSlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=alert-rule-slack-user|Notification Settings>"
         )
 
     @responses.activate

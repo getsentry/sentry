@@ -20,7 +20,7 @@ import SearchBar from 'sentry/components/searchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -628,7 +628,7 @@ const DropdownsWrapper = styled('div')`
 
     & > * {
       margin-top: ${space(0)};
-      margin-left: ${space(2)};
+      margin-left: ${space(1)};
     }
 
     & > *:nth-child(1) {
@@ -645,7 +645,7 @@ const DropdownsWrapper = styled('div')`
     margin-top: ${space(0)};
 
     & > * {
-      margin-left: ${space(2)} !important;
+      margin-left: ${space(1)} !important;
     }
 
     display: grid;

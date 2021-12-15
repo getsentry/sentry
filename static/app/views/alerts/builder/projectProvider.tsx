@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
-import ScrollToTop from 'sentry/views/settings/components/scrollToTop';
+import useScrollToTop from 'sentry/utils/useScrollToTop';
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -22,6 +22,7 @@ type RouteParams = {
 
 function AlertBuilderProjectProvider(props: Props) {
   const api = useApi();
+  useScrollToTop({location: props.location});
 
   const {children, params, organization, ...other} = props;
   const {projectId} = params;
@@ -50,18 +51,14 @@ function AlertBuilderProjectProvider(props: Props) {
     );
   }
 
-  return (
-    <ScrollToTop location={props.location} disable={() => false}>
-      {children && isValidElement(children)
-        ? cloneElement(children, {
-            ...other,
-            ...children.props,
-            project,
-            organization,
-          })
-        : children}
-    </ScrollToTop>
-  );
+  return children && isValidElement(children)
+    ? cloneElement(children, {
+        ...other,
+        ...children.props,
+        project,
+        organization,
+      })
+    : children;
 }
 
 export default AlertBuilderProjectProvider;
