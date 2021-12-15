@@ -59,7 +59,7 @@ function getStatsPeriodValue(maybe: ParamValue) {
 
 /**
  * We normalize potential datetime strings into the form that would be valid if
- * it were to be parsed by datetime.strptime using the format
+ * it was to be parsed by datetime.strptime using the format
  * %Y-%m-%dT%H:%M:%S.%f
  *
  * This format was transformed to the form that moment.js understands using [0]
