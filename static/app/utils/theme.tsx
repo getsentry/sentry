@@ -16,6 +16,7 @@ export const lightColors = {
   surface100: '#FAF9FB',
   surface200: '#FFFFFF',
   surface300: '#FFFFFF',
+  surface400: '#F5F3F7',
 
   gray500: '#2B2233',
   gray400: '#4D4158',
@@ -65,6 +66,7 @@ export const darkColors = {
   surface100: '#1A141F',
   surface200: '#241D2A',
   surface300: '#2C2433',
+  surface400: '#362E3E',
 
   gray500: '#EBE6EF',
   gray400: '#D6D0DC',
@@ -189,6 +191,11 @@ const generateAliases = (colors: BaseColors) => ({
    */
   disabled: colors.gray300,
   disabledBorder: colors.gray200,
+
+  /**
+   * Indicates a "hover" state, to suggest that an interactive element is clickable
+   */
+  hover: colors.surface400,
 
   /**
    * Indicates that something is "active" or "selected"
