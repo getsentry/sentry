@@ -43,6 +43,10 @@ class EventAttachmentDetailsPermission(ProjectPermission):
         return current_role.priority >= required_role.priority
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     permission_classes = (EventAttachmentDetailsPermission,)
 
@@ -59,7 +63,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         )
         return response
 
-    def get(self, request, project, event_id, attachment_id):
+    def get(self, request: Request, project, event_id, attachment_id) -> Response:
         """
         Retrieve an Attachment
         ``````````````````````
@@ -93,7 +97,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         return self.respond(serialize(attachment, request.user))
 
-    def delete(self, request, project, event_id, attachment_id):
+    def delete(self, request: Request, project, event_id, attachment_id) -> Response:
         """
         Delete an Event Attachment by ID
         ````````````````````````````````

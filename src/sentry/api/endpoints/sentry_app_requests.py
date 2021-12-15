@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -50,7 +51,7 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
 
         return formatted_request
 
-    def get(self, request, sentry_app):
+    def get(self, request: Request, sentry_app) -> Response:
         """
         :qparam string eventType: Optionally specify a specific event type to filter requests
         :qparam bool errorsOnly: If this is true, only return error/warning requests (300-599)

@@ -2,6 +2,7 @@ import logging
 import random
 
 from django.conf import settings
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
@@ -26,7 +27,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         with start_transaction(
             op="http.server", name="RelayProjectConfigsEndpoint", sampled=_sample_apm()
         ):

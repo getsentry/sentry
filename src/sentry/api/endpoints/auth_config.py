@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.urls import reverse
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import newsletter
@@ -23,7 +24,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = []
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args, **kwargs) -> Response:
         """
         Get context required to show a login page. Registration is handled elsewhere.
         """

@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -49,7 +50,7 @@ class AssistantSerializer(serializers.Serializer):
 class AssistantEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
         guides = deepcopy(manager.all())
         seen_ids = set(

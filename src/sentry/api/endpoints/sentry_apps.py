@@ -1,5 +1,6 @@
 import logging
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class SentryAppsEndpoint(SentryAppsBaseEndpoint):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         status = request.GET.get("status")
 
         if status == "published":
@@ -46,7 +47,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             on_results=lambda x: serialize(x, request.user, access=request.access),
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         data = {
             "name": request.json_body.get("name"),
             "user": request.user,

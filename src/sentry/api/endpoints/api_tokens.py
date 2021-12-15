@@ -1,6 +1,7 @@
 from django.conf import settings
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, SessionAuthentication
@@ -18,7 +19,7 @@ class ApiTokensEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         token_list = list(
             ApiToken.objects.filter(application__isnull=True, user=request.user).select_related(
                 "application"
@@ -27,7 +28,7 @@ class ApiTokensEndpoint(Endpoint):
 
         return Response(serialize(token_list, request.user))
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         serializer = ApiTokenSerializer(data=request.data)
 
         if serializer.is_valid():
