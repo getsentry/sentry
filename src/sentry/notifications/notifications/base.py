@@ -1,29 +1,22 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
-from urllib.parse import urljoin
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from sentry import analytics
-from sentry.models import Environment, NotificationSetting, Team
-from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
-from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, User
+    from sentry.models import Organization, Project, Team, User
 
 
-# TODO: add abstractmethod decorators
 class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
-    # some notifications have no settings for it
-    notification_setting_type: NotificationSettingTypes | None = None
+    fine_tuning_key: str | None = None
     metrics_key: str = ""
     analytics_event: str = ""
-    referrer_base: str = ""
 
     def __init__(self, organization: Organization):
         self.organization = organization
@@ -38,12 +31,6 @@ class BaseNotification(abc.ABC):
         name: str = self.organization.name
         return name
 
-    @property
-    def fine_tuning_key(self) -> str | None:
-        if self.notification_setting_type is None:
-            return None
-        return get_notification_setting_type_name(self.notification_setting_type)
-
     def get_filename(self) -> str:
         raise NotImplementedError
 
@@ -52,9 +39,6 @@ class BaseNotification(abc.ABC):
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         return {}
-
-    def get_context(self) -> MutableMapping[str, Any]:
-        return {**self.get_base_context()}
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         """The subject line when sending this notifications as an email."""
@@ -91,7 +75,9 @@ class BaseNotification(abc.ABC):
         raise NotImplementedError
 
     def build_notification_footer(self, recipient: Team | User) -> str:
-        raise NotImplementedError
+        from sentry.integrations.slack.utils.notifications import build_notification_footer
+
+        return build_notification_footer(self, recipient)
 
     def get_message_description(self) -> Any:
         context = getattr(self, "context", None)
@@ -133,69 +119,6 @@ class BaseNotification(abc.ABC):
                 **self.get_log_params(recipient),
             )
 
-    # TODO: make recipient required
-    def get_referrer(
-        self, provider: ExternalProviders, recipient: Optional[Team | User] = None
-    ) -> str:
-        # referrer needs the provider and recipient
-        referrer = f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
-        if recipient:
-            referrer += "-" + recipient.__class__.__name__.lower()
-        return referrer
-
-    def get_sentry_query_params(self, provider: ExternalProviders, recipient: Team | User) -> str:
-        return f"?referrer={self.get_referrer(provider, recipient)}"
-
-    def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
-        # settings url is dependant on the provider so we know which provider is sending them into Sentry
-        if isinstance(recipient, Team):
-            team = Team.objects.get(id=recipient.id)
-            url_str = f"/settings/{self.org_slug}/teams/{team.slug}/notifications/"
-        else:
-            url_str = "/settings/account/notifications/"
-            if self.fine_tuning_key:
-                url_str += f"{self.fine_tuning_key}/"
-        return str(
-            urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider, recipient))
-        )
-
-    def determine_recipients(self) -> Iterable[Team | User]:
-        raise NotImplementedError
-
-    def get_notification_providers(self) -> Iterable[ExternalProviders]:
-        # subclass this method to limit notifications to specific providers
-        from sentry.notifications.notify import notification_providers
-
-        return notification_providers()
-
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
-        # need a notification_setting_type to call this function
-        if not self.notification_setting_type:
-            raise NotImplementedError
-
-        available_providers = self.get_notification_providers()
-        recipients = list(self.determine_recipients())
-        recipients_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.organization, recipients, self.notification_setting_type
-        )
-
-        return {
-            provider: recipients_of_provider
-            for provider, recipients_of_provider in recipients_by_provider.items()
-            if provider in available_providers
-        }
-
-    def send(self) -> None:
-        from sentry.notifications.notify import notify
-
-        participants_by_provider = self.get_participants()
-        if not participants_by_provider:
-            return
-
-        context = self.get_context()
-        for provider, recipients in participants_by_provider.items():
-            safe_execute(notify, provider, self, recipients, context)
-
 
 class ProjectNotification(BaseNotification, abc.ABC):
     def __init__(self, project: Project) -> None:
@@ -209,22 +132,3 @@ class ProjectNotification(BaseNotification, abc.ABC):
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {"project_id": self.project.id, **super().get_log_params(recipient)}
-
-    def build_notification_footer(self, recipient: Team | User) -> str:
-        # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
-
-        parent = getattr(self, "project", self.organization)
-        footer: str = parent.slug
-        group = getattr(self, "group", None)
-        latest_event = group.get_latest_event() if group else None
-        environment = None
-        if latest_event:
-            try:
-                environment = latest_event.get_environment()
-            except Environment.DoesNotExist:
-                pass
-        if environment and getattr(environment, "name", None) != "":
-            footer += f" | {environment.name}"
-        footer += f" | <{settings_url}|Notification Settings>"
-        return footer

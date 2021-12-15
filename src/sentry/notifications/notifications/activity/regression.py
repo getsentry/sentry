@@ -9,8 +9,6 @@ from .base import GroupActivityNotification
 
 
 class RegressionActivityNotification(GroupActivityNotification):
-    referrer_base = "regression-activity"
-
     def get_activity_name(self) -> str:
         return "Regression"
 

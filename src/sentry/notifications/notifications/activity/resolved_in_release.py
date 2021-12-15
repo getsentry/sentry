@@ -9,8 +9,6 @@ from .base import GroupActivityNotification
 
 
 class ResolvedInReleaseActivityNotification(GroupActivityNotification):
-    referrer_base = "resolved-in-release-activity"
-
     def get_activity_name(self) -> str:
         return "Resolved Issue"
 

@@ -7,7 +7,7 @@ import pytz
 
 from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
+from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import (
     get_commits,
     get_integration_link,
@@ -27,9 +27,8 @@ logger = logging.getLogger(__name__)
 
 class AlertRuleNotification(ProjectNotification):
     message_builder = "IssueNotificationMessageBuilder"
-    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
+    fine_tuning_key = "alerts"
     metrics_key = "issue_alert"
-    referrer_base = "alert-rule"
 
     def __init__(
         self,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from abc import ABC
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 from urllib.parse import urlparse, urlunparse
@@ -9,7 +10,6 @@ from django.utils.safestring import SafeString, mark_safe
 
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import get_participants_for_group
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 class ActivityNotification(ProjectNotification, ABC):
-    notification_setting_type = NotificationSettingTypes.WORKFLOW
+    fine_tuning_key = "workflow"
     metrics_key = "activity"
 
     def __init__(self, activity: Activity) -> None:
@@ -88,9 +88,7 @@ class GroupActivityNotification(ActivityNotification, ABC):
         return self.get_activity_name()
 
     def get_group_link(self) -> str:
-        # method only used for emails
-        # TODO: pass in recipient so we can add that to the referrer
-        referrer = self.get_referrer(ExternalProviders.EMAIL)
+        referrer = re.sub("Notification$", "Email", self.__class__.__name__)
         return str(self.group.get_absolute_url(params={"referrer": referrer}))
 
     def get_participants_with_group_subscription_reason(

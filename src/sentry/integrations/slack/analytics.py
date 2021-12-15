@@ -17,7 +17,6 @@ class SlackIntegrationStatus(analytics.Event):  # type: ignore
     )
 
 
-# TODO: add field for whether target is user or team
 class SlackIntegrationNotificationSent(analytics.Event):  # type: ignore
     type = "integrations.slack.notification_sent"
 

@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 
 class DigestNotification(ProjectNotification):
     message_builder = "DigestNotificationMessageBuilder"
-    referrer_base = "digest"
 
     def __init__(
         self,

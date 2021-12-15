@@ -19,8 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 class UserReportNotification(ProjectNotification):
-    referrer_base = "user-report"
-
     def __init__(self, project: Project, report: Mapping[str, Any]) -> None:
         super().__init__(project)
         self.group = Group.objects.get(id=report["issue"]["id"])

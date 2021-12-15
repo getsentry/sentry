@@ -7,7 +7,6 @@ from .base import GroupActivityNotification
 
 class NoteActivityNotification(GroupActivityNotification):
     message_builder = "SlackNotificationsMessageBuilder"
-    referrer_base = "note-activity"
 
     def get_activity_name(self) -> str:
         return "Note"
