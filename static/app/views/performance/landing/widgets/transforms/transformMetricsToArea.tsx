@@ -119,7 +119,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     return {
       mean: meanData,
       outputType: aggregateOutputType(seriesName),
-      label: meanData ? axisLabelFormatter(meanData, seriesName) : undefined,
+      label: defined(meanData) ? axisLabelFormatter(meanData, seriesName) : undefined,
     };
   });
 
