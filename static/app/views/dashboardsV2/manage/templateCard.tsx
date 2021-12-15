@@ -20,9 +20,7 @@ function TemplateCard({title, widgetCount}: Props) {
         <IconGeneric size="48" />
         <CardText>
           <Title>{title}</Title>
-          <Detail>
-            {t('%s Starter Widgets', widgetCount)}
-          </Detail>
+          <Detail>{t('%s Starter Widgets', widgetCount)}</Detail>
         </CardText>
       </Header>
       <ButtonContainer>
