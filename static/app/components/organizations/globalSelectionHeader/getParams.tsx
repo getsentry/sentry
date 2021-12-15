@@ -30,7 +30,7 @@ export function parseStatsPeriod(input: string | IntervalPeriod) {
 }
 
 /**
- * Noramalizes a stats period string
+ * Normalizes a stats period string
  */
 function coerceStatsPeriod(input: string) {
   const result = parseStatsPeriod(input);
