@@ -48,6 +48,7 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={mock}
+        handleAddLibraryWidgets={mock}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
@@ -71,6 +72,7 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={mock}
+        handleAddLibraryWidgets={mock}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}

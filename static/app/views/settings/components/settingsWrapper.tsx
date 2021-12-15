@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import space from 'sentry/styles/space';
-import ScrollToTop from 'sentry/views/settings/components/scrollToTop';
+import useScrollToTop from 'sentry/utils/useScrollToTop';
 
 type Props = {
   location: Location;
@@ -10,19 +10,14 @@ type Props = {
 };
 
 function SettingsWrapper({location, children}: Props) {
-  return (
-    <StyledSettingsWrapper>
-      <ScrollToTop
-        location={location}
-        disable={(newLocation, prevLocation) =>
-          newLocation.pathname === prevLocation.pathname &&
-          newLocation.query?.query !== prevLocation.query?.query
-        }
-      >
-        {children}
-      </ScrollToTop>
-    </StyledSettingsWrapper>
-  );
+  useScrollToTop({
+    location,
+    disable: (newLocation, prevLocation) =>
+      newLocation.pathname === prevLocation.pathname &&
+      newLocation.query?.query !== prevLocation.query?.query,
+  });
+
+  return <StyledSettingsWrapper>{children}</StyledSettingsWrapper>;
 }
 
 export default SettingsWrapper;

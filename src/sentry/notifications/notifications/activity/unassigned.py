@@ -6,6 +6,8 @@ from .base import GroupActivityNotification
 
 
 class UnassignedActivityNotification(GroupActivityNotification):
+    referrer_base = "unassigned-activity"
+
     def get_activity_name(self) -> str:
         return "Unassigned"
 
