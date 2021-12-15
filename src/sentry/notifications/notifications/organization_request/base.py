@@ -4,7 +4,7 @@ import abc
 import logging
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, Type
 
-from sentry import analytics, roles
+from sentry import roles
 from sentry.models import NotificationSetting, OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
-    analytics_event: str = ""
     referrer_base: str = ""
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
     fine_tuning_key = "approval"
@@ -39,12 +38,13 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 
-    def get_referrer(self, provider: ExternalProviders) -> str:
-        # referrer needs the provider as wellx
-        return f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
+    def get_referrer(self, provider: ExternalProviders, recipient: Team | User) -> str:
+        # referrer needs the provider and recipient
+        recipient_type = recipient.__class__.__name__.lower()
+        return f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}-{recipient_type}"
 
-    def get_sentry_query_params(self, provider: ExternalProviders) -> str:
-        return f"?referrer={self.get_referrer(provider)}"
+    def get_sentry_query_params(self, provider: ExternalProviders, recipient: Team | User) -> str:
+        return f"?referrer={self.get_referrer(provider, recipient)}"
 
     def determine_recipients(self) -> Iterable[Team | User]:
         return self.role_based_recipient_strategy.determine_recipients()
@@ -91,7 +91,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_message_description(self) -> str:
         raise NotImplementedError
 
-    def get_message_actions(self) -> Sequence[MessageAction]:
+    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         raise NotImplementedError
 
     def get_role_string(self, member: OrganizationMember) -> str:
@@ -112,13 +112,12 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_title_link(self) -> str | None:
         return None
 
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
-        # this event is meant to work for multiple providers but architecture
-        # limitations mean we will fire individual for each provider
-        analytics.record(
-            self.analytics_event,
-            organization_id=self.organization.id,
-            user_id=self.requester.id,
-            target_user_id=recipient.id,
-            providers=provider.name.lower(),
-        )
+    def get_log_params(self, recipient: Team | User) -> MutableMapping[str, Any]:
+        if isinstance(recipient, Team):
+            raise NotImplementedError
+
+        return {
+            **super().get_log_params(recipient),
+            "user_id": self.requester.id,
+            "target_user_id": recipient.id,
+        }

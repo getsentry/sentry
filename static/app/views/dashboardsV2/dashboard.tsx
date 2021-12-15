@@ -8,7 +8,6 @@ import {Location} from 'history';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
-  openAddDashboardIssueWidgetModal,
   openAddDashboardWidgetModal,
   openDashboardWidgetLibraryModal,
 } from 'sentry/actionCreators/modal';
@@ -23,13 +22,7 @@ import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  MAX_WIDGETS,
-  Widget,
-  WidgetType,
-} from './types';
+import {DashboardDetails, DashboardWidgetSource, MAX_WIDGETS, Widget} from './types';
 
 type Props = {
   api: Client;
@@ -193,15 +186,11 @@ class Dashboard extends Component<Props> {
       onAddWidget: this.handleAddComplete,
       onUpdateWidget: this.handleUpdateComplete(index),
     };
-    if (widget.widgetType === WidgetType.ISSUE) {
-      openAddDashboardIssueWidgetModal(modalProps);
-    } else {
-      openAddDashboardWidgetModal({
-        ...modalProps,
-        dashboard,
-        source: DashboardWidgetSource.DASHBOARDS,
-      });
-    }
+    openAddDashboardWidgetModal({
+      ...modalProps,
+      dashboard,
+      source: DashboardWidgetSource.DASHBOARDS,
+    });
   };
 
   getWidgetIds() {

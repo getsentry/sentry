@@ -10,7 +10,6 @@ import {Location} from 'history';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
-  openAddDashboardIssueWidgetModal,
   openAddDashboardWidgetModal,
   openDashboardWidgetLibraryModal,
 } from 'sentry/actionCreators/modal';
@@ -28,7 +27,6 @@ import {
   DisplayType,
   MAX_WIDGETS,
   Widget,
-  WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 
@@ -214,15 +212,11 @@ class Dashboard extends Component<Props> {
       onAddWidget: this.handleAddComplete,
       onUpdateWidget: this.handleUpdateComplete(widget),
     };
-    if (widget.widgetType === WidgetType.ISSUE) {
-      openAddDashboardIssueWidgetModal(modalProps);
-    } else {
-      openAddDashboardWidgetModal({
-        ...modalProps,
-        dashboard,
-        source: DashboardWidgetSource.DASHBOARDS,
-      });
-    }
+    openAddDashboardWidgetModal({
+      ...modalProps,
+      dashboard,
+      source: DashboardWidgetSource.DASHBOARDS,
+    });
   };
 
   renderWidget(widget: Widget, index: number) {

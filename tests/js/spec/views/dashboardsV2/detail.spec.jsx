@@ -186,7 +186,6 @@ describe('Dashboards > Detail', function () {
     let wrapper, initialData, widgets, mockVisit;
     const openLibraryModal = jest.spyOn(modals, 'openDashboardWidgetLibraryModal');
     const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
-    const openIssueWidgetModal = jest.spyOn(modals, 'openAddDashboardIssueWidgetModal');
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -278,6 +277,11 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         method: 'GET',
         url: '/organizations/org-slug/issues/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        method: 'GET',
         body: [],
       });
     });
@@ -688,6 +692,7 @@ describe('Dashboards > Detail', function () {
       );
       await tick();
       wrapper.update();
+      types.MAX_WIDGETS = 30;
 
       // Enter Add Widget mode
       expect(
@@ -695,40 +700,6 @@ describe('Dashboards > Detail', function () {
           .disabled
       ).toEqual(true);
       expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
-    });
-
-    it('adds an Issue widget to the dashboard', async function () {
-      initialData = initializeOrg({
-        organization: TestStubs.Organization({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-            'issues-in-dashboards',
-          ],
-          projects: [TestStubs.Project()],
-        }),
-      });
-
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      // Enter Add Issue Widget mode
-      wrapper
-        .find('Controls Button[data-test-id="dashboard-add-issues-widget"]')
-        .simulate('click');
-
-      expect(openIssueWidgetModal).toHaveBeenCalledTimes(1);
     });
   });
 });

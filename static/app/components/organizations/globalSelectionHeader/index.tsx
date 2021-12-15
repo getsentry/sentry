@@ -9,7 +9,7 @@ import {
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/globalSelection';
-import {DATE_TIME_KEYS} from 'sentry/constants/globalSelectionHeader';
+import {DATE_TIME_KEYS} from 'sentry/constants/pageFilters';
 import ConfigStore from 'sentry/stores/configStore';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';

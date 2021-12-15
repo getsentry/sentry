@@ -11,7 +11,7 @@ import {EventQuery} from 'sentry/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'sentry/types';
 import {
