@@ -4,6 +4,7 @@ from typing import List, Mapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
@@ -155,7 +156,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Issues
         `````````````````````````````
@@ -329,7 +330,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     @track_slo_response("workflow")
     @rate_limit_endpoint(limit=5, window=5)
-    def put(self, request, organization):
+    def put(self, request: Request, organization) -> Response:
         """
         Bulk Mutate a List of Issues
         ````````````````````````````
@@ -412,7 +413,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     @track_slo_response("workflow")
     @rate_limit_endpoint(limit=5, window=5)
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization) -> Response:
         """
         Bulk Remove a List of Issues
         ````````````````````````````

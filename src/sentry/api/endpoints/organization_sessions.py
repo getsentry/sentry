@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import sentry_sdk
 from django.utils.datastructures import MultiValueDict
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, release_health
@@ -12,7 +13,7 @@ from sentry.snuba.sessions_v2 import AllowedResolution, InvalidField, InvalidPar
 
 # NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
 class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         with self.handle_query_errors():
             with sentry_sdk.start_span(op="sessions.endpoint", description="build_sessions_query"):
                 query = self.build_sessions_query(request, organization)

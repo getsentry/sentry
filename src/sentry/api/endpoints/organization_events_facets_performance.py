@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Mapping, Optional
 import sentry_sdk
 from django.http import Http404
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -58,7 +59,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
 
 
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:
@@ -130,7 +131,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
 class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:

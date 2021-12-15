@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -120,7 +121,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         omt.send_request_email()
 
-    def post(self, request, organization, member_id, team_slug):
+    def post(self, request: Request, organization, member_id, team_slug) -> Response:
         """
         Join, request access to or add a member to a team.
 
@@ -166,7 +167,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=201)
 
-    def delete(self, request, organization, member_id, team_slug):
+    def delete(self, request: Request, organization, member_id, team_slug) -> Response:
         """
         Leave or remove a member from a team
         """

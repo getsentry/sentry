@@ -439,8 +439,12 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
         return super().save(*args, **kwargs)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Retrieve an Organization
         ````````````````````````
@@ -463,7 +467,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         return self.respond(context)
 
-    def put(self, request, organization):
+    def put(self, request: Request, organization) -> Response:
         """
         Update an Organization
         ``````````````````````
@@ -555,7 +559,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context, status=202)
 
     @sudo_required
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization) -> Response:
         """
         Delete an Organization
         ``````````````````````

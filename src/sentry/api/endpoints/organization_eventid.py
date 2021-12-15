@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -11,7 +12,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 class EventIdLookupEndpoint(OrganizationEndpoint):
     @rate_limit_endpoint(limit=1, window=1)
-    def get(self, request, organization, event_id):
+    def get(self, request: Request, organization, event_id) -> Response:
         """
         Resolve an Event ID
         ``````````````````

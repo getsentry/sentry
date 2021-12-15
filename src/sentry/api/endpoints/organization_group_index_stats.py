@@ -1,4 +1,5 @@
 from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
@@ -19,7 +20,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
 
     @rate_limit_endpoint(limit=10, window=1)
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Get the stats on an Organization's Issues
         `````````````````````````````

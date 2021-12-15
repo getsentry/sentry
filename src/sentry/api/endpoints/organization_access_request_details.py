@@ -1,5 +1,6 @@
 from django.db import IntegrityError, transaction
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -57,7 +58,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             return True
         return False
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Get list of requests to join org/team
 
@@ -80,7 +81,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(access_requests, request.user))
 
-    def put(self, request, organization, request_id):
+    def put(self, request: Request, organization, request_id) -> Response:
         """
         Approve or deny a request
 

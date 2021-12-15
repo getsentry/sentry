@@ -3,6 +3,8 @@ from datetime import timedelta
 
 from django.core.cache import cache
 from django.utils import timezone
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         # cache is unique to an org
         cache_key = f"check_mobile_app_events:{organization.id}"
         cache_value = cache.get(cache_key)

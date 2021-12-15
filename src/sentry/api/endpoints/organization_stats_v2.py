@@ -2,6 +2,7 @@ from contextlib import contextmanager
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -19,7 +20,7 @@ from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
 
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
     @rate_limit_endpoint(limit=20, window=1)
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         with self.handle_query_errors():
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
                 query = self.build_outcomes_query(
