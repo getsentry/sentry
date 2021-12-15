@@ -120,6 +120,7 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
         comparison_value = processor.get_aggregation_value(subscription_update)
         tags = {
             "project_id": subscription.project_id,
+            "project_slug": subscription.project.slug,
             "subscription_id": subscription.id,
             "time_window": subscription.snuba_query.time_window,
         }

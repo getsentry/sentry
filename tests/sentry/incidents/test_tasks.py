@@ -223,6 +223,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
                     100,
                     tags={
                         "project_id": self.project.id,
+                        "project_slug": self.project.slug,
                         "subscription_id": self.subscription.id,
                         "time_window": 600,
                     },
