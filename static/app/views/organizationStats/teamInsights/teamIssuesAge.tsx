@@ -43,15 +43,11 @@ function parseBucket(bucket: string): number {
 
 const bucketLabels = {
   '< 1 hour': t('1 hour'),
-  '< 2 hour': t('2 hours'),
   '< 4 hour': t('4 hours'),
-  '< 8 hour': t('8 hours'),
   '< 12 hour': t('12 hours'),
   '< 1 day': t('1 day'),
   '< 1 week': t('1 week'),
-  '< 2 week': t('2 weeks'),
   '< 4 week': t('1 month'),
-  '< 8 week': t('2 months'),
   '< 24 week': t('6 months'),
   '< 1 year': t('1 year'),
   '> 1 year': t('> 1 year'),
