@@ -7,6 +7,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
+from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.coreapi import APIError
@@ -63,18 +64,7 @@ def add_integration_platform_metric_tag(func):
 
 class SentryAppsPermission(SentryPermission):
     scope_map = {
-        # GET is ideally a public endpoint but for now we are allowing for
-        # anyone who has member permissions or above.
-        "GET": (
-            "event:read",
-            "event:write",
-            "event:admin",
-            "project:releases",
-            "project:read",
-            "org:read",
-            "member:read",
-            "team:read",
-        ),
+        "GET": PARANOID_GET,
         "POST": ("org:write", "org:admin"),
     }
 
@@ -176,18 +166,7 @@ class SentryAppPermission(SentryPermission):
     }
 
     published_scope_map = {
-        # GET is ideally a public endpoint but for now we are allowing for
-        # anyone who has member permissions or above.
-        "GET": (
-            "event:read",
-            "event:write",
-            "event:admin",
-            "project:releases",
-            "project:read",
-            "org:read",
-            "member:read",
-            "team:read",
-        ),
+        "GET": PARANOID_GET,
         "PUT": ("org:write", "org:admin"),
         "POST": ("org:write", "org:admin"),
         "DELETE": ("org:admin"),

@@ -7,6 +7,19 @@ from sentry.utils.sdk import capture_exception
 
 from .organization import OrganizationEndpoint, OrganizationPermission
 
+# This GET scope map is ideally a public endpoint but for now
+# we are allowing for anyone who has member permissions or above.
+PARANOID_GET = (
+    "event:read",
+    "event:write",
+    "event:admin",
+    "project:releases",
+    "project:read",
+    "org:read",
+    "member:read",
+    "team:read",
+)
+
 
 class IntegrationEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
