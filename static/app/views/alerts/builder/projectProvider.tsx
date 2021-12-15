@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, Fragment, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import useApi from 'sentry/utils/useApi';
-import ScrollToTop from 'sentry/views/settings/components/scrollToTop';
+import useScrollToTop from 'sentry/utils/useScrollToTop';
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -22,6 +22,7 @@ type RouteParams = {
 
 function AlertBuilderProjectProvider(props: Props) {
   const api = useApi();
+  useScrollToTop({location: props.location});
 
   const {children, params, organization, ...other} = props;
   const {projectId} = params;
@@ -32,8 +33,11 @@ function AlertBuilderProjectProvider(props: Props) {
         if (!initiallyLoaded) {
           return <LoadingIndicator />;
         }
+
         const project = (projects as Project[]).find(({slug}) => slug === projectId);
-        // if loaded, but project fetching states incomplete or project can't be found, project doesn't exist
+
+        // if loaded, but project fetching states incomplete or project can't
+        // be found, project doesn't exist
         if (isIncomplete || !project) {
           return (
             <Alert type="warning">
@@ -41,20 +45,21 @@ function AlertBuilderProjectProvider(props: Props) {
             </Alert>
           );
         }
+
         // fetch members list for mail action fields
         fetchOrgMembers(api, organization.slug, [project.id]);
 
         return (
-          <ScrollToTop location={props.location} disable={() => false}>
-            {children && React.isValidElement(children)
-              ? React.cloneElement(children, {
+          <Fragment>
+            {children && isValidElement(children)
+              ? cloneElement(children, {
                   ...other,
                   ...children.props,
                   project,
                   organization,
                 })
               : children}
-          </ScrollToTop>
+          </Fragment>
         );
       }}
     </Projects>
