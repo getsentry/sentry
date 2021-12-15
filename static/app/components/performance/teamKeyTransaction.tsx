@@ -248,7 +248,7 @@ class TeamKeyTransaction extends Component<Props, State> {
       <Manager>
         <Reference>
           {({ref}) => (
-            <div ref={ref}>
+            <StarWrapper ref={ref}>
               <Title
                 isOpen={isOpen}
                 disabled={isLoading || Boolean(error)}
@@ -258,7 +258,7 @@ class TeamKeyTransaction extends Component<Props, State> {
                 initialValue={initialValue}
                 onClick={this.toggleOpen}
               />
-            </div>
+            </StarWrapper>
           )}
         </Reference>
         {menu}
@@ -295,6 +295,15 @@ function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) 
     </DropdownMenuItem>
   );
 }
+
+const StarWrapper = styled('div')`
+  display: flex;
+
+  /* Fixes Star when it’s filled and is wrapped around Tooltip */
+  & > span {
+    display: flex;
+  }
+`;
 
 const DropdownWrapper = styled('div')`
   /* Adapted from the dropdown-menu class */

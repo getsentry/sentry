@@ -211,6 +211,7 @@ const linkStyle = ({theme}: {theme: Theme}) => css`
 
 const StyledButton = styled(Button)`
   ${linkStyle}
+  align-self: center;
 `;
 
 const StyledBanner = styled(BannerContainer)`

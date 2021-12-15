@@ -542,6 +542,7 @@ function TagsHeader(props: HeaderProps) {
 const AlignRight = styled('div')`
   text-align: right;
   font-variant-numeric: tabular-nums;
+  width: 100%;
 `;
 
 const Header = styled('div')`
