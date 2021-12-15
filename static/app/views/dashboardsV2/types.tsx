@@ -4,7 +4,7 @@ import {User} from 'sentry/types';
 // to allow to limit the load on snuba from the
 // parallel requests. Somewhat arbitrary
 // limit that can be changed if necessary.
-export const MAX_WIDGETS = 30;
+export const MAX_WIDGETS = 7;
 
 export enum DisplayType {
   AREA = 'area',

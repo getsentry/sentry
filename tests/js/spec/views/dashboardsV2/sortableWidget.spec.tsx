@@ -36,6 +36,7 @@ describe('Dashboards > SortableWidget', () => {
         isEditing={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        onDuplicate={() => undefined}
       />,
       initialData.routerContext
     );
@@ -50,6 +51,7 @@ describe('Dashboards > SortableWidget', () => {
         isEditing={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        onDuplicate={() => undefined}
       />,
       initialData.routerContext
     );

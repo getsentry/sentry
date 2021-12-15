@@ -44,6 +44,7 @@ type Props = WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
@@ -51,6 +52,7 @@ type Props = WithRouterProps & {
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   noLazyLoad?: boolean;
+  widgetLimitReached: boolean;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -60,6 +62,7 @@ class WidgetCard extends React.Component<Props> {
       !isSelectionEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
       this.props.isSorting !== nextProps.isSorting ||
+      this.props.widgetLimitReached !== nextProps.widgetLimitReached ||
       this.props.hideToolbar !== nextProps.hideToolbar
     ) {
       return true;
@@ -112,7 +115,14 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderContextMenu() {
-    const {widget, selection, organization, showContextMenu} = this.props;
+    const {
+      widget,
+      selection,
+      organization,
+      showContextMenu,
+      widgetLimitReached,
+      onDuplicate,
+    } = this.props;
 
     if (!showContextMenu) {
       return null;
@@ -185,9 +195,16 @@ class WidgetCard extends React.Component<Props> {
       }
     }
 
-    if (!menuOptions.length) {
-      return null;
-    }
+    menuOptions.push(
+      <StyledMenuItem
+        key="duplicate-widget"
+        data-test-id="duplicate-widget"
+        onSelect={onDuplicate}
+        disabled={widgetLimitReached}
+      >
+        {t('Duplicate Widget')}
+      </StyledMenuItem>
+    );
 
     return (
       <ContextWrapper>

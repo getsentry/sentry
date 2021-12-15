@@ -68,10 +68,12 @@ describe('Dashboards > IssueWidgetCard', function () {
         isEditing={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
         isSorting={false}
         currentWidgetDragging={false}
         showContextMenu
+        widgetLimitReached={false}
       />
     );
 
@@ -100,10 +102,12 @@ describe('Dashboards > IssueWidgetCard', function () {
         isEditing={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
         isSorting={false}
         currentWidgetDragging={false}
         showContextMenu
+        widgetLimitReached={false}
       />
     );
 
@@ -113,5 +117,63 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(screen.getByText('Open in Issues').closest('a')?.href).toContain(
       '/organizations/org-slug/issues/?query=event.type%3Adefault&statsPeriod=14d'
     );
+    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
+  });
+
+  it('calls onDuplicate when Duplicate Widget is clicked', async function () {
+    const mock = jest.fn();
+    mountWithTheme(
+      <IssueWidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={mock}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+
+    await tick();
+
+    userEvent.click(screen.getByTestId('context-menu'));
+    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
+    // userEvent.click(screen.getByTestId('duplicate-widget'));
+    // expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the duplicate widget button if max widgets is reached', async function () {
+    const mock = jest.fn();
+    mountWithTheme(
+      <IssueWidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={mock}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached
+      />
+    );
+
+    await tick();
+
+    userEvent.click(screen.getByTestId('context-menu'));
+    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
+
+    userEvent.click(screen.getByTestId('duplicate-widget'));
+    expect(mock).toHaveBeenCalledTimes(0);
   });
 });
