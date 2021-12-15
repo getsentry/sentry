@@ -11,15 +11,11 @@ from sentry.models import Group, GroupStatus, Team
 
 buckets = (
     ("< 1 hour", timedelta(hours=1)),
-    ("< 2 hour", timedelta(hours=2)),
     ("< 4 hour", timedelta(hours=4)),
-    ("< 8 hour", timedelta(hours=8)),
     ("< 12 hour", timedelta(hours=12)),
     ("< 1 day", timedelta(days=1)),
     ("< 1 week", timedelta(weeks=1)),
-    ("< 2 week", timedelta(weeks=2)),
     ("< 4 week", timedelta(weeks=4)),
-    ("< 8 week", timedelta(weeks=8)),
     ("< 24 week", timedelta(weeks=24)),
     ("< 1 year", timedelta(weeks=52)),
 )
