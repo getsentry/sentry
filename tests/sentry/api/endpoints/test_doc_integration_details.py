@@ -1,5 +1,4 @@
 import pytest
-from django.urls import reverse
 from rest_framework import status
 
 from sentry.api.serializers.base import serialize
@@ -9,8 +8,7 @@ from sentry.testutils import APITestCase
 
 
 class DocIntegrationDetailsTest(APITestCase):
-    def url(self, doc_integration: DocIntegration):
-        return reverse("sentry-api-0-doc-integration-details", args=[doc_integration.slug])
+    endpoint = "sentry-api-0-doc-integration-details"
 
     def setUp(self):
         self.user = self.create_user(email="jinx@lol.com")
@@ -29,6 +27,8 @@ class DocIntegrationDetailsTest(APITestCase):
 
 
 class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
+    method = "GET"
+
     def test_read_doc_for_superuser(self):
         """
         Tests that any DocIntegration is visible (with all the expected data)
@@ -36,8 +36,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         """
         self.login_as(user=self.superuser, superuser=True)
         # Non-draft DocIntegration, with features
-        response = self.client.get(self.url(self.doc_3), format="json")
-        assert response.status_code == status.HTTP_200_OK
+        response = self.get_success_response(self.doc_3.slug, status_code=status.HTTP_200_OK)
         assert serialize(self.doc_3) == response.data
         features = IntegrationFeature.objects.filter(
             target_id=self.doc_3.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
@@ -45,8 +44,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         for feature in features:
             assert serialize(feature) in serialize(self.doc_3)["features"]
         # Draft DocIntegration, without features
-        response = self.client.get(self.url(self.doc_2), format="json")
-        assert response.status_code == status.HTTP_200_OK
+        response = self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK)
         assert serialize(self.doc_2) == response.data
 
     def test_read_doc_for_public(self):
@@ -56,8 +54,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         """
         self.login_as(user=self.user)
         # Non-draft DocIntegration, with features
-        response = self.client.get(self.url(self.doc_3), format="json")
-        assert response.status_code == status.HTTP_200_OK
+        response = self.get_success_response(self.doc_3.slug, status_code=status.HTTP_200_OK)
         assert serialize(self.doc_3) == response.data
         features = IntegrationFeature.objects.filter(
             target_id=self.doc_3.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
@@ -65,11 +62,11 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         for feature in features:
             assert serialize(feature) in serialize(self.doc_3)["features"]
         # Draft DocIntegration, without features
-        response = self.client.get(self.url(self.doc_2), format="json")
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        self.get_error_response(self.doc_2.slug, status_code=status.HTTP_403_FORBIDDEN)
 
 
-class PostDocIntegrationDetailsTest(DocIntegrationDetailsTest):
+class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
+    method = "PUT"
     payload = {
         "name": "Enemy",
         "author": "Imagine Dragons",
@@ -79,7 +76,30 @@ class PostDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         "resources": [{"title": "Docs", "url": "https://github.com/getsentry/sentry/"}],
         "features": [1, 2, 3],
     }
-    ignored_keys = ["is_draft", "metadata"]
+
+    def test_update_doc_for_superuser(self):
+        pass
+
+    def test_update_invalid_auth(self):
+        pass
+
+    def test_update_removes_unused_features(self):
+        pass
+
+    def test_update_retains_carryover_features(self):
+        pass
+
+    def test_update_does_not_change_slug(self):
+        pass
+
+    def test_update_invalid_metadata(self):
+        pass
+
+    def test_update_empty_metadata(self):
+        pass
+
+    def test_update_ignore_keys(self):
+        pass
 
     @pytest.mark.skip
     def test_create_doc_for_superuser(self):
@@ -170,14 +190,15 @@ class PostDocIntegrationDetailsTest(DocIntegrationDetailsTest):
 
 
 class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
+    method = "DELETE"
+
     def test_delete_invalid_for_public(self):
         """
         Tests that the delete method is not accessible by those with regular member
         permissions, and no changes occur in the database.
         """
         self.login_as(user=self.user)
-        response = self.client.delete(self.url(self.doc_delete))
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        self.get_error_response(self.doc_delete.slug, status_code=status.HTTP_403_FORBIDDEN)
         assert DocIntegration.objects.get(id=self.doc_delete.id)
         features = IntegrationFeature.objects.filter(
             target_id=self.doc_delete.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
@@ -191,8 +212,7 @@ class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         permissions, deleting the DocIntegration and associated IntegrationFeatures
         """
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.delete(self.url(self.doc_delete))
-        assert response.status_code == status.HTTP_204_NO_CONTENT
+        self.get_success_response(self.doc_delete.slug, status_code=status.HTTP_204_NO_CONTENT)
         with self.assertRaises(DocIntegration.DoesNotExist):
             DocIntegration.objects.get(id=self.doc_delete.id)
         features = IntegrationFeature.objects.filter(
