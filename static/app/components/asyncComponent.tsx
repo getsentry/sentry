@@ -58,7 +58,7 @@ function wrapErrorHandling<T extends any[], U>(
   };
 }
 
-export default class AsyncComponent<
+class AsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
 > extends React.Component<P, S> {
@@ -66,27 +66,35 @@ export default class AsyncComponent<
     router: PropTypes.object,
   };
 
-  // Override this flag to have the component reload it's state when the window
-  // becomes visible again. This will set the loading and reloading state, but
-  // will not render a loading state during reloading.
-  //
-  // eslint-disable-next-line react/sort-comp
+  /**
+   * Override this flag to have the component reload it's state when the window
+   * becomes visible again. This will set the loading and reloading state, but
+   * will not render a loading state during reloading.
+   *
+   * eslint-disable-next-line react/sort-comp
+   */
   reloadOnVisible = false;
 
-  // When enabling reloadOnVisible, this flag may be used to turn on and off
-  // the reloading. This is useful if your component only needs to reload when
-  // becoming visible during certain states.
-  //
-  // eslint-disable-next-line react/sort-comp
+  /**
+   * When enabling reloadOnVisible, this flag may be used to turn on and off
+   * the reloading. This is useful if your component only needs to reload when
+   * becoming visible during certain states.
+   *
+   * eslint-disable-next-line react/sort-comp
+   */
   shouldReloadOnVisible = false;
 
-  // This affects how the component behaves when `remountComponent` is called
-  // By default, the component gets put back into a "loading" state when re-fetching data.
-  // If this is true, then when we fetch data, the original ready component remains mounted
-  // and it will need to handle any additional "reloading" states
+  /**
+   * This affects how the component behaves when `remountComponent` is called
+   * By default, the component gets put back into a "loading" state when re-fetching data.
+   * If this is true, then when we fetch data, the original ready component remains mounted
+   * and it will need to handle any additional "reloading" states
+   */
   shouldReload = false;
 
-  // should `renderError` render the `detail` attribute of a 400 error
+  /**
+   * should `renderError` render the `detail` attribute of a 400 error
+   */
   shouldRenderBadRequests = false;
 
   constructor(props: P, context: any) {
@@ -469,3 +477,5 @@ export default class AsyncComponent<
     return this.renderComponent();
   }
 }
+
+export default AsyncComponent;
