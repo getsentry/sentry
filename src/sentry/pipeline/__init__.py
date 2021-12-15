@@ -49,13 +49,17 @@ class PipelineProvider:
         self.pipeline = pipeline
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class PipelineView(BaseView):
     """
     A class implementing the PipelineView may be used in a PipelineProviders
     get_pipeline_views list.
     """
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         """
         Called on request, the active pipeline is passed in which can and
         should be used to bind data and traverse the pipeline.
@@ -68,6 +72,10 @@ class PipelineView(BaseView):
             request=request,
             context={"pipelineName": pipelineName, "props": json.dumps(props)},
         )
+
+
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 
 class NestedPipelineView(PipelineView):
@@ -96,7 +104,7 @@ class NestedPipelineView(PipelineView):
 
         self.pipeline_cls = NestedPipeline
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         nested_pipeline = self.pipeline_cls(
             organization=pipeline.organization,
             request=request,

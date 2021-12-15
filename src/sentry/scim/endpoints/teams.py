@@ -5,6 +5,7 @@ import sentry_sdk
 from django.db import IntegrityError, transaction
 from django.template.defaultfilters import slugify
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
@@ -54,7 +55,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     def should_add_creator_to_team(self, request):
         return False
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
 
         query_params = self.get_query_parameters(request)
 
@@ -84,7 +85,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             cursor_cls=SCIMCursor,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
         request.data.update(
@@ -96,7 +97,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
-    def convert_args(self, request, organization_slug, team_id, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, team_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug)
         try:
             kwargs["team"] = self._get_team(kwargs["organization"], team_id)
@@ -114,7 +115,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             raise Team.DoesNotExist
         return team
 
-    def get(self, request, organization, team):
+    def get(self, request: Request, organization, team) -> Response:
         query_params = self.get_query_parameters(request)
 
         context = serialize(
@@ -226,10 +227,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
         return self.respond(status=204)
 
-    def delete(self, request, organization, team):
+    def delete(self, request: Request, organization, team) -> Response:
         return super().delete(request, team)
 
-    def put(self, request, organization, team):
+    def put(self, request: Request, organization, team) -> Response:
         # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)

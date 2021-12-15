@@ -20,7 +20,7 @@ from rest_framework.response import Response
 class OAuthTokenView(View):
     @csrf_exempt
     @never_cache
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
     # Note: the reason parameter is for internal use only

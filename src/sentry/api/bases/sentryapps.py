@@ -96,7 +96,7 @@ class SentryAppsPermission(SentryPermission):
 
 
 class IntegrationPlatformEndpoint(Endpoint):
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         add_request_metric_tags(request, integration_platform=True)
         return super().dispatch(request, *args, **kwargs)
 

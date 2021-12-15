@@ -182,7 +182,7 @@ class BaseView(View, OrganizationMixin):
         super().__init__(*args, **kwargs)
 
     @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         """
         A note on the CSRF protection process.
 

@@ -14,6 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -230,7 +231,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).

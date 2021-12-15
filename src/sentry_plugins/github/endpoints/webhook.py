@@ -10,6 +10,8 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import options
 from sentry.models import (
@@ -355,7 +357,7 @@ class GithubWebhookBase(View):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -367,7 +369,7 @@ class GithubWebhookBase(View):
     def get_secret(self, organization):
         raise NotImplementedError
 
-    def handle(self, request, organization=None):
+    def handle(self, request: Request, organization=None) -> Response:
         secret = self.get_secret(organization)
 
         if secret is None:
@@ -446,7 +448,7 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -455,5 +457,5 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
     def get_secret(self, organization):
         return options.get("github.integration-hook-secret")
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         return self.handle(request)
