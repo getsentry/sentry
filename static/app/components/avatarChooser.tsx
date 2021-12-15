@@ -274,9 +274,9 @@ const AvatarGroup = styled('div')<{inline: boolean}>`
 `;
 
 const AvatarForm = styled('div')`
-  line-height: 1.5em;
-  padding: 1em 1.25em;
-  margin: 1em 0.5em 0;
+  line-height: ${space(3)};
+  padding: ${space(1.5)} ${space(2)};
+  margin: ${space(1.5)} ${space(1)} ${space(0.5)};
 `;
 
 const AvatarSubmit = styled('fieldset')`
@@ -287,7 +287,7 @@ const AvatarSubmit = styled('fieldset')`
 `;
 
 const AvatarUploadSection = styled('div')`
-  margin-top: 1em;
+  margin-top: ${space(1.5)};
 `;
 
 export default withApi(AvatarChooser);
