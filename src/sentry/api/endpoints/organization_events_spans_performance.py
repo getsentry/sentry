@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from itertools import chain
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -21,6 +21,7 @@ from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import Dataset, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
 from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
@@ -251,10 +252,31 @@ class OrganizationEventsSpansEndpoint(OrganizationEventsSpansEndpointBase):
         with self.handle_query_errors():
             return self.paginate(
                 request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                paginator=SpanExamplesPaginator(data_fn=data_fn),
                 default_per_page=3,
                 max_per_page=10,
             )
+
+
+class SpanExamplesPaginator:
+    def __init__(self, data_fn: Callable[[int, int], Any]):
+        self.data_fn = data_fn
+
+    def get_result(self, limit: int, cursor: Optional[Cursor] = None) -> CursorResult:
+        assert limit > 0
+        offset = cursor.offset if cursor is not None else 0
+        # Request 1 more than limit so we can tell if there is another page
+        data = self.data_fn(offset, limit + 1)
+
+        has_more = any(len(result["examples"]) == limit + 1 for result in data)
+        for result in data:
+            result["examples"] = result["examples"][:limit]
+
+        return CursorResult(
+            data,
+            prev=Cursor(0, max(0, offset - limit), True, offset > 0),
+            next=Cursor(0, max(0, offset + limit), False, has_more),
+        )
 
 
 @dataclasses.dataclass(frozen=True)
