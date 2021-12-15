@@ -48,7 +48,8 @@ class U2fInterface(AuthenticatorInterface):
         "Chrome)."
     )
     allow_multi_enrollment = True
-    rp = PublicKeyCredentialRpEntity(urlparse(options.get("system.url-prefix")).hostname, "Sentry")
+    rp_id = urlparse(options.get("system.url-prefix")).hostname
+    rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
     webauthn_registration_server = Fido2Server(rp)
 
     def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
