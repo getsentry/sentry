@@ -184,6 +184,8 @@ describe('Dashboards > Detail', function () {
 
   describe('custom dashboards', function () {
     let wrapper, initialData, widgets, mockVisit;
+    const openLibraryModal = jest.spyOn(modals, 'openDashboardWidgetLibraryModal');
+    const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -286,6 +288,7 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      jest.clearAllMocks();
       if (wrapper) {
         wrapper.unmount();
       }
@@ -350,8 +353,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('opens edit modal for widgets', async function () {
-      const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
-
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -447,7 +448,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('shows add wiget option', async function () {
+    it('shows add widget option', async function () {
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -464,6 +465,59 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(true);
+    });
+
+    it('opens custom modal when add widget option is clicked', async function () {
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
+      wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+    });
+
+    it('opens widget library when add widget option is clicked', async function () {
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'widget-library',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
+      wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
+      expect(openLibraryModal).toHaveBeenCalledTimes(1);
     });
 
     it('hides add widget option', async function () {
@@ -574,7 +628,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can add library widgets', async function () {
-      const openLibraryModal = jest.spyOn(modals, 'openDashboardWidgetLibraryModal');
       types.MAX_WIDGETS = 10;
 
       initialData = initializeOrg({
