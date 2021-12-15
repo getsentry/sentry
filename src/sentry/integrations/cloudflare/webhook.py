@@ -4,6 +4,7 @@ from functools import wraps
 from hashlib import sha256
 
 from django.utils.crypto import constant_time_compare
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
@@ -184,7 +185,7 @@ class CloudflareWebhookEndpoint(Endpoint):
         data["install"]["options"].pop("dsn", None)
         return Response({"install": data["install"], "proceed": True})
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         signature = request.META.get("HTTP_X_SIGNATURE_HMAC_SHA256_HEX")
         variant = request.META.get("HTTP_X_SIGNATURE_KEY_VARIANT")
         logging_data = {

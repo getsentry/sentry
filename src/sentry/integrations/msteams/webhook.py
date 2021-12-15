@@ -3,6 +3,8 @@ import time
 
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import analytics, eventstore, options
 from sentry.api import client
@@ -135,11 +137,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
     provider = "msteams"
 
     @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
     @transaction_start("MsTeamsWebhookEndpoint")
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         # verify_signature will raise the exception corresponding to the error
         verify_signature(request)
 

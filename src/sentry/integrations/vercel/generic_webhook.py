@@ -6,6 +6,8 @@ from typing import Any, Mapping, Tuple
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import RequestException
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import VERSION, http, options
 from sentry.api.base import Endpoint
@@ -129,10 +131,10 @@ class VercelGenericWebhookEndpoint(Endpoint):
     provider = "vercel"
 
     @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
             return self.respond(status=401)
