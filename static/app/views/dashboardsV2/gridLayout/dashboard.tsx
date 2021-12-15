@@ -277,6 +277,25 @@ class Dashboard extends Component<Props, State> {
     onLayoutChange(newLayouts[DESKTOP]);
   };
 
+  onBreakpointChange = newBreakpoint => {
+    const {layouts} = this.state;
+    const {
+      dashboard: {widgets},
+    } = this.props;
+
+    if (newBreakpoint === MOBILE) {
+      this.setState({
+        isMobile: true,
+        layouts: {
+          ...layouts,
+          [MOBILE]: getMobileLayout(layouts[DESKTOP], widgets),
+        },
+      });
+      return;
+    }
+    this.setState({isMobile: false});
+  };
+
   render() {
     const {layouts, isMobile} = this.state;
     const {
@@ -296,19 +315,7 @@ class Dashboard extends Component<Props, State> {
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
         layouts={layouts}
         onLayoutChange={this.onLayoutChange}
-        onBreakpointChange={newBreakpoint => {
-          if (newBreakpoint === MOBILE) {
-            this.setState({
-              isMobile: true,
-              layouts: {
-                ...layouts,
-                [MOBILE]: getMobileLayout(layouts[DESKTOP], widgets),
-              },
-            });
-            return;
-          }
-          this.setState({isMobile: false});
-        }}
+        onBreakpointChange={this.onBreakpointChange}
         isDraggable={canModifyLayout}
         isResizable={canModifyLayout}
         isBounded
