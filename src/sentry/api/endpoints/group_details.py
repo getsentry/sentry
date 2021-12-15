@@ -3,6 +3,7 @@ import logging
 from datetime import timedelta
 
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore, tsdb
@@ -94,7 +95,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )
 
     @rate_limit_endpoint(limit=5, window=1)
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """
         Retrieve an Issue
         `````````````````
@@ -209,7 +210,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise
 
     @rate_limit_endpoint(limit=5, window=1)
-    def put(self, request, group):
+    def put(self, request: Request, group) -> Response:
         """
         Update an Issue
         ```````````````
@@ -278,7 +279,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise
 
     @rate_limit_endpoint(limit=5, window=5)
-    def delete(self, request, group):
+    def delete(self, request: Request, group) -> Response:
         """
         Remove an Issue
         ```````````````
