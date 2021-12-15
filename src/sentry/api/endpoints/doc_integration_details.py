@@ -8,6 +8,7 @@ from sentry.api.bases.doc_integrations import DocIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DocIntegrationSerializer
 from sentry.models.integration import DocIntegration
+from sentry.models.integrationfeature import IntegrationFeature, IntegrationTypes
 
 logger = logging.getLogger(__name__)
 
@@ -30,4 +31,8 @@ class DocIntegrationDetailsEndpoint(DocIntegrationBaseEndpoint):
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request: Request, doc_integration: DocIntegration) -> Response:
+        IntegrationFeature.objects.filter(
+            target_id=doc_integration.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+        ).delete()
+        doc_integration.delete()
         return self.respond(status=status.HTTP_204_NO_CONTENT)
