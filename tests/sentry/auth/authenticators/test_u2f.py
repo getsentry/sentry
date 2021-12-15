@@ -33,7 +33,7 @@ class U2FInterfaceTest(TestCase):
         assert state["user_verification"] == "discouraged"
         assert len(state["challenge"]) == 43
 
-        assert challenge["publicKey"]["rp"] == {"id": "testserver.com", "name": "Sentry"}
+        assert challenge["publicKey"]["rp"] == {"id": "richardmasentry.ngrok.io", "name": "Sentry"}
         assert challenge["publicKey"]["user"] == {
             "id": bytes(self.user.id),
             "name": self.user.username,

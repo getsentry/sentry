@@ -18,6 +18,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
     def _get_device_for_rename(self, authenticator, interface_device_id):
         devices = authenticator.config
         for device in devices["devices"]:
+            # this is for devices registered with webauthn, since the storeed data is not a string, we need to decode it
             if type(device["binding"]) == AuthenticatorData:
                 if decode_credential_id(device) == interface_device_id:
                     return device
