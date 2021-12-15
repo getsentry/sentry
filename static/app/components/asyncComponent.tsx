@@ -67,7 +67,7 @@ class AsyncComponent<
   };
 
   /**
-   * Override this flag to have the component reload it's state when the window
+   * Override this flag to have the component reload its state when the window
    * becomes visible again. This will set the loading and reloading state, but
    * will not render a loading state during reloading.
    *
