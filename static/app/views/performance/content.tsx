@@ -210,6 +210,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
         organization={organization}
         location={location}
         projects={projects}
+        selection={selection}
       />
     );
   }
