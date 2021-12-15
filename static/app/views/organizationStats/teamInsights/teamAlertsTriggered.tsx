@@ -1,6 +1,8 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
 import BarChart from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -8,6 +10,8 @@ import {getParams} from 'sentry/components/organizations/globalSelectionHeader/g
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+
+import PanelTable from '../../../components/panels/panelTable';
 
 import {
   barAxisLabel,
@@ -76,13 +80,36 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
+    const {organization} = this.props;
     const {alertsTriggered} = this.state;
     const data = convertDayValueObjectToSeries(alertsTriggered ?? {});
     const seriesData = convertDaySeriesToWeeks(data);
 
     return (
       <ChartWrapper>
-        {alertsTriggered && (
+        <StyledPanelTable
+          isEmpty={!alertsTriggered}
+          emptyMessage={t('No Alerts Owned By This Team')}
+          emptyAction={
+            <ButtonsContainer>
+              <Button
+                priority="primary"
+                size="small"
+                to={`/organizations/${organization.slug}/alerts/rules/`}
+              >
+                {t('Create Alert Rule')}
+              </Button>
+              <Button
+                size="small"
+                external
+                to="https://docs.sentry.io/product/alerts/create-alerts/"
+              >
+                {t('Learn more')}
+              </Button>
+            </ButtonsContainer>
+          }
+          headers={[]}
+        >
           <BarChart
             style={{height: 190}}
             isGroupedByDate
@@ -99,7 +126,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
               },
             ]}
           />
-        )}
+        </StyledPanelTable>
       </ChartWrapper>
     );
   }
@@ -109,4 +136,32 @@ export default TeamAlertsTriggered;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
+`;
+
+const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
+  grid-template-columns: 1fr;
+  font-size: ${p => p.theme.fontSizeMedium};
+  white-space: nowrap;
+  margin-bottom: 0;
+  border: 0;
+  box-shadow: unset;
+
+  & > div {
+    padding: ${space(1)} ${space(2)};
+  }
+
+  ${p =>
+    p.isEmpty &&
+    css`
+      & > div:last-child {
+        padding: 48px ${space(2)};
+      }
+    `}
+`;
+
+const ButtonsContainer = styled('div')`
+  & > a {
+    margin-right: ${space(0.5)};
+    margin-left: ${space(0.5)};
+  }
 `;
