@@ -70,8 +70,8 @@ def apply_dataset_query_conditions(
     return event_type_conditions
 
 
-class _EntitySpecificParams(TypedDict):
-    org_id: Optional[int]
+class _EntitySpecificParams(TypedDict, total=False):
+    org_id: int
     event_types: Optional[List[SnubaQueryEventType.EventType]]
 
 
