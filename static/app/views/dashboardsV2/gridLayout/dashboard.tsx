@@ -1,8 +1,8 @@
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-import {Component, createRef} from 'react';
-import {Layout, Responsive, WidthProvider} from 'react-grid-layout';
+import {Component} from 'react';
+import {Layout, Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -37,6 +37,8 @@ import SortableWidget from './sortableWidget';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const WIDGET_PREFIX = 'grid-item';
+const DESKTOP = 'desktop';
+const MOBILE = 'mobile';
 const NUM_DESKTOP_COLS = 6;
 const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
@@ -50,8 +52,8 @@ const ADD_BUTTON_POSITION = {
 };
 const DEFAULT_WIDGET_WIDTH = 2;
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
-const BREAKPOINTS = {mobile: 0, desktop: MOBILE_BREAKPOINT};
-const COLUMNS = {mobile: NUM_MOBILE_COLS, desktop: NUM_DESKTOP_COLS};
+const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
+const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 
 type Props = {
   api: Client;
@@ -75,12 +77,20 @@ type Props = {
 
 type State = {
   isMobile: boolean;
+  layouts: Layouts;
 };
 
 class Dashboard extends Component<Props, State> {
-  state = {
-    isMobile: false,
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      isMobile: false,
+      layouts: {
+        [DESKTOP]: props.layout,
+        [MOBILE]: getMobileLayout(props.layout, props.dashboard.widgets),
+      },
+    };
+  }
 
   async componentDidMount() {
     const {isEditing} = this.props;
@@ -103,11 +113,6 @@ class Dashboard extends Component<Props, State> {
       this.addNewWidget();
     }
   }
-
-  // Used for retreiving width of the grid container
-  // because onLayoutChange can trigger before we can set
-  // the mobile breakpoint state
-  private gridContainer = createRef<HTMLDivElement>();
 
   async addNewWidget() {
     const {api, organization, newWidget} = this.props;
@@ -260,60 +265,65 @@ class Dashboard extends Component<Props, State> {
     );
   }
 
-  onLayoutChange = newLayout => {
+  onLayoutChange = (_, allLayouts) => {
     const {onLayoutChange} = this.props;
-
-    if (!this?.gridContainer?.current?.offsetWidth) {
-      return;
-    }
-
-    if (this.gridContainer.current.offsetWidth < MOBILE_BREAKPOINT) {
-      this.setState({isMobile: true});
-      return;
-    }
-
-    this.setState({isMobile: false});
-    const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
-    onLayoutChange(newLayout.filter(isNotAddButton));
+    const newLayouts = {
+      [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
+      [MOBILE]: allLayouts[MOBILE].filter(isNotAddButton),
+    };
+    this.setState({
+      layouts: newLayouts,
+    });
+    onLayoutChange(newLayouts[DESKTOP]);
   };
 
   render() {
-    const {isMobile} = this.state;
+    const {layouts, isMobile} = this.state;
     const {
       isEditing,
       dashboard: {widgets},
       organization,
-      layout,
     } = this.props;
 
     const canModifyLayout = !isMobile && isEditing;
 
     return (
-      <div ref={this.gridContainer}>
-        <GridLayout
-          breakpoints={BREAKPOINTS}
-          cols={COLUMNS}
-          rowHeight={ROW_HEIGHT}
-          margin={WIDGET_MARGINS}
-          draggableHandle={`.${DRAG_HANDLE_CLASS}`}
-          layouts={{desktop: layout, mobile: getMobileLayout(layout, widgets)}}
-          onLayoutChange={this.onLayoutChange}
-          isDraggable={canModifyLayout}
-          isResizable={canModifyLayout}
-          isBounded
-        >
-          {widgets.map((widget, index) => this.renderWidget(widget, index))}
-          {isEditing && widgets.length < MAX_WIDGETS && (
-            <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={ADD_BUTTON_POSITION}>
-              <AddWidget
-                orgFeatures={organization.features}
-                onAddWidget={this.handleStartAdd}
-                onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
-              />
-            </div>
-          )}
-        </GridLayout>
-      </div>
+      <GridLayout
+        breakpoints={BREAKPOINTS}
+        cols={COLUMNS}
+        rowHeight={ROW_HEIGHT}
+        margin={WIDGET_MARGINS}
+        draggableHandle={`.${DRAG_HANDLE_CLASS}`}
+        layouts={layouts}
+        onLayoutChange={this.onLayoutChange}
+        onBreakpointChange={newBreakpoint => {
+          if (newBreakpoint === MOBILE) {
+            this.setState({
+              isMobile: true,
+              layouts: {
+                ...layouts,
+                [MOBILE]: getMobileLayout(layouts[DESKTOP], widgets),
+              },
+            });
+            return;
+          }
+          this.setState({isMobile: false});
+        }}
+        isDraggable={canModifyLayout}
+        isResizable={canModifyLayout}
+        isBounded
+      >
+        {widgets.map((widget, index) => this.renderWidget(widget, index))}
+        {isEditing && widgets.length < MAX_WIDGETS && (
+          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={ADD_BUTTON_POSITION}>
+            <AddWidget
+              orgFeatures={organization.features}
+              onAddWidget={this.handleStartAdd}
+              onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
+            />
+          </div>
+        )}
+      </GridLayout>
     );
   }
 }
@@ -343,6 +353,10 @@ export function assignTempId(widget) {
   }
 
   return {...widget, tempId: uniqueId()};
+}
+
+function isNotAddButton({i}) {
+  return i !== ADD_WIDGET_BUTTON_DRAG_ID;
 }
 
 /**
