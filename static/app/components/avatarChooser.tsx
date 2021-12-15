@@ -12,6 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
@@ -281,8 +282,8 @@ const AvatarForm = styled('div')`
 const AvatarSubmit = styled('fieldset')`
   display: flex;
   align-items: center;
-  margin-top: 2.25em;
-  padding-top: 1.5em;
+  margin-top: ${space(4)};
+  padding-top: ${space(1.5)};
 `;
 
 const AvatarUploadSection = styled('div')`
