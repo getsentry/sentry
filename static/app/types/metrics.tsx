@@ -4,8 +4,8 @@ export type MetricsApiResponse = {
   intervals: string[];
   groups: {
     by: Record<string, string>;
-    totals: Record<string, number>;
-    series: Record<string, number[]>;
+    totals: Record<string, number | null>;
+    series: Record<string, Array<number | null>>;
   }[];
   start: DateString;
   end: DateString;
