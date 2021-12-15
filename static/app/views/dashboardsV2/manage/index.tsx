@@ -11,6 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -25,6 +26,8 @@ import AsyncView from 'sentry/views/asyncView';
 import {DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
+import TemplateCard from './templateCard';
+import {setShowTemplates, shouldShowTemplates} from './utils';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Dashboards'), value: 'mydashboards'},
@@ -45,9 +48,23 @@ type Props = {
 type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
+  showTemplates: boolean;
 } & AsyncView['state'];
 
 class ManageDashboards extends AsyncView<Props, State> {
+  state: State = {
+    // AsyncComponent state
+    loading: true,
+    reloading: false,
+    error: false,
+    errors: {},
+
+    // local component state
+    dashboards: null,
+    dashboardsPageLinks: '',
+    showTemplates: shouldShowTemplates(),
+  };
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
     return [
@@ -108,10 +125,40 @@ class ManageDashboards extends AsyncView<Props, State> {
     });
   };
 
+  toggleTemplates = () => {
+    const {showTemplates} = this.state;
+    const {organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'dashboards_manage.templates.toggle',
+      eventName: 'Dashboards Manager: Template Toggle Changed',
+      organization_id: parseInt(organization.id, 10),
+      show_templates: !showTemplates,
+    });
+
+    this.setState({showTemplates: !showTemplates}, () => {
+      setShowTemplates(!showTemplates);
+    });
+  };
+
   getQuery() {
     const {query} = this.props.location.query;
 
     return typeof query === 'string' ? query : undefined;
+  }
+
+  renderTemplates() {
+    const {organization} = this.props;
+    return (
+      <Feature organization={organization} features={['dashboards-edit']}>
+        <TemplateContainer>
+          <TemplateCard title="Default" widgetCount={10} />
+          <TemplateCard title="Frontend" widgetCount={9} />
+          <TemplateCard title="Backend" widgetCount={13} />
+          <TemplateCard title="Mobile" widgetCount={4} />
+        </TemplateContainer>
+      </Feature>
+    );
   }
 
   renderActions() {
@@ -190,6 +237,7 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   renderBody() {
+    const {showTemplates} = this.state;
     const {organization} = this.props;
 
     return (
@@ -204,18 +252,34 @@ class ManageDashboards extends AsyncView<Props, State> {
               <PageContent>
                 <StyledPageHeader>
                   {t('Dashboards')}
-                  <Button
-                    data-test-id="dashboard-create"
-                    onClick={event => {
-                      event.preventDefault();
-                      this.onCreate();
-                    }}
-                    priority="primary"
-                    icon={<IconAdd size="xs" isCircled />}
-                  >
-                    {t('Create Dashboard')}
-                  </Button>
+                  <ButtonContainer>
+                    <Feature
+                      organization={organization}
+                      features={['dashboards-edit']}
+                    >
+                      <SwitchContainer>
+                        Show Templates
+                        <TemplateSwitch
+                          isActive={showTemplates}
+                          size="lg"
+                          toggle={this.toggleTemplates}
+                        />
+                      </SwitchContainer>
+                    </Feature>
+                    <Button
+                      data-test-id="dashboard-create"
+                      onClick={event => {
+                        event.preventDefault();
+                        this.onCreate();
+                      }}
+                      priority="primary"
+                      icon={<IconAdd size="xs" isCircled />}
+                    >
+                      {t('Create Dashboard')}
+                    </Button>
+                  </ButtonContainer>
                 </StyledPageHeader>
+                {showTemplates && this.renderTemplates()}
                 {this.renderActions()}
                 {this.renderDashboards()}
               </PageContent>
@@ -249,6 +313,29 @@ const StyledActions = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: auto;
   }
+`;
+
+const SwitchContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  display: inline;
+  padding-right: ${space(2)};
+`;
+
+const TemplateSwitch = styled(Switch)`
+  vertical-align: middle;
+  display: inline;
+  margin-left: ${space(1)};
+`;
+
+const ButtonContainer = styled('div')`
+  display: inline;
+`;
+
+const TemplateContainer = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-gap: ${space(2)};
+  padding-bottom: ${space(4)};
 `;
 
 export default withApi(withOrganization(ManageDashboards));
