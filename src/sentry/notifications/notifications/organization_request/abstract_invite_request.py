@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from django.urls import reverse
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
 
 
 # Abstract class for invite and join requests to inherit from
-class AbstractInviteRequestNotification(OrganizationRequestNotification):
+class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC):
     RoleBasedRecipientStrategyClass = MemberWriteRoleRecipientStrategy
 
     def __init__(self, pending_member: OrganizationMember, requester: User):

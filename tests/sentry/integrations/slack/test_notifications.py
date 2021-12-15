@@ -23,6 +23,9 @@ class DummyNotification(BaseNotification):
     def record_notification_sent(self, *args):
         pass
 
+    def build_notification_footer(self, *args):
+        return ""
+
 
 def additional_attachment_generator(integration, organization):
     # nonsense to make sure we pass in the right fields

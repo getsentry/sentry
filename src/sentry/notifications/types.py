@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Optional
 
@@ -10,7 +12,7 @@ integers to their string values.
 """
 
 
-def get_notification_setting_type_name(value: int) -> Optional[str]:
+def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
     return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
 
 
