@@ -58,7 +58,7 @@ function wrapErrorHandling<T extends any[], U>(
   };
 }
 
-export default class AsyncComponent<
+abstract class AsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
 > extends React.Component<P, S> {
@@ -460,12 +460,11 @@ export default class AsyncComponent<
   /**
    * Renders once all endpoints have been loaded
    */
-  renderBody(): React.ReactNode {
-    // Allow children to implement this
-    throw new Error('Not implemented');
-  }
+  abstract renderBody(): React.ReactNode;
 
   render() {
     return this.renderComponent();
   }
 }
+
+export default AsyncComponent;
