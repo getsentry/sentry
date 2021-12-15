@@ -4,7 +4,6 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
@@ -749,7 +748,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               {showEmbeddedChildren
                 ? t('This span is showing a direct child. Remove transaction to hide')
                 : t('This span has a direct child. Add transaction to view')}
-              <FeatureBadge type="new" noTooltip />
             </span>
           }
           position="top"
