@@ -64,20 +64,17 @@ const CardText = styled('div')`
 
 const ButtonContainer = styled('div')`
   display: flex;
-  width: 100%;
 `;
 
 const StyledButton = styled(Button)<{priority: string}>`
   display: block;
-  margin: 0 auto;
-  width: 100%;
+  width: auto;
   ${overflowEllipsis};
 
   ${p =>
     p.priority === 'default' &&
-    `width: auto;
-    margin-right: ${space(2)};
-    padding: 0 ${space(2)};`};
+    `width: 50%;
+    margin-right: ${space(2)};`};
 `;
 
 export default TemplateCard;

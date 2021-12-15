@@ -245,7 +245,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                       features={['dashboards-template']}
                     >
                       <SwitchContainer>
-                        Show Templates
+                        {t('Show Templates')}
                         <TemplateSwitch
                           isActive={showTemplates}
                           size="lg"
@@ -321,7 +321,7 @@ const ButtonContainer = styled('div')`
 const TemplateContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: repeat(2, 1fr);
   }
   grid-gap: ${space(2)};
