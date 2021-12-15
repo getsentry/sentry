@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -123,7 +124,7 @@ class ProjectAlertRulePermission(ProjectPermission):
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
-    def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, project_slug, *args, **kwargs):
         try:
             project = (
                 Project.objects.filter(organization__slug=organization_slug, slug=project_slug)

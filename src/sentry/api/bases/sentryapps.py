@@ -2,6 +2,7 @@ from functools import wraps
 
 from django.http import Http404
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
@@ -138,7 +139,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
             user = request.user
             return self._get_organization_for_user(user, organization_slug)
 
-    def convert_args(self, request, *args, **kwargs):
+    def convert_args(self, request: Request, *args, **kwargs):
         # This baseclass is the the SentryApp collection endpoints:
         #
         #       [GET, POST] /sentry-apps
@@ -231,7 +232,7 @@ class SentryAppPermission(SentryPermission):
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppPermission,)
 
-    def convert_args(self, request, sentry_app_slug, *args, **kwargs):
+    def convert_args(self, request: Request, sentry_app_slug, *args, **kwargs):
         try:
             sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
         except SentryApp.DoesNotExist:
@@ -270,7 +271,7 @@ class SentryAppInstallationsPermission(SentryPermission):
 class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationsPermission,)
 
-    def convert_args(self, request, organization_slug, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, *args, **kwargs):
         if is_active_superuser(request):
             organizations = Organization.objects.all()
         else:
@@ -333,7 +334,7 @@ class SentryAppInstallationPermission(SentryPermission):
 class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationPermission,)
 
-    def convert_args(self, request, uuid, *args, **kwargs):
+    def convert_args(self, request: Request, uuid, *args, **kwargs):
         try:
             installation = SentryAppInstallation.objects.get(uuid=uuid)
         except SentryAppInstallation.DoesNotExist:

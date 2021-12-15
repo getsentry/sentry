@@ -1,3 +1,5 @@
+from rest_framework.request import Request
+
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Team, TeamStatus
@@ -30,7 +32,7 @@ class TeamPermission(OrganizationPermission):
 class TeamEndpoint(Endpoint):
     permission_classes = (TeamPermission,)
 
-    def convert_args(self, request, organization_slug, team_slug, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, team_slug, *args, **kwargs):
         try:
             team = (
                 Team.objects.filter(organization__slug=organization_slug, slug=team_slug)

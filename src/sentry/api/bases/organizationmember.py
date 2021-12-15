@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import serializers
+from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.db.models.fields.bounded import BoundedAutoField
@@ -29,7 +30,7 @@ class MemberSerializer(serializers.Serializer):
 
 
 class OrganizationMemberEndpoint(OrganizationEndpoint):
-    def convert_args(self, request, organization_slug, member_id="me", *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, member_id="me", *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug)
 
         serializer = MemberSerializer(data={"id": member_id})

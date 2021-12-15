@@ -1,5 +1,7 @@
 import logging
 
+from rest_framework.request import Request
+
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -31,7 +33,7 @@ class GroupPermission(ProjectPermission):
 class GroupEndpoint(Endpoint):
     permission_classes = (GroupPermission,)
 
-    def convert_args(self, request, issue_id, organization_slug=None, *args, **kwargs):
+    def convert_args(self, request: Request, issue_id, organization_slug=None, *args, **kwargs):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
         # than just returning the data that is bound to the new group. (It
         # technically shouldn't be a 301, since the response could change again
