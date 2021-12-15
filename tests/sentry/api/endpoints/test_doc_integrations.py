@@ -135,7 +135,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
 
     def test_create_ignore_keys(self):
         """
-        Test that certain reserved keys cannot be overridden by the
+        Tests that certain reserved keys cannot be overridden by the
         request payload. They must be created by the API.
         """
         self.login_as(user=self.superuser, superuser=True)
@@ -145,3 +145,18 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         # Ensure the DocIntegration was not created with the ignored keys' values
         for key in self.ignored_keys:
             assert getattr(doc, key) is not payload[key]
+
+    def test_create_duplicate_features(self):
+        """
+        Tests that providing duplicate keys do not result in a server
+        error; instead, the excess are ignored.
+        """
+        self.login_as(user=self.superuser, superuser=True)
+        payload = {**self.payload, "features": [0, 0, 0, 0, 1, 1, 1, 2]}
+        self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
+        doc = DocIntegration.objects.get(name=self.payload["name"], author=self.payload["author"])
+        features = IntegrationFeature.objects.filter(
+            target_id=doc.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+        )
+        assert features.exists()
+        assert len(features) == 3

@@ -1,4 +1,5 @@
-from typing import Any, Mapping
+from collections import defaultdict
+from typing import Any, List, Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.integration import DocIntegration
@@ -10,6 +11,16 @@ from sentry.utils.json import JSONData
 
 @register(DocIntegration)
 class DocIntegrationSerializer(Serializer):
+    def get_attrs(self, item_list: List[DocIntegration], user: User, **kwargs: Any):
+        target_ids = {item.id for item in item_list}
+        features = IntegrationFeature.objects.filter(
+            target_type=IntegrationTypes.DOC_INTEGRATION.value, target_id__in=target_ids
+        )
+        features_by_target = defaultdict(set)
+        for feature in features:
+            features_by_target[feature.target_id].add(feature)
+        return {item: {"features": features_by_target.get(item.id, set())} for item in item_list}
+
     def serialize(
         self,
         obj: DocIntegration,
@@ -25,13 +36,10 @@ class DocIntegrationSerializer(Serializer):
             "url": obj.url,
             "popularity": obj.popularity,
             "isDraft": obj.is_draft,
+            "features": map(lambda x: serialize(x, user), attrs.get("features")),
         }
 
         if obj.metadata:
             data.update({k: v for k, v in obj.metadata.items()})
 
-        features = IntegrationFeature.objects.filter(
-            target_type=IntegrationTypes.DOC_INTEGRATION.value, target_id=obj.id
-        )
-        data["features"] = map(lambda x: serialize(x, user), features)
         return data

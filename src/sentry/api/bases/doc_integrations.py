@@ -9,7 +9,6 @@ from sentry.utils.json import JSONData
 
 class DocIntegrationsPermission(SentryPermission):
     def has_permission(self, request: Request, view: Endpoint):
-        return True
         if not hasattr(request, "user") or not request.user:
             return False
 
