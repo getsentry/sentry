@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
+from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission
 from sentry.api.validators.doc_integration import METADATA_PROPERTIES
 from sentry.auth.superuser import is_active_superuser
@@ -8,8 +9,10 @@ from sentry.utils.json import JSONData
 
 
 class DocIntegrationsPermission(SentryPermission):
+    scope_map = {"GET": PARANOID_GET}
+
     def has_permission(self, request: Request, view: Endpoint):
-        if not hasattr(request, "user") or not request.user:
+        if not super().has_permission(request, view):
             return False
 
         if is_active_superuser(request) or request.method == "GET":
