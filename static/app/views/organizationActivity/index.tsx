@@ -29,7 +29,7 @@ type State = {
 class OrganizationActivity extends AsyncView<Props, State> {
   getTitle() {
     const {orgId} = this.props.params;
-    return routeTitle(t('Activity'), orgId);
+    return routeTitle(t('Activity'), orgId, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
