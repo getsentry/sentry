@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
   DAY,
@@ -12,9 +13,13 @@ import {
 } from 'sentry/utils/formatters';
 
 /**
- * Formatter for chart tooltips that handle a variety of discover result values
+ * Formatter for chart tooltips that handle a variety of discover and metrics result values.
+ * If the result is metric values, the value can be of type number or null
  */
-export function tooltipFormatter(value: number, seriesName: string = ''): string {
+export function tooltipFormatter(value: number | null, seriesName: string = ''): string {
+  if (!defined(value)) {
+    return '\u2014';
+  }
   switch (aggregateOutputType(seriesName)) {
     case 'integer':
     case 'number':
