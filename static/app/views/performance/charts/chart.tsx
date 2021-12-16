@@ -183,9 +183,7 @@ function Chart({
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,
-          data && data.length
-            ? aggregation ?? data[0].seriesName
-            : aggregation ?? seriesName
+          aggregation ?? (data && data.length) ? data[0].seriesName : seriesName
         );
       },
       nameFormatter(value: string) {
