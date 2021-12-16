@@ -307,12 +307,17 @@ class DashboardDetail extends Component<Props, State> {
 
   /**
    * Saves a dashboard layout where the layout keys are replaced with the IDs of new widgets.
+   *
+   * If there are more widgets than layout objects, these widgets will be treated as
+   * new and will get default positioning. This happens when saving in mobile
+   * view because we don't update the desktop layout to account for the new widget.
+   *
+   * Throws an error if we end up in a state where we're trying to save more layouts
+   * than we have widgets.
    */
   saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
     const {layout} = this.state;
     if (layout.length > newWidgets.length) {
-      // If there are more widgets than what's in the layout, these
-      // widgets are new and will get default positioning
       throw new Error('Expected layouts to have less length than widgets');
     }
 
