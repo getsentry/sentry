@@ -57,4 +57,6 @@ export const RowCell = styled('div')<RowCellProps>`
   background-color: ${p => getBackgroundColor(p)};
   transition: background-color 125ms ease-in-out;
   color: ${p => (p.showDetail ? p.theme.background : 'inherit')};
+  display: flex;
+  align-items: center;
 `;

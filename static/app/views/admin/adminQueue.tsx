@@ -62,7 +62,7 @@ export default class AdminQueue extends AsyncView<{}, State> {
     return (
       <div>
         <Header>
-          <h3 className="no-border">Queue Overview</h3>
+          <h3>Queue Overview</h3>
 
           <ButtonBar merged active={this.state.timeWindow}>
             {TIME_WINDOWS.map(r => (
@@ -85,7 +85,7 @@ export default class AdminQueue extends AsyncView<{}, State> {
           </PanelBody>
         </Panel>
 
-        <h3 className="no-border">Task Details</h3>
+        <h3>Task Details</h3>
 
         <div>
           <div className="m-b-1">

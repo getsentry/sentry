@@ -2,7 +2,7 @@ import re
 from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
-from typing import Any, List, Mapping, Optional, TypedDict
+from typing import Any, List, Mapping, Optional, Type, TypedDict, Union
 
 from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
@@ -261,40 +261,57 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
         return {"organization": self.org_id, "groupby": self.get_query_groupby()}
 
 
-def map_aggregate_to_entity_subscription(
+EntitySubscription = Union[
+    EventsEntitySubscription,
+    MetricsCountersEntitySubscription,
+    TransactionsEntitySubscription,
+    SessionsEntitySubscription,
+]
+ENTITY_KEY_TO_ENTITY_SUBSCRIPTION: Mapping[EntityKey, Type[EntitySubscription]] = {
+    EntityKey.Events: EventsEntitySubscription,
+    EntityKey.MetricsCounters: MetricsCountersEntitySubscription,
+    EntityKey.Sessions: SessionsEntitySubscription,
+    EntityKey.Transactions: TransactionsEntitySubscription,
+}
+
+
+def get_entity_subscription_for_dataset(
     dataset: QueryDatasets, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None
-) -> BaseEntitySubscription:
+) -> EntitySubscription:
     """
     Function that routes to the correct instance of `EntitySubscription` based on the dataset,
     additionally does validation on aggregate for datasets like the sessions dataset and the
     metrics datasets then returns the instance of `EntitySubscription`
     """
-    entity_subscription: BaseEntitySubscription
-    if dataset == QueryDatasets.SESSIONS:
-        match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
-        if not match:
-            raise UnsupportedQuerySubscription(
-                "Only crash free percentage queries are supported for subscriptions"
-                "over the sessions dataset"
-            )
-        entity_subscription = SessionsEntitySubscription(aggregate, extra_fields)
-    elif dataset == QueryDatasets.TRANSACTIONS:
-        entity_subscription = TransactionsEntitySubscription(aggregate, extra_fields)
-    elif dataset == QueryDatasets.METRICS:
-        match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
-        if not match:
-            raise UnsupportedQuerySubscription(
-                "Only crash free percentage queries are supported for subscriptions"
-                "over the metrics dataset"
-            )
+    return ENTITY_KEY_TO_ENTITY_SUBSCRIPTION[map_aggregate_to_entity_key(dataset, aggregate)](
+        aggregate, extra_fields
+    )
 
-        count_col_matched = match.group(2)
-        if count_col_matched == "sessions":
-            entity_subscription = MetricsCountersEntitySubscription(aggregate, extra_fields)
-        else:
+
+def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> Optional[EntityKey]:
+    if dataset == QueryDatasets.EVENTS:
+        entity_key = EntityKey.Events
+    elif dataset == QueryDatasets.TRANSACTIONS:
+        entity_key = EntityKey.Transactions
+    elif dataset in [QueryDatasets.METRICS, QueryDatasets.SESSIONS]:
+        match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
+        if not match:
             raise UnsupportedQuerySubscription(
-                "Crash Free Users subscriptions are not supported yet"
+                f"Only crash free percentage queries are supported for subscriptions"
+                f"over the {dataset.value} dataset"
             )
+        if dataset == QueryDatasets.METRICS:
+            count_col_matched = match.group(2)
+            if count_col_matched == "sessions":
+                entity_key = EntityKey.MetricsCounters
+            else:
+                raise UnsupportedQuerySubscription(
+                    "Crash Free Users subscriptions are not supported yet"
+                )
+        else:
+            entity_key = EntityKey.Sessions
     else:
-        entity_subscription = EventsEntitySubscription(aggregate, extra_fields)
-    return entity_subscription
+        raise UnsupportedQuerySubscription(
+            f"{dataset} dataset does not have an entity key mapped to it"
+        )
+    return entity_key

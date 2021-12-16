@@ -12,7 +12,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
-    map_aggregate_to_entity_subscription,
+    get_entity_subscription_for_dataset,
 )
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
@@ -190,7 +190,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
 
 class BuildSnubaFilterTest(TestCase):
     def test_simple_events(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.EVENTS,
             aggregate="count_unique(user)",
         )
@@ -200,7 +200,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
     def test_simple_transactions(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.TRANSACTIONS, aggregate="count_unique(user)"
         )
         snuba_filter = build_snuba_filter(entity_subscription, "", environment=None)
@@ -209,7 +209,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.aggregations == [["uniq", "user", "count_unique_user"]]
 
     def test_simple_sessions(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.SESSIONS,
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             extra_fields={"org_id": self.organization.id},
@@ -230,7 +230,7 @@ class BuildSnubaFilterTest(TestCase):
         ]
 
     def test_simple_users(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.SESSIONS,
             aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             extra_fields={"org_id": self.organization.id},
@@ -253,7 +253,7 @@ class BuildSnubaFilterTest(TestCase):
     def test_simple_sessions_for_metrics(self):
         for tag in [SessionMetricKey.SESSION.value, "session.status", "crashed", "init"]:
             indexer.record(tag)
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             extra_fields={"org_id": self.organization.id},
@@ -275,7 +275,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.groupby == [session_status]
 
     def test_aliased_query_events(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.EVENTS,
             aggregate="count_unique(user)",
         )
@@ -288,7 +288,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
     def test_query_and_environment_sessions(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.SESSIONS,
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             extra_fields={"org_id": self.organization.id},
@@ -326,7 +326,7 @@ class BuildSnubaFilterTest(TestCase):
             "ahmed@12.2",
         ]:
             indexer.record(tag)
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             extra_fields={"org_id": self.organization.id},
@@ -352,7 +352,7 @@ class BuildSnubaFilterTest(TestCase):
         ]
 
     def test_query_and_environment_users(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.SESSIONS,
             aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             extra_fields={"org_id": self.organization.id},
@@ -378,7 +378,7 @@ class BuildSnubaFilterTest(TestCase):
         ]
 
     def test_aliased_query_transactions(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.TRANSACTIONS,
             aggregate="percentile(transaction.duration,.95)",
         )
@@ -394,7 +394,7 @@ class BuildSnubaFilterTest(TestCase):
         ]
 
     def test_user_query(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             QueryDatasets.EVENTS, aggregate="count()"
         )
         snuba_filter = build_snuba_filter(
@@ -408,7 +408,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.aggregations == [["count", None, "count"]]
 
     def test_user_query_transactions(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             QueryDatasets.TRANSACTIONS, aggregate="p95()"
         )
         snuba_filter = build_snuba_filter(
@@ -419,7 +419,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.aggregations == [["quantile(0.95)", "duration", "p95"]]
 
     def test_boolean_query(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             QueryDatasets.EVENTS, aggregate="count_unique(user)"
         )
         snuba_filter = build_snuba_filter(
@@ -443,7 +443,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
     def test_event_types(self):
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             QueryDatasets.EVENTS,
             aggregate="count_unique(user)",
             extra_fields={

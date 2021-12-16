@@ -26,7 +26,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, O
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.relay.config import ALL_MEASUREMENT_METRICS
@@ -38,7 +38,6 @@ from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     ONE_DAY,
     AllowedResolution,
     InvalidField,
-    InvalidParams,
     finite_or_none,
 )
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
