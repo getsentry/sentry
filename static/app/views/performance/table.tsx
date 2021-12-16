@@ -193,7 +193,11 @@ class _Table extends React.Component<Props, State> {
           handleCellAction={this.handleCellAction(column, dataRow)}
           allowActions={allowActions}
         >
-          <Link to={target} onClick={this.handleSummaryClick}>
+          <Link
+            to={target}
+            onClick={this.handleSummaryClick}
+            style={{display: `block`, width: `100%`}}
+          >
             {rendered}
           </Link>
         </CellAction>

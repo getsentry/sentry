@@ -84,9 +84,13 @@ class AccountConfirmLink:
 
     def store_in_redis(self) -> None:
         cluster = get_redis_cluster()
-        member_id = OrganizationMember.objects.get(
-            organization=self.organization, user=self.user
-        ).id
+
+        try:
+            member_id = OrganizationMember.objects.get(
+                organization=self.organization, user=self.user
+            ).id
+        except OrganizationMember.DoesNotExist:
+            member_id = None
 
         verification_value = {
             "user_id": self.user.id,

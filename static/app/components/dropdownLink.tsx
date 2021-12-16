@@ -14,7 +14,7 @@ const getRootCss = (theme: Theme) => css`
       &:hover,
       &:focus {
         color: inherit;
-        background-color: ${theme.focus};
+        background-color: ${theme.hover};
       }
     }
 
@@ -29,7 +29,7 @@ const getRootCss = (theme: Theme) => css`
 
   .dropdown-submenu:hover > span {
     color: ${theme.textColor};
-    background: ${theme.focus};
+    background: ${theme.hover};
   }
 `;
 
