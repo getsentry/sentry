@@ -120,6 +120,15 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
     );
   };
 
+  const customLoadingIndicator = (
+    <StyledDropdownButton showChevron={false} disabled>
+      <DropdownTitle>
+        <IconProject />
+        {t('Loading\u2026')}
+      </DropdownTitle>
+    </StyledDropdownButton>
+  );
+
   return (
     <MultipleProjectSelector
       organization={organization}
@@ -130,6 +139,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       onChange={handleChangeProjects}
       onUpdate={handleUpdateProjects}
       customDropdownButton={customProjectDropdown}
+      customLoadingIndicator={customLoadingIndicator}
       {...otherProps}
     />
   );

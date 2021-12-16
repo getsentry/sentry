@@ -41,6 +41,7 @@ type Props = WithRouterProps & {
     selectedProjects: Project[];
     isOpen: boolean;
   }) => React.ReactElement;
+  customLoadingIndicator?: React.ReactNode;
 };
 
 type State = {
@@ -202,6 +203,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       showProjectSettingsLink,
       footerMessage,
       customDropdownButton,
+      customLoadingIndicator,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -237,13 +239,15 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
         {this.renderProjectName()}
       </StyledHeaderItem>
     ) : !isGlobalSelectionReady ? (
-      <StyledHeaderItem
-        data-test-id="global-header-project-selector-loading"
-        icon={<IconProject />}
-        loading
-      >
-        {t('Loading\u2026')}
-      </StyledHeaderItem>
+      customLoadingIndicator ?? (
+        <StyledHeaderItem
+          data-test-id="global-header-project-selector-loading"
+          icon={<IconProject />}
+          loading
+        >
+          {t('Loading\u2026')}
+        </StyledHeaderItem>
+      )
     ) : (
       <ClassNames>
         {({css}) => (
