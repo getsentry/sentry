@@ -1,29 +1,23 @@
 import {useReducer} from 'react';
-import {Location, LocationDescriptor, Query} from 'history';
+import {Location} from 'history';
 
 import Button from 'sentry/components/button';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import {SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 
 import {PerformanceDuration} from '../../utils';
 
+import SpanTable from './spanTable';
 import {
   emptyValue,
   FooterPanel,
   HeaderItem,
   LowerPanel,
-  SpanDurationBar,
   SpanLabelContainer,
   UpperPanel,
 } from './styles';
@@ -32,61 +26,14 @@ import {
   SpanSortOthers,
   SpanSortPercentiles,
   SpansTotalValues,
-  SuspectSpanDataRow,
-  SuspectSpanTableColumn,
-  SuspectSpanTableColumnKeys,
 } from './types';
 import {getSuspectSpanSortFromEventView} from './utils';
-
-const SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
-  {
-    key: 'id',
-    name: t('Example Transaction'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'timestamp',
-    name: t('Timestamp'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'spanDuration',
-    name: t('Span Duration'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'occurrences',
-    name: t('Count'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'cumulativeDuration',
-    name: t('Cumulative Duration'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
-
-const SPANS_TABLE_COLUMN_TYPE: Omit<
-  Record<SuspectSpanTableColumnKeys, ColumnType>,
-  'spans' | 'transactionDuration'
-> = {
-  id: 'string',
-  timestamp: 'date',
-  spanDuration: 'duration',
-  occurrences: 'integer',
-  cumulativeDuration: 'duration',
-};
 
 type Props = {
   location: Location;
   organization: Organization;
   suspectSpan: SuspectSpan;
-  generateTransactionLink: (
-    organization: Organization,
-    tableData: TableDataRow,
-    query: Query,
-    hash?: string
-  ) => LocationDescriptor;
+  transactionName: string;
   eventView: EventView;
   totals: SpansTotalValues | null;
   preview: number;
@@ -97,7 +44,7 @@ export default function SuspectSpanEntry(props: Props) {
     location,
     organization,
     suspectSpan,
-    generateTransactionLink,
+    transactionName,
     eventView,
     totals,
     preview,
@@ -110,21 +57,6 @@ export default function SuspectSpanEntry(props: Props) {
   const visibileExamples = collapsed
     ? suspectSpan.examples.slice(0, preview)
     : suspectSpan.examples;
-
-  const examples = visibileExamples.map(example => ({
-    id: example.id,
-    project: suspectSpan.project,
-    // timestamps are in seconds but want them in milliseconds
-    timestamp: example.finishTimestamp * 1000,
-    transactionDuration: (example.finishTimestamp - example.startTimestamp) * 1000,
-    spanDuration: example.nonOverlappingExclusiveTime,
-    occurrences: example.spans.length,
-    cumulativeDuration: example.spans.reduce(
-      (duration, span) => duration + span.exclusiveTime,
-      0
-    ),
-    spans: example.spans,
-  }));
 
   const sort = getSuspectSpanSortFromEventView(eventView);
 
@@ -141,20 +73,12 @@ export default function SuspectSpanEntry(props: Props) {
         <TotalCumulativeDuration sort={sort} suspectSpan={suspectSpan} totals={totals} />
       </UpperPanel>
       <LowerPanel expandable={expandable} data-test-id="suspect-card-lower">
-        <GridEditable
-          data={examples}
-          columnOrder={SPANS_TABLE_COLUMN_ORDER}
-          columnSortBy={[]}
-          grid={{
-            renderHeadCell,
-            renderBodyCell: renderBodyCellWithMeta(
-              location,
-              organization,
-              generateTransactionLink,
-              suspectSpan
-            ),
-          }}
+        <SpanTable
           location={location}
+          organization={organization}
+          suspectSpan={suspectSpan}
+          transactionName={transactionName}
+          examples={visibileExamples}
         />
       </LowerPanel>
       {expandable && (
@@ -284,68 +208,6 @@ function TotalCumulativeDuration(props: HeaderItemProps) {
       isSortKey={sort.field === SpanSortOthers.SUM_EXCLUSIVE_TIME}
     />
   );
-}
-
-function renderHeadCell(column: SuspectSpanTableColumn, _index: number): React.ReactNode {
-  const align = fieldAlignment(column.key, SPANS_TABLE_COLUMN_TYPE[column.key]);
-  return (
-    <SortLink
-      title={column.name}
-      align={align}
-      direction={undefined}
-      canSort={false}
-      generateSortLink={() => undefined}
-    />
-  );
-}
-
-function renderBodyCellWithMeta(
-  location: Location,
-  organization: Organization,
-  generateTransactionLink: (
-    organization: Organization,
-    tableData: TableDataRow,
-    query: Query,
-    hash?: string
-  ) => LocationDescriptor,
-  suspectSpan: SuspectSpan
-) {
-  return (
-    column: SuspectSpanTableColumn,
-    dataRow: SuspectSpanDataRow
-  ): React.ReactNode => {
-    // if the transaction duration is falsey, then just render the span duration on its own
-    if (column.key === 'spanDuration' && dataRow.transactionDuration) {
-      return (
-        <SpanDurationBar
-          spanOp={suspectSpan.op}
-          spanDuration={dataRow.spanDuration}
-          transactionDuration={dataRow.transactionDuration}
-        />
-      );
-    }
-
-    const fieldRenderer = getFieldRenderer(column.key, SPANS_TABLE_COLUMN_TYPE);
-    let rendered = fieldRenderer(dataRow, {location, organization});
-
-    if (column.key === 'id') {
-      const worstSpan = dataRow.spans.length
-        ? dataRow.spans.reduce((worst, span) =>
-            worst.exclusiveTime >= span.exclusiveTime ? worst : span
-          )
-        : null;
-      const target = generateTransactionLink(
-        organization,
-        dataRow,
-        location.query,
-        worstSpan.id
-      );
-
-      rendered = <Link to={target}>{rendered}</Link>;
-    }
-
-    return rendered;
-  };
 }
 
 type SpanLabelProps = {

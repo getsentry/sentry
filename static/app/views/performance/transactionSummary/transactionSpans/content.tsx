@@ -20,7 +20,6 @@ import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpan
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {SetStateAction} from '../types';
-import {generateTransactionLink} from '../utils';
 
 import OpsFilter from './opsFilter';
 import {Actions} from './styles';
@@ -160,7 +159,7 @@ function SpansContent(props: Props) {
                         location={location}
                         organization={organization}
                         suspectSpan={suspectSpan}
-                        generateTransactionLink={generateTransactionLink(transactionName)}
+                        transactionName={transactionName}
                         eventView={eventView}
                         totals={totals}
                         preview={2}

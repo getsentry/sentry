@@ -9,18 +9,30 @@ type Props = {
   widget: Widget;
   dragId: string;
   isEditing: boolean;
+  hideDragHandle?: boolean;
   onDelete: () => void;
   onEdit: () => void;
-  hideDragHandle?: boolean;
+  onDuplicate: () => void;
+  widgetLimitReached: boolean;
 };
 
-function SortableWidget({widget, isEditing, onDelete, onEdit, hideDragHandle}: Props) {
+function SortableWidget({
+  widget,
+  isEditing,
+  widgetLimitReached,
+  hideDragHandle,
+  onDelete,
+  onEdit,
+  onDuplicate,
+}: Props) {
   const widgetProps = {
     widget,
     isEditing,
+    widgetLimitReached,
     onDelete,
     onEdit,
     hideDragHandle,
+    onDuplicate,
     showContextMenu: true,
     // TODO(nar): These aren't necessary for supporting RGL
     isSorting: false,

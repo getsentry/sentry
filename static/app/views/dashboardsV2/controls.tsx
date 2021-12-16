@@ -23,8 +23,8 @@ type Props = {
   onCommit: () => void;
   onDelete: () => void;
   onAddWidget: () => void;
+  widgetLimitReached: boolean;
   dashboardState: DashboardState;
-  widgetCount: number;
 };
 
 class Controls extends React.Component<Props> {
@@ -33,7 +33,7 @@ class Controls extends React.Component<Props> {
       organization,
       dashboardState,
       dashboards,
-      widgetCount,
+      widgetLimitReached,
       onEdit,
       onCancel,
       onCommit,
@@ -118,17 +118,17 @@ class Controls extends React.Component<Props> {
               >
                 {t('Edit Dashboard')}
               </Button>
-              {organization.features.includes('widget-library') ? (
+              {organization.features.includes('widget-library') && hasFeature ? (
                 <Tooltip
                   title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
                     maxWidgets: MAX_WIDGETS,
                   })}
-                  disabled={!!!(widgetCount >= MAX_WIDGETS)}
+                  disabled={!!!widgetLimitReached}
                 >
                   <Button
                     data-test-id="add-widget-library"
                     priority="primary"
-                    disabled={widgetCount >= MAX_WIDGETS}
+                    disabled={widgetLimitReached}
                     icon={<IconAdd isCircled />}
                     onClick={onAddWidget}
                   >

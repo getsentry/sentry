@@ -32,7 +32,7 @@ from sentry.models import Project
 from sentry.release_health.metrics import reverse_tag_value, tag_key
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
-from sentry.snuba.tasks import build_snuba_filter, map_aggregate_to_entity_subscription
+from sentry.snuba.tasks import build_snuba_filter, get_entity_subscription_for_dataset
 from sentry.utils import metrics, redis
 from sentry.utils.compat import zip
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -176,9 +176,10 @@ class SubscriptionProcessor:
         snuba_query = self.subscription.snuba_query
         start = end - timedelta(seconds=snuba_query.time_window)
 
-        entity_subscription = map_aggregate_to_entity_subscription(
+        entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets(snuba_query.dataset),
             aggregate=snuba_query.aggregate,
+            time_window=snuba_query.time_window,
             extra_fields={
                 "org_id": self.subscription.project.organization,
                 "event_types": snuba_query.event_types,

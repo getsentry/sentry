@@ -52,6 +52,7 @@ type Props = WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
@@ -60,6 +61,7 @@ type Props = WithRouterProps & {
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   noLazyLoad?: boolean;
   hideDragHandle?: boolean;
+  widgetLimitReached: boolean;
 };
 
 class IssueWidgetCard extends React.Component<Props> {
@@ -70,6 +72,7 @@ class IssueWidgetCard extends React.Component<Props> {
       this.props.isEditing !== nextProps.isEditing ||
       this.props.isSorting !== nextProps.isSorting ||
       this.props.hideToolbar !== nextProps.hideToolbar ||
+      this.props.widgetLimitReached !== nextProps.widgetLimitReached ||
       this.props.hideDragHandle !== nextProps.hideDragHandle
     ) {
       return true;
@@ -167,7 +170,14 @@ class IssueWidgetCard extends React.Component<Props> {
   }
 
   renderContextMenu() {
-    const {widget, selection, organization, showContextMenu} = this.props;
+    const {
+      widget,
+      selection,
+      organization,
+      showContextMenu,
+      widgetLimitReached,
+      onDuplicate,
+    } = this.props;
 
     if (!showContextMenu) {
       return null;
@@ -187,8 +197,15 @@ class IssueWidgetCard extends React.Component<Props> {
       <ContextWrapper>
         <ContextMenu>
           <Link to={issuesLocation}>
-            <StyledMenuItem>{t('Open in Issues')}</StyledMenuItem>
+            <StyledMenuItem key="open-issues">{t('Open in Issues')}</StyledMenuItem>
           </Link>
+          <StyledMenuItem
+            key="duplicate-widget"
+            onSelect={onDuplicate}
+            disabled={widgetLimitReached}
+          >
+            {t('Duplicate Widget')}
+          </StyledMenuItem>
         </ContextMenu>
       </ContextWrapper>
     );

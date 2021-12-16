@@ -116,12 +116,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:chart-unfurls",
-            ]
-        ):
+        with self.feature(["organizations:discover-basic"]):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert (
@@ -155,12 +150,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:chart-unfurls",
-            ]
-        ):
+        with self.feature(["organizations:discover-basic"]):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert (
@@ -195,12 +185,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:chart-unfurls",
-            ]
-        ):
+        with self.feature(["organizations:discover-basic"]):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert (
@@ -235,12 +220,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:chart-unfurls",
-            ]
-        ):
+        with self.feature(["organizations:discover-basic"]):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert (
@@ -296,7 +276,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
                 "organizations:discover-top-events",
             ]
         ):
@@ -363,7 +342,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
                 "organizations:discover-top-events",
             ]
         ):
@@ -408,7 +386,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
                 "organizations:discover-top-events",
             ]
         ):
@@ -455,7 +432,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
                 "organizations:discover-top-events",
             ]
         ):
@@ -515,7 +491,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
@@ -557,7 +532,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
@@ -603,12 +577,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:chart-unfurls",
-            ]
-        ):
+        with self.feature(["organizations:discover-basic"]):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert (
