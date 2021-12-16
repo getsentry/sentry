@@ -272,9 +272,9 @@ class GitHubInstallationRedirect(PipelineView):  # type: ignore
 
             # We want to wait until the scheduled deletions finish or else the post install to migrate repos do not work.
             integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
-                integration__provider=GitHubIntegrationProvider.integration_key,
+                integration__provider=GitHubIntegrationProvider.key,
                 organization=organization,
-                status__in=[ObjectStatus.DISABLED, ObjectStatus.PENDING_DELETION],
+                status__in=[ObjectStatus.PENDING_DELETION],
             ).exists()
 
             if integration_pending_deletion_exists:
@@ -295,6 +295,7 @@ class GitHubInstallationRedirect(PipelineView):  # type: ignore
                 installations_exist = OrganizationIntegration.objects.filter(
                     integration=Integration.objects.get(external_id=request.GET["installation_id"])
                 ).exists()
+
             except Integration.DoesNotExist:
                 pipeline.bind_state("installation_id", request.GET["installation_id"])
                 return pipeline.next_step()
@@ -303,7 +304,7 @@ class GitHubInstallationRedirect(PipelineView):  # type: ignore
                 context = {
                     "payload": {
                         "success": False,
-                        "data": {"error": _("GitHub installed on another Sentry organization.")},
+                        "data": {"error": _("Github installed on another Sentry organization.")},
                     }
                 }
                 return render_to_response(
