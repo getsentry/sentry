@@ -144,7 +144,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByTitle('Duplicate Widget'));
+    userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
@@ -172,7 +172,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    userEvent.click(screen.getByTitle('Duplicate Widget'));
+    userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
   });
 });
