@@ -10,7 +10,7 @@ from sentry.models import User
 class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
-    def get(self, request: Request, organization, user_id) -> Response:
+    def get(self, request: Request, organization, user_id: int) -> Response:
         try:
             user = User.objects.get(
                 id=user_id, sentry_orgmember_set__organization_id=organization.id

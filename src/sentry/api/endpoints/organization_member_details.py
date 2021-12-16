@@ -124,7 +124,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return context
 
-    def get(self, request: Request, organization, member_id) -> Response:
+    def get(self, request: Request, organization, member_id: int) -> Response:
         """Currently only returns allowed invite roles for member invite"""
 
         try:

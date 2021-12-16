@@ -10,7 +10,7 @@ from sentry.models import EventUser, Group, ProjectTeam, Team
 
 
 class OrganizationUserIssuesEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request: Request, organization, user_id) -> Response:
+    def get(self, request: Request, organization, user_id: int) -> Response:
         limit = request.GET.get("limit", 100)
 
         project_ids = organization.project_set.values_list("id", flat=True)

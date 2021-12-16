@@ -10,7 +10,7 @@ from sentry.search.utils import tokenize_query
 
 
 class EventAttachmentsEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id: int) -> Response:
         """
         Retrieve attachments for an event
         `````````````````````````````````

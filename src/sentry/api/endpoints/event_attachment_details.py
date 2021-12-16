@@ -61,7 +61,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         )
         return response
 
-    def get(self, request: Request, project, event_id, attachment_id) -> Response:
+    def get(self, request: Request, project, event_id: int, attachment_id: int) -> Response:
         """
         Retrieve an Attachment
         ``````````````````````
@@ -95,7 +95,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         return self.respond(serialize(attachment, request.user))
 
-    def delete(self, request: Request, project, event_id, attachment_id) -> Response:
+    def delete(self, request: Request, project, event_id, attachment_id: int) -> Response:
         """
         Delete an Event Attachment by ID
         ````````````````````````````````

@@ -9,7 +9,7 @@ from sentry.models import ActorTuple, ProjectOwnership, Team
 
 
 class EventOwnersEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id: int) -> Response:
         """
         Retrieve suggested owners information for an event
         ``````````````````````````````````````````````````

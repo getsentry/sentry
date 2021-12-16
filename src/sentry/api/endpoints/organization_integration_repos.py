@@ -9,7 +9,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(self, request: Request, organization, integration_id: int) -> Response:
         """
         Get the list of repositories available in an integration
         ````````````````````````````````````````````````````````

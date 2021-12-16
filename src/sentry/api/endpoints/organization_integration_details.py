@@ -24,7 +24,7 @@ class IntegrationSerializer(serializers.Serializer):
 
 
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(self, request: Request, organization, integration_id: int) -> Response:
         org_integration = self.get_organization_integration(organization, integration_id)
 
         return self.respond(
@@ -96,7 +96,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
         return self.respond(status=204)
 
-    def post(self, request: Request, organization, integration_id) -> Response:
+    def post(self, request: Request, organization, integration_id: int) -> Response:
         integration = self.get_integration(organization, integration_id)
         installation = integration.get_installation(organization.id)
         try:

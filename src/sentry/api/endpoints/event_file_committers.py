@@ -8,7 +8,7 @@ from sentry.utils.committers import get_serialized_event_file_committers
 
 
 class EventFileCommittersEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id: int) -> Response:
         """
         Retrieve Committer information for an event
         ```````````````````````````````````````````

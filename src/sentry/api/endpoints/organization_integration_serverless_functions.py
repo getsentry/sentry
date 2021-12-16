@@ -18,7 +18,7 @@ from rest_framework.response import Response
 
 
 class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegrationBaseEndpoint):
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(self, request: Request, organization, integration_id: int) -> Response:
         """
         Get the list of repository project path configs in an integration
         """
@@ -35,7 +35,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
 
         return self.respond(serverless_functions)
 
-    def post(self, request: Request, organization, integration_id) -> Response:
+    def post(self, request: Request, organization, integration_id: int) -> Response:
         integration = self.get_integration(organization, integration_id)
         install = integration.get_installation(organization.id)
 

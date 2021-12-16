@@ -41,7 +41,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             data=issue_information,
         )
 
-    def get(self, request: Request, group, integration_id) -> Response:
+    def get(self, request: Request, group, integration_id: int) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
@@ -167,7 +167,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    def post(self, request: Request, group, integration_id) -> Response:
+    def post(self, request: Request, group, integration_id: int) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 

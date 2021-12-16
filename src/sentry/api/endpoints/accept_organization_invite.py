@@ -19,7 +19,7 @@ class AcceptOrganizationInvite(Endpoint):
     def get_helper(self, request: Request, member_id, token):
         return ApiInviteHelper(request=request, member_id=member_id, instance=self, token=token)
 
-    def get(self, request: Request, member_id, token) -> Response:
+    def get(self, request: Request, member_id: int, token: str) -> Response:
         try:
             helper = self.get_helper(request, member_id, token)
         except OrganizationMember.DoesNotExist:
@@ -84,7 +84,7 @@ class AcceptOrganizationInvite(Endpoint):
 
         return response
 
-    def post(self, request: Request, member_id, token) -> Response:
+    def post(self, request: Request, member_id: int, token: str) -> Response:
         try:
             helper = self.get_helper(request, member_id, token)
         except OrganizationMember.DoesNotExist:

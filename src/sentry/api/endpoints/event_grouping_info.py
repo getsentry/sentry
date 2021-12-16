@@ -16,7 +16,7 @@ from rest_framework.response import Response
 
 
 class EventGroupingInfoEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id: int) -> Response:
         """
         Returns the grouping information for an event
         `````````````````````````````````````````````

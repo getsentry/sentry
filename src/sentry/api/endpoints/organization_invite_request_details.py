@@ -50,7 +50,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
         except ValueError:
             raise OrganizationMember.DoesNotExist()
 
-    def get(self, request: Request, organization, member_id) -> Response:
+    def get(self, request: Request, organization, member_id: int) -> Response:
         try:
             member = self._get_member(organization, member_id)
         except OrganizationMember.DoesNotExist:

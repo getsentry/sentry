@@ -10,7 +10,7 @@ from sentry.api.serializers import DetailedEventSerializer, serialize
 
 
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id: int) -> Response:
         """
         Retrieve an Event for a Project
         ```````````````````````````````
@@ -76,7 +76,7 @@ from rest_framework.response import Response
 
 
 class EventJsonEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id: int) -> Response:
         event = eventstore.get_event_by_id(project.id, event_id)
 
         if not event:

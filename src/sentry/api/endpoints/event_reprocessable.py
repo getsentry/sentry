@@ -8,7 +8,7 @@ from sentry.reprocessing2 import CannotReprocess, pull_event_data
 
 
 class EventReprocessableEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id: int) -> Response:
         """
         Retrieve information about whether an event can be reprocessed.
         ```````````````````````````````````````````````````````````````

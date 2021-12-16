@@ -121,7 +121,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         omt.send_request_email()
 
-    def post(self, request: Request, organization, member_id, team_slug) -> Response:
+    def post(self, request: Request, organization, member_id: int, team_slug) -> Response:
         """
         Join, request access to or add a member to a team.
 

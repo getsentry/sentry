@@ -10,7 +10,7 @@ from sentry.utils.safe import get_path
 
 
 class EventAppleCrashReportEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id: int) -> Response:
         """
         Retrieve an Apple Crash Report from an event
         `````````````````````````````````````````````
