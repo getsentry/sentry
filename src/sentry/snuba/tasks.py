@@ -163,6 +163,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
     entity_subscription = get_entity_subscription_for_dataset(
         dataset=QueryDatasets(snuba_query.dataset),
         aggregate=snuba_query.aggregate,
+        time_window=snuba_query.time_window,
         extra_fields={
             "org_id": subscription.project.organization_id,
             "event_types": snuba_query.event_types,
