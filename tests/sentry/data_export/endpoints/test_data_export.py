@@ -187,7 +187,7 @@ class DataExportTest(APITestCase):
         payload = self.make_payload("discover", {"statsPeriod": "shrug"})
         with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["Invalid statsPeriod"]}
+        assert response.data == {"non_field_errors": ["Invalid statsPeriod: 'shrug'"]}
 
         payload = self.make_payload(
             "discover",

@@ -373,6 +373,15 @@ class OrganizationMetricDataTest(APITestCase):
             )
             assert response.status_code == 400
 
+    @with_feature(FEATURE_FLAG)
+    def test_statsperiod_invalid(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="",
+        )
+        assert response.status_code == 400
+
 
 class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
