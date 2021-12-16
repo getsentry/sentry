@@ -195,17 +195,23 @@ class WidgetCard extends React.Component<Props> {
       }
     }
 
-    menuOptions.push(
-      <StyledMenuItem
-        key="duplicate-widget"
-        data-test-id="duplicate-widget"
-        name="Duplicate Widget"
-        onSelect={onDuplicate}
-        disabled={widgetLimitReached}
-      >
-        {t('Duplicate Widget')}
-      </StyledMenuItem>
-    );
+    if (organization.features.includes('dashboards-edit')) {
+      menuOptions.push(
+        <StyledMenuItem
+          key="duplicate-widget"
+          data-test-id="duplicate-widget"
+          name="Duplicate Widget"
+          onSelect={onDuplicate}
+          disabled={widgetLimitReached}
+        >
+          {t('Duplicate Widget')}
+        </StyledMenuItem>
+      );
+    }
+
+    if (!menuOptions.length) {
+      return null;
+    }
 
     return (
       <ContextWrapper>
