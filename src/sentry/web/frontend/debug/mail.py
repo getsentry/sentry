@@ -143,7 +143,7 @@ class MailPreview:
             traceback.print_exc()
             raise
 
-    def render(self, request):
+    def render(self, request: Request):
         return render_to_response(
             "sentry/debug/mail/preview.html",
             context={"preview": self, "format": request.GET.get("format")},
@@ -193,11 +193,15 @@ class ActivityMailPreview:
             raise
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class ActivityMailDebugView(View):
-    def get_activity(self, request, event):
+    def get_activity(self, request: Request, event):
         raise NotImplementedError
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 

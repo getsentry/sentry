@@ -4,6 +4,8 @@ from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import OrganizationMember
 from sentry.web.decorators import signed_auth_required
@@ -18,7 +20,7 @@ class UnsubscribeBaseView(BaseView, metaclass=abc.ABCMeta):
     @never_cache
     @signed_auth_required_m
     @transaction.atomic
-    def handle(self, request, **kwargs):
+    def handle(self, request: Request, **kwargs) -> Response:
         if not getattr(request, "user_from_signed_request", False):
             raise Http404
 

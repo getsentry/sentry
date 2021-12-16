@@ -19,6 +19,10 @@ PIPELINE_CLASSES = [IntegrationPipeline, IdentityProviderPipeline]
 FORWARD_INSTALL_FOR = ["github"]
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class PipelineAdvancerView(BaseView):
     """Gets the current pipeline from the request and executes the current step."""
 
@@ -27,7 +31,7 @@ class PipelineAdvancerView(BaseView):
     csrf_protect = False
 
     @transaction_start("PipelineAdvancerView")
-    def handle(self, request, provider_id):
+    def handle(self, request: Request, provider_id) -> Response:
         pipeline = None
 
         for pipeline_cls in PIPELINE_CLASSES:

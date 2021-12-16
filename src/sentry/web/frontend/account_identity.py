@@ -1,5 +1,7 @@
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.models import IdentityProvider
@@ -9,7 +11,7 @@ from sentry.web.helpers import render_to_response
 
 class AccountIdentityAssociateView(OrganizationView):
     @never_cache
-    def handle(self, request, organization, provider_key, external_id):
+    def handle(self, request: Request, organization, provider_key, external_id) -> Response:
         try:
             provider_model = IdentityProvider.objects.get(
                 type=provider_key, external_id=external_id

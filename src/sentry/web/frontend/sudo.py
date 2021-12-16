@@ -1,3 +1,5 @@
+from rest_framework.request import Request
+
 from sentry.models import Authenticator
 from sentry.utils import json
 from sudo.views import SudoView as BaseSudoView
@@ -6,7 +8,7 @@ from sudo.views import SudoView as BaseSudoView
 class SudoView(BaseSudoView):
     template_name = "sentry/account/sudo.html"
 
-    def handle_sudo(self, request, redirect_to, context):
+    def handle_sudo(self, request: Request, redirect_to, context):
         if BaseSudoView.handle_sudo(self, request, redirect_to, context):
             return True
 

@@ -1,4 +1,6 @@
 from django.db.models import F
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
@@ -18,7 +20,7 @@ from sentry.web.helpers import render_to_response
 
 
 class SetupWizardView(BaseView):
-    def get(self, request, wizard_hash):
+    def get(self, request: Request, wizard_hash) -> Response:
         """
         This opens a page where with an active session fill stuff into the cache
         Redirects to organization whenever cache has been deleted
