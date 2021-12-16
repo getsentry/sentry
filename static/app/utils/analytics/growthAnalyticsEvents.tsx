@@ -87,6 +87,9 @@ export type GrowthEventParameters = {
   'invite_modal.invites_sent': InviteModal;
   'invite_modal.requests_sent': InviteModal;
   'invite_modal.add_more': InviteModal;
+  'sdk_updates.seen': {};
+  'sdk_updates.snoozed': {};
+  'sdk_updates.clicked': {};
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -120,9 +123,9 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.demo_modal_clicked_signup': 'Growth: Demo Modal Clicked Signup',
   'growth.demo_modal_clicked_continue': 'Growth: Demo Modal Clicked Continue',
   'growth.sample_transaction_docs_link_clicked':
-    'Growth: Sample Transacton Docs Link Clicked',
+    'Growth: Sample Transaction Docs Link Clicked',
   'growth.sample_error_onboarding_link_clicked':
-    'Growth: Sample Transacton Onboarding Link Clicked',
+    'Growth: Sample Error Onboarding Link Clicked',
   'growth.issue_open_in_discover_btn_clicked':
     'Growth: Open in Discover Button in Issue Details clicked',
   'member_settings_page.loaded': 'Member Settings Page Loaded',
@@ -131,4 +134,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'invite_modal.add_more': 'Invite Modal: Add More',
   'invite_modal.invites_sent': 'Invite Modal: Invites Sent',
   'invite_modal.requests_sent': 'Invite Modal: Requests Sent',
+  'sdk_updates.seen': 'SDK Updates: Seen',
+  'sdk_updates.snoozed': 'SDK Updates: Snoozed',
+  'sdk_updates.clicked': 'SDK Updates: Clicked',
 };

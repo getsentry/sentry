@@ -79,6 +79,8 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
+from .endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
+from .endpoints.doc_integrations import DocIntegrationsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -183,6 +185,7 @@ from .endpoints.organization_events_meta import (
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_performance import (
+    OrganizationEventsSpansEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
@@ -210,7 +213,6 @@ from .endpoints.organization_integrations import OrganizationIntegrationsEndpoin
 from .endpoints.organization_invite_request_details import OrganizationInviteRequestDetailsEndpoint
 from .endpoints.organization_invite_request_index import OrganizationInviteRequestIndexEndpoint
 from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
-from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
@@ -400,8 +402,7 @@ from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_alerts_triggered import TeamAlertsTriggeredEndpoint
 from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
-from .endpoints.team_groups_new import TeamGroupsNewEndpoint
-from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
+from .endpoints.team_groups_old import TeamGroupsOldEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
 from .endpoints.team_notification_settings_details import TeamNotificationSettingsDetailsEndpoint
@@ -1037,6 +1038,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-span-ops",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/events-spans/$",
+                    OrganizationEventsSpansEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/events-spans-performance/$",
                     OrganizationEventsSpansPerformanceEndpoint.as_view(),
                     name="sentry-api-0-organization-events-spans-performance",
@@ -1090,10 +1096,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventsTraceMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trace-meta",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/issues/new/$",
-                    OrganizationIssuesNewEndpoint.as_view(),
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues/$",
@@ -1520,9 +1522,9 @@ urlpatterns = [
                     name="sentry-api-0-team-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:issues|groups)/new/$",
-                    TeamGroupsNewEndpoint.as_view(),
-                    name="sentry-api-0-team-groups-new",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issues/old/$",
+                    TeamGroupsOldEndpoint.as_view(),
+                    name="sentry-api-0-team-oldest-issues",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/release-count/$",
@@ -1543,11 +1545,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/alerts-triggered/$",
                     TeamAlertsTriggeredEndpoint.as_view(),
                     name="sentry-api-0-team-alerts-triggered",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:issues|groups)/trending/$",
-                    TeamGroupsTrendingEndpoint.as_view(),
-                    name="sentry-api-0-team-groups-trending",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issue-breakdown/$",
@@ -2114,6 +2111,17 @@ urlpatterns = [
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/publish-request/$",
         SentryAppPublishRequestEndpoint.as_view(),
         name="sentry-api-0-sentry-app-publish-request",
+    ),
+    # Document Integrations
+    url(
+        r"^doc-integrations/$",
+        DocIntegrationsEndpoint.as_view(),
+        name="sentry-api-0-doc-integrations",
+    ),
+    url(
+        r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/$",
+        DocIntegrationDetailsEndpoint.as_view(),
+        name="sentry-api-0-doc-integration-details",
     ),
     # Grouping configs
     url(

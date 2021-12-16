@@ -464,6 +464,35 @@ class SmartSearchBar extends React.Component<Props, State> {
     callIfFunction(this.props.onChange, evt.target.value, evt);
   };
 
+  /**
+   * Prevent pasting extra spaces from formatted text
+   */
+  onPaste = (evt: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    // Cancel paste
+    evt.preventDefault();
+
+    // Get text representation of clipboard
+    const text = evt.clipboardData.getData('text/plain').replace('\n', '').trim();
+
+    // Create new query
+    const currentQuery = this.state.query;
+    const cursorPosStart = this.searchInput.current!.selectionStart;
+    const cursorPosEnd = this.searchInput.current!.selectionEnd;
+    const textBefore = currentQuery.substring(0, cursorPosStart);
+    const textAfter = currentQuery.substring(cursorPosEnd, currentQuery.length);
+    const mergedText = `${textBefore}${text}${textAfter}`;
+
+    // Insert text manually
+    this.setState(makeQueryState(mergedText), () => {
+      this.updateAutoCompleteItems();
+      // Update cursor position after updating text
+      const newCursorPosition = cursorPosStart + text.length;
+      this.searchInput.current!.selectionStart = newCursorPosition;
+      this.searchInput.current!.selectionEnd = newCursorPosition;
+    });
+    callIfFunction(this.props.onChange, mergedText, evt);
+  };
+
   onInputClick = () => this.updateAutoCompleteItems();
 
   /**
@@ -1312,6 +1341,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         onKeyDown={this.onKeyDown}
         onChange={this.onQueryChange}
         onClick={this.onInputClick}
+        onPaste={this.onPaste}
         disabled={disabled}
         maxLength={maxQueryLength}
         spellCheck={false}

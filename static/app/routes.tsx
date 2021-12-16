@@ -1109,11 +1109,7 @@ function buildRoutes() {
   );
 
   const releasesRoutes = (
-    <Route
-      path="/organizations/:orgId/releases/"
-      componentPromise={() => import('sentry/views/releases')}
-      component={SafeLazyLoad}
-    >
+    <Route path="/organizations/:orgId/releases/">
       <IndexRoute
         componentPromise={() => import('sentry/views/releases/list')}
         component={SafeLazyLoad}
@@ -1250,13 +1246,23 @@ function buildRoutes() {
           }
           component={SafeLazyLoad}
         />
-        <Route
-          path="spans/"
-          componentPromise={() =>
-            import('sentry/views/performance/transactionSummary/transactionSpans')
-          }
-          component={SafeLazyLoad}
-        />
+        <Route path="spans/">
+          <IndexRoute
+            componentPromise={() =>
+              import('sentry/views/performance/transactionSummary/transactionSpans')
+            }
+            component={SafeLazyLoad}
+          />
+          <Route
+            path=":spanSlug/"
+            componentPromise={() =>
+              import(
+                'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
+              )
+            }
+            component={SafeLazyLoad}
+          />
+        </Route>
       </Route>
       <Route
         path="vitaldetail/"

@@ -10,13 +10,14 @@ import {Location} from 'history';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
-  openAddDashboardIssueWidgetModal,
   openAddDashboardWidgetModal,
+  openDashboardWidgetLibraryModal,
 } from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {GlobalSelection, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'sentry/views/dashboardsV2/addWidget';
@@ -26,7 +27,6 @@ import {
   DisplayType,
   MAX_WIDGETS,
   Widget,
-  WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 
@@ -46,8 +46,6 @@ const ADD_BUTTON_POSITION = {
 };
 const DEFAULT_WIDGET_WIDTH = 2;
 
-const GridLayout = WidthProvider(RGL);
-
 type Props = {
   api: Client;
   organization: Organization;
@@ -61,6 +59,7 @@ type Props = {
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
+  handleAddLibraryWidgets: (widgets: Widget[]) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
   layout: Layout[];
@@ -109,11 +108,19 @@ class Dashboard extends Component<Props> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard, selection} = this.props;
+    const {organization, dashboard, selection, handleAddLibraryWidgets} = this.props;
 
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
+    if (organization.features.includes('widget-library')) {
+      openDashboardWidgetLibraryModal({
+        organization,
+        dashboard,
+        onAddWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+      });
+      return;
+    }
     openAddDashboardWidgetModal({
       organization,
       dashboard,
@@ -145,15 +152,13 @@ class Dashboard extends Component<Props> {
   };
 
   handleAddComplete = (widget: Widget) => {
-    this.props.onUpdate([
-      ...this.props.dashboard.widgets,
-      {...widget, tempId: Date.now().toString()},
-    ]);
+    this.props.onUpdate([...this.props.dashboard.widgets, assignTempId(widget)]);
   };
 
-  handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
+  handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const nextList = [...this.props.dashboard.widgets];
-    nextList[index] = nextWidget;
+    const updateIndex = nextList.indexOf(prevWidget);
+    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
   };
 
@@ -205,17 +210,13 @@ class Dashboard extends Component<Props> {
       widget,
       selection,
       onAddWidget: this.handleAddComplete,
-      onUpdateWidget: this.handleUpdateComplete(index),
+      onUpdateWidget: this.handleUpdateComplete(widget),
     };
-    if (widget.widgetType === WidgetType.ISSUE) {
-      openAddDashboardIssueWidgetModal(modalProps);
-    } else {
-      openAddDashboardWidgetModal({
-        ...modalProps,
-        dashboard,
-        source: DashboardWidgetSource.DASHBOARDS,
-      });
-    }
+    openAddDashboardWidgetModal({
+      ...modalProps,
+      dashboard,
+      source: DashboardWidgetSource.DASHBOARDS,
+    });
   };
 
   renderWidget(widget: Widget, index: number) {
@@ -284,8 +285,23 @@ const GridItem = styled('div')`
   }
 `;
 
+// HACK: to stack chart tooltips above other grid items
+const GridLayout = styled(WidthProvider(RGL))`
+  .react-grid-item:hover {
+    z-index: 10;
+  }
+`;
+
 export function constructGridItemKey(widget: Widget) {
   return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
+}
+
+export function assignTempId(widget) {
+  if (widget.id ?? widget.tempId) {
+    return widget;
+  }
+
+  return {...widget, tempId: uniqueId()};
 }
 
 /**

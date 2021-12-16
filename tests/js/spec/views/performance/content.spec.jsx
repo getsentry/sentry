@@ -76,7 +76,7 @@ describe('Performance > Content', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
-    act(() => void TeamStore.loadInitialData([]));
+    act(() => void TeamStore.loadInitialData([], false, null));
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
 
@@ -297,6 +297,34 @@ describe('Performance > Content', function () {
       TestStubs.Project({id: 2, firstTransactionEvent: true}),
     ];
     const data = initializeData(projects, {project: [1]});
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+
+    // onboarding should show.
+    expect(wrapper.find('Onboarding')).toHaveLength(1);
+
+    // Chart and table should not show.
+    expect(wrapper.find('ChartFooter')).toHaveLength(0);
+    expect(wrapper.find('Table')).toHaveLength(0);
+    wrapper.unmount();
+  });
+
+  it('renders onboarding state for new landing when the selected project has no events', async function () {
+    const projects = [
+      TestStubs.Project({id: 1, firstTransactionEvent: false}),
+      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+    ];
+    const data = initializeData(projects, {project: [1]}, [
+      ...FEATURES,
+      'performance-landing-widgets',
+    ]);
 
     const wrapper = mountWithTheme(
       <WrappedComponent

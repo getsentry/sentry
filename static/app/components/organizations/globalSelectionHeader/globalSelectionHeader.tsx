@@ -20,7 +20,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {GlobalSelection, MinimalProject, Organization, Project} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -53,7 +52,6 @@ const defaultProps = {
 };
 
 type Props = {
-  children?: React.ReactNode;
   organization: Organization;
 
   memberProjects: Project[];
@@ -280,7 +278,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
   render() {
     const {
       className,
-      children,
       shouldForceProject,
       forceProject,
       isGlobalSelectionReady,
@@ -312,106 +309,102 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       : this.props.selection.projects;
 
     return (
-      <React.Fragment>
-        <Header className={className}>
-          <HeaderItemPosition>
-            {showIssueStreamLink && this.getBackButton()}
-            <Projects
-              orgId={organization.slug}
-              limit={PROJECTS_PER_PAGE}
-              slugs={specificProjectSlugs}
-            >
-              {({projects, hasMore, onSearch, fetching}) => {
-                const paginatedProjectSelectorCallbacks = {
-                  onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
-                    // check if no new projects are being fetched and the user has
-                    // scrolled far enough to fetch a new page of projects
-                    if (
-                      !fetching &&
-                      scrollTop + clientHeight >= scrollHeight - clientHeight &&
-                      hasMore
-                    ) {
-                      this.scrollFetchDispatcher(onSearch, {append: true});
-                    }
-                  },
-                  onFilterChange: event => {
-                    this.searchDispatcher(onSearch, event.target.value, {
-                      append: false,
-                    });
-                  },
-                  searching: fetching,
-                  paginated: true,
-                };
-                return (
-                  <MultipleProjectSelector
-                    organization={organization}
-                    shouldForceProject={shouldForceProject}
-                    forceProject={forceProject}
-                    projects={loadingProjects ? (projects as Project[]) : memberProjects}
-                    isGlobalSelectionReady={isGlobalSelectionReady}
-                    nonMemberProjects={nonMemberProjects}
-                    value={this.state.projects || this.props.selection.projects}
-                    onChange={this.handleChangeProjects}
-                    onUpdate={this.handleUpdateProjects}
-                    disableMultipleProjectSelection={disableMultipleProjectSelection}
-                    {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
-                    showIssueStreamLink={showIssueStreamLink}
-                    showProjectSettingsLink={showProjectSettingsLink}
-                    lockedMessageSubject={lockedMessageSubject}
-                    footerMessage={projectsFooterMessage}
-                  />
-                );
-              }}
-            </Projects>
-          </HeaderItemPosition>
-
-          {showEnvironmentSelector && (
-            <React.Fragment>
-              <HeaderSeparator />
-              <HeaderItemPosition>
-                <MultipleEnvironmentSelector
+      <Header className={className}>
+        <HeaderItemPosition>
+          {showIssueStreamLink && this.getBackButton()}
+          <Projects
+            orgId={organization.slug}
+            limit={PROJECTS_PER_PAGE}
+            slugs={specificProjectSlugs}
+          >
+            {({projects, hasMore, onSearch, fetching}) => {
+              const paginatedProjectSelectorCallbacks = {
+                onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
+                  // check if no new projects are being fetched and the user has
+                  // scrolled far enough to fetch a new page of projects
+                  if (
+                    !fetching &&
+                    scrollTop + clientHeight >= scrollHeight - clientHeight &&
+                    hasMore
+                  ) {
+                    this.scrollFetchDispatcher(onSearch, {append: true});
+                  }
+                },
+                onFilterChange: event => {
+                  this.searchDispatcher(onSearch, event.target.value, {
+                    append: false,
+                  });
+                },
+                searching: fetching,
+                paginated: true,
+              };
+              return (
+                <MultipleProjectSelector
                   organization={organization}
-                  projects={this.props.projects}
-                  loadingProjects={loadingProjects}
-                  selectedProjects={selectedProjects}
-                  value={this.props.selection.environments}
-                  onChange={this.handleChangeEnvironments}
-                  onUpdate={this.handleUpdateEnvironmments}
+                  shouldForceProject={shouldForceProject}
+                  forceProject={forceProject}
+                  projects={loadingProjects ? (projects as Project[]) : memberProjects}
+                  isGlobalSelectionReady={isGlobalSelectionReady}
+                  nonMemberProjects={nonMemberProjects}
+                  value={this.state.projects || this.props.selection.projects}
+                  onChange={this.handleChangeProjects}
+                  onUpdate={this.handleUpdateProjects}
+                  disableMultipleProjectSelection={disableMultipleProjectSelection}
+                  {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
+                  showIssueStreamLink={showIssueStreamLink}
+                  showProjectSettingsLink={showProjectSettingsLink}
+                  lockedMessageSubject={lockedMessageSubject}
+                  footerMessage={projectsFooterMessage}
                 />
-              </HeaderItemPosition>
-            </React.Fragment>
-          )}
+              );
+            }}
+          </Projects>
+        </HeaderItemPosition>
 
-          {showDateSelector && (
-            <React.Fragment>
-              <HeaderSeparator />
-              <HeaderItemPosition>
-                <TimeRangeSelector
-                  key={`period:${period}-start:${start}-end:${end}-utc:${utc}-defaultPeriod:${defaultPeriod}`}
-                  showAbsolute={showAbsolute}
-                  showRelative={showRelative}
-                  relative={period}
-                  start={start}
-                  end={end}
-                  utc={utc}
-                  onChange={this.handleChangeTime}
-                  onUpdate={this.handleUpdateTime}
-                  organization={organization}
-                  defaultPeriod={defaultPeriod}
-                  hint={timeRangeHint}
-                  relativeOptions={relativeDateOptions}
-                  maxPickableDays={maxPickableDays}
-                />
-              </HeaderItemPosition>
-            </React.Fragment>
-          )}
+        {showEnvironmentSelector && (
+          <React.Fragment>
+            <HeaderSeparator />
+            <HeaderItemPosition>
+              <MultipleEnvironmentSelector
+                organization={organization}
+                projects={this.props.projects}
+                loadingProjects={loadingProjects}
+                selectedProjects={selectedProjects}
+                value={this.props.selection.environments}
+                onChange={this.handleChangeEnvironments}
+                onUpdate={this.handleUpdateEnvironmments}
+              />
+            </HeaderItemPosition>
+          </React.Fragment>
+        )}
 
-          {!showEnvironmentSelector && <HeaderItemPosition isSpacer />}
-          {!showDateSelector && <HeaderItemPosition isSpacer />}
-        </Header>
+        {showDateSelector && (
+          <React.Fragment>
+            <HeaderSeparator />
+            <HeaderItemPosition>
+              <TimeRangeSelector
+                key={`period:${period}-start:${start}-end:${end}-utc:${utc}-defaultPeriod:${defaultPeriod}`}
+                showAbsolute={showAbsolute}
+                showRelative={showRelative}
+                relative={period}
+                start={start}
+                end={end}
+                utc={utc}
+                onChange={this.handleChangeTime}
+                onUpdate={this.handleUpdateTime}
+                organization={organization}
+                defaultPeriod={defaultPeriod}
+                hint={timeRangeHint}
+                relativeOptions={relativeDateOptions}
+                maxPickableDays={maxPickableDays}
+              />
+            </HeaderItemPosition>
+          </React.Fragment>
+        )}
 
-        {isGlobalSelectionReady ? children : <PageContent />}
-      </React.Fragment>
+        {!showEnvironmentSelector && <HeaderItemPosition isSpacer />}
+        {!showDateSelector && <HeaderItemPosition isSpacer />}
+      </Header>
     );
   }
 }

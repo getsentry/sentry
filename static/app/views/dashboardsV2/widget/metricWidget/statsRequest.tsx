@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
   GlobalSelection,
@@ -16,6 +16,7 @@ import {
   SessionApiResponse,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {getSessionsInterval} from 'sentry/utils/sessions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {roundDuration} from 'sentry/views/releases/utils';
@@ -163,7 +164,7 @@ function StatsRequest({
         field,
         chartData: breakDownChartData,
         valueFormatter:
-          metricMeta.name === 'session.duration'
+          metricMeta.name === SessionMetric.SENTRY_SESSIONS_SESSION_DURATION
             ? duration => roundDuration(duration ? duration / 1000 : 0)
             : undefined,
       });
