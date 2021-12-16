@@ -300,8 +300,8 @@ class QuerySubscriptionConsumer:
                         contents["subscription_id"],
                         EntityKey(entity_key),
                     )
-                except KeyError:
-                    logger.exception("Message payload does not contain an entity key")
+                except InvalidMessageError as e:
+                    logger.exception(e)
                 except Exception:
                     logger.exception("Failed to delete unused subscription from snuba.")
                 return
