@@ -50,9 +50,9 @@ export const lightColors = {
   red100: 'rgba(245, 84, 89, 0.09)',
 
   pink400: '#E50675',
-  pink300: '#FA2991',
-  pink200: 'rgba(250, 51, 150, 0.5)',
-  pink100: 'rgba(250, 51, 150, 0.1)',
+  pink300: '#F91A8A',
+  pink200: 'rgba(249, 26, 138, 0.5)',
+  pink100: 'rgba(249, 26, 138, 0.1)',
 };
 
 /**
@@ -99,10 +99,10 @@ export const darkColors = {
   red200: 'rgba(250, 79, 84, 0.4)',
   red100: 'rgba(250, 79, 84, 0.1)',
 
-  pink400: '#EF067A',
-  pink300: '#FA3396',
-  pink200: 'rgba(250, 51, 150, 0.55)',
-  pink100: 'rgba(250, 51, 150, 0.13)',
+  pink400: '#C4317A',
+  pink300: '#D1478C',
+  pink200: 'rgba(209, 71, 140, 0.55)',
+  pink100: 'rgba(209, 71, 140, 0.13)',
 };
 
 const lightShadows = {
