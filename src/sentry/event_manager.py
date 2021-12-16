@@ -1732,6 +1732,8 @@ def _calculate_span_grouping(jobs, projects):
 
             groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
+
+            metrics.timing("save_event.transaction.span_count", len(groupings.results))
         except Exception:
             sentry_sdk.capture_exception()
 
