@@ -15,9 +15,19 @@ from sentry.snuba.outcomes import (
     run_outcomes_query_totals,
 )
 from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(20, 1),
+            RateLimitCategory.USER: RateLimit(20, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+        }
+    }
+
     @rate_limit_endpoint(limit=20, window=1)
     def get(self, request, organization):
         with self.handle_query_errors():

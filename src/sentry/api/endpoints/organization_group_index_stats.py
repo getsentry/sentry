@@ -12,11 +12,20 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.models import Group
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.compat import map
 
 
 class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(10, 1),
+            RateLimitCategory.USER: RateLimit(10, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
+        }
+    }
 
     @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, organization):

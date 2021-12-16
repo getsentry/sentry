@@ -11,6 +11,7 @@ from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.signals import join_request_created
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,14 @@ def create_organization_join_request(organization, email, ip_address=None):
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
     # Disable authentication and permission requirements.
     permission_classes = []
+
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.IP: RateLimit(5, 86400),
+            RateLimitCategory.USER: RateLimit(5, 86400),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 86400),
+        }
+    }
 
     def post(self, request, organization):
         if organization.get_option("sentry:join_requests") is False:

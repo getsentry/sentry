@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.validators import AllowedEmailField
 from sentry.models import UserEmail
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger("sentry.accounts")
 
@@ -31,6 +32,14 @@ class EmailSerializer(serializers.Serializer):
 
 
 class UserEmailsConfirmEndpoint(UserEndpoint):
+
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.USER: RateLimit(10, 60),
+            RateLimitCategory.ORGANIZATION: RateLimit(10, 60),
+        }
+    }
+
     def post(self, request, user):
         """
         Sends a confirmation email to user
