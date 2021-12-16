@@ -101,7 +101,7 @@ class AuthVerifyEndpointTest(APITestCase):
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
         self.get_auth(user)
-        self.features = {"organizations:webauthn-signin": True}
+        self.features = {"organizations:webauthn-login": True}
         with self.feature(self.features):
             response = self.client.put(
                 self.path,
