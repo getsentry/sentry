@@ -38,6 +38,7 @@ from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.snuba import discover
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.compat import map
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
@@ -136,6 +137,24 @@ def inbox_search(
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(10, 1),
+            RateLimitCategory.USER: RateLimit(10, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
+        },
+        "PUT": {
+            RateLimitCategory.IP: RateLimit(5, 5),
+            RateLimitCategory.USER: RateLimit(5, 5),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
+        },
+        "DELETE": {
+            RateLimitCategory.IP: RateLimit(5, 5),
+            RateLimitCategory.USER: RateLimit(5, 5),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
+        },
+    }
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
         query_kwargs = build_query_params_from_request(

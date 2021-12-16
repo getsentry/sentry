@@ -11,6 +11,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.group_index.index import rate_limit_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.discover.utils import transform_aliases_and_query
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import snuba
 from sentry.utils.compat import map
 
@@ -25,6 +26,14 @@ class DiscoverQueryPermission(OrganizationPermission):
 
 class DiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverQueryPermission,)
+
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.IP: RateLimit(4, 1),
+            RateLimitCategory.USER: RateLimit(4, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(4, 1),
+        }
+    }
 
     def has_feature(self, request, organization):
         return features.has(
