@@ -37,6 +37,11 @@ describe('Performance > Transaction Spans > Span Details', function () {
         url: '/organizations/org-slug/events-spans-performance/',
         body: [],
       });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans/',
+        body: [],
+      });
     });
 
     it(`renders empty when missing project`, async function () {
@@ -81,6 +86,11 @@ describe('Performance > Transaction Spans > Span Details', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: generateSuspectSpansResponse(),
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans/',
+        body: generateSuspectSpansResponse({examplesOnly: true}),
       });
     });
 
@@ -129,6 +139,24 @@ describe('Performance > Transaction Spans > Span Details', function () {
         await within(totalExclusiveTimeHeader).findByText('5.00ms')
       ).toBeInTheDocument();
       // TODO: add an expect for the TBD
+    });
+
+    it('renders table headers', async function () {
+      const data = initializeData({
+        features: ['performance-view', 'performance-suspect-spans-view'],
+        query: {project: '1', transaction: 'transaction'},
+      });
+
+      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+        context: data.routerContext,
+        organization: data.organization,
+      });
+
+      expect(await screen.findByText('Example Transaction')).toBeInTheDocument();
+      expect(await screen.findByText('Timestamp')).toBeInTheDocument();
+      expect(await screen.findByText('Span Duration')).toBeInTheDocument();
+      expect(await screen.findByText('Count')).toBeInTheDocument();
+      expect(await screen.findByText('Cumulative Duration')).toBeInTheDocument();
     });
   });
 });

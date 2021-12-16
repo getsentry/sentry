@@ -150,13 +150,24 @@ function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
   };
 }
 
-export function generateSuspectSpansResponse(opts?: {examples?: number}) {
-  const {examples} = opts ?? {};
+export function generateSuspectSpansResponse(opts?: {
+  examples?: number;
+  examplesOnly?: boolean;
+}) {
+  const {examples, examplesOnly} = opts ?? {};
   return SAMPLE_SPANS.map(sampleSpan => {
     const span = {...sampleSpan};
     if (defined(examples)) {
       span.examples = span.examples.slice(0, examples);
     }
-    return makeSuspectSpan(span);
+    const suspectSpans = makeSuspectSpan(span);
+    if (examplesOnly) {
+      return {
+        op: suspectSpans.op,
+        group: suspectSpans.group,
+        examples: suspectSpans.examples,
+      };
+    }
+    return suspectSpans;
   });
 }
