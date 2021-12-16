@@ -9,6 +9,7 @@ export const GridCell = styled('div')`
 export const GridCellNumber = styled(GridCell)`
   text-align: right;
   font-variant-numeric: tabular-nums;
+  flex-grow: 1;
 `;
 
 export const DoubleHeaderContainer = styled('div')`

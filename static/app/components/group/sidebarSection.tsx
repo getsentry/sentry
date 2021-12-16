@@ -8,6 +8,7 @@ const Heading = styled('h5')`
   align-items: center;
   margin-bottom: ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1;
 
   &:after {
     flex: 1;
@@ -23,7 +24,6 @@ const Subheading = styled('h6')`
   display: flex;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
-  justify-content: space-between;
   margin-bottom: ${space(1)};
 `;
 
