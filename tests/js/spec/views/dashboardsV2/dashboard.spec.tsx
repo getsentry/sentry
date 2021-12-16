@@ -53,6 +53,7 @@ describe('Dashboards > Dashboard', () => {
         router={initialData.router}
         location={initialData.location}
         newWidget={newWidget}
+        widgetLimitReached={false}
       />,
       initialData.routerContext
     );
@@ -74,6 +75,7 @@ describe('Dashboards > Dashboard', () => {
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
+        widgetLimitReached={false}
       />,
       initialData.routerContext
     );

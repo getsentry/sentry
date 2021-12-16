@@ -271,8 +271,10 @@ class EventWidget extends AsyncView<Props, State> {
                   selection={selection}
                   widget={{title, queries, displayType, interval, widgetType}}
                   isEditing={false}
+                  widgetLimitReached={false}
                   onDelete={() => undefined}
                   onEdit={() => undefined}
+                  onDuplicate={() => undefined}
                   renderErrorMessage={errorMessage =>
                     typeof errorMessage === 'string' && (
                       <PanelAlert type="error">{errorMessage}</PanelAlert>

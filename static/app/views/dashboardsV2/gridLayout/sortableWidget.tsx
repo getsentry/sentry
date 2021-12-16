@@ -11,14 +11,25 @@ type Props = {
   isEditing: boolean;
   onDelete: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
+  widgetLimitReached: boolean;
 };
 
-function SortableWidget({widget, isEditing, onDelete, onEdit}: Props) {
+function SortableWidget({
+  widget,
+  isEditing,
+  widgetLimitReached,
+  onDelete,
+  onEdit,
+  onDuplicate,
+}: Props) {
   const widgetProps = {
     widget,
     isEditing,
+    widgetLimitReached,
     onDelete,
     onEdit,
+    onDuplicate,
     showContextMenu: true,
     // TODO(nar): These aren't necessary for supporting RGL
     isSorting: false,

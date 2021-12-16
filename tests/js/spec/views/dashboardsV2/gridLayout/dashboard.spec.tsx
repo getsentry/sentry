@@ -55,6 +55,7 @@ describe('Dashboards > Dashboard', () => {
         newWidget={newWidget}
         layout={[]}
         onLayoutChange={() => undefined}
+        widgetLimitReached={false}
       />,
       initialData.routerContext
     );
@@ -78,6 +79,7 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.location}
         layout={[]}
         onLayoutChange={() => undefined}
+        widgetLimitReached={false}
       />,
       initialData.routerContext
     );

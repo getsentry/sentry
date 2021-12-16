@@ -8,6 +8,16 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
+function openContextMenu(card) {
+  card.find('DropdownMenu MoreOptions svg').simulate('click');
+}
+
+function clickMenuItem(card, selector) {
+  card
+    .find(`DropdownMenu MenuItem[data-test-id="${selector}"] MenuTarget`)
+    .simulate('click');
+}
+
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
     organization: TestStubs.Organization({
@@ -74,10 +84,12 @@ describe('Dashboards > WidgetCard', function () {
         isEditing={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
         isSorting={false}
         currentWidgetDragging={false}
         showContextMenu
+        widgetLimitReached={false}
       >
         {() => <div data-test-id="child" />}
       </WidgetCard>,
@@ -106,10 +118,12 @@ describe('Dashboards > WidgetCard', function () {
         isEditing={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
         isSorting={false}
         currentWidgetDragging={false}
         showContextMenu
+        widgetLimitReached={false}
       >
         {() => <div data-test-id="child" />}
       </WidgetCard>,
@@ -148,10 +162,12 @@ describe('Dashboards > WidgetCard', function () {
         isEditing={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
         isSorting={false}
         currentWidgetDragging={false}
         showContextMenu
+        widgetLimitReached={false}
       >
         {() => <div data-test-id="child" />}
       </WidgetCard>,
@@ -175,5 +191,75 @@ describe('Dashboards > WidgetCard', function () {
         }),
       })
     );
+  });
+
+  it('calls onDuplicate when Duplicate Widget is clicked', async function () {
+    const mock = jest.fn();
+    const wrapper = mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: 'world_map',
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={mock}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetCard>,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    openContextMenu(wrapper);
+    wrapper.update();
+    clickMenuItem(wrapper, 'duplicate-widget');
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not add duplicate widgets if max widget is reached', async function () {
+    const mock = jest.fn();
+    const wrapper = mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: 'world_map',
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={mock}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetCard>,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    openContextMenu(wrapper);
+    wrapper.update();
+    clickMenuItem(wrapper, 'duplicate-widget');
+    expect(mock).toHaveBeenCalledTimes(0);
   });
 });

@@ -19,10 +19,13 @@ type Props = {
   isEditing: boolean;
   onDelete: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
+  widgetLimitReached: boolean;
 };
 
 function SortableWidget(props: Props) {
-  const {widget, dragId, isEditing, onDelete, onEdit} = props;
+  const {widget, dragId, isEditing, widgetLimitReached, onDelete, onEdit, onDuplicate} =
+    props;
 
   const {
     attributes,
@@ -51,8 +54,10 @@ function SortableWidget(props: Props) {
   const widgetProps = {
     widget,
     isEditing,
+    widgetLimitReached,
     onDelete,
     onEdit,
+    onDuplicate,
     isSorting,
     hideToolbar: isSorting,
     currentWidgetDragging,

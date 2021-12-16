@@ -6,6 +6,7 @@ import RGL, {Layout, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -25,7 +26,6 @@ import {
   DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  MAX_WIDGETS,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
 import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
@@ -54,6 +54,7 @@ type Props = {
   isEditing: boolean;
   router: InjectedRouter;
   location: Location;
+  widgetLimitReached: boolean;
   /**
    * Fired when widgets are added/removed/sorted.
    */
@@ -169,6 +170,19 @@ class Dashboard extends Component<Props> {
     this.props.onUpdate(nextList);
   };
 
+  handleDuplicateWidget = (widget: Widget, index: number) => () => {
+    const {dashboard, handleAddLibraryWidgets} = this.props;
+
+    const widgetCopy = cloneDeep(widget);
+    widgetCopy.id = undefined;
+    widgetCopy.tempId = undefined;
+
+    const nextList = [...dashboard.widgets];
+    nextList.splice(index, 0, widgetCopy);
+
+    handleAddLibraryWidgets(nextList);
+  };
+
   handleEditWidget = (widget: Widget, index: number) => () => {
     const {
       organization,
@@ -220,7 +234,7 @@ class Dashboard extends Component<Props> {
   };
 
   renderWidget(widget: Widget, index: number) {
-    const {isEditing} = this.props;
+    const {isEditing, widgetLimitReached} = this.props;
 
     const key = constructGridItemKey(widget);
     const dragId = key;
@@ -233,6 +247,8 @@ class Dashboard extends Component<Props> {
           isEditing={isEditing}
           onDelete={this.handleDeleteWidget(widget)}
           onEdit={this.handleEditWidget(widget, index)}
+          onDuplicate={this.handleDuplicateWidget(widget, index)}
+          widgetLimitReached={widgetLimitReached}
         />
       </GridItem>
     );
@@ -244,6 +260,7 @@ class Dashboard extends Component<Props> {
       dashboard: {widgets},
       organization,
       layout,
+      widgetLimitReached,
       onLayoutChange,
     } = this.props;
 
@@ -263,7 +280,7 @@ class Dashboard extends Component<Props> {
         isBounded
       >
         {widgets.map((widget, index) => this.renderWidget(widget, index))}
-        {isEditing && widgets.length < MAX_WIDGETS && (
+        {isEditing && !!!widgetLimitReached && (
           <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={ADD_BUTTON_POSITION}>
             <AddWidget
               orgFeatures={organization.features}

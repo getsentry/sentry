@@ -692,7 +692,6 @@ describe('Dashboards > Detail', function () {
       );
       await tick();
       wrapper.update();
-      types.MAX_WIDGETS = 30;
 
       // Enter Add Widget mode
       expect(
@@ -700,6 +699,41 @@ describe('Dashboards > Detail', function () {
           .disabled
       ).toEqual(true);
       expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
+    });
+
+    it('duplicates widgets', async function () {
+      types.MAX_WIDGETS = 30;
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('WidgetCard')).toHaveLength(3);
+
+      const card = wrapper.find('WidgetCard').first();
+      card.find('DropdownMenu MoreOptions svg').simulate('click');
+
+      card.update();
+      wrapper.update();
+
+      wrapper
+        .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
+        .simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('WidgetCard')).toHaveLength(4);
+      const newCard = wrapper.find('WidgetCard').at(1);
+      expect(newCard.props().title).toEqual(card.props().title);
     });
   });
 });
