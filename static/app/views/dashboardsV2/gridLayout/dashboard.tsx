@@ -275,6 +275,8 @@ class Dashboard extends Component<Props, State> {
     this.setState({
       layouts: newLayouts,
     });
+
+    // The desktop layout is the source of truth
     onLayoutChange(newLayouts[DESKTOP]);
   };
 
