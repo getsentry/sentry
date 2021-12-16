@@ -1,4 +1,5 @@
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
@@ -20,7 +21,6 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
-
     rate_limits = {
         "GET": {
             RateLimitCategory.IP: RateLimit(10, 1),
@@ -29,7 +29,9 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
         }
     }
 
-    def _count(self, request, query, organization, projects, environments, extra_query_kwargs=None):
+    def _count(
+        self, request: Request, query, organization, projects, environments, extra_query_kwargs=None
+    ):
         query_kwargs = {"projects": projects}
 
         query = query.strip()
@@ -52,7 +54,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
         return result.hits
 
     @rate_limit_endpoint(limit=10, window=1)
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         stats_period = request.GET.get("groupStatsPeriod")
         try:
             start, end = get_date_range_from_params(request.GET)

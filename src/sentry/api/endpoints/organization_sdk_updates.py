@@ -4,6 +4,7 @@ from itertools import chain, groupby
 
 import sentry_sdk
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -62,7 +63,7 @@ def serialize(data, projects):
 
 
 class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
         len_projects = len(projects)
