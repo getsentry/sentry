@@ -6,7 +6,6 @@ import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
-import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
 import {TransactionMetric} from 'sentry/utils/metrics/fields';
@@ -158,17 +157,12 @@ export function getVitalChartDefinitions({
   location,
   vital,
   yAxis,
-  ...props
 }: {
   theme: Theme;
   location: Location;
   vital: string;
   yAxis: string;
-  start?: string;
-  end?: string;
 }) {
-  const start = props.start ? getUtcToLocalDateObject(props.start) : null;
-  const end = props.end ? getUtcToLocalDateObject(props.end) : null;
   const utc = decodeScalar(location.query.utc) !== 'false';
 
   const vitalPoor = webVitalPoor[vital];
@@ -262,8 +256,6 @@ export function getVitalChartDefinitions({
     legend,
     chartOptions,
     markLines,
-    start,
-    end,
     utc,
   };
 }

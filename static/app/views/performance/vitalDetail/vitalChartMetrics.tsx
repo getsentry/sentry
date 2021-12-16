@@ -13,6 +13,7 @@ import {Panel} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {DateString} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {WebVital} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -25,9 +26,11 @@ import {getMaxOfSeries, getVitalChartDefinitions} from './utils';
 
 type Props = Omit<MetricsRequestRenderProps, 'responsePrevious'> &
   WithRouterProps &
-  Omit<ViewProps, 'query'> & {
+  Omit<ViewProps, 'query' | 'start' | 'end'> & {
     field: string;
     vital: WebVital;
+    start: DateString | null;
+    end: DateString | null;
   };
 
 function VitalChartMetrics({
@@ -36,8 +39,8 @@ function VitalChartMetrics({
   response,
   errored,
   statsPeriod,
-  start: propsStart,
-  end: propsEnd,
+  start,
+  end,
   project,
   environment,
   field,
@@ -47,15 +50,12 @@ function VitalChartMetrics({
 }: Props) {
   const theme = useTheme();
 
-  const {start, end, utc, legend, vitalPoor, markLines, chartOptions} =
-    getVitalChartDefinitions({
-      theme,
-      location,
-      vital,
-      yAxis: field,
-      start: propsStart,
-      end: propsEnd,
-    });
+  const {utc, legend, vitalPoor, markLines, chartOptions} = getVitalChartDefinitions({
+    theme,
+    location,
+    vital,
+    yAxis: field,
+  });
 
   function handleLegendSelectChanged(legendChange: {
     name: string;

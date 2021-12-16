@@ -10,12 +10,11 @@ import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {getInterval} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import {DateString, OrganizationSummary} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {WebVital} from 'sentry/utils/discover/fields';
@@ -34,9 +33,12 @@ import {
 } from './utils';
 
 type Props = WithRouterProps &
-  ViewProps & {
+  Omit<ViewProps, 'start' | 'end'> & {
     location: Location;
     organization: OrganizationSummary;
+    start: DateString | null;
+    end: DateString | null;
+    interval: string;
   };
 
 function VitalChart({
@@ -47,8 +49,9 @@ function VitalChart({
   query,
   statsPeriod,
   router,
-  start: propsStart,
-  end: propsEnd,
+  start,
+  end,
+  interval,
 }: Props) {
   const api = useApi();
   const theme = useTheme();
@@ -56,17 +59,12 @@ function VitalChart({
   const vitalName = vitalNameFromLocation(location);
   const yAxis = `p75(${vitalName})`;
 
-  const {start, end, utc, legend, vitalPoor, markLines, chartOptions} =
-    getVitalChartDefinitions({
-      theme,
-      location,
-      yAxis,
-      vital: vitalName,
-      start: propsStart,
-      end: propsEnd,
-    });
-
-  const datetimeSelection = {start, end, period: statsPeriod};
+  const {utc, legend, vitalPoor, markLines, chartOptions} = getVitalChartDefinitions({
+    theme,
+    location,
+    yAxis,
+    vital: vitalName,
+  });
 
   function handleLegendSelectChanged(legendChange: {
     name: string;
@@ -107,7 +105,7 @@ function VitalChart({
               environment={environment}
               start={start}
               end={end}
-              interval={getInterval(datetimeSelection, 'high')}
+              interval={interval}
               showLoading={false}
               query={query}
               includePrevious={false}
