@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -7,7 +8,7 @@ from sentry.utils.compat import map
 
 
 class OrganizationProjectsSentFirstEventEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Verify If Any Project Within An Organization Has Received a First Event
         ```````````````````````````````````````````````````````````````````````

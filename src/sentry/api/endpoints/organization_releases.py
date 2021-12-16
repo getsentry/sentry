@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.db import IntegrityError
 from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features, release_health
@@ -216,7 +217,7 @@ class OrganizationReleasesEndpoint(
         ]
     )
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Releases
         ```````````````````````````````
@@ -393,7 +394,7 @@ class OrganizationReleasesEndpoint(
             **paginator_kwargs,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create a New Release for an Organization
         ````````````````````````````````````````
@@ -556,7 +557,7 @@ class OrganizationReleasesEndpoint(
 
 
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Releases specifically for building timeseries
         ```````````````````````````````

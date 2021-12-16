@@ -1,5 +1,7 @@
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -12,7 +14,7 @@ class OrganizationRequestProjectCreationSerializer(CamelSnakeSerializer):
 
 
 class OrganizationRequestProjectCreation(OrganizationRequestChangeEndpoint):
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Send an email requesting a project be created
         """

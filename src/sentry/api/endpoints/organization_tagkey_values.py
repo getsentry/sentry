@@ -1,4 +1,5 @@
 import sentry_sdk
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -9,7 +10,7 @@ from sentry.tagstore.base import TAG_KEY_RE
 
 
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request, organization, key):
+    def get(self, request: Request, organization, key) -> Response:
         if not TAG_KEY_RE.match(key):
             return Response({"detail": f'Invalid tag key format for "{key}"'}, status=400)
 

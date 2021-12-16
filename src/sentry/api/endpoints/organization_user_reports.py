@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects
@@ -12,7 +13,7 @@ from sentry.models import UserReport
 class OrganizationUserReportsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationUserReportsPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's User Feedback
         ``````````````````````````````

@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -11,7 +12,7 @@ from sentry.models import Group
 class OrganizationIssuesResolvedInReleaseEndpoint(OrganizationEndpoint, EnvironmentMixin):
     permission_classes = (OrganizationPermission,)
 
-    def get(self, request, organization, version):
+    def get(self, request: Request, organization, version) -> Response:
         """
         List issues to be resolved in a particular release
         ``````````````````````````````````````````````````

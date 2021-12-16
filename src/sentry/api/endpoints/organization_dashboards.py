@@ -2,6 +2,7 @@ import re
 
 from django.db import IntegrityError, transaction
 from django.db.models import Case, When
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -28,7 +29,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Retrieve an Organization's Dashboards
         `````````````````````````````````````
@@ -121,7 +122,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             on_results=handle_results,
         )
 
-    def post(self, request, organization, retry=0):
+    def post(self, request: Request, organization, retry=0) -> Response:
         """
         Create a New Dashboard for an Organization
         ``````````````````````````````````````````

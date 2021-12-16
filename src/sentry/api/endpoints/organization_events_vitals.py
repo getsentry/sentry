@@ -1,5 +1,6 @@
 import sentry_sdk
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -19,7 +20,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
     # Threshold labels
     LABELS = ["good", "meh", "poor"]
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

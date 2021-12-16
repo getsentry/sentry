@@ -1,5 +1,7 @@
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
@@ -22,7 +24,7 @@ class IntegrationSerializer(serializers.Serializer):
 
 
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
-    def get(self, request, organization, integration_id):
+    def get(self, request: Request, organization, integration_id) -> Response:
         org_integration = self.get_organization_integration(organization, integration_id)
 
         return self.respond(
@@ -32,7 +34,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         )
 
     @requires_feature("organizations:integrations-custom-scm")
-    def put(self, request, organization, integration_id):
+    def put(self, request: Request, organization, integration_id) -> Response:
         try:
             integration = Integration.objects.get(organizations=organization, id=integration_id)
         except Integration.DoesNotExist:
@@ -68,7 +70,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             )
         return self.respond(serializer.errors, status=400)
 
-    def delete(self, request, organization, integration_id):
+    def delete(self, request: Request, organization, integration_id) -> Response:
         # Removing the integration removes the organization
         # integrations and all linked issues.
         org_integration = self.get_organization_integration(organization, integration_id)
@@ -94,7 +96,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
         return self.respond(status=204)
 
-    def post(self, request, organization, integration_id):
+    def post(self, request: Request, organization, integration_id) -> Response:
         integration = self.get_integration(organization, integration_id)
         installation = integration.get_installation(organization.id)
         try:

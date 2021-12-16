@@ -4,6 +4,7 @@ from typing import Dict, Match, Optional, TypedDict
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.expressions import Limit, Offset
@@ -416,7 +417,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     def has_snql_feature(self, organization, request):
         return features.has("organizations:performance-use-snql", organization, actor=request.user)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
         use_snql = self.has_snql_feature(organization, request)

@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
@@ -28,7 +29,7 @@ class OrganizationSearchSerializer(serializers.Serializer):
 class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPinnedSearchPermission,)
 
-    def put(self, request, organization):
+    def put(self, request: Request, organization) -> Response:
         serializer = OrganizationSearchSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -61,7 +62,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             return Response(serialize(pinned_search, request.user), status=201)
         return Response(serializer.errors, status=400)
 
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization) -> Response:
         try:
             search_type = SearchType(int(request.data.get("type", 0)))
         except ValueError as e:

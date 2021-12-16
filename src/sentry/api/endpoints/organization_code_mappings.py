@@ -1,6 +1,8 @@
 from django.http import Http404
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
@@ -118,7 +120,7 @@ class OrganizationIntegrationMixin:
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Get the list of repository project path configs
 
@@ -155,7 +157,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         data = map(lambda x: serialize(x, request.user), queryset)
         return self.respond(data)
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create a new repository project path config
         ``````````````````

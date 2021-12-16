@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -44,7 +45,7 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
-    def _can_create_team_member(self, request, organization, team_slug):
+    def _can_create_team_member(self, request: Request, organization, team_slug):
         """
         User can join or add a member to a team:
 
@@ -59,7 +60,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             or organization.flags.allow_joinleave
         )
 
-    def _can_delete(self, request, member, organization, team_slug):
+    def _can_delete(self, request: Request, member, organization, team_slug):
         """
         User can remove a member from a team:
 
@@ -82,7 +83,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         return False
 
-    def _can_admin_team(self, request, organization, team_slug):
+    def _can_admin_team(self, request: Request, organization, team_slug):
         global_roles = [r.id for r in roles.with_scope("org:write") if r.is_global]
         team_roles = [r.id for r in roles.with_scope("team:write")]
 
@@ -95,7 +96,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             user__is_active=True,
         ).exists()
 
-    def _get_member(self, request, organization, member_id):
+    def _get_member(self, request: Request, organization, member_id):
         if member_id == "me":
             queryset = OrganizationMember.objects.filter(
                 organization=organization, user__id=request.user.id, user__is_active=True
@@ -108,7 +109,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             )
         return queryset.select_related("user").get()
 
-    def _create_access_request(self, request, team, member):
+    def _create_access_request(self, request: Request, team, member):
         omt, created = OrganizationAccessRequest.objects.get_or_create(team=team, member=member)
 
         if not created:
@@ -120,7 +121,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         omt.send_request_email()
 
-    def post(self, request, organization, member_id, team_slug):
+    def post(self, request: Request, organization, member_id, team_slug) -> Response:
         """
         Join, request access to or add a member to a team.
 
@@ -166,7 +167,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=201)
 
-    def delete(self, request, organization, member_id, team_slug):
+    def delete(self, request: Request, organization, member_id, team_slug) -> Response:
         """
         Leave or remove a member from a team
         """

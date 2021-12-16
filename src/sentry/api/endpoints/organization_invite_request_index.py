@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import Q
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -25,7 +26,7 @@ class InviteRequestPermissions(OrganizationPermission):
 class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
     permission_classes = (InviteRequestPermissions,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         queryset = OrganizationMember.objects.filter(
             Q(user__isnull=True),
             Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
@@ -45,7 +46,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Add a invite request to Organization
         ````````````````````````````````````

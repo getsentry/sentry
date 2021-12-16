@@ -3,6 +3,7 @@ import logging
 from django.db import IntegrityError
 from django.db.models import Q
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -49,7 +50,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         }
     }
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         if organization.get_option("sentry:join_requests") is False:
             return Response(
                 {"detail": "Your organization does not allow join requests."}, status=403
