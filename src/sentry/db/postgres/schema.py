@@ -39,7 +39,6 @@ unsafe_mapping = {
         "Renaming column {}.{} to {} is unsafe.\n"
         "More info here: https://develop.sentry.dev/database-migrations/#renaming-columns"
     ),
-    # TODO: Add DROP_COLUMN warnings
 }
 
 
@@ -82,6 +81,24 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         raise UnsafeOperationException(
             f"Renaming table for model {model.__name__} from {old_db_table} to {new_db_table} is unsafe.\n"
             "More info here: https://develop.sentry.dev/database-migrations/#renaming-tables"
+        )
+
+    def delete_model(self, model):
+        """
+        It's never safe to delete a model using the standard migration process
+        """
+        raise UnsafeOperationException(
+            f"Deleting the {model.__name__} model is unsafe.\n"
+            "More info here: https://develop.sentry.dev/database-migrations/#tables"
+        )
+
+    def remove_field(self, model, field):
+        """
+        It's never safe to remove a field using the standard migration process
+        """
+        raise UnsafeOperationException(
+            f"Removing the {model.__name__}.{field.name} field is unsafe.\n"
+            "More info here: https://develop.sentry.dev/database-migrations/#columns"
         )
 
 
