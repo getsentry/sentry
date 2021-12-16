@@ -27,6 +27,7 @@ import Header from '../header';
 
 import DescriptionCard from './descriptionCard';
 import TeamAlertsTriggered from './teamAlertsTriggered';
+import TeamIssuesAge from './teamIssuesAge';
 import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
 import TeamReleases from './teamReleases';
@@ -171,6 +172,8 @@ function TeamInsightsOverview({location, router}: Props) {
     );
   }
 
+  const isInsightsV2 = organization.features.includes('team-insights-v2');
+
   return (
     <Fragment>
       <Header organization={organization} activeTab="team" />
@@ -301,6 +304,16 @@ function TeamInsightsOverview({location, router}: Props) {
                 location={location}
               />
             </DescriptionCard>
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('Age of Unresolved Issues')}
+                description={t(
+                  'How long ago since unresolved issues were first created.'
+                )}
+              >
+                <TeamIssuesAge organization={organization} teamSlug={currentTeam!.slug} />
+              </DescriptionCard>
+            )}
             <DescriptionCard
               title={t('Time to Resolution')}
               description={t(
