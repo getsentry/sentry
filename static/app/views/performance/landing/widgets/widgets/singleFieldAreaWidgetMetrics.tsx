@@ -103,7 +103,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
             <DurationChart
               {...provided.widgetData.chart}
               {...provided}
-              aggregation={isFailureRateWidget ? field : undefined}
+              aggregation={isFailureRateWidget ? 'failure_rate()' : undefined}
               chartColors={chartColor ? [chartColor] : undefined}
               disableMultiAxis
               disableXAxis
