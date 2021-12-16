@@ -310,8 +310,10 @@ class DashboardDetail extends Component<Props, State> {
    */
   saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
     const {layout} = this.state;
-    if (layout.length !== newWidgets.length) {
-      throw new Error('Expected layouts and widgets to be the same length');
+    if (layout.length > newWidgets.length) {
+      // If there are more widgets than what's in the layout, these
+      // widgets are new and will get default positioning
+      throw new Error('Expected layouts to have less length than widgets');
     }
 
     const newLayout = layout.map((widgetLayout, index) => ({
