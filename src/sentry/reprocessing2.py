@@ -3,6 +3,8 @@ Reprocessing allows a user to re-enqueue all events of a group at the start of
 preprocess-event, for example to reattempt symbolication of stacktraces or
 reattempt grouping.
 
+EEEEEEEEEEEEEEEE
+
 How reprocessing works
 ======================
 
