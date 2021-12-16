@@ -211,6 +211,8 @@ build-utils/        @getsentry/owners-js-build
 # To find matching files -> find . -name "*sentry_app*.py"
 *sentry_app*.py                               @getsentry/ecosystem
 *sentryapp*.py                                @getsentry/ecosystem
+*doc_integration*.py                          @getsentry/ecosystem
+*docintegration*.py                           @getsentry/ecosystem
 
 /api-docs/                                    @getsentry/ecosystem
 /tests/apidocs/                               @getsentry/ecosystem
