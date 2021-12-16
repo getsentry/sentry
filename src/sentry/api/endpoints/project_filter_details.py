@@ -34,6 +34,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         new_state = inbound_filters.set_filter_state(filter_id, project, serializer.validated_data)
         audit_log_state = AuditLogEntryEvent.PROJECT_ENABLE
 
+        returned_state = None
         if filter_id == "legacy-browsers":
             if isinstance(current_state, bool) or isinstance(new_state, bool):
                 returned_state = new_state
