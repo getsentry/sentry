@@ -14,7 +14,7 @@ type Props = {
   hideDurationDetail?: boolean;
 };
 
-export default function vitalInfo(props: Props) {
+function VitalInfo(props: Props) {
   const {
     vital,
     location,
@@ -43,3 +43,5 @@ export default function vitalInfo(props: Props) {
     </VitalsCardDiscoverQuery>
   );
 }
+
+export default VitalInfo;
