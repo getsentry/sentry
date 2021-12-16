@@ -1408,6 +1408,8 @@ def histogram_query(
         )
 
     if use_snql:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
         builder = HistogramQueryBuilder(
             num_buckets,
             histogram_column,
