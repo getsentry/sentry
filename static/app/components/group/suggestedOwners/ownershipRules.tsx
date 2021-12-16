@@ -130,7 +130,7 @@ const OwnershipRules = ({
                   align-items: center;
                 `}
               >
-                <StyledIconQuestion size="xs" />
+                <StyledIconQuestion size="xs" color="gray200" />
               </Hovercard>
             )}
           </ClassNames>

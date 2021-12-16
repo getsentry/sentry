@@ -336,7 +336,7 @@ export default class AbstractExternalIssueForm<
         <Header closeButton>{this.getTitle()}</Header>
         {this.renderNavTabs()}
         <Body>
-          {this.shouldRenderLoading() ? (
+          {this.shouldRenderLoading ? (
             this.renderLoading()
           ) : (
             <React.Fragment>

@@ -10,8 +10,8 @@ import {Location} from 'history';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
-  openAddDashboardIssueWidgetModal,
   openAddDashboardWidgetModal,
+  openDashboardWidgetLibraryModal,
 } from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -27,7 +27,6 @@ import {
   DisplayType,
   MAX_WIDGETS,
   Widget,
-  WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
 
@@ -60,6 +59,7 @@ type Props = {
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
+  handleAddLibraryWidgets: (widgets: Widget[]) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
   layout: Layout[];
@@ -108,11 +108,19 @@ class Dashboard extends Component<Props> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard, selection} = this.props;
+    const {organization, dashboard, selection, handleAddLibraryWidgets} = this.props;
 
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
+    if (organization.features.includes('widget-library')) {
+      openDashboardWidgetLibraryModal({
+        organization,
+        dashboard,
+        onAddWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+      });
+      return;
+    }
     openAddDashboardWidgetModal({
       organization,
       dashboard,
@@ -204,15 +212,11 @@ class Dashboard extends Component<Props> {
       onAddWidget: this.handleAddComplete,
       onUpdateWidget: this.handleUpdateComplete(widget),
     };
-    if (widget.widgetType === WidgetType.ISSUE) {
-      openAddDashboardIssueWidgetModal(modalProps);
-    } else {
-      openAddDashboardWidgetModal({
-        ...modalProps,
-        dashboard,
-        source: DashboardWidgetSource.DASHBOARDS,
-      });
-    }
+    openAddDashboardWidgetModal({
+      ...modalProps,
+      dashboard,
+      source: DashboardWidgetSource.DASHBOARDS,
+    });
   };
 
   renderWidget(widget: Widget, index: number) {

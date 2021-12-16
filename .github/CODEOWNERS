@@ -188,7 +188,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/integrations/                     @getsentry/ecosystem
 /src/sentry/mail/                             @getsentry/ecosystem
 /src/sentry/mediators/                        @getsentry/ecosystem
-/src/sentry/notifications/                    @getsentry/ecosystem
+/src/sentry/notifications/                    @getsentry/ecosystem @getsentry/growth
 /src/sentry/plugins/                          @getsentry/ecosystem
 /src/sentry/ratelimits/                       @getsentry/ecosystem
 /src/sentry/shared_integrations/              @getsentry/ecosystem
@@ -258,9 +258,12 @@ build-utils/        @getsentry/owners-js-build
 
 ### Workflow ###
 
-/src/sentry/api/endpoints/organization_activity.py  @getsentry/workflow
-/src/sentry/api/endpoints/organization_searches.py  @getsentry/workflow
-/src/sentry/tasks/releasemonitor.py                 @getsentry/workflow
+/src/sentry/api/endpoints/organization_activity.py    @getsentry/workflow
+/src/sentry/api/endpoints/organization_searches.py    @getsentry/workflow
+/src/sentry/tasks/releasemonitor.py                   @getsentry/workflow
+
+/static/app/views/organizationStats/teamInsights      @getsentry/workflow
+/tests/js/spec/views/organizationStats/teamInsights/  @getsentry/workflow
 
 ## End of Workflow ##
 
@@ -274,6 +277,8 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/tasks/app_store_connect.py                              @getsentry/owners-native
 /src/sentry/tasks/assemble.py                                       @getsentry/owners-native
 /src/sentry/tasks/low_priority_symbolication.py                     @getsentry/owners-native
+/src/sentry/tasks/reprocessing.py                                   @getsentry/owners-native
+/src/sentry/tasks/reprocessing2.py                                  @getsentry/owners-native
 /src/sentry/tasks/symbolication.py                                  @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                     @getsentry/owners-native
 /tests/sentry/tasks/test_low_priority_symbolication.py              @getsentry/owners-native

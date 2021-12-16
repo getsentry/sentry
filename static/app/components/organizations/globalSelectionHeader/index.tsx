@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
@@ -9,8 +9,11 @@ import {
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/globalSelection';
-import {DATE_TIME_KEYS} from 'sentry/constants/globalSelectionHeader';
+import {DATE_TIME_KEYS} from 'sentry/constants/pageFilters';
 import ConfigStore from 'sentry/stores/configStore';
+import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {PageContent} from 'sentry/styles/organization';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -43,7 +46,7 @@ type Props = WithRouterProps &
     skipLoadLastUsed?: boolean;
   };
 
-function GlobalSelectionHeaderContainer({skipLoadLastUsed, ...props}: Props) {
+function GlobalSelectionHeaderContainer({skipLoadLastUsed, children, ...props}: Props) {
   const {
     location,
     router,
@@ -54,6 +57,8 @@ function GlobalSelectionHeaderContainer({skipLoadLastUsed, ...props}: Props) {
     shouldForceProject,
     specificProjectSlugs,
   } = props;
+
+  const {isReady} = useLegacyStore(GlobalSelectionStore);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
@@ -148,7 +153,20 @@ function GlobalSelectionHeaderContainer({skipLoadLastUsed, ...props}: Props) {
     lastQuery.current = location.query;
   }, [location.query]);
 
-  return <GlobalSelectionHeader {...props} {...additionalProps} />;
+  // Wait for global selection to be ready before rendering chilren
+  if (!isReady) {
+    return <PageContent />;
+  }
+
+  // New-style selection filters no longer have a 'global'header
+  const hasGlobalHeader = !organization.features.includes('selection-filters-v2');
+
+  return (
+    <Fragment>
+      {hasGlobalHeader && <GlobalSelectionHeader {...props} {...additionalProps} />}
+      {children}
+    </Fragment>
+  );
 }
 
 export default withOrganization(withRouter(GlobalSelectionHeaderContainer));
