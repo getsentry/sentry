@@ -223,8 +223,6 @@ const Name = styled('div')`
 `;
 
 const Description = styled('div')`
-  font-size: 1.5rem;
-  line-height: 2.1rem;
   margin-bottom: ${space(2)};
 
   li {
