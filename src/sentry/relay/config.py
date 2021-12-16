@@ -382,6 +382,7 @@ def get_transaction_metrics_settings(
     custom_tags = []
 
     if features.has("organizations:transaction-metrics-extraction", project.organization):
+        metrics.append("sentry.transactions.transaction.duration")
         # TODO: for now let's extract all known measurements. we might want to
         # be more fine-grained in the future once we know which measurements we
         # really need (or how that can be dynamically determined)
