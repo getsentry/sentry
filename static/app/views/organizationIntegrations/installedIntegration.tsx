@@ -110,79 +110,81 @@ export default class InstalledIntegration extends React.Component<Props> {
 
     return (
       <Access access={['org:integrations']}>
-        {({hasAccess}) => (
-          <IntegrationFlex key={integration.id} className={className}>
-            <IntegrationItemBox>
-              <IntegrationItem integration={integration} />
-            </IntegrationItemBox>
-            <div>
-              <Tooltip
-                disabled={hasAccess}
-                position="left"
-                title={t(
-                  'You must be an organization owner, manager or admin to configure'
-                )}
-              >
-                {requiresUpgrade && (
-                  <AddIntegrationButton
-                    analyticsParams={{
-                      view: 'integrations_directory_integration_detail',
-                      already_installed: true,
-                    }}
-                    buttonText={t('Update Now')}
-                    data-test-id="integration-upgrade-button"
-                    disabled={!(hasAccess && this.integrationStatus === 'active')}
-                    icon={<IconWarning />}
-                    onAddIntegration={() => {}}
-                    organization={organization}
-                    provider={provider}
-                    priority="primary"
-                    size="small"
-                  />
-                )}
-                <StyledButton
-                  borderless
-                  icon={<IconSettings />}
-                  disabled={!(hasAccess && this.integrationStatus === 'active')}
-                  to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
-                  data-test-id="integration-configure-button"
+        {({hasAccess}) => {
+          const disableAction = !(hasAccess && this.integrationStatus === 'active');
+          return (
+            <IntegrationFlex key={integration.id} className={className}>
+              <IntegrationItemBox>
+                <IntegrationItem integration={integration} />
+              </IntegrationItemBox>
+              <div>
+                <Tooltip
+                  disabled={hasAccess}
+                  position="left"
+                  title={t(
+                    'You must be an organization owner, manager or admin to configure'
+                  )}
                 >
-                  {t('Configure')}
-                </StyledButton>
-              </Tooltip>
-            </div>
-            <div>
-              <Tooltip
-                disabled={hasAccess}
-                title={t(
-                  'You must be an organization owner, manager or admin to uninstall'
-                )}
-              >
-                <Confirm
-                  priority="danger"
-                  onConfirming={this.handleUninstallClick}
-                  disabled={!hasAccess}
-                  {...removeConfirmProps}
-                >
+                  {requiresUpgrade && (
+                    <AddIntegrationButton
+                      analyticsParams={{
+                        view: 'integrations_directory_integration_detail',
+                        already_installed: true,
+                      }}
+                      buttonText={t('Update Now')}
+                      data-test-id="integration-upgrade-button"
+                      disabled={disableAction}
+                      icon={<IconWarning />}
+                      onAddIntegration={() => {}}
+                      organization={organization}
+                      provider={provider}
+                      priority="primary"
+                      size="small"
+                    />
+                  )}
                   <StyledButton
-                    disabled={!hasAccess}
                     borderless
-                    icon={<IconDelete />}
-                    data-test-id="integration-remove-button"
+                    icon={<IconSettings />}
+                    disabled={disableAction}
+                    to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
+                    data-test-id="integration-configure-button"
                   >
-                    {t('Uninstall')}
+                    {t('Configure')}
                   </StyledButton>
-                </Confirm>
-              </Tooltip>
-            </div>
-
-            <StyledIntegrationStatus
-              status={this.integrationStatus}
-              // Let the hook handle the alert for disabled org integrations
-              hideTooltip={integration.organizationIntegrationStatus === 'disabled'}
-            />
-          </IntegrationFlex>
-        )}
+                </Tooltip>
+              </div>
+              <div>
+                <Tooltip
+                  disabled={hasAccess}
+                  title={t(
+                    'You must be an organization owner, manager or admin to uninstall'
+                  )}
+                >
+                  <Confirm
+                    priority="danger"
+                    onConfirming={this.handleUninstallClick}
+                    disabled={!hasAccess}
+                    {...removeConfirmProps}
+                  >
+                    <StyledButton
+                      disabled={!hasAccess}
+                      borderless
+                      icon={<IconDelete />}
+                      data-test-id="integration-remove-button"
+                    >
+                      {t('Uninstall')}
+                    </StyledButton>
+                  </Confirm>
+                </Tooltip>
+              </div>
+              <StyledIntegrationStatus
+                status={this.integrationStatus}
+                // Let the hook handle the alert for disabled org integrations
+                hideTooltip={integration.organizationIntegrationStatus === 'disabled'}
+              />
+            </IntegrationFlex>
+          );
+        }}
       </Access>
     );
   }
@@ -214,7 +216,11 @@ const IntegrationStatus = (
     <div {...p}>
       <CircleIndicator size={6} color={color} />
       <IntegrationStatusText>{`${
-        status === 'active' ? t('enabled') : t('disabled')
+        status === 'active'
+          ? t('enabled')
+          : status === 'disabled'
+          ? t('disabled')
+          : t('pending deletion')
       }`}</IntegrationStatusText>
     </div>
   );
@@ -224,8 +230,10 @@ const IntegrationStatus = (
     <Tooltip
       title={
         status === 'active'
-          ? t('This Integration can be disabled by clicking the Uninstall button')
-          : t('This Integration has been disconnected from the external provider')
+          ? t('This integration can be disabled by clicking the Uninstall button')
+          : status === 'disabled'
+          ? t('This integration has been disconnected from the external provider')
+          : t('This integration is pending deletion.')
       }
     >
       {inner}
