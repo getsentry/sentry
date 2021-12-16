@@ -67,6 +67,13 @@ jobs:
         with:
           clean: false
 
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+
       - name: Get changed migration files
         id: file
         run: |
