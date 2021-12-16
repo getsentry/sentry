@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import space from 'sentry/styles/space';
 
 export const GridCell = styled('div')`
+  width: 100%;
   font-size: 14px;
 `;
 

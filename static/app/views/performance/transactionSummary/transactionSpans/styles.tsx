@@ -121,6 +121,7 @@ const EmptyValueContainer = styled('span')`
 export const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
 
 const DurationBar = styled('div')`
+  width: 100%;
   position: relative;
   display: flex;
   top: ${space(0.5)};
