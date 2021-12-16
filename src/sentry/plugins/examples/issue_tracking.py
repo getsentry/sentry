@@ -1,5 +1,6 @@
 from rest_framework.request import Request
 
+from sentry.models import Group
 from sentry.plugins.bases.issue2 import IssuePlugin2
 
 
@@ -21,11 +22,11 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
     def is_configured(self, request: Request, project, **kwargs):
         return bool(self.get_option("repo", project))
 
-    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group: Group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return [{"name": "tracker_url", "label": "Issue Tracker URL", "type": "text"}] + fields
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group: Group, form_data, **kwargs):
         return "1"
 
     def get_issue_label(self, group, issue_id, **kwargs):

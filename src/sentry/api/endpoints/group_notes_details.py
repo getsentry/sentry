@@ -7,7 +7,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
-from sentry.models import Activity
+from sentry.models import Activity, Group
 
 
 class GroupNotesDetailsEndpoint(GroupEndpoint):
@@ -15,7 +15,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     # since an ApiKey is bound to the Organization, not
     # an individual. Not sure if we'd want to allow an ApiKey
     # to delete/update other users' comments
-    def delete(self, request: Request, group, note_id: int) -> Response:
+    def delete(self, request: Request, group: Group, note_id: int) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
@@ -30,7 +30,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         return Response(status=204)
 
-    def put(self, request: Request, group, note_id: int) -> Response:
+    def put(self, request: Request, group: Group, note_id: int) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")
 

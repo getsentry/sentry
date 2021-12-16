@@ -28,8 +28,11 @@ class GroupEventsError(Exception):
     pass
 
 
+from sentry.models import Group
+
+
 class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         List an Issue's Events
         ``````````````````````
@@ -62,7 +65,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         except GroupEventsError as exc:
             raise ParseError(detail=str(exc))
 
-    def _get_events_snuba(self, request: Request, group, environments, query, tags, start, end):
+    def _get_events_snuba(
+        self, request: Request, group: Group, environments, query, tags, start, end
+    ):
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
         params = {
@@ -95,7 +100,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
-    def _get_search_query_and_tags(self, request: Request, group, environments=None):
+    def _get_search_query_and_tags(self, request: Request, group: Group, environments=None):
         raw_query = request.GET.get("query")
 
         if raw_query:

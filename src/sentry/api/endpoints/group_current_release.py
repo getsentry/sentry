@@ -7,7 +7,7 @@ from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
-from sentry.models import GroupRelease, ReleaseEnvironment, ReleaseProject
+from sentry.models import Group, GroupRelease, ReleaseEnvironment, ReleaseProject
 
 
 class GroupCurrentReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
@@ -37,7 +37,7 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
         except IndexError:
             return None
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """Get the current release in the group's project.
 
         Find the most recent release in the project associated with the issue

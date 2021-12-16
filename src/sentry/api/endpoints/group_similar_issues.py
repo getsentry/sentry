@@ -20,7 +20,7 @@ def _fix_label(label):
 
 
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         version = request.GET.get("version", None)
         if version == "2":
             if not feature_flags.has("projects:similarity-view-v2", group.project):

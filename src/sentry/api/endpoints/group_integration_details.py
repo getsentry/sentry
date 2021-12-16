@@ -14,6 +14,9 @@ from sentry.signals import integration_issue_created, integration_issue_linked
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
 
+from sentry.models import Group
+
+
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     def _has_issue_feature(self, organization, user):
         has_issue_basic = features.has(
@@ -26,7 +29,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         return has_issue_sync or has_issue_basic
 
-    def create_issue_activity(self, request: Request, group, installation, external_issue):
+    def create_issue_activity(self, request: Request, group: Group, installation, external_issue):
         issue_information = {
             "title": external_issue.title,
             "provider": installation.model.get_provider().name,
@@ -41,7 +44,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             data=issue_information,
         )
 
-    def get(self, request: Request, group, integration_id: int) -> Response:
+    def get(self, request: Request, group: Group, integration_id: int) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
@@ -79,7 +82,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": str(e)}, status=400)
 
     # was thinking put for link an existing issue, post for create new issue?
-    def put(self, request: Request, group, integration_id: int) -> Response:
+    def put(self, request: Request, group: Group, integration_id: int) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
@@ -167,7 +170,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    def post(self, request: Request, group, integration_id: int) -> Response:
+    def post(self, request: Request, group: Group, integration_id: int) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
@@ -239,7 +242,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    def delete(self, request: Request, group, integration_id: int) -> Response:
+    def delete(self, request: Request, group: Group, integration_id: int) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 

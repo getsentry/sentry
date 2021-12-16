@@ -6,11 +6,11 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Environment
+from sentry.models import Environment, Group
 
 
 class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
-    def get(self, request: Request, group, key: str) -> Response:
+    def get(self, request: Request, group: Group, key: str) -> Response:
         """
         Retrieve Tag Details
         ````````````````````

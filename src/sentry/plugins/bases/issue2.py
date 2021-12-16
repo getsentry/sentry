@@ -9,7 +9,7 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 
 # api compat
 from sentry.exceptions import PluginError  # NOQA
-from sentry.models import Activity, GroupMeta
+from sentry.models import Activity, Group, GroupMeta
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.base.v1 import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
@@ -25,7 +25,7 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
     view_method_name = None
     plugin = None
 
-    def _handle(self, request: Request, group, *args, **kwargs):
+    def _handle(self, request: Request, group: Group, *args, **kwargs):
         GroupMeta.objects.populate_cache([group])
 
         return getattr(self.plugin, self.view_method_name)(request, group, *args, **kwargs)
@@ -50,7 +50,7 @@ class IssueTrackingPlugin2(Plugin):
     def has_project_conf(self):
         return True
 
-    def get_group_body(self, request: Request, group, event, **kwargs):
+    def get_group_body(self, request: Request, group: Group, event, **kwargs):
         result = []
         for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event, _with_transaction=False)
@@ -58,7 +58,7 @@ class IssueTrackingPlugin2(Plugin):
                 result.append(output)
         return "\n\n".join(result)
 
-    def get_group_description(self, request: Request, group, event):
+    def get_group_description(self, request: Request, group: Group, event):
         referrer = self.get_conf_key() + "_plugin"
         output = [absolute_uri(group.get_absolute_url(params={"referrer": referrer}))]
         body = self.get_group_body(request, group, event)
@@ -66,7 +66,7 @@ class IssueTrackingPlugin2(Plugin):
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def get_group_title(self, request: Request, group, event):
+    def get_group_title(self, request: Request, group: Group, event):
         return event.title
 
     def is_configured(self, request: Request, project, **kwargs):
@@ -113,7 +113,7 @@ class IssueTrackingPlugin2(Plugin):
             user=request.user, provider=self.auth_provider
         ).exists()
 
-    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group: Group, event, **kwargs):
         """
         If overriding, supported properties include 'readonly': true
         """
@@ -132,7 +132,7 @@ class IssueTrackingPlugin2(Plugin):
             },
         ]
 
-    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group: Group, event, **kwargs):
         return []
 
     def _get_issue_url_compat(self, group, issue, **kwargs):
@@ -162,7 +162,7 @@ class IssueTrackingPlugin2(Plugin):
             return "#{}".format(issue["id"])
         return f"#{issue}"
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group: Group, form_data, **kwargs):
         """
         Creates the issue on the remote service and returns an issue ID.
 
@@ -170,7 +170,7 @@ class IssueTrackingPlugin2(Plugin):
         """
         raise NotImplementedError
 
-    def link_issue(self, request: Request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group: Group, form_data, **kwargs):
         """
         Can be overridden for any actions needed when linking issues
         (like adding a comment to an existing issue).
@@ -212,13 +212,13 @@ class IssueTrackingPlugin2(Plugin):
     def has_linked_issue(self, group):
         return bool(self.build_issue(group))
 
-    def unlink_issue(self, request: Request, group, issue, **kwargs):
+    def unlink_issue(self, request: Request, group: Group, issue, **kwargs):
         issue_field_map = self.get_issue_field_map()
         for meta_name in issue_field_map.values():
             GroupMeta.objects.unset_value(group, meta_name)
         return self.redirect(group.get_absolute_url())
 
-    def view_create(self, request: Request, group, **kwargs):
+    def view_create(self, request: Request, group: Group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
         if auth_errors:
             return Response(auth_errors, status=400)
@@ -286,7 +286,7 @@ class IssueTrackingPlugin2(Plugin):
             }
         )
 
-    def view_link(self, request: Request, group, **kwargs):
+    def view_link(self, request: Request, group: Group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
         if auth_errors:
             return Response(auth_errors, status=400)
@@ -349,7 +349,7 @@ class IssueTrackingPlugin2(Plugin):
             }
         )
 
-    def view_unlink(self, request: Request, group, **kwargs):
+    def view_unlink(self, request: Request, group: Group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
         if auth_errors:
             return Response(auth_errors, status=400)
@@ -359,7 +359,7 @@ class IssueTrackingPlugin2(Plugin):
             return Response({"message": "Successfully unlinked issue."})
         return Response({"message": "No issues to unlink."}, status=400)
 
-    def plugin_issues(self, request: Request, group, plugin_issues, **kwargs):
+    def plugin_issues(self, request: Request, group: Group, plugin_issues, **kwargs):
         if not self.is_configured(request=request, project=group.project):
             return plugin_issues
 
@@ -387,7 +387,7 @@ class IssueTrackingPlugin2(Plugin):
         kwargs.setdefault("request", None)
         return self.get_configure_plugin_fields(*args, **kwargs)
 
-    def check_config_and_auth(self, request: Request, group):
+    def check_config_and_auth(self, request: Request, group: Group):
         has_auth_configured = self.has_auth_configured()
         if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
             if self.auth_provider:
@@ -409,7 +409,7 @@ class IssueTrackingPlugin2(Plugin):
             }
 
     # TODO: should we get rid of this (move it to react?)
-    def tags(self, request: Request, group, tag_list, **kwargs):
+    def tags(self, request: Request, group: Group, tag_list, **kwargs):
         if not self.is_configured(request=request, project=group.project):
             return tag_list
 

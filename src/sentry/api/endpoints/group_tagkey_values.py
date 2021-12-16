@@ -8,10 +8,11 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
+from sentry.models import Group
 
 
 class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
-    def get(self, request: Request, group, key: str) -> Response:
+    def get(self, request: Request, group: Group, key: str) -> Response:
         """
         List a Tag's Values
         ```````````````````

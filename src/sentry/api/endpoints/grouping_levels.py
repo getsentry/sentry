@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from rest_framework.request import Request
+from rest_framework.response import Response
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import features
@@ -39,10 +41,6 @@ class ProjectNotHierarchical(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
     code = "project_not_hierarchical"
     message = "This project does not have hierarchical grouping."
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class GroupingLevelsEndpoint(GroupEndpoint):

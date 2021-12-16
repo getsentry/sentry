@@ -21,6 +21,9 @@ issues to existing tasks in Asana.
 """
 
 
+from sentry.models import Group
+
+
 class AsanaPlugin(CorePluginMixin, IssuePlugin2):
     description = DESCRIPTION
     slug = "asana"
@@ -65,7 +68,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
     def get_workspace_choices(self, workspaces):
         return [(w["gid"], w["name"]) for w in workspaces["data"]]
 
-    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group: Group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         client = self.get_client(request.user)
         workspaces = client.get_workspaces()
@@ -114,7 +117,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             ]
         )
 
-    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group: Group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -147,7 +150,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             return " ".join(e["message"] for e in errors)
         return "unknown error"
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group: Group, form_data, **kwargs):
         client = self.get_client(request.user)
 
         try:
@@ -159,7 +162,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
 
         return response["data"]["gid"]
 
-    def link_issue(self, request: Request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group: Group, form_data, **kwargs):
         client = self.get_client(request.user)
         try:
             issue = client.get_issue(issue_id=form_data["issue_id"])["data"]
@@ -235,7 +238,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             }
         ]
 
-    def view_autocomplete(self, request: Request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group: Group, **kwargs):
         field = request.GET.get("autocomplete_field")
         query = request.GET.get("autocomplete_query")
 

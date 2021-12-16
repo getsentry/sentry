@@ -5,10 +5,11 @@ from sentry import tagstore
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
+from sentry.models import Group
 
 
 class GroupTagsEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
 
         # optional queryparam `key` can be used to get results
         # only for specific keys.

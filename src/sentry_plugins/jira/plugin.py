@@ -27,6 +27,9 @@ JIRA_CUSTOM_FIELD_TYPES = {
 }
 
 
+from sentry.models import Group
+
+
 class JiraPlugin(CorePluginMixin, IssuePlugin2):
     description = "Integrate JIRA issues by linking a project."
     slug = "jira"
@@ -59,7 +62,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             return False
         return True
 
-    def get_group_description(self, request: Request, group, event):
+    def get_group_description(self, request: Request, group: Group, event):
         # mostly the same as parent class, but change ``` to {code}
         output = [absolute_uri(group.get_absolute_url(params={"referrer": "jira_plugin"}))]
         body = self.get_group_body(request, group, event)
@@ -132,7 +135,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return issue_type_meta
 
-    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group: Group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
 
         jira_project_key = self.get_option("default_project", group.project)
@@ -231,7 +234,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return fields
 
-    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group: Group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -250,7 +253,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def link_issue(self, request: Request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group: Group, form_data, **kwargs):
         client = self.get_jira_client(group.project)
         try:
             issue = client.get_issue(form_data["issue_id"])
@@ -281,7 +284,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         )
         return {"id": user["name"], "text": display}
 
-    def view_autocomplete(self, request: Request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group: Group, **kwargs):
         query = request.GET.get("autocomplete_query")
         field = request.GET.get("autocomplete_field")
         project = self.get_option("default_project", group.project)
@@ -399,7 +402,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
         return message
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group: Group, form_data, **kwargs):
         cleaned_data = {}
 
         # protect against mis-configured plugin submitting a form without an

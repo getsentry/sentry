@@ -18,7 +18,7 @@ from sentry.utils import snuba
 
 
 class GroupHashesSplitEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         Return information on whether the group can be split up, has been split
         up and what it will be split up into.
@@ -29,7 +29,7 @@ class GroupHashesSplitEndpoint(GroupEndpoint):
 
         return self.respond(_render_trees(group, request.user), status=200)
 
-    def put(self, request: Request, group) -> Response:
+    def put(self, request: Request, group: Group) -> Response:
         """
         Split up a group into subgroups
         ```````````````````````````````
@@ -70,7 +70,7 @@ class GroupHashesSplitEndpoint(GroupEndpoint):
 
         return self.respond(status=200)
 
-    def delete(self, request: Request, group) -> Response:
+    def delete(self, request: Request, group: Group) -> Response:
         """
         Un-split group(s) into their parent group
         `````````````````````````````````````````

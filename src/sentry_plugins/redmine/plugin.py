@@ -4,6 +4,7 @@ from rest_framework.request import Request
 import sentry
 from sentry.exceptions import PluginError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.models import Group
 from sentry.plugins.bases.issue import IssuePlugin
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -64,13 +65,13 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
     def get_new_issue_title(self, **kwargs):
         return "Create Redmine Task"
 
-    def get_initial_form_data(self, request: Request, group, event, **kwargs):
+    def get_initial_form_data(self, request: Request, group: Group, event, **kwargs):
         return {
             "description": self._get_group_description(request, group, event),
             "title": self._get_group_title(request, group, event),
         }
 
-    def _get_group_description(self, request: Request, group, event):
+    def _get_group_description(self, request: Request, group: Group, event):
         output = [absolute_uri(group.get_absolute_url())]
         body = self._get_group_body(request, group, event)
         if body:

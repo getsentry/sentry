@@ -57,6 +57,9 @@ class GitHubMixin(CorePluginMixin):
 # TODO(dcramer): half of this plugin is for the issue tracking integration
 # (which is a singular entry) and the other half is generic GitHub. It'd be nice
 # if plugins were entirely generic, and simply registered the various hooks.
+from sentry.models import Group
+
+
 class GitHubPlugin(GitHubMixin, IssuePlugin2):
     description = "Integrate GitHub issues by linking a repository to a project."
     slug = "github"
@@ -99,7 +102,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
     def is_configured(self, request: Request, project, **kwargs):
         return bool(self.get_option("repo", project))
 
-    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group: Group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return (
             [
@@ -124,7 +127,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             ]
         )
 
-    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group: Group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -151,7 +154,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             },
         ]
 
-    def get_allowed_assignees(self, request: Request, group):
+    def get_allowed_assignees(self, request: Request, group: Group):
         try:
             with self.get_client(request.user) as client:
                 response = client.list_assignees(repo=self.get_option("repo", group.project))
@@ -162,7 +165,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return (("", "Unassigned"),) + users
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group: Group, form_data, **kwargs):
         # TODO: support multiple identities via a selection input in the form?
         with self.get_client(request.user) as client:
             try:
@@ -179,7 +182,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return response["number"]
 
-    def link_issue(self, request: Request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group: Group, form_data, **kwargs):
         with self.get_client(request.user) as client:
             repo = self.get_option("repo", group.project)
             try:
@@ -203,7 +206,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return f"https://github.com/{repo}/issues/{issue_id}"
 
-    def view_autocomplete(self, request: Request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group: Group, **kwargs):
         field = request.GET.get("autocomplete_field")
         query = request.GET.get("autocomplete_query")
         if field != "issue_id" or not query:

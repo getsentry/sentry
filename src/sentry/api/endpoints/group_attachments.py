@@ -21,8 +21,11 @@ class GroupEventAttachmentSerializer(EventAttachmentSerializer):
         return result
 
 
+from sentry.models import Group
+
+
 class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         List Event Attachments
         ``````````````````````

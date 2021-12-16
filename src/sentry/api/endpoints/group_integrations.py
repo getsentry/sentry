@@ -7,11 +7,11 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueSerializer
 from sentry.integrations.base import IntegrationFeatures
-from sentry.models import Integration
+from sentry.models import Group, Integration
 
 
 class GroupIntegrationsEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", group.organization, actor=request.user
         )

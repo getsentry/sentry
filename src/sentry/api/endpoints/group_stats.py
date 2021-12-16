@@ -5,11 +5,11 @@ from sentry import tsdb
 from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment
+from sentry.models import Environment, Group
 
 
 class GroupStatsEndpoint(GroupEndpoint, EnvironmentMixin, StatsMixin):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         try:
             environment_id = self._get_environment_id_from_request(
                 request, group.project.organization_id

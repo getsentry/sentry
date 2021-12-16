@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.models import Group
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
@@ -53,7 +54,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
             and self.get_option("gitlab_url", project)
         )
 
-    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group: Group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return (
             [
@@ -86,7 +87,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
             ]
         )
 
-    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group: Group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -107,7 +108,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def get_allowed_assignees(self, request: Request, group):
+    def get_allowed_assignees(self, request: Request, group: Group):
         repo = self.get_option("gitlab_repo", group.project)
         client = self.get_client(group.project)
         try:
@@ -127,7 +128,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
 
         return GitLabClient(url, token)
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group: Group, form_data, **kwargs):
         repo = self.get_option("gitlab_repo", group.project)
 
         client = self.get_client(group.project)
@@ -147,7 +148,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
 
         return response["iid"]
 
-    def link_issue(self, request: Request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group: Group, form_data, **kwargs):
         client = self.get_client(group.project)
         repo = self.get_option("gitlab_repo", group.project)
         try:

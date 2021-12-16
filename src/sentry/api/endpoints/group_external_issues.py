@@ -10,8 +10,11 @@ from sentry.models import PlatformExternalIssue
 logger = logging.getLogger("sentry.api")
 
 
+from sentry.models import Group
+
+
 class GroupExternalIssuesEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
 
         external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
 

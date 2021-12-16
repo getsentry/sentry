@@ -3,11 +3,12 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import GroupEndpoint
+from sentry.models import Group
 from sentry.tasks.reprocessing2 import reprocess_group
 
 
 class GroupReprocessingEndpoint(GroupEndpoint):
-    def post(self, request: Request, group) -> Response:
+    def post(self, request: Request, group: Group) -> Response:
         """
         Reprocess a group
         `````````````````

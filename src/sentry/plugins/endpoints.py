@@ -30,12 +30,14 @@ class PluginProjectEndpoint(ProjectEndpoint):
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.models import Group
+
 
 class PluginGroupEndpoint(GroupEndpoint):
     plugin = None
     view = None
 
-    def _handle(self, request: Request, group, *args, **kwargs):
+    def _handle(self, request: Request, group: Group, *args, **kwargs):
         if self.view is None:
             return Response(status=405)
 
@@ -43,10 +45,10 @@ class PluginGroupEndpoint(GroupEndpoint):
 
         return self.view(request, group, *args, **kwargs)
 
-    def get(self, request: Request, group, *args, **kwargs) -> Response:
+    def get(self, request: Request, group: Group, *args, **kwargs) -> Response:
         return self._handle(request, group, *args, **kwargs)
 
-    def post(self, request: Request, group, *args, **kwargs) -> Response:
+    def post(self, request: Request, group: Group, *args, **kwargs) -> Response:
         return self._handle(request, group, *args, **kwargs)
 
     def respond(self, *args, **kwargs):

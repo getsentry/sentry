@@ -24,6 +24,9 @@ and organize anything, trusted by millions of people from all over the world.
 """
 
 
+from sentry.models import Group
+
+
 class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     description = DESCRIPTION
     slug = "trello"
@@ -139,7 +142,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     def map_to_options(self, items):
         return [(item["id"], item["name"]) for item in items]
 
-    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group: Group, event, **kwargs):
         """
         Return the fields needed for creating a new issue
         """
@@ -169,7 +172,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group: Group, event, **kwargs):
         """
         Return the fields needed for linking to an existing issue
         """
@@ -204,7 +207,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             return " ".join(e["message"] for e in errors)
         return "unknown error"
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group: Group, form_data, **kwargs):
         client = self.get_client(group.project)
 
         try:
@@ -216,7 +219,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         return response["shortLink"]
 
-    def link_issue(self, request: Request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group: Group, form_data, **kwargs):
         client = self.get_client(group.project)
 
         try:
@@ -255,7 +258,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             return issue.split("/", 1)[1]
         return "https://trello.com/c/%s" % issue
 
-    def view_options(self, request: Request, group, **kwargs):
+    def view_options(self, request: Request, group: Group, **kwargs):
         """
         Return the lists on a given Trello board
         """
@@ -280,7 +283,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         return Response({field: results})
 
-    def view_autocomplete(self, request: Request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group: Group, **kwargs):
         """
         Return the cards matching a given query and the organization of the configuration
         """

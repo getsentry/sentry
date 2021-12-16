@@ -32,6 +32,9 @@ ERR_404 = (
 )
 
 
+from sentry.models import Group
+
+
 class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
     description = "Integrate Bitbucket issues by linking a repository to a project."
     slug = "bitbucket"
@@ -75,7 +78,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
     def is_configured(self, request: Request, project, **kwargs):
         return bool(self.get_option("repo", project))
 
-    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group: Group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return (
             [
@@ -106,7 +109,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
             ]
         )
 
-    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group: Group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -134,7 +137,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
             return ERR_404
         return super().message_from_error(exc)
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group: Group, form_data, **kwargs):
         client = self.get_client(request.user)
 
         try:
@@ -146,7 +149,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
 
         return response["local_id"]
 
-    def link_issue(self, request: Request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group: Group, form_data, **kwargs):
         client = self.get_client(request.user)
         repo = self.get_option("repo", group.project)
         try:
@@ -170,7 +173,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
         repo = self.get_option("repo", group.project)
         return f"https://bitbucket.org/{repo}/issue/{issue_id}/"
 
-    def view_autocomplete(self, request: Request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group: Group, **kwargs):
         field = request.GET.get("autocomplete_field")
         query = request.GET.get("autocomplete_query")
         if field != "issue_id" or not query:

@@ -33,6 +33,9 @@ def query_to_result(field, result):
     return result["fields"]["name"]
 
 
+from sentry.models import Group
+
+
 class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
     description = DESCRIPTION
 
@@ -96,7 +99,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group: Group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return fields + [
             {
@@ -119,7 +122,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group: Group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -196,7 +199,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         host = self.get_option("host", group.project)
         return urljoin(host, "T%s" % issue_id)
 
-    def view_autocomplete(self, request: Request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group: Group, **kwargs):
         field = request.GET.get("autocomplete_field")
         query = request.GET.get("autocomplete_query")
 
@@ -220,7 +223,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
 
         return Response({field: results})
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group: Group, form_data, **kwargs):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(
@@ -236,7 +239,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
 
         return data["id"]
 
-    def link_issue(self, request: Request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group: Group, form_data, **kwargs):
         api = self.get_api(group.project)
 
         try:

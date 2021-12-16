@@ -88,7 +88,7 @@ class GroupEndpoint(Endpoint):
             project_id=group.project_id, group_id=group.id, linked_type=GroupLink.LinkedType.issue
         ).values_list("linked_id", flat=True)
 
-    def create_external_comment(self, request: Request, group, group_note):
+    def create_external_comment(self, request: Request, group: Group, group_note):
         for external_issue_id in self.get_external_issue_ids(group):
             create_comment.apply_async(
                 kwargs={
@@ -98,7 +98,7 @@ class GroupEndpoint(Endpoint):
                 }
             )
 
-    def update_external_comment(self, request: Request, group, group_note):
+    def update_external_comment(self, request: Request, group: Group, group_note):
         for external_issue_id in self.get_external_issue_ids(group):
             update_comment.apply_async(
                 kwargs={

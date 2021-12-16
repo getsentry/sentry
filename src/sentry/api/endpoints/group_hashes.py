@@ -7,13 +7,13 @@ from sentry import eventstore
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.models import GroupHash
+from sentry.models import Group, GroupHash
 from sentry.tasks.unmerge import unmerge
 from sentry.utils.snuba import raw_query
 
 
 class GroupHashesEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         List an Issue's Hashes
         ``````````````````````
@@ -45,7 +45,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
-    def delete(self, request: Request, group) -> Response:
+    def delete(self, request: Request, group: Group) -> Response:
         id_list = request.GET.getlist("id")
         if id_list is None:
             return Response()

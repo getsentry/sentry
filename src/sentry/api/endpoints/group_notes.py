@@ -9,14 +9,14 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
-from sentry.models import Activity, GroupSubscription
+from sentry.models import Activity, Group, GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.types.activity import ActivityType
 from sentry.utils.functional import extract_lazy_object
 
 
 class GroupNotesEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         notes = Activity.objects.filter(group=group, type=Activity.NOTE).select_related("user")
 
         return self.paginate(
@@ -27,7 +27,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request: Request, group) -> Response:
+    def post(self, request: Request, group: Group) -> Response:
         serializer = NoteSerializer(
             data=request.data,
             context={
