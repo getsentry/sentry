@@ -2,6 +2,7 @@ import logging
 from uuid import uuid4
 
 from django.conf.urls import url
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
@@ -95,10 +96,10 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
     def get_url_module(self):
         return "sentry_plugins.github.urls"
 
-    def is_configured(self, request, project, **kwargs):
+    def is_configured(self, request: Request, project, **kwargs):
         return bool(self.get_option("repo", project))
 
-    def get_new_issue_fields(self, request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return (
             [
@@ -123,7 +124,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             ]
         )
 
-    def get_link_existing_issue_fields(self, request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -150,7 +151,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             },
         ]
 
-    def get_allowed_assignees(self, request, group):
+    def get_allowed_assignees(self, request: Request, group):
         try:
             with self.get_client(request.user) as client:
                 response = client.list_assignees(repo=self.get_option("repo", group.project))
@@ -161,7 +162,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return (("", "Unassigned"),) + users
 
-    def create_issue(self, request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data, **kwargs):
         # TODO: support multiple identities via a selection input in the form?
         with self.get_client(request.user) as client:
             try:
@@ -178,7 +179,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return response["number"]
 
-    def link_issue(self, request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group, form_data, **kwargs):
         with self.get_client(request.user) as client:
             repo = self.get_option("repo", group.project)
             try:
@@ -202,7 +203,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return f"https://github.com/{repo}/issues/{issue_id}"
 
-    def view_autocomplete(self, request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
         query = request.GET.get("autocomplete_query")
         if field != "issue_id" or not query:
@@ -222,7 +223,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return Response({field: issues})
 
-    def get_configure_plugin_fields(self, request, project, **kwargs):
+    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
         return [
             {
                 "name": "repo",
