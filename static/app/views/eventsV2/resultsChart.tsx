@@ -61,7 +61,6 @@ class ResultsChart extends Component<ResultsChartProps> {
     const hasConnectDiscoverAndDashboards = organization.features.includes(
       'connect-discover-and-dashboards'
     );
-    const hasTopEvents = organization.features.includes('discover-top-events');
 
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.datetime.start
@@ -81,8 +80,7 @@ class ResultsChart extends Component<ResultsChartProps> {
     const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
     const isPrevious = display === DisplayModes.PREVIOUS;
     const referrer = `api.discover.${display}-chart`;
-    const topEvents =
-      hasTopEvents && eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
     const chartComponent =
       display === DisplayModes.WORLDMAP
         ? WorldMapChart
@@ -192,7 +190,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
     const hasConnectDiscoverAndDashboards = organization.features.includes(
       'connect-discover-and-dashboards'
     );
-    const hasTopEvents = organization.features.includes('discover-top-events');
     const displayOptions = eventView
       .getDisplayOptions()
       .filter(opt => {
@@ -215,7 +212,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
       .map(opt => {
         // Can only use default display or total daily with multi y axis
         if (
-          hasTopEvents &&
           [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes)
         ) {
           opt.label = DisplayModes.TOP5 === opt.value ? 'Top Period' : 'Top Daily';

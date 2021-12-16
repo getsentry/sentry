@@ -1299,3 +1299,35 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsSpansEndpointTestBas
                 self.span_example_results("http.server", event),
             ],
         )
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_per_page(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [
+                    self.suspect_span_examples_snuba_results("http.server", event),
+                    self.suspect_span_examples_snuba_results("http.server", event),
+                ],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "span": [f"http.server:{'ab' * 8}"],
+                    "per_page": 1,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert mock_raw_snql_query.call_count == 1
+
+        self.assert_span_examples(
+            response.data,
+            [self.span_example_results("http.server", event)],
+        )

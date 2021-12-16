@@ -487,6 +487,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             entity_subscription = get_entity_subscription_for_dataset(
                 dataset=QueryDatasets(data["dataset"]),
                 aggregate=data["aggregate"],
+                time_window=int(timedelta(minutes=data["time_window"]).total_seconds()),
                 extra_fields={
                     "org_id": project_id[0].organization_id,
                     "event_types": data.get("event_types"),

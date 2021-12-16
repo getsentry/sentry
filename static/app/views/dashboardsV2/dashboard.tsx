@@ -4,6 +4,7 @@ import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -22,7 +23,7 @@ import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, MAX_WIDGETS, Widget} from './types';
+import {DashboardDetails, DashboardWidgetSource, Widget} from './types';
 
 type Props = {
   api: Client;
@@ -32,6 +33,7 @@ type Props = {
   isEditing: boolean;
   router: InjectedRouter;
   location: Location;
+  widgetLimitReached: boolean;
   /**
    * Fired when widgets are added/removed/sorted.
    */
@@ -143,6 +145,18 @@ class Dashboard extends Component<Props> {
     this.props.onUpdate(nextList);
   };
 
+  handleDuplicateWidget = (widget: Widget, index: number) => () => {
+    const {dashboard, handleAddLibraryWidgets} = this.props;
+
+    const widgetCopy = cloneDeep(widget);
+    widgetCopy.id = undefined;
+
+    const nextList = [...dashboard.widgets];
+    nextList.splice(index, 0, widgetCopy);
+
+    handleAddLibraryWidgets(nextList);
+  };
+
   handleEditWidget = (widget: Widget, index: number) => () => {
     const {
       organization,
@@ -203,7 +217,7 @@ class Dashboard extends Component<Props> {
   }
 
   renderWidget(widget: Widget, index: number) {
-    const {isEditing} = this.props;
+    const {isEditing, widgetLimitReached} = this.props;
 
     const key = generateWidgetId(widget, index);
     const dragId = key;
@@ -216,6 +230,8 @@ class Dashboard extends Component<Props> {
         isEditing={isEditing}
         onDelete={this.handleDeleteWidget(index)}
         onEdit={this.handleEditWidget(widget, index)}
+        onDuplicate={this.handleDuplicateWidget(widget, index)}
+        widgetLimitReached={widgetLimitReached}
       />
     );
   }
@@ -226,6 +242,7 @@ class Dashboard extends Component<Props> {
       onUpdate,
       dashboard: {widgets},
       organization,
+      widgetLimitReached,
     } = this.props;
 
     const items = this.getWidgetIds();
@@ -250,7 +267,7 @@ class Dashboard extends Component<Props> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && widgets.length < MAX_WIDGETS && (
+            {isEditing && !!!widgetLimitReached && (
               <AddWidget
                 orgFeatures={organization.features}
                 onAddWidget={this.handleStartAdd}
