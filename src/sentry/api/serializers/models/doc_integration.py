@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import Any, List, Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -13,20 +12,15 @@ from sentry.utils.json import JSONData
 @register(DocIntegration)
 class DocIntegrationSerializer(Serializer):
     def get_attrs(self, item_list: List[DocIntegration], user: User, **kwargs: Any):
-        # Get associated IntegrationFeatures
         doc_ids = {item.id for item in item_list}
-        features = IntegrationFeature.objects.filter(
-            target_type=IntegrationTypes.DOC_INTEGRATION.value, target_id__in=doc_ids
+        # Get associated IntegrationFeatures
+        doc_feature_attrs = IntegrationFeature.objects.get_by_target_ids(
+            target_ids=doc_ids, target_type=IntegrationTypes.DOC_INTEGRATION
         )
-        doc_feature_attrs = defaultdict(set)
-        for feature in features:
-            doc_feature_attrs[feature.target_id].add(feature)
 
         # Get associated DocIntegrationAvatar
         avatars = DocIntegrationAvatar.objects.filter(doc_integration__in=item_list)
-        doc_avatar_attrs = defaultdict(DocIntegrationAvatar)
-        for avatar in avatars:
-            doc_avatar_attrs[avatar.doc_integration_id] = avatar
+        doc_avatar_attrs = {avatar.doc_integration_id: avatar for avatar in avatars}
 
         # Attach both as attrs
         return {
