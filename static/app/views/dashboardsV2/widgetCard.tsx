@@ -200,7 +200,6 @@ class WidgetCard extends React.Component<Props> {
         <StyledMenuItem
           key="duplicate-widget"
           data-test-id="duplicate-widget"
-          name="Duplicate Widget"
           onSelect={onDuplicate}
           disabled={widgetLimitReached}
         >
