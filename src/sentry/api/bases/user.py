@@ -26,7 +26,7 @@ class UserPermission(SentryPermission):
 class OrganizationUserPermission(UserPermission):
     scope_map = {"DELETE": ["member:admin"]}
 
-    def has_org_permission(self, request: Request, user):
+    def has_org_permission(self, request: Request, user: User):
         """
         Org can act on a user account,
         if the user is a member of only one org

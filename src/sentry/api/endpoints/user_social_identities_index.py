@@ -3,11 +3,12 @@ from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
+from sentry.models import User
 from social_auth.models import UserSocialAuth
 
 
 class UserSocialIdentitiesIndexEndpoint(UserEndpoint):
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         List Account's Identities
         `````````````````````````

@@ -1,6 +1,8 @@
 from django.db.models import F
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import newsletter
 from sentry.api.bases.user import UserEndpoint
@@ -16,12 +18,8 @@ class NewsletterValidator(serializers.Serializer):
     subscribed = serializers.BooleanField(required=True)
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 class UserSubscriptionsEndpoint(UserEndpoint):
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Retrieve Account Subscriptions
         `````````````````````````````````````
@@ -52,7 +50,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
             ]
         )
 
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         """
         Update Account Subscriptions
         ````````````````````````````
@@ -83,7 +81,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         newsletter.create_or_update_subscription(user, **kwargs)
         return self.respond(status=204)
 
-    def post(self, request: Request, user) -> Response:
+    def post(self, request: Request, user: User) -> Response:
         """
         Configure Newsletter Subscription
         `````````````````````````````````

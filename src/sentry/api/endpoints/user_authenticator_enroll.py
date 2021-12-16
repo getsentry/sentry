@@ -15,7 +15,7 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
 from sentry.auth.authenticators.base import EnrollmentStatus
-from sentry.models import Authenticator
+from sentry.models import Authenticator, User
 from sentry.security import capture_security_activity
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         return any(features.has("organizations:webauthn-register", org, actor=user) for org in orgs)
 
     @sudo_required
-    def get(self, request: Request, user, interface_id: int) -> Response:
+    def get(self, request: Request, user: User, interface_id: int) -> Response:
         """
         Get Authenticator Interface
         ```````````````````````````
@@ -162,7 +162,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
     @sudo_required
     @email_verification_required
-    def post(self, request: Request, user, interface_id: int) -> Response:
+    def post(self, request: Request, user: User, interface_id: int) -> Response:
         """
         Enroll in authenticator interface
         `````````````````````````````````

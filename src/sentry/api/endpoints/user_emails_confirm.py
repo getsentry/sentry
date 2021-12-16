@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.validators import AllowedEmailField
-from sentry.models import UserEmail
+from sentry.models import User, UserEmail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger("sentry.accounts")
@@ -40,7 +40,7 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
         }
     }
 
-    def post(self, request: Request, user) -> Response:
+    def post(self, request: Request, user: User) -> Response:
         """
         Sends a confirmation email to user
         ``````````````````````````````````

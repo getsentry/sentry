@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
+from sentry.models import User
 from social_auth.backends import get_backend
 from social_auth.models import UserSocialAuth
 
@@ -11,7 +12,7 @@ logger = logging.getLogger("sentry.accounts")
 
 
 class UserSocialIdentityDetailsEndpoint(UserEndpoint):
-    def delete(self, request: Request, user, identity_id: int) -> Response:
+    def delete(self, request: Request, user: User, identity_id: int) -> Response:
         """
         Disconnect a Identity from Account
         ```````````````````````````````````````````````````````

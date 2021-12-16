@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import features, options
 from sentry.app import ratelimiter
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.models import Authenticator
+from sentry.models import Authenticator, User
 from sentry.utils import auth, json
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.frontend.base import BaseView
@@ -22,13 +22,13 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 class TwoFactorAuthView(BaseView):
     auth_required = False
 
-    def _check_can_webauthn_signin(self, user, request_user):
+    def _check_can_webauthn_signin(self, user: User, request_user):
         orgs = user.get_orgs()
         return any(
             features.has("organizations:webauthn-login", org, actor=request_user) for org in orgs
         )
 
-    def perform_signin(self, request: Request, user, interface=None):
+    def perform_signin(self, request: Request, user: User, interface=None):
         assert auth.login(request, user, passed_2fa=True)
         rv = HttpResponseRedirect(auth.get_login_redirect(request))
         if interface is not None:
@@ -42,7 +42,7 @@ class TwoFactorAuthView(BaseView):
                 )
         return rv
 
-    def fail_signin(self, request: Request, user, form):
+    def fail_signin(self, request: Request, user: User, form):
         # Ladies and gentlemen: the world's shittiest bruteforce
         # prevention.
         time.sleep(2.0)

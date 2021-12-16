@@ -3,6 +3,8 @@ import logging
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
@@ -51,12 +53,8 @@ def add_email(email, user):
     return new_email
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 class UserEmailsEndpoint(UserEndpoint):
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Get list of emails
         ``````````````````
@@ -71,7 +69,7 @@ class UserEmailsEndpoint(UserEndpoint):
         return self.respond(serialize(list(emails), user=user))
 
     @sudo_required
-    def post(self, request: Request, user) -> Response:
+    def post(self, request: Request, user: User) -> Response:
         """
         Adds a secondary email address
         ``````````````````````````````
@@ -106,7 +104,7 @@ class UserEmailsEndpoint(UserEndpoint):
             return self.respond(serialize(new_useremail, user=request.user), status=201)
 
     @sudo_required
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         """
         Updates primary email
         `````````````````````
@@ -200,7 +198,7 @@ class UserEmailsEndpoint(UserEndpoint):
         return self.respond(serialize(new_useremail, user=request.user))
 
     @sudo_required
-    def delete(self, request: Request, user) -> Response:
+    def delete(self, request: Request, user: User) -> Response:
         """
         Removes an email from account
         `````````````````````````````

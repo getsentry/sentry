@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import Serializer, serialize
-from sentry.models import NotificationSetting, UserOption
+from sentry.models import NotificationSetting, User, UserOption
 from sentry.notifications.types import NotificationScopeType, UserOptionsSettingsKey
 from sentry.notifications.utils.legacy_mappings import (
     USER_OPTION_SETTINGS,
@@ -73,11 +73,11 @@ class UserNotificationDetailsSerializer(serializers.Serializer):
 
 
 class UserNotificationDetailsEndpoint(UserEndpoint):
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         serialized = serialize(user, request.user, UserNotificationsSerializer())
         return Response(serialized)
 
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         serializer = UserNotificationDetailsSerializer(data=request.data)
 
         if not serializer.is_valid():

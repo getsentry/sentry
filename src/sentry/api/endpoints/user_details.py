@@ -114,7 +114,7 @@ class DeleteUserSerializer(serializers.Serializer):
 
 
 class UserDetailsEndpoint(UserEndpoint):
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Retrieve User Details
         `````````````````````
@@ -126,7 +126,7 @@ class UserDetailsEndpoint(UserEndpoint):
         """
         return Response(serialize(user, request.user, DetailedUserSerializer()))
 
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         """
         Update Account Appearance options
         `````````````````````````````````
@@ -189,7 +189,7 @@ class UserDetailsEndpoint(UserEndpoint):
         return Response(serialize(user, request.user, DetailedUserSerializer()))
 
     @sudo_required
-    def delete(self, request: Request, user) -> Response:
+    def delete(self, request: Request, user: User) -> Response:
         """
         Delete User Account
 

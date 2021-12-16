@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.auth import password_validation
+from sentry.models import User
 from sentry.security import capture_security_activity
 
 
@@ -42,7 +43,7 @@ class UserPasswordSerializer(serializers.Serializer):
 
 
 class UserPasswordEndpoint(UserEndpoint):
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         # pass some context to serializer otherwise when we create a new serializer instance,
         # user.password gets set to new plaintext password from request and
         # `user.has_usable_password` becomes False

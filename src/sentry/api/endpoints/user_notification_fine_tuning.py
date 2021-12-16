@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
-from sentry.models import NotificationSetting, Project, UserEmail, UserOption
+from sentry.models import NotificationSetting, Project, User, UserEmail, UserOption
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.notifications.utils.legacy_mappings import (
     get_option_value_from_int,
@@ -23,7 +23,7 @@ INVALID_USER_MSG = (
 
 
 class UserNotificationFineTuningEndpoint(UserEndpoint):
-    def get(self, request: Request, user, notification_type) -> Response:
+    def get(self, request: Request, user: User, notification_type) -> Response:
         try:
             notification_type = FineTuningAPIKey(notification_type)
         except ValueError:
@@ -42,7 +42,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             )
         )
 
-    def put(self, request: Request, user, notification_type) -> Response:
+    def put(self, request: Request, user: User, notification_type) -> Response:
         """
         Update user notification options
         ````````````````````````````````
