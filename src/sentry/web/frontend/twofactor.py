@@ -18,13 +18,11 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 class TwoFactorAuthView(BaseView):
     auth_required = False
 
-    def _is_webauthn_signin_ff_enabled(self, user, request_user):
+    def _check_can_webauthn_signin(self, user, request_user):
         orgs = user.get_orgs()
-        if any(
+        return any(
             features.has("organizations:webauthn-login", org, actor=request_user) for org in orgs
-        ):
-            return True
-        return False
+        )
 
     def perform_signin(self, request, user, interface=None):
         assert auth.login(request, user, passed_2fa=True)
@@ -151,7 +149,7 @@ class TwoFactorAuthView(BaseView):
             self.fail_signin(request, user, form)
 
         # check if webauthn-login feature flag is enabled for frontend
-        webauthn_signin_ff = self._is_webauthn_signin_ff_enabled(user, request.user)
+        webauthn_signin_ff = self._check_can_webauthn_signin(user, request.user)
 
         #  If a challenge and response exists, validate
         if challenge:

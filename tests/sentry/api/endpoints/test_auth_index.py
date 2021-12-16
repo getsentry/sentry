@@ -3,7 +3,7 @@ from unittest import mock
 
 from django.test import override_settings
 
-from sentry.models import AuthProvider
+from sentry.models import Authenticator, AuthProvider
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import AuthProviderTestCase
 
@@ -47,6 +47,34 @@ class AuthLoginEndpointTest(APITestCase):
 class AuthVerifyEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
+    def get_auth(self, user):
+        return Authenticator.objects.create(
+            type=3,  # u2f
+            user=user,
+            config={
+                "devices": [
+                    {
+                        "binding": {
+                            "publicKey": "aowekroawker",
+                            "keyHandle": "devicekeyhandle",
+                            "appId": "https://testserver/auth/2fa/u2fappid.json",
+                        },
+                        "name": "Amused Beetle",
+                        "ts": 1512505334,
+                    },
+                    {
+                        "binding": {
+                            "publicKey": "publickey",
+                            "keyHandle": "aowerkoweraowerkkro",
+                            "appId": "https://testserver/auth/2fa/u2fappid.json",
+                        },
+                        "name": "Sentry",
+                        "ts": 1512505334,
+                    },
+                ]
+            },
+        )
+
     def test_valid_password(self):
         user = self.create_user("foo@example.com")
         self.login_as(user)
@@ -65,6 +93,30 @@ class AuthVerifyEndpointTest(APITestCase):
         self.login_as(user)
         response = self.client.put(self.path, data={})
         assert response.status_code == 400
+
+    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
+    def test_valid_password_u2f(self, validate_response, is_available):
+        user = self.create_user("foo@example.com")
+        self.org = self.create_organization(owner=user, name="foo")
+        self.login_as(user)
+        self.get_auth(user)
+        self.features = {"organizations:webauthn-signin": True}
+        with self.feature(self.features):
+            response = self.client.put(
+                self.path,
+                user=user,
+                data={
+                    "password": "admin",
+                    "challenge": """{"challenge":"challenge"}""",
+                    "response": """{"response":"response"}""",
+                },
+            )
+            assert response.status_code == 200
+            assert validate_response.call_count == 1
+            assert {"challenge": "challenge"} in validate_response.call_args[0]
+            assert {"response": "response"} in validate_response.call_args[0]
+            assert True in validate_response.call_args[0]
 
 
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
