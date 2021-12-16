@@ -6,6 +6,7 @@ import {Layout, Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
 
@@ -90,6 +91,19 @@ class Dashboard extends Component<Props, State> {
         [MOBILE]: getMobileLayout(props.layout, props.dashboard.widgets),
       },
     };
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    if (!isEqual(props.layout, state.layouts[DESKTOP])) {
+      return {
+        ...state,
+        layouts: {
+          [DESKTOP]: props.layout,
+          [MOBILE]: getMobileLayout(props.layout, props.dashboard.widgets),
+        },
+      };
+    }
+    return null;
   }
 
   async componentDidMount() {
