@@ -27,19 +27,23 @@ class EntitySubscriptionTestCase(TestCase):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.SESSIONS,
                 aggregate=aggregate,
+                time_window=3600,
                 extra_fields={"org_id": self.organization.id},
             )
 
     def test_get_entity_subscriptions_for_sessions_dataset_missing_organization(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         with self.assertRaises(InvalidQuerySubscription):
-            get_entity_subscription_for_dataset(dataset=QueryDatasets.SESSIONS, aggregate=aggregate)
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.SESSIONS, aggregate=aggregate, time_window=3600
+            )
 
     def test_get_entity_subscriptions_for_sessions_dataset(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.SESSIONS,
             aggregate=aggregate,
+            time_window=3600,
             extra_fields={"org_id": self.organization.id},
         )
         assert isinstance(entity_subscription, SessionsEntitySubscription)
@@ -67,13 +71,16 @@ class EntitySubscriptionTestCase(TestCase):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.METRICS,
                 aggregate=aggregate,
+                time_window=3600,
                 extra_fields={"org_id": self.organization.id},
             )
 
     def test_get_entity_subscription_for_metrics_dataset_missing_organization(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         with self.assertRaises(InvalidQuerySubscription):
-            get_entity_subscription_for_dataset(dataset=QueryDatasets.METRICS, aggregate=aggregate)
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.METRICS, aggregate=aggregate, time_window=3600
+            )
 
     def test_get_entity_subscription_for_metrics_dataset_unsupported_crash_free_users(self) -> None:
         aggregate = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -81,6 +88,7 @@ class EntitySubscriptionTestCase(TestCase):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.METRICS,
                 aggregate=aggregate,
+                time_window=3600,
                 extra_fields={"org_id": self.organization.id},
             )
 
@@ -89,6 +97,7 @@ class EntitySubscriptionTestCase(TestCase):
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             aggregate=aggregate,
+            time_window=3600,
             extra_fields={"org_id": self.organization.id},
         )
         assert isinstance(entity_subscription, MetricsCountersEntitySubscription)
@@ -98,6 +107,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id,
             "groupby": groupby,
+            "granularity": 10,
         }
         assert entity_subscription.entity_key == EntityKey.MetricsCounters
         assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsCounters]
@@ -112,11 +122,12 @@ class EntitySubscriptionTestCase(TestCase):
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == groupby
+        assert snuba_filter.rollup == entity_subscription.get_granularity()
 
     def test_get_entity_subscription_for_transactions_dataset(self) -> None:
         aggregate = "percentile(transaction.duration,.95)"
         entity_subscription = get_entity_subscription_for_dataset(
-            dataset=QueryDatasets.TRANSACTIONS, aggregate=aggregate
+            dataset=QueryDatasets.TRANSACTIONS, aggregate=aggregate, time_window=3600
         )
         assert isinstance(entity_subscription, TransactionsEntitySubscription)
         assert entity_subscription.aggregate == aggregate
@@ -133,7 +144,7 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_for_events_dataset(self) -> None:
         aggregate = "count_unique(user)"
         entity_subscription = get_entity_subscription_for_dataset(
-            dataset=QueryDatasets.EVENTS, aggregate=aggregate
+            dataset=QueryDatasets.EVENTS, aggregate=aggregate, time_window=3600
         )
         assert isinstance(entity_subscription, EventsEntitySubscription)
         assert entity_subscription.aggregate == aggregate

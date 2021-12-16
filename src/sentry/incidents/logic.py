@@ -292,6 +292,7 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
     entity_subscription = get_entity_subscription_for_dataset(
         dataset=QueryDatasets(snuba_query.dataset),
         aggregate=snuba_query.aggregate,
+        time_window=snuba_query.time_window,
         extra_fields={"org_id": incident.organization.id, "event_types": snuba_query.event_types},
     )
     snuba_filter = build_snuba_filter(

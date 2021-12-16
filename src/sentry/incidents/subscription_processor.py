@@ -179,6 +179,7 @@ class SubscriptionProcessor:
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets(snuba_query.dataset),
             aggregate=snuba_query.aggregate,
+            time_window=snuba_query.time_window,
             extra_fields={
                 "org_id": self.subscription.project.organization,
                 "event_types": snuba_query.event_types,
