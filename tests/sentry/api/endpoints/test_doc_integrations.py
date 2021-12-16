@@ -12,14 +12,17 @@ class DocIntegrationsTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="jinx@lol.com")
         self.superuser = self.create_user(email="vi@lol.com", is_superuser=True)
-        self.doc_1 = self.create_doc_integration(name="test_1", is_draft=False)
-        self.doc_2 = self.create_doc_integration(name="test_2", is_draft=True)
+        self.doc_1 = self.create_doc_integration(name="test_1", is_draft=False, has_avatar=True)
+        self.doc_2 = self.create_doc_integration(name="test_2", is_draft=True, has_avatar=True)
         self.doc_3 = self.create_doc_integration(
             name="test_3",
             is_draft=False,
             metadata={"resources": [{"title": "Documentation", "url": "https://docs.sentry.io/"}]},
             features=[2, 3, 4],
         )
+
+    def get_avatars(self, resp):
+        return [doc.get("avatar") for doc in resp.data]
 
 
 class GetDocIntegrationsTest(DocIntegrationsTest):
@@ -28,13 +31,18 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
     def test_read_docs_for_superuser(self):
         """
         Tests that all DocIntegrations are returned for super users,
-        along with serialized versions of their IntegrationFeatures
+        along with serialized versions of their avatars and IntegrationFeatures
         """
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status_code=status.HTTP_200_OK)
         assert len(response.data) == 3
         for doc in [self.doc_1, self.doc_2, self.doc_3]:
             assert serialize(doc) in response.data
+        # Check that DocIntegrationAvatars were serialized
+        for doc in [self.doc_1, self.doc_2]:
+            assert doc.avatar.exists()
+            assert serialize(doc.avatar.get()) in self.get_avatars(response)
+        # Check that IntegrationFeatures were also serialized
         features = IntegrationFeature.objects.filter(
             target_id=self.doc_3.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
         )
@@ -44,13 +52,16 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
     def test_read_docs_public(self):
         """
         Tests that only non-draft DocIntegrations are returned for users,
-        along with serialized versions of their IntegrationFeatures
+        along with serialized versions of their avatars and IntegrationFeatures
         """
         self.login_as(user=self.user)
         response = self.get_success_response(status_code=status.HTTP_200_OK)
         assert len(response.data) == 2
         for doc in [self.doc_1, self.doc_3]:
             assert serialize(doc) in response.data
+        # Check that the DocIntegrationAvatar was serialized
+        assert self.doc_1.avatar.exists()
+        assert serialize(self.doc_1.avatar.get()) in self.get_avatars(response)
         # Check that IntegrationFeatures were also serialized
         features = IntegrationFeature.objects.filter(
             target_id=self.doc_3.id, target_type=IntegrationTypes.DOC_INTEGRATION.value

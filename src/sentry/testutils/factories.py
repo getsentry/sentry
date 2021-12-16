@@ -890,7 +890,7 @@ class Factories:
         return _kwargs
 
     @staticmethod
-    def create_doc_integration(features=None, has_avatar: bool = True, **kwargs) -> DocIntegration:
+    def create_doc_integration(features=None, has_avatar: bool = False, **kwargs) -> DocIntegration:
         doc = DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
         if features:
             Factories.create_doc_integration_features(features=features, doc_integration=doc)
