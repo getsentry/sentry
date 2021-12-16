@@ -267,6 +267,7 @@ class Dashboard extends Component<Props, State> {
 
   onLayoutChange = (_, allLayouts) => {
     const {onLayoutChange} = this.props;
+    const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
       [MOBILE]: allLayouts[MOBILE].filter(isNotAddButton),
@@ -360,10 +361,6 @@ export function assignTempId(widget) {
   }
 
   return {...widget, tempId: uniqueId()};
-}
-
-function isNotAddButton({i}) {
-  return i !== ADD_WIDGET_BUTTON_DRAG_ID;
 }
 
 /**
