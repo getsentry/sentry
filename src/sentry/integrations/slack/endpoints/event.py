@@ -135,7 +135,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 organization
                 and link_type == LinkType.DISCOVER
                 and not slack_request.has_identity
-                and features.has("organizations:chart-unfurls", organization, actor=request.user)
+                and features.has("organizations:discover-basic", organization, actor=request.user)
             ):
                 analytics.record(
                     "integrations.slack.chart_unfurl",

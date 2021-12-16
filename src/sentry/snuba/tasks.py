@@ -7,9 +7,11 @@ from snuba_sdk.legacy import json_to_snql
 
 from sentry.eventstore import Filter
 from sentry.models import Any, Environment, Mapping, Optional
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
     BaseEntitySubscription,
-    map_aggregate_to_entity_subscription,
+    get_entity_subscription_for_dataset,
+    map_aggregate_to_entity_key,
 )
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.tasks.base import instrumented_task
@@ -46,9 +48,15 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
         # This mostly shouldn't happen, but it's possible that a subscription can get
         # into this state. Just attempt to delete the existing subscription and then
         # create a new one.
+        query_dataset = QueryDatasets(subscription.snuba_query.dataset)
+        entity_key: EntityKey = map_aggregate_to_entity_key(
+            query_dataset, subscription.snuba_query.aggregate
+        )
         try:
             _delete_from_snuba(
-                QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id
+                query_dataset,
+                subscription.subscription_id,
+                entity_key,
             )
         except SnubaError:
             logger.exception("Failed to delete subscription")
@@ -83,7 +91,14 @@ def update_subscription_in_snuba(query_subscription_id, old_dataset=None, **kwar
 
     if subscription.subscription_id is not None:
         dataset = old_dataset if old_dataset is not None else subscription.snuba_query.dataset
-        _delete_from_snuba(QueryDatasets(dataset), subscription.subscription_id)
+        entity_key: EntityKey = map_aggregate_to_entity_key(
+            QueryDatasets(dataset), subscription.snuba_query.aggregate
+        )
+        _delete_from_snuba(
+            QueryDatasets(dataset),
+            subscription.subscription_id,
+            entity_key,
+        )
 
     subscription_id = _create_in_snuba(subscription)
     subscription.update(
@@ -118,8 +133,14 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         return
 
     if subscription.subscription_id is not None:
+        query_dataset = QueryDatasets(subscription.snuba_query.dataset)
+        entity_key: EntityKey = map_aggregate_to_entity_key(
+            query_dataset, subscription.snuba_query.aggregate
+        )
         _delete_from_snuba(
-            QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id
+            query_dataset,
+            subscription.subscription_id,
+            entity_key,
         )
 
     if subscription.status == QuerySubscription.Status.DELETING.value:
@@ -139,9 +160,10 @@ def build_snuba_filter(
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
     snuba_query = subscription.snuba_query
-    entity_subscription = map_aggregate_to_entity_subscription(
+    entity_subscription = get_entity_subscription_for_dataset(
         dataset=QueryDatasets(snuba_query.dataset),
         aggregate=snuba_query.aggregate,
+        time_window=snuba_query.time_window,
         extra_fields={
             "org_id": subscription.project.organization_id,
             "event_types": snuba_query.event_types,
@@ -188,8 +210,10 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
     return json.loads(response.data)["subscription_id"]
 
 
-def _delete_from_snuba(dataset: QueryDatasets, subscription_id: str) -> None:
-    response = _snuba_pool.urlopen("DELETE", f"/{dataset.value}/subscriptions/{subscription_id}")
+def _delete_from_snuba(dataset: QueryDatasets, subscription_id: str, entity_key: EntityKey) -> None:
+    response = _snuba_pool.urlopen(
+        "DELETE", f"/{dataset.value}/{entity_key.value}/subscriptions/{subscription_id}"
+    )
     if response.status != 202:
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
 

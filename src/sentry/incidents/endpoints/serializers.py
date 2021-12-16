@@ -45,7 +45,7 @@ from sentry.mediators import alert_rule_actions
 from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.entity_subscription import map_aggregate_to_entity_subscription
+from sentry.snuba.entity_subscription import get_entity_subscription_for_dataset
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils import json
@@ -484,9 +484,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             project_id = list(self.context["organization"].project_set.all()[:1])
 
         try:
-            entity_subscription = map_aggregate_to_entity_subscription(
+            entity_subscription = get_entity_subscription_for_dataset(
                 dataset=QueryDatasets(data["dataset"]),
                 aggregate=data["aggregate"],
+                time_window=int(timedelta(minutes=data["time_window"]).total_seconds()),
                 extra_fields={
                     "org_id": project_id[0].organization_id,
                     "event_types": data.get("event_types"),

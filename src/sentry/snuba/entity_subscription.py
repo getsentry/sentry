@@ -2,7 +2,7 @@ import re
 from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
-from typing import Any, List, Mapping, Optional, TypedDict
+from typing import Any, List, Mapping, Optional, Type, TypedDict, Union
 
 from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
@@ -90,7 +90,9 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     entities to support subscriptions (alerts), we need to decouple this logic.
     """
 
-    def __init__(self, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None):
+    def __init__(
+        self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
+    ):
         self.time_col = ENTITY_TIME_COLUMNS[self.entity_key]
 
     @abstractmethod
@@ -108,8 +110,10 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
 
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
-    def __init__(self, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None):
-        super().__init__(aggregate, extra_fields)
+    def __init__(
+        self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
+    ):
+        super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
         self.event_types = None
         if extra_fields:
@@ -155,8 +159,10 @@ class SessionsEntitySubscription(BaseEntitySubscription):
     dataset = QueryDatasets.SESSIONS
     entity_key = EntityKey.Sessions
 
-    def __init__(self, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None):
-        super().__init__(aggregate, extra_fields)
+    def __init__(
+        self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
+    ):
+        super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
         if not extra_fields or "org_id" not in extra_fields:
             raise InvalidQuerySubscription(
@@ -204,8 +210,10 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
     dataset = QueryDatasets.METRICS
     entity_key = EntityKey.MetricsCounters
 
-    def __init__(self, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None):
-        super().__init__(aggregate, extra_fields)
+    def __init__(
+        self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
+    ):
+        super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
         if not extra_fields or "org_id" not in extra_fields:
             raise InvalidQuerySubscription(
@@ -214,9 +222,26 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
             )
         self.org_id = extra_fields["org_id"]
         self.session_status = tag_key(self.org_id, "session.status")
+        self.time_window = time_window
 
     def get_query_groupby(self) -> List[str]:
         return [self.session_status]
+
+    def get_granularity(self) -> int:
+        # Both time_window and granularity are in seconds
+        # Time windows <= 1h -> Granularity 10s
+        # Time windows > 1h & <= 4h -> Granularity 60s
+        # Time windows > 4h and <= 24h -> Granularity 1 hour
+        # Time windows > 24h -> Granularity 1 day
+        if self.time_window <= 3600:
+            granularity = 10
+        elif self.time_window <= 4 * 3600:
+            granularity = 60
+        elif 4 * 3600 < self.time_window <= 24 * 3600:
+            granularity = 3600
+        else:
+            granularity = 24 * 3600
+        return granularity
 
     def build_snuba_filter(
         self,
@@ -235,6 +260,7 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
                     [self.session_status, "IN", session_status_tag_values],
                 ],
                 "groupby": self.get_query_groupby(),
+                "rollup": self.get_granularity(),
             }
         )
         if environment:
@@ -258,43 +284,67 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
         return snuba_filter
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
-        return {"organization": self.org_id, "groupby": self.get_query_groupby()}
+        return {
+            "organization": self.org_id,
+            "groupby": self.get_query_groupby(),
+            "granularity": self.get_granularity(),
+        }
 
 
-def map_aggregate_to_entity_subscription(
-    dataset: QueryDatasets, aggregate: str, extra_fields: Optional[_EntitySpecificParams] = None
-) -> BaseEntitySubscription:
+EntitySubscription = Union[
+    EventsEntitySubscription,
+    MetricsCountersEntitySubscription,
+    TransactionsEntitySubscription,
+    SessionsEntitySubscription,
+]
+ENTITY_KEY_TO_ENTITY_SUBSCRIPTION: Mapping[EntityKey, Type[EntitySubscription]] = {
+    EntityKey.Events: EventsEntitySubscription,
+    EntityKey.MetricsCounters: MetricsCountersEntitySubscription,
+    EntityKey.Sessions: SessionsEntitySubscription,
+    EntityKey.Transactions: TransactionsEntitySubscription,
+}
+
+
+def get_entity_subscription_for_dataset(
+    dataset: QueryDatasets,
+    aggregate: str,
+    time_window: int,
+    extra_fields: Optional[_EntitySpecificParams] = None,
+) -> EntitySubscription:
     """
     Function that routes to the correct instance of `EntitySubscription` based on the dataset,
     additionally does validation on aggregate for datasets like the sessions dataset and the
     metrics datasets then returns the instance of `EntitySubscription`
     """
-    entity_subscription: BaseEntitySubscription
-    if dataset == QueryDatasets.SESSIONS:
-        match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
-        if not match:
-            raise UnsupportedQuerySubscription(
-                "Only crash free percentage queries are supported for subscriptions"
-                "over the sessions dataset"
-            )
-        entity_subscription = SessionsEntitySubscription(aggregate, extra_fields)
-    elif dataset == QueryDatasets.TRANSACTIONS:
-        entity_subscription = TransactionsEntitySubscription(aggregate, extra_fields)
-    elif dataset == QueryDatasets.METRICS:
-        match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
-        if not match:
-            raise UnsupportedQuerySubscription(
-                "Only crash free percentage queries are supported for subscriptions"
-                "over the metrics dataset"
-            )
+    return ENTITY_KEY_TO_ENTITY_SUBSCRIPTION[map_aggregate_to_entity_key(dataset, aggregate)](
+        aggregate, time_window, extra_fields
+    )
 
-        count_col_matched = match.group(2)
-        if count_col_matched == "sessions":
-            entity_subscription = MetricsCountersEntitySubscription(aggregate, extra_fields)
-        else:
+
+def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> Optional[EntityKey]:
+    if dataset == QueryDatasets.EVENTS:
+        entity_key = EntityKey.Events
+    elif dataset == QueryDatasets.TRANSACTIONS:
+        entity_key = EntityKey.Transactions
+    elif dataset in [QueryDatasets.METRICS, QueryDatasets.SESSIONS]:
+        match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
+        if not match:
             raise UnsupportedQuerySubscription(
-                "Crash Free Users subscriptions are not supported yet"
+                f"Only crash free percentage queries are supported for subscriptions"
+                f"over the {dataset.value} dataset"
             )
+        if dataset == QueryDatasets.METRICS:
+            count_col_matched = match.group(2)
+            if count_col_matched == "sessions":
+                entity_key = EntityKey.MetricsCounters
+            else:
+                raise UnsupportedQuerySubscription(
+                    "Crash Free Users subscriptions are not supported yet"
+                )
+        else:
+            entity_key = EntityKey.Sessions
     else:
-        entity_subscription = EventsEntitySubscription(aggregate, extra_fields)
-    return entity_subscription
+        raise UnsupportedQuerySubscription(
+            f"{dataset} dataset does not have an entity key mapped to it"
+        )
+    return entity_key

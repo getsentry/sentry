@@ -1,14 +1,13 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 
-import {Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  organization: Organization;
   children: React.ReactNode;
 };
 
-function AlertsContainer({organization, children}: Props) {
+function AlertsContainer({children}: Props) {
+  const organization = useOrganization();
   const hasMetricAlerts = organization.features.includes('incidents');
 
   const content =
@@ -22,4 +21,4 @@ function AlertsContainer({organization, children}: Props) {
   return <Fragment>{content}</Fragment>;
 }
 
-export default withOrganization(AlertsContainer);
+export default AlertsContainer;
