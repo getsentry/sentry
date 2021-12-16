@@ -191,17 +191,6 @@ class Incident(Model):
         return self.current_end_date - self.date_started
 
 
-class RenamedModel(Model):
-    __include_in_export__ = False
-
-    mycol = models.DateTimeField()
-    mycol_2 = models.PositiveSmallIntegerField(null=True)
-
-    class Meta:
-        app_label = "sentry"
-        db_tablespace = "test"
-
-
 class PendingIncidentSnapshot(Model):
     __include_in_export__ = True
 
