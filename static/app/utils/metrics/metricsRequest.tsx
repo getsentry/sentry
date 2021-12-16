@@ -122,7 +122,7 @@ class MetricsRequest extends React.Component<Props, State> {
     if (!previousPeriod) {
       return {
         ...commonQuery,
-        statsPeriod: statsPeriod || undefined,
+        statsPeriod,
         start: start ?? undefined,
         end: end ?? undefined,
       };
