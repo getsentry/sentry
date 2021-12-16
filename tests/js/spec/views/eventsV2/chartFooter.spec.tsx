@@ -95,6 +95,9 @@ describe('EventsV2 > ChartFooter', function () {
   });
 
   it('renders display limits with default limit when top 5 mode is selected', async function () {
+    const organization = TestStubs.Organization({
+      features,
+    });
     // Start off with an invalid view (empty is invalid)
     const initialData = initializeOrg({
       organization,
