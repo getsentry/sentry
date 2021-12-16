@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
@@ -22,7 +23,7 @@ class CommentSerializer(serializers.Serializer, MentionsMixin):
 class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
     permission_classes = (IncidentPermission,)
 
-    def post(self, request, organization, incident):
+    def post(self, request: Request, organization, incident) -> Response:
         serializer = CommentSerializer(
             data=request.data,
             context={
