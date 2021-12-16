@@ -175,6 +175,7 @@ class Dashboard extends Component<Props> {
 
     const widgetCopy = cloneDeep(widget);
     widgetCopy.id = undefined;
+    widgetCopy.tempId = undefined;
 
     const nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);

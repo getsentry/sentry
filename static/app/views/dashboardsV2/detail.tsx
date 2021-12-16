@@ -496,7 +496,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboard: modifiedDashboard ?? dashboard,
       organization,
       isEditing: this.isEditing,
-      widgetLimitReached: dashboard.widgets.length >= MAX_WIDGETS,
+      widgetLimitReached: this.widgetLimitReached,
       onUpdate: this.onUpdateWidget,
       onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
       handleAddLibraryWidgets: this.handleAddLibraryWidgets,
@@ -533,7 +533,7 @@ class DashboardDetail extends Component<Props, State> {
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
                 dashboardState={dashboardState}
-                widgetLimitReached={dashboard.widgets.length >= MAX_WIDGETS}
+                widgetLimitReached={this.widgetLimitReached}
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
@@ -563,7 +563,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboard: modifiedDashboard ?? dashboard,
       organization,
       isEditing: this.isEditing,
-      widgetLimitReached: dashboard.widgets.length >= MAX_WIDGETS,
+      widgetLimitReached: this.widgetLimitReached,
       onUpdate: this.onUpdateWidget,
       handleAddLibraryWidgets: this.handleAddLibraryWidgets,
       onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
@@ -623,7 +623,7 @@ class DashboardDetail extends Component<Props, State> {
                   onAddWidget={this.onAddWidget}
                   onDelete={this.onDelete(dashboard)}
                   dashboardState={dashboardState}
-                  widgetLimitReached={dashboard.widgets.length >= MAX_WIDGETS}
+                  widgetLimitReached={this.widgetLimitReached}
                 />
               </Layout.HeaderActions>
             </Layout.Header>
