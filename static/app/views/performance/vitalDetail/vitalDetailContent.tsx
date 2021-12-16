@@ -212,7 +212,7 @@ class VitalDetailContent extends React.Component<Props, State> {
           >
             {({loading: isLoading, response}) => {
               const p75AllTransactions = response?.groups.reduce(
-                (acc, group) => acc + group.totals[field],
+                (acc, group) => acc + (group.totals[field] ?? 0),
                 0
               );
               return (
