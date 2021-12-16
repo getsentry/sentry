@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 from django.db import transaction
+from rest_framework.request import Request
+from rest_framework.response import Response
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
@@ -16,7 +18,7 @@ from sentry.utils import snuba
 
 
 class GroupHashesSplitEndpoint(GroupEndpoint):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """
         Return information on whether the group can be split up, has been split
         up and what it will be split up into.
@@ -27,7 +29,7 @@ class GroupHashesSplitEndpoint(GroupEndpoint):
 
         return self.respond(_render_trees(group, request.user), status=200)
 
-    def put(self, request, group):
+    def put(self, request: Request, group) -> Response:
         """
         Split up a group into subgroups
         ```````````````````````````````
@@ -68,7 +70,7 @@ class GroupHashesSplitEndpoint(GroupEndpoint):
 
         return self.respond(status=200)
 
-    def delete(self, request, group):
+    def delete(self, request: Request, group) -> Response:
         """
         Un-split group(s) into their parent group
         `````````````````````````````````````````

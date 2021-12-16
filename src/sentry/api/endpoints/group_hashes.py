@@ -1,5 +1,6 @@
 from functools import partial
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -12,7 +13,7 @@ from sentry.utils.snuba import raw_query
 
 
 class GroupHashesEndpoint(GroupEndpoint):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """
         List an Issue's Hashes
         ``````````````````````
@@ -44,7 +45,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
-    def delete(self, request, group):
+    def delete(self, request: Request, group) -> Response:
         id_list = request.GET.getlist("id")
         if id_list is None:
             return Response()
