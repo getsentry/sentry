@@ -62,7 +62,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
                 "This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST
             )
 
-    def _verify_user_has_permission(self, request, alert_rule):
+    def _verify_user_has_permission(self, request: Request, alert_rule):
         if not is_active_superuser(request):
             if alert_rule.owner and alert_rule.owner.type == ACTOR_TYPES["team"]:
                 team = alert_rule.owner.resolve()

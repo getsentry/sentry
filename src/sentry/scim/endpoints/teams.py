@@ -52,7 +52,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     def team_serializer_for_post(self):
         return TeamSCIMSerializer(expand=["members"])
 
-    def should_add_creator_to_team(self, request):
+    def should_add_creator_to_team(self, request: Request):
         return False
 
     def get(self, request: Request, organization) -> Response:
@@ -124,7 +124,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         )
         return Response(context)
 
-    def _add_members_operation(self, request, operation, team):
+    def _add_members_operation(self, request: Request, operation, team):
         for member in operation["value"]:
             member = OrganizationMember.objects.get(
                 organization=team.organization, id=member["value"]
@@ -144,7 +144,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     data=omt.get_audit_log_data(),
                 )
 
-    def _remove_members_operation(self, request, member_id, team):
+    def _remove_members_operation(self, request: Request, member_id, team):
         member = OrganizationMember.objects.get(organization=team.organization, id=member_id)
         with transaction.atomic():
             try:
@@ -162,7 +162,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             )
             omt.delete()
 
-    def _rename_team_operation(self, request, new_name, team):
+    def _rename_team_operation(self, request: Request, new_name, team):
         serializer = TeamSerializer(
             team,
             data={"name": new_name, "slug": slugify(new_name)},
@@ -178,7 +178,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 data=team.get_audit_log_data(),
             )
 
-    def patch(self, request, organization, team):
+    def patch(self, request: Request, organization, team):
         """
         A SCIM Group PATCH request takes a series of operations to perform on a team.
         It does them sequentially and if any of them fail no operations should go through.

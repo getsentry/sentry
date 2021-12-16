@@ -37,7 +37,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
     # NOTE: This used to be called setup, but since Django 2.2 it's a View method.
     #       We don't fit its semantics, but I couldn't think of a better name, and
     #       it's only used in child classes.
-    def _setup(self, request, organization):
+    def _setup(self, request: Request, organization):
         if not self.has_feature(organization, request):
             raise Http404
 

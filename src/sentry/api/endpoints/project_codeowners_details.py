@@ -22,7 +22,7 @@ class ProjectCodeOwnersDetailsEndpoint(
     ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin
 ):
     def convert_args(
-        self, request, organization_slug, project_slug, codeowners_id, *args, **kwargs
+        self, request: Request, organization_slug, project_slug, codeowners_id, *args, **kwargs
     ):
         args, kwargs = super().convert_args(
             request, organization_slug, project_slug, *args, **kwargs

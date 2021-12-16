@@ -12,7 +12,7 @@ class PluginProjectEndpoint(ProjectEndpoint):
     plugin = None
     view = None
 
-    def _handle(self, request, project, *args, **kwargs):
+    def _handle(self, request: Request, project, *args, **kwargs):
         if self.view is None:
             return Response(status=405)
         return self.view(request, project, *args, **kwargs)
@@ -35,7 +35,7 @@ class PluginGroupEndpoint(GroupEndpoint):
     plugin = None
     view = None
 
-    def _handle(self, request, group, *args, **kwargs):
+    def _handle(self, request: Request, group, *args, **kwargs):
         if self.view is None:
             return Response(status=405)
 

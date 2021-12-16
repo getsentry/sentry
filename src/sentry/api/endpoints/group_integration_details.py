@@ -26,7 +26,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         return has_issue_sync or has_issue_basic
 
-    def create_issue_activity(self, request, group, installation, external_issue):
+    def create_issue_activity(self, request: Request, group, installation, external_issue):
         issue_information = {
             "title": external_issue.title,
             "provider": installation.model.get_provider().name,

@@ -124,7 +124,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def should_add_creator_to_team(self, request):
+    def should_add_creator_to_team(self, request: Request):
         return request.user.is_authenticated
 
     def post(self, request: Request, organization, **kwargs) -> Response:

@@ -66,7 +66,7 @@ class PipelineView(BaseView):
         """
         raise NotImplementedError
 
-    def render_react_view(self, request, pipelineName, props):
+    def render_react_view(self, request: Request, pipelineName, props):
         return render_to_response(
             template="sentry/bases/react_pipeline.html",
             request=request,
@@ -217,7 +217,9 @@ class Pipeline:
     def get_provider(self, provider_key: str):
         return self.provider_manager.get(provider_key)
 
-    def __init__(self, request, provider_key, organization=None, provider_model=None, config=None):
+    def __init__(
+        self, request: Request, provider_key, organization=None, provider_model=None, config=None
+    ):
         self.request = request
         self.organization = organization
         self.state = self.session_store_cls(

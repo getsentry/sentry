@@ -83,7 +83,7 @@ class AuthIndexEndpoint(Endpoint):
 
         return self.get(request)
 
-    def put(self, request):
+    def put(self, request: Request):
         """
         Verify a User
         `````````````

@@ -12,7 +12,7 @@ from sentry.models import AuditLogEntryEvent, ObjectStatus, ServiceHook
 
 
 class ProjectServiceHooksEndpoint(ProjectEndpoint):
-    def has_feature(self, request, project):
+    def has_feature(self, request: Request, project):
         return features.has("projects:servicehooks", project=project, actor=request.user)
 
     def get(self, request: Request, project) -> Response:

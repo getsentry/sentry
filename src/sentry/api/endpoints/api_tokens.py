@@ -50,7 +50,7 @@ class ApiTokensEndpoint(Endpoint):
             return Response(serialize(token, request.user), status=201)
         return Response(serializer.errors, status=400)
 
-    def delete(self, request):
+    def delete(self, request: Request):
         token = request.data.get("token")
         if not token:
             return Response({"token": ""}, status=400)

@@ -24,7 +24,7 @@ from rest_framework.response import Response
 class BroadcastIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
-    def _get_serializer(self, request):
+    def _get_serializer(self, request: Request):
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastSerializer
         return BroadcastSerializer
@@ -33,7 +33,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
         serializer_cls = self._get_serializer(request)
         return serialize(items, request.user, serializer=serializer_cls())
 
-    def _secondary_filtering(self, request, organization_slug, queryset):
+    def _secondary_filtering(self, request: Request, organization_slug, queryset):
         # used in the SASS product
         return list(queryset)
 
@@ -106,7 +106,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
             paginator_cls=paginator_cls,
         )
 
-    def put(self, request):
+    def put(self, request: Request):
         validator = BroadcastValidator(data=request.data, partial=True)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)

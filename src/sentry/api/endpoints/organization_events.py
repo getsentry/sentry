@@ -92,7 +92,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
 
 class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
-    def has_feature(self, request, organization):
+    def has_feature(self, request: Request, organization):
         return features.has("organizations:dashboards-basic", organization, actor=request.user)
 
     def get(self, request: Request, organization) -> Response:

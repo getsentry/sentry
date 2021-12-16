@@ -79,7 +79,7 @@ class SentryAppsPermission(SentryPermission):
         "POST": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request, view, organization):
+    def has_object_permission(self, request: Request, view, organization):
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -104,7 +104,7 @@ class IntegrationPlatformEndpoint(Endpoint):
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppsPermission,)
 
-    def _get_organization_slug(self, request):
+    def _get_organization_slug(self, request: Request):
         organization_slug = request.json_body.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = """
@@ -131,7 +131,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
             """
             raise PermissionDenied(to_single_line_str(error_message))
 
-    def _get_organization(self, request):
+    def _get_organization(self, request: Request):
         organization_slug = self._get_organization_slug(request)
         if is_active_superuser(request):
             return self._get_organization_for_superuser(organization_slug)
@@ -198,7 +198,7 @@ class SentryAppPermission(SentryPermission):
     def scope_map(self):
         return self.published_scope_map
 
-    def has_object_permission(self, request, view, sentry_app):
+    def has_object_permission(self, request: Request, view, sentry_app):
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -253,7 +253,7 @@ class SentryAppInstallationsPermission(SentryPermission):
         "POST": ("org:integrations", "org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request, view, organization):
+    def has_object_permission(self, request: Request, view, organization):
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -301,7 +301,7 @@ class SentryAppInstallationPermission(SentryPermission):
         "POST": ("org:integrations", "event:write", "event:admin"),
     }
 
-    def has_permission(self, request, *args, **kwargs):
+    def has_permission(self, request: Request, *args, **kwargs):
         # To let the app mark the installation as installed, we don't care about permissions
         if (
             hasattr(request, "user")
@@ -312,7 +312,7 @@ class SentryAppInstallationPermission(SentryPermission):
             return True
         return super().has_permission(request, *args, **kwargs)
 
-    def has_object_permission(self, request, view, installation):
+    def has_object_permission(self, request: Request, view, installation):
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -361,7 +361,7 @@ class SentryAppInstallationExternalIssueBaseEndpoint(SentryAppInstallationBaseEn
 
 
 class SentryAppAuthorizationsPermission(SentryPermission):
-    def has_object_permission(self, request, view, installation):
+    def has_object_permission(self, request: Request, view, installation):
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -387,7 +387,7 @@ class SentryInternalAppTokenPermission(SentryPermission):
         "DELETE": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request, view, sentry_app):
+    def has_object_permission(self, request: Request, view, sentry_app):
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -407,7 +407,7 @@ class SentryAppStatsPermission(SentryPermission):
         "POST": (),
     }
 
-    def has_object_permission(self, request, view, sentry_app):
+    def has_object_permission(self, request: Request, view, sentry_app):
         if not hasattr(request, "user") or not request.user:
             return False
 

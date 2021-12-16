@@ -62,7 +62,7 @@ class PromptsActivityEndpoint(Endpoint):
         else:
             return Response({"features": featuredata})
 
-    def put(self, request):
+    def put(self, request: Request):
         serializer = PromptsActivitySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

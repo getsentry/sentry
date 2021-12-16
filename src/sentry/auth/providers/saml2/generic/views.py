@@ -14,7 +14,7 @@ from sentry.utils.http import absolute_uri
 
 
 class SAML2ConfigureView(ConfigureView):
-    def dispatch(self, request, organization, provider):
+    def dispatch(self, request: Request, organization, provider):
         sp_metadata_url = absolute_uri(
             reverse("sentry-auth-organization-saml-metadata", args=[organization.slug])
         )

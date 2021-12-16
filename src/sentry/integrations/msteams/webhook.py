@@ -174,7 +174,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         return self.respond(status=204)
 
-    def handle_personal_member_add(self, request):
+    def handle_personal_member_add(self, request: Request):
         data = request.data
         # only care if our bot is the new member added
         matches = filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"])
@@ -188,7 +188,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         client.send_card(user_conversation_id, card)
         return self.respond(status=204)
 
-    def handle_team_member_added(self, request):
+    def handle_team_member_added(self, request: Request):
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member added
@@ -214,7 +214,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         client.send_card(team["id"], card)
         return self.respond(status=201)
 
-    def handle_team_member_removed(self, request):
+    def handle_team_member_removed(self, request: Request):
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member removed
@@ -319,7 +319,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             auth=event_write_key,
         )
 
-    def handle_action_submitted(self, request):
+    def handle_action_submitted(self, request: Request):
         # pull out parameters
         data = request.data
         channel_data = data["channelData"]
@@ -413,7 +413,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         return issue_change_response
 
-    def handle_channel_message(self, request):
+    def handle_channel_message(self, request: Request):
         data = request.data
 
         # check to see if we are mentioned
@@ -437,7 +437,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         return self.respond(status=204)
 
-    def handle_personal_message(self, request):
+    def handle_personal_message(self, request: Request):
         data = request.data
         command_text = data.get("text", "").strip()
         lowercase_command = command_text.lower()

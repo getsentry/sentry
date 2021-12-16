@@ -33,7 +33,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         ):
             return self._post(request)
 
-    def _post(self, request):
+    def _post(self, request: Request):
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
 
@@ -58,7 +58,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         else:
             return Response("Unsupported version, we only support version null, 1 and 2.", 400)
 
-    def _post_by_key(self, request, full_config_requested):
+    def _post_by_key(self, request: Request, full_config_requested):
         public_keys = request.relay_request_data.get("publicKeys")
         public_keys = set(public_keys or ())
 
@@ -137,7 +137,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return Response({"configs": configs}, status=200)
 
-    def _post_by_project(self, request, full_config_requested):
+    def _post_by_project(self, request: Request, full_config_requested):
         project_ids = set(request.relay_request_data.get("projects") or ())
 
         with start_span(op="relay_fetch_projects"):

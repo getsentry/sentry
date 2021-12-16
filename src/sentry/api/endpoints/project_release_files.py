@@ -45,7 +45,7 @@ def load_dist(results):
 
 
 class ReleaseFilesMixin:
-    def get_releasefiles(self, request, release, organization_id):
+    def get_releasefiles(self, request: Request, release, organization_id):
         query = request.GET.getlist("query")
 
         data_sources = []

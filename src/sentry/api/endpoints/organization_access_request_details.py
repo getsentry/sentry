@@ -43,7 +43,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [AccessRequestPermission]
 
     # TODO(dcramer): this should go onto AccessRequestPermission
-    def _can_access(self, request, access_request):
+    def _can_access(self, request: Request, access_request):
         if request.access.has_scope("org:admin"):
             return True
         if request.access.has_scope("org:write"):

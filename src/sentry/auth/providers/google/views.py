@@ -66,7 +66,7 @@ class FetchUser(AuthView):
 
 
 class GoogleConfigureView(ConfigureView):
-    def dispatch(self, request, organization, auth_provider):
+    def dispatch(self, request: Request, organization, auth_provider):
         config = auth_provider.config
         if config.get("domain"):
             domains = [config["domain"]]

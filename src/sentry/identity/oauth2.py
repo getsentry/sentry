@@ -278,7 +278,7 @@ class OAuth2CallbackView(PipelineView):
             "client_secret": self.client_secret,
         }
 
-    def exchange_token(self, request, pipeline, code):
+    def exchange_token(self, request: Request, pipeline, code):
         # TODO: this needs the auth yet
         data = self.get_token_params(code=code, redirect_uri=absolute_uri(pipeline.redirect_url()))
         verify_ssl = pipeline.config.get("verify_ssl", True)

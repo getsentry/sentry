@@ -56,7 +56,7 @@ class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
 class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBase):
     permission_classes = (ProjectTransactionThresholdOverridePermission,)
 
-    def get_project(self, request, organization):
+    def get_project(self, request: Request, organization):
         projects = self.get_projects(request, organization)
         if len(projects) != 1:
             raise ParseError("Only 1 project per transaction threshold")

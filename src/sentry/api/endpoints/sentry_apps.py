@@ -125,7 +125,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 analytics.record(name, **log_info)
         return Response(serializer.errors, status=400)
 
-    def _has_hook_events(self, request):
+    def _has_hook_events(self, request: Request):
         if not request.json_body.get("events"):
             return False
 

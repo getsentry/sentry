@@ -92,7 +92,7 @@ class SAML2LoginView(AuthView):
 # auth_provider_login, but with support for initing the auth flow.
 class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, organization_slug):
+    def dispatch(self, request: Request, organization_slug):
         from sentry.auth.helper import AuthHelper
 
         helper = AuthHelper.get_for_request(request)
@@ -164,7 +164,7 @@ class SAML2ACSView(AuthView):
 
 class SAML2SLSView(BaseView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, organization_slug):
+    def dispatch(self, request: Request, organization_slug):
         provider = get_provider(organization_slug)
         if provider is None:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
@@ -190,7 +190,7 @@ class SAML2SLSView(BaseView):
 
 
 class SAML2MetadataView(BaseView):
-    def dispatch(self, request, organization_slug):
+    def dispatch(self, request: Request, organization_slug):
         provider = get_provider(organization_slug)
         config = provider.config if provider else {}
 

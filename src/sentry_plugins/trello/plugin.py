@@ -1,6 +1,7 @@
 import re
 
 from django.conf.urls import url
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations import FeatureDescription, IntegrationFeatures
@@ -131,14 +132,14 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             ),
         ]
 
-    def is_configured(self, request, project, **kwargs):
+    def is_configured(self, request: Request, project, **kwargs):
         return all(self.get_option(key, project) for key in ("token", "key"))
 
     # used for boards and lists but not cards (shortLink used as ID for cards)
     def map_to_options(self, items):
         return [(item["id"], item["name"]) for item in items]
 
-    def get_new_issue_fields(self, request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         """
         Return the fields needed for creating a new issue
         """
@@ -168,7 +169,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def get_link_existing_issue_fields(self, request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         """
         Return the fields needed for linking to an existing issue
         """
@@ -203,7 +204,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             return " ".join(e["message"] for e in errors)
         return "unknown error"
 
-    def create_issue(self, request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data, **kwargs):
         client = self.get_client(group.project)
 
         try:
@@ -215,7 +216,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         return response["shortLink"]
 
-    def link_issue(self, request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group, form_data, **kwargs):
         client = self.get_client(group.project)
 
         try:
@@ -254,7 +255,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             return issue.split("/", 1)[1]
         return "https://trello.com/c/%s" % issue
 
-    def view_options(self, request, group, **kwargs):
+    def view_options(self, request: Request, group, **kwargs):
         """
         Return the lists on a given Trello board
         """
@@ -279,7 +280,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         return Response({field: results})
 
-    def view_autocomplete(self, request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group, **kwargs):
         """
         Return the cards matching a given query and the organization of the configuration
         """

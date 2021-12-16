@@ -53,7 +53,7 @@ def _scim_member_serializer_with_expansion(organization):
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
-    def _delete_member(self, request, organization, member):
+    def _delete_member(self, request: Request, organization, member):
         audit_data = member.get_audit_log_data()
         if OrganizationMemberDetailsEndpoint.is_only_owner(member):
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
@@ -88,7 +88,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         )
         return Response(context)
 
-    def patch(self, request, organization, member):
+    def patch(self, request: Request, organization, member):
         operations = request.data.get("Operations", [])
         if len(operations) > 100:
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)

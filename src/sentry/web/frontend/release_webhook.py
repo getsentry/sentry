@@ -36,7 +36,7 @@ class ReleaseWebhookView(View):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    def _handle_builtin(self, request, project):
+    def _handle_builtin(self, request: Request, project):
         endpoint = f"/projects/{project.organization.slug}/{project.slug}/releases/"
 
         try:

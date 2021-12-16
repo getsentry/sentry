@@ -31,16 +31,16 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
-    def _get_activity(self, request, group, num):
+    def _get_activity(self, request: Request, group, num):
         return Activity.objects.get_activities_for_group(group, num)
 
-    def _get_seen_by(self, request, group):
+    def _get_seen_by(self, request: Request, group):
         seen_by = list(
             GroupSeen.objects.filter(group=group).select_related("user").order_by("-last_seen")
         )
         return serialize(seen_by, request.user)
 
-    def _get_actions(self, request, group):
+    def _get_actions(self, request: Request, group):
         project = group.project
 
         action_list = []
@@ -67,7 +67,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         return action_list
 
-    def _get_available_issue_plugins(self, request, group):
+    def _get_available_issue_plugins(self, request: Request, group):
         project = group.project
 
         plugin_issues = []
@@ -80,7 +80,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
         return plugin_issues
 
-    def _get_context_plugins(self, request, group):
+    def _get_context_plugins(self, request: Request, group):
         project = group.project
         return serialize(
             [

@@ -428,7 +428,7 @@ class GithubWebhookEndpoint(GithubWebhookBase):
             organization=organization, key="github:webhook_secret"
         )
 
-    def post(self, request, organization_id):
+    def post(self, request: Request, organization_id):
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:

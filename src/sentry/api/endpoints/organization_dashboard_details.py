@@ -30,7 +30,7 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
         return (args, kwargs)
 
-    def _get_dashboard(self, request, organization, dashboard_id):
+    def _get_dashboard(self, request: Request, organization, dashboard_id):
         prebuilt = Dashboard.get_prebuilt(dashboard_id)
         sentry_sdk.set_tag("dashboard.is_prebuilt", prebuilt is not None)
         if prebuilt:

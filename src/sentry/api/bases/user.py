@@ -9,7 +9,7 @@ from sentry.models import Organization, OrganizationStatus, User
 
 
 class UserPermission(SentryPermission):
-    def has_object_permission(self, request, view, user=None):
+    def has_object_permission(self, request: Request, view, user=None):
         if user is None:
             user = request.user
         if request.user == user:

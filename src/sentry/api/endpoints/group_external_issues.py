@@ -1,14 +1,13 @@
 import logging
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import PlatformExternalIssue
 
 logger = logging.getLogger("sentry.api")
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class GroupExternalIssuesEndpoint(GroupEndpoint):

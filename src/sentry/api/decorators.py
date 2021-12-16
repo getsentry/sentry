@@ -1,5 +1,7 @@
 from functools import wraps
 
+from rest_framework.request import Request
+
 from sentry.api.exceptions import EmailVerificationRequired, SudoRequired
 from sentry.models import ApiKey, ApiToken
 
@@ -19,7 +21,7 @@ def is_considered_sudo(request):
 
 def sudo_required(func):
     @wraps(func)
-    def wrapped(self, request, *args, **kwargs):
+    def wrapped(self, request: Request, *args, **kwargs):
         # If we are already authenticated through an API key we do not
         # care about the sudo flag.
         if not is_considered_sudo(request):
@@ -33,7 +35,7 @@ def sudo_required(func):
 
 def email_verification_required(func):
     @wraps(func)
-    def wrapped(self, request, *args, **kwargs):
+    def wrapped(self, request: Request, *args, **kwargs):
         if not request.user.get_verified_emails().exists():
             raise EmailVerificationRequired(request.user)
         return func(self, request, *args, **kwargs)

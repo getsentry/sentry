@@ -64,7 +64,7 @@ class AssistantEndpoint(Endpoint):
             guides = [{"guide": key, "seen": value["seen"]} for key, value in guides.items()]
         return Response(guides)
 
-    def put(self, request):
+    def put(self, request: Request):
         """Mark a guide as viewed or dismissed.
 
         Request is of the form {

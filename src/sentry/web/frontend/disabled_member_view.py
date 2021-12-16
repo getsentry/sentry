@@ -9,7 +9,7 @@ from .react_page import ReactPageView
 
 
 class DisabledMemberView(ReactPageView):
-    def is_member_disabled_from_limit(self, request, organization):
+    def is_member_disabled_from_limit(self, request: Request, organization):
         return False
 
     def handle(self, request: Request, organization, **kwargs) -> Response:

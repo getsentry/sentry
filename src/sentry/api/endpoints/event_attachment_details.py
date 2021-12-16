@@ -1,6 +1,8 @@
 import posixpath
 
 from django.http import StreamingHttpResponse
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import eventstore, features, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -12,7 +14,7 @@ from sentry.models import EventAttachment, File, OrganizationMember
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
-    def has_object_permission(self, request, view, project):
+    def has_object_permission(self, request: Request, view, project):
         result = super().has_object_permission(request, view, project)
 
         if not result:
@@ -41,10 +43,6 @@ class EventAttachmentDetailsPermission(ProjectPermission):
         required_role = roles.get(required_role)
         current_role = roles.get(current_role)
         return current_role.priority >= required_role.priority
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):

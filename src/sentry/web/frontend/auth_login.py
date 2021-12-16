@@ -43,7 +43,7 @@ class AdditionalContext:
         to add to the context."""
         self._callbacks.add(callback)
 
-    def run_callbacks(self, request):
+    def run_callbacks(self, request: Request):
         context = {}
         for cb in self._callbacks:
             try:
@@ -75,11 +75,11 @@ class AuthLoginView(BaseView):
 
         return auth_provider
 
-    def get_login_form(self, request):
+    def get_login_form(self, request: Request):
         op = request.POST.get("op")
         return AuthenticationForm(request, request.POST if op == "login" else None)
 
-    def get_register_form(self, request, initial=None):
+    def get_register_form(self, request: Request, initial=None):
         op = request.POST.get("op")
         return RegistrationForm(
             request.POST if op == "register" else None,
@@ -88,7 +88,7 @@ class AuthLoginView(BaseView):
             auto_id="id_registration_%s",
         )
 
-    def can_register(self, request):
+    def can_register(self, request: Request):
         return bool(has_user_registration() or request.session.get("can_register"))
 
     def get_join_request_link(self, organization):
@@ -102,21 +102,21 @@ class AuthLoginView(BaseView):
 
         return reverse("sentry-join-request", args=[organization.slug])
 
-    def get_next_uri(self, request):
+    def get_next_uri(self, request: Request):
         next_uri_fallback = None
         if request.session.get("_next") is not None:
             next_uri_fallback = request.session.pop("_next")
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
-    def get_post_register_url(self, request):
+    def get_post_register_url(self, request: Request):
         base_url = auth.get_login_redirect(request)
         params = {"frontend_events": json.dumps({"event_name": "Sign Up"})}
         return add_params_to_url(base_url, params)
 
-    def respond_login(self, request, context, **kwargs):
+    def respond_login(self, request: Request, context, **kwargs):
         return self.respond("sentry/login.html", context)
 
-    def handle_basic_auth(self, request, **kwargs):
+    def handle_basic_auth(self, request: Request, **kwargs):
         can_register = self.can_register(request)
 
         op = request.POST.get("op")
@@ -248,7 +248,7 @@ class AuthLoginView(BaseView):
         context.update(additional_context.run_callbacks(request))
         return self.respond_login(request, context, **kwargs)
 
-    def handle_authenticated(self, request):
+    def handle_authenticated(self, request: Request):
         next_uri = self.get_next_uri(request)
         if is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
             return self.redirect(next_uri)

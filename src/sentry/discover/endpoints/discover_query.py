@@ -27,7 +27,7 @@ class DiscoverQueryPermission(OrganizationPermission):
 class DiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverQueryPermission,)
 
-    def has_feature(self, request, organization):
+    def has_feature(self, request: Request, organization):
         return features.has(
             "organizations:discover", organization, actor=request.user
         ) or features.has("organizations:discover-basic", organization, actor=request.user)

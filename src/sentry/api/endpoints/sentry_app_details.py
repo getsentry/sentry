@@ -98,7 +98,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
         return Response({"detail": ["Published apps cannot be removed."]}, status=403)
 
-    def _has_hook_events(self, request):
+    def _has_hook_events(self, request: Request):
         if not request.json_body.get("events"):
             return False
 

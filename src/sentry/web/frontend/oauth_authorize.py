@@ -19,7 +19,7 @@ from rest_framework.response import Response
 class OAuthAuthorizeView(AuthLoginView):
     auth_required = False
 
-    def get_next_uri(self, request):
+    def get_next_uri(self, request: Request):
         return request.get_full_path()
 
     def redirect_response(self, response_type, redirect_uri, params):
@@ -67,7 +67,7 @@ class OAuthAuthorizeView(AuthLoginView):
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
-    def respond_login(self, request, context, application, **kwargs):
+    def respond_login(self, request: Request, context, application, **kwargs):
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
@@ -271,7 +271,7 @@ class OAuthAuthorizeView(AuthLoginView):
         else:
             raise NotImplementedError
 
-    def approve(self, request, application, **params):
+    def approve(self, request: Request, application, **params):
         try:
             with transaction.atomic():
                 ApiAuthorization.objects.create(

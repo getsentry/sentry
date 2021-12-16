@@ -243,7 +243,7 @@ class OrganizationEndpoint(Endpoint):
 
         return projects
 
-    def get_requested_project_ids_unchecked(self, request):
+    def get_requested_project_ids_unchecked(self, request: Request):
         """
         Returns the project ids that were requested by the request.
 

@@ -525,7 +525,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def handle_delete(self, request, organization):
+    def handle_delete(self, request: Request, organization):
         """
         This method exists as a way for getsentry to override this endpoint with less duplication.
         """

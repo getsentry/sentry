@@ -50,7 +50,7 @@ class SystemOptionsEndpoint(Endpoint):
 
         return Response(results)
 
-    def put(self, request):
+    def put(self, request: Request):
         # TODO(dcramer): this should validate options before saving them
         for k, v in request.data.items():
             if v and isinstance(v, str):

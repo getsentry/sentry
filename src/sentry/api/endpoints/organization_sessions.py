@@ -24,7 +24,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
 
         return Response(result, status=200)
 
-    def build_sessions_query(self, request, organization):
+    def build_sessions_query(self, request: Request, organization):
         try:
             params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:

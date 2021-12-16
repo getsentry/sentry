@@ -138,7 +138,9 @@ def inbox_search(
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
 
-    def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
+    def _search(
+        self, request: Request, organization, projects, environments, extra_query_kwargs=None
+    ):
         query_kwargs = build_query_params_from_request(
             request, organization, projects, environments
         )

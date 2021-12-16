@@ -164,7 +164,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
         if event_type == "deployment":
             return self._deployment_created(external_id, request)
 
-    def delete(self, request):
+    def delete(self, request: Request):
         # userId should always be present
         external_id = request.data.get("teamId") or request.data.get("userId")
         configuration_id = request.data.get("configurationId")

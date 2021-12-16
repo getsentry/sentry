@@ -72,7 +72,7 @@ class OrganizationAuthSettingsView(OrganizationView):
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
 
-    def _disable_provider(self, request, organization, auth_provider):
+    def _disable_provider(self, request: Request, organization, auth_provider):
         self.create_audit_entry(
             request,
             organization=organization,
@@ -96,7 +96,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             auth_provider.disable_scim(request.user)
         auth_provider.delete()
 
-    def handle_existing_provider(self, request, organization, auth_provider):
+    def handle_existing_provider(self, request: Request, organization, auth_provider):
         provider = auth_provider.get_provider()
 
         if request.method == "POST":

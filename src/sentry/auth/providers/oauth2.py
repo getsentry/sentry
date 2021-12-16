@@ -81,7 +81,7 @@ class OAuth2Callback(AuthView):
             "client_secret": self.client_secret,
         }
 
-    def exchange_token(self, request, helper, code):
+    def exchange_token(self, request: Request, helper, code):
         # TODO: this needs the auth yet
         data = self.get_token_params(code=code, redirect_uri=helper.get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)

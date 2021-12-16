@@ -21,7 +21,7 @@ class TeamPermission(OrganizationPermission):
         "DELETE": ["team:admin"],
     }
 
-    def has_object_permission(self, request, view, team):
+    def has_object_permission(self, request: Request, view, team):
         result = super().has_object_permission(request, view, team.organization)
         if not result:
             return result

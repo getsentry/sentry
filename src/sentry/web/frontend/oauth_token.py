@@ -24,7 +24,7 @@ class OAuthTokenView(View):
         return super().dispatch(request, *args, **kwargs)
 
     # Note: the reason parameter is for internal use only
-    def error(self, request, name, reason=None, status=400):
+    def error(self, request: Request, name, reason=None, status=400):
         client_id = request.POST.get("client_id")
         redirect_uri = request.POST.get("redirect_uri")
 

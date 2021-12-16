@@ -14,7 +14,7 @@ from sentry.utils.sentryappwebhookrequests import (
 class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryAppStatsPermission,)
 
-    def format_request(self, request, sentry_app):
+    def format_request(self, request: Request, sentry_app):
         formatted_request = {
             "webhookUrl": request.get("webhook_url"),
             "sentryAppSlug": sentry_app.slug,

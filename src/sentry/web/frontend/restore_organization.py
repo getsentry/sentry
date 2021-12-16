@@ -27,7 +27,7 @@ class RestoreOrganizationView(OrganizationView):
     required_scope = "org:admin"
     sudo_required = True
 
-    def get_active_organization(self, request, organization_slug):
+    def get_active_organization(self, request: Request, organization_slug):
         # A simply version than what comes from the base
         # OrganizationView. We need to grab an organization
         # that is in any state, not just VISIBLE.

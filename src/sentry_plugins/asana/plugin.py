@@ -1,5 +1,6 @@
 from django.conf.urls import url
 from requests.exceptions import HTTPError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.exceptions import PluginError, PluginIdentityRequired
@@ -52,7 +53,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def is_configured(self, request, project, **kwargs):
+    def is_configured(self, request: Request, project, **kwargs):
         return bool(self.get_option("workspace", project))
 
     def has_workspace_access(self, workspace, choices):
@@ -64,7 +65,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
     def get_workspace_choices(self, workspaces):
         return [(w["gid"], w["name"]) for w in workspaces["data"]]
 
-    def get_new_issue_fields(self, request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         client = self.get_client(request.user)
         workspaces = client.get_workspaces()
@@ -113,7 +114,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             ]
         )
 
-    def get_link_existing_issue_fields(self, request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -146,7 +147,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             return " ".join(e["message"] for e in errors)
         return "unknown error"
 
-    def create_issue(self, request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data, **kwargs):
         client = self.get_client(request.user)
 
         try:
@@ -158,7 +159,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
 
         return response["data"]["gid"]
 
-    def link_issue(self, request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group, form_data, **kwargs):
         client = self.get_client(request.user)
         try:
             issue = client.get_issue(issue_id=form_data["issue_id"])["data"]
@@ -234,7 +235,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             }
         ]
 
-    def view_autocomplete(self, request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
         query = request.GET.get("autocomplete_query")
 

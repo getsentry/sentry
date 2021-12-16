@@ -77,7 +77,7 @@ class RelaxedMemberPermission(OrganizationPermission):
 class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedMemberPermission]
 
-    def _get_member(self, request, organization, member_id):
+    def _get_member(self, request: Request, organization, member_id):
         if member_id == "me":
             queryset = OrganizationMember.objects.filter(
                 organization=organization, user__id=request.user.id, user__is_active=True

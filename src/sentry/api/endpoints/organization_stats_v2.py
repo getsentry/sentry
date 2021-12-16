@@ -40,7 +40,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
                 result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 
-    def build_outcomes_query(self, request, organization):
+    def build_outcomes_query(self, request: Request, organization):
         params = {"organization_id": organization.id}
         project_ids = self._get_projects_for_orgstats_query(request, organization)
 
@@ -49,7 +49,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
 
         return QueryDefinition(request.GET, params)
 
-    def _get_projects_for_orgstats_query(self, request, organization):
+    def _get_projects_for_orgstats_query(self, request: Request, organization):
         # look at the raw project_id filter passed in, if its empty
         # and project_id is not in groupBy filter, treat it as an
         # org wide query and don't pass project_id in to QueryDefinition
@@ -62,7 +62,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
                 raise NoProjects("No projects available")
             return [p.id for p in projects]
 
-    def _is_org_total_query(self, request, project_ids):
+    def _is_org_total_query(self, request: Request, project_ids):
         return all(
             [
                 not project_ids or project_ids == ALL_ACCESS_PROJECTS,
