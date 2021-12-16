@@ -10,7 +10,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconFlag, IconOpen, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
+import {Integration, IntegrationProvider} from 'sentry/types';
 import {getAlertText} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -140,11 +140,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
     const origIntegrations = [...this.state.configurations];
 
-    const integrations = this.state.configurations.map(i =>
-      i.id === integration.id
-        ? {...i, organizationIntegrationStatus: 'pending_deletion' as ObjectStatus}
-        : i
-    );
+    const integrations = this.state.configurations.filter(i => i.id !== integration.id);
 
     this.setState({configurations: integrations});
 
