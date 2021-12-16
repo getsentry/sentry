@@ -231,7 +231,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).

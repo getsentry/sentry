@@ -1,11 +1,12 @@
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
+from rest_framework.request import Request
 
 from sentry.auth.superuser import Superuser, logger
 
 
 class SuperuserMiddleware(MiddlewareMixin):
-    def process_request(self, request):
+    def process_request(self, request: Request):
         # This avoids touching user session, which means we avoid
         # setting `Vary: Cookie` as a response header which will
         # break HTTP caching entirely.
@@ -32,7 +33,7 @@ class SuperuserMiddleware(MiddlewareMixin):
                 },
             )
 
-    def process_response(self, request, response):
+    def process_response(self, request: Request, response):
         try:
             if self.__skip_caching:
                 return response
