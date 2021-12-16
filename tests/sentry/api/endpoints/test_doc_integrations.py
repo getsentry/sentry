@@ -1,9 +1,13 @@
+from typing import List
+
 from rest_framework import status
+from rest_framework.response import Response
 
 from sentry.api.serializers.base import serialize
 from sentry.models.integration import DocIntegration
 from sentry.models.integrationfeature import IntegrationFeature, IntegrationTypes
 from sentry.testutils import APITestCase
+from sentry.utils.json import JSONData
 
 
 class DocIntegrationsTest(APITestCase):
@@ -21,8 +25,8 @@ class DocIntegrationsTest(APITestCase):
             features=[2, 3, 4],
         )
 
-    def get_avatars(self, resp):
-        return [doc.get("avatar") for doc in resp.data]
+    def get_avatars(self, response: Response) -> List[JSONData]:
+        return [doc.get("avatar") for doc in response.data]
 
 
 class GetDocIntegrationsTest(DocIntegrationsTest):
