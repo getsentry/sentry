@@ -189,7 +189,7 @@ describe('MetricsRequest', () => {
     );
   });
 
-  it('make one request with absolute date', async () => {
+  it('make one request with absolute date', () => {
     mountWithTheme(
       <MetricsRequest
         {...props}
