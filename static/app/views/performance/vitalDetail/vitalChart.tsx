@@ -1,6 +1,5 @@
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
-import {Location} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -34,7 +33,6 @@ import {
 
 type Props = WithRouterProps &
   Omit<ViewProps, 'start' | 'end'> & {
-    location: Location;
     organization: OrganizationSummary;
     start: DateString | null;
     end: DateString | null;
@@ -183,14 +181,14 @@ function VitalChart({
 
 export default withRouter(VitalChart);
 
-export type _VitalChartProps = Props & {
-  data?: Series[];
+export type _VitalChartProps = {
   loading: boolean;
   reloading: boolean;
   field: string;
+  grid: LineChart['props']['grid'];
+  data?: Series[];
   height?: number;
   utc?: boolean;
-  grid: LineChart['props']['grid'];
   vitalFields?: {
     poorCountField: string;
     mehCountField: string;
@@ -226,6 +224,7 @@ function __VitalChart(props: _VitalChartProps) {
     utc,
     vitalFields,
   } = props;
+
   if (!_results || !vitalFields) {
     return null;
   }
@@ -299,4 +298,4 @@ function __VitalChart(props: _VitalChartProps) {
   );
 }
 
-export const _VitalChart = withRouter(__VitalChart);
+export const _VitalChart = __VitalChart;
