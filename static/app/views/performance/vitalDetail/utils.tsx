@@ -1,12 +1,17 @@
 import * as React from 'react';
 import {Location, Query} from 'history';
 
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
 import {TransactionMetric} from 'sentry/utils/metrics/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {Color} from 'sentry/utils/theme';
+import {Color, Theme} from 'sentry/utils/theme';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
@@ -147,3 +152,118 @@ export const vitalToMetricsField: Record<string, TransactionMetric> = {
   [WebVital.FID]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID,
   [WebVital.CLS]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS,
 };
+
+export function getVitalChartDefinitions({
+  theme,
+  location,
+  vital,
+  yAxis,
+  ...props
+}: {
+  theme: Theme;
+  location: Location;
+  vital: string;
+  yAxis: string;
+  start?: string;
+  end?: string;
+}) {
+  const start = props.start ? getUtcToLocalDateObject(props.start) : null;
+  const end = props.end ? getUtcToLocalDateObject(props.end) : null;
+  const utc = decodeScalar(location.query.utc) !== 'false';
+
+  const vitalPoor = webVitalPoor[vital];
+  const vitalMeh = webVitalMeh[vital];
+
+  const legend = {
+    right: 10,
+    top: 0,
+    selected: getSeriesSelection(location),
+  };
+
+  const chartOptions = {
+    grid: {
+      left: '5px',
+      right: '10px',
+      top: '35px',
+      bottom: '0px',
+    },
+    seriesOptions: {
+      showSymbol: false,
+    },
+    tooltip: {
+      trigger: 'axis' as const,
+      valueFormatter: (value: number, seriesName?: string) =>
+        tooltipFormatter(value, vital === WebVital.CLS ? seriesName : yAxis),
+    },
+    yAxis: {
+      min: 0,
+      max: vitalPoor,
+      axisLabel: {
+        color: theme.chartLabel,
+        showMaxLabel: false,
+        // coerces the axis to be time based
+        formatter: (value: number) => axisLabelFormatter(value, yAxis),
+      },
+    },
+  };
+
+  const markLines = [
+    {
+      seriesName: 'Thresholds',
+      type: 'line' as const,
+      data: [],
+      markLine: MarkLine({
+        silent: true,
+        lineStyle: {
+          color: theme.red300,
+          type: 'dashed',
+          width: 1.5,
+        },
+        label: {
+          show: true,
+          position: 'insideEndTop',
+          formatter: t('Poor'),
+        },
+        data: [
+          {
+            yAxis: vitalPoor,
+          } as any, // TODO(ts): date on this type is likely incomplete (needs @types/echarts@4.6.2)
+        ],
+      }),
+    },
+    {
+      seriesName: 'Thresholds',
+      type: 'line' as const,
+      data: [],
+      markLine: MarkLine({
+        silent: true,
+        lineStyle: {
+          color: theme.yellow300,
+          type: 'dashed',
+          width: 1.5,
+        },
+        label: {
+          show: true,
+          position: 'insideEndTop',
+          formatter: t('Meh'),
+        },
+        data: [
+          {
+            yAxis: vitalMeh,
+          } as any, // TODO(ts): date on this type is likely incomplete (needs @types/echarts@4.6.2)
+        ],
+      }),
+    },
+  ];
+
+  return {
+    vitalPoor,
+    vitalMeh,
+    legend,
+    chartOptions,
+    markLines,
+    start,
+    end,
+    utc,
+  };
+}

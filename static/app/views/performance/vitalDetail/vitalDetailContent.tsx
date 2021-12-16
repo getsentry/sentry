@@ -37,6 +37,7 @@ import {getTransactionSearchQuery} from '../utils';
 import Table from './table';
 import {vitalDescription, vitalMap, vitalToMetricsField} from './utils';
 import VitalChart from './vitalChart';
+import VitalChartMetrics from './vitalChartMetrics';
 import VitalInfo from './vitalInfo';
 import VitalInfoMetrics from './vitalInfoMetrics';
 
@@ -210,14 +211,26 @@ class VitalDetailContent extends React.Component<Props, State> {
             field={[field]}
             query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
           >
-            {({loading: isLoading, response}) => {
+            {({loading: isLoading, response, reloading, errored}) => {
               const p75AllTransactions = response?.groups.reduce(
                 (acc, group) => acc + (group.totals[field] ?? 0),
                 0
               );
               return (
                 <React.Fragment>
-                  <div>{'TODO'}</div>
+                  <VitalChartMetrics
+                    start={start}
+                    end={end}
+                    statsPeriod={statsPeriod}
+                    project={projectIds}
+                    environment={environment}
+                    loading={isLoading}
+                    response={response}
+                    errored={errored}
+                    reloading={reloading}
+                    field={field}
+                    vital={vital}
+                  />
                   <StyledVitalInfo>
                     <VitalInfoMetrics
                       api={api}
