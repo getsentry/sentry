@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
-import {getByTextContent} from 'sentry-test/utils';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'sentry/types';
@@ -115,7 +115,9 @@ describe('EventOrGroupHeader', function () {
         {context: routerContext}
       );
 
-      expect(getByTextContent('in path/to/file.swift')).toBeInTheDocument();
+      expect(
+        screen.getByText(textWithMarkupMatcher('in path/to/file.swift'))
+      ).toBeInTheDocument();
     });
   });
 
