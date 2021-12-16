@@ -6,6 +6,7 @@ import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {MetricsApiResponse} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {WebVital} from 'sentry/utils/discover/fields';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
@@ -187,33 +188,37 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
       Queries={Queries}
       Visualizations={[
         {
-          component: provided => (
-            <_VitalChart
-              {...provided.widgetData.chart}
-              data={
-                provided.widgetData.chart.data[
-                  provided.widgetData.list.data[selectedListIndex].transaction
-                ]
-              }
-              {...provided}
-              field={field}
-              vitalFields={{
-                poorCountField: 'poor',
-                mehCountField: 'meh',
-                goodCountField: 'good',
-              }}
-              organization={organization}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
-              grid={{
-                left: space(0),
-                right: space(0),
-                top: space(2),
-                bottom: space(2),
-              }}
-            />
-          ),
+          component: provided => {
+            const transaction =
+              provided.widgetData.list.data[selectedListIndex].transaction;
+            return (
+              <_VitalChart
+                {...provided.widgetData.chart}
+                data={
+                  defined(transaction)
+                    ? provided.widgetData.chart.data[transaction]
+                    : undefined
+                }
+                {...provided}
+                field={field}
+                vitalFields={{
+                  poorCountField: 'poor',
+                  mehCountField: 'meh',
+                  goodCountField: 'good',
+                }}
+                organization={organization}
+                query={eventView.query}
+                project={eventView.project}
+                environment={eventView.environment}
+                grid={{
+                  left: space(0),
+                  right: space(0),
+                  top: space(2),
+                  bottom: space(2),
+                }}
+              />
+            );
+          },
           height: 160,
         },
         {
@@ -224,7 +229,12 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                 selectedIndex={selectedListIndex}
                 setSelectedIndex={setSelectListIndex}
                 items={widgetData.list.data.map(listItem => () => {
-                  const transaction = listItem.transaction as string;
+                  const transaction = listItem.transaction as string | null;
+
+                  if (!transaction) {
+                    return null;
+                  }
+
                   const _eventView = eventView.clone();
 
                   const initialConditions = new MutableSearch(_eventView.query);
@@ -267,7 +277,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                       </VitalBarCell>
                       <ListClose
                         setSelectListIndex={setSelectListIndex}
-                        onClick={() => excludeTransaction(listItem.transaction, props)}
+                        onClick={() => excludeTransaction(transaction, props)}
                       />
                     </Fragment>
                   );
@@ -306,7 +316,7 @@ export function getVitalData({
       acc[group.by.measurement_rating] = group.totals[field];
       return acc;
     }, {}),
-    total: groups.reduce((acc, group) => acc + group.totals[field], 0),
+    total: groups.reduce((acc, group) => acc + (group.totals[field] ?? 0), 0),
   };
 
   return vitalData;

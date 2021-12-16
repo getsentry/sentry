@@ -211,7 +211,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     ${common}
 
     &:hover {
-      background: ${props.theme.focus};
+      background: ${props.theme.hover};
     }
   `;
 }

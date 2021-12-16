@@ -242,7 +242,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     errors: FlatValidationError,
     widgetData: Widget
   ) => {
-    const {closeModal, organization} = this.props;
+    const {closeModal, organization, selection} = this.props;
     const {selectedDashboard, dashboards} = this.state;
     // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
     if (
@@ -279,6 +279,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         interval: widgetData.interval,
         title: widgetData.title,
         ...queryData,
+        // Propagate global header selection
+        ...selection.datetime,
+        project: selection.projects,
+        environment: selection.environments,
       };
 
       trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.confirm', {
