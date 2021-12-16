@@ -103,7 +103,7 @@ def unfurl_discover(
         # If the link shared is an org w/o the slack integration do not unfurl
         if not org:
             continue
-        if not features.has("organizations:chart-unfurls", org):
+        if not features.has("organizations:discover-basic", org):
             continue
 
         params = link.args["query"]
