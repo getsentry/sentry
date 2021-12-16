@@ -27,6 +27,10 @@ class PluginProjectEndpoint(ProjectEndpoint):
         return Response(*args, **kwargs)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class PluginGroupEndpoint(GroupEndpoint):
     plugin = None
     view = None
