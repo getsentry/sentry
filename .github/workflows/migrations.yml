@@ -67,9 +67,9 @@ jobs:
         with:
           clean: false
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env pt 2 (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
-        id: setup
+        id: setupagain
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
