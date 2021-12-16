@@ -214,7 +214,7 @@ def query(
     conditions=None,
     extra_snql_condition=None,
     functions_acl=None,
-    use_snql=True,
+    use_snql=False,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -683,7 +683,7 @@ def top_events_timeseries(
     allow_empty=True,
     zerofill_results=True,
     include_other=False,
-    use_snql=True,
+    use_snql=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -1345,7 +1345,7 @@ def histogram_query(
     extra_conditions=None,
     extra_snql_condition=None,
     normalize_results=True,
-    use_snql=True,
+    use_snql=False,
 ):
     """
     API for generating histograms for numeric columns.
@@ -1551,7 +1551,7 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
 
 
 def find_histogram_min_max(
-    fields, min_value, max_value, user_query, params, data_filter=None, use_snql=True
+    fields, min_value, max_value, user_query, params, data_filter=None, use_snql=False
 ):
     """
     Find the min/max value of the specified fields. If either min/max is already

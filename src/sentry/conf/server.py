@@ -932,6 +932,8 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable discover top events queries with other & higher options
     "organizations:discover-top-events": False,
+    # Testing
+    "organizations:discover-use-snql": True,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
