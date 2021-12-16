@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from random import random
 from typing import Any, Callable, Dict, Iterable, List, Optional, cast
@@ -12,6 +13,7 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 
 from sentry import options
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
@@ -280,9 +282,23 @@ class QuerySubscriptionConsumer:
                     },
                 )
                 try:
+                    # XXX(ahmed): Temporary hack to be able to extract entity key from query
+                    # which is now required by snuba because with the introduction of metrics
+                    # dataset, the relationship between dataset and entity is no longer 1-to-1
+                    # However, will deploy a fix in snuba to send the entity key in the payload
+                    # of the message
+                    entity_regex = r"^(MATCH|match)[ ]*\(([^)]+)\)"
+                    entity_match = re.match(entity_regex, contents["request"]["query"])
+                    if not entity_match:
+                        raise InvalidMessageError("Unable to fetch entity from query in message")
+                    entity_key = entity_match.group(2)
                     _delete_from_snuba(
-                        self.topic_to_dataset[message.topic()], contents["subscription_id"]
+                        self.topic_to_dataset[message.topic()],
+                        contents["subscription_id"],
+                        EntityKey(entity_key),
                     )
+                except InvalidMessageError as e:
+                    logger.exception(e)
                 except Exception:
                     logger.exception("Failed to delete unused subscription from snuba.")
                 return

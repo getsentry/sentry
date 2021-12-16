@@ -8,6 +8,7 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from exam import fixture, patcher
 
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
@@ -43,7 +44,12 @@ class BaseQuerySubscriptionTest:
         return {
             "subscription_id": "1234",
             "result": {"data": [{"hello": 50}]},
-            "request": {"some": "data"},
+            "request": {
+                "some": "data",
+                "query": """MATCH (metrics_counters) SELECT sum(value) AS value BY
+                        tags[3] WHERE org_id = 1 AND project_id IN tuple(1) AND metric_id = 16
+                        AND tags[3] IN tuple(13, 4)""",
+            },
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
@@ -63,13 +69,15 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             pool.urlopen.return_value.status = 202
             self.consumer.handle_message(
                 self.build_mock_message(
-                    self.valid_wrapper, topic=settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS
+                    self.valid_wrapper, topic=settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
                 )
             )
             pool.urlopen.assert_called_once_with(
                 "DELETE",
-                "/{}/subscriptions/{}".format(
-                    QueryDatasets.EVENTS.value, self.valid_payload["subscription_id"]
+                "/{}/{}/subscriptions/{}".format(
+                    QueryDatasets.METRICS.value,
+                    EntityKey.MetricsCounters.value,
+                    self.valid_payload["subscription_id"],
                 ),
             )
         self.metrics.incr.assert_called_once_with(
