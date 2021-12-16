@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
@@ -126,7 +126,7 @@ function Sidebar({location, organization}: Props) {
 
       // Handle cmd-click (mac) and meta-click (linux)
       if (evt.metaKey) {
-        const q = queryString.stringify(query);
+        const q = qs.stringify(query);
         evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
         return;
       }

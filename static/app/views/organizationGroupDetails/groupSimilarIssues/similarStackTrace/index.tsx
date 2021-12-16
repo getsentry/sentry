@@ -2,7 +2,7 @@ import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import GroupingActions from 'sentry/actions/groupingActions';
 import Alert from 'sentry/components/alert';
@@ -116,7 +116,7 @@ class SimilarStackTrace extends React.Component<Props, State> {
       const version = this.state.v2 ? '2' : '1';
 
       reqs.push({
-        endpoint: `/issues/${params.groupId}/similar/?${queryString.stringify({
+        endpoint: `/issues/${params.groupId}/similar/?${qs.stringify({
           ...location.query,
           limit: 50,
           version,

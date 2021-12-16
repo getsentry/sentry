@@ -1,6 +1,6 @@
 import * as React from 'react';
 import debounce from 'lodash/debounce';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -228,7 +228,7 @@ export default class AbstractExternalIssueForm<
       cb: (err: Error | null, result?: any) => void
     ) => {
       const {dynamicFieldValues} = this.state;
-      const query = queryString.stringify({
+      const query = qs.stringify({
         ...dynamicFieldValues,
         field: field.name,
         query: input,
