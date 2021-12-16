@@ -188,4 +188,48 @@ describe('MetricsRequest', () => {
       })
     );
   });
+
+  it('make one request with absolute date', async () => {
+    mountWithTheme(
+      <MetricsRequest
+        {...props}
+        statsPeriod=""
+        start="Wed Dec 01 2021 01:00:00 GMT+0100 (Central European Standard Time)"
+        end="Fri Dec 17 2021 00:59:59 GMT+0100 (Central European Standard Time)"
+        includePrevious
+      >
+        {childrenMock}
+      </MetricsRequest>
+    );
+
+    expect(childrenMock).toHaveBeenNthCalledWith(1, {
+      errored: false,
+      loading: true,
+      reloading: false,
+      response: null,
+      responsePrevious: null,
+    });
+
+    // if start and end are provided, it will not perform a request to fetch previous data
+    expect(metricsMock).toHaveBeenCalledTimes(1);
+
+    expect(metricsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          end: '2021-12-17T00:59:59',
+          environment: ['prod'],
+          field: ['fieldA'],
+          groupBy: ['status'],
+          interval: '1h',
+          limit: 3,
+          orderBy: 'fieldA',
+          project: ['2'],
+          query: 'abc',
+          start: '2021-12-01T01:00:00',
+          statsPeriod: undefined,
+        },
+      })
+    );
+  });
 });
