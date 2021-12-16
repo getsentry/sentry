@@ -1,4 +1,6 @@
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.endpoints.project_codeowners_request import get_codeowners_request_builder_args
 from sentry.models import Organization, OrganizationMember, Project, User
@@ -7,7 +9,7 @@ from sentry.web.helpers import render_to_response
 
 
 class DebugCodeOwnersRequestView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         requester_name = request.GET.get("requester_name", "Requester")
         recipient_name = request.GET.get("recipient_name", "Recipient")
 
