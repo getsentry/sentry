@@ -79,6 +79,8 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
+from .endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
+from .endpoints.doc_integrations import DocIntegrationsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -2109,6 +2111,17 @@ urlpatterns = [
         r"^sentry-apps/(?P<sentry_app_slug>[^\/]+)/publish-request/$",
         SentryAppPublishRequestEndpoint.as_view(),
         name="sentry-api-0-sentry-app-publish-request",
+    ),
+    # Document Integrations
+    url(
+        r"^doc-integrations/$",
+        DocIntegrationsEndpoint.as_view(),
+        name="sentry-api-0-doc-integrations",
+    ),
+    url(
+        r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/$",
+        DocIntegrationDetailsEndpoint.as_view(),
+        name="sentry-api-0-doc-integration-details",
     ),
     # Grouping configs
     url(
