@@ -213,6 +213,7 @@ class IssueTrackingPlugin(Plugin):
             link_form = self.get_link_existing_issue_form(request, group, event)
 
         if op == "create":
+            issue_id = None
             if create_form.is_valid():
                 try:
                     issue_id = self.create_issue(
