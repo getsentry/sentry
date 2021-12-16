@@ -28,6 +28,7 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.Sessions: "started",
     EntityKey.Transactions: "finish_ts",
     EntityKey.MetricsCounters: "timestamp",
+    EntityKey.MetricsSets: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
@@ -206,9 +207,11 @@ class SessionsEntitySubscription(BaseEntitySubscription):
         return {"organization": self.org_id}
 
 
-class MetricsCountersEntitySubscription(BaseEntitySubscription):
+class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     dataset = QueryDatasets.METRICS
-    entity_key = EntityKey.MetricsCounters
+    entity_key: EntityKey
+    metric_key: SessionMetricKey
+    aggregation_func: str
 
     def __init__(
         self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
@@ -254,9 +257,9 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
         session_status_tag_values = get_tag_values_list(self.org_id, ["crashed", "init"])
         snuba_filter.update_with(
             {
-                "aggregations": [["sum(value)", None, "value"]],
+                "aggregations": [[f"{self.aggregation_func}(value)", None, "value"]],
                 "conditions": [
-                    ["metric_id", "=", metric_id(self.org_id, SessionMetricKey.SESSION)],
+                    ["metric_id", "=", metric_id(self.org_id, self.metric_key)],
                     [self.session_status, "IN", session_status_tag_values],
                 ],
                 "groupby": self.get_query_groupby(),
@@ -291,15 +294,29 @@ class MetricsCountersEntitySubscription(BaseEntitySubscription):
         }
 
 
+class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
+    entity_key: EntityKey = EntityKey.MetricsCounters
+    metric_key: SessionMetricKey = SessionMetricKey.SESSION
+    aggregation_func: str = "sum"
+
+
+class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
+    entity_key: EntityKey = EntityKey.MetricsSets
+    metric_key: SessionMetricKey = SessionMetricKey.USER
+    aggregation_func: str = "uniq"
+
+
 EntitySubscription = Union[
     EventsEntitySubscription,
     MetricsCountersEntitySubscription,
+    MetricsSetsEntitySubscription,
     TransactionsEntitySubscription,
     SessionsEntitySubscription,
 ]
 ENTITY_KEY_TO_ENTITY_SUBSCRIPTION: Mapping[EntityKey, Type[EntitySubscription]] = {
     EntityKey.Events: EventsEntitySubscription,
     EntityKey.MetricsCounters: MetricsCountersEntitySubscription,
+    EntityKey.MetricsSets: MetricsSetsEntitySubscription,
     EntityKey.Sessions: SessionsEntitySubscription,
     EntityKey.Transactions: TransactionsEntitySubscription,
 }
@@ -338,9 +355,7 @@ def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> Optio
             if count_col_matched == "sessions":
                 entity_key = EntityKey.MetricsCounters
             else:
-                raise UnsupportedQuerySubscription(
-                    "Crash Free Users subscriptions are not supported yet"
-                )
+                entity_key = EntityKey.MetricsSets
         else:
             entity_key = EntityKey.Sessions
     else:
