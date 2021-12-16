@@ -6,7 +6,6 @@ import Link from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
 
 type Props = WithRouterProps & {
-  children?: React.ReactNode;
   /**
    * Location that is being linked to
    */
@@ -23,6 +22,7 @@ type Props = WithRouterProps & {
    * Click event (not for navigation)
    */
   onClick?: React.ComponentProps<typeof Link>['onClick'];
+  children?: React.ReactNode;
 };
 
 /**
