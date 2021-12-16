@@ -112,7 +112,7 @@ class BitbucketServerWebhookEndpoint(View):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, organization_id, integration_id) -> Response:
+    def post(self, request: Request, organization_id, integration_id: int) -> Response:
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:

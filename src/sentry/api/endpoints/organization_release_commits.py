@@ -8,7 +8,7 @@ from sentry.models import Release, ReleaseCommit
 
 
 class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request: Request, organization, version) -> Response:
+    def get(self, request: Request, organization, version: str) -> Response:
         """
         List an Organization Release's Commits
         ``````````````````````````````````````

@@ -15,7 +15,7 @@ class ReleaseFileSerializer(serializers.Serializer):
 class OrganizationReleaseFileDetailsEndpoint(
     OrganizationReleasesBaseEndpoint, ReleaseFileDetailsMixin
 ):
-    def get(self, request: Request, organization, version, file_id) -> Response:
+    def get(self, request: Request, organization, version, file_id: int) -> Response:
         """
         Retrieve an Organization Release's File
         ```````````````````````````````````````
@@ -45,7 +45,7 @@ class OrganizationReleaseFileDetailsEndpoint(
             check_permission_fn=lambda: request.access.has_scope("project:write"),
         )
 
-    def put(self, request: Request, organization, version, file_id) -> Response:
+    def put(self, request: Request, organization, version, file_id: int) -> Response:
         """
         Update an Organization Release's File
         `````````````````````````````````````
@@ -71,7 +71,7 @@ class OrganizationReleaseFileDetailsEndpoint(
 
         return self.update_releasefile(request, release, file_id)
 
-    def delete(self, request: Request, organization, version, file_id) -> Response:
+    def delete(self, request: Request, organization, version, file_id: int) -> Response:
         """
         Delete an Organization Release's File
         `````````````````````````````````````

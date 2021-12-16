@@ -17,7 +17,7 @@ class ApiKeySerializer(serializers.ModelSerializer):
 class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAdminPermission,)
 
-    def get(self, request: Request, organization, api_key_id) -> Response:
+    def get(self, request: Request, organization, api_key_id: int) -> Response:
         """
         Retrieves API Key details
         `````````````````````````
@@ -34,7 +34,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(api_key, request.user))
 
-    def put(self, request: Request, organization, api_key_id) -> Response:
+    def put(self, request: Request, organization, api_key_id: int) -> Response:
         """
         Update an API Key
         `````````````````
@@ -70,7 +70,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Request, organization, api_key_id) -> Response:
+    def delete(self, request: Request, organization, api_key_id: int) -> Response:
         """
         Deletes an API Key
         ``````````````````

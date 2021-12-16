@@ -46,7 +46,7 @@ class AuthOrganizationLoginView(AuthLoginView):
 
     @never_cache
     @transaction.atomic
-    def handle(self, request: Request, organization_slug) -> Response:
+    def handle(self, request: Request, organization_slug: str) -> Response:
         try:
             organization = Organization.objects.get(slug=organization_slug)
         except Organization.DoesNotExist:

@@ -103,7 +103,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         return any(features.has("organizations:webauthn-register", org, actor=user) for org in orgs)
 
     @sudo_required
-    def get(self, request: Request, user, interface_id) -> Response:
+    def get(self, request: Request, user, interface_id: int) -> Response:
         """
         Get Authenticator Interface
         ```````````````````````````
@@ -162,7 +162,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
     @sudo_required
     @email_verification_required
-    def post(self, request: Request, user, interface_id) -> Response:
+    def post(self, request: Request, user, interface_id: int) -> Response:
         """
         Enroll in authenticator interface
         `````````````````````````````````

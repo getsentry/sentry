@@ -22,7 +22,7 @@ class SavedSearchSerializer(serializers.Serializer):
 class ProjectSearchDetailsEndpoint(ProjectEndpoint):
     permission_classes = (RelaxedSearchPermission,)
 
-    def get(self, request: Request, project, search_id) -> Response:
+    def get(self, request: Request, project, search_id: int) -> Response:
         """
         Retrieve a saved search
 
@@ -38,7 +38,7 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(search, request.user))
 
-    def put(self, request: Request, project, search_id) -> Response:
+    def put(self, request: Request, project, search_id: int) -> Response:
         """
         Update a saved search
 
@@ -93,7 +93,7 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(search, request.user))
 
-    def delete(self, request: Request, project, search_id) -> Response:
+    def delete(self, request: Request, project, search_id: int) -> Response:
         """
         Delete a saved search
 

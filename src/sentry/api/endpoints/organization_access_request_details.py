@@ -81,7 +81,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(access_requests, request.user))
 
-    def put(self, request: Request, organization, request_id) -> Response:
+    def put(self, request: Request, organization, request_id: int) -> Response:
         """
         Approve or deny a request
 

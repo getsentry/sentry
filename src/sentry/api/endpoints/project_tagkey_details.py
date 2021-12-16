@@ -11,7 +11,7 @@ from sentry.models import AuditLogEntryEvent, Environment
 
 
 class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
-    def get(self, request: Request, project, key) -> Response:
+    def get(self, request: Request, project, key: str) -> Response:
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
@@ -27,7 +27,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         return Response(serialize(tagkey, request.user))
 
-    def delete(self, request: Request, project, key) -> Response:
+    def delete(self, request: Request, project, key: str) -> Response:
         """
         Remove all occurrences of the given tag key.
 

@@ -7,7 +7,7 @@ from sentry.models import GroupHash, GroupTombstone
 
 
 class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
-    def delete(self, request: Request, project, tombstone_id) -> Response:
+    def delete(self, request: Request, project, tombstone_id: int) -> Response:
         """
         Remove a GroupTombstone
         ```````````````````````

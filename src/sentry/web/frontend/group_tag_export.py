@@ -21,7 +21,7 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
         item_dict = IssuesByTagProcessor.serialize_row(item, key)
         return (item_dict[field] for field in fields)
 
-    def get(self, request: Request, organization, project, group_id, key) -> Response:
+    def get(self, request: Request, organization, project, group_id, key: str) -> Response:
 
         # If the environment doesn't exist then the tag can't possibly exist
         try:

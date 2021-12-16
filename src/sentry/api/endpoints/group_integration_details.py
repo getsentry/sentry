@@ -79,7 +79,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": str(e)}, status=400)
 
     # was thinking put for link an existing issue, post for create new issue?
-    def put(self, request: Request, group, integration_id) -> Response:
+    def put(self, request: Request, group, integration_id: int) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
@@ -239,7 +239,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    def delete(self, request: Request, group, integration_id) -> Response:
+    def delete(self, request: Request, group, integration_id: int) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 

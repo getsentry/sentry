@@ -11,7 +11,7 @@ class ProjectReleaseRepositories(ProjectEndpoint):
 
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, version) -> Response:
+    def get(self, request: Request, project, version: str) -> Response:
         """
         Retrieve Project Repositories from a Release
         ````````````````````````````

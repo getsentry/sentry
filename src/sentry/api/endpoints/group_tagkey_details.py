@@ -10,7 +10,7 @@ from sentry.models import Environment
 
 
 class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
-    def get(self, request: Request, group, key) -> Response:
+    def get(self, request: Request, group, key: str) -> Response:
         """
         Retrieve Tag Details
         ````````````````````

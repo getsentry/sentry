@@ -36,7 +36,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
 class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations, metric unit and available tags"""
 
-    def get(self, request: Request, organization, metric_name) -> Response:
+    def get(self, request: Request, organization, metric_name: str) -> Response:
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 
@@ -79,7 +79,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     """Get all existing tag values for a metric"""
 
-    def get(self, request: Request, organization, tag_name) -> Response:
+    def get(self, request: Request, organization, tag_name: str) -> Response:
 
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)

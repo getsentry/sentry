@@ -31,7 +31,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         except KeyError:
             raise ResourceDoesNotExist
 
-    def get(self, request: Request, project, plugin_id) -> Response:
+    def get(self, request: Request, project, plugin_id: int) -> Response:
         plugin = self._get_plugin(plugin_id)
 
         try:
@@ -45,7 +45,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             raise Http404
         return Response(context)
 
-    def post(self, request: Request, project, plugin_id) -> Response:
+    def post(self, request: Request, project, plugin_id: int) -> Response:
         """
         Enable plugin, Test plugin or Reset plugin values
         """
@@ -85,7 +85,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
         return Response(status=201)
 
-    def delete(self, request: Request, project, plugin_id) -> Response:
+    def delete(self, request: Request, project, plugin_id: int) -> Response:
         """
         Disable plugin
         """
@@ -106,7 +106,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
         return Response(status=204)
 
-    def put(self, request: Request, project, plugin_id) -> Response:
+    def put(self, request: Request, project, plugin_id: int) -> Response:
         plugin = self._get_plugin(plugin_id)
 
         config = [

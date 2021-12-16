@@ -15,7 +15,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     # since an ApiKey is bound to the Organization, not
     # an individual. Not sure if we'd want to allow an ApiKey
     # to delete/update other users' comments
-    def delete(self, request: Request, group, note_id) -> Response:
+    def delete(self, request: Request, group, note_id: int) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
@@ -30,7 +30,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         return Response(status=204)
 
-    def put(self, request: Request, group, note_id) -> Response:
+    def put(self, request: Request, group, note_id: int) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")
 

@@ -10,7 +10,7 @@ from sentry.tagstore.base import TAG_KEY_RE
 
 
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request: Request, organization, key) -> Response:
+    def get(self, request: Request, organization, key: str) -> Response:
         if not TAG_KEY_RE.match(key):
             return Response({"detail": f'Invalid tag key format for "{key}"'}, status=400)
 

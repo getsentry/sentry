@@ -15,7 +15,7 @@ from sentry.utils import json
 
 
 class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
-    def post(self, request: Request, organization, version) -> Response:
+    def post(self, request: Request, organization, version: str) -> Response:
         """
         Handle an artifact bundle and merge it into the release
         ```````````````````````````````````````````````````````

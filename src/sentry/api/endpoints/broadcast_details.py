@@ -47,11 +47,11 @@ class BroadcastDetailsEndpoint(Endpoint):
         serializer_cls = self._get_serializer(request)
         return self.respond(serialize(broadcast, request.user, serializer=serializer_cls()))
 
-    def get(self, request: Request, broadcast_id) -> Response:
+    def get(self, request: Request, broadcast_id: int) -> Response:
         broadcast = self._get_broadcast(request, broadcast_id)
         return self._serialize_response(request, broadcast)
 
-    def put(self, request: Request, broadcast_id) -> Response:
+    def put(self, request: Request, broadcast_id: int) -> Response:
         broadcast = self._get_broadcast(request, broadcast_id)
         validator = self._get_validator(request)(data=request.data, partial=True)
         if not validator.is_valid():

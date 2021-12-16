@@ -21,7 +21,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             "organizations:discover", organization, actor=request.user
         ) or features.has("organizations:discover-query", organization, actor=request.user)
 
-    def get(self, request: Request, organization, query_id) -> Response:
+    def get(self, request: Request, organization, query_id: int) -> Response:
         """
         Get a saved query
         """
@@ -35,7 +35,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
 
         return Response(serialize(query), status=200)
 
-    def put(self, request: Request, organization, query_id) -> Response:
+    def put(self, request: Request, organization, query_id: int) -> Response:
         """
         Modify a saved query
         """
@@ -73,7 +73,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
 
         return Response(serialize(model), status=200)
 
-    def delete(self, request: Request, organization, query_id) -> Response:
+    def delete(self, request: Request, organization, query_id: int) -> Response:
         """
         Delete a saved query
         """
@@ -100,7 +100,7 @@ class DiscoverSavedQueryVisitEndpoint(OrganizationEndpoint):
     def has_feature(self, organization, request):
         return features.has("organizations:discover-query", organization, actor=request.user)
 
-    def post(self, request: Request, organization, query_id) -> Response:
+    def post(self, request: Request, organization, query_id: int) -> Response:
         """
         Update last_visited and increment visits counter
         """

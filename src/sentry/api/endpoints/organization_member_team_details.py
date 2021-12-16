@@ -121,7 +121,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         omt.send_request_email()
 
-    def post(self, request: Request, organization, member_id: int, team_slug) -> Response:
+    def post(self, request: Request, organization, member_id: int, team_slug: str) -> Response:
         """
         Join, request access to or add a member to a team.
 
@@ -167,7 +167,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=201)
 
-    def delete(self, request: Request, organization, member_id, team_slug) -> Response:
+    def delete(self, request: Request, organization, member_id, team_slug: str) -> Response:
         """
         Leave or remove a member from a team
         """

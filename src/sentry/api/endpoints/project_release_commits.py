@@ -10,7 +10,7 @@ from sentry.models import Release, ReleaseCommit, Repository
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, version) -> Response:
+    def get(self, request: Request, project, version: str) -> Response:
         """
         List a Project Release's Commits
         ````````````````````````````````

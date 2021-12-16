@@ -15,7 +15,7 @@ from sentry.models import Group
 class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
     permission_classes = ()
 
-    def get(self, request: Request, share_id) -> Response:
+    def get(self, request: Request, share_id: int) -> Response:
         """
         Retrieve an aggregate
 

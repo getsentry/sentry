@@ -11,7 +11,7 @@ from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
 
 
 class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
-    def get(self, request: Request, group, key) -> Response:
+    def get(self, request: Request, group, key: str) -> Response:
         """
         List a Tag's Values
         ```````````````````

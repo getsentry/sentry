@@ -138,7 +138,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return Response(context)
 
-    def put(self, request: Request, organization, member_id) -> Response:
+    def put(self, request: Request, organization, member_id: int) -> Response:
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
@@ -245,7 +245,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return Response(context)
 
-    def delete(self, request: Request, organization, member_id) -> Response:
+    def delete(self, request: Request, organization, member_id: int) -> Response:
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:

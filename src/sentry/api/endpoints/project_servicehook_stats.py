@@ -11,7 +11,7 @@ from sentry.models import ServiceHook
 
 
 class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
-    def get(self, request: Request, project, hook_id) -> Response:
+    def get(self, request: Request, project, hook_id: int) -> Response:
         try:
             hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:

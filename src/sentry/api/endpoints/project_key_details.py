@@ -13,7 +13,7 @@ from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 
 
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, key_id) -> Response:
+    def get(self, request: Request, project, key_id: int) -> Response:
         try:
             key = ProjectKey.objects.get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
@@ -23,7 +23,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(key, request.user), status=200)
 
-    def put(self, request: Request, project, key_id) -> Response:
+    def put(self, request: Request, project, key_id: int) -> Response:
         """
         Update a Client Key
         ```````````````````
@@ -91,7 +91,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             return Response(serialize(key, request.user), status=200)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Request, project, key_id) -> Response:
+    def delete(self, request: Request, project, key_id: int) -> Response:
         """
         Delete a Client Key
         ```````````````````

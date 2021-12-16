@@ -18,7 +18,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             organizations=organization, id=integration_id, provider=self.provider
         )
 
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(self, request: Request, organization, integration_id: int) -> Response:
         try:
             integration = self._get_integration(organization, integration_id)
         except Integration.DoesNotExist:

@@ -11,7 +11,7 @@ logger = logging.getLogger("sentry.integrations.bitbucket")
 
 
 class BitbucketSearchEndpoint(IntegrationEndpoint):
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(self, request: Request, organization, integration_id: int) -> Response:
         try:
             integration = Integration.objects.get(
                 organizations=organization, id=integration_id, provider="bitbucket"

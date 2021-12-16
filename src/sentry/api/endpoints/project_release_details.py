@@ -18,7 +18,7 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, version) -> Response:
+    def get(self, request: Request, project, version: str) -> Response:
         """
         Retrieve a Project's Release
         ````````````````````````````
@@ -61,7 +61,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             )
         )
 
-    def put(self, request: Request, project, version) -> Response:
+    def put(self, request: Request, project, version: str) -> Response:
         """
         Update a Project's Release
         ``````````````````````````
@@ -138,7 +138,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
             return Response(serialize(release, request.user))
 
-    def delete(self, request: Request, project, version) -> Response:
+    def delete(self, request: Request, project, version: str) -> Response:
         """
         Delete a Project's Release
         ``````````````````````````

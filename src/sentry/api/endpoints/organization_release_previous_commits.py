@@ -9,7 +9,7 @@ from sentry.models import Release
 
 
 class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request: Request, organization, version) -> Response:
+    def get(self, request: Request, organization, version: str) -> Response:
         """
         Retrieve an Organization's Most Recent Release with Commits
         ````````````````````````````````````````````````````````````

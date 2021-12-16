@@ -101,14 +101,14 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
                 return identity
         return None
 
-    def get(self, request: Request, user, category, identity_id) -> Response:
+    def get(self, request: Request, user, category, identity_id: int) -> Response:
         identity = self._get_identity(user, category, identity_id)
         if identity:
             return Response(serialize(identity))
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-    def delete(self, request: Request, user, category, identity_id) -> Response:
+    def delete(self, request: Request, user, category, identity_id: int) -> Response:
         with transaction.atomic():
             identity = self._get_identity(user, category, identity_id)
             if not identity:

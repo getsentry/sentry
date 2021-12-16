@@ -61,7 +61,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             status=status.HTTP_200_OK,
         )
 
-    def put(self, request: Request, organization, member_id) -> Response:
+    def put(self, request: Request, organization, member_id: int) -> Response:
         """
         Update an invite request to Organization
         ````````````````````````````````````````
@@ -131,7 +131,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             status=status.HTTP_200_OK,
         )
 
-    def delete(self, request: Request, organization, member_id) -> Response:
+    def delete(self, request: Request, organization, member_id: int) -> Response:
         """
         Delete an invite request to Organization
         ````````````````````````````````````````

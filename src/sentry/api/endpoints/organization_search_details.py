@@ -11,7 +11,7 @@ from sentry.models.search_common import SearchType
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSearchPermission,)
 
-    def delete(self, request: Request, organization, search_id) -> Response:
+    def delete(self, request: Request, organization, search_id: int) -> Response:
         """
         Delete a saved search
 

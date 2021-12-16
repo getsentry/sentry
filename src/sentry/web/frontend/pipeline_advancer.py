@@ -31,7 +31,7 @@ class PipelineAdvancerView(BaseView):
     csrf_protect = False
 
     @transaction_start("PipelineAdvancerView")
-    def handle(self, request: Request, provider_id) -> Response:
+    def handle(self, request: Request, provider_id: int) -> Response:
         pipeline = None
 
         for pipeline_cls in PIPELINE_CLASSES:

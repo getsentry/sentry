@@ -270,7 +270,7 @@ class OrganizationReleaseDetailsEndpoint(
     ReleaseAnalyticsMixin,
     OrganizationReleaseDetailsPaginationMixin,
 ):
-    def get(self, request: Request, organization, version) -> Response:
+    def get(self, request: Request, organization, version: str) -> Response:
         """
         Retrieve an Organization's Release
         ``````````````````````````````````
@@ -368,7 +368,7 @@ class OrganizationReleaseDetailsEndpoint(
             )
         )
 
-    def put(self, request: Request, organization, version) -> Response:
+    def put(self, request: Request, organization, version: str) -> Response:
         """
         Update an Organization's Release
         ````````````````````````````````
@@ -496,7 +496,7 @@ class OrganizationReleaseDetailsEndpoint(
 
             return Response(serialize(release, request.user))
 
-    def delete(self, request: Request, organization, version) -> Response:
+    def delete(self, request: Request, organization, version: str) -> Response:
         """
         Delete an Organization's Release
         ````````````````````````````````

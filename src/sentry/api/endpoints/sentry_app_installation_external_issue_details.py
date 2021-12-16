@@ -9,7 +9,7 @@ from sentry.models import PlatformExternalIssue
 
 
 class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoint):
-    def delete(self, request: Request, installation, external_issue_id) -> Response:
+    def delete(self, request: Request, installation, external_issue_id: int) -> Response:
         try:
             platform_external_issue = PlatformExternalIssue.objects.get(
                 id=external_issue_id,

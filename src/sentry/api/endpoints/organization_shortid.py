@@ -8,7 +8,7 @@ from sentry.models import Group
 
 
 class ShortIdLookupEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization, short_id) -> Response:
+    def get(self, request: Request, organization, short_id: int) -> Response:
         """
         Resolve a Short ID
         ``````````````````

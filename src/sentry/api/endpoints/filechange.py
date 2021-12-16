@@ -9,7 +9,7 @@ from sentry.models import CommitFileChange, Release, ReleaseCommit, Repository
 
 
 class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request: Request, organization, version) -> Response:
+    def get(self, request: Request, organization, version: str) -> Response:
         """
         Retrieve Files Changed in a Release's Commits
         `````````````````````````````````````````````

@@ -34,7 +34,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         )
 
     @requires_feature("organizations:integrations-custom-scm")
-    def put(self, request: Request, organization, integration_id) -> Response:
+    def put(self, request: Request, organization, integration_id: int) -> Response:
         try:
             integration = Integration.objects.get(organizations=organization, id=integration_id)
         except Integration.DoesNotExist:
@@ -70,7 +70,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             )
         return self.respond(serializer.errors, status=400)
 
-    def delete(self, request: Request, organization, integration_id) -> Response:
+    def delete(self, request: Request, organization, integration_id: int) -> Response:
         # Removing the integration removes the organization
         # integrations and all linked issues.
         org_integration = self.get_organization_integration(organization, integration_id)

@@ -53,7 +53,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         return Response(serialize(interface))
 
     @sudo_required
-    def get(self, request: Request, user, auth_id) -> Response:
+    def get(self, request: Request, user, auth_id: int) -> Response:
         """
         Get Authenticator Interface
         ```````````````````````````

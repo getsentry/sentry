@@ -10,7 +10,7 @@ from sentry.models import CommitFileChange, ProjectPlatform, Release, ReleaseCom
 
 
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request: Request, organization, version) -> Response:
+    def get(self, request: Request, organization, version: str) -> Response:
         """
         Retrieve an Organization's Release's Associated Meta Data
         `````````````````````````````````````````````````````````

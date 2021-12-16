@@ -15,7 +15,7 @@ class OrganizationIntegrationSetupView(OrganizationView):
 
     csrf_protect = False
 
-    def handle(self, request: Request, organization, provider_id) -> Response:
+    def handle(self, request: Request, organization, provider_id: int) -> Response:
         pipeline = IntegrationPipeline(
             request=request, organization=organization, provider_key=provider_id
         )

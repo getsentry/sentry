@@ -9,7 +9,7 @@ from sentry.models import Commit, Repository
 
 
 class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization, repo_id) -> Response:
+    def get(self, request: Request, organization, repo_id: int) -> Response:
         """
         List a Repository's Commits
         ```````````````````````````

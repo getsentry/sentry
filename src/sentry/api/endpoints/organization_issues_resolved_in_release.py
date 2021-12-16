@@ -12,7 +12,7 @@ from sentry.models import Group
 class OrganizationIssuesResolvedInReleaseEndpoint(OrganizationEndpoint, EnvironmentMixin):
     permission_classes = (OrganizationPermission,)
 
-    def get(self, request: Request, organization, version) -> Response:
+    def get(self, request: Request, organization, version: str) -> Response:
         """
         List issues to be resolved in a particular release
         ``````````````````````````````````````````````````

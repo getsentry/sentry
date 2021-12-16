@@ -6,6 +6,6 @@ from sentry.models import AuthIdentity
 
 
 class UserIdentityDetailsEndpoint(UserEndpoint):
-    def delete(self, request: Request, user, identity_id) -> Response:
+    def delete(self, request: Request, user, identity_id: int) -> Response:
         AuthIdentity.objects.filter(user=user, id=identity_id).delete()
         return Response(status=204)

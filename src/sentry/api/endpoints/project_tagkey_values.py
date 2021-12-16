@@ -11,7 +11,7 @@ from sentry.models import Environment
 
 
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
-    def get(self, request: Request, project, key) -> Response:
+    def get(self, request: Request, project, key: str) -> Response:
         """
         List a Tag's Values
         ```````````````````

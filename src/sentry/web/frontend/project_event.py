@@ -10,7 +10,7 @@ from sentry.web.frontend.base import ProjectView
 class ProjectEventRedirect(ProjectView):
     required_scope = "event:read"
 
-    def handle(self, request: Request, organization, project, client_event_id) -> Response:
+    def handle(self, request: Request, organization, project, client_event_id: int) -> Response:
         """
         Given a client event id and project, redirects to the event page
         """

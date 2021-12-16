@@ -7,11 +7,11 @@ from sentry.models import UserPermission
 
 
 class UserPermissionDetailsEndpoint(UserEndpoint):
-    def get(self, request: Request, user, permission_name) -> Response:
+    def get(self, request: Request, user, permission_name: str) -> Response:
         has_perm = UserPermission.objects.filter(user=user, permission=permission_name).exists()
         return self.respond(status=204 if has_perm else 404)
 
-    def post(self, request: Request, user, permission_name) -> Response:
+    def post(self, request: Request, user, permission_name: str) -> Response:
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 
@@ -24,7 +24,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
             raise
         return self.respond(status=201)
 
-    def delete(self, request: Request, user, permission_name) -> Response:
+    def delete(self, request: Request, user, permission_name: str) -> Response:
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 

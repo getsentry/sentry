@@ -11,7 +11,7 @@ logger = logging.getLogger("sentry.accounts")
 
 
 class UserSocialIdentityDetailsEndpoint(UserEndpoint):
-    def delete(self, request: Request, user, identity_id) -> Response:
+    def delete(self, request: Request, user, identity_id: int) -> Response:
         """
         Disconnect a Identity from Account
         ```````````````````````````````````````````````````````

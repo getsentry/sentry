@@ -8,7 +8,7 @@ from sentry.models.auditlogentry import AuditLogEntryEvent
 
 
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
-    def put(self, request: Request, project, filter_id) -> Response:
+    def put(self, request: Request, project, filter_id: int) -> Response:
         """
         Update a filter
 

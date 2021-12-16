@@ -26,7 +26,7 @@ class DeploySerializer(serializers.Serializer):
 
 
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request: Request, organization, version) -> Response:
+    def get(self, request: Request, organization, version: str) -> Response:
         """
         List a Release's Deploys
         ````````````````````````
@@ -54,7 +54,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request: Request, organization, version) -> Response:
+    def post(self, request: Request, organization, version: str) -> Response:
         """
         Create a Deploy
         ```````````````
