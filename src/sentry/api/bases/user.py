@@ -1,3 +1,5 @@
+from rest_framework.request import Request
+
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
@@ -7,7 +9,7 @@ from sentry.models import Organization, OrganizationStatus, User
 
 
 class UserPermission(SentryPermission):
-    def has_object_permission(self, request, view, user=None):
+    def has_object_permission(self, request: Request, view, user=None):
         if user is None:
             user = request.user
         if request.user == user:
@@ -24,7 +26,7 @@ class UserPermission(SentryPermission):
 class OrganizationUserPermission(UserPermission):
     scope_map = {"DELETE": ["member:admin"]}
 
-    def has_org_permission(self, request, user):
+    def has_org_permission(self, request: Request, user):
         """
         Org can act on a user account,
         if the user is a member of only one org
@@ -42,7 +44,7 @@ class OrganizationUserPermission(UserPermission):
         except (Organization.DoesNotExist, Organization.MultipleObjectsReturned):
             return False
 
-    def has_object_permission(self, request, view, user=None):
+    def has_object_permission(self, request: Request, view, user=None):
         if super().has_object_permission(request, view, user):
             return True
         return self.has_org_permission(request, user)
@@ -57,7 +59,7 @@ class UserEndpoint(Endpoint):
 
     permission_classes = (UserPermission,)
 
-    def convert_args(self, request, user_id, *args, **kwargs):
+    def convert_args(self, request: Request, user_id, *args, **kwargs):
         if user_id == "me":
             if not request.user.is_authenticated:
                 raise ResourceDoesNotExist

@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -26,7 +27,7 @@ class ProjectPermission(OrganizationPermission):
         "DELETE": ["project:admin"],
     }
 
-    def has_object_permission(self, request, view, project):
+    def has_object_permission(self, request: Request, view, project):
         result = super().has_object_permission(request, view, project.organization)
 
         if not result:
@@ -123,7 +124,7 @@ class ProjectAlertRulePermission(ProjectPermission):
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
-    def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, project_slug, *args, **kwargs):
         try:
             project = (
                 Project.objects.filter(organization__slug=organization_slug, slug=project_slug)
@@ -172,7 +173,7 @@ class ProjectEndpoint(Endpoint):
         kwargs["project"] = project
         return (args, kwargs)
 
-    def get_filter_params(self, request, project, date_filter_optional=False):
+    def get_filter_params(self, request: Request, project, date_filter_optional=False):
         """Similar to the version on the organization just for a single project."""
         # get the top level params -- projects, time range, and environment
         # from the request
@@ -188,7 +189,7 @@ class ProjectEndpoint(Endpoint):
 
         return params
 
-    def handle_exception(self, request, exc):
+    def handle_exception(self, request: Request, exc):
         if isinstance(exc, ProjectMoved):
             response = Response(
                 {"slug": exc.detail["detail"]["extra"]["slug"], "detail": exc.detail["detail"]},
