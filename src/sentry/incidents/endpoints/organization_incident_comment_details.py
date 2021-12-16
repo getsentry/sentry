@@ -8,6 +8,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import delete_comment, update_comment
 from sentry.incidents.models import IncidentActivity, IncidentActivityType
+from sentry.models import Organization
 
 
 class CommentSerializer(serializers.Serializer):
@@ -46,7 +47,7 @@ class CommentDetailsEndpoint(IncidentEndpoint):
 class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
     permission_classes = (IncidentPermission,)
 
-    def delete(self, request: Request, organization, incident, activity) -> Response:
+    def delete(self, request: Request, organization: Organization, incident, activity) -> Response:
         """
         Delete a comment
         ````````````````
@@ -60,7 +61,7 @@ class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
 
         return Response(status=204)
 
-    def put(self, request: Request, organization, incident, activity) -> Response:
+    def put(self, request: Request, organization: Organization, incident, activity) -> Response:
         """
         Update an existing comment
         ``````````````````````````

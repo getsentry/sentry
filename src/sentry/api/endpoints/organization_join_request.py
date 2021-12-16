@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
 from sentry.app import ratelimiter
-from sentry.models import AuthProvider, InviteStatus, OrganizationMember
+from sentry.models import AuthProvider, InviteStatus, Organization, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -50,7 +50,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         }
     }
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         if organization.get_option("sentry:join_requests") is False:
             return Response(
                 {"detail": "Your organization does not allow join requests."}, status=403

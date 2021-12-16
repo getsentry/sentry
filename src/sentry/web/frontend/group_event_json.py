@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
-from sentry.models import Group, GroupMeta, get_group_with_redirect
+from sentry.models import Group, GroupMeta, Organization, get_group_with_redirect
 from sentry.utils import json
 from sentry.web.frontend.base import OrganizationView
 
@@ -11,7 +11,9 @@ from sentry.web.frontend.base import OrganizationView
 class GroupEventJsonView(OrganizationView):
     required_scope = "event:read"
 
-    def get(self, request: Request, organization, group_id, event_id_or_latest) -> Response:
+    def get(
+        self, request: Request, organization: Organization, group_id, event_id_or_latest
+    ) -> Response:
         try:
             # TODO(tkaemming): This should *actually* redirect, see similar
             # comment in ``GroupEndpoint.convert_args``.

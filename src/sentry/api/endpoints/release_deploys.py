@@ -25,8 +25,11 @@ class DeploySerializer(serializers.Serializer):
         return value
 
 
+from sentry.models import Organization
+
+
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request: Request, organization, version: str) -> Response:
+    def get(self, request: Request, organization: Organization, version: str) -> Response:
         """
         List a Release's Deploys
         ````````````````````````
@@ -54,7 +57,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request: Request, organization, version: str) -> Response:
+    def post(self, request: Request, organization: Organization, version: str) -> Response:
         """
         Create a Deploy
         ```````````````

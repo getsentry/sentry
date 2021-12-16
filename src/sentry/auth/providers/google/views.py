@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.auth.view import AuthView, ConfigureView
+from sentry.models import Organization
 from sentry.utils import json
 from sentry.utils.compat import map
 from sentry.utils.signing import urlsafe_b64decode
@@ -66,7 +67,7 @@ class FetchUser(AuthView):
 
 
 class GoogleConfigureView(ConfigureView):
-    def dispatch(self, request: Request, organization, auth_provider):
+    def dispatch(self, request: Request, organization: Organization, auth_provider):
         config = auth_provider.config
         if config.get("domain"):
             domains = [config["domain"]]

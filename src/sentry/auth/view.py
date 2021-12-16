@@ -2,6 +2,7 @@ __all__ = ["AuthView", "ConfigureView"]
 
 from rest_framework.request import Request
 
+from sentry.models import Organization
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.web.frontend.base import BaseView
 
@@ -24,5 +25,5 @@ class AuthView(BaseView):
 class ConfigureView(BaseView, PluggableViewMixin):
     """ """
 
-    def dispatch(self, request: Request, organization, auth_provider):
+    def dispatch(self, request: Request, organization: Organization, auth_provider):
         return ""

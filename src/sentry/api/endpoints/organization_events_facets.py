@@ -6,11 +6,12 @@ from rest_framework.response import Response
 
 from sentry import features, tagstore
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.models import Organization
 from sentry.snuba import discover
 
 
 class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

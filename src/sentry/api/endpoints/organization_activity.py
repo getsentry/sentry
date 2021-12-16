@@ -7,11 +7,11 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import OrganizationActivitySerializer, serialize
-from sentry.models import Activity, OrganizationMemberTeam, Project
+from sentry.models import Activity, Organization, OrganizationMemberTeam, Project
 
 
 class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
-    def get(self, request: Request, organization, member) -> Response:
+    def get(self, request: Request, organization: Organization, member) -> Response:
         # There is an activity record created for both sides of the unmerge
         # operation, so we only need to include one of them here to avoid
         # showing the same entry twice.

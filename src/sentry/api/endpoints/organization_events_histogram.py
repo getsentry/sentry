@@ -38,11 +38,14 @@ class HistogramSerializer(serializers.Serializer):
         return fields
 
 
+from sentry.models import Organization
+
+
 class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

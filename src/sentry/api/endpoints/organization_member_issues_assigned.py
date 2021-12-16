@@ -2,11 +2,11 @@ from django.db.models import Q
 from rest_framework.request import Request
 
 from sentry.api.bases import OrganizationIssuesEndpoint
-from sentry.models import Group, OrganizationMemberTeam, Team
+from sentry.models import Group, Organization, OrganizationMemberTeam, Team
 
 
 class OrganizationMemberIssuesAssignedEndpoint(OrganizationIssuesEndpoint):
-    def get_queryset(self, request: Request, organization, member, project_list):
+    def get_queryset(self, request: Request, organization: Organization, member, project_list):
         teams = Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=member, is_active=True

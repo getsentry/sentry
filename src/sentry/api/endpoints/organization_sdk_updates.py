@@ -62,8 +62,11 @@ def serialize(data, projects):
     return [update for update in updates_list if len(update["suggestions"]) > 0]
 
 
+from sentry.models import Organization
+
+
 class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         projects = self.get_projects(request, organization)
 
         len_projects = len(projects)

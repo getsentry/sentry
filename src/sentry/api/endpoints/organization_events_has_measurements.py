@@ -46,8 +46,11 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
         return data
 
 
+from sentry.models import Organization
+
+
 class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

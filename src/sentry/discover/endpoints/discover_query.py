@@ -12,6 +12,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.group_index.index import rate_limit_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.discover.utils import transform_aliases_and_query
+from sentry.models import Organization
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import snuba
 from sentry.utils.compat import map
@@ -36,7 +37,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
         }
     }
 
-    def has_feature(self, request: Request, organization):
+    def has_feature(self, request: Request, organization: Organization):
         return features.has(
             "organizations:discover", organization, actor=request.user
         ) or features.has("organizations:discover-basic", organization, actor=request.user)
@@ -116,7 +117,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
             )
 
     @rate_limit_endpoint(limit=4)
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(request, organization):
             return Response(status=404)
         logger.info("discover1.request", extra={"organization_id": organization.id})

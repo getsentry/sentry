@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.models import Organization
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -14,7 +15,7 @@ class OrganizationRequestProjectCreationSerializer(CamelSnakeSerializer):
 
 
 class OrganizationRequestProjectCreation(OrganizationRequestChangeEndpoint):
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Send an email requesting a project be created
         """

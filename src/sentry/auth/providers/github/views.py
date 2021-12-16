@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.auth.view import AuthView, ConfigureView
-from sentry.models import AuthIdentity
+from sentry.models import AuthIdentity, Organization
 
 from .client import GitHubClient
 from .constants import (
@@ -132,5 +132,5 @@ class SelectOrganization(AuthView):
 
 
 class GitHubConfigureView(ConfigureView):
-    def dispatch(self, request: Request, organization, auth_provider):
+    def dispatch(self, request: Request, organization: Organization, auth_provider):
         return self.render("sentry_auth_github/configure.html")

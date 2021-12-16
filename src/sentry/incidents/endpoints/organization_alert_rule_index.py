@@ -20,7 +20,7 @@ from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.api.utils import InvalidParams
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule, Incident
-from sentry.models import OrganizationMemberTeam, Project, Rule, RuleStatus, Team
+from sentry.models import Organization, OrganizationMemberTeam, Project, Rule, RuleStatus, Team
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, StringCursor
 
@@ -28,7 +28,7 @@ from .utils import parse_team_params
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches alert rules and legacy rules for an organization
         """
@@ -143,10 +143,13 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         )
 
 
+from sentry.models import Organization
+
+
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAlertRulePermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches alert rules for an organization
         """
@@ -168,7 +171,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
             default_per_page=25,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create an alert rule
         """

@@ -136,6 +136,9 @@ def inbox_search(
     return results
 
 
+from sentry.models import Organization
+
+
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
 
@@ -158,7 +161,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     }
 
     def _search(
-        self, request: Request, organization, projects, environments, extra_query_kwargs=None
+        self,
+        request: Request,
+        organization: Organization,
+        projects,
+        environments,
+        extra_query_kwargs=None,
     ):
         query_kwargs = build_query_params_from_request(
             request, organization, projects, environments
@@ -177,7 +185,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Issues
         `````````````````````````````
@@ -351,7 +359,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     @track_slo_response("workflow")
     @rate_limit_endpoint(limit=5, window=5)
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response:
         """
         Bulk Mutate a List of Issues
         ````````````````````````````
@@ -434,7 +442,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     @track_slo_response("workflow")
     @rate_limit_endpoint(limit=5, window=5)
-    def delete(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization: Organization) -> Response:
         """
         Bulk Remove a List of Issues
         ````````````````````````````

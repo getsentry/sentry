@@ -8,7 +8,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
 from sentry.mediators.sentry_app_installations import Creator
-from sentry.models import SentryAppInstallation
+from sentry.models import Organization, SentryAppInstallation
 
 
 class SentryAppInstallationsSerializer(serializers.Serializer):
@@ -30,7 +30,7 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
 
 
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         queryset = SentryAppInstallation.objects.filter(organization=organization)
 
         return self.paginate(
@@ -41,7 +41,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         serializer = SentryAppInstallationsSerializer(data=request.data)
 
         if not serializer.is_valid():

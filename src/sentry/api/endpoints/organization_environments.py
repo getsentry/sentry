@@ -4,11 +4,11 @@ from rest_framework.response import Response
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
-from sentry.models import Environment, EnvironmentProject
+from sentry.models import Environment, EnvironmentProject, Organization
 
 
 class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         visibility = request.GET.get("visibility", "visible")
         if visibility not in environment_visibility_filter_options:
             return Response(

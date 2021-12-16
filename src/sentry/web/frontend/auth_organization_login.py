@@ -15,7 +15,7 @@ class AuthOrganizationLoginView(AuthLoginView):
     def respond_login(self, request: Request, context, *args, **kwargs) -> Response:
         return self.respond("sentry/organization-login.html", context)
 
-    def handle_sso(self, request: Request, organization, auth_provider):
+    def handle_sso(self, request: Request, organization: Organization, auth_provider):
         if request.method == "POST":
             helper = AuthHelper(
                 request=request,

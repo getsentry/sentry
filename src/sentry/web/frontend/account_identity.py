@@ -4,14 +4,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.models import IdentityProvider
+from sentry.models import IdentityProvider, Organization
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
 
 
 class AccountIdentityAssociateView(OrganizationView):
     @never_cache
-    def handle(self, request: Request, organization, provider_key, external_id: int) -> Response:
+    def handle(
+        self, request: Request, organization: Organization, provider_key, external_id: int
+    ) -> Response:
         try:
             provider_model = IdentityProvider.objects.get(
                 type=provider_key, external_id=external_id

@@ -12,7 +12,7 @@ from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Creator, InternalCreator
-from sentry.models import SentryApp
+from sentry.models import Organization, SentryApp
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             on_results=lambda x: serialize(x, request.user, access=request.access),
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         data = {
             "name": request.json_body.get("name"),
             "user": request.user,

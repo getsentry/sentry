@@ -14,10 +14,13 @@ class ApiKeySerializer(serializers.ModelSerializer):
         fields = ("label", "scope_list", "allowed_origins")
 
 
+from sentry.models import Organization
+
+
 class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAdminPermission,)
 
-    def get(self, request: Request, organization, api_key_id: int) -> Response:
+    def get(self, request: Request, organization: Organization, api_key_id: int) -> Response:
         """
         Retrieves API Key details
         `````````````````````````
@@ -34,7 +37,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(api_key, request.user))
 
-    def put(self, request: Request, organization, api_key_id: int) -> Response:
+    def put(self, request: Request, organization: Organization, api_key_id: int) -> Response:
         """
         Update an API Key
         `````````````````
@@ -70,7 +73,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Request, organization, api_key_id: int) -> Response:
+    def delete(self, request: Request, organization: Organization, api_key_id: int) -> Response:
         """
         Deletes an API Key
         ``````````````````

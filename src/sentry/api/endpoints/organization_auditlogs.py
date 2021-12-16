@@ -10,10 +10,13 @@ from sentry.models import AuditLogEntry
 EVENT_REVERSE_MAP = {v: k for k, v in AuditLogEntry._meta.get_field("event").choices}
 
 
+from sentry.models import Organization
+
+
 class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAuditPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         queryset = AuditLogEntry.objects.filter(organization=organization).select_related("actor")
 
         event = request.GET.get("event")

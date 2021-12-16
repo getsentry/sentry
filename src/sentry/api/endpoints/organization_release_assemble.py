@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Release
+from sentry.models import Organization, Release
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -15,7 +15,7 @@ from sentry.utils import json
 
 
 class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
-    def post(self, request: Request, organization, version: str) -> Response:
+    def post(self, request: Request, organization: Organization, version: str) -> Response:
         """
         Handle an artifact bundle and merge it into the release
         ```````````````````````````````````````````````````````

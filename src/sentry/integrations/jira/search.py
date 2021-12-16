@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration
+from sentry.models import Integration, Organization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.utils.compat import filter
 
@@ -18,7 +18,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             organizations=organization, id=integration_id, provider=self.provider
         )
 
-    def get(self, request: Request, organization, integration_id: int) -> Response:
+    def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
         try:
             integration = self._get_integration(organization, integration_id)
         except Integration.DoesNotExist:

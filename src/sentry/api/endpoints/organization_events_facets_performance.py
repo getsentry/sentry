@@ -30,6 +30,9 @@ TAG_ALIASES = {"release": "sentry:release", "dist": "sentry:dist", "user": "sent
 DEFAULT_TAG_KEY_LIMIT = 5
 
 
+from sentry.models import Organization
+
+
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
@@ -59,7 +62,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
 
 
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:
@@ -131,7 +134,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
 class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:

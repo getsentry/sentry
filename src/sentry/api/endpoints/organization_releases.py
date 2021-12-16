@@ -24,6 +24,7 @@ from sentry.api.serializers.rest_framework import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Activity,
+    Organization,
     Project,
     Release,
     ReleaseCommitError,
@@ -217,7 +218,7 @@ class OrganizationReleasesEndpoint(
         ]
     )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases
         ```````````````````````````````
@@ -394,7 +395,7 @@ class OrganizationReleasesEndpoint(
             **paginator_kwargs,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a New Release for an Organization
         ````````````````````````````````````````
@@ -557,7 +558,7 @@ class OrganizationReleasesEndpoint(
 
 
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases specifically for building timeseries
         ```````````````````````````````

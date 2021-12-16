@@ -13,7 +13,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import TeamKeyTransaction
-from sentry.models import ProjectTeam, Team
+from sentry.models import Organization, ProjectTeam, Team
 
 
 class KeyTransactionPermission(OrganizationPermission):
@@ -28,7 +28,7 @@ class KeyTransactionPermission(OrganizationPermission):
 class KeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -47,7 +47,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         return Response(serialize(list(key_teams)), status=200)
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """Create a Key Transaction"""
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -102,7 +102,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         return Response(serializer.errors, status=400)
 
-    def delete(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization: Organization) -> Response:
         """Remove a Key transaction for a user"""
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -134,7 +134,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 class KeyTransactionListEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models import Organization
 from sentry.snuba.metrics import (
     InvalidField,
     InvalidParams,
@@ -24,7 +25,7 @@ def get_datasource(request):
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations and the metric unit"""
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 
@@ -36,7 +37,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
 class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations, metric unit and available tags"""
 
-    def get(self, request: Request, organization, metric_name: str) -> Response:
+    def get(self, request: Request, organization: Organization, metric_name: str) -> Response:
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 
@@ -60,7 +61,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
     """
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
 
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
@@ -79,7 +80,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     """Get all existing tag values for a metric"""
 
-    def get(self, request: Request, organization, tag_name: str) -> Response:
+    def get(self, request: Request, organization: Organization, tag_name: str) -> Response:
 
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
@@ -107,7 +108,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
 

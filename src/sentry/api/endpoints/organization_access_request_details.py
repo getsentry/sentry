@@ -39,6 +39,9 @@ class AccessRequestSerializer(serializers.Serializer):
     isApproved = serializers.BooleanField()
 
 
+from sentry.models import Organization
+
+
 class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [AccessRequestPermission]
 
@@ -58,7 +61,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             return True
         return False
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Get list of requests to join org/team
 
@@ -81,7 +84,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(access_requests, request.user))
 
-    def put(self, request: Request, organization, request_id: int) -> Response:
+    def put(self, request: Request, organization: Organization, request_id: int) -> Response:
         """
         Approve or deny a request
 

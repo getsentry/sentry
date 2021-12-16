@@ -19,10 +19,13 @@ class OrganizationSearchSerializer(serializers.Serializer):
     )
 
 
+from sentry.models import Organization
+
+
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSearchPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's saved searches
         `````````````````````````````````````
@@ -68,7 +71,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
 
         return Response(serialize(results, request.user))
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         serializer = OrganizationSearchSerializer(data=request.data)
 
         if serializer.is_valid():

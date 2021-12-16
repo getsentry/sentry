@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from typing import Optional
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
@@ -369,7 +370,7 @@ class GithubWebhookBase(View):
     def get_secret(self, organization):
         raise NotImplementedError
 
-    def handle(self, request: Request, organization=None) -> Response:
+    def handle(self, request: Request, organization: Optional[Organization] = None) -> Response:
         secret = self.get_secret(organization)
 
         if secret is None:

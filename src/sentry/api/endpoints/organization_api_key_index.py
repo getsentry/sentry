@@ -9,10 +9,13 @@ from sentry.models import ApiKey, AuditLogEntryEvent
 DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member:read"]
 
 
+from sentry.models import Organization
+
+
 class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAdminPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's API Keys
         ```````````````````````````````````
@@ -24,7 +27,7 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
 
         return Response(serialize(queryset, request.user))
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create an Organization API Key
         ```````````````````````````````````

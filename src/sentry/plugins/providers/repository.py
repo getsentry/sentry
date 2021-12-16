@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.exceptions import PluginError
-from sentry.models import Repository
+from sentry.models import Organization, Repository
 from sentry.plugins.config import ConfigValidator
 from sentry.signals import repo_linked
 
@@ -29,7 +29,7 @@ class RepositoryProvider(ProviderMixin):
     def __init__(self, id):
         self.id = id
 
-    def dispatch(self, request: Request, organization, **kwargs):
+    def dispatch(self, request: Request, organization: Organization, **kwargs):
         if self.needs_auth(request.user):
             # TODO(dcramer): this should be a 401
             return Response(

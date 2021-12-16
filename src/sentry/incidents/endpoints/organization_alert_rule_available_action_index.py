@@ -61,8 +61,11 @@ def build_action_response(
     return action_response
 
 
+from sentry.models import Organization
+
+
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches actions that an alert rule can perform for an organization
         """

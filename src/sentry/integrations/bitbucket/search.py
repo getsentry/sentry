@@ -4,14 +4,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration
+from sentry.models import Integration, Organization
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket")
 
 
 class BitbucketSearchEndpoint(IntegrationEndpoint):
-    def get(self, request: Request, organization, integration_id: int) -> Response:
+    def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
         try:
             integration = Integration.objects.get(
                 organizations=organization, id=integration_id, provider="bitbucket"

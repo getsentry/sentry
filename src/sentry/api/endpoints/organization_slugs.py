@@ -4,11 +4,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models import Project
+from sentry.models import Organization, Project
 
 
 class SlugsUpdateEndpoint(OrganizationEndpoint):
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response:
         """
         Update Project Slugs
         ````````````````````

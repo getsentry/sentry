@@ -4,10 +4,11 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.api.serializers import serialize
+from sentry.models import Organization
 
 
 class OrganizationProcessingIssuesEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         For each Project in an Organization, list its processing issues. Can
         be passed `project` to filter down to specific projects.

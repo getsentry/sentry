@@ -5,12 +5,12 @@ from sentry import tsdb
 from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment, Project, Team
+from sentry.models import Environment, Organization, Project, Team
 from sentry.utils.compat import map
 
 
 class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve Event Counts for an Organization
         `````````````````````````````````````````

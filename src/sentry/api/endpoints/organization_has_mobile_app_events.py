@@ -17,8 +17,11 @@ CACHE_TTL = 24 * 60 * 60
 logger = logging.getLogger(__name__)
 
 
+from sentry.models import Organization
+
+
 class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         # cache is unique to an org
         cache_key = f"check_mobile_app_events:{organization.id}"
         cache_value = cache.get(cache_key)

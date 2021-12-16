@@ -259,7 +259,11 @@ class OrganizationEndpoint(Endpoint):
         return get_environments(request, organization)
 
     def get_filter_params(
-        self, request: Request, organization, date_filter_optional=False, project_ids=None
+        self,
+        request: Request,
+        organization: Organization,
+        date_filter_optional=False,
+        project_ids=None,
     ):
         """
         Extracts common filter parameters from the request and returns them
@@ -354,7 +358,7 @@ class OrganizationEndpoint(Endpoint):
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
-    def get_projects(self, request: Request, organization, project_ids=None):
+    def get_projects(self, request: Request, organization: Organization, project_ids=None):
         """
         Get all projects the current user or API token has access to. More
         detail in the parent class's method of the same name.
@@ -380,7 +384,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             project_ids=project_ids,
         )
 
-    def has_release_permission(self, request: Request, organization, release):
+    def has_release_permission(self, request: Request, organization: Organization, release):
         """
         Does the given request have permission to access this release, based
         on the projects to which the release is attached?

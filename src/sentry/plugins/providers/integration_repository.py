@@ -12,7 +12,7 @@ from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations import IntegrationInstallation
-from sentry.models import Integration, Repository
+from sentry.models import Integration, Organization, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
 
@@ -48,7 +48,7 @@ class IntegrationRepositoryProvider:
         installation: IntegrationInstallation = integration_model.get_installation(organization_id)
         return installation
 
-    def dispatch(self, request: Request, organization, **kwargs):
+    def dispatch(self, request: Request, organization: Organization, **kwargs):
         try:
             config = self.get_repository_data(organization, request.data)
             result = self.build_repository_config(organization=organization, data=config)

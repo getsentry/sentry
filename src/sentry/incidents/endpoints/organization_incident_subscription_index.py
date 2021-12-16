@@ -3,6 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.incidents.logic import subscribe_to_incident, unsubscribe_from_incident
+from sentry.models import Organization
 
 
 class IncidentSubscriptionPermission(IncidentPermission):
@@ -19,7 +20,7 @@ class IncidentSubscriptionPermission(IncidentPermission):
 class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
     permission_classes = (IncidentSubscriptionPermission,)
 
-    def post(self, request: Request, organization, incident) -> Response:
+    def post(self, request: Request, organization: Organization, incident) -> Response:
         """
         Subscribes the authenticated user to the incident.
         ``````````````````````````````````````````````````
@@ -31,7 +32,7 @@ class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
         subscribe_to_incident(incident, request.user)
         return Response({}, status=201)
 
-    def delete(self, request: Request, organization, incident) -> Response:
+    def delete(self, request: Request, organization: Organization, incident) -> Response:
         """
         Unsubscribes the authenticated user from the incident.
         ``````````````````````````````````````````````````````

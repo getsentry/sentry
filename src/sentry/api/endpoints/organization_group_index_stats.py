@@ -12,7 +12,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.models import Group
+from sentry.models import Group, Organization
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.compat import map
 
@@ -29,7 +29,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
     }
 
     @rate_limit_endpoint(limit=10, window=1)
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Get the stats on an Organization's Issues
         `````````````````````````````

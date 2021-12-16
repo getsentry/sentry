@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
-from sentry.models import FileBlob
+from sentry.models import FileBlob, Organization
 from sentry.utils.compat import zip
 from sentry.utils.files import get_max_file_size
 
@@ -42,7 +42,7 @@ class GzipChunk(BytesIO):
 class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Return chunk upload parameters
         ``````````````````````````````
@@ -89,7 +89,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             }
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Upload chunks and store them as FileBlobs
         `````````````````````````````````````````

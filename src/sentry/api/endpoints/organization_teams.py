@@ -54,6 +54,9 @@ class TeamPostSerializer(serializers.Serializer):
         return attrs
 
 
+from sentry.models import Organization
+
+
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationTeamsPermission,)
 
@@ -61,7 +64,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         # allow child routes to supply own serializer, used in SCIM teams route
         return TeamSerializer()
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Teams
         ````````````````````````````
@@ -127,7 +130,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     def should_add_creator_to_team(self, request: Request):
         return request.user.is_authenticated
 
-    def post(self, request: Request, organization, **kwargs) -> Response:
+    def post(self, request: Request, organization: Organization, **kwargs) -> Response:
         """
         Create a new Team
         ``````````````````

@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
-from sentry.models import Integration, Repository
+from sentry.models import Integration, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 
 
@@ -14,7 +14,7 @@ class CustomSCMRepositoryProvider(IntegrationRepositoryProvider):
     def repository_external_slug(self, repo):
         return repo.name
 
-    def dispatch(self, request: Request, organization, **kwargs):
+    def dispatch(self, request: Request, organization: Organization, **kwargs):
         """
         Adding a repository to the Custom SCM integration is
         just two steps:

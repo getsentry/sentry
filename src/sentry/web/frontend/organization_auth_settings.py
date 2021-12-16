@@ -67,12 +67,15 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
     return form
 
 
+from sentry.models import Organization
+
+
 class OrganizationAuthSettingsView(OrganizationView):
     # We restrict auth settings to org:write as it allows a non-owner to
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
 
-    def _disable_provider(self, request: Request, organization, auth_provider):
+    def _disable_provider(self, request: Request, organization: Organization, auth_provider):
         self.create_audit_entry(
             request,
             organization=organization,
@@ -96,7 +99,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             auth_provider.disable_scim(request.user)
         auth_provider.delete()
 
-    def handle_existing_provider(self, request: Request, organization, auth_provider):
+    def handle_existing_provider(self, request: Request, organization: Organization, auth_provider):
         provider = auth_provider.get_provider()
 
         if request.method == "POST":
@@ -182,7 +185,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     @transaction.atomic
-    def handle(self, request: Request, organization) -> Response:
+    def handle(self, request: Request, organization: Organization) -> Response:
         try:
             auth_provider = AuthProvider.objects.get(organization=organization)
         except AuthProvider.DoesNotExist:

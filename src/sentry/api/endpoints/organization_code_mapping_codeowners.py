@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
-from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
+from sentry.models import Organization, OrganizationIntegration, RepositoryProjectPathConfig
 
 
 class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
@@ -30,7 +30,7 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
         install = integration.get_installation(config.organization_integration.organization_id)
         return install.get_codeowner_file(config.repository, ref=config.default_branch)
 
-    def get(self, request: Request, config_id, organization, config) -> Response:
+    def get(self, request: Request, config_id, organization: Organization, config) -> Response:
         if not config.organization_integration:
             return self.respond(
                 {"error": "No associated integration."}, status=status.HTTP_400_BAD_REQUEST

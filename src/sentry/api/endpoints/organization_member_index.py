@@ -102,10 +102,13 @@ class OrganizationMemberSerializer(serializers.Serializer):
         return role
 
 
+from sentry.models import Organization
+
+
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         queryset = (
             OrganizationMember.objects.filter(
                 Q(user__is_active=True) | Q(user__isnull=True),
@@ -194,7 +197,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Add a Member to Organization
         ````````````````````````````

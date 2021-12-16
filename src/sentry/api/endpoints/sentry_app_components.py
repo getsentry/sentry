@@ -27,10 +27,12 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.models import Organization
+
 
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
     @add_integration_platform_metric_tag
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         project_id = request.GET.get("projectId")
         if not project_id:
             raise ValidationError("Required parameter 'projectId' is missing")

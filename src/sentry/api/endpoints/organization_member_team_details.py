@@ -42,10 +42,13 @@ class RelaxedOrganizationPermission(OrganizationPermission):
     }
 
 
+from sentry.models import Organization
+
+
 class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
-    def _can_create_team_member(self, request: Request, organization, team_slug):
+    def _can_create_team_member(self, request: Request, organization: Organization, team_slug):
         """
         User can join or add a member to a team:
 
@@ -83,7 +86,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         return False
 
-    def _can_admin_team(self, request: Request, organization, team_slug):
+    def _can_admin_team(self, request: Request, organization: Organization, team_slug):
         global_roles = [r.id for r in roles.with_scope("org:write") if r.is_global]
         team_roles = [r.id for r in roles.with_scope("team:write")]
 
@@ -96,7 +99,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             user__is_active=True,
         ).exists()
 
-    def _get_member(self, request: Request, organization, member_id):
+    def _get_member(self, request: Request, organization: Organization, member_id):
         if member_id == "me":
             queryset = OrganizationMember.objects.filter(
                 organization=organization, user__id=request.user.id, user__is_active=True
@@ -121,7 +124,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         omt.send_request_email()
 
-    def post(self, request: Request, organization, member_id: int, team_slug: str) -> Response:
+    def post(
+        self, request: Request, organization: Organization, member_id: int, team_slug: str
+    ) -> Response:
         """
         Join, request access to or add a member to a team.
 
@@ -167,7 +172,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=201)
 
-    def delete(self, request: Request, organization, member_id, team_slug: str) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, member_id, team_slug: str
+    ) -> Response:
         """
         Leave or remove a member from a team
         """

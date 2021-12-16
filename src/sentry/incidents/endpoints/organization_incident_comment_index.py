@@ -12,6 +12,7 @@ from sentry.api.serializers.rest_framework.mentions import (
 )
 from sentry.incidents.logic import create_incident_activity
 from sentry.incidents.models import IncidentActivityType
+from sentry.models import Organization
 
 
 class CommentSerializer(serializers.Serializer, MentionsMixin):
@@ -23,7 +24,7 @@ class CommentSerializer(serializers.Serializer, MentionsMixin):
 class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
     permission_classes = (IncidentPermission,)
 
-    def post(self, request: Request, organization, incident) -> Response:
+    def post(self, request: Request, organization: Organization, incident) -> Response:
         serializer = CommentSerializer(
             data=request.data,
             context={

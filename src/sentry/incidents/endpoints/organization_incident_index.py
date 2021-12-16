@@ -18,6 +18,7 @@ from sentry.incidents.models import (
     Incident,
     IncidentStatus,
 )
+from sentry.models import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import ensure_aware
 
@@ -27,7 +28,7 @@ from .utils import parse_team_params
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     permission_classes = (IncidentPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List Incidents that a User can access within an Organization
         ````````````````````````````````````````````````````````````

@@ -39,6 +39,9 @@ class InviteRequestPermissions(OrganizationPermission):
     }
 
 
+from sentry.models import Organization
+
+
 class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (InviteRequestPermissions,)
 
@@ -50,7 +53,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
         except ValueError:
             raise OrganizationMember.DoesNotExist()
 
-    def get(self, request: Request, organization, member_id: int) -> Response:
+    def get(self, request: Request, organization: Organization, member_id: int) -> Response:
         try:
             member = self._get_member(organization, member_id)
         except OrganizationMember.DoesNotExist:
@@ -61,7 +64,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             status=status.HTTP_200_OK,
         )
 
-    def put(self, request: Request, organization, member_id: int) -> Response:
+    def put(self, request: Request, organization: Organization, member_id: int) -> Response:
         """
         Update an invite request to Organization
         ````````````````````````````````````````
@@ -131,7 +134,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             status=status.HTTP_200_OK,
         )
 
-    def delete(self, request: Request, organization, member_id: int) -> Response:
+    def delete(self, request: Request, organization: Organization, member_id: int) -> Response:
         """
         Delete an invite request to Organization
         ````````````````````````````````````````

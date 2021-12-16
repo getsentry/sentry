@@ -4,11 +4,12 @@ from rest_framework.response import Response
 from sentry import features, integrations
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import IntegrationProviderSerializer, serialize
+from sentry.models import Organization
 from sentry.utils.compat import filter
 
 
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         def is_provider_enabled(provider):
             if not provider.requires_feature_flag:
                 return True

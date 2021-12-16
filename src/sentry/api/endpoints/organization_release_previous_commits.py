@@ -5,11 +5,11 @@ from sentry import analytics
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Release
+from sentry.models import Organization, Release
 
 
 class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request: Request, organization, version: str) -> Response:
+    def get(self, request: Request, organization: Organization, version: str) -> Response:
         """
         Retrieve an Organization's Most Recent Release with Commits
         ````````````````````````````````````````````````````````````

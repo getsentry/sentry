@@ -1,24 +1,23 @@
 import logging
 from functools import reduce
 from operator import or_
+from typing import Optional
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.db.models.query import in_icontains
-from sentry.models import Broadcast, BroadcastSeen
+from sentry.models import Broadcast, BroadcastSeen, Organization
 from sentry.search.utils import tokenize_query
 
 logger = logging.getLogger("sentry")
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class BroadcastIndexEndpoint(OrganizationEndpoint):
@@ -43,7 +42,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
         return (args, kwargs)
 
-    def get(self, request: Request, organization=None) -> Response:
+    def get(self, request: Request, organization: Optional[Organization] = None) -> Response:
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")

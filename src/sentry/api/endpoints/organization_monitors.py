@@ -1,4 +1,6 @@
 from django.db.models import Q
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects
@@ -8,7 +10,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
 from sentry.db.models.query import in_iexact
-from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus, MonitorType
+from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus, MonitorType, Organization
 from sentry.search.utils import tokenize_query
 
 
@@ -21,12 +23,8 @@ def map_value_to_constant(constant, value):
     return getattr(constant, value)
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 class OrganizationMonitorsEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve monitors for an organization
         `````````````````````````````````````
@@ -85,7 +83,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a monitor
         ````````````````

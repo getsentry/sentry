@@ -23,10 +23,13 @@ class InviteRequestPermissions(OrganizationPermission):
     }
 
 
+from sentry.models import Organization
+
+
 class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
     permission_classes = (InviteRequestPermissions,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         queryset = OrganizationMember.objects.filter(
             Q(user__isnull=True),
             Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
@@ -46,7 +49,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Add a invite request to Organization
         ````````````````````````````````````

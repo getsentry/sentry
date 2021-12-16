@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.project_release_file_details import ReleaseFileDetailsMixin
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Release
+from sentry.models import Organization, Release
 
 
 class ReleaseFileSerializer(serializers.Serializer):
@@ -15,7 +15,7 @@ class ReleaseFileSerializer(serializers.Serializer):
 class OrganizationReleaseFileDetailsEndpoint(
     OrganizationReleasesBaseEndpoint, ReleaseFileDetailsMixin
 ):
-    def get(self, request: Request, organization, version, file_id: int) -> Response:
+    def get(self, request: Request, organization: Organization, version, file_id: int) -> Response:
         """
         Retrieve an Organization Release's File
         ```````````````````````````````````````
@@ -45,7 +45,7 @@ class OrganizationReleaseFileDetailsEndpoint(
             check_permission_fn=lambda: request.access.has_scope("project:write"),
         )
 
-    def put(self, request: Request, organization, version, file_id: int) -> Response:
+    def put(self, request: Request, organization: Organization, version, file_id: int) -> Response:
         """
         Update an Organization Release's File
         `````````````````````````````````````
@@ -71,7 +71,9 @@ class OrganizationReleaseFileDetailsEndpoint(
 
         return self.update_releasefile(request, release, file_id)
 
-    def delete(self, request: Request, organization, version, file_id: int) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, version, file_id: int
+    ) -> Response:
         """
         Delete an Organization Release's File
         `````````````````````````````````````

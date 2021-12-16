@@ -20,6 +20,9 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 
+from sentry.models import Organization
+
+
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
     rate_limits = {
         "GET": {
@@ -54,7 +57,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
         return result.hits
 
     @rate_limit_endpoint(limit=10, window=1)
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         stats_period = request.GET.get("groupStatsPeriod")
         try:
             start, end = get_date_range_from_params(request.GET)

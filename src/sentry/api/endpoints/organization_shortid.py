@@ -4,11 +4,11 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Group
+from sentry.models import Group, Organization
 
 
 class ShortIdLookupEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization, short_id: int) -> Response:
+    def get(self, request: Request, organization: Organization, short_id: int) -> Response:
         """
         Resolve a Short ID
         ``````````````````

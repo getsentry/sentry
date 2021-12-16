@@ -37,8 +37,11 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
 }
 
 
+from sentry.models import Organization
+
+
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -91,11 +94,14 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 )
 
 
+from sentry.models import Organization
+
+
 class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
     def has_feature(self, request: Request, organization):
         return features.has("organizations:dashboards-basic", organization, actor=request.user)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(request, organization):
             return Response(status=404)
 

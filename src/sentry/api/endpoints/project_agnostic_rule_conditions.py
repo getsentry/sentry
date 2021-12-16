@@ -3,11 +3,12 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.models import Organization
 from sentry.rules import rules
 
 
 class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve the list of rule conditions
         """

@@ -6,8 +6,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Project
-from sentry.models.organization import Organization
+from sentry.models import Organization, Project
 from sentry.utils import metrics
 from sentry.utils.compat import map
 

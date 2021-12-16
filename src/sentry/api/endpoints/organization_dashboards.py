@@ -26,10 +26,13 @@ class OrganizationDashboardsPermission(OrganizationPermission):
     }
 
 
+from sentry.models import Organization
+
+
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve an Organization's Dashboards
         `````````````````````````````````````
@@ -122,7 +125,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             on_results=handle_results,
         )
 
-    def post(self, request: Request, organization, retry=0) -> Response:
+    def post(self, request: Request, organization: Organization, retry=0) -> Response:
         """
         Create a New Dashboard for an Organization
         ``````````````````````````````````````````

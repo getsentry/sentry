@@ -25,10 +25,13 @@ class RepositorySerializer(serializers.Serializer):
     integrationId = EmptyIntegerField(required=False, allow_null=True)
 
 
+from sentry.models import Organization
+
+
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def put(self, request: Request, organization, repo_id: int) -> Response:
+    def put(self, request: Request, organization: Organization, repo_id: int) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
 
@@ -85,7 +88,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(repo, request.user))
 
-    def delete(self, request: Request, organization, repo_id: int) -> Response:
+    def delete(self, request: Request, organization: Organization, repo_id: int) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
 

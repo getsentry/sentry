@@ -4,12 +4,13 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationAuthProviderPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.auth import manager
+from sentry.models import Organization
 
 
 class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAuthProviderPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List available auth providers that are available to use for an Organization
         ```````````````````````````````````````````````````````````````````````````

@@ -26,10 +26,13 @@ class OrganizationSearchSerializer(serializers.Serializer):
         return value
 
 
+from sentry.models import Organization
+
+
 class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPinnedSearchPermission,)
 
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response:
         serializer = OrganizationSearchSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -62,7 +65,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             return Response(serialize(pinned_search, request.user), status=201)
         return Response(serializer.errors, status=400)
 
-    def delete(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization: Organization) -> Response:
         try:
             search_type = SearchType(int(request.data.get("type", 0)))
         except ValueError as e:

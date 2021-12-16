@@ -6,6 +6,8 @@ from django.db import models, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from bitfield.types import BitHandler
 from sentry import roles
@@ -439,12 +441,8 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
         return super().save(*args, **kwargs)
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve an Organization
         ````````````````````````
@@ -467,7 +465,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         return self.respond(context)
 
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response:
         """
         Update an Organization
         ``````````````````````
@@ -559,7 +557,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context, status=202)
 
     @sudo_required
-    def delete(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization: Organization) -> Response:
         """
         Delete an Organization
         ``````````````````````

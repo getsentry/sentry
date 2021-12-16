@@ -6,11 +6,11 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import TagBasedStreamGroupSerializer
-from sentry.models import EventUser, Group, ProjectTeam, Team
+from sentry.models import EventUser, Group, Organization, ProjectTeam, Team
 
 
 class OrganizationUserIssuesEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request: Request, organization, user_id: int) -> Response:
+    def get(self, request: Request, organization: Organization, user_id: int) -> Response:
         limit = request.GET.get("limit", 100)
 
         project_ids = organization.project_set.values_list("id", flat=True)

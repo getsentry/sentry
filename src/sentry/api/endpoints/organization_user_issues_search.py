@@ -6,11 +6,11 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.models import EventUser, Group, OrganizationMemberTeam, Project
+from sentry.models import EventUser, Group, Organization, OrganizationMemberTeam, Project
 
 
 class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         email = request.GET.get("email")
 
         if email is None:

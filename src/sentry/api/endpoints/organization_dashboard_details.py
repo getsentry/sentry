@@ -17,6 +17,9 @@ EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
 
 
+from sentry.models import Organization
+
+
 class OrganizationDashboardBase(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
@@ -30,7 +33,7 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
         return (args, kwargs)
 
-    def _get_dashboard(self, request: Request, organization, dashboard_id):
+    def _get_dashboard(self, request: Request, organization: Organization, dashboard_id):
         prebuilt = Dashboard.get_prebuilt(dashboard_id)
         sentry_sdk.set_tag("dashboard.is_prebuilt", prebuilt is not None)
         if prebuilt:
@@ -39,7 +42,7 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
-    def get(self, request: Request, organization, dashboard) -> Response:
+    def get(self, request: Request, organization: Organization, dashboard) -> Response:
         """
         Retrieve an Organization's Dashboard
         ````````````````````````````````````
@@ -58,7 +61,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         return self.respond(serialize(dashboard, request.user))
 
-    def delete(self, request: Request, organization, dashboard) -> Response:
+    def delete(self, request: Request, organization: Organization, dashboard) -> Response:
         """
         Delete an Organization's Dashboard
         ```````````````````````````````````
@@ -90,7 +93,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         return self.respond(status=204)
 
-    def put(self, request: Request, organization, dashboard) -> Response:
+    def put(self, request: Request, organization: Organization, dashboard) -> Response:
         """
         Edit an Organization's Dashboard
         ```````````````````````````````````
@@ -136,7 +139,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
 
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
-    def post(self, request: Request, organization, dashboard) -> Response:
+    def post(self, request: Request, organization: Organization, dashboard) -> Response:
         """
         Update last_visited and increment visits counter
         """

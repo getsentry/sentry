@@ -6,13 +6,12 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.api.serializers import serialize
-from sentry.models import Project
+from sentry.models import Organization, Project
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 
 class EventIdLookupEndpoint(OrganizationEndpoint):
-
     rate_limits = {
         "GET": {
             RateLimitCategory.IP: RateLimit(1, 1),
@@ -22,7 +21,7 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
     }
 
     @rate_limit_endpoint(limit=1, window=1)
-    def get(self, request: Request, organization, event_id: int) -> Response:
+    def get(self, request: Request, organization: Organization, event_id: int) -> Response:
         """
         Resolve an Event ID
         ``````````````````

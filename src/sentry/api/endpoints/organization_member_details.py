@@ -74,10 +74,13 @@ class RelaxedMemberPermission(OrganizationPermission):
     }
 
 
+from sentry.models import Organization
+
+
 class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedMemberPermission]
 
-    def _get_member(self, request: Request, organization, member_id):
+    def _get_member(self, request: Request, organization: Organization, member_id):
         if member_id == "me":
             queryset = OrganizationMember.objects.filter(
                 organization=organization, user__id=request.user.id, user__is_active=True
@@ -124,7 +127,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return context
 
-    def get(self, request: Request, organization, member_id: int) -> Response:
+    def get(self, request: Request, organization: Organization, member_id: int) -> Response:
         """Currently only returns allowed invite roles for member invite"""
 
         try:
@@ -138,7 +141,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return Response(context)
 
-    def put(self, request: Request, organization, member_id: int) -> Response:
+    def put(self, request: Request, organization: Organization, member_id: int) -> Response:
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
@@ -245,7 +248,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return Response(context)
 
-    def delete(self, request: Request, organization, member_id: int) -> Response:
+    def delete(self, request: Request, organization: Organization, member_id: int) -> Response:
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:

@@ -6,11 +6,18 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release import expose_version_info
-from sentry.models import CommitFileChange, ProjectPlatform, Release, ReleaseCommit, ReleaseProject
+from sentry.models import (
+    CommitFileChange,
+    Organization,
+    ProjectPlatform,
+    Release,
+    ReleaseCommit,
+    ReleaseProject,
+)
 
 
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request: Request, organization, version: str) -> Response:
+    def get(self, request: Request, organization: Organization, version: str) -> Response:
         """
         Retrieve an Organization's Release's Associated Meta Data
         `````````````````````````````````````````````````````````

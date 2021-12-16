@@ -6,11 +6,12 @@ from sentry import tagstore
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
+from sentry.models import Organization
 from sentry.tagstore.base import TAG_KEY_RE
 
 
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request: Request, organization, key: str) -> Response:
+    def get(self, request: Request, organization: Organization, key: str) -> Response:
         if not TAG_KEY_RE.match(key):
             return Response({"detail": f'Invalid tag key format for "{key}"'}, status=400)
 

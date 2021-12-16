@@ -4,13 +4,13 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import ObjectStatus, OrganizationIntegration
+from sentry.models import ObjectStatus, Organization, OrganizationIntegration
 
 
 class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
 
         # filter by integration provider features
         features = [feature.lower() for feature in request.GET.getlist("features", [])]

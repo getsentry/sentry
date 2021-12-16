@@ -2,11 +2,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.models import Organization
 from sentry.plugins.base import bindings
 
 
 class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         provider_bindings = bindings.get("repository.provider")
         providers = []
         for provider_id in provider_bindings:

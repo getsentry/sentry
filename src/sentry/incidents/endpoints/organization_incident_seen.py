@@ -3,12 +3,13 @@ from rest_framework.response import Response
 
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.incidents.logic import set_incident_seen
+from sentry.models import Organization
 
 
 class OrganizationIncidentSeenEndpoint(IncidentEndpoint):
     permission_classes = (IncidentPermission,)
 
-    def post(self, request: Request, organization, incident) -> Response:
+    def post(self, request: Request, organization: Organization, incident) -> Response:
         """
         Mark an incident as seen by the user
         ````````````````````````````````````

@@ -16,6 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSCIMSerializer
 from sentry.models import (
     AuditLogEntryEvent,
+    Organization,
     OrganizationMember,
     OrganizationMemberTeam,
     Team,
@@ -55,7 +56,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     def should_add_creator_to_team(self, request: Request):
         return False
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
 
         query_params = self.get_query_parameters(request)
 
@@ -85,7 +86,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             cursor_cls=SCIMCursor,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
         request.data.update(
@@ -115,7 +116,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             raise Team.DoesNotExist
         return team
 
-    def get(self, request: Request, organization, team) -> Response:
+    def get(self, request: Request, organization: Organization, team) -> Response:
         query_params = self.get_query_parameters(request)
 
         context = serialize(
@@ -178,7 +179,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 data=team.get_audit_log_data(),
             )
 
-    def patch(self, request: Request, organization, team):
+    def patch(self, request: Request, organization: Organization, team):
         """
         A SCIM Group PATCH request takes a series of operations to perform on a team.
         It does them sequentially and if any of them fail no operations should go through.
@@ -227,10 +228,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
         return self.respond(status=204)
 
-    def delete(self, request: Request, organization, team) -> Response:
+    def delete(self, request: Request, organization: Organization, team) -> Response:
         return super().delete(request, team)
 
-    def put(self, request: Request, organization, team) -> Response:
+    def put(self, request: Request, organization: Organization, team) -> Response:
         # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)

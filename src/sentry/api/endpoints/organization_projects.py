@@ -13,8 +13,11 @@ from sentry.search.utils import tokenize_query
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
+from sentry.models import Organization
+
+
 class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Projects
         ```````````````````````````````
@@ -123,8 +126,11 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             )
 
 
+from sentry.models import Organization
+
+
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         queryset = Project.objects.filter(organization=organization)
 
         all_projects = queryset.count()

@@ -10,6 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DiscoverSavedQuery
+from sentry.models import Organization
 from sentry.search.utils import tokenize_query
 
 
@@ -21,7 +22,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             "organizations:discover", organization, actor=request.user
         ) or features.has("organizations:discover-query", organization, actor=request.user)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List saved queries for organization
         """
@@ -102,7 +103,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             default_per_page=25,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a saved query
         """

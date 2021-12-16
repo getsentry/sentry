@@ -76,6 +76,9 @@ class TrendQueryBuilder(QueryBuilder):
             return super().resolve_function(function, match, resolve_only, overwrite_alias)
 
 
+from sentry.models import Organization
+
+
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     trend_columns = {
         "p50": "percentile_range({column}, 0.5, {condition}, {boundary}) as {query_alias}",
@@ -417,7 +420,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     def has_snql_feature(self, organization, request):
         return features.has("organizations:performance-use-snql", organization, actor=request.user)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
         use_snql = self.has_snql_feature(organization, request)

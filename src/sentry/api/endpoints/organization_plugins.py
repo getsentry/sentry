@@ -5,12 +5,12 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_plugin import OrganizationPluginSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.models import ProjectOption
+from sentry.models import Organization, ProjectOption
 from sentry.plugins.base import plugins
 
 
 class OrganizationPluginsEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         all_plugins = {p.slug: p for p in plugins.all()}
 
         if "plugins" in request.GET:

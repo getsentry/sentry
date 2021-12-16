@@ -10,12 +10,15 @@ from sentry.web.frontend.base import OrganizationView
 logger = logging.getLogger("sentry.integrations")
 
 
+from sentry.models import Organization
+
+
 class OrganizationIntegrationSetupView(OrganizationView):
     required_scope = "org:integrations"
 
     csrf_protect = False
 
-    def handle(self, request: Request, organization, provider_id: int) -> Response:
+    def handle(self, request: Request, organization: Organization, provider_id: int) -> Response:
         pipeline = IntegrationPipeline(
             request=request, organization=organization, provider_key=provider_id
         )

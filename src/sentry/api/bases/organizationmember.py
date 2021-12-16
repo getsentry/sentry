@@ -4,7 +4,7 @@ from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.db.models.fields.bounded import BoundedAutoField
-from sentry.models import OrganizationMember
+from sentry.models import Organization, OrganizationMember
 
 from .organization import OrganizationEndpoint
 
@@ -45,7 +45,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         else:
             raise ResourceDoesNotExist
 
-    def _get_member(self, request: Request, organization, member_id):
+    def _get_member(self, request: Request, organization: Organization, member_id):
         if member_id == "me":
             queryset = OrganizationMember.objects.filter(
                 organization=organization, user__id=request.user.id, user__is_active=True

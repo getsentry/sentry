@@ -12,12 +12,13 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.models import Organization
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -37,8 +38,11 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         return Response({"count": result["data"][0]["count"]})
 
 
+from sentry.models import Organization
+
+
 class OrganizationEventBaseline(OrganizationEventsEndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """Find the event id with the closest value to an aggregate for a given query"""
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -97,7 +101,7 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             # events-meta is still used by events v1 which doesn't require global views
             params = self.get_snuba_params(request, organization, check_global_views=False)

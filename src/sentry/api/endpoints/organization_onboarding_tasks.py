@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.models import OnboardingTaskStatus, OrganizationOnboardingTask
+from sentry.models import OnboardingTaskStatus, Organization, OrganizationOnboardingTask
 from sentry.receivers import try_mark_onboarding_complete
 
 
@@ -14,7 +14,7 @@ class OnboardingTaskPermission(OrganizationPermission):
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
     permission_classes = (OnboardingTaskPermission,)
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         try:
             task_id = OrganizationOnboardingTask.TASK_LOOKUP_BY_KEY[request.data["task"]]
         except KeyError:

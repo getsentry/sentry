@@ -7,7 +7,13 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import OrganizationIntegration, Project, Repository, RepositoryProjectPathConfig
+from sentry.models import (
+    Organization,
+    OrganizationIntegration,
+    Project,
+    Repository,
+    RepositoryProjectPathConfig,
+)
 from sentry.utils.compat import map
 
 
@@ -120,7 +126,7 @@ class OrganizationIntegrationMixin:
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Get the list of repository project path configs
 
@@ -157,7 +163,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         data = map(lambda x: serialize(x, request.user), queryset)
         return self.respond(data)
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a new repository project path config
         ``````````````````

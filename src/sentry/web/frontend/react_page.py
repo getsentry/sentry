@@ -3,7 +3,7 @@ from django.middleware.csrf import get_token as get_csrf_token
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.models import Project
+from sentry.models import Organization, Project
 from sentry.signals import first_event_pending
 from sentry.web.frontend.base import BaseView, OrganizationView
 from sentry.web.helpers import render_to_response
@@ -34,7 +34,7 @@ class ReactPageView(OrganizationView, ReactMixin):
         # For normal users, let parent class handle (e.g. redirect to login page)
         return super().handle_auth_required(request, *args, **kwargs)
 
-    def handle(self, request: Request, organization, **kwargs) -> Response:
+    def handle(self, request: Request, organization: Organization, **kwargs) -> Response:
         if "project_id" in kwargs and request.GET.get("onboarding"):
             project = Project.objects.filter(
                 organization=organization, slug=kwargs["project_id"]

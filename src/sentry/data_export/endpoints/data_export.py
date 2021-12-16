@@ -111,10 +111,13 @@ class DataExportQuerySerializer(serializers.Serializer):
         return data
 
 
+from sentry.models import Organization
+
+
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     permission_classes = (OrganizationDataExportPermission,)
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a new asynchronous file export task, and
         email user upon completion,

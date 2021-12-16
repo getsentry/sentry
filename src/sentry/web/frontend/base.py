@@ -124,7 +124,7 @@ class OrganizationMixin:
     def is_member_disabled_from_limit(self, request: Request, organization):
         return is_member_disabled_from_limit(request, organization)
 
-    def get_active_team(self, request: Request, organization, team_slug):
+    def get_active_team(self, request: Request, organization: Organization, team_slug):
         """
         Returns the currently selected team for the request or None
         if no match.
@@ -139,7 +139,7 @@ class OrganizationMixin:
 
         return team
 
-    def get_active_project(self, request: Request, organization, project_slug):
+    def get_active_project(self, request: Request, organization: Organization, project_slug):
         try:
             project = Project.objects.get(slug=project_slug, organization=organization)
         except Project.DoesNotExist:
@@ -319,19 +319,19 @@ class OrganizationView(BaseView):
     required_scope = None
     valid_sso_required = True
 
-    def get_access(self, request: Request, organization, *args, **kwargs):
+    def get_access(self, request: Request, organization: Organization, *args, **kwargs):
         if organization is None:
             return access.DEFAULT
         return access.from_request(request, organization)
 
-    def get_context_data(self, request: Request, organization, **kwargs):
+    def get_context_data(self, request: Request, organization: Organization, **kwargs):
         context = super().get_context_data(request)
         context["organization"] = organization
         context["TEAM_LIST"] = self.get_team_list(request.user, organization)
         context["ACCESS"] = request.access.to_django_context()
         return context
 
-    def has_permission(self, request: Request, organization, *args, **kwargs):
+    def has_permission(self, request: Request, organization: Organization, *args, **kwargs):
         if organization is None:
             return False
         if self.valid_sso_required:
@@ -372,7 +372,9 @@ class OrganizationView(BaseView):
                 return True
         return False
 
-    def handle_permission_required(self, request: Request, organization, *args, **kwargs):
+    def handle_permission_required(
+        self, request: Request, organization: Organization, *args, **kwargs
+    ):
         if self.needs_sso(request, organization):
             logger.info(
                 "access.must-sso",
@@ -409,7 +411,7 @@ class OrganizationView(BaseView):
 
         return (args, kwargs)
 
-    def get_allowed_roles(self, request: Request, organization, member=None):
+    def get_allowed_roles(self, request: Request, organization: Organization, member=None):
         can_admin = request.access.has_scope("member:admin")
 
         allowed_roles = []
@@ -431,6 +433,9 @@ class OrganizationView(BaseView):
         return (can_admin, allowed_roles)
 
 
+from sentry.models import Organization
+
+
 class TeamView(OrganizationView):
     """
     Any view acting on behalf of a team should inherit from this base and the
@@ -442,12 +447,12 @@ class TeamView(OrganizationView):
     - team
     """
 
-    def get_context_data(self, request: Request, organization, team, **kwargs):
+    def get_context_data(self, request: Request, organization: Organization, team, **kwargs):
         context = super().get_context_data(request, organization)
         context["team"] = team
         return context
 
-    def has_permission(self, request: Request, organization, team, *args, **kwargs):
+    def has_permission(self, request: Request, organization: Organization, team, *args, **kwargs):
         if team is None:
             return False
         rv = super().has_permission(request, organization)
@@ -485,6 +490,9 @@ class TeamView(OrganizationView):
         return (args, kwargs)
 
 
+from sentry.models import Organization
+
+
 class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
@@ -496,13 +504,15 @@ class ProjectView(OrganizationView):
     - project
     """
 
-    def get_context_data(self, request: Request, organization, project, **kwargs):
+    def get_context_data(self, request: Request, organization: Organization, project, **kwargs):
         context = super().get_context_data(request, organization)
         context["project"] = project
         context["processing_issues"] = serialize(project).get("processingIssues", 0)
         return context
 
-    def has_permission(self, request: Request, organization, project, *args, **kwargs):
+    def has_permission(
+        self, request: Request, organization: Organization, project, *args, **kwargs
+    ):
         if project is None:
             return False
         rv = super().has_permission(request, organization)

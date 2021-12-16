@@ -12,10 +12,13 @@ from sentry.utils.sdk import capture_exception
 UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
 
 
+from sentry.models import Organization
+
+
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Repositories
         ```````````````````````````````````
@@ -68,7 +71,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
         provider_id = request.data.get("provider")

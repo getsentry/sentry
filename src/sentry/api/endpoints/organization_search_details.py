@@ -4,14 +4,14 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import SavedSearch
+from sentry.models import Organization, SavedSearch
 from sentry.models.search_common import SearchType
 
 
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSearchPermission,)
 
-    def delete(self, request: Request, organization, search_id: int) -> Response:
+    def delete(self, request: Request, organization: Organization, search_id: int) -> Response:
         """
         Delete a saved search
 

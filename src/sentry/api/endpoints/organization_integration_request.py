@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry import integrations
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
-from sentry.models import SentryApp
+from sentry.models import Organization, SentryApp
 from sentry.notifications.notifications.organization_request.integration_request import (
     IntegrationRequestNotification,
 )
@@ -38,7 +38,7 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
 
 
 class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Email the organization owners asking them to install an integration.
         ````````````````````````````````````````````````````````````````````

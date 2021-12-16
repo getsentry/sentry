@@ -3,6 +3,8 @@ import logging
 from django.contrib import messages
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api import client
 from sentry.models import AuditLogEntryEvent, Organization, OrganizationStatus
@@ -17,10 +19,6 @@ ERR_MESSAGES = {
 MSG_RESTORE_SUCCESS = _("Organization restored successfully.")
 
 delete_logger = logging.getLogger("sentry.deletions.ui")
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class RestoreOrganizationView(OrganizationView):
@@ -38,7 +36,7 @@ class RestoreOrganizationView(OrganizationView):
         except StopIteration:
             return None
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if organization.status == OrganizationStatus.VISIBLE:
             return self.redirect(organization.get_url())
 
@@ -52,7 +50,7 @@ class RestoreOrganizationView(OrganizationView):
 
         return render_to_response("sentry/restore-organization.html", context, self.request)
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         deletion_statuses = [
             OrganizationStatus.PENDING_DELETION,
             OrganizationStatus.DELETION_IN_PROGRESS,

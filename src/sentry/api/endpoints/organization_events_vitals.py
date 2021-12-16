@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.models import Organization
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 
@@ -20,7 +21,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
     # Threshold labels
     LABELS = ["good", "meh", "poor"]
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

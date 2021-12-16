@@ -4,12 +4,12 @@ from rest_framework.response import Response
 from sentry.api.bases import OrganizationEndpoint, add_integration_platform_metric_tag
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import SentryApp
+from sentry.models import Organization, SentryApp
 
 
 class OrganizationSentryAppsEndpoint(OrganizationEndpoint):
     @add_integration_platform_metric_tag
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         queryset = SentryApp.objects.filter(owner=organization, application__isnull=False)
 
         return self.paginate(

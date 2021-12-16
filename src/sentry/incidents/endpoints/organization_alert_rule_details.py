@@ -8,12 +8,12 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
-from sentry.models import OrganizationMemberTeam
+from sentry.models import Organization, OrganizationMemberTeam
 from sentry.models.actor import ACTOR_TYPES
 
 
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
-    def get(self, request: Request, organization, alert_rule) -> Response:
+    def get(self, request: Request, organization: Organization, alert_rule) -> Response:
         """
         Fetch an alert rule.
         ``````````````````
@@ -22,7 +22,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         data = serialize(alert_rule, request.user, DetailedAlertRuleSerializer())
         return Response(data)
 
-    def put(self, request: Request, organization, alert_rule) -> Response:
+    def put(self, request: Request, organization: Organization, alert_rule) -> Response:
         serializer = DrfAlertRuleSerializer(
             context={"organization": organization, "access": request.access, "user": request.user},
             instance=alert_rule,
@@ -44,7 +44,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Request, organization, alert_rule) -> Response:
+    def delete(self, request: Request, organization: Organization, alert_rule) -> Response:
         if not self._verify_user_has_permission(request, alert_rule):
             return Response(
                 {

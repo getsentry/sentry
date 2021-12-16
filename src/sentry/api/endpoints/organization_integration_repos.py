@@ -5,11 +5,12 @@ from sentry.api.bases.organization_integrations import OrganizationIntegrationBa
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.repositories import RepositoryMixin
+from sentry.models import Organization
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
-    def get(self, request: Request, organization, integration_id: int) -> Response:
+    def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
         """
         Get the list of repositories available in an integration
         ````````````````````````````````````````````````````````

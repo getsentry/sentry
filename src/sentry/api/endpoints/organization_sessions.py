@@ -8,12 +8,14 @@ from rest_framework.response import Response
 
 from sentry import features, release_health
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+
+# NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
+from sentry.models import Organization
 from sentry.snuba.sessions_v2 import AllowedResolution, InvalidField, InvalidParams, QueryDefinition
 
 
-# NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
 class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         with self.handle_query_errors():
             with sentry_sdk.start_span(op="sessions.endpoint", description="build_sessions_query"):
                 query = self.build_sessions_query(request, organization)

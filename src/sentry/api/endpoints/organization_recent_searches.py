@@ -21,10 +21,13 @@ class OrganizationRecentSearchPermission(OrganizationPermission):
     }
 
 
+from sentry.models import Organization
+
+
 class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationRecentSearchPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List recent searches for a User within an Organization
         ``````````````````````````````````````````````````````
@@ -54,7 +57,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
 
         return Response(serialize(recent_searches, request.user))
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         serializer = RecentSearchSerializer(data=request.data)
 
         if serializer.is_valid():

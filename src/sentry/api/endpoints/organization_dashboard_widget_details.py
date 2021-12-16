@@ -5,12 +5,13 @@ from sentry import features
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
+from sentry.models import Organization
 
 
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Validate a Widget
         `````````````````

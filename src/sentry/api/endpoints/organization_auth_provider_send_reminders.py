@@ -11,10 +11,13 @@ from sentry.tasks.auth import email_missing_links
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 
 
+from sentry.models import Organization
+
+
 class OrganizationAuthProviderSendRemindersEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAdminPermission,)
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:sso-basic", organization, actor=request.user):
             return Response(ERR_NO_SSO, status=403)
 

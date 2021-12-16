@@ -1,8 +1,10 @@
 from django.db import connections
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Commit, Repository, UserEmail
+from sentry.models import Commit, Organization, Repository, UserEmail
 from sentry.utils.compat import zip
 
 # TODO(dcramer): once LatestRepoReleaseEnvironment is backfilled, change this query to use the new
@@ -34,12 +36,8 @@ order by c1.date_added desc
 quote_name = connections["default"].ops.quote_name
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
-    def get(self, request: Request, organization, member) -> Response:
+    def get(self, request: Request, organization: Organization, member) -> Response:
         email_list = list(
             UserEmail.objects.filter(user=member.user_id, is_verified=True).values_list(
                 "email", flat=True

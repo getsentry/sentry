@@ -19,7 +19,14 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseSerializer,
 )
-from sentry.models import Activity, Project, Release, ReleaseCommitError, ReleaseStatus
+from sentry.models import (
+    Activity,
+    Organization,
+    Project,
+    Release,
+    ReleaseCommitError,
+    ReleaseStatus,
+)
 from sentry.models.release import UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -270,7 +277,7 @@ class OrganizationReleaseDetailsEndpoint(
     ReleaseAnalyticsMixin,
     OrganizationReleaseDetailsPaginationMixin,
 ):
-    def get(self, request: Request, organization, version: str) -> Response:
+    def get(self, request: Request, organization: Organization, version: str) -> Response:
         """
         Retrieve an Organization's Release
         ``````````````````````````````````
@@ -368,7 +375,7 @@ class OrganizationReleaseDetailsEndpoint(
             )
         )
 
-    def put(self, request: Request, organization, version: str) -> Response:
+    def put(self, request: Request, organization: Organization, version: str) -> Response:
         """
         Update an Organization's Release
         ````````````````````````````````
@@ -496,7 +503,7 @@ class OrganizationReleaseDetailsEndpoint(
 
             return Response(serialize(release, request.user))
 
-    def delete(self, request: Request, organization, version: str) -> Response:
+    def delete(self, request: Request, organization: Organization, version: str) -> Response:
         """
         Delete an Organization's Release
         ````````````````````````````````

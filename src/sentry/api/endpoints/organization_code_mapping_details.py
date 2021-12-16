@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
+from sentry.models import Organization, OrganizationIntegration, RepositoryProjectPathConfig
 
 from .organization_code_mappings import (
     OrganizationIntegrationMixin,
@@ -32,7 +32,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
 
         return (args, kwargs)
 
-    def put(self, request: Request, config_id, organization, config) -> Response:
+    def put(self, request: Request, config_id, organization: Organization, config) -> Response:
         """
         Update a repository project path config
         ``````````````````
@@ -62,7 +62,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Request, config_id, organization, config) -> Response:
+    def delete(self, request: Request, config_id, organization: Organization, config) -> Response:
         """
         Delete a repository project path config
 
