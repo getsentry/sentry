@@ -141,7 +141,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const origIntegrations = [...this.state.configurations];
 
     const integrations = this.state.configurations.filter(i => i.id !== integration.id);
-
     this.setState({configurations: integrations});
 
     const options: RequestOptions = {
