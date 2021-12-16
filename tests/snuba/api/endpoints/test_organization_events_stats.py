@@ -878,6 +878,25 @@ class OrganizationEventsStatsEndpointTestWithSnql(OrganizationEventsStatsEndpoin
         # Should've reset to the default for 24h
         assert mock_query.mock_calls[1].args[0][0].granularity.granularity == 300
 
+    def test_equations_divide_by_zero(self):
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                # force a 0 in the denominator by doing 1 - 1
+                # since a 0 literal is illegal as the denominator
+                "yAxis": ["equation|count() / (1-1)"],
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": None}],
+            [{"count": None}],
+        ]
+
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):

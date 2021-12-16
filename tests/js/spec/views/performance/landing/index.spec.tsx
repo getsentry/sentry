@@ -20,6 +20,7 @@ const WrappedComponent = ({data}) => {
         location={data.router.location}
         eventView={eventView}
         projects={data.projects}
+        selection={eventView.getGlobalSelection()}
         shouldShowOnboarding={false}
         handleSearch={() => {}}
         handleTrendsClick={() => {}}
@@ -34,7 +35,7 @@ describe('Performance > Landing > Index', function () {
   let eventsV2Mock: any;
   let wrapper: any;
 
-  act(() => void TeamStore.loadInitialData([]));
+  act(() => void TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
@@ -182,7 +183,7 @@ describe('Performance > Landing > Index', function () {
       })
     );
 
-    expect(eventsV2Mock).toHaveBeenCalledTimes(2);
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
 
     const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
     expect(titles).toHaveLength(5);
@@ -190,8 +191,8 @@ describe('Performance > Landing > Index', function () {
     expect(titles.at(0).text()).toEqual('User Misery');
     expect(titles.at(1).text()).toEqual('Transactions Per Minute');
     expect(titles.at(2).text()).toEqual('Failure Rate');
-    expect(titles.at(3).text()).toEqual('Most Related Errors');
-    expect(titles.at(4).text()).toEqual('Most Related Issues');
+    expect(titles.at(3).text()).toEqual('Most Related Issues');
+    expect(titles.at(4).text()).toEqual('Most Improved');
   });
 
   it('Can switch between landing displays', async function () {

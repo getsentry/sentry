@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 
 import GlobalSelectionActions from 'sentry/actions/globalSelectionActions';
 import {getDefaultSelection} from 'sentry/components/organizations/globalSelectionHeader/utils';
-import {LOCAL_STORAGE_KEY} from 'sentry/constants/globalSelectionHeader';
+import {LOCAL_STORAGE_KEY} from 'sentry/constants/pageFilters';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {GlobalSelection, Organization} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
