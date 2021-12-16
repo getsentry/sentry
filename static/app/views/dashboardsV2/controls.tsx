@@ -118,7 +118,7 @@ class Controls extends React.Component<Props> {
               >
                 {t('Edit Dashboard')}
               </Button>
-              {organization.features.includes('widget-library') ? (
+              {organization.features.includes('widget-library') && hasFeature ? (
                 <Tooltip
                   title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
                     maxWidgets: MAX_WIDGETS,
