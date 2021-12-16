@@ -148,29 +148,7 @@ class U2fInterface extends React.Component<Props, State> {
       });
   }
 
-  webAuthnSignIn(authenticateRequests) {
-    const credentials: PublicKeyCredentialDescriptor[] = [];
-    // challenge and appId are the same for each device in authenticateRequests
-    const challenge = authenticateRequests[0].challenge;
-    const appId = authenticateRequests[0].appId;
-
-    authenticateRequests.forEach(device => {
-      credentials.push({
-        id: base64urlToBuffer(device.keyHandle),
-        type: 'public-key',
-        transports: ['usb', 'ble', 'nfc'],
-      });
-    });
-
-    const publicKeyCredentialRequestOptions: PublicKeyCredentialRequestOptions = {
-      challenge: base64urlToBuffer(challenge),
-      allowCredentials: credentials,
-      userVerification: 'discouraged',
-      extensions: {
-        appid: appId,
-      },
-    };
-
+  webAuthnSignIn(publicKeyCredentialRequestOptions) {
     const promise = navigator.credentials.get({
       publicKey: publicKeyCredentialRequestOptions,
     });
@@ -188,7 +166,22 @@ class U2fInterface extends React.Component<Props, State> {
     let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
     if (this.props.flowMode === 'sign') {
       if (this.props.isWebauthnSigninFFEnabled) {
-        this.webAuthnSignIn(this.props.challengeData.authenticateRequests);
+        const challengeArray = base64urlToBuffer(
+          this.props.challengeData.webAuthnAuthenticationData
+        );
+        const challenge = cbor.decodeFirst(challengeArray);
+        challenge
+          .then(data => {
+            this.webAuthnSignIn(data);
+          })
+          .catch(err => {
+            const failure = 'DEVICE_ERROR';
+            Sentry.captureException(err);
+            this.setState({
+              deviceFailure: failure,
+              hasBeenTapped: false,
+            });
+          });
       } else {
         promise = u2f.sign(this.props.challengeData.authenticateRequests);
         this.submitU2fResponse(promise);
