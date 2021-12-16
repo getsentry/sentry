@@ -106,8 +106,11 @@ class ProjectOwnershipMixin:
             )
 
 
+from sentry.models import Project
+
+
 class ProjectOwnershipEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve a Project's Ownership configuration
         ````````````````````````````````````````````
@@ -118,7 +121,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
         """
         return Response(serialize(self.get_ownership(project), request.user))
 
-    def put(self, request: Request, project) -> Response:
+    def put(self, request: Request, project: Project) -> Response:
         """
         Update a Project's Ownership configuration
         ``````````````````````````````````````````

@@ -8,14 +8,14 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
 from sentry.mediators import service_hooks
-from sentry.models import AuditLogEntryEvent, ObjectStatus, ServiceHook
+from sentry.models import AuditLogEntryEvent, ObjectStatus, Project, ServiceHook
 
 
 class ProjectServiceHooksEndpoint(ProjectEndpoint):
     def has_feature(self, request: Request, project):
         return features.has("projects:servicehooks", project=project, actor=request.user)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Service Hooks
         ``````````````````````````````
@@ -56,7 +56,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Register a new Service Hook
         ```````````````````````````

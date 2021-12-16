@@ -22,10 +22,13 @@ def upsert_missing_release(project, version):
             return release
 
 
+from sentry.models import Project
+
+
 class ProjectReleaseStatsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, version: str) -> Response:
+    def get(self, request: Request, project: Project, version: str) -> Response:
         """
         Get a Project Release's Stats
         `````````````````````````````

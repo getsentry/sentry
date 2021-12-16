@@ -36,6 +36,9 @@ def get_link(
     return link, attempted_url, error
 
 
+from sentry.models import Project
+
+
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     """
     Returns valid links for source code providers so that
@@ -48,7 +51,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     """
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         # should probably feature gate
         filepath = request.GET.get("file")
         if not filepath:

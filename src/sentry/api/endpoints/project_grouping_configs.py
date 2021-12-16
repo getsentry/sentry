@@ -5,6 +5,7 @@ from sentry import features
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.models import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 
 
@@ -14,7 +15,7 @@ class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
     See GroupingConfigsEndpoint
     """
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
 
         configs = [
             config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: x.id)

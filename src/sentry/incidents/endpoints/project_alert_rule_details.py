@@ -12,10 +12,11 @@ from sentry.incidents.logic import (
     get_slack_actions_with_async_lookups,
 )
 from sentry.integrations.slack import tasks
+from sentry.models import Project
 
 
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
-    def get(self, request: Request, project, alert_rule) -> Response:
+    def get(self, request: Request, project: Project, alert_rule) -> Response:
         """
         Fetch an alert rule.
         ``````````````````
@@ -24,7 +25,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         data = serialize(alert_rule, request.user, AlertRuleSerializer())
         return Response(data)
 
-    def put(self, request: Request, project, alert_rule) -> Response:
+    def put(self, request: Request, project: Project, alert_rule) -> Response:
         data = request.data
         serializer = DrfAlertRuleSerializer(
             context={
@@ -55,7 +56,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Request, project, alert_rule) -> Response:
+    def delete(self, request: Request, project: Project, alert_rule) -> Response:
         try:
             delete_alert_rule(alert_rule, request.user)
             return Response(status=status.HTTP_204_NO_CONTENT)

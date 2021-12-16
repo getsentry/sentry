@@ -33,6 +33,9 @@ def _get_signature(project_id, plugin_id, token):
     ).hexdigest()
 
 
+from sentry.models import Project
+
+
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
     permission_classes = (StrictProjectPermission,)
 
@@ -41,7 +44,7 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
         ProjectOption.objects.set_value(project, "sentry:release-token", token)
         return token
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         token = ProjectOption.objects.get_value(project, "sentry:release-token")
 
         if token is None:
@@ -49,7 +52,7 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
 
         return Response({"token": token, "webhookUrl": _get_webhook_url(project, "builtin", token)})
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         token = self._regenerate_token(project)
 
         return Response({"token": token, "webhookUrl": _get_webhook_url(project, "builtin", token)})

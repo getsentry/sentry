@@ -79,6 +79,9 @@ def has_download_permission(request, project):
     return roles.get(current_role).priority >= roles.get(required_role).priority
 
 
+from sentry.models import Project
+
+
 class DebugFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
@@ -114,7 +117,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         except OSError:
             raise Http404
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Debug Information Files
         ````````````````````````````````````````
@@ -191,7 +194,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Delete a specific Project's Debug Information File
         ```````````````````````````````````````````````````
@@ -219,7 +222,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         return Response(status=404)
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Upload a New File
         `````````````````
@@ -243,20 +246,26 @@ class DebugFilesEndpoint(ProjectEndpoint):
         return upload_from_request(request, project=project)
 
 
+from sentry.models import Project
+
+
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         checksums = request.GET.getlist("checksums")
         missing = ProjectDebugFile.objects.find_missing(checksums, project=project)
         return Response({"missing": missing})
+
+
+from sentry.models import Project
 
 
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         return Response({"associatedDsymFiles": []})
 
 
@@ -270,10 +279,13 @@ def find_missing_chunks(organization, chunks):
     return list(set(chunks) - owned)
 
 
+from sentry.models import Project
+
+
 class DifAssembleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Assemble one or multiple chunks (FileBlob) into debug files
         ````````````````````````````````````````````````````````````
@@ -387,10 +399,13 @@ class DifAssembleEndpoint(ProjectEndpoint):
         return Response(file_response, status=200)
 
 
+from sentry.models import Project
+
+
 class SourceMapsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Source Map Archives
         ````````````````````````````````````
@@ -446,7 +461,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
             on_results=serialize_results,
         )
 
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Delete an Archive
         ```````````````````````````````````````````````````

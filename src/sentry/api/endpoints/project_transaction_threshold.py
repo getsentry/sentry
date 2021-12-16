@@ -38,6 +38,9 @@ class ProjectTransactionThresholdSerializer(serializers.Serializer):
         return threshold
 
 
+from sentry.models import Project
+
+
 class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
     permission_classes = (ProjectSettingPermission,)
 
@@ -46,7 +49,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             "organizations:performance-view", project.organization, actor=request.user
         )
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
@@ -69,7 +72,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             status.HTTP_200_OK,
         )
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
@@ -112,7 +115,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 

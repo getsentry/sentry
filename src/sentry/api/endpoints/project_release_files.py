@@ -206,10 +206,13 @@ def pseudo_releasefile(url, info, dist):
     )
 
 
+from sentry.models import Project
+
+
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, version: str) -> Response:
+    def get(self, request: Request, project: Project, version: str) -> Response:
         """
         List a Project Release's Files
         ``````````````````````````````
@@ -233,7 +236,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
 
         return self.get_releasefiles(request, release, project.organization_id)
 
-    def post(self, request: Request, project, version: str) -> Response:
+    def post(self, request: Request, project: Project, version: str) -> Response:
         """
         Upload a New Project Release File
         `````````````````````````````````

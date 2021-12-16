@@ -2,13 +2,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.models import Project
 from sentry.reprocessing import trigger_reprocessing
 
 
 class ProjectReprocessingEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Triggers the reprocessing process as a task
         """

@@ -4,14 +4,14 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseCommit, Repository
+from sentry.models import Project, Release, ReleaseCommit, Repository
 
 
 class ProjectReleaseRepositories(ProjectEndpoint):
 
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, version: str) -> Response:
+    def get(self, request: Request, project: Project, version: str) -> Response:
         """
         Retrieve Project Repositories from a Release
         ````````````````````````````

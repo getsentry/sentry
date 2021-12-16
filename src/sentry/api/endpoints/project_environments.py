@@ -4,11 +4,11 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
-from sentry.models import EnvironmentProject
+from sentry.models import EnvironmentProject, Project
 
 
 class ProjectEnvironmentsEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Environments
         ```````````````````````````````

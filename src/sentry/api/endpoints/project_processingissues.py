@@ -4,14 +4,14 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.api.serializers import serialize
-from sentry.models import ApiToken, ProcessingIssue
+from sentry.models import ApiToken, ProcessingIssue, Project
 from sentry.reprocessing import trigger_reprocessing
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 
 class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         This discards all open processing issues
         """
@@ -19,8 +19,11 @@ class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
         return Response(status=200)
 
 
+from sentry.models import Project
+
+
 class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         token = None
 
         if request.user_from_signed_request and request.user.is_authenticated:
@@ -64,8 +67,11 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
         return resp
 
 
+from sentry.models import Project
+
+
 class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a project's processing issues.
         """
@@ -74,7 +80,7 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         )[0]
         return Response(serialize(data, request.user))
 
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         This deletes all open processing issues and triggers reprocessing if
         the user disabled the checkbox

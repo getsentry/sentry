@@ -3,10 +3,11 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.ingest import inbound_filters
+from sentry.models import Project
 
 
 class ProjectFiltersEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a project's filters
 

@@ -7,11 +7,11 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Environment
+from sentry.models import Environment, Project
 
 
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
-    def get(self, request: Request, project, key: str) -> Response:
+    def get(self, request: Request, project: Project, key: str) -> Response:
         """
         List a Tag's Values
         ```````````````````

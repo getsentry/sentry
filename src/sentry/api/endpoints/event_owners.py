@@ -5,11 +5,11 @@ from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.models import ActorTuple, ProjectOwnership, Team
+from sentry.models import ActorTuple, Project, ProjectOwnership, Team
 
 
 class EventOwnersEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id: int) -> Response:
+    def get(self, request: Request, project: Project, event_id: int) -> Response:
         """
         Retrieve suggested owners information for an event
         ``````````````````````````````````````````````````

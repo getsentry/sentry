@@ -9,7 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
-from sentry.models import Activity, Environment, Release, ReleaseStatus
+from sentry.models import Activity, Environment, Project, Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.signals import release_created
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -18,7 +18,7 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Releases
         `````````````````````````
@@ -68,7 +68,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             ),
         )
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Create a New Release for a Project
         ``````````````````````````````````

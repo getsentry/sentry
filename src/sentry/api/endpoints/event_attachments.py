@@ -5,12 +5,12 @@ from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import EventAttachment
+from sentry.models import EventAttachment, Project
 from sentry.search.utils import tokenize_query
 
 
 class EventAttachmentsEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id: int) -> Response:
+    def get(self, request: Request, project: Project, event_id: int) -> Response:
         """
         Retrieve attachments for an event
         `````````````````````````````````

@@ -46,11 +46,14 @@ def trigger_alert_rule_action_creators(
     return created
 
 
+from sentry.models import Project
+
+
 class ProjectRulesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     @transaction_start("ProjectRulesEndpoint")
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a project's rules
 
@@ -71,7 +74,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         )
 
     @transaction_start("ProjectRulesEndpoint")
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Create a rule
 

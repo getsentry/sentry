@@ -63,12 +63,15 @@ def fix_event_data(data):
     return data
 
 
+from sentry.models import Project
+
+
 class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
     # Members should be able to create sample events.
     # This is the same scope that allows members to view all issues for a project.
     permission_classes = (ProjectEventPermission,)
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         samples_root = os.path.join(DATA_ROOT, "samples")
         with open(os.path.join(samples_root, get_json_name(project))) as fp:
             data = json.load(fp)

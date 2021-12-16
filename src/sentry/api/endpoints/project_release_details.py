@@ -8,7 +8,7 @@ from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
-from sentry.models import Activity, Release
+from sentry.models import Activity, Project, Release
 from sentry.models.release import UnsafeReleaseDeletion
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.snuba.sessions import STATS_PERIODS
@@ -18,7 +18,7 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, version: str) -> Response:
+    def get(self, request: Request, project: Project, version: str) -> Response:
         """
         Retrieve a Project's Release
         ````````````````````````````
@@ -61,7 +61,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             )
         )
 
-    def put(self, request: Request, project, version: str) -> Response:
+    def put(self, request: Request, project: Project, version: str) -> Response:
         """
         Update a Project's Release
         ``````````````````````````
@@ -138,7 +138,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
             return Response(serialize(release, request.user))
 
-    def delete(self, request: Request, project, version: str) -> Response:
+    def delete(self, request: Request, project: Project, version: str) -> Response:
         """
         Delete a Project's Release
         ``````````````````````````

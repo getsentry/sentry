@@ -361,7 +361,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve a Project
         ``````````````````
@@ -386,7 +386,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
-    def put(self, request: Request, project) -> Response:
+    def put(self, request: Request, project: Project) -> Response:
         """
         Update a Project
         ````````````````
@@ -753,7 +753,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
     @sudo_required
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Delete a Project
         ````````````````

@@ -5,13 +5,13 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
 from sentry.integrations.slack import tasks
-from sentry.models import Rule, RuleStatus
+from sentry.models import Project, Rule, RuleStatus
 
 
 class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
     permission_classes = [ProjectSettingPermission]
 
-    def get(self, request: Request, project, task_uuid) -> Response:
+    def get(self, request: Request, project: Project, task_uuid) -> Response:
         """
         Retrieve the status of the async task
 

@@ -4,11 +4,11 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationMember
+from sentry.models import OrganizationMember, Project
 
 
 class ProjectMemberIndexEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         queryset = (
             OrganizationMember.objects.filter(
                 Q(user__is_active=True) | Q(user__isnull=True),

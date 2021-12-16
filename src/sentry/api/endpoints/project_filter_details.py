@@ -4,11 +4,12 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.ingest import inbound_filters
+from sentry.models import Project
 from sentry.models.auditlogentry import AuditLogEntryEvent
 
 
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
-    def put(self, request: Request, project, filter_id: int) -> Response:
+    def put(self, request: Request, project: Project, filter_id: int) -> Response:
         """
         Update a filter
 

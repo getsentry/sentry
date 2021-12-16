@@ -9,6 +9,7 @@ from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.models import Project
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -23,7 +24,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
     }
 
     @rate_limit_endpoint(limit=5, window=1)
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Events
         ```````````````````````

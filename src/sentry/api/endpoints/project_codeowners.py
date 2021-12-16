@@ -150,6 +150,9 @@ class ProjectCodeOwnersMixin:
             )
 
 
+from sentry.models import Project
+
+
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):  # type: ignore
     def get(self, request: Request, project: Project) -> Response:
         """

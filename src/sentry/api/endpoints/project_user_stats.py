@@ -8,11 +8,11 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.app import tsdb
-from sentry.models import Environment
+from sentry.models import Environment, Project
 
 
 class ProjectUserStatsEndpoint(EnvironmentMixin, ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
         except Environment.DoesNotExist:

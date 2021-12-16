@@ -22,11 +22,14 @@ class RelaxedProjectPermission(ProjectPermission):
     scope_map = {"POST": ["project:admin"]}
 
 
+from sentry.models import Project
+
+
 class ProjectTransferEndpoint(ProjectEndpoint):
     permission_classes = [RelaxedProjectPermission]
 
     @sudo_required
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Transfer a Project
         ````````````````

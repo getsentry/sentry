@@ -9,7 +9,7 @@ from sentry.api.base import StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.group_index import rate_limit_endpoint
-from sentry.models import ProjectKey
+from sentry.models import Project, ProjectKey
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -24,7 +24,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
     }
 
     @rate_limit_endpoint(limit=20, window=1)
-    def get(self, request: Request, project, key_id: int) -> Response:
+    def get(self, request: Request, project: Project, key_id: int) -> Response:
         try:
             key = ProjectKey.objects.get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)

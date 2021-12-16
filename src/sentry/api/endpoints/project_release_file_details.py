@@ -175,10 +175,13 @@ class ReleaseFileDetailsMixin:
         return Response(status=204)
 
 
+from sentry.models import Project
+
+
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, version, file_id: int) -> Response:
+    def get(self, request: Request, project: Project, version, file_id: int) -> Response:
         """
         Retrieve a Project Release's File
         `````````````````````````````````
@@ -209,7 +212,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             check_permission_fn=lambda: has_download_permission(request, project),
         )
 
-    def put(self, request: Request, project, version, file_id: int) -> Response:
+    def put(self, request: Request, project: Project, version, file_id: int) -> Response:
         """
         Update a File
         `````````````
@@ -236,7 +239,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
 
         return self.update_releasefile(request, release, file_id)
 
-    def delete(self, request: Request, project, version, file_id: int) -> Response:
+    def delete(self, request: Request, project: Project, version, file_id: int) -> Response:
         """
         Delete a File
         `````````````

@@ -5,15 +5,15 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import EventUser
+from sentry.models import EventUser, Project
 
 
 class ProjectUserDetailsEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, user_hash) -> Response:
+    def get(self, request: Request, project: Project, user_hash) -> Response:
         euser = EventUser.objects.get(project_id=project.id, hash=user_hash)
         return Response(serialize(euser, request.user))
 
-    def delete(self, request: Request, project, user_hash) -> Response:
+    def delete(self, request: Request, project: Project, user_hash) -> Response:
         """
         Delete an Event User
         ````````````````````````````````

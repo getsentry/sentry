@@ -14,9 +14,11 @@ logger = logging.getLogger(__name__)
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.models import Project
+
 
 class EventGroupingInfoEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id: int) -> Response:
+    def get(self, request: Request, project: Project, event_id: int) -> Response:
         """
         Returns the grouping information for an event
         `````````````````````````````````````````````

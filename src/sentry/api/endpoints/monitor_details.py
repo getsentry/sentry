@@ -5,11 +5,11 @@ from rest_framework.response import Response
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
-from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus, ScheduledDeletion
+from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus, Project, ScheduledDeletion
 
 
 class MonitorDetailsEndpoint(MonitorEndpoint):
-    def get(self, request: Request, project, monitor) -> Response:
+    def get(self, request: Request, project: Project, monitor) -> Response:
         """
         Retrieve a monitor
         ``````````````````
@@ -19,7 +19,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         """
         return self.respond(serialize(monitor, request.user))
 
-    def put(self, request: Request, project, monitor) -> Response:
+    def put(self, request: Request, project: Project, monitor) -> Response:
         """
         Update a monitor
         ````````````````
@@ -70,7 +70,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
 
         return self.respond(serialize(monitor, request.user))
 
-    def delete(self, request: Request, project, monitor) -> Response:
+    def delete(self, request: Request, project: Project, monitor) -> Response:
         """
         Delete a monitor
         ````````````````

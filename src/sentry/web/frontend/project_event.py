@@ -4,13 +4,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.models import Project
 from sentry.web.frontend.base import ProjectView
 
 
 class ProjectEventRedirect(ProjectView):
     required_scope = "event:read"
 
-    def handle(self, request: Request, organization, project, client_event_id: int) -> Response:
+    def handle(
+        self, request: Request, organization, project: Project, client_event_id: int
+    ) -> Response:
         """
         Given a client event id and project, redirects to the event page
         """

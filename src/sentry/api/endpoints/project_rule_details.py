@@ -11,6 +11,7 @@ from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
 from sentry.models import (
     AuditLogEntryEvent,
+    Project,
     Rule,
     RuleActivity,
     RuleActivityType,
@@ -41,7 +42,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         return args, kwargs
 
     @transaction_start("ProjectRuleDetailsEndpoint")
-    def get(self, request: Request, project, rule) -> Response:
+    def get(self, request: Request, project: Project, rule) -> Response:
         """
         Retrieve a rule
 
@@ -55,7 +56,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
-    def put(self, request: Request, project, rule) -> Response:
+    def put(self, request: Request, project: Project, rule) -> Response:
         """
         Update a rule
 
@@ -134,7 +135,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
-    def delete(self, request: Request, project, rule) -> Response:
+    def delete(self, request: Request, project: Project, rule) -> Response:
         """
         Delete a rule
         """

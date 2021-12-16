@@ -91,6 +91,9 @@ class PathMappingSerializer(CamelSnakeSerializer):
         return source_url
 
 
+from sentry.models import Project
+
+
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     """
     Returns the parameters associated with the RepositoryProjectPathConfig
@@ -99,7 +102,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     depending on the source code URL
     """
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         serializer = PathMappingSerializer(
             context={"organization_id": project.organization_id},
             data=request.data,

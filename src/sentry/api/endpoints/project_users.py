@@ -5,11 +5,11 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.models import EventUser
+from sentry.models import EventUser, Project
 
 
 class ProjectUsersEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Users
         ``````````````````````

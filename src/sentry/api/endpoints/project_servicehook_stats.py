@@ -7,11 +7,11 @@ from sentry import tsdb
 from sentry.api.base import StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import ServiceHook
+from sentry.models import Project, ServiceHook
 
 
 class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
-    def get(self, request: Request, project, hook_id: int) -> Response:
+    def get(self, request: Request, project: Project, hook_id: int) -> Response:
         try:
             hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:

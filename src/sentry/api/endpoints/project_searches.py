@@ -17,10 +17,13 @@ class SavedSearchSerializer(serializers.Serializer):
     isUserDefault = serializers.BooleanField(required=False)
 
 
+from sentry.models import Project
+
+
 class ProjectSearchesEndpoint(ProjectEndpoint):
     permission_classes = (RelaxedSearchPermission,)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a project's saved searches
 
@@ -37,7 +40,7 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
 
         return Response(serialize(results, request.user))
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Create a new saved search
 

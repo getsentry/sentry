@@ -7,11 +7,11 @@ from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ProjectKeySerializer
-from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
+from sentry.models import AuditLogEntryEvent, Project, ProjectKey, ProjectKeyStatus
 
 
 class ProjectKeysEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Client Keys
         ````````````````````````````
@@ -41,7 +41,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Create a new Client Key
         ```````````````````````

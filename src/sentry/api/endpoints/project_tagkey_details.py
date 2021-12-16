@@ -7,11 +7,11 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import PROTECTED_TAG_KEYS
-from sentry.models import AuditLogEntryEvent, Environment
+from sentry.models import AuditLogEntryEvent, Environment, Project
 
 
 class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
-    def get(self, request: Request, project, key: str) -> Response:
+    def get(self, request: Request, project: Project, key: str) -> Response:
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
@@ -27,7 +27,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         return Response(serialize(tagkey, request.user))
 
-    def delete(self, request: Request, project, key: str) -> Response:
+    def delete(self, request: Request, project: Project, key: str) -> Response:
         """
         Remove all occurrences of the given tag key.
 

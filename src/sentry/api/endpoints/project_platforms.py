@@ -3,10 +3,10 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ProjectPlatform
+from sentry.models import Project, ProjectPlatform
 
 
 class ProjectPlatformsEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         queryset = ProjectPlatform.objects.filter(project_id=project.id)
         return Response(serialize(list(queryset), request.user))

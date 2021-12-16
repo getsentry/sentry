@@ -3,14 +3,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.models import Deploy, Group, ReleaseCommit, ReleaseProject, Repository
+from sentry.models import Deploy, Group, Project, ReleaseCommit, ReleaseProject, Repository
 from sentry.utils.hashlib import hash_values
 
 
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Get list with release setup progress for a project
         1. tag an error

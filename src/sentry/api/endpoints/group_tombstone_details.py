@@ -3,11 +3,11 @@ from rest_framework.response import Response
 
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import GroupHash, GroupTombstone
+from sentry.models import GroupHash, GroupTombstone, Project
 
 
 class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
-    def delete(self, request: Request, project, tombstone_id: int) -> Response:
+    def delete(self, request: Request, project: Project, tombstone_id: int) -> Response:
         """
         Remove a GroupTombstone
         ```````````````````````

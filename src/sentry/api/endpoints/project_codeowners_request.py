@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.bases.project_request_change import ProjectRequestChangeEndpoint
-from sentry.models import OrganizationMember
+from sentry.models import OrganizationMember, Project
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -32,7 +32,7 @@ def get_codeowners_request_builder_args(project, recipient, requester_name):
 
 
 class ProjectCodeOwnersRequestEndpoint(ProjectRequestChangeEndpoint):
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Request to Add CODEOWNERS to a Project
         ````````````````````````````````````

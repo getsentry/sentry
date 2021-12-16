@@ -6,12 +6,12 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.base import StatsMixin
 from sentry.api.bases.monitor import MonitorEndpoint
-from sentry.models import CheckInStatus, MonitorCheckIn
+from sentry.models import CheckInStatus, MonitorCheckIn, Project
 
 
 class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     # TODO(dcramer): probably convert to tsdb
-    def get(self, request: Request, project, monitor) -> Response:
+    def get(self, request: Request, project: Project, monitor) -> Response:
         args = self._parse_args(request)
 
         stats = OrderedDict()

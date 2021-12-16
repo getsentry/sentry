@@ -75,7 +75,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         kwargs.update({"checkin": checkin, "monitor": monitor, "project": project})
         return (args, kwargs)
 
-    def get(self, request: Request, project, monitor, checkin) -> Response:
+    def get(self, request: Request, project: Project, monitor, checkin) -> Response:
         """
         Retrieve a check-in
         ```````````````````
@@ -90,7 +90,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
         return self.respond(serialize(checkin, request.user))
 
-    def put(self, request: Request, project, monitor, checkin) -> Response:
+    def put(self, request: Request, project: Project, monitor, checkin) -> Response:
         """
         Update a check-in
         `````````````````

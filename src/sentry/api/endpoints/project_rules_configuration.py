@@ -4,11 +4,12 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, SCHEMA_FORM_ACTIONS, TICKET_ACTIONS
+from sentry.models import Project
 from sentry.rules import rules
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve the list of configuration options for a given project.
         """

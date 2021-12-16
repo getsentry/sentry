@@ -6,11 +6,11 @@ from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
-from sentry.models import Environment
+from sentry.models import Environment, Project
 
 
 class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve Event Counts for a Project
         ```````````````````````````````````

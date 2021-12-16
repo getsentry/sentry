@@ -4,11 +4,11 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import GroupTombstone
+from sentry.models import GroupTombstone, Project
 
 
 class GroupTombstoneEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve a Project's GroupTombstones
         ````````````````````````````````````

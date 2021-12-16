@@ -19,10 +19,13 @@ class ProjectTeamsPermission(ProjectPermission):
     }
 
 
+from sentry.models import Project
+
+
 class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectTeamsPermission,)
 
-    def post(self, request: Request, project, team_slug: str) -> Response:
+    def post(self, request: Request, project: Project, team_slug: str) -> Response:
         """
         Give a team access to a project
         ```````````````````````````````
@@ -42,7 +45,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         project.add_team(team)
         return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=201)
 
-    def delete(self, request: Request, project, team_slug: str) -> Response:
+    def delete(self, request: Request, project: Project, team_slug: str) -> Response:
         """
         Revoke a team's access to a project
         ```````````````````````````````````

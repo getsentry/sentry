@@ -12,8 +12,11 @@ class ProjectEnvironmentSerializer(serializers.Serializer):
     isHidden = serializers.BooleanField()
 
 
+from sentry.models import Project
+
+
 class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, environment) -> Response:
+    def get(self, request: Request, project: Project, environment) -> Response:
         try:
             instance = EnvironmentProject.objects.select_related("environment").get(
                 project=project,
@@ -24,7 +27,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(instance, request.user))
 
-    def put(self, request: Request, project, environment) -> Response:
+    def put(self, request: Request, project: Project, environment) -> Response:
         try:
             instance = EnvironmentProject.objects.select_related("environment").get(
                 project=project,

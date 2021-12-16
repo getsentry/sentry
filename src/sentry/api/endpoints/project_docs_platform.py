@@ -35,8 +35,11 @@ def replace_keys(html, project_key):
     return html
 
 
+from sentry.models import Project
+
+
 class ProjectDocsPlatformEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, platform) -> Response:
+    def get(self, request: Request, project: Project, platform) -> Response:
         data = load_doc(platform)
         if not data:
             raise ResourceDoesNotExist

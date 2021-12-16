@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import GroupMeta
+from sentry.models import GroupMeta, Project
 
 
 class PluginProjectEndpoint(ProjectEndpoint):
@@ -17,10 +17,10 @@ class PluginProjectEndpoint(ProjectEndpoint):
             return Response(status=405)
         return self.view(request, project, *args, **kwargs)
 
-    def get(self, request: Request, project, *args, **kwargs) -> Response:
+    def get(self, request: Request, project: Project, *args, **kwargs) -> Response:
         return self._handle(request, project, *args, **kwargs)
 
-    def post(self, request: Request, project, *args, **kwargs) -> Response:
+    def post(self, request: Request, project: Project, *args, **kwargs) -> Response:
         return self._handle(request, project, *args, **kwargs)
 
     def respond(self, *args, **kwargs):

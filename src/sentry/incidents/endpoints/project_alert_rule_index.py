@@ -17,13 +17,13 @@ from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule
 from sentry.integrations.slack import tasks
-from sentry.models import Rule, RuleStatus
+from sentry.models import Project, Rule, RuleStatus
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
 
 
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Fetches alert rules and legacy rules for a project
         """
@@ -50,10 +50,13 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         )
 
 
+from sentry.models import Project
+
+
 class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Fetches alert rules for a project
         """
@@ -74,7 +77,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
             default_per_page=25,
         )
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Create an alert rule
         """

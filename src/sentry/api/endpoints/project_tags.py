@@ -5,11 +5,11 @@ from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import PROTECTED_TAG_KEYS
-from sentry.models import Environment
+from sentry.models import Environment, Project
 
 
 class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
         except Environment.DoesNotExist:
