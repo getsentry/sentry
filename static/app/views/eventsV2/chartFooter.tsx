@@ -66,23 +66,15 @@ export default function ChartFooter({
           onChange={onDisplayChange}
           menuWidth="170px"
         />
-        <Feature organization={organization} features={['discover-top-events']}>
-          {({hasFeature}) => {
-            if (hasFeature && TOP_EVENT_MODES.includes(displayMode)) {
-              return (
-                <OptionSelector
-                  title={t('Limit')}
-                  selected={topEvents}
-                  options={topEventOptions}
-                  onChange={onTopEventsChange}
-                  menuWidth="60px"
-                  featureType="new"
-                />
-              );
-            }
-            return null;
-          }}
-        </Feature>
+        {TOP_EVENT_MODES.includes(displayMode) && (
+          <OptionSelector
+            title={t('Limit')}
+            selected={topEvents}
+            options={topEventOptions}
+            onChange={onTopEventsChange}
+            menuWidth="60px"
+          />
+        )}
         <Feature
           organization={organization}
           features={['connect-discover-and-dashboards']}
