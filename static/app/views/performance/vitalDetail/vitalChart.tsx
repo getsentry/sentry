@@ -181,7 +181,7 @@ function VitalChart({
 
 export default withRouter(VitalChart);
 
-export type _VitalChartProps = {
+type _VitalChartProps = {
   loading: boolean;
   reloading: boolean;
   field: string;
@@ -213,7 +213,7 @@ function fieldToVitalType(
   return undefined;
 }
 
-function __VitalChart(props: _VitalChartProps) {
+export function _VitalChart(props: _VitalChartProps) {
   const {
     field: yAxis,
     data: _results,
@@ -297,5 +297,3 @@ function __VitalChart(props: _VitalChartProps) {
     </div>
   );
 }
-
-export const _VitalChart = __VitalChart;
