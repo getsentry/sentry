@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
@@ -6,7 +7,7 @@ from sentry.models import PlatformExternalIssue
 
 
 class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
-    def delete(self, request, external_issue_id, group):
+    def delete(self, request: Request, external_issue_id, group) -> Response:
         try:
             external_issue = PlatformExternalIssue.objects.get(
                 id=external_issue_id, group_id=group.id

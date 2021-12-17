@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -16,7 +17,7 @@ class GroupFirstLastReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
     }
 
     @rate_limit_endpoint(limit=5, window=1)
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """Get the first and last release for a group.
 
         This data used to be returned by default in group_details.py, but now that we
