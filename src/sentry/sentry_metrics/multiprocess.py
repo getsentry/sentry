@@ -1,14 +1,18 @@
 import functools
 import logging
 import time
+from collections import deque
+from concurrent.futures import Future
 from typing import (
     Any,
     Callable,
+    Deque,
     Dict,
     Generic,
     List,
     Mapping,
     MutableMapping,
+    NamedTuple,
     Optional,
     Sequence,
     TypeVar,
@@ -16,6 +20,7 @@ from typing import (
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
 from arroyo.processing import StreamProcessor
+from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
@@ -69,7 +74,7 @@ class MetricsBatchBuilder(Generic[TPayload]):
     def messages(self):
         return self.__messages
 
-    def append(self, message: Message[TPayload]) -> None:
+    def append(self, message: TPayload) -> None:
         self.__messages.append(message)
 
     def ready(self) -> bool:
@@ -81,14 +86,14 @@ class MetricsBatchBuilder(Generic[TPayload]):
             return False
 
 
-class BatchMessages(ProcessingStep):
+class BatchMessages(ProcessingStep[TPayload]):
     def __init__(
         self,
         next_step: ProcessingStrategy[TProcessed],
         max_batch_time: float,
         max_batch_size: int,
     ):
-        self.__max_batch_size = 2
+        self.__max_batch_size = max_batch_size
         self.__max_batch_time = max_batch_time
 
         self.__next_step = next_step
@@ -103,7 +108,7 @@ class BatchMessages(ProcessingStep):
         if self.__batch and self.__batch.ready():
             self.__flush()
 
-    def submit(self, message: Any) -> None:
+    def submit(self, message: TPayload) -> None:
         if self.__batch is None:
             self.__batch = MetricsBatchBuilder(self.__max_batch_size, self.__max_batch_time)
 
@@ -115,6 +120,7 @@ class BatchMessages(ProcessingStep):
         last = self.__batch.messages[-1]
 
         new_message = Message(last.partition, last.offset, self.__batch.messages, last.timestamp)
+
         self.__next_step.submit(new_message)
         self.__batch = None
 
@@ -123,10 +129,14 @@ class BatchMessages(ProcessingStep):
 
     def close(self) -> None:
         self.__closed = True
-        pass
 
     def join(self, timeout: Optional[float] = None) -> None:
         self.__next_step.join(timeout)
+
+
+class ProducerResultFuture(NamedTuple):
+    message: Message[KafkaPayload]
+    future: Future
 
 
 class ProduceStep(ProcessingStep):
@@ -147,16 +157,36 @@ class ProduceStep(ProcessingStep):
         )
         self.__commit_function = commit_function
 
-        self.__futures = []
+        self.__futures: Deque[ProducerResultFuture] = deque()
         self.__closed = False
 
+        # TODO(meredith): make this an option to pass in
+        self.__max_buffer_size = 10000
+
     def poll(self) -> None:
-        # TODO: continously check if futures are done i.e. future.done()
-        # and if so then we know we can commit
-        pass
+        while self.__futures:
+            if not self.__futures[0].future.done():
+                break
+
+            result_future = self.__futures.popleft()
+            message, future = result_future
+
+            try:
+                future.result()
+            except Exception:
+                # TODO(meredith): log info for the differenc errors
+                # that could happen:
+                # * CancelledError (future was cancelled)
+                # * TimeoutError (future timedout)
+                # * Exception (the fucture call raised an exception)
+                raise
+            self.__commit_function({message.partition: Position(message.offset, message.timestamp)})
 
     def submit(self, outer_message: Message[TPayload]) -> None:
         assert not self.__closed
+
+        if len(self.__futures) >= self.__max_buffer_size:
+            raise MessageRejected
 
         for message in outer_message.payload:
             payload = message.payload
@@ -164,7 +194,7 @@ class ProduceStep(ProcessingStep):
                 destination=Topic(self.__producer_topic),
                 payload=payload,
             )
-            self.__futures.append(future)
+            self.__futures.append(ProducerResultFuture(message, future))
 
     def close(self) -> None:
         self.__closed = True
@@ -173,8 +203,18 @@ class ProduceStep(ProcessingStep):
         self.__closed = True
 
     def join(self, timeout: Optional[float] = None) -> None:
-        # need to implement
-        pass
+        start = time.time()
+        while self.__futures:
+            remaining = timeout - (time.time() - start) if timeout is not None else None
+            if remaining is not None and remaining <= 0:
+                logger.warning(f"Timed out with {len(self.__futures)} futures in queue")
+                break
+
+            message, future = self.__futures.popleft()
+
+            future.result(remaining)
+
+            self.__commit_function({message.partition: Position(message.offset, message.timestamp)})
 
 
 def produce_step(commit_function: Callable[[Mapping[Partition, Position]], None]):
