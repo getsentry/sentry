@@ -84,6 +84,16 @@ def update_group(
     )
 
 
+def _is_message(data: Mapping[str, Any]) -> bool:
+    """
+    XXX(epurkhiser): Used in coordination with construct_reply.
+     Bot posted messages will not have the type at all.
+    """
+    # Explicitly typing to satisfy mypy.
+    is_message: bool = data.get("original_message", {}).get("type") == "message"
+    return is_message
+
+
 class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
@@ -179,8 +189,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         callback_id = json.dumps(
             {
                 "issue": group.id,
-                "orig_response_url": data["response_url"],
-                "is_message": self.is_message(data),
+                "orig_response_url": slack_request.data["response_url"],
+                "is_message": _is_message(slack_request.data),
             }
         )
 
@@ -218,15 +228,6 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             attachment = {"attachments": [attachment]}
 
         return attachment
-
-    def is_message(self, data: Mapping[str, Any]) -> bool:
-        """
-        XXX(epurkhiser): Used in coordination with construct_reply.
-         Bot posted messages will not have the type at all.
-        """
-        # Explicitly typing to satisfy mypy.
-        is_message_: bool = data.get("original_message", {}).get("type") == "message"
-        return is_message_
 
     @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
@@ -361,7 +362,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         attachment = SlackIssuesMessageBuilder(
             group, identity=identity, actions=action_list
         ).build()
-        body = self.construct_reply(attachment, is_message=self.is_message(data))
+        body = self.construct_reply(attachment, is_message=_is_message(slack_request.data))
 
         return self.respond(body)
 
