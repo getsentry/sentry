@@ -1,3 +1,5 @@
+from base64 import b64encode
+
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -27,6 +29,11 @@ class AuthenticatorIndexEndpoint(Endpoint):
         )
 
         challenge = interface.activate(request._request, webauthn_ff).challenge
+
+        if webauthn_ff:
+            webAuthnAuthenticationData = b64encode(challenge)
+            challenge = {}
+            challenge["webAuthnAuthenticationData"] = webAuthnAuthenticationData
 
         # I don't think we currently support multiple interfaces of the same type
         # but just future proofing I guess
