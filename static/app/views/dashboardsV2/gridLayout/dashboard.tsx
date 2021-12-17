@@ -203,10 +203,16 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const nextList = this.props.dashboard.widgets.filter(
-      widget => widget !== widgetToDelete
+    const {layouts} = this.state;
+    const {dashboard, onUpdate, onLayoutChange} = this.props;
+
+    const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    onUpdate(nextList);
+
+    const newLayout = layouts[DESKTOP].filter(
+      ({i}) => i !== constructGridItemKey(widgetToDelete)
     );
-    this.props.onUpdate(nextList);
+    onLayoutChange(newLayout);
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
