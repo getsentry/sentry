@@ -79,6 +79,7 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
+from .endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
 from .endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
 from .endpoints.doc_integrations import DocIntegrationsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
@@ -2122,6 +2123,11 @@ urlpatterns = [
         r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/$",
         DocIntegrationDetailsEndpoint.as_view(),
         name="sentry-api-0-doc-integration-details",
+    ),
+    url(
+        r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/avatar/$",
+        DocIntegrationAvatarEndpoint.as_view(),
+        name="sentry-api-0-doc-integration-avatar",
     ),
     # Grouping configs
     url(

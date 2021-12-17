@@ -1,3 +1,5 @@
+from typing import Any, List
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
@@ -5,11 +7,20 @@ from sentry.constants import SentryAppStatus
 from sentry.models import IntegrationFeature, SentryApp
 from sentry.models.integrationfeature import IntegrationTypes
 from sentry.models.sentryapp import MASKED_VALUE
+from sentry.models.user import User
 from sentry.utils.compat import map
 
 
 @register(SentryApp)
 class SentryAppSerializer(Serializer):
+    def get_attrs(self, item_list: List[SentryApp], user: User, **kwargs: Any):
+        features_by_sentry_app_id = IntegrationFeature.objects.get_by_targets_as_dict(
+            targets=item_list, target_type=IntegrationTypes.SENTRY_APP
+        )
+        return {
+            item: {"features": features_by_sentry_app_id.get(item.id, set())} for item in item_list
+        }
+
     def serialize(self, obj, attrs, user, access):
         from sentry.mediators.service_hooks.creator import consolidate_events
 
@@ -34,10 +45,7 @@ class SentryAppSerializer(Serializer):
         data["featureData"] = []
 
         if obj.status != SentryAppStatus.INTERNAL:
-            features = IntegrationFeature.objects.filter(
-                target_id=obj.id, target_type=IntegrationTypes.SENTRY_APP.value
-            )
-            data["featureData"] = map(lambda x: serialize(x, user), features)
+            data["featureData"] = map(lambda x: serialize(x, user), attrs.get("features"))
 
         if obj.status == SentryAppStatus.PUBLISHED and obj.date_published:
             data.update({"datePublished": obj.date_published})

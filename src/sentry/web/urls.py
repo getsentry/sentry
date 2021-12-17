@@ -16,6 +16,7 @@ from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
+from sentry.web.frontend.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -588,6 +589,11 @@ urlpatterns += [
         r"^sentry-app-avatar/(?P<avatar_id>[^\/]+)/$",
         SentryAppAvatarPhotoView.as_view(),
         name="sentry-app-avatar-url",
+    ),
+    url(
+        r"^doc-integration-avatar/(?P<avatar_id>[^\/]+)/$",
+        DocIntegrationAvatarPhotoView.as_view(),
+        name="sentry-doc-integration-avatar-url",
     ),
     # Serve chartcuterie configuration module
     url(
