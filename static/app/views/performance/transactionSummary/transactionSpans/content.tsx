@@ -16,19 +16,16 @@ import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {isAggregateField} from 'sentry/utils/discover/fields';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {SetStateAction} from '../types';
-import {generateTransactionLink} from '../utils';
 
 import OpsFilter from './opsFilter';
 import {Actions} from './styles';
 import SuspectSpanCard from './suspectSpanCard';
 import {SpansTotalValues} from './types';
-import {getSuspectSpanSortFromEventView, SPAN_SORT_OPTIONS} from './utils';
+import {getSuspectSpanSortFromEventView, getTotalsView, SPAN_SORT_OPTIONS} from './utils';
 
 const ANALYTICS_VALUES = {
   spanOp: (organization: Organization, value: string | undefined) =>
@@ -162,7 +159,7 @@ function SpansContent(props: Props) {
                         location={location}
                         organization={organization}
                         suspectSpan={suspectSpan}
-                        generateTransactionLink={generateTransactionLink(transactionName)}
+                        transactionName={transactionName}
                         eventView={eventView}
                         totals={totals}
                         preview={2}
@@ -178,31 +175,6 @@ function SpansContent(props: Props) {
       </DiscoverQuery>
     </Layout.Main>
   );
-}
-
-/**
- * For the totals view, we want to get some transaction level stats like
- * the number of transactions and the sum of the transaction duration.
- * This requires the removal of any aggregate conditions as they can result
- * in unexpected empty responses.
- */
-function getTotalsView(eventView: EventView): EventView {
-  const totalsView = eventView.withColumns([
-    {kind: 'function', function: ['count', '', undefined, undefined]},
-    {kind: 'function', function: ['sum', 'transaction.duration', undefined, undefined]},
-  ]);
-
-  const conditions = new MutableSearch(eventView.query);
-
-  // filter out any aggregate conditions
-  Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) {
-      conditions.removeFilter(field);
-    }
-  });
-
-  totalsView.query = conditions.formatString();
-  return totalsView;
 }
 
 export default SpansContent;

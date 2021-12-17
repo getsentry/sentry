@@ -211,6 +211,8 @@ build-utils/        @getsentry/owners-js-build
 # To find matching files -> find . -name "*sentry_app*.py"
 *sentry_app*.py                               @getsentry/ecosystem
 *sentryapp*.py                                @getsentry/ecosystem
+*doc_integration*.py                          @getsentry/ecosystem
+*docintegration*.py                           @getsentry/ecosystem
 
 /api-docs/                                    @getsentry/ecosystem
 /tests/apidocs/                               @getsentry/ecosystem
@@ -277,6 +279,8 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/tasks/app_store_connect.py                              @getsentry/owners-native
 /src/sentry/tasks/assemble.py                                       @getsentry/owners-native
 /src/sentry/tasks/low_priority_symbolication.py                     @getsentry/owners-native
+/src/sentry/tasks/reprocessing.py                                   @getsentry/owners-native
+/src/sentry/tasks/reprocessing2.py                                  @getsentry/owners-native
 /src/sentry/tasks/symbolication.py                                  @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                     @getsentry/owners-native
 /tests/sentry/tasks/test_low_priority_symbolication.py              @getsentry/owners-native

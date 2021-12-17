@@ -185,19 +185,21 @@ export class TagValueTable extends Component<Props, State> {
       const searchConditions = new MutableSearch(eventView.query);
       const disabled = searchConditions.hasFilter(dataRow.tags_key);
       return (
-        <Link
-          disabled={disabled}
-          to=""
-          onClick={() => {
-            trackTagPageInteraction(organization);
-            this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value);
-          }}
-        >
-          <LinkContainer>
-            <IconAdd isCircled />
-            {t('Add to filter')}
-          </LinkContainer>
-        </Link>
+        <AlignRight>
+          <Link
+            disabled={disabled}
+            to=""
+            onClick={() => {
+              trackTagPageInteraction(organization);
+              this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value);
+            }}
+          >
+            <LinkContainer>
+              <IconAdd isCircled />
+              {t('Add to filter')}
+            </LinkContainer>
+          </Link>
+        </AlignRight>
       );
     }
 
@@ -304,6 +306,7 @@ const StyledPanelTable = styled('div')`
 
 const AlignRight = styled('div')`
   text-align: right;
+  flex: 1;
 `;
 
 const LinkContainer = styled('div')`

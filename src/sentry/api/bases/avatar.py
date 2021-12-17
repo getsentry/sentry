@@ -1,4 +1,5 @@
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.fields import AvatarField
@@ -55,7 +56,7 @@ class AvatarMixin:
     object_type = None
     model = None
 
-    def get(self, request, **kwargs):
+    def get(self, request: Request, **kwargs) -> Response:
         obj = kwargs.pop(self.object_type, None)
         return Response(serialize(obj, request.user, **kwargs))
 
@@ -65,7 +66,7 @@ class AvatarMixin:
     def get_avatar_filename(self, obj):
         return f"{obj.id}.png"
 
-    def put(self, request, **kwargs):
+    def put(self, request: Request, **kwargs) -> Response:
         obj = kwargs.pop(self.object_type, None)
 
         SerializerCls = AvatarSerializer

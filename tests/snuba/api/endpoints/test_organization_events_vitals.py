@@ -19,6 +19,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
             "start": iso_format(self.start),
             "end": iso_format(self.end),
         }
+        self.features = {}
 
     def store_event(self, data, measurements=None, **kwargs):
         if measurements:
@@ -33,6 +34,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
     def do_request(self, query=None, features=None):
         if features is None:
             features = {"organizations:discover-basic": True}
+        features.update(self.features)
         if query is None:
             query = self.query
 
@@ -254,3 +256,9 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
             "total": 0,
             "p75": None,
         }
+
+
+class OrganizationEventsVitalsEndpointTestWithSnql(OrganizationEventsVitalsEndpointTest):
+    def setUp(self):
+        super().setUp()
+        self.features = {"organizations:performance-use-snql": True}

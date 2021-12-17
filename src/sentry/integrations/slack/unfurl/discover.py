@@ -103,7 +103,7 @@ def unfurl_discover(
         # If the link shared is an org w/o the slack integration do not unfurl
         if not org:
             continue
-        if not features.has("organizations:chart-unfurls", org):
+        if not features.has("organizations:discover-basic", org):
             continue
 
         params = link.args["query"]
@@ -171,7 +171,8 @@ def unfurl_discover(
                 params.setlist("topEvents", [f"{TOP_N}"])
 
             y_axis = params.getlist("yAxis")[0]
-            display_mode = get_top5_display_mode(y_axis)
+            if display_mode != "dailytop5":
+                display_mode = get_top5_display_mode(y_axis)
 
         else:
             # topEvents param persists in the URL in some cases, we want to discard

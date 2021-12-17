@@ -123,7 +123,7 @@ const getFields = ({
           challengeData={authenticator.challenge}
           displayMode="enroll"
           onTap={onU2fTap}
-          isWebauthnSigninFFEnabled={false} // turn off webauthn for registration of u2f device
+          isWebauthnSigninFFEnabled
         />
       ),
     ];

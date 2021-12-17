@@ -1095,6 +1095,7 @@ SENTRY_FEATURES = {
     "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
+    "organizations:team-insights-v2": False,
     # Enable login with WebAuthn
     "organizations:webauthn-login": False,
     # Enable registering new key with WebAuthn
