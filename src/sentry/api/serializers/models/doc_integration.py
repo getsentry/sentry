@@ -1,7 +1,7 @@
-from collections import defaultdict
 from typing import Any, List, Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.models import DocIntegrationAvatar
 from sentry.models.integration import DocIntegration
 from sentry.models.integrationfeature import IntegrationFeature, IntegrationTypes
 from sentry.models.user import User
@@ -12,14 +12,23 @@ from sentry.utils.json import JSONData
 @register(DocIntegration)
 class DocIntegrationSerializer(Serializer):
     def get_attrs(self, item_list: List[DocIntegration], user: User, **kwargs: Any):
-        target_ids = {item.id for item in item_list}
-        features = IntegrationFeature.objects.filter(
-            target_type=IntegrationTypes.DOC_INTEGRATION.value, target_id__in=target_ids
+        # Get associated IntegrationFeatures
+        doc_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
+            targets=item_list, target_type=IntegrationTypes.DOC_INTEGRATION
         )
-        features_by_target = defaultdict(set)
-        for feature in features:
-            features_by_target[feature.target_id].add(feature)
-        return {item: {"features": features_by_target.get(item.id, set())} for item in item_list}
+
+        # Get associated DocIntegrationAvatar
+        avatars = DocIntegrationAvatar.objects.filter(doc_integration__in=item_list)
+        doc_avatar_attrs = {avatar.doc_integration_id: avatar for avatar in avatars}
+
+        # Attach both as attrs
+        return {
+            item: {
+                "features": doc_feature_attrs.get(item.id, set()),
+                "avatar": doc_avatar_attrs.get(item.id),
+            }
+            for item in item_list
+        }
 
     def serialize(
         self,
@@ -37,9 +46,10 @@ class DocIntegrationSerializer(Serializer):
             "popularity": obj.popularity,
             "isDraft": obj.is_draft,
             "features": map(lambda x: serialize(x, user), attrs.get("features")),
+            "avatar": serialize(attrs.get("avatar"), user),
         }
 
         if obj.metadata:
-            data.update({k: v for k, v in obj.metadata.items()})
+            data.update(obj.metadata)
 
         return data
