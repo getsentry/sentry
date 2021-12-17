@@ -995,7 +995,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         self.enabled_features = {
             "organizations:discover-basic": True,
-            "organizations:discover-top-events": True,
         }
         self.url = reverse(
             "sentry-api-0-organization-events-stats",

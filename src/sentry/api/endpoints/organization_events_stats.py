@@ -40,9 +40,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:performance-chart-interpolation", organization, actor=request.user
         )
 
-    def has_top_events(self, organization: Organization, request: Request) -> bool:
-        return features.has("organizations:discover-top-events", organization, actor=request.user)
-
     def has_discover_snql(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:discover-use-snql", organization, actor=request.user)
 
@@ -111,7 +108,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
-                    include_other=self.has_top_events(organization, request),
+                    include_other=True,
                     use_snql=self.has_discover_snql(organization, request),
                 )
             return discover.timeseries_query(
