@@ -34,7 +34,19 @@ type Props = {
   errorType?: string;
 
   buttonProps?: Partial<React.ComponentProps<typeof Button>>;
+
+  clientData?: SandboxData;
 };
+
+export interface SandboxData {
+  skipEmail?: boolean;
+  acceptedTracking?: boolean;
+  cta?: {
+    title: string;
+    shortTitle: string;
+    url: string;
+  };
+}
 
 // Renders a form that will kick off the sandbox around children
 // which should include be a button. If the sandbox is hidden,
@@ -46,10 +58,8 @@ function DemoSandboxButton({
   buttonText,
   errorType,
   buttonProps,
+  clientData,
 }: Props) {
-  const handleOnClick = () =>
-    trackAdvancedAnalyticsEvent('growth.clicked_enter_sandbox', {scenario, organization});
-
   const url = new URL('https://try.sentry-demo.com/demo/start/');
 
   if (scenario) url.searchParams.append('scenario', scenario);
@@ -57,12 +67,25 @@ function DemoSandboxButton({
   if (projectSlug) url.searchParams.append('projectSlug', projectSlug);
 
   if (errorType) url.searchParams.append('errorType', errorType);
-
   // always skip adding email when coming from in-product
-  url.searchParams.append('skipEmail', '1');
-  url.searchParams.append('saasOrgSlug', organization.slug);
+  const clientOptions: SandboxData = {
+    skipEmail: true,
+    acceptedTracking: true,
+    ...clientData,
+  };
+  url.searchParams.append('client', JSON.stringify(clientOptions));
   return (
-    <Button external href={url.toString()} onClick={handleOnClick} {...buttonProps}>
+    <Button
+      external
+      href={url.toString()}
+      onClick={() =>
+        trackAdvancedAnalyticsEvent('growth.clicked_enter_sandbox', {
+          scenario,
+          organization,
+        })
+      }
+      {...buttonProps}
+    >
       {buttonText}
     </Button>
   );

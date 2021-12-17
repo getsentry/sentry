@@ -88,10 +88,16 @@ class ErrorRobot extends Component<Props, State> {
     if (org.experiments.ViewSampleSandboxExperiment) {
       sampleLink = (
         <DemoSandboxButton
-          scenario="oneTransaction"
-          projectSlug="react"
+          scenario="oneIssue"
           buttonText={t('See a Sample Event')}
           buttonProps={{size: 'small', priority: 'link'}}
+          clientData={{
+            cta: {
+              title: t('Finish Setup'),
+              shortTitle: t('Setup'),
+              url: window.location.href,
+            },
+          }}
         />
       );
     } else {
