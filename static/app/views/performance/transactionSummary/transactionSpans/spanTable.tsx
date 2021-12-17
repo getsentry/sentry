@@ -29,13 +29,21 @@ type Props = {
   organization: Organization;
   suspectSpan: SuspectSpan;
   transactionName: string;
+  isLoading: boolean;
   examples: ExampleTransaction[];
   pageLinks?: string | null;
 };
 
 export default function SpanTable(props: Props) {
-  const {location, organization, examples, suspectSpan, transactionName, pageLinks} =
-    props;
+  const {
+    location,
+    organization,
+    examples,
+    suspectSpan,
+    transactionName,
+    isLoading,
+    pageLinks,
+  } = props;
 
   if (!defined(examples)) {
     return null;
@@ -59,6 +67,7 @@ export default function SpanTable(props: Props) {
   return (
     <Fragment>
       <GridEditable
+        isLoading={isLoading}
         data={data}
         columnOrder={SPANS_TABLE_COLUMN_ORDER}
         columnSortBy={[]}

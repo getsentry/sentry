@@ -24,14 +24,14 @@ export type SuspectSpan = SpanExample & {
   projectId: number;
   project: string;
   transaction: string;
-  frequency: number;
-  count: number;
-  avgOccurrences: number;
-  sumExclusiveTime: number;
-  p50ExclusiveTime: number;
-  p75ExclusiveTime: number;
-  p95ExclusiveTime: number;
-  p99ExclusiveTime: number;
+  frequency?: number;
+  count?: number;
+  avgOccurrences?: number;
+  sumExclusiveTime?: number;
+  p50ExclusiveTime?: number;
+  p75ExclusiveTime?: number;
+  p95ExclusiveTime?: number;
+  p99ExclusiveTime?: number;
 };
 
 export type SuspectSpans = SuspectSpan[];

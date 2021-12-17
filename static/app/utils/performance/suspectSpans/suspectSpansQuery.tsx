@@ -17,7 +17,7 @@ type SuspectSpansProps = {
 
 type RequestProps = DiscoverQueryProps & SuspectSpansProps;
 
-type ChildrenProps = Omit<GenericChildrenProps<SuspectSpansProps>, 'tableData'> & {
+export type ChildrenProps = Omit<GenericChildrenProps<SuspectSpansProps>, 'tableData'> & {
   suspectSpans: SuspectSpans | null;
 };
 
@@ -37,9 +37,7 @@ function getSuspectSpanPayload(props: RequestProps) {
   if (!defined(payload.spanGroup)) {
     delete payload.spanGroup;
   }
-  const additionalPayload = omit(props.eventView.getEventsAPIPayload(props.location), [
-    'field',
-  ]);
+  const additionalPayload = props.eventView.getEventsAPIPayload(props.location);
   return Object.assign(payload, additionalPayload);
 }
 
