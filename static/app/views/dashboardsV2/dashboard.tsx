@@ -89,6 +89,7 @@ class Dashboard extends Component<Props> {
     const {organization, dashboard, selection, handleAddLibraryWidgets} = this.props;
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
+      has_library: organization.features.includes('widget-library'),
     });
 
     if (organization.features.includes('widget-library')) {

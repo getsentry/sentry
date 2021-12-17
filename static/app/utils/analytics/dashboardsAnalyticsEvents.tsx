@@ -1,5 +1,7 @@
 export type DashboardsEventParameters = {
-  'dashboards_views.add_widget_modal.opened': {};
+  'dashboards_views.add_widget_modal.opened': {
+    has_library: boolean;
+  };
   'dashboards_views.add_widget_modal.change': {
     from: string;
     field: string;
@@ -18,6 +20,12 @@ export type DashboardsEventParameters = {
   };
   'dashboards_views.add_widget_modal.confirm': {};
   'dashboards_views.edit_widget_modal.confirm': {};
+  'dashboards_views.widget_library.prebuilt_added': {
+    num_widgets: number;
+  };
+  'dashboards_views.widget_library.switch_tab': {
+    to: string;
+  };
 };
 
 export type DashboardsEventKey = keyof DashboardsEventParameters;
@@ -36,4 +44,8 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
     'Dashboards2: Add Widget to Dashboard modal form submitted',
   'dashboards_views.edit_widget_modal.confirm':
     'Dashboards2: Edit Dashboard Widget modal form submitted',
+  'dashboards_views.widget_library.prebuilt_added':
+    'Dashboards2: Prebuilt Widgets added from Library',
+  'dashboards_views.widget_library.switch_tab':
+    'Dashboards2: Widget Library tab switched',
 };

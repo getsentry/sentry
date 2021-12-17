@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -49,6 +50,10 @@ export function TabsButtonBar({
           if (activeTab === TAB.Library) {
             return;
           }
+          trackAdvancedAnalyticsEvent('dashboards_views.widget_library.switch_tab', {
+            organization,
+            to: TAB.Library,
+          });
           if (defined(onAddWidget)) {
             openDashboardWidgetLibraryModal({
               organization,
@@ -68,6 +73,10 @@ export function TabsButtonBar({
           if (activeTab === TAB.Custom) {
             return;
           }
+          trackAdvancedAnalyticsEvent('dashboards_views.widget_library.switch_tab', {
+            organization,
+            to: TAB.Custom,
+          });
           openAddDashboardWidgetModal({
             organization,
             dashboard,
