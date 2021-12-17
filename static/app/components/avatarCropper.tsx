@@ -27,7 +27,8 @@ type Props = {
     | 'organization'
     | 'project'
     | 'sentryAppColor'
-    | 'sentryAppSimple';
+    | 'sentryAppSimple'
+    | 'docIntegration';
   savedDataUrl?: string;
 };
 
