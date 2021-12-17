@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
@@ -8,7 +11,7 @@ from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
 
 
 class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
-    def get(self, request, group, key):
+    def get(self, request: Request, group, key) -> Response:
         """
         List a Tag's Values
         ```````````````````

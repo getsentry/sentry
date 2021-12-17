@@ -41,8 +41,12 @@ class ProjectNotHierarchical(SentryAPIException):
     message = "This project does not have hierarchical grouping."
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class GroupingLevelsEndpoint(GroupEndpoint):
-    def get(self, request, group: Group):
+    def get(self, request: Request, group: Group) -> Response:
         """
         Return the available levels for this group.
 

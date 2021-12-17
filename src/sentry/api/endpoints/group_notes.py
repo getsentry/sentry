@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
@@ -15,7 +16,7 @@ from sentry.utils.functional import extract_lazy_object
 
 
 class GroupNotesEndpoint(GroupEndpoint):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         notes = Activity.objects.filter(group=group, type=Activity.NOTE).select_related("user")
 
         return self.paginate(
@@ -26,7 +27,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request, group):
+    def post(self, request: Request, group) -> Response:
         serializer = NoteSerializer(
             data=request.data,
             context={

@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -8,7 +9,7 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 class GroupingConfigsEndpoint(Endpoint):
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         return Response(
             serialize(
                 [config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: x.id)]

@@ -1,5 +1,6 @@
 import logging
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features as feature_flags
@@ -19,7 +20,7 @@ def _fix_label(label):
 
 
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         version = request.GET.get("version", None)
         if version == "2":
             if not feature_flags.has("projects:similarity-view-v2", group.project):

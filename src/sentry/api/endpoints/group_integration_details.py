@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -25,7 +26,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         return has_issue_sync or has_issue_basic
 
-    def create_issue_activity(self, request, group, installation, external_issue):
+    def create_issue_activity(self, request: Request, group, installation, external_issue):
         issue_information = {
             "title": external_issue.title,
             "provider": installation.model.get_provider().name,
@@ -40,7 +41,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             data=issue_information,
         )
 
-    def get(self, request, group, integration_id):
+    def get(self, request: Request, group, integration_id) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
@@ -78,7 +79,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": str(e)}, status=400)
 
     # was thinking put for link an existing issue, post for create new issue?
-    def put(self, request, group, integration_id):
+    def put(self, request: Request, group, integration_id) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
@@ -166,7 +167,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    def post(self, request, group, integration_id):
+    def post(self, request: Request, group, integration_id) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
@@ -238,7 +239,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    def delete(self, request, group, integration_id):
+    def delete(self, request: Request, group, integration_id) -> Response:
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
