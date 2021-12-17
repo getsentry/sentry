@@ -24,7 +24,7 @@ import {SetStateAction} from '../types';
 import OpsFilter from './opsFilter';
 import {Actions} from './styles';
 import SuspectSpanCard from './suspectSpanCard';
-import {SpansTotalValues} from './types';
+import {SpanSort, SpanSortOthers, SpanSortPercentiles, SpansTotalValues} from './types';
 import {getSuspectSpanSortFromEventView, getTotalsView, SPAN_SORT_OPTIONS} from './utils';
 
 const ANALYTICS_VALUES = {
@@ -78,6 +78,7 @@ function SpansContent(props: Props) {
   const spanOp = decodeScalar(location.query.spanOp);
   const spanGroup = decodeScalar(location.query.spanGroup);
   const sort = getSuspectSpanSortFromEventView(eventView);
+  const spansView = getSpansEventView(eventView, sort.field);
   const totalsView = getTotalsView(eventView);
 
   return (
@@ -125,7 +126,7 @@ function SpansContent(props: Props) {
             <SuspectSpansQuery
               location={location}
               orgSlug={organization.slug}
-              eventView={eventView}
+              eventView={spansView}
               perSuspect={10}
               spanOps={defined(spanOp) ? [spanOp] : []}
               spanGroups={defined(spanGroup) ? [spanGroup] : []}
@@ -175,6 +176,53 @@ function SpansContent(props: Props) {
       </DiscoverQuery>
     </Layout.Main>
   );
+}
+
+const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
+  [SpanSortOthers.SUM_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortOthers.AVG_OCCURRENCE]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'count_unique(id)',
+    'equation|count()/count_unique(id)',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortOthers.COUNT]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.5)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.95)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.99)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+};
+
+function getSpansEventView(eventView: EventView, sort: SpanSort): EventView {
+  eventView = eventView.clone();
+  const fields = SPAN_SORT_TO_FIELDS[sort];
+  eventView.fields = fields ? fields.map(field => ({field})) : [];
+  return eventView;
 }
 
 export default SpansContent;
