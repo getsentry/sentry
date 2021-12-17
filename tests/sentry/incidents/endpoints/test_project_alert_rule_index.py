@@ -705,19 +705,11 @@ class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAler
     def setUp(self):
         super().setUp()
         self.valid_alert_rule["dataset"] = Dataset.Metrics.value
-        for tag in [SessionMetricKey.SESSION.value, "session.status", "init", "crashed"]:
+        for tag in [
+            SessionMetricKey.SESSION.value,
+            SessionMetricKey.USER.value,
+            "session.status",
+            "init",
+            "crashed",
+        ]:
             indexer.record(tag)
-
-    def test_simple_crash_rate_alerts_for_users(self):
-        self.valid_alert_rule.update(
-            {
-                "aggregate": "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-            }
-        )
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(
-                self.organization.slug, self.project.slug, status_code=400, **self.valid_alert_rule
-            )
-        assert (
-            resp.data["nonFieldErrors"][0] == "Crash Free Users subscriptions are not supported yet"
-        )
