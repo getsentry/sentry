@@ -143,6 +143,7 @@ export const Background = styled('div')<{type: keyof Theme['tag']}>`
   height: ${TAG_HEIGHT};
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
+  border: solid 1px ${p => p.theme.tag[p.type].border};
   padding: 0 ${space(1)};
 `;
 
@@ -152,7 +153,10 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
-  color: ${p => (['black', 'focus'].includes(p.type) ? p.theme.white : p.theme.gray500)};
+  color: ${p =>
+    ['black', 'white'].includes(p.type)
+      ? p.theme.tag[p.type].iconColor
+      : p.theme.textColor};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;
