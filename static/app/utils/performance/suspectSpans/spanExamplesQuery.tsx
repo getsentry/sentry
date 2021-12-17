@@ -16,7 +16,7 @@ type SpanExamplesProps = {
 
 type RequestProps = DiscoverQueryProps & SpanExamplesProps;
 
-type ChildrenProps = Omit<GenericChildrenProps<SpanExamplesProps>, 'tableData'> & {
+export type ChildrenProps = Omit<GenericChildrenProps<SpanExamplesProps>, 'tableData'> & {
   examples: SpanExample[] | null;
 };
 

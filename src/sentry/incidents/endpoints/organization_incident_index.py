@@ -1,6 +1,7 @@
 from dateutil.parser import parse as parse_date
 from django.db.models import Q
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -26,7 +27,7 @@ from .utils import parse_team_params
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     permission_classes = (IncidentPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List Incidents that a User can access within an Organization
         ````````````````````````````````````````````````````````````

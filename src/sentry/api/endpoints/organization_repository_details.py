@@ -1,5 +1,6 @@
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -27,7 +28,7 @@ class RepositorySerializer(serializers.Serializer):
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def put(self, request, organization, repo_id):
+    def put(self, request: Request, organization, repo_id) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
 
@@ -84,7 +85,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(repo, request.user))
 
-    def delete(self, request, organization, repo_id):
+    def delete(self, request: Request, organization, repo_id) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
 

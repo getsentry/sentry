@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import SsoRequired
@@ -29,6 +30,12 @@ class AuthIndexEndpoint(Endpoint):
     authentication_classes = [QuietBasicAuthentication, SessionAuthentication]
 
     permission_classes = ()
+
+    def check_can_webauthn_signin(self, user, request_user):
+        orgs = user.get_orgs()
+        return any(
+            features.has("organizations:webauthn-login", org, actor=request_user) for org in orgs
+        )
 
     def get(self, request):
         if not request.user.is_authenticated:
@@ -99,17 +106,18 @@ class AuthIndexEndpoint(Endpoint):
             return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         authenticated = False
-
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
                 interface = Authenticator.objects.get_interface(request.user, "u2f")
                 if not interface.is_enrolled():
                     raise LookupError()
-
                 challenge = json.loads(validator.validated_data["challenge"])
                 response = json.loads(validator.validated_data["response"])
-                authenticated = interface.validate_response(request, challenge, response)
+                can_webauthn_signin = self.check_can_webauthn_signin(request.user, request.user)
+                authenticated = interface.validate_response(
+                    request, challenge, response, can_webauthn_signin
+                )
             except ValueError:
                 pass
             except LookupError:
