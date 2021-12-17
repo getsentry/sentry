@@ -394,7 +394,7 @@ export function constructGridItemKey(widget: Widget) {
   return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
 }
 
-export function assignTempId(widget) {
+export function assignTempId(widget: Widget) {
   if (widget.id ?? widget.tempId) {
     return widget;
   }
