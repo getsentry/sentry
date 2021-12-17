@@ -37,6 +37,10 @@ class _KafkaAdminWrapper:
             self._sync_wait_on_result(futures_dict)
         except Exception as e:  # noqa
             _log.warning("Could not delete topic %s", topic_name)
+            import subprocess
+            subprocess.run(("docker", "logs", "sentry_kafka"))
+            subprocess.run(("docker", "logs", "sentry_zookeeper"))
+            exit(e)
 
     def _sync_wait_on_result(self, futures_dict):
         """
@@ -45,7 +49,7 @@ class _KafkaAdminWrapper:
         """
         # just wait on all futures returned by the async operations of the admin_client
         for f in futures_dict.values():
-            f.result(10)  # wait up to 10 seconds for the admin operation to finish
+            f.result(5)  # wait up to 5 seconds for the admin operation to finish
 
 
 @pytest.fixture
