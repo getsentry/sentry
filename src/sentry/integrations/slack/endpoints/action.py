@@ -20,7 +20,14 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Group, Identity, IdentityProvider, InviteStatus, NotificationSetting, OrganizationMember
+from sentry.models import (
+    Group,
+    Identity,
+    IdentityProvider,
+    InviteStatus,
+    NotificationSetting,
+    OrganizationMember,
+)
 from sentry.notifications.utils.actions import MessageAction
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
