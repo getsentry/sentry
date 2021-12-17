@@ -415,7 +415,7 @@ function getDefaultPosition(index: number, displayType: DisplayType) {
   };
 }
 
-function getMobileLayout(desktopLayout, widgets) {
+function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
   if (desktopLayout.length === 0) {
     // Initial case where the user has no layout saved, but
     // dashboard has widgets
@@ -429,14 +429,14 @@ function getMobileLayout(desktopLayout, widgets) {
   const layoutWidgetPairs = zip(survivingLayouts, widgets);
 
   // Sort by y and then subsort by x
-  const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']) as [Layout, Widget][];
+  const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);
 
   const mobileLayout = sorted.map(([layout, widget], index) => ({
     ...layout,
     x: 0,
     y: index * 2,
     w: 2,
-    h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+    h: widget?.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
   }));
 
   return mobileLayout;
