@@ -937,7 +937,6 @@ class TeamIssuesActions extends AsyncComponent<Props, State> {
           isLoading={loading}
         >
           {projects.map(project => {
-            const {total, deleted} = projectTotals[project.id] ?? {};
             return (
               <Fragment key={project.id}>
                 <ProjectBadgeContainer>
@@ -948,7 +947,7 @@ class TeamIssuesActions extends AsyncComponent<Props, State> {
                     {projectTotals[project.id][action]}
                   </AlignRight>
                 ))}
-                <AlignRight>{total}</AlignRight>
+                <AlignRight>{projectTotals[project.id].total}</AlignRight>
               </Fragment>
             );
           })}
