@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import integrations
@@ -37,7 +38,7 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
 
 
 class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Email the organization owners asking them to install an integration.
         ````````````````````````````````````````````````````````````````````

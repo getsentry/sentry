@@ -1,3 +1,5 @@
+from rest_framework.request import Request
+
 from sentry import features
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
@@ -9,7 +11,7 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 class MonitorEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
-    def convert_args(self, request, monitor_id, *args, **kwargs):
+    def convert_args(self, request: Request, monitor_id, *args, **kwargs):
         try:
             monitor = Monitor.objects.get(guid=monitor_id)
         except Monitor.DoesNotExist:
