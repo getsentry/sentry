@@ -9,6 +9,8 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
@@ -66,7 +68,7 @@ def get_provider(organization_slug):
 
 
 class SAML2LoginView(AuthView):
-    def dispatch(self, request, helper):
+    def dispatch(self, request: Request, helper) -> Response:
         if "SAMLResponse" in request.POST:
             return helper.next_step()
 
@@ -90,7 +92,7 @@ class SAML2LoginView(AuthView):
 # auth_provider_login, but with support for initing the auth flow.
 class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, organization_slug):
+    def dispatch(self, request: Request, organization_slug):
         from sentry.auth.helper import AuthHelper
 
         helper = AuthHelper.get_for_request(request)
@@ -130,7 +132,7 @@ class SAML2AcceptACSView(BaseView):
 
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, helper):
+    def dispatch(self, request: Request, helper) -> Response:
         provider = helper.provider
 
         # If we're authenticating during the setup pipeline the provider will
@@ -162,7 +164,7 @@ class SAML2ACSView(AuthView):
 
 class SAML2SLSView(BaseView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, organization_slug):
+    def dispatch(self, request: Request, organization_slug):
         provider = get_provider(organization_slug)
         if provider is None:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
@@ -188,7 +190,7 @@ class SAML2SLSView(BaseView):
 
 
 class SAML2MetadataView(BaseView):
-    def dispatch(self, request, organization_slug):
+    def dispatch(self, request: Request, organization_slug):
         provider = get_provider(organization_slug)
         config = provider.config if provider else {}
 

@@ -11,8 +11,12 @@ class BitbucketIdentityProvider(Provider):
         return [BitbucketLoginView()]
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class BitbucketLoginView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         jwt = request.GET.get("jwt")
         if jwt is None:
             return self.redirect(
