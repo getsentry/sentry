@@ -14,7 +14,7 @@ const MESSAGES = {
   ),
 };
 
-type InterfaceProps = U2fInterface['props'];
+type InterfaceProps = React.ComponentProps<typeof U2fInterface>;
 
 type Props = Omit<InterfaceProps, 'silentIfUnsupported' | 'flowMode'> & {
   displayMode: 'signin' | 'enroll' | 'sudo';
