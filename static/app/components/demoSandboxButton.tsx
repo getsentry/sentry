@@ -1,5 +1,5 @@
 import Button from 'sentry/components/button';
-import {Organization} from 'sentry/types';
+import {Organization, SandboxData} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -23,7 +23,6 @@ type Props = {
     | 'oneTransactionSummary'
     | 'oneRelease';
   organization: Organization;
-  buttonText: string;
   /**
    * Which project we should link to in the sandbox
    */
@@ -33,32 +32,21 @@ type Props = {
    */
   errorType?: string;
 
-  buttonProps?: Partial<React.ComponentProps<typeof Button>>;
-
   clientData?: SandboxData;
-};
+} & React.ComponentProps<typeof Button>;
 
-export interface SandboxData {
-  skipEmail?: boolean;
-  acceptedTracking?: boolean;
-  cta?: {
-    title: string;
-    shortTitle: string;
-    url: string;
-  };
-}
-
-// Renders a form that will kick off the sandbox around children
-// which should include be a button. If the sandbox is hidden,
-// don't render the children
+/**
+ * Renders a button that will kick off the sandbox around children
+ * which should include be a button. If the sandbox is hidden,
+ * don't render the children
+ */
 function DemoSandboxButton({
   scenario,
   projectSlug,
   organization,
-  buttonText,
   errorType,
-  buttonProps,
   clientData,
+  ...buttonProps
 }: Props) {
   const url = new URL('https://try.sentry-demo.com/demo/start/');
 
@@ -85,9 +73,7 @@ function DemoSandboxButton({
         })
       }
       {...buttonProps}
-    >
-      {buttonText}
-    </Button>
+    />
   );
 }
 

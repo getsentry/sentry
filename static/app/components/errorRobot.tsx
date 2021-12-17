@@ -89,8 +89,8 @@ class ErrorRobot extends Component<Props, State> {
       sampleLink = (
         <DemoSandboxButton
           scenario="oneIssue"
-          buttonText={t('See a Sample Event')}
-          buttonProps={{size: 'small', priority: 'link'}}
+          size="small"
+          priority="link"
           clientData={{
             cta: {
               title: t('Finish Setup'),
@@ -98,7 +98,9 @@ class ErrorRobot extends Component<Props, State> {
               url: window.location.href,
             },
           }}
-        />
+        >
+          {t('See a Sample Event')}
+        </DemoSandboxButton>
       );
     } else {
       sampleLink =
