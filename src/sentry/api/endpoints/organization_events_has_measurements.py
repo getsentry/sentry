@@ -4,6 +4,7 @@ import sentry_sdk
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -46,7 +47,7 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
 
 
 class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

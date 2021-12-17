@@ -2,6 +2,7 @@ import re
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
@@ -15,7 +16,7 @@ from sentry.snuba import discover
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -39,7 +40,7 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         try:
             # events-meta is still used by events v1 which doesn't require global views
             params = self.get_snuba_params(request, organization, check_global_views=False)

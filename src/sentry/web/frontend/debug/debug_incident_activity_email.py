@@ -1,4 +1,6 @@
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.incidents.models import Incident, IncidentActivity, IncidentActivityType
 from sentry.incidents.tasks import generate_incident_activity_email
@@ -9,7 +11,7 @@ from .mail import MailPreview
 
 
 class DebugIncidentActivityEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         organization = Organization(slug="myorg")
         user = User(id=1235, name="Hello There")
         incident = Incident(

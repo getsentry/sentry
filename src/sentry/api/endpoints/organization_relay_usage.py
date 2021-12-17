@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -9,7 +10,7 @@ from sentry.models import RelayUsage
 class OrganizationRelayUsage(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         has_relays = features.has("organizations:relay", organization, actor=request.user)
         if not has_relays:
             return Response(status=404)

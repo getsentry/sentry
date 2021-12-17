@@ -1,4 +1,6 @@
 from django.http import Http404
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.data_export.base import ExportError
@@ -19,7 +21,7 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
         item_dict = IssuesByTagProcessor.serialize_row(item, key)
         return (item_dict[field] for field in fields)
 
-    def get(self, request, organization, project, group_id, key):
+    def get(self, request: Request, organization, project, group_id, key) -> Response:
 
         # If the environment doesn't exist then the tag can't possibly exist
         try:
