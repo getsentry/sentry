@@ -153,15 +153,6 @@ class SummaryContent extends React.Component<Props> {
     });
   };
 
-  handleViewDetailsClick = (_e: React.MouseEvent<Element>) => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.view_details',
-      eventName: 'Performance Views: View Details from Transaction Summary',
-      organization_id: parseInt(organization.id, 10),
-    });
-  };
-
   generateEventView(
     transactionsListEventView: EventView,
     transactionsListTitles: string[]
@@ -346,8 +337,6 @@ class SummaryContent extends React.Component<Props> {
               id: generateTransactionLink(transactionName),
               trace: generateTraceLink(eventView.normalizeDateSelection(location)),
             }}
-            baseline={transactionName}
-            handleBaselineClick={this.handleViewDetailsClick}
             handleCellAction={this.handleCellAction}
             {...getTransactionsListSort(location, {
               p95: totalValues?.p95 ?? 0,
