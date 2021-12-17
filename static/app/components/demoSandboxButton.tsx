@@ -1,7 +1,7 @@
 import Button from 'sentry/components/button';
 import {Organization, SandboxData} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   /**
@@ -22,7 +22,6 @@ type Props = {
     | 'oneWebVitals'
     | 'oneTransactionSummary'
     | 'oneRelease';
-  organization: Organization;
   /**
    * Which project we should link to in the sandbox
    */
@@ -43,11 +42,11 @@ type Props = {
 function DemoSandboxButton({
   scenario,
   projectSlug,
-  organization,
   errorType,
   clientData,
   ...buttonProps
 }: Props) {
+  const organization: Organization = useOrganization();
   const url = new URL('https://try.sentry-demo.com/demo/start/');
 
   if (scenario) url.searchParams.append('scenario', scenario);
@@ -77,4 +76,4 @@ function DemoSandboxButton({
   );
 }
 
-export default withOrganization(DemoSandboxButton);
+export default DemoSandboxButton;
