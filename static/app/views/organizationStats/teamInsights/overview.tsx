@@ -27,6 +27,7 @@ import Header from '../header';
 
 import DescriptionCard from './descriptionCard';
 import TeamAlertsTriggered from './teamAlertsTriggered';
+import TeamIssuesActions from './teamIssuesActions';
 import TeamIssuesAge from './teamIssuesAge';
 import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
@@ -288,22 +289,62 @@ function TeamInsightsOverview({location, router}: Props) {
             </DescriptionCard>
 
             <SectionTitle>{t('Team Activity')}</SectionTitle>
-            <DescriptionCard
-              title={t('Issues Reviewed')}
-              description={t(
-                'Issues triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
-              )}
-            >
-              <TeamIssuesReviewed
-                organization={organization}
-                projects={projects}
-                teamSlug={currentTeam!.slug}
-                period={period}
-                start={start?.toString()}
-                end={end?.toString()}
-                location={location}
-              />
-            </DescriptionCard>
+            {!isInsightsV2 && (
+              <DescriptionCard
+                title={t('Issues Reviewed')}
+                description={t(
+                  'Issues triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
+                )}
+              >
+                <TeamIssuesReviewed
+                  organization={organization}
+                  projects={projects}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start?.toString()}
+                  end={end?.toString()}
+                  location={location}
+                />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('New and Returning Issues')}
+                description={t(
+                  'The new, regressed, and unignored issues that were assigned to your team.'
+                )}
+              >
+                <TeamIssuesActions
+                  organization={organization}
+                  projects={projects}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start?.toString()}
+                  end={end?.toString()}
+                  location={location}
+                  actions={['new', 'regressed', 'unignored']}
+                />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('Issues Triaged')}
+                description={t(
+                  'How many new and returning issues were reviewed by your team each week. Reviewing an issue includes marking as reviewed, resolving, assigning to another team, or deleting.'
+                )}
+              >
+                <TeamIssuesActions
+                  organization={organization}
+                  projects={projects}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start?.toString()}
+                  end={end?.toString()}
+                  location={location}
+                  actions={['resolved', 'ignored', 'deleted']}
+                />
+              </DescriptionCard>
+            )}
             {isInsightsV2 && (
               <DescriptionCard
                 title={t('Age of Unresolved Issues')}
