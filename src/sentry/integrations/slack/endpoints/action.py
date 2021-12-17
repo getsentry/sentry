@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, Sequence
 
 import requests as requests_
 from django.urls import reverse
@@ -20,15 +20,7 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import (
-    Group,
-    Identity,
-    IdentityProvider,
-    Integration,
-    InviteStatus,
-    OrganizationMember,
-    Project,
-)
+from sentry.models import Group, Identity, IdentityProvider, InviteStatus, OrganizationMember
 from sentry.notifications.utils.actions import MessageAction
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
@@ -87,6 +79,53 @@ def update_group(
         user=identity.user,
         data=data,
     )
+
+
+def get_group(slack_request: SlackActionRequest) -> Group | None:
+    """Determine the issue group on which an action is being taken."""
+    group_id = slack_request.callback_data["issue"]
+    try:
+        return Group.objects.select_related("project__organization").get(
+            id=group_id,
+            project__organization__organizationintegration__intgration=slack_request.integration,
+        )
+    except Group.DoesNotExist:
+        logger.info(
+            "slack.action.invalid-issue",
+            extra={
+                **slack_request.logging_data,
+                "group_id": group_id,
+            },
+        )
+        return None
+
+
+def get_member_approval_success_message(
+    member: OrganizationMember,
+    identity: Identity,
+    action_option: str,
+    original_status: InviteStatus,
+) -> str:
+    if action_option == "approve_member":
+        key = "approve"
+        verb = "approved"
+    else:
+        key = "reject"
+        verb = "rejected"
+
+    invite_type = "Invite" if original_status == InviteStatus.REQUESTED_TO_BE_INVITED else "Join"
+    analytics.record(
+        f"integrations.slack.{key}_member_invitation",
+        actor_id=identity.user_id,
+        organization_id=member.organization_id,
+        invitation_type=invite_type.lower(),
+        invited_member_id=member.id,
+    )
+
+    manage_url = absolute_uri(
+        reverse("sentry-organization-members", args=[member.organization.slug])
+    )
+    return f"{invite_type} request for {member.email} has been {verb}. <{manage_url}|See Members and Requests>."
 
 
 def _is_message(data: Mapping[str, Any]) -> bool:
@@ -158,8 +197,6 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         identity: Identity,
         group: Group,
         action: MessageAction,
-        data: Mapping[str, Any],
-        integration: Integration,
     ) -> None:
         status_data = (action.value or "").split(":", 1)
         if not len(status_data):
@@ -183,9 +220,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             actor_id=identity.user_id,
         )
 
-    def open_resolve_dialog(
-        self, data: Mapping[str, Any], group: Group, integration: Integration
-    ) -> None:
+    def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
         # but seems like there's no other solutions [1]:
@@ -208,8 +243,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         payload = {
             "dialog": json.dumps(dialog),
-            "trigger_id": data["trigger_id"],
-            "token": integration.metadata["access_token"],
+            "trigger_id": slack_request.data["trigger_id"],
+            "token": slack_request.integration.metadata["access_token"],
         }
 
         slack_client = SlackClient()
@@ -234,61 +269,17 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         return attachment
 
-    @transaction_start("SlackActionEndpoint")
-    def post(self, request: Request) -> Response:
-        try:
-            slack_request = SlackActionRequest(request)
-            slack_request.validate()
-        except SlackRequestError as e:
-            return self.respond(status=e.status)
-
-        action_option = slack_request.action_option
-
-        if action_option in ["approve_member", "reject_member"]:
-            return self.handle_member_approval(slack_request)
-
-        # if a user is just clicking our auto response in the messages tab we just return a 200
-        if action_option == "sentry_docs_link_clicked":
-            return self.respond()
-
-        # Actions list may be empty when receiving a dialog response
-        data = slack_request.data
-        action_list_raw = data.get("actions", [])
-        action_list = [MessageAction(**action_data) for action_data in action_list_raw]
-
-        organizations = slack_request.integration.organizations.all()
-
-        if action_option in ["link", "ignore"]:
-            analytics.record(
-                "integrations.slack.chart_unfurl_action",
-                organization_id=organizations[0].id,
-                action=action_option,
-            )
-            payload = {"delete_original": "true"}
-            try:
-                requests_.post(slack_request.response_url, json=payload)
-            except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": str(e)})
-                return self.respond(status=403)
-
-            return self.respond()
-
-        # Determine the issue group action is being taken on
-        group_id = slack_request.callback_data["issue"]
-        logging_data = {**slack_request.logging_data, "group_id": group_id}
-
-        try:
-            group = Group.objects.select_related("project__organization").get(
-                project__in=Project.objects.filter(organization__in=organizations),
-                id=group_id,
-            )
-        except Group.DoesNotExist:
-            logger.info("slack.action.invalid-issue", extra={**logging_data})
+    def _handle_group_actions(
+        self,
+        slack_request: SlackActionRequest,
+        request: Request,
+        action_list: Sequence[MessageAction],
+    ) -> Response:
+        group = get_group(slack_request)
+        if not group:
             return self.respond(status=403)
 
-        logging_data["organization_id"] = group.organization.id
-
-        # Determine the acting user by slack identity
+        # Determine the acting user by Slack identity.
         try:
             identity = slack_request.get_identity()
         except IdentityProvider.DoesNotExist:
@@ -304,23 +295,24 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
 
         # Handle status dialog submission
-        if slack_request.type == "dialog_submission" and "resolve_type" in data["submission"]:
+        if (
+            slack_request.type == "dialog_submission"
+            and "resolve_type" in slack_request.data["submission"]
+        ):
             # Masquerade a status action
             action = MessageAction(
                 name="status",
-                value=data["submission"]["resolve_type"],
+                value=slack_request.data["submission"]["resolve_type"],
             )
 
             try:
-                self.on_status(request, identity, group, action, data, slack_request.integration)
+                self.on_status(request, identity, group, action)
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity, error, "status_dialog")
 
-            group = Group.objects.get(id=group.id)
             attachment = SlackIssuesMessageBuilder(
                 group, identity=identity, actions=[action]
             ).build()
-
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
             )
@@ -344,19 +336,16 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         # Handle interaction actions
         for action in action_list:
-            action_type = action.name
             try:
-                if action_type == "status":
-                    self.on_status(
-                        request, identity, group, action, data, slack_request.integration
-                    )
-                elif action_type == "assign":
+                if action.name == "status":
+                    self.on_status(request, identity, group, action)
+                elif action.name == "assign":
                     self.on_assign(request, identity, group, action)
-                elif action_type == "resolve_dialog":
-                    self.open_resolve_dialog(data, group, slack_request.integration)
+                elif action.name == "resolve_dialog":
+                    self.open_resolve_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:
-                return self.api_error(slack_request, group, identity, error, action_type)
+                return self.api_error(slack_request, group, identity, error, action.name)
 
         if defer_attachment_update:
             return self.respond()
@@ -371,7 +360,54 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         return self.respond(body)
 
-    def handle_member_approval(self, slack_request: SlackActionRequest) -> Response:
+    def handle_unfurl(self, slack_request: SlackActionRequest, action_option: str) -> Response:
+        organizations = slack_request.integration.organizations.all()
+        analytics.record(
+            "integrations.slack.chart_unfurl_action",
+            organization_id=organizations[0].id,
+            action=action_option,
+        )
+        payload = {"delete_original": "true"}
+        try:
+            requests_.post(slack_request.response_url, json=payload)
+        except ApiError as e:
+            logger.error("slack.action.response-error", extra={"error": str(e)})
+            return self.respond(status=403)
+
+        return self.respond()
+
+    @transaction_start("SlackActionEndpoint")
+    def post(self, request: Request) -> Response:
+        try:
+            slack_request = SlackActionRequest(request)
+            slack_request.validate()
+        except SlackRequestError as e:
+            return self.respond(status=e.status)
+
+        # Actions list may be empty when receiving a dialog response
+        action_list = [
+            MessageAction(**action_data) for action_data in slack_request.data.get("actions", [])
+        ]
+        action_option = action_list and action_list[0].value
+
+        # If a user is just clicking our auto response in the messages tab we just return a 200
+        if action_option == "sentry_docs_link_clicked":
+            return self.respond()
+
+        # TODO(mgaeta): Stop short-circuiting here on VALUE alone.
+        if action_option in ["link", "ignore"]:
+            return self.handle_unfurl(slack_request, action_option)
+
+        if action_option in ["approve_member", "reject_member"]:
+            return self.handle_member_approval(slack_request, action_option)
+
+        return self._handle_group_actions(slack_request, request, action_list)
+
+    def handle_member_approval(
+        self,
+        slack_request: SlackActionRequest,
+        action_option: str,
+    ) -> Response:
         try:
             # get_identity can return nobody
             identity = slack_request.get_identity()
@@ -410,10 +446,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         except UnableToAcceptMemberInvitationException as err:
             return self.respond_with_text(str(err))
 
-        original_status = member.invite_status
-        member_email = member.email
+        original_status = InviteStatus(member.invite_status)
         try:
-            if slack_request.action_option == "approve_member":
+            if action_option == "approve_member":
                 member.approve_member_invitation(identity.user, referrer="slack")
             else:
                 member.reject_member_invitation(identity.user)
@@ -429,29 +464,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
 
         # record analytics and respond with success
-        approve_member = slack_request.action_option == "approve_member"
-        event_name = (
-            "integrations.slack.approve_member_invitation"
-            if approve_member
-            else "integrations.slack.reject_member_invitation"
+        message = get_member_approval_success_message(
+            member=member,
+            identity=identity,
+            action_option=action_option,
+            original_status=original_status,
         )
-        invite_type = (
-            "Invite" if original_status == InviteStatus.REQUESTED_TO_BE_INVITED.value else "Join"
-        )
-        analytics.record(
-            event_name,
-            actor_id=identity.user_id,
-            organization_id=member.organization_id,
-            invitation_type=invite_type.lower(),
-            invited_member_id=member_id,
-        )
-
-        verb = "approved" if approve_member else "rejected"
-
-        manage_url = absolute_uri(
-            reverse("sentry-organization-members", args=[member.organization.slug])
-        )
-        body = {
-            "text": f"{invite_type} request for {member_email} has been {verb}. <{manage_url}|See Members and Requests>.",
-        }
-        return self.respond(body)
+        return self.respond({"text": message})
