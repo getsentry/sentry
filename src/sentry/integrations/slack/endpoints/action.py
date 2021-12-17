@@ -46,6 +46,11 @@ UNLINK_IDENTITY_MESSAGE = (
     "who is not a member of organization *{org_name}* used with this Slack integration. "
     "<{associate_url}|Unlink your identity now>. "
 )
+
+NO_ACCESS_MESSAGE = "You do not have access to the organization for the invitation."
+NO_PERMISSION_MESSAGE = "You do not have permission to approve member invitations."
+NO_IDENTITY_MESSAGE = "Identity not linked for user."
+
 DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 
 RESOLVE_SELECTOR = {
@@ -374,7 +379,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             identity = None
 
         if not identity:
-            return self.respond_with_text("Identity not linked for user.")
+            return self.respond_with_text(NO_IDENTITY_MESSAGE)
 
         member_id = slack_request.callback_data["member_id"]
 
@@ -388,9 +393,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         organization = member.organization
 
         if not organization.has_access(identity.user):
-            return self.respond_with_text(
-                "You don't have access to the organization for the invitation."
-            )
+            return self.respond_with_text(NO_ACCESS_MESSAGE)
 
         # row should exist because we have access
         member_of_approver = OrganizationMember.objects.get(
@@ -398,9 +401,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         )
         access = from_member(member_of_approver)
         if not access.has_scope("member:admin"):
-            return self.respond_with_text(
-                "You don't have permission to approve member invitations."
-            )
+            return self.respond_with_text(NO_PERMISSION_MESSAGE)
 
         # validate the org options and check against allowed_roles
         allowed_roles = member_of_approver.get_allowed_roles_to_invite()
