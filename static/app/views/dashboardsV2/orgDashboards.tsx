@@ -13,6 +13,7 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
+import {assignTempId} from './gridLayout/dashboard';
 import {DashboardDetails, DashboardListItem} from './types';
 
 type OrgDashboardsChildrenProps = {
@@ -87,7 +88,16 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
   onRequestSuccess({stateKey, data}) {
     const {params, organization, location} = this.props;
-    if (params.dashboardId || stateKey === 'selectedDashboard') {
+
+    if (stateKey === 'selectedDashboard') {
+      if (organization.features.includes('dashboard-grid-layout')) {
+        // Ensure unique IDs even on viewing default dashboard
+        this.setState({[stateKey]: {...data, widgets: data.widgets.map(assignTempId)}});
+      }
+      return;
+    }
+
+    if (params.dashboardId) {
       return;
     }
 
