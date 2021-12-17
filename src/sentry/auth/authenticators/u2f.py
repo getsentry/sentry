@@ -11,6 +11,7 @@ from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
 from fido2.webauthn import PublicKeyCredentialRpEntity
+from rest_framework.request import Request
 from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
@@ -185,7 +186,7 @@ class U2fInterface(AuthenticatorInterface):
             {"name": device_name or "Security Key", "ts": int(time()), "binding": binding}
         )
 
-    def activate(self, request, is_webauthn_signin_ff_enabled):
+    def activate(self, request: Request, is_webauthn_signin_ff_enabled):
         if not is_webauthn_signin_ff_enabled:
             challenge = dict(u2f.begin_authentication(self.u2f_app_id, self.get_u2f_devices()))
             # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
@@ -220,7 +221,7 @@ class U2fInterface(AuthenticatorInterface):
 
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
-    def validate_response(self, request, challenge, response, has_webauthn_register):
+    def validate_response(self, request: Request, challenge, response, has_webauthn_register):
         try:
             if not has_webauthn_register:
                 u2f.complete_authentication(challenge, response, self.u2f_facets)

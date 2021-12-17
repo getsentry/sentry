@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api import client
@@ -17,7 +18,7 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
     }
 
     @rate_limit_endpoint(limit=15, window=1)
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """
         Retrieve the Latest Event for an Issue
         ``````````````````````````````````````
