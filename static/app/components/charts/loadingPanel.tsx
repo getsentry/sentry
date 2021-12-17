@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import LoadingMask from 'app/components/loadingMask';
+import LoadingMask from 'sentry/components/loadingMask';
 
 type Props = {
   height?: string;

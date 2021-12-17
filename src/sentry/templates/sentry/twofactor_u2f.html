@@ -18,7 +18,8 @@
       component: 'U2fSign',
       container: '#u2f-container',
       props: {
-        challengeData: {{ activation.challenge|to_json|safe }}
+        challengeData: {{ activation.challenge|to_json|safe }},
+        isWebauthnSigninFFEnabled: {{isWebauthnSigninFFEnabled|to_json|safe }},
       },
     });
   </script>

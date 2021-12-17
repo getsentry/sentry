@@ -2,14 +2,14 @@ import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
 import Papa from 'papaparse';
 
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import {Organization, SelectValue} from 'app/types';
-import {Event} from 'app/types/event';
-import {getUtcDateString} from 'app/utils/dates';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
+import {Organization, SelectValue} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   aggregateFunctionOutputType,
   Aggregation,
@@ -26,10 +26,10 @@ import {
   isSpanOperationBreakdownField,
   measurementType,
   TRACING_FIELDS,
-} from 'app/utils/discover/fields';
-import {getTitle} from 'app/utils/events';
-import localStorage from 'app/utils/localStorage';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/utils/discover/fields';
+import {getTitle} from 'sentry/utils/events';
+import localStorage from 'sentry/utils/localStorage';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';

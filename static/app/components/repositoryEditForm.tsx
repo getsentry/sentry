@@ -1,12 +1,12 @@
-import React from 'react';
+import {Component} from 'react';
 
-import ExternalLink from 'app/components/links/externalLink';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Repository} from 'app/types';
-import {FieldFromConfig} from 'app/views/settings/components/forms';
-import Form from 'app/views/settings/components/forms/form';
-import {Field} from 'app/views/settings/components/forms/type';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Repository} from 'sentry/types';
+import {FieldFromConfig} from 'sentry/views/settings/components/forms';
+import Form from 'sentry/views/settings/components/forms/form';
+import {Field} from 'sentry/views/settings/components/forms/type';
 
 import Alert from './alert';
 
@@ -17,7 +17,7 @@ type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> & {
   closeModal: () => void;
 };
 
-export default class RepositoryEditForm extends React.Component<Props> {
+export default class RepositoryEditForm extends Component<Props> {
   get initialData() {
     const {repository} = this.props;
 

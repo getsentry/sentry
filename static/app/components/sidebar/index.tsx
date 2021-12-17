@@ -3,14 +3,14 @@ import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
-import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
-import SidebarPanelActions from 'app/actions/sidebarPanelActions';
-import Feature from 'app/components/acl/feature';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import HookOrDefault from 'app/components/hookOrDefault';
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
+import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
+import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
+import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
 import {
   IconActivity,
   IconChevron,
@@ -25,18 +25,18 @@ import {
   IconStats,
   IconSupport,
   IconTelescope,
-} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import HookStore from 'app/stores/hookStore';
-import PreferencesStore from 'app/stores/preferencesStore';
-import SidebarPanelStore from 'app/stores/sidebarPanelStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
-import theme from 'app/utils/theme';
-import useMedia from 'app/utils/useMedia';
+} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
+import PreferencesStore from 'sentry/stores/preferencesStore';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import theme from 'sentry/utils/theme';
+import useMedia from 'sentry/utils/useMedia';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
@@ -126,7 +126,7 @@ function Sidebar({location, organization}: Props) {
 
       // Handle cmd-click (mac) and meta-click (linux)
       if (evt.metaKey) {
-        const q = queryString.stringify(query);
+        const q = qs.stringify(query);
         evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
         return;
       }
@@ -456,6 +456,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   bottom: 0;
   justify-content: space-between;
   z-index: ${p => p.theme.zIndex.sidebar};
+  border-right: solid 1px ${p => p.theme.sidebarBorder};
   ${responsiveFlex};
   ${p => p.collapsed && `width: ${p.theme.sidebar.collapsedWidth};`};
 
@@ -468,6 +469,8 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
     width: auto;
     padding: 0 ${space(1)};
     align-items: center;
+    border-right: none;
+    border-bottom: solid 1px ${p => p.theme.sidebarBorder};
   }
 `;
 

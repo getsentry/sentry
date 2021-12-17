@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {OrganizationContext} from 'app/views/organizationContext';
-import VitalDetail from 'app/views/performance/vitalDetail/';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import VitalDetail from 'sentry/views/performance/vitalDetail/';
 
 function initializeData({query} = {query: {}}) {
   const features = ['discover-basic', 'performance-view'];
@@ -39,8 +39,10 @@ const WrappedComponent = ({organization, ...rest}) => {
 };
 
 describe('Performance > VitalDetail', function () {
+  enforceActOnUseLegacyStoreHook();
+
   beforeEach(function () {
-    act(() => void TeamStore.loadInitialData([]));
+    act(() => void TeamStore.loadInitialData([], false, null));
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -184,7 +186,7 @@ describe('Performance > VitalDetail', function () {
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
 
     // It shows the vital card
-    expect(wrapper.find('vitalInfo')).toHaveLength(1);
+    expect(wrapper.find('VitalInfo')).toHaveLength(1);
 
     // It shows a chart
     expect(wrapper.find('VitalChart')).toHaveLength(1);

@@ -5,11 +5,11 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.base import StatsMixin
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
+from sentry.api.bases.sentryapps import COMPONENT_TYPES
 
 logger = logging.getLogger(__name__)
 
 TSDB_MODELS = [tsdb.models.sentry_app_viewed, tsdb.models.sentry_app_component_interacted]
-COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
 def get_component_interaction_key(sentry_app, component_type):
@@ -57,6 +57,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         """
         # Request should have identifier field stored in TSDBModel
         tsdb_field = request.data.get("tsdbField", "")
+        key = None
 
         model = getattr(tsdb.models, tsdb_field, None)
         if model is None or model not in TSDB_MODELS:

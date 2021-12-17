@@ -7,25 +7,24 @@ import {
   updateDateTime,
   updateEnvironments,
   updateProjects,
-} from 'app/actionCreators/globalSelection';
-import BackToIssues from 'app/components/organizations/backToIssues';
-import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
-import HeaderSeparator from 'app/components/organizations/headerSeparator';
-import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
-import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
+} from 'sentry/actionCreators/globalSelection';
+import BackToIssues from 'sentry/components/organizations/backToIssues';
+import HeaderItemPosition from 'sentry/components/organizations/headerItemPosition';
+import HeaderSeparator from 'sentry/components/organizations/headerSeparator';
+import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
+import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
 import TimeRangeSelector, {
   ChangeData,
-} from 'app/components/organizations/timeRangeSelector';
-import Tooltip from 'app/components/tooltip';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconArrow} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {GlobalSelection, MinimalProject, Organization, Project} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import Projects from 'app/utils/projects';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+} from 'sentry/components/organizations/timeRangeSelector';
+import Tooltip from 'sentry/components/tooltip';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {GlobalSelection, MinimalProject, Organization, Project} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import Projects from 'sentry/utils/projects';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 
 const PROJECTS_PER_PAGE = 50;
 
@@ -53,7 +52,6 @@ const defaultProps = {
 };
 
 type Props = {
-  children: React.ReactNode;
   organization: Organization;
 
   memberProjects: Project[];
@@ -149,6 +147,16 @@ type Props = {
    * Message to display at the bottom of project list
    */
   projectsFooterMessage?: React.ReactNode;
+
+  /**
+   * Override default relative date options from DEFAULT_RELATIVE_PERIODS
+   */
+  relativeDateOptions?: Record<string, React.ReactNode>;
+
+  /**
+   * The maximum number of days in the past you can pick
+   */
+  maxPickableDays?: number;
 } & Partial<typeof defaultProps> &
   Omit<WithRouterProps, 'router'> & {
     router: WithRouterProps['router'] | null;
@@ -270,7 +278,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
   render() {
     const {
       className,
-      children,
       shouldForceProject,
       forceProject,
       isGlobalSelectionReady,
@@ -290,6 +297,8 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       disableMultipleProjectSelection,
       projectsFooterMessage,
       defaultSelection,
+      relativeDateOptions,
+      maxPickableDays,
     } = this.props;
 
     const {period, start, end, utc} = this.props.selection.datetime || {};
@@ -300,104 +309,102 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       : this.props.selection.projects;
 
     return (
-      <React.Fragment>
-        <Header className={className}>
-          <HeaderItemPosition>
-            {showIssueStreamLink && this.getBackButton()}
-            <Projects
-              orgId={organization.slug}
-              limit={PROJECTS_PER_PAGE}
-              slugs={specificProjectSlugs}
-            >
-              {({projects, hasMore, onSearch, fetching}) => {
-                const paginatedProjectSelectorCallbacks = {
-                  onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
-                    // check if no new projects are being fetched and the user has
-                    // scrolled far enough to fetch a new page of projects
-                    if (
-                      !fetching &&
-                      scrollTop + clientHeight >= scrollHeight - clientHeight &&
-                      hasMore
-                    ) {
-                      this.scrollFetchDispatcher(onSearch, {append: true});
-                    }
-                  },
-                  onFilterChange: event => {
-                    this.searchDispatcher(onSearch, event.target.value, {
-                      append: false,
-                    });
-                  },
-                  searching: fetching,
-                  paginated: true,
-                };
-                return (
-                  <MultipleProjectSelector
-                    organization={organization}
-                    shouldForceProject={shouldForceProject}
-                    forceProject={forceProject}
-                    projects={loadingProjects ? (projects as Project[]) : memberProjects}
-                    isGlobalSelectionReady={isGlobalSelectionReady}
-                    nonMemberProjects={nonMemberProjects}
-                    value={this.state.projects || this.props.selection.projects}
-                    onChange={this.handleChangeProjects}
-                    onUpdate={this.handleUpdateProjects}
-                    disableMultipleProjectSelection={disableMultipleProjectSelection}
-                    {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
-                    showIssueStreamLink={showIssueStreamLink}
-                    showProjectSettingsLink={showProjectSettingsLink}
-                    lockedMessageSubject={lockedMessageSubject}
-                    footerMessage={projectsFooterMessage}
-                  />
-                );
-              }}
-            </Projects>
-          </HeaderItemPosition>
-
-          {showEnvironmentSelector && (
-            <React.Fragment>
-              <HeaderSeparator />
-              <HeaderItemPosition>
-                <MultipleEnvironmentSelector
+      <Header className={className}>
+        <HeaderItemPosition>
+          {showIssueStreamLink && this.getBackButton()}
+          <Projects
+            orgId={organization.slug}
+            limit={PROJECTS_PER_PAGE}
+            slugs={specificProjectSlugs}
+          >
+            {({projects, hasMore, onSearch, fetching}) => {
+              const paginatedProjectSelectorCallbacks = {
+                onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
+                  // check if no new projects are being fetched and the user has
+                  // scrolled far enough to fetch a new page of projects
+                  if (
+                    !fetching &&
+                    scrollTop + clientHeight >= scrollHeight - clientHeight &&
+                    hasMore
+                  ) {
+                    this.scrollFetchDispatcher(onSearch, {append: true});
+                  }
+                },
+                onFilterChange: event => {
+                  this.searchDispatcher(onSearch, event.target.value, {
+                    append: false,
+                  });
+                },
+                searching: fetching,
+                paginated: true,
+              };
+              return (
+                <MultipleProjectSelector
                   organization={organization}
-                  projects={this.props.projects}
-                  loadingProjects={loadingProjects}
-                  selectedProjects={selectedProjects}
-                  value={this.props.selection.environments}
-                  onChange={this.handleChangeEnvironments}
-                  onUpdate={this.handleUpdateEnvironmments}
+                  shouldForceProject={shouldForceProject}
+                  forceProject={forceProject}
+                  projects={loadingProjects ? (projects as Project[]) : memberProjects}
+                  isGlobalSelectionReady={isGlobalSelectionReady}
+                  nonMemberProjects={nonMemberProjects}
+                  value={this.state.projects || this.props.selection.projects}
+                  onChange={this.handleChangeProjects}
+                  onUpdate={this.handleUpdateProjects}
+                  disableMultipleProjectSelection={disableMultipleProjectSelection}
+                  {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
+                  showIssueStreamLink={showIssueStreamLink}
+                  showProjectSettingsLink={showProjectSettingsLink}
+                  lockedMessageSubject={lockedMessageSubject}
+                  footerMessage={projectsFooterMessage}
                 />
-              </HeaderItemPosition>
-            </React.Fragment>
-          )}
+              );
+            }}
+          </Projects>
+        </HeaderItemPosition>
 
-          {showDateSelector && (
-            <React.Fragment>
-              <HeaderSeparator />
-              <HeaderItemPosition>
-                <TimeRangeSelector
-                  key={`period:${period}-start:${start}-end:${end}-utc:${utc}-defaultPeriod:${defaultPeriod}`}
-                  showAbsolute={showAbsolute}
-                  showRelative={showRelative}
-                  relative={period}
-                  start={start}
-                  end={end}
-                  utc={utc}
-                  onChange={this.handleChangeTime}
-                  onUpdate={this.handleUpdateTime}
-                  organization={organization}
-                  defaultPeriod={defaultPeriod}
-                  hint={timeRangeHint}
-                />
-              </HeaderItemPosition>
-            </React.Fragment>
-          )}
+        {showEnvironmentSelector && (
+          <React.Fragment>
+            <HeaderSeparator />
+            <HeaderItemPosition>
+              <MultipleEnvironmentSelector
+                organization={organization}
+                projects={this.props.projects}
+                loadingProjects={loadingProjects}
+                selectedProjects={selectedProjects}
+                value={this.props.selection.environments}
+                onChange={this.handleChangeEnvironments}
+                onUpdate={this.handleUpdateEnvironmments}
+              />
+            </HeaderItemPosition>
+          </React.Fragment>
+        )}
 
-          {!showEnvironmentSelector && <HeaderItemPosition isSpacer />}
-          {!showDateSelector && <HeaderItemPosition isSpacer />}
-        </Header>
+        {showDateSelector && (
+          <React.Fragment>
+            <HeaderSeparator />
+            <HeaderItemPosition>
+              <TimeRangeSelector
+                key={`period:${period}-start:${start}-end:${end}-utc:${utc}-defaultPeriod:${defaultPeriod}`}
+                showAbsolute={showAbsolute}
+                showRelative={showRelative}
+                relative={period}
+                start={start}
+                end={end}
+                utc={utc}
+                onChange={this.handleChangeTime}
+                onUpdate={this.handleUpdateTime}
+                organization={organization}
+                defaultPeriod={defaultPeriod}
+                hint={timeRangeHint}
+                relativeOptions={relativeDateOptions}
+                maxPickableDays={maxPickableDays}
+              />
+            </HeaderItemPosition>
+          </React.Fragment>
+        )}
 
-        {isGlobalSelectionReady ? children : <PageContent />}
-      </React.Fragment>
+        {!showEnvironmentSelector && <HeaderItemPosition isSpacer />}
+        {!showDateSelector && <HeaderItemPosition isSpacer />}
+      </Header>
     );
   }
 }
@@ -424,11 +431,11 @@ const Header = styled('div')`
 
   background: ${p => p.theme.headerBackground};
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  @media (min-width: ${props => props.theme.breakpoints[0]} and max-width: ${props =>
-      props.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]} and max-width: ${p =>
+      p.theme.breakpoints[1]}) {
     margin-top: 54px;
   }
-  @media (max-width: calc(${props => props.theme.breakpoints[0]} - 1px)) {
+  @media (max-width: calc(${p => p.theme.breakpoints[0]} - 1px)) {
     margin-top: 0;
   }
 `;

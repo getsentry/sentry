@@ -2,9 +2,10 @@ import {useEffect} from 'react';
 import * as React from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 
-import theme from 'app/utils/theme';
+import theme from 'sentry/utils/theme';
 
-import {Widget} from './types';
+import IssueWidgetCard from './issueWidgetCard';
+import {Widget, WidgetType} from './types';
 import WidgetCard from './widgetCard';
 import WidgetWrapper from './widgetWrapper';
 
@@ -18,10 +19,13 @@ type Props = {
   isEditing: boolean;
   onDelete: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
+  widgetLimitReached: boolean;
 };
 
 function SortableWidget(props: Props) {
-  const {widget, dragId, isEditing, onDelete, onEdit} = props;
+  const {widget, dragId, isEditing, widgetLimitReached, onDelete, onEdit, onDuplicate} =
+    props;
 
   const {
     attributes,
@@ -46,6 +50,23 @@ function SortableWidget(props: Props) {
       document.body.style.cursor = '';
     };
   }, [currentWidgetDragging]);
+
+  const widgetProps = {
+    widget,
+    isEditing,
+    widgetLimitReached,
+    onDelete,
+    onEdit,
+    onDuplicate,
+    isSorting,
+    hideToolbar: isSorting,
+    currentWidgetDragging,
+    draggableProps: {
+      attributes,
+      listeners,
+    },
+    showContextMenu: true,
+  };
 
   return (
     <WidgetWrapper
@@ -84,20 +105,11 @@ function SortableWidget(props: Props) {
         },
       }}
     >
-      <WidgetCard
-        widget={widget}
-        isEditing={isEditing}
-        onDelete={onDelete}
-        onEdit={onEdit}
-        isSorting={isSorting}
-        hideToolbar={isSorting}
-        currentWidgetDragging={currentWidgetDragging}
-        draggableProps={{
-          attributes,
-          listeners,
-        }}
-        showContextMenu
-      />
+      {widget.widgetType === WidgetType.ISSUE ? (
+        <IssueWidgetCard {...widgetProps} />
+      ) : (
+        <WidgetCard {...widgetProps} />
+      )}
     </WidgetWrapper>
   );
 }

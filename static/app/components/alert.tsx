@@ -1,11 +1,11 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {IconChevron} from 'app/icons';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import {IconChevron} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   type?: keyof Theme['alert'];

@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 const popular = [
   'javascript',
@@ -98,6 +98,7 @@ export const backend = [
   'ruby-rails',
   'ruby-rack',
   'rust',
+  'kotlin',
 ] as const;
 
 export const serverless = [
@@ -126,6 +127,8 @@ export const desktop = [
   'native-qt',
   'minidump',
   'unity',
+  'flutter',
+  'kotlin',
 ] as const;
 
 const categoryList = [

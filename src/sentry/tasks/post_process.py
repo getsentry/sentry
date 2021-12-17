@@ -123,7 +123,7 @@ def handle_owner_assignment(project, group, event):
 
         with sentry_sdk.start_span(op="post_process.handle_owner_assignment.analytics_record"):
             if auto_assignment and owners and not assignees_exists:
-                assignment = GroupAssignee.objects.assign(group, owners[0])
+                assignment = GroupAssignee.objects.assign(group, owners[0], create_only=True)
                 if assignment["new_assignment"] or assignment["updated_assignment"]:
                     analytics.record(
                         "codeowners.assignment"
@@ -254,6 +254,9 @@ def post_process_group(
         # renormalize when loading old data from the database.
         event.data = EventDict(event.data, skip_renormalization=True)
 
+        with metrics.timer("tasks.post_process.delete_event_cache"):
+            event_processing_store.delete_by_key(cache_key)
+
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
@@ -270,8 +273,6 @@ def post_process_group(
                 project=event.project,
                 event=event,
             )
-
-            event_processing_store.delete_by_key(cache_key)
 
             return
 
@@ -430,9 +431,6 @@ def post_process_group(
                 event=event,
                 primary_hash=kwargs.get("primary_hash"),
             )
-
-        with metrics.timer("tasks.post_process.delete_event_cache"):
-            event_processing_store.delete_by_key(cache_key)
 
 
 def process_snoozes(group):

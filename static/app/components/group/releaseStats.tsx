@@ -1,15 +1,15 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
-import GroupReleaseChart from 'app/components/group/releaseChart';
-import SeenInfo from 'app/components/group/seenInfo';
-import Placeholder from 'app/components/placeholder';
-import Tooltip from 'app/components/tooltip';
-import {IconQuestion} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {CurrentRelease, Environment, Group, Organization, Project} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
+import GroupReleaseChart from 'sentry/components/group/releaseChart';
+import SeenInfo from 'sentry/components/group/seenInfo';
+import Placeholder from 'sentry/components/placeholder';
+import Tooltip from 'sentry/components/tooltip';
+import {IconQuestion} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {CurrentRelease, Environment, Group, Organization, Project} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 import SidebarSection from './sidebarSection';
 
@@ -80,17 +80,17 @@ const GroupReleaseStats = ({
           <SidebarSection
             secondary
             title={
-              <span>
+              <Fragment>
                 {t('Last seen')}
                 <TooltipWrapper>
                   <Tooltip
                     title={t('When the most recent event in this issue was captured.')}
                     disableForVisualTest
                   >
-                    <StyledIconQuest size="xs" color="gray200" />
+                    <IconQuestion size="xs" color="gray200" />
                   </Tooltip>
                 </TooltipWrapper>
-              </span>
+              </Fragment>
             }
           >
             <SeenInfo
@@ -112,17 +112,17 @@ const GroupReleaseStats = ({
           <SidebarSection
             secondary
             title={
-              <span>
+              <Fragment>
                 {t('First seen')}
                 <TooltipWrapper>
                   <Tooltip
                     title={t('When the first event in this issue was captured.')}
                     disableForVisualTest
                   >
-                    <StyledIconQuest size="xs" color="gray200" />
+                    <IconQuestion size="xs" color="gray200" />
                   </Tooltip>
                 </TooltipWrapper>
-              </span>
+              </Fragment>
             }
           >
             <SeenInfo
@@ -156,9 +156,4 @@ export default memo(GroupReleaseStats);
 
 const TooltipWrapper = styled('span')`
   margin-left: ${space(0.5)};
-`;
-
-const StyledIconQuest = styled(IconQuestion)`
-  position: relative;
-  top: 2px;
 `;

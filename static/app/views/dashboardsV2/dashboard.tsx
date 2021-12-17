@@ -4,22 +4,26 @@ import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {
+  openAddDashboardWidgetModal,
+  openDashboardWidgetLibraryModal,
+} from 'sentry/actionCreators/modal';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, MAX_WIDGETS, Widget} from './types';
+import {DashboardDetails, DashboardWidgetSource, Widget} from './types';
 
 type Props = {
   api: Client;
@@ -29,11 +33,13 @@ type Props = {
   isEditing: boolean;
   router: InjectedRouter;
   location: Location;
+  widgetLimitReached: boolean;
   /**
    * Fired when widgets are added/removed/sorted.
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
+  handleAddLibraryWidgets: (widgets: Widget[]) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
 };
@@ -80,16 +86,25 @@ class Dashboard extends Component<Props> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard, selection} = this.props;
-
+    const {organization, dashboard, selection, handleAddLibraryWidgets} = this.props;
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
+
+    if (organization.features.includes('widget-library')) {
+      openDashboardWidgetLibraryModal({
+        organization,
+        dashboard,
+        onAddWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+      });
+      return;
+    }
     openAddDashboardWidgetModal({
       organization,
       dashboard,
       selection,
       onAddWidget: this.handleAddComplete,
+      source: DashboardWidgetSource.DASHBOARDS,
     });
   };
 
@@ -130,6 +145,18 @@ class Dashboard extends Component<Props> {
     this.props.onUpdate(nextList);
   };
 
+  handleDuplicateWidget = (widget: Widget, index: number) => () => {
+    const {dashboard, handleAddLibraryWidgets} = this.props;
+
+    const widgetCopy = cloneDeep(widget);
+    widgetCopy.id = undefined;
+
+    const nextList = [...dashboard.widgets];
+    nextList.splice(index, 0, widgetCopy);
+
+    handleAddLibraryWidgets(nextList);
+  };
+
   handleEditWidget = (widget: Widget, index: number) => () => {
     const {
       organization,
@@ -166,14 +193,17 @@ class Dashboard extends Component<Props> {
     trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_modal.opened', {
       organization,
     });
-
-    openAddDashboardWidgetModal({
+    const modalProps = {
       organization,
-      dashboard,
       widget,
       selection,
       onAddWidget: this.handleAddComplete,
       onUpdateWidget: this.handleUpdateComplete(index),
+    };
+    openAddDashboardWidgetModal({
+      ...modalProps,
+      dashboard,
+      source: DashboardWidgetSource.DASHBOARDS,
     });
   };
 
@@ -187,7 +217,7 @@ class Dashboard extends Component<Props> {
   }
 
   renderWidget(widget: Widget, index: number) {
-    const {isEditing} = this.props;
+    const {isEditing, widgetLimitReached} = this.props;
 
     const key = generateWidgetId(widget, index);
     const dragId = key;
@@ -200,6 +230,8 @@ class Dashboard extends Component<Props> {
         isEditing={isEditing}
         onDelete={this.handleDeleteWidget(index)}
         onEdit={this.handleEditWidget(widget, index)}
+        onDuplicate={this.handleDuplicateWidget(widget, index)}
+        widgetLimitReached={widgetLimitReached}
       />
     );
   }
@@ -210,6 +242,7 @@ class Dashboard extends Component<Props> {
       onUpdate,
       dashboard: {widgets},
       organization,
+      widgetLimitReached,
     } = this.props;
 
     const items = this.getWidgetIds();
@@ -234,7 +267,7 @@ class Dashboard extends Component<Props> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && widgets.length < MAX_WIDGETS && (
+            {isEditing && !!!widgetLimitReached && (
               <AddWidget
                 orgFeatures={organization.features}
                 onAddWidget={this.handleStartAdd}

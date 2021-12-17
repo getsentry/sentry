@@ -1,6 +1,6 @@
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Breadcrumbs from 'app/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 
 describe('Breadcrumbs', () => {
   const routerContext = TestStubs.routerContext();

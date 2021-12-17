@@ -3,6 +3,7 @@ import logging
 from datetime import timedelta
 
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore, tsdb
@@ -23,6 +24,7 @@ from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, 
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
@@ -30,16 +32,34 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
-    def _get_activity(self, request, group, num):
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+        },
+        "PUT": {
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+        },
+        "DELETE": {
+            RateLimitCategory.IP: RateLimit(5, 5),
+            RateLimitCategory.USER: RateLimit(5, 5),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
+        },
+    }
+
+    def _get_activity(self, request: Request, group, num):
         return Activity.objects.get_activities_for_group(group, num)
 
-    def _get_seen_by(self, request, group):
+    def _get_seen_by(self, request: Request, group):
         seen_by = list(
             GroupSeen.objects.filter(group=group).select_related("user").order_by("-last_seen")
         )
         return serialize(seen_by, request.user)
 
-    def _get_actions(self, request, group):
+    def _get_actions(self, request: Request, group):
         project = group.project
 
         action_list = []
@@ -66,7 +86,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         return action_list
 
-    def _get_available_issue_plugins(self, request, group):
+    def _get_available_issue_plugins(self, request: Request, group):
         project = group.project
 
         plugin_issues = []
@@ -79,7 +99,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
         return plugin_issues
 
-    def _get_context_plugins(self, request, group):
+    def _get_context_plugins(self, request: Request, group):
         project = group.project
         return serialize(
             [
@@ -94,7 +114,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )
 
     @rate_limit_endpoint(limit=5, window=1)
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """
         Retrieve an Issue
         `````````````````
@@ -106,9 +126,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
+        from sentry.utils import snuba
+
         try:
             # TODO(dcramer): handle unauthenticated/public response
-            from sentry.utils import snuba
 
             organization = group.project.organization
             environments = get_environments(request, organization)
@@ -208,7 +229,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise
 
     @rate_limit_endpoint(limit=5, window=1)
-    def put(self, request, group):
+    def put(self, request: Request, group) -> Response:
         """
         Update an Issue
         ```````````````
@@ -276,8 +297,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         except Exception:
             raise
 
-    @rate_limit_endpoint(limit=5, window=1)
-    def delete(self, request, group):
+    @rate_limit_endpoint(limit=5, window=5)
+    def delete(self, request: Request, group) -> Response:
         """
         Remove an Issue
         ```````````````

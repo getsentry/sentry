@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {action} from '@storybook/addon-actions';
 
-import NumberDragControl from 'app/components/numberDragControl';
+import NumberDragControl from 'sentry/components/numberDragControl';
 
 export default {
   title: 'Components/Forms/Controls/Number Drag Control',

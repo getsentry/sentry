@@ -1,12 +1,12 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import recreateRoute from 'app/utils/recreateRoute';
-import routeTitleGen from 'app/utils/routeTitle';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import OrganizationApiKeysList from './organizationApiKeysList';
 import {DeprecatedApiKey} from './types';

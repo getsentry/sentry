@@ -5,15 +5,15 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import localStorage from 'app/utils/localStorage';
-import {OrganizationContext} from 'app/views/organizationContext';
-import TeamInsightsOverview from 'app/views/organizationStats/teamInsights/overview';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import localStorage from 'sentry/utils/localStorage';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import TeamInsightsOverview from 'sentry/views/organizationStats/teamInsights/overview';
 
-jest.mock('app/utils/localStorage');
-jest.mock('app/utils/isActiveSuperuser', () => ({
+jest.mock('sentry/utils/localStorage');
+jest.mock('sentry/utils/isActiveSuperuser', () => ({
   isActiveSuperuser: jest.fn(),
 }));
 
@@ -119,6 +119,16 @@ describe('TeamInsightsOverview', () => {
       url: `/teams/org-slug/${team2.slug}/release-count/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/teams/org-slug/${team2.slug}/issues/old/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/teams/org-slug/${team2.slug}/unresolved-issue-age/`,
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -128,9 +138,13 @@ describe('TeamInsightsOverview', () => {
   function createWrapper() {
     const teams = [team1, team2, team3];
     const projects = [project1, project2];
-    const organization = TestStubs.Organization({teams, projects});
+    const organization = TestStubs.Organization({
+      teams,
+      projects,
+      features: ['team-insights-v2'],
+    });
     const context = TestStubs.routerContext([{organization}]);
-    TeamStore.loadInitialData(teams);
+    TeamStore.loadInitialData(teams, false, null);
 
     return mountWithTheme(
       <OrganizationContext.Provider value={organization}>
@@ -181,7 +195,7 @@ describe('TeamInsightsOverview', () => {
   it('shows users with no teams the join team button', () => {
     createWrapper();
     ProjectsStore.loadInitialData([{...project1, isMember: false}]);
-    TeamStore.loadInitialData([]);
+    TeamStore.loadInitialData([], false, null);
 
     expect(screen.getByText('Join a Team')).toBeInTheDocument();
   });

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import random from 'lodash/random';
 
-import testableTransition from 'app/utils/testableTransition';
+import testableTransition from 'sentry/utils/testableTransition';
 
 // Using framer motion for this loop for the nice physics
 const Light = styled(motion.g)`

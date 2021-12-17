@@ -1,4 +1,3 @@
-import {MouseEvent} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
@@ -6,9 +5,9 @@ import isString from 'lodash/isString';
 import set from 'lodash/set';
 import moment from 'moment';
 
-import {EntryType, EventTransaction} from 'app/types/event';
-import {assert} from 'app/types/utils';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+import {EntryType, EventTransaction} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
 import {
   GapSpanType,
@@ -610,12 +609,12 @@ export function scrollToSpan(
   scrollToHash: (hash: string) => void,
   location: Location
 ) {
-  return (e: MouseEvent<Element>) => {
+  return (e: React.MouseEvent<Element>) => {
     // do not use the default anchor behaviour
     // because it will be hidden behind the minimap
     e.preventDefault();
 
-    const hash = `#span-${spanId}`;
+    const hash = spanTargetHash(spanId);
 
     scrollToHash(hash);
 
@@ -628,4 +627,8 @@ export function scrollToSpan(
       hash,
     });
   };
+}
+
+export function spanTargetHash(spanId: string): string {
+  return `#span-${spanId}`;
 }

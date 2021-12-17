@@ -2,9 +2,11 @@ from contextlib import contextmanager
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
@@ -14,10 +16,21 @@ from sentry.snuba.outcomes import (
     run_outcomes_query_totals,
 )
 from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
-    def get(self, request, organization):
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(20, 1),
+            RateLimitCategory.USER: RateLimit(20, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+        }
+    }
+
+    @rate_limit_endpoint(limit=20, window=1)
+    def get(self, request: Request, organization) -> Response:
         with self.handle_query_errors():
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
                 query = self.build_outcomes_query(
@@ -37,7 +50,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
                 result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 
-    def build_outcomes_query(self, request, organization):
+    def build_outcomes_query(self, request: Request, organization):
         params = {"organization_id": organization.id}
         project_ids = self._get_projects_for_orgstats_query(request, organization)
 
@@ -46,7 +59,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
 
         return QueryDefinition(request.GET, params)
 
-    def _get_projects_for_orgstats_query(self, request, organization):
+    def _get_projects_for_orgstats_query(self, request: Request, organization):
         # look at the raw project_id filter passed in, if its empty
         # and project_id is not in groupBy filter, treat it as an
         # org wide query and don't pass project_id in to QueryDefinition
@@ -59,7 +72,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
                 raise NoProjects("No projects available")
             return [p.id for p in projects]
 
-    def _is_org_total_query(self, request, project_ids):
+    def _is_org_total_query(self, request: Request, project_ids):
         return all(
             [
                 not project_ids or project_ids == ALL_ACCESS_PROJECTS,

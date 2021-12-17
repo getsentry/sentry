@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import BarChart from 'app/components/charts/barChart';
-import {DateTimeObject} from 'app/components/charts/utils';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import BarChart from 'sentry/components/charts/barChart';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 
 import {
   barAxisLabel,
@@ -95,7 +95,6 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
               {
                 seriesName: t('Alerts Triggered'),
                 data: seriesData,
-                // @ts-expect-error silent does not exist in bar series type
                 silent: true,
               },
             ]}

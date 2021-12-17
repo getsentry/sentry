@@ -1,4 +1,4 @@
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 export const tableLayout = `
   display: grid;

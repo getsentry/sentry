@@ -1,7 +1,7 @@
 import {screen} from 'sentry-test/reactTestingLibrary';
-import {getByTextContent} from 'sentry-test/utils';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DYNAMIC_SAMPLING_DOC_LINK} from 'app/views/settings/project/filtersAndSampling/utils';
+import {DYNAMIC_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/filtersAndSampling/utils';
 
 import {renderComponent} from './utils';
 
@@ -21,10 +21,12 @@ describe('Filters and Sampling', function () {
 
       // Error rules container
       expect(
-        getByTextContent(
-          'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.'
+        screen.getByText(
+          textWithMarkupMatcher(
+            'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.'
+          )
         )
-      ).toBeTruthy();
+      ).toBeInTheDocument();
 
       expect(
         screen.getByRole('link', {
@@ -137,10 +139,12 @@ describe('Filters and Sampling', function () {
 
       // Error rules container
       expect(
-        getByTextContent(
-          'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.'
+        screen.getByText(
+          textWithMarkupMatcher(
+            'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.'
+          )
         )
-      ).toBeTruthy();
+      ).toBeInTheDocument();
 
       expect(
         screen.getByRole('link', {

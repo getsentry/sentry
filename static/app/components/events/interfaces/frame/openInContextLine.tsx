@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import ExternalLink from 'app/components/links/externalLink';
-import {SentryAppIcon} from 'app/components/sentryAppIcon';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {SentryAppComponent} from 'app/types';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
+import ExternalLink from 'sentry/components/links/externalLink';
+import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {SentryAppComponent} from 'sentry/types';
+import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
   lineNo: number;
@@ -42,7 +42,7 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
             onContextMenu={onClickRecordInteraction}
             openInNewTab
           >
-            <SentryAppIcon slug={slug} />
+            <SentryAppComponentIcon sentryAppComponent={component} />
             <OpenInName>{t(`${component.sentryApp.name}`)}</OpenInName>
           </OpenInLink>
         );

@@ -1,6 +1,6 @@
-import EventView from 'app/utils/discover/eventView';
-import {createRuleFromEventView} from 'app/views/alerts/incidentRules/constants';
-import {Dataset, EventTypes} from 'app/views/alerts/incidentRules/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {createRuleFromEventView} from 'sentry/views/alerts/incidentRules/constants';
+import {Dataset, EventTypes} from 'sentry/views/alerts/incidentRules/types';
 
 describe('createRuleFromEventView()', () => {
   it('sets transaction dataset from event.type:transaction', () => {
@@ -52,5 +52,16 @@ describe('createRuleFromEventView()', () => {
     const rule = createRuleFromEventView(eventView);
     expect(rule.dataset).toBe(Dataset.ERRORS);
     expect(rule.eventTypes).toEqual([EventTypes.ERROR, EventTypes.DEFAULT]);
+  });
+  it('allows pXX transaction querys', () => {
+    const eventView = EventView.fromSavedQuery({
+      id: undefined,
+      query: 'event.type:transaction',
+      yAxis: 'p95()',
+      fields: ['p95()'],
+    });
+
+    const rule = createRuleFromEventView(eventView);
+    expect(rule.aggregate).toBe('p95(transaction.duration)');
   });
 });

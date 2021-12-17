@@ -1,18 +1,18 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import AlertRulesList from 'app/views/alerts/rules';
-import {IncidentStatus} from 'app/views/alerts/types';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import AlertRulesList from 'sentry/views/alerts/rules';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 
-jest.mock('app/utils/analytics');
+jest.mock('sentry/utils/analytics');
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
-  TeamStore.loadInitialData([]);
+  TeamStore.loadInitialData([], false, null);
   let rulesMock;
   let projectMock;
   const pageLinks =

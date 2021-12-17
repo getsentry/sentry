@@ -8,15 +8,13 @@ from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
-from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
+from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User
-
-CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 
 class UserEmailManager(BaseManager):
@@ -35,16 +33,12 @@ class UserEmailManager(BaseManager):
         return user_email
 
 
-def default_validation_hash():
-    return get_random_string(32, CHARACTERS)
-
-
 class UserEmail(Model):
     __include_in_export__ = True
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=75)
-    validation_hash = models.CharField(max_length=32, default=default_validation_hash)
+    validation_hash = models.CharField(max_length=32, default=get_secure_token)
     date_hash_added = models.DateTimeField(default=timezone.now)
     is_verified = models.BooleanField(
         _("verified"),
@@ -63,7 +57,7 @@ class UserEmail(Model):
 
     def set_hash(self):
         self.date_hash_added = timezone.now()
-        self.validation_hash = default_validation_hash()
+        self.validation_hash = get_secure_token()
 
     def hash_is_valid(self):
         return self.validation_hash and self.date_hash_added > timezone.now() - timedelta(hours=48)

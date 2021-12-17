@@ -1,12 +1,12 @@
-import {createContext, ReactNode, useContext, useState} from 'react';
+import {createContext, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import Switch from 'app/components/switchButton';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import localStorage from 'app/utils/localStorage';
-import useOrganization from 'app/utils/useOrganization';
+import Feature from 'sentry/components/acl/feature';
+import Switch from 'sentry/components/switchButton';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import localStorage from 'sentry/utils/localStorage';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const FEATURE_FLAG = 'metrics-performance-ui';
 
@@ -14,19 +14,20 @@ const FEATURE_FLAG = 'metrics-performance-ui';
  * This is a temporary component used for debugging metrics data on performance pages.
  * Visible only to small amount of internal users.
  */
-function MetricsSwitch() {
+function MetricsSwitch({onSwitch}: {onSwitch: () => void}) {
   const organization = useOrganization();
   const {isMetricsData, setIsMetricsData} = useMetricsSwitch();
+
+  function handleToggle() {
+    onSwitch();
+    setIsMetricsData(!isMetricsData);
+  }
 
   return (
     <Feature features={[FEATURE_FLAG]} organization={organization}>
       <Label>
         {t('Metrics Data')}
-        <Switch
-          isActive={isMetricsData}
-          toggle={() => setIsMetricsData(!isMetricsData)}
-          size="lg"
-        />
+        <Switch isActive={isMetricsData} toggle={handleToggle} size="lg" />
       </Label>
     </Feature>
   );
@@ -46,9 +47,9 @@ const MetricsSwitchContext = createContext({
   setIsMetricsData: (_isMetricsData: boolean) => {},
 });
 
-function MetricsSwitchContextContainer({children}: {children: ReactNode}) {
+function MetricsSwitchContextContainer({children}: {children: React.ReactNode}) {
   const organization = useOrganization();
-  const localStorageKey = `metrics-performance:${organization.slug}`;
+  const localStorageKey = `metrics.performance:${organization.slug}`;
   const [isMetricsData, setIsMetricsData] = useState(
     localStorage.getItem(localStorageKey) === 'true'
   );
@@ -76,4 +77,9 @@ function useMetricsSwitch() {
   return contextValue;
 }
 
-export {MetricsSwitch, MetricsSwitchContextContainer, useMetricsSwitch};
+export {
+  MetricsSwitch,
+  MetricsSwitchContextContainer,
+  useMetricsSwitch,
+  MetricsSwitchContext,
+};

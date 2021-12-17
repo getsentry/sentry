@@ -1,75 +1,26 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import withLatestContext from 'app/utils/withLatestContext';
-import ScrollToTop from 'app/views/settings/components/scrollToTop';
+import space from 'sentry/styles/space';
+import useScrollToTop from 'sentry/utils/useScrollToTop';
 
 type Props = {
   location: Location;
-  organization?: Organization;
-  project?: Project;
+  children: React.ReactChildren;
 };
 
-type State = {
-  lastAppContext: 'project' | 'organization' | null;
-};
+function SettingsWrapper({location, children}: Props) {
+  useScrollToTop({
+    location,
+    disable: (newLocation, prevLocation) =>
+      newLocation.pathname === prevLocation.pathname &&
+      newLocation.query?.query !== prevLocation.query?.query,
+  });
 
-class SettingsWrapper extends Component<Props, State> {
-  static childContextTypes = {
-    lastAppContext: PropTypes.oneOf(['project', 'organization']),
-  };
-
-  // save current context
-  state: State = {
-    lastAppContext: this.getLastAppContext(),
-  };
-
-  getChildContext() {
-    return {
-      lastAppContext: this.state.lastAppContext,
-    };
-  }
-
-  getLastAppContext() {
-    const {project, organization} = this.props;
-
-    if (!!project) {
-      return 'project';
-    }
-
-    if (!!organization) {
-      return 'organization';
-    }
-
-    return null;
-  }
-
-  handleShouldDisableScrollToTop = (location: Location, prevLocation: Location) => {
-    // we do not want to scroll to top when user just perform a search
-    return (
-      location.pathname === prevLocation.pathname &&
-      location.query?.query !== prevLocation.query?.query
-    );
-  };
-
-  render() {
-    const {location, children} = this.props;
-
-    return (
-      <StyledSettingsWrapper>
-        <ScrollToTop location={location} disable={this.handleShouldDisableScrollToTop}>
-          {children}
-        </ScrollToTop>
-      </StyledSettingsWrapper>
-    );
-  }
+  return <StyledSettingsWrapper>{children}</StyledSettingsWrapper>;
 }
 
-export default withLatestContext(SettingsWrapper);
+export default SettingsWrapper;
 
 const StyledSettingsWrapper = styled('div')`
   display: flex;

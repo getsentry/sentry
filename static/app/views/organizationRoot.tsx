@@ -1,10 +1,10 @@
-import {Component} from 'react';
+import {Fragment, useEffect} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 
-import {setLastRoute} from 'app/actionCreators/navigation';
-import {setActiveProject} from 'app/actionCreators/projects';
+import {setLastRoute} from 'sentry/actionCreators/navigation';
+import {setActiveProject} from 'sentry/actionCreators/projects';
 
-type Props = WithRouterProps;
+type Props = WithRouterProps & {children: React.ReactChildren};
 
 /**
  * This is the parent container for organization-level views such
@@ -12,22 +12,14 @@ type Props = WithRouterProps;
  *
  * Currently is just used to unset active project
  */
-class OrganizationRoot extends Component<Props> {
-  componentDidMount() {
+function OrganizationRoot({children, location}: Props) {
+  useEffect(() => {
     setActiveProject(null);
-  }
 
-  componentWillUnmount() {
-    const {location} = this.props;
-    const {pathname, search} = location;
-    // Save last route so that we can jump back to view from settings
-    setLastRoute(`${pathname}${search || ''}`);
-  }
+    return () => setLastRoute(`${location.pathname}${location.search ?? ''}`);
+  }, []);
 
-  render() {
-    return this.props.children;
-  }
+  return <Fragment>{children}</Fragment>;
 }
 
-export {OrganizationRoot};
 export default withRouter(OrganizationRoot);

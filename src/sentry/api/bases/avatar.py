@@ -1,8 +1,10 @@
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
+from sentry.utils.avatar import is_black_alpha_only
 
 
 class AvatarSerializer(serializers.Serializer):
@@ -25,13 +27,38 @@ class AvatarSerializer(serializers.Serializer):
         return attrs
 
 
+class SentryAppLogoSerializer(serializers.Serializer):
+    avatar_photo = AvatarField(required=False, is_sentry_app=True)
+    avatar_type = serializers.ChoiceField(choices=(("default", "default"), ("upload", "upload")))
+    color = serializers.BooleanField(required=True)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        if attrs.get("avatar_type") == "upload" and not attrs.get("avatar_photo"):
+            raise serializers.ValidationError({"avatar_photo": "A logo is required."})
+
+        if (
+            not attrs.get("color")
+            and attrs.get("avatar_type") == "upload"
+            and not is_black_alpha_only(attrs.get("avatar_photo"))
+        ):
+            raise serializers.ValidationError(
+                {
+                    "avatar_photo": "The icon must only use black and should contain an alpha channel."
+                }
+            )
+
+        return attrs
+
+
 class AvatarMixin:
     object_type = None
     model = None
 
-    def get(self, request, **kwargs):
-        obj = kwargs[self.object_type]
-        return Response(serialize(obj, request.user))
+    def get(self, request: Request, **kwargs) -> Response:
+        obj = kwargs.pop(self.object_type, None)
+        return Response(serialize(obj, request.user, **kwargs))
 
     def get_serializer_context(self, obj, **kwargs):
         return {"type": self.model, "kwargs": {self.object_type: obj}}
@@ -39,9 +66,15 @@ class AvatarMixin:
     def get_avatar_filename(self, obj):
         return f"{obj.id}.png"
 
-    def put(self, request, **kwargs):
-        obj = kwargs[self.object_type]
-        serializer = AvatarSerializer(data=request.data, context=self.get_serializer_context(obj))
+    def put(self, request: Request, **kwargs) -> Response:
+        obj = kwargs.pop(self.object_type, None)
+
+        SerializerCls = AvatarSerializer
+        if self.object_type == "sentry_app":
+            SerializerCls = SentryAppLogoSerializer
+
+        serializer = SerializerCls(data=request.data, context=self.get_serializer_context(obj))
+
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -52,6 +85,7 @@ class AvatarMixin:
             type=result["avatar_type"],
             avatar=result.get("avatar_photo"),
             filename=self.get_avatar_filename(obj),
+            color=result.get("color"),
         )
 
-        return Response(serialize(obj, request.user))
+        return Response(serialize(obj, request.user, **kwargs))

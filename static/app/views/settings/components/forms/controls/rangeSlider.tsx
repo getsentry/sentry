@@ -1,10 +1,10 @@
-import React, {ChangeEvent, KeyboardEvent, MouseEvent, useEffect, useState} from 'react';
+import {forwardRef as reactFowardRef, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
   name: string;
@@ -63,9 +63,9 @@ type Props = {
    * be triggered quite frequently
    */
   onBlur?: (
-    event: MouseEvent<HTMLInputElement> | KeyboardEvent<HTMLInputElement>
+    event: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
   ) => void;
-  onChange?: (value: Props['value'], event: ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (value: Props['value'], event: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   forwardRef?: React.Ref<HTMLDivElement>;
 };
@@ -118,17 +118,19 @@ function RangeSlider({
     return allowedValues[newSliderValue];
   }
 
-  function handleInput(e: ChangeEvent<HTMLInputElement>) {
+  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const newSliderValue = parseInt(e.target.value, 10);
     setSliderValue(newSliderValue);
     onChange?.(getActualValue(newSliderValue), e);
   }
 
-  function handleCustomInputChange(e: ChangeEvent<HTMLInputElement>) {
+  function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     setSliderValue(parseInt(e.target.value, 10) || 0);
   }
 
-  function handleBlur(e: MouseEvent<HTMLInputElement> | KeyboardEvent<HTMLInputElement>) {
+  function handleBlur(
+    e: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
+  ) {
     if (typeof onBlur !== 'function') {
       return;
     }
@@ -193,7 +195,7 @@ function RangeSlider({
   );
 }
 
-const RangeSliderContainer = React.forwardRef(function RangeSliderContainer(
+const RangeSliderContainer = reactFowardRef(function RangeSliderContainer(
   props: Props,
   ref: React.Ref<any>
 ) {

@@ -1,53 +1,55 @@
-# ratelimit.py
-#
-# Middleware that applies a rate limit to every endpoint
-
-
 from __future__ import annotations
 
+from django.http.response import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
-from rest_framework.request import Request
 
-from sentry.api.helpers.group_index.index import EndpointFunction, build_rate_limit_key
-from sentry.app import ratelimiter
+from sentry.ratelimits import (
+    above_rate_limit_check,
+    can_be_ratelimited,
+    get_rate_limit_key,
+    get_rate_limit_value,
+)
+from sentry.types.ratelimit import RateLimitCategory
 
-
-def get_rate_limit_key(view_func: EndpointFunction, request: Request):
-    """Construct a consistent global rate limit key using the arguments provided"""
-    return build_rate_limit_key(view_func, request)
-
-
-def get_default_rate_limit() -> tuple[int, int]:
-    """
-    Read the rate limit from the view function to be used for the rate limit check
-    """
-
-    # TODO: Remove hard coded value with actual function logic
-    return 100, 1
-
-
-def above_rate_limit_check(key, limit=None, window=None):
-    if limit is None:
-        limit, window = get_default_rate_limit()
-
-    is_limited, current = ratelimiter.is_limited_with_value(key, limit=limit, window=window)
-    return {
-        "is_limited": is_limited,
-        "current": current,
-        "limit": limit,
-        "window": window,
-    }
+DEFAULT_ERROR_MESSAGE = (
+    "You are attempting to use this endpoint too frequently. Limit is "
+    "{limit} requests in {window} seconds"
+)
 
 
 class RatelimitMiddleware(MiddlewareMixin):
-    def _can_be_ratelimited(self, request: Request):
-        return True
+    """Middleware that applies a rate limit to every endpoint."""
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        """Check if the endpoint call will violate"""
-        if not self._can_be_ratelimited(request):
+        """Check if the endpoint call will violate."""
+        request.will_be_rate_limited = False
+
+        if not can_be_ratelimited(request, view_func):
             return
 
         key = get_rate_limit_key(view_func, request)
-        request.will_be_rate_limited = above_rate_limit_check(key)["is_limited"]
-        return
+        if key is None:
+            return
+
+        rate_limit = get_rate_limit_value(
+            http_method=request.method,
+            endpoint=view_func.view_class,
+            category=RateLimitCategory(key.split(":", 1)[0]),
+        )
+        if rate_limit is None:
+            return
+
+        rate_limit_check_dict = above_rate_limit_check(key, rate_limit)
+        if rate_limit_check_dict["is_limited"]:
+            request.will_be_rate_limited = True
+            enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
+            if enforce_rate_limit:
+                return HttpResponse(
+                    {
+                        "detail": DEFAULT_ERROR_MESSAGE.format(
+                            limit=rate_limit_check_dict["limit"],
+                            window=rate_limit_check_dict["window"],
+                        )
+                    },
+                    status=429,
+                )

@@ -9,6 +9,7 @@ from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.events import (
     IncidentCommentCreatedEvent,
@@ -845,6 +846,12 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.owner.id == self.user.actor.id
 
+        update_alert_rule(
+            alert_rule=alert_rule,
+            owner=None,
+        )
+        assert alert_rule.owner is None
+
     def test_comparison_delta(self):
         comparison_delta = 60
 
@@ -1517,6 +1524,19 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
         other_integration = Integration.objects.create(external_id="12345", provider="random")
         other_integration.add_organization(self.organization)
         assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
+
+    def test_disabled_integration(self):
+        integration = Integration.objects.create(
+            external_id="1", provider="slack", status=ObjectStatus.DISABLED
+        )
+        integration.add_organization(self.organization)
+        assert list(get_available_action_integrations_for_org(self.organization)) == []
+
+    def test_disabled_org_integration(self):
+        integration = Integration.objects.create(external_id="1", provider="slack")
+        org_integration = integration.add_organization(self.organization)
+        org_integration.update(status=ObjectStatus.DISABLED)
+        assert list(get_available_action_integrations_for_org(self.organization)) == []
 
 
 class MetricTranslationTest(TestCase):

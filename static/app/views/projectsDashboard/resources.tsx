@@ -5,12 +5,12 @@ import breadcrumbsImg from 'sentry-images/spot/breadcrumbs-generic.svg';
 import docsImg from 'sentry-images/spot/code-arguments-tags-mirrored.svg';
 import releasesImg from 'sentry-images/spot/releases.svg';
 
-import PageHeading from 'app/components/pageHeading';
-import ResourceCard from 'app/components/resourceCard';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import PageHeading from 'sentry/components/pageHeading';
+import ResourceCard from 'sentry/components/resourceCard';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 type Props = {
   organization: Organization;

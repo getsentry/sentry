@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {SelectField} from 'app/components/forms';
-import InternalStatChart from 'app/components/internalStatChart';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import AsyncView from 'app/views/asyncView';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {SelectField} from 'sentry/components/forms';
+import InternalStatChart from 'sentry/components/internalStatChart';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import AsyncView from 'sentry/views/asyncView';
 
 const TIME_WINDOWS = ['1h', '1d', '1w'] as const;
 
@@ -62,7 +62,7 @@ export default class AdminQueue extends AsyncView<{}, State> {
     return (
       <div>
         <Header>
-          <h3 className="no-border">Queue Overview</h3>
+          <h3>Queue Overview</h3>
 
           <ButtonBar merged active={this.state.timeWindow}>
             {TIME_WINDOWS.map(r => (
@@ -85,7 +85,7 @@ export default class AdminQueue extends AsyncView<{}, State> {
           </PanelBody>
         </Panel>
 
-        <h3 className="no-border">Task Details</h3>
+        <h3>Task Details</h3>
 
         <div>
           <div className="m-b-1">

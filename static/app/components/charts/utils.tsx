@@ -1,13 +1,13 @@
-import {EChartOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import moment from 'moment';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
-import {defined, escape} from 'app/utils';
-import {parsePeriodToHours} from 'app/utils/dates';
-import {TableDataWithTitle} from 'app/utils/discover/discoverQuery';
-import {decodeList} from 'app/utils/queryString';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'sentry/types';
+import {defined, escape} from 'sentry/utils';
+import {parsePeriodToHours} from 'sentry/utils/dates';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -170,13 +170,24 @@ export function canIncludePreviousPeriod(
   return !!includePrevious;
 }
 
+export function shouldFetchPreviousPeriod({
+  includePrevious = true,
+  period,
+  start,
+  end,
+}: {
+  includePrevious?: boolean;
+} & Pick<DateTimeObject, 'start' | 'end' | 'period'>) {
+  return !start && !end && canIncludePreviousPeriod(includePrevious, period);
+}
+
 /**
  * Generates a series selection based on the query parameters defined by the location.
  */
 export function getSeriesSelection(
   location: Location,
   parameter = 'unselectedSeries'
-): EChartOption.Legend['selected'] {
+): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query[parameter]);
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;
@@ -250,3 +261,16 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     }),
   };
 };
+
+// This is not in a react store/context because the tooltips are rendered as plain html
+let tooltipArrowLeft = '50%';
+export function setTooltipPosition(arrowLeft: string) {
+  tooltipArrowLeft = arrowLeft;
+  return tooltipArrowLeft;
+}
+
+export function getTooltipArrow(): string {
+  return `<div class="tooltip-arrow" ${
+    tooltipArrowLeft ? `style="left: ${tooltipArrowLeft}"` : ''
+  }"></div>`;
+}

@@ -1,4 +1,4 @@
-import marked from 'app/utils/marked';
+import marked from 'sentry/utils/marked';
 
 type Props = {
   text: string;

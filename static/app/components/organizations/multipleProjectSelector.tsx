@@ -3,20 +3,20 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import HeaderItem from 'app/components/organizations/headerItem';
-import PlatformList from 'app/components/platformList';
-import Tooltip from 'app/components/tooltip';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconProject} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {growIn} from 'app/styles/animations';
-import space from 'app/styles/space';
-import {MinimalProject, Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import Feature from 'sentry/components/acl/feature';
+import Button from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
+import HeaderItem from 'sentry/components/organizations/headerItem';
+import PlatformList from 'sentry/components/platformList';
+import Tooltip from 'sentry/components/tooltip';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {IconProject} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {growIn} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
+import {MinimalProject, Organization, Project} from 'sentry/types';
+import {analytics} from 'sentry/utils/analytics';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import ProjectSelector from './projectSelector';
 

@@ -1,27 +1,25 @@
-from django.urls import reverse
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from sentry.models import Organization, User
-from sentry.utils.http import absolute_uri
+from sentry.models import Organization, OrganizationMember, User
+from sentry.notifications.notifications.organization_request import InviteRequestNotification
 
-from .mail import MailPreview
+from .mail import render_preview_email_for_notification
 
 
 class DebugOrganizationInviteRequestEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="default", name="Default")
-        user = User(name="Rick Swan")
+        requester = User(name="Rick Swan")
+        pending_member = OrganizationMember(
+            email="test@gmail.com", organization=org, inviter=requester
+        )
+        recipient = User(name="James Bond")
+        recipient_member = OrganizationMember(user=recipient, organization=org)
 
-        context = {
-            "organization_name": org.name,
-            "inviter_name": user.get_salutation_name,
-            "email": "test@gmail.com",
-            "pending_requests_link": absolute_uri(
-                reverse("sentry-organization-members", args=[org.slug])
-            ),
-        }
-        return MailPreview(
-            html_template="sentry/emails/organization-invite-request.html",
-            text_template="sentry/emails/organization-invite-request.txt",
-            context=context,
-        ).render(request)
+        notification = InviteRequestNotification(pending_member, requester)
+
+        # hack to avoid a query
+        notification.role_based_recipient_strategy.set_member_in_cache(recipient_member)
+        return render_preview_email_for_notification(notification, recipient)

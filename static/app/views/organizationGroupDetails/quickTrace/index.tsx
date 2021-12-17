@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import {Location} from 'history';
 
-import {Group, Organization} from 'app/types';
-import {Event} from 'app/types/event';
+import {Group, Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 import DistributedTracingPrompt from './configureDistributedTracing';
 import IssueQuickTrace from './issueQuickTrace';

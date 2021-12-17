@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
@@ -8,7 +9,7 @@ from sentry.models import Environment
 
 
 class GroupStatsEndpoint(GroupEndpoint, EnvironmentMixin, StatsMixin):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         try:
             environment_id = self._get_environment_id_from_request(
                 request, group.project.organization_id

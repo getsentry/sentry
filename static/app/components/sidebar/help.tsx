@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
-import {openHelpSearchModal} from 'app/actionCreators/modal';
-import DropdownMenu from 'app/components/dropdownMenu';
-import Hook from 'app/components/hook';
-import SidebarItem from 'app/components/sidebar/sidebarItem';
-import {IconQuestion} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import Hook from 'sentry/components/hook';
+import SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {IconQuestion} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 import SidebarMenuItem from './sidebarMenuItem';
@@ -33,7 +34,7 @@ const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) =
         </HelpActor>
 
         {isOpen && (
-          <HelpMenu {...getMenuProps({})}>
+          <HelpMenu {...getMenuProps({})} orientation={orientation}>
             <SidebarMenuItem
               data-test-id="search-docs-and-faqs"
               onClick={() => openHelpSearchModal({organization})}
@@ -62,7 +63,9 @@ const HelpRoot = styled('div')`
 // how refs are handled.
 const HelpActor = styled('div')``;
 
-const HelpMenu = styled('div')`
+const HelpMenu = styled('div', {shouldForwardProp: p => p !== 'orientation'})<{
+  orientation: Props['orientation'];
+}>`
   ${SidebarDropdownMenu};
-  bottom: 100%;
+  ${p => (p.orientation === 'left' ? 'bottom: 100%' : `top: ${space(4)}; right: 0px;`)}
 `;

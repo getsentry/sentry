@@ -5,18 +5,18 @@ import styled from '@emotion/styled';
 import color from 'color';
 import * as PopperJS from 'popper.js';
 
-import {IconEllipsis} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import {IconEllipsis} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
   getAggregateAlias,
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
-} from 'app/utils/discover/fields';
-import {getDuration} from 'app/utils/formatters';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/utils/discover/fields';
+import {getDuration} from 'sentry/utils/formatters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {TableColumn} from './types';
 
@@ -448,6 +448,9 @@ const Container = styled('div')`
   position: relative;
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const MenuRoot = styled('div')`

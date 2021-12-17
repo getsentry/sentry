@@ -5,37 +5,37 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import * as qs from 'query-string';
 
-import {Client} from 'app/api';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import SimpleTableChart from 'app/components/charts/simpleTableChart';
-import {HeaderTitle} from 'app/components/charts/styles';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import ErrorBoundary from 'app/components/errorBoundary';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {GlobalSelection, Group, Organization} from 'app/types';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import {ColumnType} from 'app/utils/discover/fields';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
+import {Client} from 'sentry/api';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MenuItem from 'sentry/components/menuItem';
+import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {GlobalSelection, Group, Organization} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import withApi from 'sentry/utils/withApi';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withOrganization from 'sentry/utils/withOrganization';
+import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widget/issueWidget/fields';
 
+import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
+import ContextMenu from './contextMenu';
 import IssueWidgetQueries from './issueWidgetQueries';
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
-
-const ISSUE_TABLE_FIELDS_META: Record<string, ColumnType> = {
-  'issue #': 'string',
-  title: 'string',
-  assignee: 'string',
-};
 
 type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'> & {
   tableResults: Group[];
@@ -52,11 +52,15 @@ type Props = WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
+  hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  noLazyLoad?: boolean;
+  widgetLimitReached: boolean;
 };
 
 class IssueWidgetCard extends React.Component<Props> {
@@ -65,7 +69,9 @@ class IssueWidgetCard extends React.Component<Props> {
       !isEqual(nextProps.widget, this.props.widget) ||
       !isSelectionEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
-      this.props.isSorting !== nextProps.isSorting
+      this.props.isSorting !== nextProps.isSorting ||
+      this.props.widgetLimitReached !== nextProps.widgetLimitReached ||
+      this.props.hideToolbar !== nextProps.hideToolbar
     ) {
       return true;
     }
@@ -73,12 +79,24 @@ class IssueWidgetCard extends React.Component<Props> {
   }
 
   transformTableResults(tableResults: Group[]): TableDataRow[] {
-    return tableResults.map(({id, shortId, title, assignedTo}) => {
+    return tableResults.map(({id, shortId, title, assignedTo, ...resultProps}) => {
+      const transformedResultProps = {};
+      Object.keys(resultProps).map(key => {
+        const value = resultProps[key];
+        transformedResultProps[key] = ['number', 'string'].includes(typeof value)
+          ? value
+          : String(value);
+      });
       const transformedTableResults = {
+        ...transformedResultProps,
         id,
-        'issue #': shortId,
+        'issue.id': id,
+        issue: shortId,
         title,
-        assignee: assignedTo?.name ?? '',
+        'assignee.type': assignedTo?.type,
+        'assignee.name': assignedTo?.name ?? '',
+        'assignee.id': assignedTo?.id,
+        'assignee.email': assignedTo?.email ?? '',
       };
       return transformedTableResults;
     });
@@ -89,7 +107,7 @@ class IssueWidgetCard extends React.Component<Props> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, organization} = this.props;
+    const {location, organization, widget} = this.props;
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -100,7 +118,7 @@ class IssueWidgetCard extends React.Component<Props> {
 
     if (loading) {
       // Align height to other charts.
-      return <Placeholder height="200px" />;
+      return <LoadingPlaceholder height="200px" />;
     }
     const transformedTableResults = this.transformTableResults(tableResults);
 
@@ -108,17 +126,113 @@ class IssueWidgetCard extends React.Component<Props> {
       <StyledSimpleTableChart
         location={location}
         title=""
-        fields={Object.keys(ISSUE_TABLE_FIELDS_META)}
+        fields={widget.queries[0].fields}
         loading={loading}
-        metadata={ISSUE_TABLE_FIELDS_META}
+        metadata={ISSUE_FIELDS}
         data={transformedTableResults}
         organization={organization}
       />
     );
   }
 
-  render() {
+  renderToolbar() {
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
+
+    if (!isEditing) {
+      return null;
+    }
+
+    return (
+      <ToolbarPanel>
+        <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
+          <IconClick>
+            <StyledIconGrabbable
+              color="textColor"
+              className={DRAG_HANDLE_CLASS}
+              {...draggableProps?.listeners}
+              {...draggableProps?.attributes}
+            />
+          </IconClick>
+          <IconClick data-test-id="widget-edit" onClick={onEdit}>
+            <IconEdit color="textColor" />
+          </IconClick>
+          <IconClick data-test-id="widget-delete" onClick={onDelete}>
+            <IconDelete color="textColor" />
+          </IconClick>
+        </IconContainer>
+      </ToolbarPanel>
+    );
+  }
+
+  renderContextMenu() {
+    const {
+      widget,
+      selection,
+      organization,
+      showContextMenu,
+      widgetLimitReached,
+      onDuplicate,
+    } = this.props;
+
+    if (!showContextMenu) {
+      return null;
+    }
+
+    const {start, end, utc, period} = selection.datetime;
+    const datetime =
+      start && end
+        ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+        : {statsPeriod: period};
+    const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
+      query: widget.queries?.[0]?.conditions,
+      ...datetime,
+    })}`;
+
+    return (
+      <ContextWrapper>
+        <ContextMenu>
+          <Link to={issuesLocation}>
+            <StyledMenuItem key="open-issues">{t('Open in Issues')}</StyledMenuItem>
+          </Link>
+          <StyledMenuItem
+            key="duplicate-widget"
+            onSelect={onDuplicate}
+            disabled={widgetLimitReached}
+          >
+            {t('Duplicate Widget')}
+          </StyledMenuItem>
+        </ContextMenu>
+      </ContextWrapper>
+    );
+  }
+
+  renderChart() {
     const {widget, api, organization, selection, renderErrorMessage} = this.props;
+    return (
+      <IssueWidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+      >
+        {({tableResults, errorMessage, loading}) => {
+          return (
+            <React.Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <LoadingScreen loading={loading} />
+              {this.tableResultComponent({tableResults, loading, errorMessage})}
+              {this.renderToolbar()}
+            </React.Fragment>
+          );
+        }}
+      </IssueWidgetQueries>
+    );
+  }
+
+  render() {
+    const {widget, noLazyLoad} = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -126,28 +240,15 @@ class IssueWidgetCard extends React.Component<Props> {
         <StyledPanel isDragging={false}>
           <WidgetHeader>
             <WidgetTitle>{widget.title}</WidgetTitle>
+            {this.renderContextMenu()}
           </WidgetHeader>
-          <LazyLoad once height={200}>
-            <IssueWidgetQueries
-              api={api}
-              organization={organization}
-              widget={widget}
-              selection={selection}
-            >
-              {({tableResults, errorMessage, loading}) => {
-                return (
-                  <React.Fragment>
-                    {typeof renderErrorMessage === 'function'
-                      ? renderErrorMessage(errorMessage)
-                      : null}
-                    <LoadingScreen loading={loading} />
-                    {tableResults &&
-                      this.tableResultComponent({tableResults, loading, errorMessage})}
-                  </React.Fragment>
-                );
-              }}
-            </IssueWidgetQueries>
-          </LazyLoad>
+          {noLazyLoad ? (
+            this.renderChart()
+          ) : (
+            <LazyLoad once resize height={200}>
+              {this.renderChart()}
+            </LazyLoad>
+          )}
         </StyledPanel>
       </ErrorBoundary>
     );
@@ -176,6 +277,10 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
+const LoadingPlaceholder = styled(Placeholder)`
+  background-color: ${p => p.theme.surface200};
+`;
+
 const ErrorCard = styled(Placeholder)`
   display: flex;
   align-items: center;
@@ -197,6 +302,8 @@ const StyledPanel = styled(Panel, {
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
   min-height: 96px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
@@ -216,4 +323,53 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};
   box-shadow: none;
+`;
+
+const ToolbarPanel = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+
+  background-color: ${p => p.theme.overlayBackgroundAlpha};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const IconContainer = styled('div')`
+  display: flex;
+  margin: 10px ${space(2)};
+  touch-action: none;
+`;
+
+const IconClick = styled('div')`
+  padding: ${space(1)};
+
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+const ContextWrapper = styled('div')`
+  margin-left: ${space(1)};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  white-space: nowrap;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledIconGrabbable = styled(IconGrabbable)`
+  &:hover {
+    cursor: grab;
+  }
 `;

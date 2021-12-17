@@ -2,10 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Link from 'app/components/links/link';
-import space from 'app/styles/space';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {Theme} from 'app/utils/theme';
+import Link from 'sentry/components/links/link';
+import space from 'sentry/styles/space';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {Theme} from 'sentry/utils/theme';
 
 type MenuItemProps = {
   /**
@@ -211,7 +211,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     ${common}
 
     &:hover {
-      background: ${props.theme.focus};
+      background: ${props.theme.hover};
     }
   `;
 }

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import hashlib
 import hmac
 import logging
+from typing import Any, Mapping
 
 from django.http import HttpResponse
 from django.utils.crypto import constant_time_compare
@@ -51,13 +54,13 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     provider = "github_enterprise"
 
     # https://developer.github.com/v3/activity/events/types/#pushevent
-    def is_anonymous_email(self, email):
+    def is_anonymous_email(self, email: str) -> bool:
         return email[-25:] == "@users.noreply.github.com"
 
-    def get_external_id(self, username):
+    def get_external_id(self, username: str) -> str:
         return f"github_enterprise:{username}"
 
-    def get_idp_external_id(self, integration, host):
+    def get_idp_external_id(self, integration: Integration, host: str | None = None) -> str:
         return "{}:{}".format(host, integration.metadata["installation"]["id"])
 
     def should_ignore_commit(self, commit):
@@ -68,13 +71,13 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
     provider = "github_enterprise"
 
     # https://developer.github.com/v3/activity/events/types/#pullrequestevent
-    def is_anonymous_email(self, email):
+    def is_anonymous_email(self, email: str) -> bool:
         return email[-25:] == "@users.noreply.github.com"
 
-    def get_external_id(self, username):
+    def get_external_id(self, username: str) -> str:
         return f"github_enterprise:{username}"
 
-    def get_idp_external_id(self, integration, host):
+    def get_idp_external_id(self, integration: Integration, host: str | None = None) -> str:
         return "{}:{}".format(host, integration.metadata["installation"]["id"])
 
 
@@ -98,8 +101,8 @@ class GitHubEnterpriseWebhookBase(View):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def get_logging_data(self):
-        pass
+    def get_logging_data(self) -> Mapping[str, Any] | None:
+        return None
 
     def get_secret(self, event, host):
         metadata = get_installation_metadata(event, host)

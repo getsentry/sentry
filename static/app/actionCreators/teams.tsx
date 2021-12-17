@@ -1,10 +1,10 @@
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import TeamActions from 'app/actions/teamActions';
-import {Client} from 'app/api';
-import {tct} from 'app/locale';
-import {Team} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {uniqueId} from 'app/utils/guid';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import TeamActions from 'sentry/actions/teamActions';
+import {Client} from 'sentry/api';
+import {tct} from 'sentry/locale';
+import {Team} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {uniqueId} from 'sentry/utils/guid';
 
 type CallbackOptions = {
   success?: Function;

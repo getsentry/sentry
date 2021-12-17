@@ -1,20 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import ActionButton from 'app/components/actions/button';
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import ConfirmDelete from 'app/components/confirmDelete';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownLink from 'app/components/dropdownLink';
-import Tooltip from 'app/components/tooltip';
-import {IconEllipsis} from 'app/icons/iconEllipsis';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {CustomRepoType} from 'app/types/debugFiles';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import Access from 'sentry/components/acl/access';
+import ActionButton from 'sentry/components/actions/button';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import ConfirmDelete from 'sentry/components/confirmDelete';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownLink from 'sentry/components/dropdownLink';
+import Tooltip from 'sentry/components/tooltip';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {CustomRepoType} from 'sentry/types/debugFiles';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   repositoryName: string;

@@ -44,6 +44,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from sentry.utils.outcomes import Outcome
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import raw_snql_query
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
@@ -573,15 +574,10 @@ backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
 def prepare_reports(dry_run=False, *args, **kwargs):
     timestamp, duration = _fill_default_parameters(*args, **kwargs)
 
+    logger.info("reports.begin_prepare_report")
+
     organizations = _get_organization_queryset()
-    for organization in organizations:
-        if features.has("organizations:weekly-report-debugging", organization):
-            logger.info(
-                "reports.org.begin_prepare_report",
-                extra={
-                    "organization_id": organization.id,
-                },
-            )
+    for organization in RangeQuerySetWrapper(organizations, step=10000):
         prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 

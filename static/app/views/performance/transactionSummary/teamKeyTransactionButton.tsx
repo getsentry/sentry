@@ -1,18 +1,18 @@
 import {Component} from 'react';
 
-import Button from 'app/components/button';
+import Button from 'sentry/components/button';
 import TeamKeyTransactionComponent, {
   TitleProps,
-} from 'app/components/performance/teamKeyTransaction';
-import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
-import Tooltip from 'app/components/tooltip';
-import {IconStar} from 'app/icons';
-import {t, tn} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import EventView from 'app/utils/discover/eventView';
-import useTeams from 'app/utils/useTeams';
-import withProjects from 'app/utils/withProjects';
+} from 'sentry/components/performance/teamKeyTransaction';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import Tooltip from 'sentry/components/tooltip';
+import {IconStar} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import useTeams from 'sentry/utils/useTeams';
+import withProjects from 'sentry/utils/withProjects';
 
 /**
  * This can't be a function component because `TeamKeyTransaction` uses

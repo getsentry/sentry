@@ -1,4 +1,4 @@
-import {processInitQueue} from 'app/bootstrap/processInitQueue';
+import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
 
 describe('processInitQueue', function () {
   it('processes queued up items', function () {

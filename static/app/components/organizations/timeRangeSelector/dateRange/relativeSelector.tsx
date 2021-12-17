@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 
 import SelectorItem from './selectorItem';
 

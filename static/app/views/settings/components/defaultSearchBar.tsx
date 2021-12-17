@@ -1,8 +1,7 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import AsyncView from 'app/views/asyncView';
+import space from 'sentry/styles/space';
+import AsyncView from 'sentry/views/asyncView';
 
 export type RenderSearch = React.ComponentProps<
   typeof AsyncView.prototype.renderSearchInput

@@ -1,12 +1,12 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import TransactionSummary from 'app/views/performance/transactionSummary/transactionOverview';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
   TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -35,12 +35,14 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
     },
   });
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
-  act(() => TeamStore.loadInitialData(teams));
+  act(() => TeamStore.loadInitialData(teams, false, null));
 
   return initialData;
 }
 
 describe('Performance > TransactionSummary', function () {
+  enforceActOnUseLegacyStoreHook();
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -86,6 +88,10 @@ describe('Performance > TransactionSummary', function () {
     });
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets-performance/',
       body: {},
     });
 
@@ -182,11 +188,15 @@ describe('Performance > TransactionSummary', function () {
       body: [
         {
           key: 'release',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [{count: 3, value: 'abcd123', name: 'abcd123'}],
         },
         {
           key: 'environment',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+          topValues: [{count: 2, value: 'dev', name: 'dev'}],
+        },
+        {
+          key: 'foo',
+          topValues: [{count: 1, value: 'bar', name: 'bar'}],
         },
       ],
     });
@@ -291,6 +301,7 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure status breakdown exists
     expect(wrapper.find('StatusBreakdown')).toHaveLength(1);
+    wrapper.unmount();
   });
 
   it('renders feature flagged UI elements', async function () {
@@ -308,6 +319,7 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure create alert from discover is shown with metric alerts
     expect(wrapper.find('CreateAlertFromViewButton')).toHaveLength(1);
+    wrapper.unmount();
   });
 
   it('fetches transaction threshdold', async function () {
@@ -437,6 +449,10 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure request was made.
     expect(mockUpdate).toHaveBeenCalled();
+
+    await tick();
+    wrapper.update();
+    wrapper.unmount();
   });
 
   it('triggers a navigation on transaction filter', async function () {
@@ -470,6 +486,7 @@ describe('Performance > TransactionSummary', function () {
         transactionCursor: undefined,
       },
     });
+    wrapper.unmount();
   });
 
   it('renders pagination buttons', async function () {
@@ -485,7 +502,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     const pagination = wrapper.find('Pagination');
-    expect(pagination).toHaveLength(1);
+    expect(pagination).toHaveLength(2);
 
     // Click the 'next' button'
     pagination.find('button[aria-label="Next"]').simulate('click');
@@ -499,6 +516,7 @@ describe('Performance > TransactionSummary', function () {
         transactionCursor: '2:0:0',
       },
     });
+    wrapper.unmount();
   });
 
   it('forwards conditions to related issues', async function () {
@@ -519,6 +537,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     expect(issueGet).toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('does not forward event type to related issues', async function () {
@@ -547,6 +566,30 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     expect(issueGet).toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('renders the suspect spans table if the feature is enabled', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-spans-performance/',
+      body: [],
+    });
+
+    const initialData = initializeData({
+      features: ['performance-suspect-spans-view'],
+    });
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('SuspectSpans')).toHaveLength(1);
+    wrapper.unmount();
   });
 
   it('adds search condition on transaction status when clicking on status breakdown', async function () {
@@ -573,5 +616,31 @@ describe('Performance > TransactionSummary', function () {
         }),
       })
     );
+    wrapper.unmount();
+  });
+
+  it('appends tag value to existing query when clicked', async function () {
+    const initialData = initializeData();
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // since environment collides with the environment field, it is wrapped with `tags[...]`
+    const envSegment = wrapper.find(
+      '[data-test-id="tag-environment-segment-dev"] Segment'
+    );
+    const envTarget = envSegment.props().to;
+    expect(envTarget.query.query).toEqual('tags[environment]:dev');
+
+    const fooSegment = wrapper.find('[data-test-id="tag-foo-segment-bar"] Segment');
+    const fooTarget = fooSegment.props().to;
+    expect(fooTarget.query.query).toEqual('foo:bar');
+    wrapper.unmount();
   });
 });

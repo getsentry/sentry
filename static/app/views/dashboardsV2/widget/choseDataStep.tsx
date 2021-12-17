@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
-import RadioField from 'app/views/settings/components/forms/radioField';
+import {t} from 'sentry/locale';
+import RadioField from 'sentry/views/settings/components/forms/radioField';
 
 import BuildStep from './buildStep';
 import {DataSet} from './utils';
