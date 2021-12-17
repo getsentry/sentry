@@ -1,4 +1,5 @@
 import time
+from base64 import b64encode
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import ugettext as _
@@ -7,6 +8,7 @@ from rest_framework.response import Response
 
 from sentry import features, options
 from sentry.app import ratelimiter
+from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.models import Authenticator
 from sentry.utils import auth, json
 from sentry.web.forms.accounts import TwoFactorForm
@@ -132,14 +134,24 @@ class TwoFactorAuthView(BaseView):
                 content_type="text/plain",
                 status=429,
             )
+        # check if webauthn-login feature flag is enabled for frontend
+        webauthn_signin_ff = self._check_can_webauthn_signin(user, request.user)
 
         if request.method == "GET":
-            activation = interface.activate(request)
+            if interface.type == U2fInterface.type:
+                activation = interface.activate(request, webauthn_signin_ff)
+            else:
+                activation = interface.activate(request)
+
             if activation is not None and activation.type == "challenge":
                 challenge = activation.challenge
+
+                if webauthn_signin_ff and interface.type == U2fInterface.type:
+                    activation.challenge = {}
+                    activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
+
         elif "challenge" in request.POST:
             challenge = json.loads(request.POST["challenge"])
-
         form = TwoFactorForm()
 
         # If an OTP response was supplied, we try to make it pass.
@@ -149,9 +161,6 @@ class TwoFactorAuthView(BaseView):
             if used_interface is not None:
                 return self.perform_signin(request, user, used_interface)
             self.fail_signin(request, user, form)
-
-        # check if webauthn-login feature flag is enabled for frontend
-        webauthn_signin_ff = self._check_can_webauthn_signin(user, request.user)
 
         #  If a challenge and response exists, validate
         if challenge:
