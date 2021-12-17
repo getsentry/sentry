@@ -419,9 +419,9 @@ const generateTagTheme = (colors: BaseColors) => ({
     iconColor: colors.red300,
   },
   info: {
-    background: colors.blue100,
-    border: colors.blue200,
-    iconColor: colors.blue300,
+    background: colors.purple100,
+    border: colors.purple200,
+    iconColor: colors.purple300,
   },
   white: {
     background: colors.white,
