@@ -389,3 +389,20 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     target_id=user.actor_id,
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )
+
+    def has_any_provider_settings(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> bool:
+        # Explicitly typing to satisfy mypy.
+        has_settings: bool = (
+            self._filter(provider=provider, target_ids={recipient.actor_id})
+            .filter(
+                value__in={
+                    NotificationSettingOptionValues.ALWAYS.value,
+                    NotificationSettingOptionValues.COMMITTED_ONLY.value,
+                    NotificationSettingOptionValues.SUBSCRIBE_ONLY.value,
+                }
+            )
+            .exists()
+        )
+        return has_settings
