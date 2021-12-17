@@ -202,7 +202,7 @@ describe('Performance > VitalDetail', () => {
     expect(screen.getByText('Duration p75')).toBeInTheDocument();
 
     // It shows a table
-    expect(screen.getByText('something')).toBeInTheDocument();
+    expect(screen.getByText('something').closest('td')).toBeInTheDocument();
   });
 
   it('triggers a navigation on search', async function () {
