@@ -756,9 +756,10 @@ def _bulk_snuba_query(
     headers: Mapping[str, str],
 ) -> ResultSet:
     with sentry_sdk.start_span(
-        op="start_snuba_query",
-        description=f"running {len(snuba_param_list)} snuba queries",
+        op="snuba_query",
+        description="running snuba queries",
     ) as span:
+        span.set_tag("snuba.num_queries", len(snuba_param_list))
         query_referrer = headers.get("referer", "<unknown>")
         # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
         # but we still want to know a general sense of how referrers impact performance
@@ -884,9 +885,8 @@ def _raw_snql_query(
             logger.info(f"{referrer}.body: {query}")
             query = query.set_debug(True)
 
-        with thread_hub.start_span(
-            op="snuba_snql_validate", description=f"validate query {referrer}"
-        ):
+        with thread_hub.start_span(op="snuba_snql", description="validation") as span:
+            span.set_tag("snuba.referrer", referrer)
             scope = thread_hub.scope
             if scope.transaction:
                 query = query.set_parent_api(scope.transaction.name)
@@ -902,8 +902,8 @@ def _raw_snql_query(
             )
             body = query.snuba()
 
-        with thread_hub.start_span(op="snuba_snql", description=f"query {referrer}") as span:
-            span.set_tag("referrer", referrer)
+        with thread_hub.start_span(op="snuba_snql", description="run query") as span:
+            span.set_tag("snuba.referrer", referrer)
             span.set_data("snql", str(query))
             return _snuba_pool.urlopen("POST", f"/{query.dataset}/snql", body=body, headers=headers)
 
