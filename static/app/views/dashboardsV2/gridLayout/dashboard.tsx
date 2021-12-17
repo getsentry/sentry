@@ -422,11 +422,7 @@ function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     return [];
   }
 
-  // Filter out layouts to only those that haven't been deleted
-  const expectedGridKeys = new Set(widgets.map(constructGridItemKey));
-  const survivingLayouts = desktopLayout.filter(({i}) => expectedGridKeys.has(i));
-
-  const layoutWidgetPairs = zip(survivingLayouts, widgets);
+  const layoutWidgetPairs = zip(desktopLayout, widgets) as [Layout, Widget][];
 
   // Sort by y and then subsort by x
   const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);
@@ -436,7 +432,7 @@ function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     x: 0,
     y: index * 2,
     w: 2,
-    h: widget?.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+    h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
   }));
 
   return mobileLayout;
