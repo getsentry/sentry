@@ -1781,6 +1781,7 @@ SENTRY_DEVSERVICES = {
             # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
             # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
             "image": "confluentinc/cp-zookeeper:4.1.0",
+            "host_config": {"NetworkMode": "host"},
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
@@ -1789,6 +1790,7 @@ SENTRY_DEVSERVICES = {
     "kafka": lambda settings, options: (
         {
             "image": "confluentinc/cp-kafka:5.1.2",
+            "host_config": {"NetworkMode": "host"},
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
