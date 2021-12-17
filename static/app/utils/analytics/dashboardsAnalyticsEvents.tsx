@@ -1,7 +1,5 @@
 export type DashboardsEventParameters = {
-  'dashboards_views.add_widget_modal.opened': {
-    has_library: boolean;
-  };
+  'dashboards_views.add_widget_modal.opened': {};
   'dashboards_views.add_widget_modal.change': {
     from: string;
     field: string;
@@ -26,6 +24,7 @@ export type DashboardsEventParameters = {
   'dashboards_views.widget_library.switch_tab': {
     to: string;
   };
+  'dashboards_views.widget_library.opened': {};
 };
 
 export type DashboardsEventKey = keyof DashboardsEventParameters;
@@ -48,4 +47,5 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
     'Dashboards2: Prebuilt Widgets added from Library',
   'dashboards_views.widget_library.switch_tab':
     'Dashboards2: Widget Library tab switched',
+  'dashboards_views.widget_library.opened': 'Dashboards2: Add Widget Library opened',
 };

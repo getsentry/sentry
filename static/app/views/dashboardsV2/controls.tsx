@@ -133,10 +133,9 @@ class Controls extends React.Component<Props> {
                     icon={<IconAdd isCircled />}
                     onClick={() => {
                       trackAdvancedAnalyticsEvent(
-                        'dashboards_views.add_widget_modal.opened',
+                        'dashboards_views.widget_library.opened',
                         {
                           organization,
-                          has_library: organization.features.includes('widget-library'),
                         }
                       );
                       onAddWidget();
