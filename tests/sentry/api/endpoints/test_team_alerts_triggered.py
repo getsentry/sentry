@@ -13,7 +13,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 @freeze_time()
-class TeamAlertsTriggeredTest(APITestCase):
+class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered"
 
     def test_simple(self):
@@ -98,6 +98,8 @@ class TeamAlertsTriggeredTest(APITestCase):
                 == 1
             )
 
+        assert False
+
     def test_not_as_simple(self):
         team_with_user = self.create_team(
             organization=self.organization, name="Lonely Team", members=[self.user]
@@ -180,3 +182,85 @@ class TeamAlertsTriggeredTest(APITestCase):
                     ]
                     == 0
                 )
+
+
+@freeze_time()
+class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-team-alerts-triggered-index"
+
+    def test(self):
+        project1 = self.create_project(teams=[self.team], slug="foo")
+        user_owned_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[project1],
+            name="user owned rule",
+            owner=ActorTuple.from_actor_identifier(self.user.id),
+        )
+
+        user_owned_incident = self.create_incident(status=20, alert_rule=user_owned_rule)
+        activities = []
+        for i in range(0, 8):
+            activities.append(
+                IncidentActivity(
+                    incident=user_owned_incident,
+                    type=IncidentActivityType.CREATED.value,
+                    value=IncidentStatus.OPEN,
+                    date_added=before_now(weeks=i),
+                )
+            )
+        team_owned_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[project1],
+            name="team owned rule",
+            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+        )
+        team_owned_incident = self.create_incident(status=20, alert_rule=team_owned_rule)
+        activities.append(
+            IncidentActivity(
+                incident=team_owned_incident,
+                type=IncidentActivityType.CREATED.value,
+                value=IncidentStatus.OPEN,
+                date_added=before_now(weeks=0),
+            )
+        )
+
+        for i in range(0, 10):
+            activities.append(
+                IncidentActivity(
+                    incident=team_owned_incident,
+                    type=IncidentActivityType.CREATED.value,
+                    value=IncidentStatus.OPEN,
+                    date_added=before_now(weeks=i),
+                )
+            )
+        IncidentActivity.objects.bulk_create(activities)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(self.team.organization.slug, self.team.slug)
+        assert [
+            {"id": row["id"], "totalThisWeek": row["totalThisWeek"], "weeklyAvg": row["weeklyAvg"]}
+            for row in response.data
+        ] == [
+            {"id": str(team_owned_rule.id), "totalThisWeek": 2, "weeklyAvg": 1.375},
+            {"id": str(user_owned_rule.id), "totalThisWeek": 1, "weeklyAvg": 1},
+        ]
+
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, per_page=1
+        )
+        assert [
+            {"id": row["id"], "totalThisWeek": row["totalThisWeek"], "weeklyAvg": row["weeklyAvg"]}
+            for row in response.data
+        ] == [
+            {"id": str(team_owned_rule.id), "totalThisWeek": 2, "weeklyAvg": 1.375},
+        ]
+        next_cursor = self.get_cursor_headers(response)[1]
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, per_page=1, cursor=next_cursor
+        )
+        assert [
+            {"id": row["id"], "totalThisWeek": row["totalThisWeek"], "weeklyAvg": row["weeklyAvg"]}
+            for row in response.data
+        ] == [
+            {"id": str(user_owned_rule.id), "totalThisWeek": 1, "weeklyAvg": 1},
+        ]

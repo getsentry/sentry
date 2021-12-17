@@ -400,7 +400,10 @@ from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.team_alerts_triggered import TeamAlertsTriggeredEndpoint
+from .endpoints.team_alerts_triggered import (
+    TeamAlertsTriggeredIndexEndpoint,
+    TeamAlertsTriggeredTotalsEndpoint,
+)
 from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
@@ -1544,8 +1547,13 @@ urlpatterns = [
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/alerts-triggered/$",
-                    TeamAlertsTriggeredEndpoint.as_view(),
+                    TeamAlertsTriggeredTotalsEndpoint.as_view(),
                     name="sentry-api-0-team-alerts-triggered",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/alerts-triggered-index/$",
+                    TeamAlertsTriggeredIndexEndpoint.as_view(),
+                    name="sentry-api-0-team-alerts-triggered-index",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issue-breakdown/$",
