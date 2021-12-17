@@ -7,6 +7,7 @@ from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
     EventsEntitySubscription,
     MetricsCountersEntitySubscription,
+    MetricsSetsEntitySubscription,
     SessionsEntitySubscription,
     TransactionsEntitySubscription,
     get_entity_subscription_for_dataset,
@@ -18,7 +19,13 @@ from sentry.testutils import TestCase
 class EntitySubscriptionTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        for tag in [SessionMetricKey.SESSION.value, "session.status", "init", "crashed"]:
+        for tag in [
+            SessionMetricKey.SESSION.value,
+            SessionMetricKey.USER.value,
+            "session.status",
+            "init",
+            "crashed",
+        ]:
             indexer.record(tag)
 
     def test_get_entity_subscriptions_for_sessions_dataset_non_supported_aggregate(self) -> None:
@@ -82,17 +89,39 @@ class EntitySubscriptionTestCase(TestCase):
                 dataset=QueryDatasets.METRICS, aggregate=aggregate, time_window=3600
             )
 
-    def test_get_entity_subscription_for_metrics_dataset_unsupported_crash_free_users(self) -> None:
+    def test_get_entity_subscription_for_metrics_dataset_for_users(self) -> None:
         aggregate = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
-        with self.assertRaises(UnsupportedQuerySubscription):
-            get_entity_subscription_for_dataset(
-                dataset=QueryDatasets.METRICS,
-                aggregate=aggregate,
-                time_window=3600,
-                extra_fields={"org_id": self.organization.id},
-            )
+        entity_subscription = get_entity_subscription_for_dataset(
+            dataset=QueryDatasets.METRICS,
+            aggregate=aggregate,
+            time_window=3600,
+            extra_fields={"org_id": self.organization.id},
+        )
+        assert isinstance(entity_subscription, MetricsSetsEntitySubscription)
+        assert entity_subscription.aggregate == aggregate
+        org_id = self.organization.id
+        groupby = [tag_key(org_id, "session.status")]
+        assert entity_subscription.get_entity_extra_params() == {
+            "organization": self.organization.id,
+            "groupby": groupby,
+            "granularity": 10,
+        }
+        assert entity_subscription.entity_key == EntityKey.MetricsSets
+        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsSets]
+        assert entity_subscription.dataset == QueryDatasets.METRICS
+        session_status = tag_key(org_id, "session.status")
+        session_status_tag_values = get_tag_values_list(org_id, ["crashed", "init"])
+        snuba_filter = entity_subscription.build_snuba_filter("", None, None)
+        assert snuba_filter
+        assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
+        assert snuba_filter.conditions == [
+            ["metric_id", "=", metric_id(org_id, SessionMetricKey.USER)],
+            [session_status, "IN", session_status_tag_values],
+        ]
+        assert snuba_filter.groupby == groupby
+        assert snuba_filter.rollup == entity_subscription.get_granularity()
 
-    def test_get_entity_subscription_for_metrics_dataset(self) -> None:
+    def test_get_entity_subscription_for_metrics_dataset_for_sessions(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
