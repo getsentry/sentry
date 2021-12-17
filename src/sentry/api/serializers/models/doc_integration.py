@@ -12,10 +12,9 @@ from sentry.utils.json import JSONData
 @register(DocIntegration)
 class DocIntegrationSerializer(Serializer):
     def get_attrs(self, item_list: List[DocIntegration], user: User, **kwargs: Any):
-        doc_ids = {item.id for item in item_list}
         # Get associated IntegrationFeatures
-        doc_feature_attrs = IntegrationFeature.objects.get_by_target_ids(
-            target_ids=doc_ids, target_type=IntegrationTypes.DOC_INTEGRATION
+        doc_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
+            targets=item_list, target_type=IntegrationTypes.DOC_INTEGRATION
         )
 
         # Get associated DocIntegrationAvatar

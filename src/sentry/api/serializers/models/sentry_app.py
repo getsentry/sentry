@@ -14,9 +14,8 @@ from sentry.utils.compat import map
 @register(SentryApp)
 class SentryAppSerializer(Serializer):
     def get_attrs(self, item_list: List[SentryApp], user: User, **kwargs: Any):
-        sentry_app_ids = {item.id for item in item_list}
-        features_by_sentry_app_id = IntegrationFeature.objects.get_by_target_ids(
-            target_ids=sentry_app_ids, target_type=IntegrationTypes.DOC_INTEGRATION
+        features_by_sentry_app_id = IntegrationFeature.objects.get_by_targets_as_dict(
+            targets=item_list, target_type=IntegrationTypes.SENTRY_APP
         )
         return {
             item: {"features": features_by_sentry_app_id.get(item.id, set())} for item in item_list
