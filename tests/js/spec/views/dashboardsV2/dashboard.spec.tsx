@@ -98,6 +98,7 @@ describe('Dashboards > Dashboard', () => {
         handleAddLibraryWidgets={() => undefined}
         router={initialData.router}
         location={initialData.location}
+        widgetLimitReached={false}
         isEditing
       />,
       initialData.routerContext
