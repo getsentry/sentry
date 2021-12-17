@@ -301,7 +301,7 @@ class Dashboard extends Component<Props, State> {
     );
   }
 
-  onLayoutChange = (_, allLayouts) => {
+  handleLayoutChange = (_, allLayouts) => {
     const {onLayoutChange} = this.props;
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
@@ -316,7 +316,7 @@ class Dashboard extends Component<Props, State> {
     onLayoutChange(newLayouts[DESKTOP]);
   };
 
-  onBreakpointChange = newBreakpoint => {
+  handleBreakpointChange = newBreakpoint => {
     const {layouts} = this.state;
     const {
       dashboard: {widgets},
@@ -354,8 +354,8 @@ class Dashboard extends Component<Props, State> {
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
         layouts={layouts}
-        onLayoutChange={this.onLayoutChange}
-        onBreakpointChange={this.onBreakpointChange}
+        onLayoutChange={this.handleLayoutChange}
+        onBreakpointChange={this.handleBreakpointChange}
         isDraggable={canModifyLayout}
         isResizable={canModifyLayout}
         isBounded
