@@ -178,6 +178,8 @@ runs:
         fi
 
         if [ "$NEED_KAFKA" = "true" ]; then
+          echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
+          echo "SENTRY_ZOOKEEPER_HOSTS=sentry_zookeeper:2181" >> $GITHUB_ENV
           services="${services} zookeeper kafka"
         fi
 
