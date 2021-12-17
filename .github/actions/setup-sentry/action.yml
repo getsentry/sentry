@@ -178,9 +178,7 @@ runs:
         fi
 
         if [ "$NEED_KAFKA" = "true" ]; then
-          # HACK(joshuarli): zookeeper and kafka need some time to warm up.
-          #                  Need to author a healthcheck.
-          sentry devservices up zookeeper kafka
+          services="${services} zookeeper kafka"
         fi
 
         if [ "$NEED_BIGTABLE" ]; then
