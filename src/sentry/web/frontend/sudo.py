@@ -1,5 +1,6 @@
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.models import Authenticator
 from sentry.utils import json
 from sudo.views import SudoView as BaseSudoView
@@ -19,7 +20,13 @@ class SudoView(BaseSudoView):
         except LookupError:
             return False
 
-        challenge = interface.activate(request).challenge
+        orgs = request.user.get_orgs()
+        webauthn_ff = any(
+            features.has("organizations:webauthn-login", org, actor=request.user) for org in orgs
+        )
+
+        challenge = interface.activate(request, webauthn_ff).challenge
+
         if request.method == "POST":
             if "challenge" in request.POST and "response" in request.POST:
                 try:
@@ -28,7 +35,7 @@ class SudoView(BaseSudoView):
                 except ValueError:
                     pass
                 else:
-                    if interface.validate_response(request, challenge, response):
+                    if interface.validate_response(request, challenge, response, webauthn_ff):
                         return True
         context["u2f_challenge"] = challenge
         return False
