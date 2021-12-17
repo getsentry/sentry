@@ -8,6 +8,7 @@ import sentry_sdk
 from parsimonious.exceptions import ParseError
 from sentry_relay import parse_release as parse_release_relay
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk.column import Column
 from snuba_sdk.conditions import And, Condition, Op, Or
 from snuba_sdk.function import Function
 
@@ -1416,8 +1417,8 @@ class QueryFilter(QueryFields):
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
-        if lhs.subscriptable == "tags":
-            if not isinstance(value, str):
+        if isinstance(lhs, Column) and lhs.subscriptable == "tags":
+            if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
                 sentry_sdk.set_tag("query.lhs", lhs)
                 sentry_sdk.set_tag("query.rhs", value)
                 sentry_sdk.capture_message("Tag value was not a string", level="error")
