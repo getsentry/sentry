@@ -177,10 +177,8 @@ runs:
           services="${services} snuba"
         fi
 
-        # HACK(joshuarli): zookeeper and kafka need some time to warm up.
-        #                  Need to author a healthcheck.
         if [ "$NEED_KAFKA" = "true" ]; then
-          services="zookeeper kafka ${services}"
+          services="${services} zookeeper kafka"
         fi
 
         if [ "$NEED_BIGTABLE" ]; then
