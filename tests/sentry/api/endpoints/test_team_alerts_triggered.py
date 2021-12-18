@@ -98,8 +98,6 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
                 == 1
             )
 
-        assert False
-
     def test_not_as_simple(self):
         team_with_user = self.create_team(
             organization=self.organization, name="Lonely Team", members=[self.user]
