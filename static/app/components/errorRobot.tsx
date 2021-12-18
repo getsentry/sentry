@@ -93,6 +93,7 @@ class ErrorRobot extends Component<Props, State> {
           priority="link"
           clientData={{
             cta: {
+              id: 'sample_issue',
               title: t('Finish Setup'),
               shortTitle: t('Setup'),
               url: window.location.href,

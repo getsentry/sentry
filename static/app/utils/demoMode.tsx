@@ -1,8 +1,6 @@
-import getCookie from 'sentry/utils/getCookie';
-
 export function extraQueryParameter(): URLSearchParams {
-  // cookies that have = sign are quotes so extra quotes need to be removed
-  const extraQueryString = getCookie('extra_query_string')?.replaceAll('"', '') || '';
+  const extraQueryString =
+    window.SandboxData?.extraQueryString?.replaceAll('"', '') || '';
   const extraQuery = new URLSearchParams(extraQueryString);
   return extraQuery;
 }

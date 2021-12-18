@@ -51,7 +51,7 @@ export type GrowthEventParameters = {
   'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;
   'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
-  'growth.demo_click_get_started': {is_upgrade: boolean};
+  'growth.demo_click_get_started': {cta?: string};
   'growth.demo_click_docs': {};
   'growth.demo_click_request_demo': {};
   'growth.clicked_enter_sandbox': {
