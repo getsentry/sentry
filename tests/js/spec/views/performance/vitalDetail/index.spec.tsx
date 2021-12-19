@@ -1,4 +1,4 @@
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -20,6 +20,7 @@ const {
   routerContext,
   organization: org,
   router,
+  project,
 } = initializeOrg({
   ...initializeOrg(),
   organization,
@@ -32,13 +33,15 @@ const {
   },
 });
 
-function TestComponent() {
+function TestComponent(props: {router?: InjectedRouter; orgFeatures?: string[]} = {}) {
   return (
-    <OrganizationContext.Provider value={org}>
+    <OrganizationContext.Provider
+      value={{...org, features: [...org.features, ...(props.orgFeatures ?? [])]}}
+    >
       <VitalDetail
         api={api}
-        location={router.location}
-        router={router}
+        location={props.router?.location ?? router.location}
+        router={props.router ?? router}
         params={{}}
         route={{}}
         routes={[]}
@@ -234,6 +237,78 @@ describe('Performance > VitalDetail', () => {
     });
 
     expect((await screen.findByText('something')).closest('a')).toBeInTheDocument();
+  });
+
+  it('Check CLS', async function () {
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          query: 'anothertag:value',
+          vitalName: 'measurements.cls',
+        },
+      },
+    };
+
+    const newRouterContext = TestStubs.routerContext([
+      {
+        organization,
+        project,
+        router: newRouter,
+        location: newRouter.location,
+      },
+    ]);
+
+    mountWithTheme(<TestComponent router={newRouter} />, {
+      context: newRouterContext,
+    });
+
+    expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
+
+    expect(screen.getByText('something').closest('a')).toBeInTheDocument();
+
+    expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
+  });
+
+  it('Pagination links exist to switch between vitals', async function () {
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          project: 1,
+          query: 'tag:value',
+        },
+      },
+    };
+
+    const newRouterContext = TestStubs.routerContext([
+      {
+        organization,
+        project,
+        router: newRouter,
+        location: newRouter.location,
+      },
+    ]);
+
+    mountWithTheme(<TestComponent router={newRouter} />, {
+      context: newRouterContext,
+    });
+
+    expect(await screen.findByLabelText('Previous')).toBeInTheDocument();
+
+    userEvent.click(screen.getByLabelText('Previous'));
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {
+        project: 1,
+        query: 'tag:value',
+        vitalName: 'measurements.fcp',
+      },
+    });
   });
 
   it('Check LCP vital renders correctly', async function () {
