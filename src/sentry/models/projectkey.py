@@ -230,7 +230,11 @@ class ProjectKey(Model):
 
         if features.has("organizations:org-subdomains", self.project.organization):
             urlparts = urlparse(endpoint)
-            if urlparts.scheme and urlparts.netloc:
+            if (
+                urlparts.scheme
+                and urlparts.netloc
+                and urlparts.netloc.split(":")[0] not in ("localhost", "127.0.0.1")
+            ):
                 endpoint = "{}://{}.{}{}".format(
                     urlparts.scheme,
                     settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(
