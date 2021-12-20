@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {ComponentProps, useEffect} from 'react';
 import * as React from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -61,7 +61,9 @@ function SortableWidget(props: Props) {
     };
   }, [currentWidgetDragging]);
 
-  const widgetProps = {
+  let widgetProps:
+    | ComponentProps<typeof IssueWidgetCard>
+    | ComponentProps<typeof DiscoverWidgetCard> = {
     widget,
     isEditing,
     widgetLimitReached,
@@ -70,28 +72,33 @@ function SortableWidget(props: Props) {
     onDuplicate,
     isSorting,
     hideToolbar: isSorting,
-    hideDragHandle,
     currentWidgetDragging,
-    draggableProps: {
-      attributes,
-      listeners,
-    },
     showContextMenu: true,
   };
 
   const WidgetCard =
     widget.widgetType === WidgetType.ISSUE ? IssueWidgetCard : DiscoverWidgetCard;
 
-  const widgetCard = <WidgetCard {...widgetProps} />;
-
   if (organization.features.includes('dashboard-grid-layout')) {
-    return <GridWidgetWrapper>{widgetCard}</GridWidgetWrapper>;
+    widgetProps = {
+      ...widgetProps,
+      hideDragHandle,
+      // TODO(nar): These aren't necessary for supporting RGL
+      isSorting: false,
+      currentWidgetDragging: false,
+    };
+    return (
+      <GridWidgetWrapper>
+        <WidgetCard {...widgetProps} />
+      </GridWidgetWrapper>
+    );
   }
 
-  const initialStyles: React.ComponentProps<typeof DnDKitWidgetWrapper>['animate'] = {
+  const initialStyles: ComponentProps<typeof DnDKitWidgetWrapper>['animate'] = {
     zIndex: 'auto',
   };
 
+  widgetProps = {...widgetProps, draggableProps: {attributes, listeners}};
   return (
     <DnDKitWidgetWrapper
       ref={setNodeRef}
@@ -129,7 +136,7 @@ function SortableWidget(props: Props) {
         },
       }}
     >
-      {widgetCard}
+      <WidgetCard {...widgetProps} />
     </DnDKitWidgetWrapper>
   );
 }
