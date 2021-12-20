@@ -74,7 +74,7 @@ class IntegrationNudgeNotification(BaseNotification):
     def get_message_description(self) -> Any:
         return MESSAGE_LIBRARY[self.seed].format(provider=self.provider.name.capitalize())
 
-    def get_message_actions(self) -> Sequence[MessageAction]:
+    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         return [
             MessageAction(
                 name="Turn on personal notifications",
