@@ -9,7 +9,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import IssueWidgetCard from './issueWidgetCard';
 import {Widget, WidgetType} from './types';
-import WidgetCard from './widgetCard';
+import DiscoverWidgetCard from './widgetCard';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
 type Props = {
@@ -79,10 +79,10 @@ function SortableWidget(props: Props) {
     showContextMenu: true,
   };
 
-  const WidgetCardType =
-    widget.widgetType === WidgetType.ISSUE ? IssueWidgetCard : WidgetCard;
+  const WidgetCard =
+    widget.widgetType === WidgetType.ISSUE ? IssueWidgetCard : DiscoverWidgetCard;
 
-  const widgetCard = <WidgetCardType {...widgetProps} />;
+  const widgetCard = <WidgetCard {...widgetProps} />;
 
   if (organization.features.includes('dashboard-grid-layout')) {
     return <GridWidgetWrapper>{widgetCard}</GridWidgetWrapper>;
