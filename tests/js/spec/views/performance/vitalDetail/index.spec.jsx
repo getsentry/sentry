@@ -296,7 +296,7 @@ describe('Performance > VitalDetail', function () {
     // It shows a chart
     expect(wrapper.find('VitalChartMetrics')).toHaveLength(1);
 
-    // It does not show a table
+    // The table is still a TODO
     expect(wrapper.find('Table')).toHaveLength(0);
   });
 
