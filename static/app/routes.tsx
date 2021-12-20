@@ -1279,11 +1279,6 @@ function buildRoutes() {
         componentPromise={() => import('sentry/views/performance/transactionDetails')}
         component={SafeLazyLoad}
       />
-      <Route
-        path="compare/:baselineEventSlug/:regressionEventSlug/"
-        componentPromise={() => import('sentry/views/performance/compare')}
-        component={SafeLazyLoad}
-      />
     </Route>
   );
 

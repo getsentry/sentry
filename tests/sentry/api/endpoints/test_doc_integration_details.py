@@ -12,15 +12,16 @@ class DocIntegrationDetailsTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="jinx@lol.com")
         self.superuser = self.create_user(email="vi@lol.com", is_superuser=True)
-        self.doc_1 = self.create_doc_integration(name="test_1", is_draft=True)
+        self.doc_1 = self.create_doc_integration(name="test_1", is_draft=True, has_avatar=False)
         self.doc_2 = self.create_doc_integration(
             name="test_2",
             is_draft=False,
             metadata={"resources": [{"title": "Documentation", "url": "https://docs.sentry.io/"}]},
             features=[2, 3, 4],
+            has_avatar=True,
         )
         self.doc_delete = self.create_doc_integration(
-            name="test_3", is_draft=True, features=[1, 2, 3, 4, 5, 6, 7]
+            name="test_3", is_draft=True, features=[1, 2, 3, 4, 5, 6, 7], has_avatar=True
         )
 
 
@@ -33,17 +34,19 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         for those with superuser permissions
         """
         self.login_as(user=self.superuser, superuser=True)
-        # Non-draft DocIntegration, with features
+        # Non-draft DocIntegration, with features and an avatar
         response = self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK)
         assert serialize(self.doc_2) == response.data
         features = IntegrationFeature.objects.filter(
             target_id=self.doc_2.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
         )
         for feature in features:
-            assert serialize(feature) in serialize(self.doc_2)["features"]
-        # Draft DocIntegration, without features
+            assert serialize(feature) in response.data["features"]
+        assert serialize(self.doc_2.avatar.get()) == response.data["avatar"]
+        # Draft DocIntegration, without features or an avatar
         response = self.get_success_response(self.doc_1.slug, status_code=status.HTTP_200_OK)
         assert serialize(self.doc_1) == response.data
+        assert not response.data["avatar"]
 
     def test_read_doc_for_public(self):
         """
@@ -51,7 +54,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         are visible for those without superuser permissions
         """
         self.login_as(user=self.user)
-        # Non-draft DocIntegration, with features
+        # Non-draft DocIntegration, with features and an avatar
         response = self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK)
         assert serialize(self.doc_2) == response.data
         features = IntegrationFeature.objects.filter(
@@ -59,7 +62,8 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         )
         for feature in features:
             assert serialize(feature) in serialize(self.doc_2)["features"]
-        # Draft DocIntegration, without features
+        assert serialize(self.doc_2.avatar.get()) == response.data["avatar"]
+        # Draft DocIntegration, without features or an avatar
         self.get_error_response(self.doc_1.slug, status_code=status.HTTP_403_FORBIDDEN)
 
 
@@ -212,16 +216,20 @@ class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     def test_delete_valid_for_superuser(self):
         """
         Tests that the delete method works for those with superuser
-        permissions, deleting the DocIntegration and associated IntegrationFeatures
+        permissions, deleting the DocIntegration and associated
+        IntegrationFeatures and DocIntegrationAvatar
         """
         self.login_as(user=self.superuser, superuser=True)
-        self.get_success_response(self.doc_delete.slug, status_code=status.HTTP_204_NO_CONTENT)
-        with self.assertRaises(DocIntegration.DoesNotExist):
-            DocIntegration.objects.get(id=self.doc_delete.id)
         features = IntegrationFeature.objects.filter(
             target_id=self.doc_delete.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
         )
+        assert features.exists()
+        assert self.doc_delete.avatar.exists()
+        self.get_success_response(self.doc_delete.slug, status_code=status.HTTP_204_NO_CONTENT)
+        with self.assertRaises(DocIntegration.DoesNotExist):
+            DocIntegration.objects.get(id=self.doc_delete.id)
         assert not features.exists()
+        assert not self.doc_delete.avatar.exists()
 
     def test_delete_invalid_for_public(self):
         """
@@ -236,3 +244,4 @@ class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         )
         assert features.exists()
         assert len(features) == 7
+        assert self.doc_delete.avatar.exists()

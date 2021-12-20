@@ -6,6 +6,7 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
+from sentry.api.fields.avatar import AvatarField
 from sentry.api.serializers.rest_framework.sentry_app import URLField
 from sentry.api.validators.doc_integration import validate_metadata_schema
 from sentry.models.integration import DocIntegration
@@ -95,3 +96,16 @@ class DocIntegrationSerializer(Serializer):
             setattr(doc_integration, key, value)
         doc_integration.save()
         return doc_integration
+
+
+class DocIntegrationAvatarSerializer(Serializer):
+    avatar_photo = AvatarField(required=True)
+    avatar_type = serializers.ChoiceField(choices=(("upload", "upload")))
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        if not attrs.get("avatar_photo"):
+            raise serializers.ValidationError({"avatar_photo": "A logo is required."})
+
+        return attrs
