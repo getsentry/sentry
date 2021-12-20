@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed
 from django.utils.deprecation import MiddlewareMixin
+from rest_framework.request import Request
 
 
 class SetRemoteAddrFromForwardedFor(MiddlewareMixin):
@@ -19,7 +20,7 @@ class SetRemoteAddrFromForwardedFor(MiddlewareMixin):
             return ip_address.rsplit(":", 1)[0]
         return ip_address
 
-    def process_request(self, request):
+    def process_request(self, request: Request):
         try:
             real_ip = request.META["HTTP_X_FORWARDED_FOR"]
         except KeyError:

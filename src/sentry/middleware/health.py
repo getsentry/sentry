@@ -2,12 +2,13 @@ import itertools
 
 from django.http import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
+from rest_framework.request import Request
 
 from sentry.utils.compat import filter
 
 
 class HealthCheck(MiddlewareMixin):
-    def process_request(self, request):
+    def process_request(self, request: Request):
         # Our health check can't be a done as a view, because we need
         # to bypass the ALLOWED_HOSTS check. We need to do this
         # since not all load balancers can send the expected Host header

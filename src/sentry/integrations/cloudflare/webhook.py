@@ -4,6 +4,7 @@ from functools import wraps
 from hashlib import sha256
 
 from django.utils.crypto import constant_time_compare
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
@@ -16,7 +17,7 @@ logger = logging.getLogger("sentry.integrations.cloudflare")
 
 def requires_auth(func):
     @wraps(func)
-    def wrapped(self, request, *args, **kwargs):
+    def wrapped(self, request: Request, *args, **kwargs) -> Response:
         if not request.user.is_authenticated:
             return Response({"proceed": False}, 401)
         return func(self, request, *args, **kwargs)

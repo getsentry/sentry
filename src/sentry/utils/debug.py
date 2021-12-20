@@ -6,6 +6,8 @@ from io import StringIO
 
 from django.conf import settings
 from django.http import HttpResponse
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.auth.superuser import is_active_superuser
 
@@ -19,7 +21,7 @@ group_prefix_re = [
 
 
 class ProfileMiddleware:
-    def can(self, request):
+    def can(self, request: Request):
         if "prof" not in request.GET:
             return False
         if settings.DEBUG:
@@ -28,7 +30,7 @@ class ProfileMiddleware:
             return True
         return False
 
-    def process_view(self, request, callback, callback_args, callback_kwargs):
+    def process_view(self, request: Request, callback, callback_args, callback_kwargs):
         if not self.can(request):
             return
         self.prof = cProfile.Profile()
@@ -130,7 +132,7 @@ class ProfileMiddleware:
             + "\n"
         )
 
-    def process_response(self, request, response):
+    def process_response(self, request: Request, response: Response) -> Response:
         if not self.can(request):
             return response
 

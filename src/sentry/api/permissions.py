@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from rest_framework.request import Request
 
 from sentry.api.exceptions import (
     MemberDisabledOverLimit,
@@ -13,17 +14,17 @@ from sentry.utils import auth
 
 
 class RelayPermission(permissions.BasePermission):
-    def has_permission(self, request, view):
+    def has_permission(self, request: Request, view):
         return getattr(request, "relay", None) is not None
 
 
 class SystemPermission(permissions.BasePermission):
-    def has_permission(self, request, view):
+    def has_permission(self, request: Request, view):
         return is_system_auth(request.auth)
 
 
 class NoPermission(permissions.BasePermission):
-    def has_permission(self, request, view):
+    def has_permission(self, request: Request, view):
         return False
 
 
@@ -40,7 +41,7 @@ class ScopedPermission(permissions.BasePermission):
 
     scope_map = {"HEAD": (), "GET": (), "POST": (), "PUT": (), "PATCH": (), "DELETE": ()}
 
-    def has_permission(self, request, view):
+    def has_permission(self, request: Request, view):
         # session-based auth has all scopes for a logged in user
         if not getattr(request, "auth", None):
             return request.user.is_authenticated
@@ -49,12 +50,12 @@ class ScopedPermission(permissions.BasePermission):
         current_scopes = request.auth.get_scopes()
         return any(s in allowed_scopes for s in current_scopes)
 
-    def has_object_permission(self, request, view, obj):
+    def has_object_permission(self, request: Request, view, obj):
         return False
 
 
 class SuperuserPermission(permissions.BasePermission):
-    def has_permission(self, request, view):
+    def has_permission(self, request: Request, view):
         if is_active_superuser(request):
             return True
         if request.user.is_authenticated and request.user.is_superuser:
@@ -63,16 +64,16 @@ class SuperuserPermission(permissions.BasePermission):
 
 
 class SentryPermission(ScopedPermission):
-    def is_not_2fa_compliant(self, request, organization):
+    def is_not_2fa_compliant(self, request: Request, organization):
         return False
 
-    def needs_sso(self, request, organization):
+    def needs_sso(self, request: Request, organization):
         return False
 
-    def is_member_disabled_from_limit(self, request, organization):
+    def is_member_disabled_from_limit(self, request: Request, organization):
         return False
 
-    def determine_access(self, request, organization):
+    def determine_access(self, request: Request, organization):
         from sentry.api.base import logger
 
         if request.user and request.user.is_authenticated and request.auth:

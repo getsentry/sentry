@@ -1,6 +1,7 @@
 import sentry_sdk
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -113,7 +114,7 @@ class DataExportQuerySerializer(serializers.Serializer):
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     permission_classes = (OrganizationDataExportPermission,)
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create a new asynchronous file export task, and
         email user upon completion,
