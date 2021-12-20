@@ -154,6 +154,9 @@ class Dashboard extends Component<Props, State> {
       organization,
     });
     if (organization.features.includes('widget-library')) {
+      trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
+        organization,
+      });
       openDashboardWidgetLibraryModal({
         organization,
         dashboard,
