@@ -26,6 +26,7 @@ import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from 'sentry/views/dashboardsV2/addWidget';
+import SortableWidget from 'sentry/views/dashboardsV2/sortableWidget';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -33,8 +34,6 @@ import {
   Widget,
 } from 'sentry/views/dashboardsV2/types';
 import {DataSet} from 'sentry/views/dashboardsV2/widget/utils';
-
-import SortableWidget from './sortableWidget';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const WIDGET_PREFIX = 'grid-item';
