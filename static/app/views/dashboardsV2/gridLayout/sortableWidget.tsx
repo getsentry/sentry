@@ -9,6 +9,7 @@ type Props = {
   widget: Widget;
   dragId: string;
   isEditing: boolean;
+  hideDragHandle?: boolean;
   onDelete: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
@@ -19,6 +20,7 @@ function SortableWidget({
   widget,
   isEditing,
   widgetLimitReached,
+  hideDragHandle,
   onDelete,
   onEdit,
   onDuplicate,
@@ -29,6 +31,7 @@ function SortableWidget({
     widgetLimitReached,
     onDelete,
     onEdit,
+    hideDragHandle,
     onDuplicate,
     showContextMenu: true,
     // TODO(nar): These aren't necessary for supporting RGL
