@@ -1,4 +1,5 @@
 import logging
+import random
 from copy import deepcopy
 from datetime import timedelta
 
@@ -201,6 +202,10 @@ class SnubaEventStorage(EventStorage):
                 selected_columns=["group_id"],
                 start=event.datetime,
                 end=event.datetime + timedelta(seconds=1),
+                # XXX: This is a hack to bust the snuba cache. We want to avoid the case where
+                # we cache an empty result, since this can result in us failing to fetch new events
+                # in some cases.
+                conditions=[["timestamp", ">", random.randint(0, 1000000000)]],
                 filter_keys={"project_id": [project_id], "event_id": [event_id]},
                 limit=1,
                 referrer="eventstore.get_event_by_id_nodestore",
