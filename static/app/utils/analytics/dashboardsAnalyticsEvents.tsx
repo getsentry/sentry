@@ -18,8 +18,11 @@ export type DashboardsEventParameters = {
   };
   'dashboards_views.add_widget_modal.confirm': {};
   'dashboards_views.edit_widget_modal.confirm': {};
-  'dashboards_views.widget_library.prebuilt_added': {
+  'dashboards_views.widget_library.add': {
     num_widgets: number;
+  };
+  'dashboards_views.widget_library.add_widget': {
+    title: string;
   };
   'dashboards_views.widget_library.switch_tab': {
     to: string;
@@ -51,8 +54,9 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
     'Dashboards2: Add Widget to Dashboard modal form submitted',
   'dashboards_views.edit_widget_modal.confirm':
     'Dashboards2: Edit Dashboard Widget modal form submitted',
-  'dashboards_views.widget_library.prebuilt_added':
-    'Dashboards2: Prebuilt Widgets added from Library',
+  'dashboards_views.widget_library.add': 'Dashboards2: Number of prebuilt widgets added',
+  'dashboards_views.widget_library.add_widget':
+    'Dashboards2: Title of prebuilt widget added',
   'dashboards_views.widget_library.switch_tab':
     'Dashboards2: Widget Library tab switched',
   'dashboards_views.widget_library.opened': 'Dashboards2: Add Widget Library opened',

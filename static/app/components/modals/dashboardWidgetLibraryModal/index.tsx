@@ -99,13 +99,19 @@ function DashboardWidgetLibraryModal({
                   setErrored(true);
                   return;
                 }
-                trackAdvancedAnalyticsEvent(
-                  'dashboards_views.widget_library.prebuilt_added',
-                  {
-                    organization,
-                    num_widgets: selectedWidgets.length,
-                  }
-                );
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_library.add', {
+                  organization,
+                  num_widgets: selectedWidgets.length,
+                });
+                selectedWidgets.map(selectedWidget => {
+                  trackAdvancedAnalyticsEvent(
+                    'dashboards_views.widget_library.add_widget',
+                    {
+                      organization,
+                      title: selectedWidget.title,
+                    }
+                  );
+                });
                 handleSubmit();
               }}
             >
