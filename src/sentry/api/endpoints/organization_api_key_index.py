@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationAdminPermission, OrganizationEndpoint
@@ -11,7 +12,7 @@ DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member
 class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAdminPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's API Keys
         ```````````````````````````````````
@@ -23,7 +24,7 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
 
         return Response(serialize(queryset, request.user))
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create an Organization API Key
         ```````````````````````````````````

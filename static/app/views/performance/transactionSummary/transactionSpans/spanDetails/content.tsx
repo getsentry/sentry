@@ -10,11 +10,16 @@ import {t, tn} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatPercentage} from 'sentry/utils/formatters';
-import SpanExamplesQuery from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
-import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
+import SpanExamplesQuery, {
+  ChildrenProps as SpanExamplesProps,
+} from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
+import SuspectSpansQuery, {
+  ChildrenProps as SuspectSpansProps,
+} from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
@@ -115,8 +120,8 @@ type ContentProps = {
   spanSlug: SpanSlug;
   transactionName: string;
   totalCount: number;
-  suspectSpansResults: any;
-  spanExamplesResults: any;
+  suspectSpansResults: SuspectSpansProps;
+  spanExamplesResults: SpanExamplesProps;
 };
 
 function SpanDetailsContent(props: ContentProps) {
@@ -160,7 +165,8 @@ function SpanDetailsContent(props: ContentProps) {
         organization={organization}
         suspectSpan={suspectSpan}
         transactionName={transactionName}
-        examples={examples ?? null}
+        isLoading={spanExamplesResults.isLoading}
+        examples={examples ?? []}
         pageLinks={spanExamplesResults.pageLinks}
       />
     </Fragment>
@@ -177,9 +183,13 @@ type HeaderProps = {
 function SpanDetailsHeader(props: HeaderProps) {
   const {spanSlug, description, suspectSpan, totalCount} = props;
 
-  const frequency = totalCount
-    ? Math.min(suspectSpan.frequency, totalCount)
-    : suspectSpan.frequency;
+  const {
+    frequency,
+    p75ExclusiveTime,
+    p95ExclusiveTime,
+    p99ExclusiveTime,
+    sumExclusiveTime,
+  } = suspectSpan;
 
   return (
     <ContentHeader>
@@ -195,28 +205,31 @@ function SpanDetailsHeader(props: HeaderProps) {
         <PercentileHeaderBodyWrapper>
           <div data-test-id="section-p75">
             <SectionBody>
-              <PerformanceDuration
-                abbreviation
-                milliseconds={suspectSpan.p75ExclusiveTime}
-              />
+              {defined(p75ExclusiveTime) ? (
+                <PerformanceDuration abbreviation milliseconds={p75ExclusiveTime} />
+              ) : (
+                '\u2014'
+              )}
             </SectionBody>
             <SectionSubtext>{t('p75')}</SectionSubtext>
           </div>
           <div data-test-id="section-p95">
             <SectionBody>
-              <PerformanceDuration
-                abbreviation
-                milliseconds={suspectSpan.p95ExclusiveTime}
-              />
+              {defined(p95ExclusiveTime) ? (
+                <PerformanceDuration abbreviation milliseconds={p95ExclusiveTime} />
+              ) : (
+                '\u2014'
+              )}
             </SectionBody>
             <SectionSubtext>{t('p95')}</SectionSubtext>
           </div>
           <div data-test-id="section-p99">
             <SectionBody>
-              <PerformanceDuration
-                abbreviation
-                milliseconds={suspectSpan.p99ExclusiveTime}
-              />
+              {defined(p99ExclusiveTime) ? (
+                <PerformanceDuration abbreviation milliseconds={p99ExclusiveTime} />
+              ) : (
+                '\u2014'
+              )}
             </SectionBody>
             <SectionSubtext>{t('p99')}</SectionSubtext>
           </div>
@@ -225,14 +238,20 @@ function SpanDetailsHeader(props: HeaderProps) {
       <HeaderInfo data-test-id="header-frequency">
         <SectionHeading>{t('Frequency')}</SectionHeading>
         <SectionBody>
-          {totalCount ? formatPercentage(frequency / totalCount) : '\u2014'}
+          {defined(frequency) && defined(totalCount)
+            ? formatPercentage(Math.min(frequency, totalCount) / totalCount)
+            : '\u2014'}
         </SectionBody>
         <SectionSubtext>{tn('%s event', '%s events', frequency)}</SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
         <SectionHeading>{t('Total Exclusive Time')}</SectionHeading>
         <SectionBody>
-          <PerformanceDuration abbreviation milliseconds={suspectSpan.sumExclusiveTime} />
+          {defined(sumExclusiveTime) ? (
+            <PerformanceDuration abbreviation milliseconds={sumExclusiveTime} />
+          ) : (
+            '\u2014'
+          )}
         </SectionBody>
         <SectionSubtext>TBD</SectionSubtext>
       </HeaderInfo>

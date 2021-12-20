@@ -17,7 +17,7 @@ logger = logging.getLogger("sentry.integrations.cloudflare")
 
 def requires_auth(func):
     @wraps(func)
-    def wrapped(self, request: Request, *args, **kwargs):
+    def wrapped(self, request: Request, *args, **kwargs) -> Response:
         if not request.user.is_authenticated:
             return Response({"proceed": False}, 401)
         return func(self, request, *args, **kwargs)

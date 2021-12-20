@@ -8,6 +8,7 @@ import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {constructGridItemKey} from 'sentry/views/dashboardsV2/gridLayout/dashboard';
 import {DashboardState} from 'sentry/views/dashboardsV2/types';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
@@ -63,6 +64,9 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      if (wrapper) {
+        wrapper.unmount();
+      }
     });
 
     it('can delete', async function () {
@@ -183,6 +187,64 @@ describe('Dashboards > Detail', function () {
         .props();
       expect(editProps.disabled).toBe(true);
       expect(mockVisit).not.toHaveBeenCalled();
+    });
+
+    it('assigns unique IDs to all widgets so grid keys are unique', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/default-overview/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'Default Widget 1',
+                interval: '1d',
+              }
+            ),
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
+              {
+                title: 'Default Widget 2',
+                interval: '1d',
+              }
+            ),
+          ],
+          {id: 'default-overview', title: 'Default'}
+        ),
+      });
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'discover-query',
+            'dashboard-grid-layout',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      const dashboardInstance = wrapper.find('Dashboard').instance();
+      const assignedIds = new Set(
+        dashboardInstance.props.dashboard.widgets.map(constructGridItemKey)
+      );
+      expect(assignedIds.size).toBe(dashboardInstance.props.dashboard.widgets.length);
     });
   });
 

@@ -1,9 +1,14 @@
+from collections import defaultdict
 from enum import Enum
+from typing import List, Union
 
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model
+from sentry.db.models.manager import BaseManager
+from sentry.models.integration import DocIntegration
+from sentry.models.sentryapp import SentryApp
 
 
 class Feature:
@@ -75,8 +80,26 @@ class IntegrationTypes(Enum):
     DOC_INTEGRATION = 1
 
 
+class IntegrationFeatureManager(BaseManager):
+    def get_by_targets_as_dict(
+        self, targets: List[Union[SentryApp, DocIntegration]], target_type: IntegrationTypes
+    ):
+        """
+        Returns a Dict mapping target_id (key) to List[IntegrationFeatures] (value)
+        """
+        features = self.filter(
+            target_type=target_type.value, target_id__in={target.id for target in targets}
+        )
+        features_by_target = defaultdict(set)
+        for feature in features:
+            features_by_target[feature.target_id].add(feature)
+        return features_by_target
+
+
 class IntegrationFeature(Model):
     __include_in_export__ = False
+
+    objects = IntegrationFeatureManager()
 
     # the id of the sentry_app or doc_integration
     target_id = BoundedBigIntegerField()

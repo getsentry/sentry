@@ -3,8 +3,10 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils.http import is_safe_url
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import SsoRequired
@@ -30,14 +32,20 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
-    def get(self, request):
+    def check_can_webauthn_signin(self, user, request_user):
+        orgs = user.get_orgs()
+        return any(
+            features.has("organizations:webauthn-login", org, actor=request_user) for org in orgs
+        )
+
+    def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         user = extract_lazy_object(request._request.user)
         return Response(serialize(user, user, DetailedUserSerializer()))
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         """
         Authenticate a User
         ```````````````````
@@ -82,7 +90,7 @@ class AuthIndexEndpoint(Endpoint):
 
         return self.get(request)
 
-    def put(self, request):
+    def put(self, request: Request):
         """
         Verify a User
         `````````````
@@ -99,17 +107,18 @@ class AuthIndexEndpoint(Endpoint):
             return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         authenticated = False
-
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
                 interface = Authenticator.objects.get_interface(request.user, "u2f")
                 if not interface.is_enrolled():
                     raise LookupError()
-
                 challenge = json.loads(validator.validated_data["challenge"])
                 response = json.loads(validator.validated_data["response"])
-                authenticated = interface.validate_response(request, challenge, response)
+                can_webauthn_signin = self.check_can_webauthn_signin(request.user, request.user)
+                authenticated = interface.validate_response(
+                    request, challenge, response, can_webauthn_signin
+                )
             except ValueError:
                 pass
             except LookupError:
@@ -149,7 +158,7 @@ class AuthIndexEndpoint(Endpoint):
 
         return self.get(request)
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args, **kwargs) -> Response:
         """
         Logout the Authenticated User
         `````````````````````````````

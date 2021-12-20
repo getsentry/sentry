@@ -11,6 +11,8 @@ class DocIntegrationAvatar(AvatarBase):
     A DocIntegrationAvatar associates a DocIntegration with a logo photo File.
     """
 
+    AVATAR_TYPES = ((0, "upload"),)
+
     FILE_TYPE = "avatar.file"
 
     doc_integration = FlexibleForeignKey("sentry.DocIntegration", related_name="avatar")

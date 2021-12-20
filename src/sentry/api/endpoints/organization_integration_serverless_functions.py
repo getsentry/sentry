@@ -13,8 +13,12 @@ class ServerlessActionSerializer(CamelSnakeSerializer):
     target = serializers.CharField()
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegrationBaseEndpoint):
-    def get(self, request, organization, integration_id):
+    def get(self, request: Request, organization, integration_id) -> Response:
         """
         Get the list of repository project path configs in an integration
         """
@@ -31,7 +35,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
 
         return self.respond(serverless_functions)
 
-    def post(self, request, organization, integration_id):
+    def post(self, request: Request, organization, integration_id) -> Response:
         integration = self.get_integration(organization, integration_id)
         install = integration.get_installation(organization.id)
 

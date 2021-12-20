@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits, roles
@@ -76,7 +77,7 @@ class RelaxedMemberPermission(OrganizationPermission):
 class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedMemberPermission]
 
-    def _get_member(self, request, organization, member_id):
+    def _get_member(self, request: Request, organization, member_id):
         if member_id == "me":
             queryset = OrganizationMember.objects.filter(
                 organization=organization, user__id=request.user.id, user__is_active=True
@@ -123,7 +124,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return context
 
-    def get(self, request, organization, member_id):
+    def get(self, request: Request, organization, member_id) -> Response:
         """Currently only returns allowed invite roles for member invite"""
 
         try:
@@ -137,7 +138,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return Response(context)
 
-    def put(self, request, organization, member_id):
+    def put(self, request: Request, organization, member_id) -> Response:
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
@@ -244,7 +245,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return Response(context)
 
-    def delete(self, request, organization, member_id):
+    def delete(self, request: Request, organization, member_id) -> Response:
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:

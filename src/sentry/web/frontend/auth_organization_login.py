@@ -2,6 +2,8 @@ from django.contrib import messages
 from django.db import transaction
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
@@ -10,10 +12,10 @@ from sentry.web.frontend.auth_login import AuthLoginView
 
 
 class AuthOrganizationLoginView(AuthLoginView):
-    def respond_login(self, request, context, *args, **kwargs):
+    def respond_login(self, request: Request, context, *args, **kwargs) -> Response:
         return self.respond("sentry/organization-login.html", context)
 
-    def handle_sso(self, request, organization, auth_provider):
+    def handle_sso(self, request: Request, organization, auth_provider):
         if request.method == "POST":
             helper = AuthHelper(
                 request=request,
@@ -44,7 +46,7 @@ class AuthOrganizationLoginView(AuthLoginView):
 
     @never_cache
     @transaction.atomic
-    def handle(self, request, organization_slug):
+    def handle(self, request: Request, organization_slug) -> Response:
         try:
             organization = Organization.objects.get(slug=organization_slug)
         except Organization.DoesNotExist:
