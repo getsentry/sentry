@@ -5,6 +5,7 @@ from zipfile import ZipFile
 from django.http.response import FileResponse
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -177,7 +178,7 @@ class ReleaseFileDetailsMixin:
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project, version, file_id):
+    def get(self, request: Request, project, version, file_id) -> Response:
         """
         Retrieve a Project Release's File
         `````````````````````````````````
@@ -208,7 +209,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             check_permission_fn=lambda: has_download_permission(request, project),
         )
 
-    def put(self, request, project, version, file_id):
+    def put(self, request: Request, project, version, file_id) -> Response:
         """
         Update a File
         `````````````
@@ -235,7 +236,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
 
         return self.update_releasefile(request, release, file_id)
 
-    def delete(self, request, project, version, file_id):
+    def delete(self, request: Request, project, version, file_id) -> Response:
         """
         Delete a File
         `````````````

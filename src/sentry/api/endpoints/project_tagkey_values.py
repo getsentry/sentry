@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
@@ -8,7 +11,7 @@ from sentry.models import Environment
 
 
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
-    def get(self, request, project, key):
+    def get(self, request: Request, project, key) -> Response:
         """
         List a Tag's Values
         ```````````````````

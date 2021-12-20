@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import release_health
@@ -24,7 +25,7 @@ def upsert_missing_release(project, version):
 class ProjectReleaseStatsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project, version):
+    def get(self, request: Request, project, version) -> Response:
         """
         Get a Project Release's Stats
         `````````````````````````````

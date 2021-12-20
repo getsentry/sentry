@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -7,7 +8,7 @@ from sentry.rules import rules
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Retrieve the list of configuration options for a given project.
         """

@@ -6,6 +6,7 @@ from itertools import chain
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
@@ -360,7 +361,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Retrieve a Project
         ``````````````````
@@ -385,7 +386,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
-    def put(self, request, project):
+    def put(self, request: Request, project) -> Response:
         """
         Update a Project
         ````````````````
@@ -752,7 +753,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
     @sudo_required
-    def delete(self, request, project):
+    def delete(self, request: Request, project) -> Response:
         """
         Delete a Project
         ````````````````

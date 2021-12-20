@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -35,7 +36,7 @@ def replace_keys(html, project_key):
 
 
 class ProjectDocsPlatformEndpoint(ProjectEndpoint):
-    def get(self, request, project, platform):
+    def get(self, request: Request, project, platform) -> Response:
         data = load_doc(platform)
         if not data:
             raise ResourceDoesNotExist

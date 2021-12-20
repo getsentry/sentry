@@ -1,5 +1,6 @@
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -106,7 +107,7 @@ class ProjectOwnershipMixin:
 
 
 class ProjectOwnershipEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Retrieve a Project's Ownership configuration
         ````````````````````````````````````````````
@@ -117,7 +118,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
         """
         return Response(serialize(self.get_ownership(project), request.user))
 
-    def put(self, request, project):
+    def put(self, request: Request, project) -> Response:
         """
         Update a Project's Ownership configuration
         ``````````````````````````````````````````

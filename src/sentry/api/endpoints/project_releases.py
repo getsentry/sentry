@@ -1,5 +1,6 @@
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
@@ -17,7 +18,7 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a Project's Releases
         `````````````````````````
@@ -67,7 +68,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             ),
         )
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         """
         Create a New Release for a Project
         ``````````````````````````````````

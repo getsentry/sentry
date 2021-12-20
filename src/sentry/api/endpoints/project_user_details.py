@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -8,11 +9,11 @@ from sentry.models import EventUser
 
 
 class ProjectUserDetailsEndpoint(ProjectEndpoint):
-    def get(self, request, project, user_hash):
+    def get(self, request: Request, project, user_hash) -> Response:
         euser = EventUser.objects.get(project_id=project.id, hash=user_hash)
         return Response(serialize(euser, request.user))
 
-    def delete(self, request, project, user_hash):
+    def delete(self, request: Request, project, user_hash) -> Response:
         """
         Delete an Event User
         ````````````````````````````````

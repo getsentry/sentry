@@ -1,5 +1,6 @@
 import functools
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore
@@ -38,7 +39,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     @track_slo_response("workflow")
     @rate_limit_endpoint(limit=3, window=1)
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a Project's Issues
         ```````````````````````
@@ -170,7 +171,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         return response
 
     @track_slo_response("workflow")
-    def put(self, request, project):
+    def put(self, request: Request, project) -> Response:
         """
         Bulk Mutate a List of Issues
         ````````````````````````````
@@ -238,7 +239,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         )
 
     @track_slo_response("workflow")
-    def delete(self, request, project):
+    def delete(self, request: Request, project) -> Response:
         """
         Bulk Remove a List of Issues
         ````````````````````````````
