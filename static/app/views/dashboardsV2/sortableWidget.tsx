@@ -1,31 +1,41 @@
 import {useEffect} from 'react';
 import * as React from 'react';
 import {useSortable} from '@dnd-kit/sortable';
+import styled from '@emotion/styled';
 
+import {Organization} from 'sentry/types';
 import theme from 'sentry/utils/theme';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import IssueWidgetCard from './issueWidgetCard';
 import {Widget, WidgetType} from './types';
 import WidgetCard from './widgetCard';
-import WidgetWrapper from './widgetWrapper';
-
-const initialStyles: React.ComponentProps<typeof WidgetWrapper>['animate'] = {
-  zIndex: 'auto',
-};
+import DnDKitWidgetWrapper from './widgetWrapper';
 
 type Props = {
   widget: Widget;
   dragId: string;
   isEditing: boolean;
+  hideDragHandle?: boolean;
   onDelete: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
   widgetLimitReached: boolean;
+  organization: Organization;
 };
 
 function SortableWidget(props: Props) {
-  const {widget, dragId, isEditing, widgetLimitReached, onDelete, onEdit, onDuplicate} =
-    props;
+  const {
+    organization,
+    widget,
+    dragId,
+    isEditing,
+    widgetLimitReached,
+    hideDragHandle,
+    onDelete,
+    onEdit,
+    onDuplicate,
+  } = props;
 
   const {
     attributes,
@@ -60,6 +70,7 @@ function SortableWidget(props: Props) {
     onDuplicate,
     isSorting,
     hideToolbar: isSorting,
+    hideDragHandle,
     currentWidgetDragging,
     draggableProps: {
       attributes,
@@ -68,8 +79,21 @@ function SortableWidget(props: Props) {
     showContextMenu: true,
   };
 
+  const WidgetCardType =
+    widget.widgetType === WidgetType.ISSUE ? IssueWidgetCard : WidgetCard;
+
+  const widgetCard = <WidgetCardType {...widgetProps} />;
+
+  if (organization.features.includes('dashboard-grid-layout')) {
+    return <GridWidgetWrapper>{widgetCard}</GridWidgetWrapper>;
+  }
+
+  const initialStyles: React.ComponentProps<typeof DnDKitWidgetWrapper>['animate'] = {
+    zIndex: 'auto',
+  };
+
   return (
-    <WidgetWrapper
+    <DnDKitWidgetWrapper
       ref={setNodeRef}
       displayType={widget.displayType}
       layoutId={dragId}
@@ -105,13 +129,13 @@ function SortableWidget(props: Props) {
         },
       }}
     >
-      {widget.widgetType === WidgetType.ISSUE ? (
-        <IssueWidgetCard {...widgetProps} />
-      ) : (
-        <WidgetCard {...widgetProps} />
-      )}
-    </WidgetWrapper>
+      {widgetCard}
+    </DnDKitWidgetWrapper>
   );
 }
 
-export default SortableWidget;
+export default withOrganization(SortableWidget);
+
+const GridWidgetWrapper = styled('div')`
+  height: 100%;
+`;
