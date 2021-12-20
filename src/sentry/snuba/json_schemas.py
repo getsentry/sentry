@@ -9,30 +9,6 @@ SUBSCRIPTION_WRAPPER_SCHEMA = {
 
 
 SUBSCRIPTION_PAYLOAD_VERSIONS: Mapping[int, Mapping[str, Any]] = {
-    1: {
-        "type": "object",
-        "properties": {
-            "subscription_id": {"type": "string", "minLength": 1},
-            "values": {
-                "type": "object",
-                "properties": {
-                    "data": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {
-                            "type": "object",
-                            "minProperties": 1,
-                            "additionalProperties": {"type": "number"},
-                        },
-                    }
-                },
-                "required": ["data"],
-            },
-            "timestamp": {"type": "string", "format": "date-time"},
-        },
-        "required": ["subscription_id", "values", "timestamp"],
-        "additionalProperties": False,
-    },
     2: {
         "type": "object",
         "properties": {

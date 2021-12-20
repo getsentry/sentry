@@ -32,14 +32,6 @@ class BaseQuerySubscriptionTest:
         return {"version": 2, "payload": self.valid_payload}
 
     @fixture
-    def old_payload(self):
-        return {
-            "subscription_id": "1234",
-            "values": {"data": [{"hello": 50}]},
-            "timestamp": "2020-01-01T01:23:45.1234",
-        }
-
-    @fixture
     def valid_payload(self):
         return {
             "subscription_id": "1234",
@@ -160,9 +152,6 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
         payload = deepcopy(self.valid_payload)
         payload["result"]["data"][0]["hello"] = float("nan")
         self.run_test({"version": 2, "payload": payload})
-
-    def test_old_version(self):
-        self.run_test({"version": 1, "payload": self.old_payload})
 
     def test_invalid_wrapper(self):
         self.run_invalid_schema_test({})
