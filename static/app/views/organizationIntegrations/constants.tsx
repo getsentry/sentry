@@ -78,6 +78,7 @@ export const documentIntegrationList: DocumentIntegration[] = [
       'The Sentry-FullStory integration seamlessly integrates the Sentry and FullStory platforms. When you look at a browser error in Sentry, you will see a link to the FullStory session replay at that exact moment in time. When you are watching a FullStory replay and your user experiences an error, you will see a link that will take you to that error in Sentry.',
     features: [
       {
+        featureId: 12, // TODO(Add to integrationfeature.py)
         featureGate: 'session-replay',
         description:
           'Links Sentry errors to the FullStory session replay and vice-versa.',
@@ -104,11 +105,13 @@ export const documentIntegrationList: DocumentIntegration[] = [
       'Quickly discover relationships between production apps and systems performance. See correlations between Sentry events and metrics from infra services like AWS, Elasticsearch, Docker, and Kafka can save time detecting sources of future spikes.',
     features: [
       {
+        featureId: 5,
         featureGate: 'incident-management',
         description:
           'Manage incidents and outages by sending Sentry notifications to DataDog.',
       },
       {
+        featureId: 7,
         featureGate: 'alert-rule',
         description:
           'Configure Sentry rules to trigger notifications based on conditions you set through the Sentry webhook integration.',
@@ -127,6 +130,7 @@ export const documentIntegrationList: DocumentIntegration[] = [
       'Asayer is a session replay tool for developers. Replay each user session alongside your front/backend logs and other data spread across your stack so you can immediately find, reproduce and fix bugs faster.',
     features: [
       {
+        featureId: 12, // TODO(Add to integrationfeature.py)
         featureGate: 'session-replay',
         description:
           'By integrating Sentry with Asayer, you can see the moments that precede and that lead up to each problem. You can sync your Sentry logs alongside your session replay, JS console and network activity to gain complete visibility over every issue that affect your users.',
@@ -145,10 +149,12 @@ export const documentIntegrationList: DocumentIntegration[] = [
       'Rocket.Chat is a free and open-source team chat collaboration platform that allows users to communicate securely in real-time across devices on the web, desktop or mobile and to customize their interface with a range of plugins, themes, and integrations with other key software.',
     features: [
       {
+        featureId: 11, // TODO(Add to integrationfeature.py)
         featureGate: 'chat',
         description: 'Get Sentry notifications in Rocket.Chat.',
       },
       {
+        featureId: 7,
         featureGate: 'alert-rule',
         description:
           'Configure Sentry rules to trigger notifications based on conditions you set through the Sentry webhook integration.',
@@ -170,6 +176,7 @@ export const documentIntegrationList: DocumentIntegration[] = [
       'The Sentry Netlify build plugin automatically uploads source maps and notifies Sentry of new releases being deployed to your site after it finishes building in Netlify.',
     features: [
       {
+        featureId: 8, // TODO(Add to integrationfeature.py)
         featureGate: 'release-management',
         description: 'Notify Sentry of new releases being deployed.',
       },
@@ -199,6 +206,7 @@ export const documentIntegrationList: DocumentIntegration[] = [
       'Notify Sentry of any Bitbucket Pipelines builds to automatically manage releases and quickly surface any errors associated with a given build.\n\n**Requirement:** Bitbucket source code integration must be installed for the release pipe to work.',
     features: [
       {
+        featureId: 8, // TODO(Add to integrationfeature.py)
         featureGate: 'release-management',
         description: 'Notify Sentry of new releases being deployed.',
       },
@@ -223,6 +231,7 @@ export const documentIntegrationList: DocumentIntegration[] = [
       "The Sentry Release GitHub Action automatically notifies Sentry of new releases being deployed. After sending Sentry release information, you'll be able to identify suspect commits that are likely the culprit for new errors. You'll also be able to apply source maps to see the original code in Sentry.\n\n**Requirement:** GitHub source code integration must be installed and configured for the Sentry Release GitHub Action to work.",
     features: [
       {
+        featureId: 8, // TODO(Add to integrationfeature.py)
         featureGate: 'release-management',
         description: 'Notify Sentry of new releases being deployed.',
       },
@@ -247,6 +256,7 @@ export const documentIntegrationList: DocumentIntegration[] = [
       'The Sentry Grafana data source plugin allows you to query and visualize Sentry data within Grafana.',
     features: [
       {
+        featureId: 9, // TODO(Add to integrationfeature.py)
         featureGate: 'visualization',
         description: 'Query and visualize Sentry data in Grafana',
       },
@@ -267,6 +277,7 @@ export const documentIntegrationList: DocumentIntegration[] = [
       'InsightFinder ingests the errors that Sentry detects through its standard APIs and analyzes them using its patented, unsupervised, neural network algorithms. InsightFinder prioritizes those errors and provides context so anomalous events can be resolved before business is impacted.',
     features: [
       {
+        featureId: 3,
         featureGate: 'webhook',
         description: 'Forward Sentry events to InsightFinder.',
       },
@@ -287,10 +298,12 @@ export const documentIntegrationList: DocumentIntegration[] = [
       'Octohook is a platform that lets you visualize, debug and redistribute your webhooks.',
     features: [
       {
+        featureId: 3,
         featureGate: 'webhook',
         description: 'Record, forward or transform Sentry webhooks to other services.',
       },
       {
+        featureId: 7,
         featureGate: 'alert-rule',
         description:
           'Configure Sentry rules to trigger notifications based on conditions you set, through internal integrations.',

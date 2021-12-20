@@ -24,7 +24,8 @@ type AvatarChooserType =
   | 'team'
   | 'organization'
   | 'sentryAppColor'
-  | 'sentryAppSimple';
+  | 'sentryAppSimple'
+  | 'docIntegration';
 type DefaultChoice = {
   preview?: React.ReactNode;
   allowDefault?: boolean;

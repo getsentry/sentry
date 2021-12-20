@@ -219,6 +219,7 @@ export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_ap
 export type IntegrationFeature = {
   description: string;
   featureGate: string;
+  featureId: number;
 };
 
 export type IntegrationInstallationStatus =
@@ -232,6 +233,10 @@ type IntegrationDialog = {
   body: string;
 };
 
+/**
+ * @deprecated This type is being removed in favor of DocIntegration
+ * and is will actually coordinate with the backend
+ */
 export type DocumentIntegration = {
   slug: string;
   name: string;
@@ -240,6 +245,17 @@ export type DocumentIntegration = {
   description: string;
   features: IntegrationFeature[];
   resourceLinks: Array<{title: string; url: string}>;
+};
+
+export type DocIntegration = {
+  name: string;
+  slug: string;
+  author: string;
+  url: string;
+  description: string;
+  avatar: Avatar;
+  features?: IntegrationFeature[];
+  resources?: Array<{title: string; url: string}>;
 };
 
 type IntegrationAspects = {

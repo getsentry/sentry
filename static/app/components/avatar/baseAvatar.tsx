@@ -72,7 +72,8 @@ type DefaultProps = {
     | 'team-avatar'
     | 'organization-avatar'
     | 'project-avatar'
-    | 'sentry-app-avatar';
+    | 'sentry-app-avatar'
+    | 'doc-integration-avatar';
 };
 
 type BaseProps = DefaultProps & {
