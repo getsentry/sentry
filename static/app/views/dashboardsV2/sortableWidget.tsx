@@ -1,5 +1,4 @@
 import {ComponentProps, useEffect} from 'react';
-import * as React from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
