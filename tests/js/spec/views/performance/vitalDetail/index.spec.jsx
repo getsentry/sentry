@@ -7,10 +7,11 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {MetricsSwitchContext} from 'sentry/views/performance/metricsSwitch';
 import VitalDetail from 'sentry/views/performance/vitalDetail/';
 
-function initializeData({query} = {query: {}}) {
-  const features = ['discover-basic', 'performance-view'];
+function initializeData({query, orgFeatures = []} = {query: {}}) {
+  const features = ['discover-basic', 'performance-view', ...orgFeatures];
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
@@ -30,10 +31,12 @@ function initializeData({query} = {query: {}}) {
   return initialData;
 }
 
-const WrappedComponent = ({organization, ...rest}) => {
+const WrappedComponent = ({organization, isMetricsData = false, ...rest}) => {
   return (
     <OrganizationContext.Provider value={organization}>
-      <VitalDetail {...rest} />
+      <MetricsSwitchContext.Provider value={{isMetricsData}}>
+        <VitalDetail {...rest} />
+      </MetricsSwitchContext.Provider>
     </OrganizationContext.Provider>
   );
 };
@@ -163,11 +166,87 @@ describe('Performance > VitalDetail', function () {
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
+
+    // Metrics Requests
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/tags/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsField({
+        field: 'p75(sentry.transactions.measurements.lcp)',
+      }),
+      match: [
+        MockApiClient.matchQuery({
+          field: ['p75(sentry.transactions.measurements.lcp)'],
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsFieldByMeasurements({
+        field: 'count(sentry.transactions.measurements.lcp)',
+      }),
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: ['measurement_rating'],
+          field: ['count(sentry.transactions.measurements.lcp)'],
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsField({
+        field: 'p75(sentry.transactions.measurements.cls)',
+      }),
+      match: [
+        MockApiClient.matchQuery({
+          field: ['p75(sentry.transactions.measurements.cls)'],
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsFieldByMeasurements({
+        field: 'count(sentry.transactions.measurements.cls)',
+      }),
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: ['measurement_rating'],
+          field: ['count(sentry.transactions.measurements.cls)'],
+        }),
+      ],
+    });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
+  });
+
+  it('MetricsSwitch is visible if feature flag enabled', async () => {
+    const initialData = initializeData({orgFeatures: ['metrics-performance-ui']});
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('MetricsSwitch Label')).toHaveLength(1);
   });
 
   it('renders basic UI elements', async function () {
@@ -195,6 +274,32 @@ describe('Performance > VitalDetail', function () {
     expect(wrapper.find('Table')).toHaveLength(1);
   });
 
+  it('renders basic UI elements - metrics based', async function () {
+    const initialData = initializeData({orgFeatures: ['metrics-performance-ui']});
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={initialData.organization}
+        location={initialData.router.location}
+        isMetricsData
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // It shows a search bar
+    expect(wrapper.find('StyledMetricsSearchBar')).toHaveLength(1);
+
+    // It shows the vital card
+    expect(wrapper.find('VitalInfoMetrics')).toHaveLength(1);
+
+    // It shows a chart
+    expect(wrapper.find('VitalChartMetrics')).toHaveLength(1);
+
+    // It does not show a table
+    expect(wrapper.find('Table')).toHaveLength(0);
+  });
+
   it('triggers a navigation on search', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
@@ -209,6 +314,37 @@ describe('Performance > VitalDetail', function () {
 
     // Fill out the search box, and submit it.
     const searchBar = wrapper.find('SearchBar textarea');
+    searchBar
+      .simulate('change', {target: {value: 'user.email:uhoh*'}})
+      .simulate('submit', {preventDefault() {}});
+
+    // Check the navigation.
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {
+        project: 1,
+        statsPeriod: '14d',
+        query: 'user.email:uhoh*',
+      },
+    });
+  });
+
+  it('triggers a navigation on search - metrics based', async function () {
+    const initialData = initializeData({orgFeatures: ['metrics-performance-ui']});
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={initialData.organization}
+        location={initialData.router.location}
+        isMetricsData
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // Fill out the search box, and submit it.
+    const searchBar = wrapper.find('StyledMetricsSearchBar textarea');
     searchBar
       .simulate('change', {target: {value: 'user.email:uhoh*'}})
       .simulate('submit', {preventDefault() {}});
@@ -296,6 +432,36 @@ describe('Performance > VitalDetail', function () {
     expect(firstRow.find('GridBodyCell').at(6).text()).toEqual('0.215');
   });
 
+  it('Check CLS - metrics based', async function () {
+    const initialData = initializeData({
+      orgFeatures: ['metrics-performance-ui'],
+      query: {
+        query: 'anothertag:value',
+        vitalName: 'measurements.cls',
+      },
+    });
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={initialData.organization}
+        location={initialData.router.location}
+        isMetricsData
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Title').text()).toEqual('Cumulative Layout Shift');
+
+    expect(wrapper.find('[data-test-id="vital-bar-p75"]').text()).toEqual(
+      'The p75 for all transactions is 51292.95'
+    );
+
+    // The table is still a TODO
+    expect(wrapper.find('Table')).toHaveLength(0);
+  });
+
   it('Pagination links exist to switch between vitals', async function () {
     const initialData = initializeData({query: {query: 'tag:value'}});
     const wrapper = mountWithTheme(
@@ -342,5 +508,32 @@ describe('Performance > VitalDetail', function () {
 
     const firstRow = wrapper.find('GridBody GridRow').first();
     expect(firstRow.find('GridBodyCell').at(6).text()).toEqual('4.50s');
+  });
+
+  it('Check LCP vital renders correctly - Metrics based', async function () {
+    const initialData = initializeData({
+      orgFeatures: ['metrics-performance-ui'],
+      query: {query: 'tag:value'},
+    });
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={initialData.organization}
+        location={initialData.router.location}
+        isMetricsData
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Title').text()).toEqual('Largest Contentful Paint');
+
+    expect(wrapper.find('[data-test-id="vital-bar-p75"]').text()).toEqual(
+      'The p75 for all transactions is 51293ms'
+    );
+
+    // The table is still a TODO
+    expect(wrapper.find('Table')).toHaveLength(0);
   });
 });
