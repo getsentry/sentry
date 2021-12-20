@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay import pii_selector_suggestions_from_event
 
@@ -7,7 +8,7 @@ from sentry.eventstore.models import Event
 
 
 class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Generate a list of data scrubbing selectors from existing event data.
 
