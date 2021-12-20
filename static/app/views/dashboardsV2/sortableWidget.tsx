@@ -15,12 +15,12 @@ type Props = {
   widget: Widget;
   dragId: string;
   isEditing: boolean;
-  hideDragHandle?: boolean;
   onDelete: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
   widgetLimitReached: boolean;
   organization: Organization;
+  hideDragHandle?: boolean;
 };
 
 function SortableWidget(props: Props) {
