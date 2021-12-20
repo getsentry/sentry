@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -8,7 +9,7 @@ from sentry.models import Environment
 
 
 class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
         except Environment.DoesNotExist:

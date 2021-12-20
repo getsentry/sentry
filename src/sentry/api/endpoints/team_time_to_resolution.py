@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.db.models import Avg, F
 from django.db.models.functions import Coalesce, TruncDay
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -13,7 +14,7 @@ from sentry.models import GroupHistory, GroupHistoryStatus
 
 
 class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
-    def get(self, request, team):
+    def get(self, request: Request, team) -> Response:
         """
         Return a a time bucketed list of mean group resolution times for a given team.
         """

@@ -5,6 +5,7 @@ import petname
 from django.http import HttpResponse
 from rest_framework import serializers, status
 from rest_framework.fields import SkipField
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -102,7 +103,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         return any(features.has("organizations:webauthn-register", org, actor=user) for org in orgs)
 
     @sudo_required
-    def get(self, request, user, interface_id):
+    def get(self, request: Request, user, interface_id) -> Response:
         """
         Get Authenticator Interface
         ```````````````````````````
@@ -161,7 +162,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
     @sudo_required
     @email_verification_required
-    def post(self, request, user, interface_id):
+    def post(self, request: Request, user, interface_id) -> Response:
         """
         Enroll in authenticator interface
         `````````````````````````````````
