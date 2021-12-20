@@ -1,8 +1,10 @@
 import logging
+import random
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import sentry_sdk
+from django.utils import timezone
 
 from sentry.eventstore.base import EventStorage
 from sentry.snuba.events import Columns
@@ -197,6 +199,14 @@ class SnubaEventStorage(EventStorage):
 
         elif event.get_event_type() != "transaction":
             # Load group_id from Snuba if not a transaction
+            raw_query_kwargs = {}
+            if event.datetime > timezone.now() - timedelta(hours=1):
+                # XXX: This is a hack to bust the snuba cache. We want to avoid the case where
+                # we cache an empty result, since this can result in us failing to fetch new events
+                # in some cases.
+                raw_query_kwargs["conditions"] = [
+                    ["timestamp", ">", datetime.fromtimestamp(random.randint(0, 1000000000))]
+                ]
             result = snuba.raw_query(
                 selected_columns=["group_id"],
                 start=event.datetime,
@@ -204,6 +214,7 @@ class SnubaEventStorage(EventStorage):
                 filter_keys={"project_id": [project_id], "event_id": [event_id]},
                 limit=1,
                 referrer="eventstore.get_event_by_id_nodestore",
+                **raw_query_kwargs,
             )
 
             # Return None if the event from Nodestore was not yet written to Snuba
