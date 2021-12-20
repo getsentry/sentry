@@ -406,16 +406,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
         )
 
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/integrations/integration-pending-deletion.html")
+
+        # Assert payload returned to main window
         assert (
             b'{"success":false,"data":{"error":"GitHub installation pending deletion."}}'
             in resp.content
         )
-        assert (
-            b"It seems that your Sentry organization has an installation pending deletion. Please wait ~15min for the uninstall to complete and try again."
-            in resp.content
-        )
 
-        # # Delete the original Integration
+        # Delete the original Integration
         oi.delete()
         integration.delete()
 

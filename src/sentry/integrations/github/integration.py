@@ -274,19 +274,18 @@ class GitHubInstallationRedirect(PipelineView):  # type: ignore
             integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
                 integration__provider=GitHubIntegrationProvider.key,
                 organization=organization,
-                status__in=[ObjectStatus.PENDING_DELETION],
+                status=ObjectStatus.PENDING_DELETION,
             ).exists()
 
             if integration_pending_deletion_exists:
-                context = {
-                    "payload": {
-                        "success": False,
-                        "data": {"error": _("GitHub installation pending deletion.")},
-                    }
-                }
                 return render_to_response(
                     "sentry/integrations/integration-pending-deletion.html",
-                    context=context,
+                    context={
+                        "payload": {
+                            "success": False,
+                            "data": {"error": _("GitHub installation pending deletion.")},
+                        }
+                    },
                     request=request,
                 )
 
@@ -301,15 +300,16 @@ class GitHubInstallationRedirect(PipelineView):  # type: ignore
                 return pipeline.next_step()
 
             if installations_exist:
-                context = {
-                    "payload": {
-                        "success": False,
-                        "data": {"error": _("Github installed on another Sentry organization.")},
-                    }
-                }
                 return render_to_response(
                     "sentry/integrations/github-integration-exists-on-another-org.html",
-                    context=context,
+                    context={
+                        "payload": {
+                            "success": False,
+                            "data": {
+                                "error": _("Github installed on another Sentry organization.")
+                            },
+                        }
+                    },
                     request=request,
                 )
 
