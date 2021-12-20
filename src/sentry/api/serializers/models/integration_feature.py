@@ -8,7 +8,11 @@ from sentry.models.user import User
 @register(IntegrationFeature)
 class IntegrationFeatureSerializer(Serializer):
     def get_attrs(
-        self, item_list: List[IntegrationFeature], user: Any, has_target: bool = True, **kwargs: Any
+        self,
+        item_list: List[IntegrationFeature],
+        user: User,
+        has_target: bool = True,
+        **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
         # Perform DB calls for description field in bulk
         description_attrs = (
