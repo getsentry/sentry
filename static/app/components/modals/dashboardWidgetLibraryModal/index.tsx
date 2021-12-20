@@ -103,7 +103,7 @@ function DashboardWidgetLibraryModal({
                   organization,
                   num_widgets: selectedWidgets.length,
                 });
-                selectedWidgets.map(selectedWidget => {
+                selectedWidgets.forEach(selectedWidget => {
                   trackAdvancedAnalyticsEvent(
                     'dashboards_views.widget_library.add_widget',
                     {
