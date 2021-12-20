@@ -1,5 +1,6 @@
 from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -44,7 +45,7 @@ class TeamProjectPermission(TeamPermission):
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
     permission_classes = (TeamProjectPermission,)
 
-    def get(self, request, team):
+    def get(self, request: Request, team) -> Response:
         """
         List a Team's Projects
         ``````````````````````
@@ -88,7 +89,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request, team):
+    def post(self, request: Request, team) -> Response:
         """
         Create a New Project
         ````````````````````

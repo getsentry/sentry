@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
@@ -6,7 +7,7 @@ from sentry.models import Authenticator
 
 
 class UserAuthenticatorIndexEndpoint(UserEndpoint):
-    def get(self, request, user):
+    def get(self, request: Request, user) -> Response:
         """Returns all interface for a user (un-enrolled ones), otherwise an empty array"""
 
         interfaces = Authenticator.objects.all_interfaces_for_user(user, return_missing=True)

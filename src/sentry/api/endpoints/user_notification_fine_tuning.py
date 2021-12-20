@@ -1,5 +1,6 @@
 from django.db import transaction
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
@@ -22,7 +23,7 @@ INVALID_USER_MSG = (
 
 
 class UserNotificationFineTuningEndpoint(UserEndpoint):
-    def get(self, request, user, notification_type):
+    def get(self, request: Request, user, notification_type) -> Response:
         try:
             notification_type = FineTuningAPIKey(notification_type)
         except ValueError:
@@ -41,7 +42,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             )
         )
 
-    def put(self, request, user, notification_type):
+    def put(self, request: Request, user, notification_type) -> Response:
         """
         Update user notification options
         ````````````````````````````````

@@ -7,6 +7,7 @@ from django.contrib.auth import logout
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -113,7 +114,7 @@ class DeleteUserSerializer(serializers.Serializer):
 
 
 class UserDetailsEndpoint(UserEndpoint):
-    def get(self, request, user):
+    def get(self, request: Request, user) -> Response:
         """
         Retrieve User Details
         `````````````````````
@@ -125,7 +126,7 @@ class UserDetailsEndpoint(UserEndpoint):
         """
         return Response(serialize(user, request.user, DetailedUserSerializer()))
 
-    def put(self, request, user):
+    def put(self, request: Request, user) -> Response:
         """
         Update Account Appearance options
         `````````````````````````````````
@@ -188,7 +189,7 @@ class UserDetailsEndpoint(UserEndpoint):
         return Response(serialize(user, request.user, DetailedUserSerializer()))
 
     @sudo_required
-    def delete(self, request, user):
+    def delete(self, request: Request, user) -> Response:
         """
         Delete User Account
 

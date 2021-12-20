@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDay
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -17,7 +18,7 @@ from sentry.models import Project
 
 
 class TeamAlertsTriggeredEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
-    def get(self, request, team) -> Response:
+    def get(self, request: Request, team) -> Response:
         """
         Return a time-bucketed (by day) count of triggered alerts owned by a given team.
         """

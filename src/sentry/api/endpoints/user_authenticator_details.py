@@ -1,6 +1,7 @@
 from django.db import transaction
 from fido2.ctap2 import AuthenticatorData
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
@@ -52,7 +53,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         return Response(serialize(interface))
 
     @sudo_required
-    def get(self, request, user, auth_id):
+    def get(self, request: Request, user, auth_id) -> Response:
         """
         Get Authenticator Interface
         ```````````````````````````
@@ -90,7 +91,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         return Response(response)
 
     @sudo_required
-    def put(self, request, user, auth_id, interface_device_id=None):
+    def put(self, request: Request, user, auth_id, interface_device_id=None) -> Response:
         """
         Modify authenticator interface
         ``````````````````````````````
@@ -114,7 +115,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             return self._regenerate_recovery_code(authenticator, request, user)
 
     @sudo_required
-    def delete(self, request, user, auth_id, interface_device_id=None):
+    def delete(self, request: Request, user, auth_id, interface_device_id=None) -> Response:
         """
         Remove authenticator
         ````````````````````

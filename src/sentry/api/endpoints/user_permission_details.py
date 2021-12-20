@@ -1,15 +1,17 @@
 from django.db import IntegrityError, transaction
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.models import UserPermission
 
 
 class UserPermissionDetailsEndpoint(UserEndpoint):
-    def get(self, request, user, permission_name):
+    def get(self, request: Request, user, permission_name) -> Response:
         has_perm = UserPermission.objects.filter(user=user, permission=permission_name).exists()
         return self.respond(status=204 if has_perm else 404)
 
-    def post(self, request, user, permission_name):
+    def post(self, request: Request, user, permission_name) -> Response:
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 
@@ -22,7 +24,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
             raise
         return self.respond(status=201)
 
-    def delete(self, request, user, permission_name):
+    def delete(self, request: Request, user, permission_name) -> Response:
         if not request.access.has_permission("users.admin"):
             return self.respond(status=403)
 
