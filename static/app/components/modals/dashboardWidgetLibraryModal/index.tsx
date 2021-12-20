@@ -6,6 +6,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {DashboardDetails, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
@@ -98,6 +99,19 @@ function DashboardWidgetLibraryModal({
                   setErrored(true);
                   return;
                 }
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_library.add', {
+                  organization,
+                  num_widgets: selectedWidgets.length,
+                });
+                selectedWidgets.forEach(selectedWidget => {
+                  trackAdvancedAnalyticsEvent(
+                    'dashboards_views.widget_library.add_widget',
+                    {
+                      organization,
+                      title: selectedWidget.title,
+                    }
+                  );
+                });
                 handleSubmit();
               }}
             >
