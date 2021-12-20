@@ -9,7 +9,6 @@ type Props = {
   dark?: boolean;
   mini?: boolean;
   triangle?: boolean;
-  finished?: boolean;
   relative?: boolean;
   hideMessage?: boolean;
   hideSpinner?: boolean;
@@ -31,7 +30,6 @@ function LoadingIndicator(props: Props) {
     overlay,
     dark,
     children,
-    finished,
     className,
     style,
     relative,
@@ -49,7 +47,6 @@ function LoadingIndicator(props: Props) {
   const loadingCx = classNames({
     relative,
     'loading-indicator': true,
-    'load-complete': finished,
   });
 
   let loadingStyle = {};
@@ -65,7 +62,6 @@ function LoadingIndicator(props: Props) {
       {!hideSpinner && (
         <div className={loadingCx} style={loadingStyle}>
           {triangle && renderLogoSpinner()}
-          {finished ? <div className="checkmark draw" style={style} /> : null}
         </div>
       )}
       {!hideMessage && <div className="loading-message">{children}</div>}
