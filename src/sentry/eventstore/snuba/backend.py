@@ -1,7 +1,7 @@
 import logging
 import random
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.utils import timezone
@@ -204,7 +204,9 @@ class SnubaEventStorage(EventStorage):
                 # XXX: This is a hack to bust the snuba cache. We want to avoid the case where
                 # we cache an empty result, since this can result in us failing to fetch new events
                 # in some cases.
-                raw_query_kwargs["conditions"] = [["timestamp", ">", random.randint(0, 1000000000)]]
+                raw_query_kwargs["conditions"] = [
+                    ["timestamp", ">", datetime.fromtimestamp(random.randint(0, 1000000000))]
+                ]
             result = snuba.raw_query(
                 selected_columns=["group_id"],
                 start=event.datetime,
