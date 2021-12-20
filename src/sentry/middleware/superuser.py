@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.auth.superuser import Superuser, logger
 
@@ -33,7 +34,7 @@ class SuperuserMiddleware(MiddlewareMixin):
                 },
             )
 
-    def process_response(self, request: Request, response):
+    def process_response(self, request: Request, response: Response) -> Response:
         try:
             if self.__skip_caching:
                 return response

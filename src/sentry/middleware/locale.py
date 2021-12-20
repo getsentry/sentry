@@ -3,6 +3,7 @@ from django.conf import settings
 from django.middleware.locale import LocaleMiddleware
 from django.utils.translation import LANGUAGE_SESSION_KEY, _trans
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import UserOption
 from sentry.utils.safe import safe_execute
@@ -45,7 +46,7 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         if timezone:
             request.timezone = pytz.timezone(timezone)
 
-    def process_response(self, request: Request, response):
+    def process_response(self, request: Request, response: Response) -> Response:
         # If static bound, we don't want to run the normal process_response since this
         # adds an extra `Vary: Accept-Language`. Static files don't need this and is
         # less effective for caching.

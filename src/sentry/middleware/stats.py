@@ -18,7 +18,7 @@ def add_request_metric_tags(request, **kwargs):
 
 
 class ResponseCodeMiddleware(MiddlewareMixin):
-    def process_response(self, request: Request, response):
+    def process_response(self, request: Request, response: Response) -> Response:
         metrics.incr("response", instance=str(response.status_code), skip_internal=False)
         return response
 
@@ -55,7 +55,7 @@ class RequestTimingMiddleware(MiddlewareMixin):
         request._view_path = path
         request._start_time = time.time()
 
-    def process_response(self, request: Request, response):
+    def process_response(self, request: Request, response: Response) -> Response:
         self._record_time(request, response.status_code)
         return response
 
