@@ -1,4 +1,5 @@
 from django.conf import settings
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -17,7 +18,7 @@ def normalize_symbol_source(key, source):
 class BuiltinSymbolSourcesEndpoint(Endpoint):
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         sources = [
             normalize_symbol_source(key, source)
             for key, source in settings.SENTRY_BUILTIN_SOURCES.items()

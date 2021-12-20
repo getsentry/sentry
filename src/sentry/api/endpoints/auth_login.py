@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -14,7 +15,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = []
 
-    def post(self, request, organization=None, *args, **kwargs):
+    def post(self, request: Request, organization=None, *args, **kwargs) -> Response:
         """
         Process a login request via username/password. SSO login is handled
         elsewhere.

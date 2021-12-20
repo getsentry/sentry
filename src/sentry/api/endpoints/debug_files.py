@@ -6,6 +6,7 @@ import jsonschema
 from django.db import router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
+from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic import SymbolicError, normalize_debug_id
 
@@ -113,7 +114,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         except OSError:
             raise Http404
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a Project's Debug Information Files
         ````````````````````````````````````````
@@ -190,7 +191,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def delete(self, request, project):
+    def delete(self, request: Request, project) -> Response:
         """
         Delete a specific Project's Debug Information File
         ```````````````````````````````````````````````````
@@ -218,7 +219,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         return Response(status=404)
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         """
         Upload a New File
         `````````````````
@@ -245,7 +246,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         checksums = request.GET.getlist("checksums")
         missing = ProjectDebugFile.objects.find_missing(checksums, project=project)
         return Response({"missing": missing})
@@ -255,7 +256,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         return Response({"associatedDsymFiles": []})
 
 
@@ -272,7 +273,7 @@ def find_missing_chunks(organization, chunks):
 class DifAssembleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         """
         Assemble one or multiple chunks (FileBlob) into debug files
         ````````````````````````````````````````````````````````````
@@ -389,7 +390,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 class SourceMapsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a Project's Source Map Archives
         ````````````````````````````````````
@@ -445,7 +446,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
             on_results=serialize_results,
         )
 
-    def delete(self, request, project):
+    def delete(self, request: Request, project) -> Response:
         """
         Delete an Archive
         ```````````````````````````````````````````````````

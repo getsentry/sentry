@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -6,7 +9,7 @@ from sentry.models.integrationfeature import IntegrationTypes
 
 
 class SentryAppFeaturesEndpoint(SentryAppBaseEndpoint):
-    def get(self, request, sentry_app):
+    def get(self, request: Request, sentry_app) -> Response:
         features = IntegrationFeature.objects.filter(
             target_id=sentry_app.id, target_type=IntegrationTypes.SENTRY_APP.value
         )

@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
@@ -9,7 +10,7 @@ from sentry.utils.email import send_mail
 class InternalMailEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         data = {
             "mailHost": options.get("mail.host"),
             "mailPassword": bool(options.get("mail.password")),
@@ -24,7 +25,7 @@ class InternalMailEndpoint(Endpoint):
 
         return Response(data)
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         error = None
 
         body = (

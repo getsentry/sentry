@@ -1,5 +1,6 @@
 import logging
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
@@ -19,7 +20,7 @@ def get_component_interaction_key(sentry_app, component_type):
 class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
     permission_classes = (SentryAppStatsPermission,)
 
-    def get(self, request, sentry_app):
+    def get(self, request: Request, sentry_app) -> Response:
         """
         :qparam float since
         :qparam float until
@@ -48,7 +49,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
             }
         )
 
-    def post(self, request, sentry_app):
+    def post(self, request: Request, sentry_app) -> Response:
         """
         Increment a TSDB metric relating to Sentry App interactions
 

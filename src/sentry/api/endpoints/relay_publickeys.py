@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import RelayAuthentication
@@ -10,7 +11,7 @@ class RelayPublicKeysEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         calling_relay = request.relay
 
         relay_ids = request.relay_request_data.get("relay_ids") or ()

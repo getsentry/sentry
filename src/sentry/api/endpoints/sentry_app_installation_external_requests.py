@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
@@ -6,7 +7,7 @@ from sentry.models import Project
 
 
 class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEndpoint):
-    def get(self, request, installation):
+    def get(self, request: Request, installation) -> Response:
         try:
             project = Project.objects.get(
                 id=request.GET.get("projectId"), organization_id=installation.organization_id

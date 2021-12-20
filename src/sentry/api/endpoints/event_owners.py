@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -8,7 +9,7 @@ from sentry.models import ActorTuple, ProjectOwnership, Team
 
 
 class EventOwnersEndpoint(ProjectEndpoint):
-    def get(self, request, project, event_id):
+    def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve suggested owners information for an event
         ``````````````````````````````````````````````````

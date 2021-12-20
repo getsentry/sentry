@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -32,7 +33,7 @@ class PromptsActivitySerializer(serializers.Serializer):
 class PromptsActivityEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         """Return feature prompt status if dismissed or in snoozed period"""
 
         features = request.GET.getlist("feature")
@@ -61,7 +62,7 @@ class PromptsActivityEndpoint(Endpoint):
         else:
             return Response({"features": featuredata})
 
-    def put(self, request):
+    def put(self, request: Request):
         serializer = PromptsActivitySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

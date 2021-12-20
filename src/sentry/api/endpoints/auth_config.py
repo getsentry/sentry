@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.urls import reverse
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import newsletter
@@ -23,7 +24,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = []
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args, **kwargs) -> Response:
         """
         Get context required to show a login page. Registration is handled elsewhere.
         """
@@ -55,7 +56,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
 
         return response
 
-    def respond_authenticated(self, request):
+    def respond_authenticated(self, request: Request):
         next_uri = self.get_next_uri(request)
 
         if not is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
@@ -64,13 +65,13 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
 
         return Response({"nextUri": next_uri})
 
-    def get_next_uri(self, request):
+    def get_next_uri(self, request: Request):
         next_uri_fallback = None
         if request.session.get("_next") is not None:
             next_uri_fallback = request.session.pop("_next")
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
-    def prepare_login_context(self, request, *args, **kwargs):
+    def prepare_login_context(self, request: Request, *args, **kwargs):
         can_register = bool(has_user_registration() or request.session.get("can_register"))
 
         context = {

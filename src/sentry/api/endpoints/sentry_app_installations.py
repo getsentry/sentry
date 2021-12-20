@@ -1,5 +1,6 @@
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppInstallationsBaseEndpoint
@@ -29,7 +30,7 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
 
 
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         queryset = SentryAppInstallation.objects.filter(organization=organization)
 
         return self.paginate(
@@ -40,7 +41,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         serializer = SentryAppInstallationsSerializer(data=request.data)
 
         if not serializer.is_valid():

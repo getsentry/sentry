@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
@@ -7,15 +8,15 @@ from sentry.mediators.sentry_app_installations import Destroyer, Updater
 
 
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
-    def get(self, request, installation):
+    def get(self, request: Request, installation) -> Response:
 
         return Response(serialize(installation))
 
-    def delete(self, request, installation):
+    def delete(self, request: Request, installation) -> Response:
         Destroyer.run(install=installation, user=request.user, request=request)
         return Response(status=204)
 
-    def put(self, request, installation):
+    def put(self, request: Request, installation) -> Response:
         serializer = SentryAppInstallationSerializer(installation, data=request.data, partial=True)
 
         if serializer.is_valid():

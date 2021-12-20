@@ -3,6 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils.http import is_safe_url
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -37,14 +38,14 @@ class AuthIndexEndpoint(Endpoint):
             features.has("organizations:webauthn-login", org, actor=request_user) for org in orgs
         )
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         user = extract_lazy_object(request._request.user)
         return Response(serialize(user, user, DetailedUserSerializer()))
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         """
         Authenticate a User
         ```````````````````
@@ -89,7 +90,7 @@ class AuthIndexEndpoint(Endpoint):
 
         return self.get(request)
 
-    def put(self, request):
+    def put(self, request: Request):
         """
         Verify a User
         `````````````
@@ -157,7 +158,7 @@ class AuthIndexEndpoint(Endpoint):
 
         return self.get(request)
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args, **kwargs) -> Response:
         """
         Logout the Authenticated User
         `````````````````````````````

@@ -1,4 +1,5 @@
 import pkg_resources
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -9,7 +10,7 @@ from sentry.plugins.base import plugins
 class InternalPackagesEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         data = {
             "modules": sorted((p.project_name, p.version) for p in pkg_resources.working_set),
             "extensions": [

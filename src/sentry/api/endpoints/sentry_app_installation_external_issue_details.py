@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import (
@@ -8,7 +9,7 @@ from sentry.models import PlatformExternalIssue
 
 
 class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoint):
-    def delete(self, request, installation, external_issue_id):
+    def delete(self, request: Request, installation, external_issue_id) -> Response:
         try:
             platform_external_issue = PlatformExternalIssue.objects.get(
                 id=external_issue_id,

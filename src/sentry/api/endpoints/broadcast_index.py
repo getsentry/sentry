@@ -17,10 +17,14 @@ from sentry.search.utils import tokenize_query
 logger = logging.getLogger("sentry")
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class BroadcastIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
-    def _get_serializer(self, request):
+    def _get_serializer(self, request: Request):
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastSerializer
         return BroadcastSerializer
@@ -29,17 +33,17 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
         serializer_cls = self._get_serializer(request)
         return serialize(items, request.user, serializer=serializer_cls())
 
-    def _secondary_filtering(self, request, organization_slug, queryset):
+    def _secondary_filtering(self, request: Request, organization_slug, queryset):
         # used in the SASS product
         return list(queryset)
 
-    def convert_args(self, request, organization_slug=None, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
         if organization_slug:
             args, kwargs = super().convert_args(request, organization_slug)
 
         return (args, kwargs)
 
-    def get(self, request, organization=None):
+    def get(self, request: Request, organization=None) -> Response:
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")
@@ -102,7 +106,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
             paginator_cls=paginator_cls,
         )
 
-    def put(self, request):
+    def put(self, request: Request):
         validator = BroadcastValidator(data=request.data, partial=True)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
@@ -135,7 +139,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
         return self.respond(result)
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         if not request.access.has_permission("broadcasts.admin"):
             return self.respond(status=401)
 
