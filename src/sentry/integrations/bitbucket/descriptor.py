@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.base import Endpoint
 from sentry.integrations.bitbucket.integration import scopes
 from sentry.utils.http import absolute_uri
@@ -9,7 +12,7 @@ class BitbucketDescriptorEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         return self.respond(
             {
                 "key": BITBUCKET_KEY,

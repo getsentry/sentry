@@ -3,6 +3,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 from botocore.exceptions import ClientError
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import analytics, options
 from sentry.api.serializers import serialize
@@ -231,7 +233,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
 
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         # if we have the projectId, go to the next step
         if "projectId" in request.GET:
             pipeline.bind_state("project_id", request.GET["projectId"])
@@ -255,7 +257,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
 
 class AwsLambdaCloudFormationPipelineView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
@@ -312,7 +314,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
 
 
 class AwsLambdaListFunctionsPipelineView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if request.method == "POST":
             # accept form data or json data
             # form data is needed for tests
@@ -338,7 +340,7 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
 
 
 class AwsLambdaSetupLayerPipelineView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if "finish_pipeline" in request.GET:
             return pipeline.finish_pipeline()
 

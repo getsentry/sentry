@@ -107,7 +107,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
         try:
             client.trigger_incident(payload)
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
     def get_client(self, project):
         api_key = self.get_option("api_key", project)

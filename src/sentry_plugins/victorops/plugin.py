@@ -109,6 +109,6 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
                 project_id=group.project.id,
             )
         except ApiError as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         assert response["result"] == "success"

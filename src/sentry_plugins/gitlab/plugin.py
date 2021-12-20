@@ -1,3 +1,5 @@
+from rest_framework.request import Request
+
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.shared_integrations.exceptions import ApiError
@@ -44,14 +46,14 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
         ),
     ]
 
-    def is_configured(self, request, project, **kwargs):
+    def is_configured(self, request: Request, project, **kwargs):
         return bool(
             self.get_option("gitlab_repo", project)
             and self.get_option("gitlab_token", project)
             and self.get_option("gitlab_url", project)
         )
 
-    def get_new_issue_fields(self, request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return (
             [
@@ -84,7 +86,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
             ]
         )
 
-    def get_link_existing_issue_fields(self, request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -105,13 +107,13 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def get_allowed_assignees(self, request, group):
+    def get_allowed_assignees(self, request: Request, group):
         repo = self.get_option("gitlab_repo", group.project)
         client = self.get_client(group.project)
         try:
             response = client.list_project_members(repo)
         except ApiError as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
         users = tuple((u["id"], u["username"]) for u in response)
 
         return (("", "(Unassigned)"),) + users
@@ -125,7 +127,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
 
         return GitLabClient(url, token)
 
-    def create_issue(self, request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data, **kwargs):
         repo = self.get_option("gitlab_repo", group.project)
 
         client = self.get_client(group.project)
@@ -141,24 +143,24 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
                 },
             )
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         return response["iid"]
 
-    def link_issue(self, request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group, form_data, **kwargs):
         client = self.get_client(group.project)
         repo = self.get_option("gitlab_repo", group.project)
         try:
             issue = client.get_issue(repo=repo, issue_id=form_data["issue_id"])
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         comment = form_data.get("comment")
         if comment:
             try:
                 client.create_note(repo=repo, issue_iid=issue["iid"], data={"body": comment})
             except Exception as e:
-                self.raise_error(e)
+                raise self.raise_error(e)
 
         return {"title": issue["title"]}
 
@@ -171,7 +173,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
 
         return f"{url}/{repo}/issues/{issue_iid}"
 
-    def get_configure_plugin_fields(self, request, project, **kwargs):
+    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
         gitlab_token = self.get_option("gitlab_token", project)
         secret_field = get_secret_field_config(
             gitlab_token, "Enter your GitLab API token.", include_prefix=True
@@ -222,5 +224,5 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
         try:
             client.get_project(repo)
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
         return config

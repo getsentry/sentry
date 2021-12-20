@@ -1,4 +1,6 @@
 from jwt import ExpiredSignatureError
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations.atlassian_connect import (
     AtlassianConnectValidationError,
@@ -15,7 +17,7 @@ from .base_hook import JiraBaseHook
 class JiraUiHookView(JiraBaseHook):
     html_file = "sentry/integrations/jira-config.html"
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args, **kwargs) -> Response:
         try:
             integration = get_integration_from_request(request, "jira")
         except AtlassianConnectValidationError:

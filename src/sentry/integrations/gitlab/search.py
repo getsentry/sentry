@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
@@ -6,7 +7,7 @@ from sentry.shared_integrations.exceptions import ApiError
 
 
 class GitlabIssueSearchEndpoint(IntegrationEndpoint):
-    def get(self, request, organization, integration_id):
+    def get(self, request: Request, organization, integration_id) -> Response:
         try:
             integration = Integration.objects.get(
                 organizations=organization, id=integration_id, provider="gitlab"

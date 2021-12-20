@@ -3,6 +3,7 @@ from urllib.parse import urljoin
 
 import phabricator
 from django.conf.urls import url
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.exceptions import PluginError
@@ -64,7 +65,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             token=self.get_option("token", project),
         )
 
-    def get_configure_plugin_fields(self, request, project, **kwargs):
+    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
         token = self.get_option("token", project)
         helptext = "You may generate a Conduit API Token from your account settings in Phabricator."
         secret_field = get_secret_field_config(token, helptext, include_prefix=True)
@@ -95,7 +96,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def get_new_issue_fields(self, request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return fields + [
             {
@@ -118,7 +119,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def get_link_existing_issue_fields(self, request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -176,7 +177,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 raise PluginError(f"Unhandled error from Phabricator: {e}")
         return config
 
-    def is_configured(self, request, project, **kwargs):
+    def is_configured(self, request: Request, project, **kwargs):
         if not self.get_option("host", project):
             return False
         if self.get_option("token", project):
@@ -195,7 +196,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         host = self.get_option("host", group.project)
         return urljoin(host, "T%s" % issue_id)
 
-    def view_autocomplete(self, request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
         query = request.GET.get("autocomplete_query")
 
@@ -207,6 +208,8 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 response = api.maniphest.search(constraints={"query": query})
             elif field == "assignee":
                 response = api.user.search(constraints={"nameLike": query})
+            else:
+                response = None
 
         except Exception as e:
             return self.handle_api_error(e)
@@ -217,7 +220,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
 
         return Response({field: results})
 
-    def create_issue(self, request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data, **kwargs):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(
@@ -233,13 +236,13 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
 
         return data["id"]
 
-    def link_issue(self, request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group, form_data, **kwargs):
         api = self.get_api(group.project)
 
         try:
             results = api.maniphest.search(constraints={"phids": [form_data["issue_id"]]})
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         task = results["data"][0]
 
@@ -251,7 +254,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                     transactions=[{"type": "comment", "value": comment}],
                 )
             except Exception as e:
-                self.raise_error(e)
+                raise self.raise_error(e)
 
         return {
             "id": task["id"],

@@ -10,6 +10,8 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
@@ -95,7 +97,7 @@ class GitHubEnterpriseWebhookBase(View):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -111,7 +113,7 @@ class GitHubEnterpriseWebhookBase(View):
         else:
             return None
 
-    def handle(self, request):
+    def handle(self, request: Request) -> Response:
         body = bytes(request.body)
         if not body:
             logger.warning("github_enterprise.webhook.missing-body", extra=self.get_logging_data())
@@ -174,12 +176,12 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         return self.handle(request)

@@ -1,5 +1,8 @@
 import logging
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.models import ApiKey, ProjectOption, Repository, User
 from sentry.plugins.base.configuration import react_plugin_config
@@ -22,7 +25,7 @@ class HerokuReleaseHook(ReleaseHook):
     def get_client(self):
         return HerokuApiClient()
 
-    def handle(self, request):
+    def handle(self, request: Request) -> Response:
         email = None
         if "user" in request.POST:
             email = request.POST["user"]
