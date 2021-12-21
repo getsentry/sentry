@@ -129,7 +129,7 @@ const Label = styled('p')`
 
 const Details = styled('p')`
   font-size: 14px;
-  line-height: 1.2em;
+  line-height: 1.2;
   color: ${p => p.theme.subText};
   margin-bottom: 0;
 `;
