@@ -39,6 +39,7 @@ class U2FInterfaceTest(TestCase):
             "name": self.user.username,
             "displayName": self.user.username,
         }
+        assert int.from_bytes(challenge["publicKey"]["user"]["id"], byteorder="big") == self.user.id
         assert len(challenge["publicKey"]["pubKeyCredParams"]) == 4
 
     def test_try_enroll_webauthn(self):
