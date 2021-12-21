@@ -1,6 +1,10 @@
+import 'sentry/stores/projectsStore';
+import 'sentry/stores/projectsStatsStore';
+import 'sentry/stores/latestContextStore';
+
 import Reflux from 'reflux';
 
-export default Reflux.createActions([
+const ProjectActions = Reflux.createActions([
   'addTeam',
   'addTeamError',
   'addTeamSuccess',
@@ -23,3 +27,5 @@ export default Reflux.createActions([
   'updateError',
   'updateSuccess',
 ]);
+
+export default ProjectActions;

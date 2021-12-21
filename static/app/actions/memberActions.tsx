@@ -1,3 +1,5 @@
+import 'sentry/stores/memberListStore';
+
 import Reflux from 'reflux';
 
 const MemberActions = Reflux.createActions([

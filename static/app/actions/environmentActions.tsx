@@ -1,7 +1,11 @@
+import 'sentry/stores/organizationEnvironmentsStore';
+
 import Reflux from 'reflux';
 
-export default Reflux.createActions([
+const EnvironmentActions = Reflux.createActions([
   'fetchEnvironments',
   'fetchEnvironmentsError',
   'fetchEnvironmentsSuccess',
 ]);
+
+export default EnvironmentActions;

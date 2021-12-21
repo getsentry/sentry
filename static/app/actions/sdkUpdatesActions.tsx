@@ -1,3 +1,5 @@
+import 'sentry/stores/sdkUpdatesStore';
+
 import Reflux from 'reflux';
 
 const SdkUpdatesActions = Reflux.createActions(['load']);

@@ -1,3 +1,7 @@
+import 'sentry/stores/modalStore';
+
 import Reflux from 'reflux';
 
-export default Reflux.createActions(['openModal', 'closeModal']);
+const ModalActions = Reflux.createActions(['openModal', 'closeModal']);
+
+export default ModalActions;

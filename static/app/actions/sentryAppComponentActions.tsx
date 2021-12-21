@@ -1,3 +1,7 @@
+import 'sentry/stores/sentryAppComponentsStore';
+
 import Reflux from 'reflux';
 
-export default Reflux.createActions(['loadComponents']);
+const SentryAppComponentActions = Reflux.createActions(['loadComponents']);
+
+export default SentryAppComponentActions;

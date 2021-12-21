@@ -1,3 +1,12 @@
+import 'sentry/stores/committerStore';
+
 import Reflux from 'reflux';
 
-export default Reflux.createActions(['reset', 'load', 'loadError', 'loadSuccess']);
+const ComitterActions = Reflux.createActions([
+  'reset',
+  'load',
+  'loadError',
+  'loadSuccess',
+]);
+
+export default ComitterActions;

@@ -1,3 +1,6 @@
+import 'sentry/stores/teamStore';
+import 'sentry/stores/projectsStore';
+
 import Reflux from 'reflux';
 
 const TeamActions = Reflux.createActions([

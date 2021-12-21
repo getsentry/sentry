@@ -1,3 +1,5 @@
+import 'sentry/stores/indicatorStore';
+
 import Reflux from 'reflux';
 
 const IndicatorActions = Reflux.createActions([

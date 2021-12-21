@@ -1,3 +1,5 @@
+import 'sentry/stores/groupingStore';
+
 import Reflux from 'reflux';
 
 // Actions for "Grouping" view - for merging/unmerging events/issues
@@ -11,4 +13,5 @@ const GroupingActions = Reflux.createActions([
   'toggleCollapseFingerprint',
   'toggleCollapseFingerprints',
 ]);
+
 export default GroupingActions;

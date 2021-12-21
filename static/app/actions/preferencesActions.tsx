@@ -1,3 +1,5 @@
+import 'sentry/stores/preferencesStore';
+
 import Reflux from 'reflux';
 
 const PreferencesActions = Reflux.createActions([

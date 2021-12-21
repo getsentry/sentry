@@ -1,3 +1,5 @@
+import 'sentry/stores/pluginsStore';
+
 import Reflux from 'reflux';
 
 const PluginActions = Reflux.createActions([

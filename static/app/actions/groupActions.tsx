@@ -1,3 +1,6 @@
+import 'sentry/stores/groupingStore';
+import 'sentry/stores/groupStore';
+
 import Reflux from 'reflux';
 
 // TODO(dcramer): we should probably just make every parameter update

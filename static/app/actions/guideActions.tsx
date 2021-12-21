@@ -1,3 +1,5 @@
+import 'sentry/stores/guideStore';
+
 import Reflux from 'reflux';
 
 const GuideActions = Reflux.createActions([

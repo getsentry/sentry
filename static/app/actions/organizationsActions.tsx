@@ -1,3 +1,7 @@
+import 'sentry/stores/organizationsStore';
+import 'sentry/stores/latestContextStore';
+import 'sentry/stores/guideStore';
+
 import Reflux from 'reflux';
 
 const OrganizationsActions = Reflux.createActions([

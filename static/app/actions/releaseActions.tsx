@@ -1,6 +1,8 @@
+import 'sentry/stores/releaseStore';
+
 import Reflux from 'reflux';
 
-export default Reflux.createActions([
+const ReleaseActions = Reflux.createActions([
   'loadRelease', // Singular as it loads 1 release
   'loadReleaseError',
   'loadReleaseSuccess',
@@ -8,3 +10,5 @@ export default Reflux.createActions([
   'loadDeploysError',
   'loadDeploysSuccess',
 ]);
+
+export default ReleaseActions;

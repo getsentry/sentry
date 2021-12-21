@@ -1,6 +1,8 @@
+import 'sentry/stores/globalSelectionStore';
+
 import Reflux from 'reflux';
 
-export default Reflux.createActions([
+const GlobalSelectionActions = Reflux.createActions([
   'reset',
   'setOrganization',
   'initializeUrlState',
@@ -9,3 +11,5 @@ export default Reflux.createActions([
   'updateEnvironments',
   'save',
 ]);
+
+export default GlobalSelectionActions;

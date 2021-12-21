@@ -1,6 +1,8 @@
+import 'sentry/stores/savedSearchesStore';
+
 import Reflux from 'reflux';
 
-export default Reflux.createActions([
+const SavedSearchActions = Reflux.createActions([
   'resetSavedSearches',
   'startFetchSavedSearches',
   'fetchSavedSearchesSuccess',
@@ -11,3 +13,5 @@ export default Reflux.createActions([
   'pinSearchSuccess',
   'unpinSearch',
 ]);
+
+export default SavedSearchActions;
