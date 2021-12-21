@@ -84,6 +84,12 @@ export class EventedProfile extends Profile {
     if (lastTop) {
       const sampleDelta = at - this.lastValue;
 
+      if (sampleDelta < 0) {
+        throw new Error(
+          'Sample delta cannot be negative, samples may be corrupt or out of order'
+        );
+      }
+
       // If the sample timestamp is not the same as the same as of previous frame,
       // we can deduce that this is a new sample and need to push it on the stack
       if (sampleDelta > 0) {
@@ -103,7 +109,7 @@ export class EventedProfile extends Profile {
 
       let start = this.appendOrderStack.length - 1;
 
-      // This is On^2, because we iterate over all frames in the stack to check if our
+      // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
       // We check the stack in a top-down order to find the first recursive frame.
       while (start >= 0) {

@@ -139,6 +139,30 @@ describe('EventedProfile', () => {
     expect(profile.minFrameDuration).toBe(0.5);
   });
 
+  it('throws if samples are our of order', () => {
+    const trace: Profiling.EventedProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      type: 'evented',
+      events: [
+        {type: 'O', at: 5, frame: 0},
+        {type: 'O', at: 2, frame: 1},
+        {type: 'C', at: 5.5, frame: 1},
+        {type: 'C', at: 5.5, frame: 1},
+        // Simulate unclosed frame
+      ],
+      shared: {
+        frames: [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}],
+      },
+    };
+
+    expect(() => EventedProfile.FromProfile(trace)).toThrow(
+      'Sample delta cannot be negative, samples may be corrupt or out of order'
+    );
+  });
+
   it('throws on unbalanced stack', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
