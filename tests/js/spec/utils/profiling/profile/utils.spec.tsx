@@ -23,6 +23,7 @@ describe('memoizeByReference', () => {
     const val = Math.random();
     const memoized = memoizeByReference(fn);
 
+    // @ts-ignore we discard result of first call
     const _discard = memoized(val);
     const result = memoized(val);
 
@@ -35,6 +36,7 @@ describe('memoizeByReference', () => {
 
     const memoized = memoizeByReference(fn);
 
+    // @ts-ignore we discard result of first call
     const _discard = memoized(1);
     const result = memoized(2);
 
@@ -64,6 +66,7 @@ describe('memoizeVariadicByReference', () => {
     const a = 1;
     const b = 2;
 
+    // @ts-ignore we discard result of first call
     const _discard = memoized(a, b);
     const result = memoized(a, b);
 
@@ -79,6 +82,7 @@ describe('memoizeVariadicByReference', () => {
     const b = 2;
     const c = 1;
 
+    // @ts-ignore we discard result of first call
     const _discard = memoized(a, b);
     const result = memoized(a, c);
 
