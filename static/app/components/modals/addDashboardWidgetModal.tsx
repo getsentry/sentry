@@ -33,7 +33,6 @@ import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
-import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -49,7 +48,8 @@ import {
   normalizeQueries,
 } from 'sentry/views/dashboardsV2/widget/eventWidget/utils';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widget/issueWidget/utils';
-import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import IssueWidgetCard from 'sentry/views/dashboardsV2/widgetCard/issueWidgetCard';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import Input from 'sentry/views/settings/components/forms/controls/input';

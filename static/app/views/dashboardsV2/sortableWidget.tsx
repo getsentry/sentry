@@ -6,9 +6,9 @@ import {Organization} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import IssueWidgetCard from './issueWidgetCard';
+import IssueWidgetCard from './widgetCard/issueWidgetCard';
+import DiscoverWidgetCard from './widgetCard/widgetCard';
 import {Widget, WidgetType} from './types';
-import DiscoverWidgetCard from './widgetCard';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
 type Props = {

@@ -9,7 +9,7 @@ import {GlobalSelection, Group, OrganizationSummary} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {IssueDisplayOptions, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {Widget, WidgetQuery} from './types';
+import {Widget, WidgetQuery} from '../types';
 
 const MAX_ITEMS = 5;
 const DEFAULT_SORT = IssueSortOptions.DATE;

@@ -1,37 +1,46 @@
 import * as React from 'react';
 import LazyLoad from 'react-lazyload';
-import {Link, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import * as qs from 'query-string';
 
-import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MenuItem from 'sentry/components/menuItem';
 import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
+import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {GlobalSelection, Group, Organization} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
-import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
-import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
+import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widget/issueWidget/fields';
 
-import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
-import ContextMenu from './contextMenu';
-import {Widget} from './types';
-import WidgetCardChart from './widgetCardChart';
+import ContextMenu from '../contextMenu';
+import {DRAG_HANDLE_CLASS} from '../gridLayout/dashboard';
+import {Widget} from '../types';
+
+import IssueWidgetQueries from './issueWidgetQueries';
 import WidgetQueries from './widgetQueries';
+
+type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'> & {
+  tableResults: Group[];
+};
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
@@ -56,7 +65,7 @@ type Props = WithRouterProps & {
   widgetLimitReached: boolean;
 };
 
-class WidgetCard extends React.Component<Props> {
+class IssueWidgetCard extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props): boolean {
     if (
       !isEqual(nextProps.widget, this.props.widget) ||
@@ -72,9 +81,61 @@ class WidgetCard extends React.Component<Props> {
     return false;
   }
 
-  isAllowWidgetsToDiscover() {
-    const {organization} = this.props;
-    return organization.features.includes('connect-discover-and-dashboards');
+  transformTableResults(tableResults: Group[]): TableDataRow[] {
+    return tableResults.map(({id, shortId, title, assignedTo, ...resultProps}) => {
+      const transformedResultProps = {};
+      Object.keys(resultProps).map(key => {
+        const value = resultProps[key];
+        transformedResultProps[key] = ['number', 'string'].includes(typeof value)
+          ? value
+          : String(value);
+      });
+      const transformedTableResults = {
+        ...transformedResultProps,
+        id,
+        'issue.id': id,
+        issue: shortId,
+        title,
+        'assignee.type': assignedTo?.type,
+        'assignee.name': assignedTo?.name ?? '',
+        'assignee.id': assignedTo?.id,
+        'assignee.email': assignedTo?.email ?? '',
+      };
+      return transformedTableResults;
+    });
+  }
+
+  tableResultComponent({
+    loading,
+    errorMessage,
+    tableResults,
+  }: TableResultProps): React.ReactNode {
+    const {location, organization, widget} = this.props;
+    if (errorMessage) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
+    if (loading) {
+      // Align height to other charts.
+      return <LoadingPlaceholder height="200px" />;
+    }
+    const transformedTableResults = this.transformTableResults(tableResults);
+
+    return (
+      <StyledSimpleTableChart
+        location={location}
+        title=""
+        fields={widget.queries[0].fields}
+        loading={loading}
+        metadata={ISSUE_FIELDS}
+        data={transformedTableResults}
+        organization={organization}
+      />
+    );
   }
 
   renderToolbar() {
@@ -98,20 +159,10 @@ class WidgetCard extends React.Component<Props> {
               />
             </IconClick>
           )}
-          <IconClick
-            data-test-id="widget-edit"
-            onClick={() => {
-              onEdit();
-            }}
-          >
+          <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />
           </IconClick>
-          <IconClick
-            data-test-id="widget-delete"
-            onClick={() => {
-              onDelete();
-            }}
-          >
+          <IconClick data-test-id="widget-delete" onClick={onDelete}>
             <IconDelete color="textColor" />
           </IconClick>
         </IconContainer>
@@ -133,129 +184,56 @@ class WidgetCard extends React.Component<Props> {
       return null;
     }
 
-    const menuOptions: React.ReactNode[] = [];
-
-    if (
-      (widget.displayType === 'table' || this.isAllowWidgetsToDiscover()) &&
-      organization.features.includes('discover-basic')
-    ) {
-      // Open Widget in Discover
-      if (widget.queries.length) {
-        const eventView = eventViewFromWidget(
-          widget.title,
-          widget.queries[0],
-          selection,
-          widget.displayType
-        );
-        const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
-        if (this.isAllowWidgetsToDiscover()) {
-          // Pull a max of 3 valid Y-Axis from the widget
-          const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-          discoverLocation.query.yAxis = widget.queries[0].fields
-            .filter(field => yAxisOptions.includes(field))
-            .slice(0, 3);
-          switch (widget.displayType) {
-            case DisplayType.WORLD_MAP:
-              discoverLocation.query.display = DisplayModes.WORLDMAP;
-              break;
-            case DisplayType.BAR:
-              discoverLocation.query.display = DisplayModes.BAR;
-              break;
-            default:
-              break;
-          }
-        }
-        if (widget.queries.length === 1) {
-          menuOptions.push(
-            <Link
-              key="open-discover-link"
-              to={discoverLocation}
-              onClick={() => {
-                trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
-                  organization,
-                  widget_type: widget.displayType,
-                });
-              }}
-            >
-              <StyledMenuItem key="open-discover">{t('Open in Discover')}</StyledMenuItem>
-            </Link>
-          );
-        } else {
-          menuOptions.push(
-            <StyledMenuItem
-              key="open-discover"
-              onClick={event => {
-                event.preventDefault();
-                trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
-                  organization,
-                  widget_type: widget.displayType,
-                });
-                openDashboardWidgetQuerySelectorModal({organization, widget});
-              }}
-            >
-              {t('Open in Discover')}
-            </StyledMenuItem>
-          );
-        }
-      }
-    }
-
-    if (organization.features.includes('dashboards-edit')) {
-      menuOptions.push(
-        <StyledMenuItem
-          key="duplicate-widget"
-          data-test-id="duplicate-widget"
-          onSelect={onDuplicate}
-          disabled={widgetLimitReached}
-        >
-          {t('Duplicate Widget')}
-        </StyledMenuItem>
-      );
-    }
-
-    if (!menuOptions.length) {
-      return null;
-    }
+    const {start, end, utc, period} = selection.datetime;
+    const datetime =
+      start && end
+        ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+        : {statsPeriod: period};
+    const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
+      query: widget.queries?.[0]?.conditions,
+      ...datetime,
+    })}`;
 
     return (
       <ContextWrapper>
-        <ContextMenu>{menuOptions}</ContextMenu>
+        <ContextMenu>
+          <Link to={issuesLocation}>
+            <StyledMenuItem key="open-issues">{t('Open in Issues')}</StyledMenuItem>
+          </Link>
+          <StyledMenuItem
+            key="duplicate-widget"
+            onSelect={onDuplicate}
+            disabled={widgetLimitReached}
+          >
+            {t('Duplicate Widget')}
+          </StyledMenuItem>
+        </ContextMenu>
       </ContextWrapper>
     );
   }
 
   renderChart() {
-    const {widget, api, organization, selection, renderErrorMessage, location, router} =
-      this.props;
+    const {widget, api, organization, selection, renderErrorMessage} = this.props;
     return (
-      <WidgetQueries
+      <IssueWidgetQueries
         api={api}
         organization={organization}
         widget={widget}
         selection={selection}
       >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => {
+        {({tableResults, errorMessage, loading}) => {
           return (
             <React.Fragment>
               {typeof renderErrorMessage === 'function'
                 ? renderErrorMessage(errorMessage)
                 : null}
-              <WidgetCardChart
-                timeseriesResults={timeseriesResults}
-                tableResults={tableResults}
-                errorMessage={errorMessage}
-                loading={loading}
-                location={location}
-                widget={widget}
-                selection={selection}
-                router={router}
-                organization={organization}
-              />
+              <LoadingScreen loading={loading} />
+              {this.tableResultComponent({tableResults, loading, errorMessage})}
               {this.renderToolbar()}
             </React.Fragment>
           );
         }}
-      </WidgetQueries>
+      </IssueWidgetQueries>
     );
   }
 
@@ -283,7 +261,31 @@ class WidgetCard extends React.Component<Props> {
   }
 }
 
-export default withApi(withOrganization(withGlobalSelection(withRouter(WidgetCard))));
+export default withApi(
+  withOrganization(withGlobalSelection(withRouter(IssueWidgetCard)))
+);
+
+const StyledTransparentLoadingMask = styled(props => (
+  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
+))`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const LoadingScreen = ({loading}: {loading: boolean}) => {
+  if (!loading) {
+    return null;
+  }
+  return (
+    <StyledTransparentLoadingMask visible={loading}>
+      <LoadingIndicator mini />
+    </StyledTransparentLoadingMask>
+  );
+};
+const LoadingPlaceholder = styled(Placeholder)`
+  background-color: ${p => p.theme.surface200};
+`;
 
 const ErrorCard = styled(Placeholder)`
   display: flex;
@@ -310,11 +312,30 @@ const StyledPanel = styled(Panel, {
   flex-direction: column;
 `;
 
+const WidgetTitle = styled(HeaderTitle)`
+  ${overflowEllipsis};
+`;
+
+const WidgetHeader = styled('div')`
+  padding: ${space(2)} ${space(3)} 0 ${space(3)};
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StyledSimpleTableChart = styled(SimpleTableChart)`
+  margin-top: ${space(1.5)};
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSizeMedium};
+  box-shadow: none;
+`;
+
 const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
-  z-index: auto;
+  z-index: 1;
 
   width: 100%;
   height: 100%;
@@ -341,23 +362,6 @@ const IconClick = styled('div')`
   }
 `;
 
-const StyledIconGrabbable = styled(IconGrabbable)`
-  &:hover {
-    cursor: grab;
-  }
-`;
-
-const WidgetTitle = styled(HeaderTitle)`
-  ${overflowEllipsis};
-`;
-
-const WidgetHeader = styled('div')`
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-`;
-
 const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
@@ -367,5 +371,11 @@ const StyledMenuItem = styled(MenuItem)`
   color: ${p => p.theme.textColor};
   :hover {
     color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledIconGrabbable = styled(IconGrabbable)`
+  &:hover {
+    cursor: grab;
   }
 `;
