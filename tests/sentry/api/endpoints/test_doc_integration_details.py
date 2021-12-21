@@ -209,6 +209,19 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         for key in self.ignored_keys:
             assert getattr(self.doc_2, key) is not payload[key]
 
+    def test_update_simple_without_avatar(self):
+        """
+        Tests that the DocIntegration can be edited without an
+        associated DocIntegrationAvatar.
+        """
+        self.login_as(user=self.superuser, superuser=True)
+        payload = {**self.payload, "is_draft": True}
+        response = self.get_success_response(
+            self.doc_1.slug, status_code=status.HTTP_200_OK, **payload
+        )
+        self.doc_1.refresh_from_db()
+        assert serialize(self.doc_1) == response.data
+
     def test_update_publish_without_avatar(self):
         """
         Tests that the DocIntegration cannot be published without an
