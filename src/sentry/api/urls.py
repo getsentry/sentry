@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -2128,6 +2129,12 @@ urlpatterns = [
         r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/avatar/$",
         DocIntegrationAvatarEndpoint.as_view(),
         name="sentry-api-0-doc-integration-avatar",
+    ),
+    # Integration Features
+    url(
+        r"^integration-features/$",
+        IntegrationFeaturesEndpoint.as_view(),
+        name="sentry-api-0-integration-features",
     ),
     # Grouping configs
     url(
