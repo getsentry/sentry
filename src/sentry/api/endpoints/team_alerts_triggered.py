@@ -142,6 +142,8 @@ class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):  # type:
         ).annotate(count=Count("id"))
 
         stats_start, stats_end = get_date_range_from_params(request.GET)
+        stats_end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        stats_start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
 
         return self.paginate(
             default_per_page=10,
