@@ -6,18 +6,29 @@ import {Frame} from '../frame';
 // This is ported from speedscope with a lot of modifications and simplifications
 // head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
 export class Profile {
+  // Duration of the profile
   duration = 0;
+  // Started at ts of the profile - varies between implementations of the profiler.
+  // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
   startedAt = 0;
+  // Ended at ts of the profile - varies between implementations of the profiler.
+  // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
   endedAt = 0;
-  lastValue = 0;
+
+  // Unit in which the timings are reported in
   unit = 'microseconds';
+  // Name of the profile
   name = 'Unknown';
 
+  // Frames in stack as we iterate over the samples array
   framesInStack: Set<Profiling.Event['frame']> = new Set();
+  // FrameIndex for constant lookup of frames as we iterate over profiles
   frameIndex: Record<number, Frame> = {};
 
+  // Min duration of the profile
   minFrameDuration = Number.POSITIVE_INFINITY;
 
+  // Call tree tree representation of the profile
   appendOrderTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
 
   samples: CallTreeNode[] = [];

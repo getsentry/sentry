@@ -6,7 +6,7 @@ const f = (name: string, key: number) => new Frame({name, key, is_application: f
 const c = (fr: Frame) => new CallTreeNode(fr, null);
 
 const makeTestingBoilerplate = () => {
-  const timings: [Frame['name'], 'open' | 'closed'][] = [];
+  const timings: [Frame['name'], string][] = [];
 
   const openSpy = jest.fn();
   const closeSpy = jest.fn();
