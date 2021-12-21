@@ -18,6 +18,8 @@ import space from 'sentry/styles/space';
 import {Choices, SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 
+import Option from './selectOption';
+
 function isGroupedOptions<OptionType>(
   maybe:
     | ReturnType<typeof convertFromSelect2Choices>
@@ -75,6 +77,10 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    * Used by MultiSelectControl.
    */
   multiple?: boolean;
+  /**
+   * Show line dividers between options
+   */
+  showDividers?: boolean;
   /**
    * Handler for changes. Narrower than the types in react-select.
    */
@@ -159,29 +165,19 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     menu: (provided: React.CSSProperties) => ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
-      background: theme.background,
+      background: theme.backgroundElevated,
       border: `1px solid ${theme.border}`,
       borderRadius: theme.borderRadius,
       boxShadow: theme.dropShadowHeavy,
     }),
-    option: (provided: React.CSSProperties, state: any) => ({
+    option: (provided: React.CSSProperties) => ({
       ...provided,
       lineHeight: '1.5',
       fontSize: theme.fontSizeMedium,
       cursor: 'pointer',
-      color: state.isFocused
-        ? theme.textColor
-        : state.isSelected
-        ? theme.background
-        : theme.textColor,
-      backgroundColor: state.isFocused
-        ? theme.hover
-        : state.isSelected
-        ? theme.active
-        : 'transparent',
-      '&:active': {
-        backgroundColor: theme.active,
-      },
+      color: theme.textColor,
+      background: 'transparent',
+      padding: `0 ${space(0.5)}`,
     }),
     valueContainer: (provided: React.CSSProperties) => ({
       ...provided,
@@ -241,14 +237,16 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...provided,
       lineHeight: '1.5',
       fontWeight: 600,
-      backgroundColor: theme.backgroundSecondary,
-      color: theme.textColor,
+      color: theme.subText,
       marginBottom: 0,
-      padding: `${space(1)} ${space(1.5)}`,
+      padding: `${space(0.5)} ${space(1.5)}`,
     }),
     group: (provided: React.CSSProperties) => ({
       ...provided,
-      padding: 0,
+      paddingTop: 0,
+      ':last-of-type': {
+        paddingBottom: 0,
+      },
     }),
   };
 
@@ -331,6 +329,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     MultiValueRemove,
     LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
+    Option,
   };
 
   return (
@@ -344,8 +343,12 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       value={mappedValue}
       isMulti={props.multiple || props.multi}
       isDisabled={props.isDisabled || props.disabled}
+      showDividers={props.showDividers}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus === undefined ? true : props.openMenuOnFocus}
+      blurInputOnSelect={!(props.multiple || props.multi)}
+      closeMenuOnSelect={!(props.multiple || props.multi)}
+      hideSelectedOptions={false}
       {...rest}
     />
   );
