@@ -383,6 +383,8 @@ class Fixtures:
         return Factories.create_identity_provider(*args, **kwargs)
 
     def create_group_history(self, *args, **kwargs):
+        if "actor" not in kwargs:
+            kwargs["actor"] = self.user.actor
         return Factories.create_group_history(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
