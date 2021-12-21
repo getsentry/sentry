@@ -137,4 +137,18 @@ describe('useTeams', function () {
     expect(initiallyLoaded).toBe(true);
     expect(teams).toEqual(expect.arrayContaining(mockTeams));
   });
+
+  it('correctly returns hasMore before and after store update', async function () {
+    TeamStore.reset();
+    const {result, waitFor} = renderHook(() => useTeams());
+
+    const {teams, hasMore} = result.current;
+    expect(hasMore).toBe(null);
+    expect(teams).toEqual(expect.arrayContaining([]));
+
+    act(() => TeamStore.loadInitialData(mockTeams, false, null));
+    await waitFor(() => expect(result.current.teams.length).toBe(1));
+
+    expect(result.current.hasMore).toBe(false);
+  });
 });

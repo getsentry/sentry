@@ -344,7 +344,7 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     fetching: state.fetching || store.loading,
     initiallyLoaded: state.initiallyLoaded,
     fetchError: state.fetchError,
-    hasMore: state.hasMore,
+    hasMore: state.hasMore ?? store.hasMore,
     onSearch: handleSearch,
     loadMore: handleFetchAdditionalTeams,
   };
