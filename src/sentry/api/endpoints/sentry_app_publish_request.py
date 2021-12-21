@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
@@ -14,7 +15,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         elements = (sentry_app.schema or {}).get("elements", [])
         return any(element.get("type") in COMPONENT_TYPES for element in elements)
 
-    def post(self, request, sentry_app):
+    def post(self, request: Request, sentry_app) -> Response:
         # check status of app to make sure it is unpublished
         if sentry_app.is_published:
             return Response({"detail": "Cannot publish already published integration."}, status=400)

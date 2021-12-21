@@ -6,7 +6,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
+import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {constructGridItemKey} from 'sentry/views/dashboardsV2/gridLayout/dashboard';
 import {DashboardState} from 'sentry/views/dashboardsV2/types';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
@@ -62,6 +64,9 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      if (wrapper) {
+        wrapper.unmount();
+      }
     });
 
     it('can delete', async function () {
@@ -183,10 +188,71 @@ describe('Dashboards > Detail', function () {
       expect(editProps.disabled).toBe(true);
       expect(mockVisit).not.toHaveBeenCalled();
     });
+
+    it('assigns unique IDs to all widgets so grid keys are unique', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/default-overview/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'Default Widget 1',
+                interval: '1d',
+              }
+            ),
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
+              {
+                title: 'Default Widget 2',
+                interval: '1d',
+              }
+            ),
+          ],
+          {id: 'default-overview', title: 'Default'}
+        ),
+      });
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'discover-query',
+            'dashboard-grid-layout',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      const dashboardInstance = wrapper.find('Dashboard').instance();
+      const assignedIds = new Set(
+        dashboardInstance.props.dashboard.widgets.map(constructGridItemKey)
+      );
+      expect(assignedIds.size).toBe(dashboardInstance.props.dashboard.widgets.length);
+    });
   });
 
   describe('custom dashboards', function () {
     let wrapper, initialData, widgets, mockVisit, mockPut;
+
+    const openLibraryModal = jest.spyOn(modals, 'openDashboardWidgetLibraryModal');
+    const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -288,6 +354,7 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      jest.clearAllMocks();
       if (wrapper) {
         wrapper.unmount();
       }
@@ -381,7 +448,7 @@ describe('Dashboards > Detail', function () {
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
     });
 
-    it('shows add wiget option', async function () {
+    it('shows add widget option', async function () {
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -398,6 +465,59 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(true);
+    });
+
+    it('opens custom modal when add widget option is clicked', async function () {
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
+      wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+    });
+
+    it('opens widget library when add widget option is clicked', async function () {
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'widget-library',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
+      wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
+      expect(openLibraryModal).toHaveBeenCalledTimes(1);
     });
 
     it('hides add widget option', async function () {

@@ -34,7 +34,13 @@ import Controls from './controls';
 import DnDKitDashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import DashboardTitle from './title';
-import {DashboardDetails, DashboardListItem, DashboardState, Widget} from './types';
+import {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardState,
+  MAX_WIDGETS,
+  Widget,
+} from './types';
 import {cloneDashboard} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
@@ -168,6 +174,11 @@ class DashboardDetail extends Component<Props, State> {
     return modifiedDashboard ? modifiedDashboard.title : dashboard.title;
   }
 
+  get widgetLimitReached() {
+    const {dashboard} = this.props;
+    return dashboard.widgets.length >= MAX_WIDGETS;
+  }
+
   onEdit = () => {
     const {dashboard} = this.props;
 
@@ -262,49 +273,63 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  onAddWidget = () => {
+  handleAddLibraryWidgets = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
+    const {dashboardState} = this.state;
+    const modifiedDashboard = {
+      ...cloneDashboard(dashboard),
+      widgets: widgets.map(assignTempId),
+    };
+    this.setState({modifiedDashboard});
+    if ([DashboardState.CREATE, DashboardState.EDIT].includes(dashboardState)) {
+      return;
+    }
+    updateDashboard(api, organization.slug, modifiedDashboard).then(
+      (newDashboard: DashboardDetails) => {
+        if (onDashboardUpdate) {
+          onDashboardUpdate(newDashboard);
+        }
+        addSuccessMessage(t('Dashboard updated'));
+        if (dashboard && newDashboard.id !== dashboard.id) {
+          browserHistory.replace({
+            pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+            query: {
+              ...location.query,
+            },
+          });
+          return;
+        }
+      },
+      () => undefined
+    );
+  };
+
+  onAddWidget = () => {
+    const {organization, dashboard} = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
     openDashboardWidgetLibraryModal({
       organization,
       dashboard,
-      onAddWidget: (widgets: Widget[]) => {
-        const modifiedDashboard = {
-          ...cloneDashboard(dashboard),
-          widgets: widgets.map(assignTempId),
-        };
-        this.setState({modifiedDashboard});
-        updateDashboard(api, organization.slug, modifiedDashboard).then(
-          (newDashboard: DashboardDetails) => {
-            if (onDashboardUpdate) {
-              onDashboardUpdate(newDashboard);
-            }
-            addSuccessMessage(t('Dashboard updated'));
-            if (dashboard && newDashboard.id !== dashboard.id) {
-              browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                query: {
-                  ...location.query,
-                },
-              });
-              return;
-            }
-          },
-          () => undefined
-        );
-      },
+      onAddWidget: (widgets: Widget[]) => this.handleAddLibraryWidgets(widgets),
     });
   };
 
   /**
    * Saves a dashboard layout where the layout keys are replaced with the IDs of new widgets.
+   *
+   * If there are more widgets than layout objects, these widgets will be treated as
+   * new and will get default positioning. This happens when saving in mobile
+   * view because we don't update the desktop layout to account for the new widget.
+   *
+   * Throws an error if we end up in a state where we're trying to save more layouts
+   * than we have widgets.
    */
   saveLayoutWithNewWidgets = (organizationId, dashboardId, newWidgets) => {
     const {layout} = this.state;
-    if (layout.length !== newWidgets.length) {
-      throw new Error('Expected layouts and widgets to be the same length');
+    if (layout.length > newWidgets.length) {
+      throw new Error('Expected layouts to have less length than widgets');
     }
 
     const newLayout = layout.map((widgetLayout, index) => ({
@@ -442,17 +467,12 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onUpdateWidget = (widgets: Widget[]) => {
-    const {modifiedDashboard} = this.state;
-
-    if (modifiedDashboard === null) {
-      return;
-    }
     this.setState(
       (state: State) => ({
         ...state,
         widgetToBeUpdated: undefined,
         modifiedDashboard: {
-          ...state.modifiedDashboard!,
+          ...(state.modifiedDashboard || this.props.dashboard),
           widgets,
         },
       }),
@@ -483,8 +503,10 @@ class DashboardDetail extends Component<Props, State> {
       dashboard: modifiedDashboard ?? dashboard,
       organization,
       isEditing: this.isEditing,
+      widgetLimitReached: this.widgetLimitReached,
       onUpdate: this.onUpdateWidget,
       onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
+      handleAddLibraryWidgets: this.handleAddLibraryWidgets,
       router,
       location,
     };
@@ -518,7 +540,7 @@ class DashboardDetail extends Component<Props, State> {
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
                 dashboardState={dashboardState}
-                widgetCount={dashboard.widgets.length}
+                widgetLimitReached={this.widgetLimitReached}
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
@@ -548,7 +570,9 @@ class DashboardDetail extends Component<Props, State> {
       dashboard: modifiedDashboard ?? dashboard,
       organization,
       isEditing: this.isEditing,
+      widgetLimitReached: this.widgetLimitReached,
       onUpdate: this.onUpdateWidget,
+      handleAddLibraryWidgets: this.handleAddLibraryWidgets,
       onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
       router,
       location,
@@ -606,7 +630,7 @@ class DashboardDetail extends Component<Props, State> {
                   onAddWidget={this.onAddWidget}
                   onDelete={this.onDelete(dashboard)}
                   dashboardState={dashboardState}
-                  widgetCount={dashboard.widgets.length}
+                  widgetLimitReached={this.widgetLimitReached}
                 />
               </Layout.HeaderActions>
             </Layout.Header>

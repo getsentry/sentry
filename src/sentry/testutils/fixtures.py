@@ -262,6 +262,12 @@ class Fixtures:
     def create_sentry_app_feature(self, *args, **kwargs):
         return Factories.create_sentry_app_feature(*args, **kwargs)
 
+    def create_doc_integration(self, *args, **kwargs):
+        return Factories.create_doc_integration(*args, **kwargs)
+
+    def create_doc_integration_features(self, *args, **kwargs):
+        return Factories.create_doc_integration_features(*args, **kwargs)
+
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
 
@@ -377,6 +383,8 @@ class Fixtures:
         return Factories.create_identity_provider(*args, **kwargs)
 
     def create_group_history(self, *args, **kwargs):
+        if "actor" not in kwargs:
+            kwargs["actor"] = self.user.actor
         return Factories.create_group_history(*args, **kwargs)
 
     @pytest.fixture(autouse=True)

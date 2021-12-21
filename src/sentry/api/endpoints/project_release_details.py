@@ -1,4 +1,5 @@
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import ReleaseAnalyticsMixin
@@ -17,7 +18,7 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project, version):
+    def get(self, request: Request, project, version) -> Response:
         """
         Retrieve a Project's Release
         ````````````````````````````
@@ -60,7 +61,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             )
         )
 
-    def put(self, request, project, version):
+    def put(self, request: Request, project, version) -> Response:
         """
         Update a Project's Release
         ``````````````````````````
@@ -137,7 +138,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
             return Response(serialize(release, request.user))
 
-    def delete(self, request, project, version):
+    def delete(self, request: Request, project, version) -> Response:
         """
         Delete a Project's Release
         ``````````````````````````

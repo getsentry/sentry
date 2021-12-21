@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -13,7 +14,7 @@ class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
     See GroupingConfigsEndpoint
     """
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
 
         configs = [
             config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: x.id)

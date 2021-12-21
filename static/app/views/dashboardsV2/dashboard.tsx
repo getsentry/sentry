@@ -4,10 +4,14 @@ import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {
+  openAddDashboardWidgetModal,
+  openDashboardWidgetLibraryModal,
+} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
@@ -19,7 +23,7 @@ import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, MAX_WIDGETS, Widget} from './types';
+import {DashboardDetails, DashboardWidgetSource, Widget} from './types';
 
 type Props = {
   api: Client;
@@ -29,11 +33,13 @@ type Props = {
   isEditing: boolean;
   router: InjectedRouter;
   location: Location;
+  widgetLimitReached: boolean;
   /**
    * Fired when widgets are added/removed/sorted.
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
+  handleAddLibraryWidgets: (widgets: Widget[]) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
 };
@@ -80,11 +86,22 @@ class Dashboard extends Component<Props> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard, selection} = this.props;
-
+    const {organization, dashboard, selection, handleAddLibraryWidgets} = this.props;
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
+
+    if (organization.features.includes('widget-library')) {
+      trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
+        organization,
+      });
+      openDashboardWidgetLibraryModal({
+        organization,
+        dashboard,
+        onAddWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+      });
+      return;
+    }
     openAddDashboardWidgetModal({
       organization,
       dashboard,
@@ -129,6 +146,18 @@ class Dashboard extends Component<Props> {
     const nextList = [...this.props.dashboard.widgets];
     nextList.splice(index, 1);
     this.props.onUpdate(nextList);
+  };
+
+  handleDuplicateWidget = (widget: Widget, index: number) => () => {
+    const {dashboard, handleAddLibraryWidgets} = this.props;
+
+    const widgetCopy = cloneDeep(widget);
+    widgetCopy.id = undefined;
+
+    const nextList = [...dashboard.widgets];
+    nextList.splice(index, 0, widgetCopy);
+
+    handleAddLibraryWidgets(nextList);
   };
 
   handleEditWidget = (widget: Widget, index: number) => () => {
@@ -191,7 +220,7 @@ class Dashboard extends Component<Props> {
   }
 
   renderWidget(widget: Widget, index: number) {
-    const {isEditing} = this.props;
+    const {isEditing, widgetLimitReached} = this.props;
 
     const key = generateWidgetId(widget, index);
     const dragId = key;
@@ -204,6 +233,8 @@ class Dashboard extends Component<Props> {
         isEditing={isEditing}
         onDelete={this.handleDeleteWidget(index)}
         onEdit={this.handleEditWidget(widget, index)}
+        onDuplicate={this.handleDuplicateWidget(widget, index)}
+        widgetLimitReached={widgetLimitReached}
       />
     );
   }
@@ -214,6 +245,7 @@ class Dashboard extends Component<Props> {
       onUpdate,
       dashboard: {widgets},
       organization,
+      widgetLimitReached,
     } = this.props;
 
     const items = this.getWidgetIds();
@@ -238,7 +270,7 @@ class Dashboard extends Component<Props> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && widgets.length < MAX_WIDGETS && (
+            {isEditing && !!!widgetLimitReached && (
               <AddWidget
                 orgFeatures={organization.features}
                 onAddWidget={this.handleStartAdd}

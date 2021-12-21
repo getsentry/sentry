@@ -12,7 +12,6 @@ from sentry.models import (
     SentryAppInstallation,
     SentryAppInstallationToken,
 )
-from sentry.models.integrationfeature import IntegrationTypes
 from sentry.models.sentryapp import MASKED_VALUE
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
@@ -87,10 +86,9 @@ class GetSentryAppsTest(SentryAppsTest):
             "owner": {"id": self.org.id, "slug": self.org.slug},
             "featureData": [
                 {
+                    "featureId": 0,
                     "featureGate": "integrations-api",
                     "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
-                    "targetId": self.published_app.id,
-                    "targetType": IntegrationTypes.SENTRY_APP.value,
                 }
             ],
             "popularity": self.default_popularity,
@@ -197,10 +195,9 @@ class GetSentryAppsTest(SentryAppsTest):
             "owner": {"id": self.org.id, "slug": self.org.slug},
             "featureData": [
                 {
+                    "featureId": 0,
                     "featureGate": "integrations-api",
                     "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
-                    "targetId": self.published_app.id,
-                    "targetType": IntegrationTypes.SENTRY_APP.value,
                 }
             ],
             "popularity": self.default_popularity,
@@ -248,10 +245,9 @@ class GetSentryAppsTest(SentryAppsTest):
             "owner": {"id": self.org.id, "slug": self.org.slug},
             "featureData": [
                 {
+                    "featureId": 0,
                     "featureGate": "integrations-api",
                     "description": "Testin can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
-                    "targetId": self.unpublished_app.id,
-                    "targetType": IntegrationTypes.SENTRY_APP.value,
                 }
             ],
             "popularity": self.default_popularity,
@@ -303,10 +299,9 @@ class GetSentryAppsTest(SentryAppsTest):
             "owner": {"id": self.org.id, "slug": self.org.slug},
             "featureData": [
                 {
+                    "featureId": 0,
                     "featureGate": "integrations-api",
                     "description": "Boo Far can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
-                    "targetId": sentry_app.id,
-                    "targetType": IntegrationTypes.SENTRY_APP.value,
                 }
             ],
             "popularity": self.default_popularity,

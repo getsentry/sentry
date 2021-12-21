@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -9,7 +10,7 @@ from sentry.plugins.base import plugins
 
 
 class OrganizationPluginsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         all_plugins = {p.slug: p for p in plugins.all()}
 
         if "plugins" in request.GET:

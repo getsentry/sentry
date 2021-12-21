@@ -1,5 +1,6 @@
 from django.core.validators import ValidationError, validate_slug
 from django.db import transaction
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -7,7 +8,7 @@ from sentry.models import Project
 
 
 class SlugsUpdateEndpoint(OrganizationEndpoint):
-    def put(self, request, organization):
+    def put(self, request: Request, organization) -> Response:
         """
         Update Project Slugs
         ````````````````````

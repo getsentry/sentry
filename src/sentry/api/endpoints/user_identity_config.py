@@ -3,6 +3,7 @@ from typing import Iterable, Optional
 
 from django.db import transaction
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
@@ -73,7 +74,7 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
 
 
 class UserIdentityConfigEndpoint(UserEndpoint):
-    def get(self, request, user):
+    def get(self, request: Request, user) -> Response:
         """
         Retrieve all of a user's SocialIdentity, Identity, and AuthIdentity values
         ``````````````````````````````````````````````````````````````````````````
@@ -100,14 +101,14 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
                 return identity
         return None
 
-    def get(self, request, user, category, identity_id):
+    def get(self, request: Request, user, category, identity_id) -> Response:
         identity = self._get_identity(user, category, identity_id)
         if identity:
             return Response(serialize(identity))
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-    def delete(self, request, user, category, identity_id):
+    def delete(self, request: Request, user, category, identity_id) -> Response:
         with transaction.atomic():
             identity = self._get_identity(user, category, identity_id)
             if not identity:

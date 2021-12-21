@@ -1,4 +1,6 @@
 from django.http import HttpResponse
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.saml2.provider import SCIMMixin
@@ -6,7 +8,7 @@ from sentry.auth.view import AuthView
 
 
 class AskEmail(AuthView):
-    def dispatch(self, request, helper):
+    def dispatch(self, request: Request, helper) -> Response:
         if "email" in request.POST:
             if "id" in request.POST:
                 helper.bind_state("id", request.POST.get("id"))

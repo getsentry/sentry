@@ -20,6 +20,7 @@ const WrappedComponent = ({data}) => {
         location={data.router.location}
         eventView={eventView}
         projects={data.projects}
+        selection={eventView.getGlobalSelection()}
         shouldShowOnboarding={false}
         handleSearch={() => {}}
         handleTrendsClick={() => {}}
