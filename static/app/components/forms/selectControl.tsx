@@ -172,12 +172,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     }),
     option: (provided: React.CSSProperties) => ({
       ...provided,
-      lineHeight: '1.5',
       fontSize: theme.fontSizeMedium,
       cursor: 'pointer',
       color: theme.textColor,
       background: 'transparent',
       padding: `0 ${space(0.5)}`,
+      ':active': {
+        background: 'transparent',
+      },
     }),
     valueContainer: (provided: React.CSSProperties) => ({
       ...provided,
