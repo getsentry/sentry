@@ -340,7 +340,7 @@ class IntegrationInstallation:
         """
         return None
 
-    def message_from_error(self, exc: ApiError) -> str:
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiUnauthorized):
             return ERR_UNAUTHORIZED
         elif isinstance(exc, ApiHostError):
@@ -358,7 +358,7 @@ class IntegrationInstallation:
         else:
             return ERR_INTERNAL
 
-    def raise_error(self, exc: ApiError, identity: Optional[Identity] = None) -> None:
+    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> None:
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Mapping
+from typing import Any, Mapping
 
 import requests
 from django.utils.functional import cached_property
@@ -26,7 +26,11 @@ class BaseApiResponse:
         content_type = (self.headers or {}).get("Content-Type", "")
         return f"<{type(self).__name__}: code={self.status_code}, content_type={content_type}>"
 
-    @cached_property
+    @property
+    def json(self) -> Mapping[str, Any]:
+        raise NotImplementedError
+
+    @cached_property  # type: ignore
     def rel(self) -> Mapping[str, str]:
         link_header = (self.headers or {}).get("Link", "")
         parsed_links = requests.utils.parse_header_links(link_header)  # type: ignore

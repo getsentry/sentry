@@ -9,6 +9,8 @@ from rest_framework.response import Response
 
 from .base import ApiError
 
+__all__ = ("ApiError",)
+
 
 class ApiHostError(ApiError):
     code = 503

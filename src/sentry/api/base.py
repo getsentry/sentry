@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Mapping
+from typing import Any, Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -330,7 +330,7 @@ class Endpoint(APIView):
             ]
         )
 
-    def respond(self, context=None, **kwargs):
+    def respond(self, context: Mapping[str, Any] | None = None, **kwargs: Any) -> Response:
         return Response(context, **kwargs)
 
     def respond_with_text(self, text):

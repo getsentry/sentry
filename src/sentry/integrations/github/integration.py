@@ -146,13 +146,14 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def message_from_error(self, exc: Exception) -> str:
         # TODO(mgaeta): Clean up the conditional flow.
         if isinstance(exc, ApiError):
-            message = API_ERRORS.get(exc.code, "")
-            if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
+            code = exc.code or -1
+            message = API_ERRORS.get(code, "")
+            if code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url or ""):
                 message += f" Please also confirm that the commits associated with the following URL have been pushed to GitHub: {exc.url}"
 
             if not message:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
-            return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
+            return f"Error Communicating with GitHub (HTTP {code}): {message}"
         else:
             return ERR_INTERNAL
 
