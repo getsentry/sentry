@@ -494,21 +494,6 @@ class DashboardDetail extends Component<Props, State> {
     const {layout, modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
-    const dashboardProps = {
-      paramDashboardId: dashboardId,
-      dashboard: modifiedDashboard ?? dashboard,
-      organization,
-      isEditing: this.isEditing,
-      widgetLimitReached: this.widgetLimitReached,
-      onUpdate: this.onUpdateWidget,
-      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
-      handleAddLibraryWidgets: this.handleAddLibraryWidgets,
-      router,
-      location,
-      layout,
-      onLayoutChange: this.onLayoutChange,
-    };
-
     return (
       <GlobalSelectionHeader
         skipLoadLastUsed={organization.features.includes('global-views')}
@@ -542,7 +527,20 @@ class DashboardDetail extends Component<Props, State> {
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
-            <Dashboard {...dashboardProps} />
+            <Dashboard
+              paramDashboardId={dashboardId}
+              dashboard={modifiedDashboard ?? dashboard}
+              organization={organization}
+              isEditing={this.isEditing}
+              widgetLimitReached={this.widgetLimitReached}
+              onUpdate={this.onUpdateWidget}
+              onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+              handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+              router={router}
+              location={location}
+              layout={layout}
+              onLayoutChange={this.onLayoutChange}
+            />
           </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
@@ -554,22 +552,6 @@ class DashboardDetail extends Component<Props, State> {
       this.props;
     const {layout, modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
-
-    const dashboardProps = {
-      paramDashboardId: dashboardId,
-      dashboard: modifiedDashboard ?? dashboard,
-      organization,
-      isEditing: this.isEditing,
-      widgetLimitReached: this.widgetLimitReached,
-      onUpdate: this.onUpdateWidget,
-      handleAddLibraryWidgets: this.handleAddLibraryWidgets,
-      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
-      router,
-      location,
-      newWidget,
-      layout,
-      onLayoutChange: this.onLayoutChange,
-    };
 
     return (
       <GlobalSelectionHeader
@@ -628,7 +610,21 @@ class DashboardDetail extends Component<Props, State> {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                <Dashboard {...dashboardProps} />
+                <Dashboard
+                  paramDashboardId={dashboardId}
+                  dashboard={modifiedDashboard ?? dashboard}
+                  organization={organization}
+                  isEditing={this.isEditing}
+                  widgetLimitReached={this.widgetLimitReached}
+                  onUpdate={this.onUpdateWidget}
+                  handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+                  onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+                  router={router}
+                  location={location}
+                  newWidget={newWidget}
+                  layout={layout}
+                  onLayoutChange={this.onLayoutChange}
+                />
               </Layout.Main>
             </Layout.Body>
           </NoProjectMessage>
