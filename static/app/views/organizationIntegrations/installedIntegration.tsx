@@ -215,7 +215,7 @@ const IntegrationStatus = (
   const inner = (
     <div {...p}>
       <CircleIndicator size={6} color={color} />
-      <IntegrationStatusText>{`${
+      <IntegrationStatusText data-test-id="integration-status">{`${
         status === 'active'
           ? t('enabled')
           : status === 'disabled'
