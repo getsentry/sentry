@@ -1,6 +1,5 @@
 export function extraQueryParameter(): URLSearchParams {
-  const extraQueryString =
-    window.SandboxData?.extraQueryString?.replaceAll('"', '') || '';
+  const extraQueryString = window.SandboxData?.extraQueryString || '';
   const extraQuery = new URLSearchParams(extraQueryString);
   return extraQuery;
 }
