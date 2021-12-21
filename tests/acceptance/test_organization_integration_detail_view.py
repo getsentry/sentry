@@ -70,5 +70,8 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         detail_view_page = OrganizationIntegrationDetailViewPage(browser=self.browser)
         assert self.browser.element_exists('[aria-label="Configure"]')
         detail_view_page.uninstall()
-        assert not self.browser.element_exists('[aria-label="Configure"]')
+
+        assert (
+            self.browser.element('[data-test-id="integration-status"]').text == "Pending Deletion"
+        )
         self.browser.snapshot(name="integrations - integration detail no configurations")
