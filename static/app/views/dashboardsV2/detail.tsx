@@ -25,13 +25,9 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard, {
-  assignTempId,
-  constructGridItemKey,
-} from './gridLayout/dashboard';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
-import DnDKitDashboard from './dashboard';
+import Dashboard, {assignTempId, constructGridItemKey} from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import DashboardTitle from './title';
 import {
@@ -509,6 +505,8 @@ class DashboardDetail extends Component<Props, State> {
       handleAddLibraryWidgets: this.handleAddLibraryWidgets,
       router,
       location,
+      layout,
+      onLayoutChange: this.onLayoutChange,
     };
 
     return (
@@ -544,15 +542,7 @@ class DashboardDetail extends Component<Props, State> {
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
-            {organization.features.includes('dashboard-grid-layout') ? (
-              <GridLayoutDashboard
-                {...dashboardProps}
-                layout={layout}
-                onLayoutChange={this.onLayoutChange}
-              />
-            ) : (
-              <DnDKitDashboard {...dashboardProps} />
-            )}
+            <Dashboard {...dashboardProps} />
           </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
@@ -577,6 +567,8 @@ class DashboardDetail extends Component<Props, State> {
       router,
       location,
       newWidget,
+      layout,
+      onLayoutChange: this.onLayoutChange,
     };
 
     return (
@@ -636,15 +628,7 @@ class DashboardDetail extends Component<Props, State> {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                {organization.features.includes('dashboard-grid-layout') ? (
-                  <GridLayoutDashboard
-                    {...dashboardProps}
-                    layout={layout}
-                    onLayoutChange={this.onLayoutChange}
-                  />
-                ) : (
-                  <DnDKitDashboard {...dashboardProps} />
-                )}
+                <Dashboard {...dashboardProps} />
               </Layout.Main>
             </Layout.Body>
           </NoProjectMessage>
