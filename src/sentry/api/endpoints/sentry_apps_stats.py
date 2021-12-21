@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
-from sentry.models import SentryApp
+from sentry.models import SentryApp, SentryAppAvatar
 
 
 class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
@@ -21,6 +21,7 @@ class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
         if "per_page" in request.query_params:
             sentry_apps = sentry_apps[: int(request.query_params["per_page"])]
 
+        avatars_to_app_map = SentryAppAvatar.objects.get_by_apps_as_dict(sentry_apps=sentry_apps)
         apps = [
             {
                 "id": app.id,
@@ -28,7 +29,7 @@ class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
                 "slug": app.slug,
                 "name": app.name,
                 "installs": app.installations__count,
-                "avatars": [serialize(avatar) for avatar in app.avatar.all()],
+                "avatars": serialize(avatars_to_app_map[app.id], request.user),
             }
             for app in sentry_apps
         ]
