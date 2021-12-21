@@ -180,9 +180,7 @@ class VitalDetailContent extends React.Component<Props, State> {
     const {location, eventView, organization, vitalName, projects} = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
-
     const vital = vitalName || WebVital.LCP;
-
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
     const description = vitalDescription[vitalName];
@@ -232,7 +230,16 @@ class VitalDetailContent extends React.Component<Props, State> {
               statsPeriod={eventView.statsPeriod}
             />
             <StyledVitalInfo>
-              <VitalInfo location={location} vital={vital} />
+              <VitalInfo
+                orgSlug={organization.slug}
+                location={location}
+                vital={vital}
+                project={eventView.project}
+                environment={eventView.environment}
+                start={eventView.start}
+                end={eventView.end}
+                statsPeriod={eventView.statsPeriod}
+              />
             </StyledVitalInfo>
 
             <Teams provideUserTeams>
