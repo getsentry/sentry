@@ -8,7 +8,7 @@ export const f = (name: string, key: number) =>
 export const c = (fr: Frame) => new CallTreeNode(fr, null);
 export const firstCallee = (node: CallTreeNode) => node.children[0];
 
-const makeTestingBoilerplate = () => {
+export const makeTestingBoilerplate = () => {
   const timings: [Frame['name'], string][] = [];
 
   const openSpy = jest.fn();

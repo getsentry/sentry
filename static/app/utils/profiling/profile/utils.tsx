@@ -5,6 +5,7 @@ export function createFrameIndex(
 ): Record<string | number, Frame> {
   return frames.reduce((acc, frame, index) => {
     acc[index] = new Frame({key: index, ...frame});
+    return acc;
   }, {});
 }
 
