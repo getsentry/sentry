@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import WidgetCard from 'sentry/views/dashboardsV2/widgetCard/widgetCard';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 function openContextMenu(card) {
   card.find('DropdownMenu MoreOptions svg').simulate('click');

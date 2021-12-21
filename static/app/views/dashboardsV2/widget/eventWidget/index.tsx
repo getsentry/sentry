@@ -22,7 +22,7 @@ import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTags from 'sentry/utils/withTags';
 import AsyncView from 'sentry/views/asyncView';
-import WidgetCard from 'sentry/views/dashboardsV2/widgetCard/widgetCard';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {
