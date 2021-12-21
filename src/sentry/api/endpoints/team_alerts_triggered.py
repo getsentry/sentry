@@ -99,11 +99,11 @@ class TriggeredAlertRuleSerializer(AlertRuleSerializer):
             .annotate(count=Count("id"))
         )
         alert_rule_counts = {row["id"]: row["count"] for row in qs}
+        weeks = (self.end - self.start).days // 7
+
         for alert_rule in item_list:
             alert_rule_attrs = result.setdefault(alert_rule, {})
-            alert_rule_attrs["weekly_avg"] = (
-                alert_rule_counts.get(alert_rule.id, 0) / self.WEEKS_TO_FETCH
-            )
+            alert_rule_attrs["weekly_avg"] = alert_rule_counts.get(alert_rule.id, 0) / weeks
         return result
 
     def serialize(self, obj, attrs, user):
@@ -142,8 +142,10 @@ class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):  # type:
         ).annotate(count=Count("id"))
 
         stats_start, stats_end = get_date_range_from_params(request.GET)
-        stats_end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        stats_start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        stats_start = stats_start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(
+            days=1
+        )
+        stats_end = stats_end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
 
         return self.paginate(
             default_per_page=10,

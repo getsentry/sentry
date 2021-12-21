@@ -234,7 +234,9 @@ class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
         IncidentActivity.objects.bulk_create(activities)
 
         self.login_as(user=self.user)
-        response = self.get_success_response(self.team.organization.slug, self.team.slug)
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, statsPeriod="8w"
+        )
         assert [
             {"id": row["id"], "totalThisWeek": row["totalThisWeek"], "weeklyAvg": row["weeklyAvg"]}
             for row in response.data
@@ -244,21 +246,25 @@ class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
         ]
 
         response = self.get_success_response(
-            self.team.organization.slug, self.team.slug, per_page=1
+            self.team.organization.slug, self.team.slug, per_page=1, statsPeriod="10w"
         )
         assert [
             {"id": row["id"], "totalThisWeek": row["totalThisWeek"], "weeklyAvg": row["weeklyAvg"]}
             for row in response.data
         ] == [
-            {"id": str(team_owned_rule.id), "totalThisWeek": 2, "weeklyAvg": 1.375},
+            {"id": str(team_owned_rule.id), "totalThisWeek": 2, "weeklyAvg": 1.1},
         ]
         next_cursor = self.get_cursor_headers(response)[1]
         response = self.get_success_response(
-            self.team.organization.slug, self.team.slug, per_page=1, cursor=next_cursor
+            self.team.organization.slug,
+            self.team.slug,
+            per_page=1,
+            cursor=next_cursor,
+            statsPeriod="10w",
         )
         assert [
             {"id": row["id"], "totalThisWeek": row["totalThisWeek"], "weeklyAvg": row["weeklyAvg"]}
             for row in response.data
         ] == [
-            {"id": str(user_owned_rule.id), "totalThisWeek": 1, "weeklyAvg": 1},
+            {"id": str(user_owned_rule.id), "totalThisWeek": 1, "weeklyAvg": 0.8},
         ]
