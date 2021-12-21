@@ -72,7 +72,7 @@ type Props = {
   projects: Project[];
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
-  isMetricsData: boolean;
+  isMetricsData?: boolean;
 };
 
 class SummaryContent extends React.Component<Props> {
@@ -203,22 +203,22 @@ class SummaryContent extends React.Component<Props> {
     );
 
     const query = decodeScalar(location.query.query, '');
+    const origin = decodeScalar(location.query.origin, '');
     const totalCount = totalValues === null ? null : totalValues.count;
 
     // NOTE: This is not a robust check for whether or not a transaction is a front end
     // transaction, however it will suffice for now.
     const hasWebVitals =
-      isSummaryViewFrontendPageLoad(eventView, projects) ||
+      isSummaryViewFrontendPageLoad(eventView, projects, origin) ||
       (totalValues !== null &&
         VITAL_GROUPS.some(group =>
           group.vitals.some(vital => {
             const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
             return Number.isFinite(totalValues[alias]);
           })
-        )) ||
-      isMetricsData;
+        ));
 
-    const isFrontendView = isSummaryViewFrontend(eventView, projects);
+    const isFrontendView = isSummaryViewFrontend(eventView, projects, origin);
 
     const transactionsListTitles = [
       t('event id'),

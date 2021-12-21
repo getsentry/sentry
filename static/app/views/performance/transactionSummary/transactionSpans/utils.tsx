@@ -38,6 +38,7 @@ export function spansRouteWithQuery({
       start: query.start,
       end: query.end,
       query: query.query,
+      origin: query.origin,
     },
   };
 }

@@ -27,7 +27,7 @@ type Props = {
   location: Location;
   organization: Organization;
   transactionName: string;
-  isMetricsData: boolean;
+  isMetricsData?: boolean;
 };
 
 function UserStats({

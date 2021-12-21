@@ -29,6 +29,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
+import {LandingDisplayField} from './landing/utils';
 import TransactionThresholdModal, {
   modalCss,
   TransactionThresholdMetric,
@@ -60,10 +61,10 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
-  summaryConditions?: string;
-
   projects: Project[];
+  summaryConditions?: string;
   columnTitles?: string[];
+  origin?: LandingDisplayField;
 };
 
 type State = {
@@ -151,7 +152,7 @@ class _Table extends React.Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, projects, location} = this.props;
+    const {eventView, organization, projects, location, origin} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -182,7 +183,10 @@ class _Table extends React.Component<Props, State> {
       const target = transactionSummaryRouteWithQuery({
         orgSlug: organization.slug,
         transaction: String(dataRow.transaction) || '',
-        query: summaryView.generateQueryStringObject(),
+        query: {
+          ...summaryView.generateQueryStringObject(),
+          origin,
+        },
         projectID,
       });
 
