@@ -1,5 +1,9 @@
+from typing import Any, Mapping, MutableMapping
+
 from django.contrib import messages
 from django.http import HttpResponseRedirect
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations.vsts.integration import AccountConfigView, VstsIntegrationProvider
 from sentry.pipeline import PipelineView
@@ -20,7 +24,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
         views.append(VstsExtensionFinishedView())
         return views
 
-    def build_integration(self, state):
+    def build_integration(self, state: MutableMapping[str, Any]) -> Mapping[str, Any]:
         state["account"] = {
             "accountId": state["vsts"]["accountId"],
             "accountName": state["vsts"]["accountName"],
@@ -30,7 +34,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
 
 
 class VstsExtensionFinishedView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         pipeline.finish_pipeline()
 
         messages.add_message(request, messages.SUCCESS, "VSTS Extension installed.")

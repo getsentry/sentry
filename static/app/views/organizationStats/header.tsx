@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -16,54 +15,39 @@ type Props = {
 
 function StatsHeader({organization, activeTab}: Props) {
   return (
-    <Fragment>
-      <BorderlessHeader>
-        <StyledHeaderContent>
-          <StyledLayoutTitle>{t('Stats')}</StyledLayoutTitle>
-        </StyledHeaderContent>
+    <Layout.Header>
+      <Layout.HeaderContent>
+        <StyledLayoutTitle>{t('Stats')}</StyledLayoutTitle>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
         {activeTab === 'team' && (
-          <Layout.HeaderActions>
-            <Button
-              title={t('Send us feedback via email')}
-              size="small"
-              href="mailto:workflow-feedback@sentry.io?subject=Team Stats Feedback"
-            >
-              {t('Give Feedback')}
-            </Button>
-          </Layout.HeaderActions>
+          <Button
+            title={t('Send us feedback via email')}
+            size="small"
+            href="mailto:workflow-feedback@sentry.io?subject=Team Stats Feedback"
+          >
+            {t('Give Feedback')}
+          </Button>
         )}
-      </BorderlessHeader>
-      <Layout.Header>
-        <Layout.HeaderNavTabs underlined>
-          <li className={`${activeTab === 'stats' ? 'active' : ''}`}>
-            <Link to={`/organizations/${organization.slug}/stats/`}>
-              {t('Usage Stats')}
-            </Link>
-          </li>
-          <li className={`${activeTab === 'team' ? 'active' : ''}`}>
-            <Link to={`/organizations/${organization.slug}/stats/team/`}>
-              {t('Team Stats')}
-              <FeatureBadge type="beta" />
-            </Link>
-          </li>
-        </Layout.HeaderNavTabs>
-      </Layout.Header>
-    </Fragment>
+      </Layout.HeaderActions>
+      <Layout.HeaderNavTabs underlined>
+        <li className={`${activeTab === 'stats' ? 'active' : ''}`}>
+          <Link to={`/organizations/${organization.slug}/stats/`}>
+            {t('Usage Stats')}
+          </Link>
+        </li>
+        <li className={`${activeTab === 'team' ? 'active' : ''}`}>
+          <Link to={`/organizations/${organization.slug}/stats/team/`}>
+            {t('Team Stats')}
+            <FeatureBadge type="beta" />
+          </Link>
+        </li>
+      </Layout.HeaderNavTabs>
+    </Layout.Header>
   );
 }
 
 export default StatsHeader;
-
-const BorderlessHeader = styled(Layout.Header)`
-  border-bottom: 0;
-
-  /* Not enough buttons to change direction for mobile view */
-  grid-template-columns: 1fr auto;
-`;
-
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: 0;
-`;
 
 const StyledLayoutTitle = styled(Layout.Title)`
   margin-top: ${space(0.5)};

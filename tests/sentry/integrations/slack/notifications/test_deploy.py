@@ -57,5 +57,5 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         )
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=ReleaseActivitySlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release-activity-slack-user|Notification Settings>"
         )

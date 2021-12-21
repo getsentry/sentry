@@ -1,6 +1,8 @@
 import datetime
 
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.security.emails import generate_security_email
 
@@ -8,7 +10,7 @@ from .mail import MailPreview
 
 
 class DebugPasswordChangedEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         email = generate_security_email(
             account=request.user,
             actor=request.user,

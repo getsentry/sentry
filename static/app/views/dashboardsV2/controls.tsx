@@ -12,6 +12,7 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
@@ -23,9 +24,8 @@ type Props = {
   onCommit: () => void;
   onDelete: () => void;
   onAddWidget: () => void;
-  onAddIssueWidget: () => void;
+  widgetLimitReached: boolean;
   dashboardState: DashboardState;
-  widgetCount: number;
 };
 
 class Controls extends React.Component<Props> {
@@ -34,13 +34,12 @@ class Controls extends React.Component<Props> {
       organization,
       dashboardState,
       dashboards,
-      widgetCount,
+      widgetLimitReached,
       onEdit,
       onCancel,
       onCommit,
       onDelete,
       onAddWidget,
-      onAddIssueWidget,
     } = this.props;
 
     const cancelButton = (
@@ -120,37 +119,31 @@ class Controls extends React.Component<Props> {
               >
                 {t('Edit Dashboard')}
               </Button>
-              {organization.features.includes('widget-library') ? (
+              {organization.features.includes('widget-library') && hasFeature ? (
                 <Tooltip
                   title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
                     maxWidgets: MAX_WIDGETS,
                   })}
-                  disabled={!!!(widgetCount >= MAX_WIDGETS)}
+                  disabled={!!!widgetLimitReached}
                 >
                   <Button
                     data-test-id="add-widget-library"
                     priority="primary"
-                    disabled={widgetCount >= MAX_WIDGETS}
+                    disabled={widgetLimitReached}
                     icon={<IconAdd isCircled />}
-                    onClick={onAddWidget}
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'dashboards_views.widget_library.opened',
+                        {
+                          organization,
+                        }
+                      );
+                      onAddWidget();
+                    }}
                   >
                     {t('Add Widget')}
                   </Button>
                 </Tooltip>
-              ) : null}
-              {organization.features.includes('issues-in-dashboards') ? (
-                <Button
-                  data-test-id="dashboard-add-issues-widget"
-                  priority="primary"
-                  icon={<IconAdd isCircled />}
-                  onClick={e => {
-                    e.preventDefault();
-                    onAddIssueWidget();
-                  }}
-                  disabled={!hasFeature}
-                >
-                  {t('Add Issue Widget')}
-                </Button>
               ) : null}
             </React.Fragment>
           )}

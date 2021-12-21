@@ -8,6 +8,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 
 import Tab from './transactionSummary/tabs';
 import {eventsRouteWithQuery} from './transactionSummary/transactionEvents/utils';
+import {spansRouteWithQuery} from './transactionSummary/transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionSummary/transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionSummary/transactionVitals/utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
@@ -24,23 +25,14 @@ type Props = {
   vitalName?: string;
   eventSlug?: string;
   traceSlug?: string;
-  transactionComparison?: boolean;
   tab?: Tab;
 };
 
 class Breadcrumb extends Component<Props> {
   getCrumbs() {
     const crumbs: Crumb[] = [];
-    const {
-      organization,
-      location,
-      transaction,
-      vitalName,
-      eventSlug,
-      traceSlug,
-      transactionComparison,
-      tab,
-    } = this.props;
+    const {organization, location, transaction, vitalName, eventSlug, traceSlug, tab} =
+      this.props;
 
     const performanceTarget: LocationDescriptor = {
       pathname: getPerformanceLandingUrl(organization),
@@ -105,6 +97,15 @@ class Breadcrumb extends Component<Props> {
           });
           break;
         }
+        case Tab.Spans: {
+          const spansTarget = spansRouteWithQuery(routeQuery);
+          crumbs.push({
+            to: spansTarget,
+            label: t('Spans'),
+            preserveGlobalSelection: true,
+          });
+          break;
+        }
         case Tab.TransactionSummary:
         default: {
           const summaryTarget = transactionSummaryRouteWithQuery(routeQuery);
@@ -121,11 +122,6 @@ class Breadcrumb extends Component<Props> {
       crumbs.push({
         to: '',
         label: t('Event Details'),
-      });
-    } else if (transactionComparison) {
-      crumbs.push({
-        to: '',
-        label: t('Compare to Baseline'),
       });
     } else if (traceSlug) {
       crumbs.push({

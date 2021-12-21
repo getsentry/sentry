@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.urls import reverse
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.utils.assets import get_asset_url
@@ -19,7 +21,7 @@ class JiraDescriptorEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         sentry_logo = absolute_uri(get_asset_url("sentry", "images/logos/logo-sentry.svg"))
         return self.respond(
             {

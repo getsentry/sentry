@@ -52,12 +52,16 @@ type Props = WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
   hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  noLazyLoad?: boolean;
+  hideDragHandle?: boolean;
+  widgetLimitReached: boolean;
 };
 
 class IssueWidgetCard extends React.Component<Props> {
@@ -67,7 +71,9 @@ class IssueWidgetCard extends React.Component<Props> {
       !isSelectionEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
       this.props.isSorting !== nextProps.isSorting ||
-      this.props.hideToolbar !== nextProps.hideToolbar
+      this.props.hideToolbar !== nextProps.hideToolbar ||
+      this.props.widgetLimitReached !== nextProps.widgetLimitReached ||
+      this.props.hideDragHandle !== nextProps.hideDragHandle
     ) {
       return true;
     }
@@ -132,7 +138,8 @@ class IssueWidgetCard extends React.Component<Props> {
   }
 
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, hideDragHandle} =
+      this.props;
 
     if (!isEditing) {
       return null;
@@ -141,14 +148,16 @@ class IssueWidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-          <IconClick>
-            <StyledIconGrabbable
-              color="textColor"
-              className={DRAG_HANDLE_CLASS}
-              {...draggableProps?.listeners}
-              {...draggableProps?.attributes}
-            />
-          </IconClick>
+          {!hideDragHandle && (
+            <IconClick>
+              <StyledIconGrabbable
+                color="textColor"
+                className={DRAG_HANDLE_CLASS}
+                {...draggableProps?.listeners}
+                {...draggableProps?.attributes}
+              />
+            </IconClick>
+          )}
           <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />
           </IconClick>
@@ -161,7 +170,14 @@ class IssueWidgetCard extends React.Component<Props> {
   }
 
   renderContextMenu() {
-    const {widget, selection, organization, showContextMenu} = this.props;
+    const {
+      widget,
+      selection,
+      organization,
+      showContextMenu,
+      widgetLimitReached,
+      onDuplicate,
+    } = this.props;
 
     if (!showContextMenu) {
       return null;
@@ -181,15 +197,47 @@ class IssueWidgetCard extends React.Component<Props> {
       <ContextWrapper>
         <ContextMenu>
           <Link to={issuesLocation}>
-            <StyledMenuItem>{t('Open in Issues')}</StyledMenuItem>
+            <StyledMenuItem key="open-issues">{t('Open in Issues')}</StyledMenuItem>
           </Link>
+          <StyledMenuItem
+            key="duplicate-widget"
+            onSelect={onDuplicate}
+            disabled={widgetLimitReached}
+          >
+            {t('Duplicate Widget')}
+          </StyledMenuItem>
         </ContextMenu>
       </ContextWrapper>
     );
   }
 
-  render() {
+  renderChart() {
     const {widget, api, organization, selection, renderErrorMessage} = this.props;
+    return (
+      <IssueWidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+      >
+        {({tableResults, errorMessage, loading}) => {
+          return (
+            <React.Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <LoadingScreen loading={loading} />
+              {this.tableResultComponent({tableResults, loading, errorMessage})}
+              {this.renderToolbar()}
+            </React.Fragment>
+          );
+        }}
+      </IssueWidgetQueries>
+    );
+  }
+
+  render() {
+    const {widget, noLazyLoad} = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -199,27 +247,13 @@ class IssueWidgetCard extends React.Component<Props> {
             <WidgetTitle>{widget.title}</WidgetTitle>
             {this.renderContextMenu()}
           </WidgetHeader>
-          <LazyLoad once height={200}>
-            <IssueWidgetQueries
-              api={api}
-              organization={organization}
-              widget={widget}
-              selection={selection}
-            >
-              {({tableResults, errorMessage, loading}) => {
-                return (
-                  <React.Fragment>
-                    {typeof renderErrorMessage === 'function'
-                      ? renderErrorMessage(errorMessage)
-                      : null}
-                    <LoadingScreen loading={loading} />
-                    {this.tableResultComponent({tableResults, loading, errorMessage})}
-                    {this.renderToolbar()}
-                  </React.Fragment>
-                );
-              }}
-            </IssueWidgetQueries>
-          </LazyLoad>
+          {noLazyLoad ? (
+            this.renderChart()
+          ) : (
+            <LazyLoad once resize height={200}>
+              {this.renderChart()}
+            </LazyLoad>
+          )}
         </StyledPanel>
       </ErrorBoundary>
     );

@@ -5,6 +5,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import Count from 'sentry/components/count';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -76,7 +77,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
           query={new MutableSearch(eventView.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
           field={[field]}
           groupBy={['transaction']}
-          orderBy={field}
+          orderBy={`-${field}`}
           limit={3}
         >
           {children}
@@ -165,7 +166,12 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
               items={provided.widgetData.list.data.map(listItem => () => {
-                const transaction = listItem.transaction as string;
+                const transaction = listItem.transaction as string | null;
+                const countValue = listItem[field];
+
+                if (!transaction) {
+                  return null;
+                }
 
                 const transactionTarget = transactionSummaryRouteWithQuery({
                   orgSlug: organization.slug,
@@ -180,11 +186,11 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
                       <Truncate value={transaction} maxLength={40} />
                     </GrowLink>
                     <RightAlignedCell>
-                      <Count value={listItem[field]} />
+                      {defined(countValue) ? <Count value={countValue} /> : '\u2014'}
                     </RightAlignedCell>
                     <ListClose
                       setSelectListIndex={setSelectListIndex}
-                      onClick={() => excludeTransaction(listItem.transaction, props)}
+                      onClick={() => excludeTransaction(transaction, props)}
                     />
                   </Fragment>
                 );

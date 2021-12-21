@@ -6,10 +6,11 @@ import flatten from 'lodash/flatten';
 import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import SelectControl from 'sentry/components/forms/selectControl';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
@@ -43,6 +44,11 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 
 import {documentIntegrations, POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
+
+const FirstPartyIntegrationAlert = HookOrDefault({
+  hookName: 'component:first-party-integration-alert',
+  defaultComponent: () => null,
+});
 
 const fuseOptions = {
   threshold: 0.3,
@@ -285,10 +291,10 @@ export class IntegrationListDirectory extends AsyncComponent<
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
 
   /**
-   * Get filter parameters and guard against `queryString.parse` returning arrays.
+   * Get filter parameters and guard against `qs.parse` returning arrays.
    */
   getFilterParameters = (): {searchInput: string; selectedCategory: string} => {
-    const {category, search} = queryString.parse(this.props.location.search);
+    const {category, search} = qs.parse(this.props.location.search);
 
     const selectedCategory = Array.isArray(category) ? category[0] : category || '';
     const searchInput = Array.isArray(search) ? search[0] : search || '';
@@ -302,8 +308,8 @@ export class IntegrationListDirectory extends AsyncComponent<
   updateQueryString = () => {
     const {searchInput, selectedCategory} = this.state;
 
-    const searchString = queryString.stringify({
-      ...queryString.parse(this.props.location.search),
+    const searchString = qs.stringify({
+      ...qs.parse(this.props.location.search),
       search: searchInput ? searchInput : undefined,
       category: selectedCategory ? selectedCategory : undefined,
     });
@@ -384,6 +390,9 @@ export class IntegrationListDirectory extends AsyncComponent<
         categories={getCategoriesForIntegration(provider)}
         alertText={getAlertText(integrations)}
         resolveText={t('Update Now')}
+        customAlert={
+          <FirstPartyIntegrationAlert integrations={integrations} wrapWithContainer />
+        }
       />
     );
   };

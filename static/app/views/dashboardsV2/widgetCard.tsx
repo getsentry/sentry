@@ -44,6 +44,7 @@ type Props = WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
@@ -51,6 +52,8 @@ type Props = WithRouterProps & {
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   noLazyLoad?: boolean;
+  hideDragHandle?: boolean;
+  widgetLimitReached: boolean;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -60,7 +63,9 @@ class WidgetCard extends React.Component<Props> {
       !isSelectionEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
       this.props.isSorting !== nextProps.isSorting ||
-      this.props.hideToolbar !== nextProps.hideToolbar
+      this.props.hideToolbar !== nextProps.hideToolbar ||
+      this.props.widgetLimitReached !== nextProps.widgetLimitReached ||
+      this.props.hideDragHandle !== nextProps.hideDragHandle
     ) {
       return true;
     }
@@ -73,7 +78,8 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, hideDragHandle} =
+      this.props;
 
     if (!isEditing) {
       return null;
@@ -82,14 +88,16 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-          <IconClick>
-            <StyledIconGrabbable
-              color="textColor"
-              className={DRAG_HANDLE_CLASS}
-              {...draggableProps?.listeners}
-              {...draggableProps?.attributes}
-            />
-          </IconClick>
+          {!hideDragHandle && (
+            <IconClick>
+              <StyledIconGrabbable
+                color="textColor"
+                className={DRAG_HANDLE_CLASS}
+                {...draggableProps?.listeners}
+                {...draggableProps?.attributes}
+              />
+            </IconClick>
+          )}
           <IconClick
             data-test-id="widget-edit"
             onClick={() => {
@@ -112,7 +120,14 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderContextMenu() {
-    const {widget, selection, organization, showContextMenu} = this.props;
+    const {
+      widget,
+      selection,
+      organization,
+      showContextMenu,
+      widgetLimitReached,
+      onDuplicate,
+    } = this.props;
 
     if (!showContextMenu) {
       return null;
@@ -183,6 +198,19 @@ class WidgetCard extends React.Component<Props> {
           );
         }
       }
+    }
+
+    if (organization.features.includes('dashboards-edit')) {
+      menuOptions.push(
+        <StyledMenuItem
+          key="duplicate-widget"
+          data-test-id="duplicate-widget"
+          onSelect={onDuplicate}
+          disabled={widgetLimitReached}
+        >
+          {t('Duplicate Widget')}
+        </StyledMenuItem>
+      );
     }
 
     if (!menuOptions.length) {

@@ -355,7 +355,7 @@ const DropdownMenuItem = styled('li')`
     }
   }
   &:hover > span {
-    background: ${p => p.theme.focus};
+    background: ${p => p.theme.hover};
   }
 `;
 

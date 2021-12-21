@@ -1,4 +1,5 @@
 from django.db.models import Q
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -13,7 +14,7 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '
 
 
 class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Projects
         ```````````````````````````````
@@ -123,7 +124,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
 
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         queryset = Project.objects.filter(organization=organization)
 
         all_projects = queryset.count()

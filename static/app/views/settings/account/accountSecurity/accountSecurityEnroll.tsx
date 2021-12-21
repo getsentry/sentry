@@ -123,6 +123,7 @@ const getFields = ({
           challengeData={authenticator.challenge}
           displayMode="enroll"
           onTap={onU2fTap}
+          isWebauthnSigninFFEnabled
         />
       ),
     ];

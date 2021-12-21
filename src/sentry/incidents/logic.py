@@ -35,6 +35,7 @@ from sentry.search.events.fields import resolve_field
 from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.entity_subscription import get_entity_subscription_for_dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -288,12 +289,16 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
         params["project_id"] = project_ids
 
     snuba_query = incident.alert_rule.snuba_query
+    entity_subscription = get_entity_subscription_for_dataset(
+        dataset=QueryDatasets(snuba_query.dataset),
+        aggregate=snuba_query.aggregate,
+        time_window=snuba_query.time_window,
+        extra_fields={"org_id": incident.organization.id, "event_types": snuba_query.event_types},
+    )
     snuba_filter = build_snuba_filter(
-        QueryDatasets(snuba_query.dataset),
+        entity_subscription,
         snuba_query.query,
-        snuba_query.aggregate,
         snuba_query.environment,
-        snuba_query.event_types,
         params=params,
     )
 

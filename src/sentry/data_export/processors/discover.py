@@ -44,6 +44,7 @@ class DiscoverProcessor:
             query=discover_query["query"],
             params=self.params,
             sort=discover_query.get("sort"),
+            use_snql=discover_query.get("use_snql", False),
         )
 
     @staticmethod
@@ -75,7 +76,7 @@ class DiscoverProcessor:
         return environment_names
 
     @staticmethod
-    def get_data_fn(fields, equations, query, params, sort):
+    def get_data_fn(fields, equations, query, params, sort, use_snql=False):
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=fields,
@@ -89,6 +90,7 @@ class DiscoverProcessor:
                 auto_fields=True,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                use_snql=use_snql,
             )
 
         return data_fn

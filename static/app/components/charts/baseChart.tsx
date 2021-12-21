@@ -360,17 +360,20 @@ function BaseChartUnwrapped({
           ...s,
           type: 'line',
           itemStyle: {...(s.lineStyle ?? {})},
-          markLine: MarkLine({
-            silent: true,
-            lineStyle: {
-              type: 'solid',
-              width: 1.5,
-            },
-            data: [{yAxis: s?.data?.[0][1]}],
-            label: {
-              show: false,
-            },
-          }),
+          markLine:
+            s?.data?.[0]?.[1] !== undefined
+              ? MarkLine({
+                  silent: true,
+                  lineStyle: {
+                    type: 'solid',
+                    width: 1.5,
+                  },
+                  data: [{yAxis: s?.data?.[0]?.[1]}],
+                  label: {
+                    show: false,
+                  },
+                })
+              : undefined,
         }))
       : series) ?? [];
 

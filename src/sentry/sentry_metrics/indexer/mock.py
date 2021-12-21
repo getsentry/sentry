@@ -2,6 +2,8 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, Optional
 
+from sentry.sentry_metrics.sessions import SessionMetricKey
+
 from .base import StringIndexer
 
 _STRINGS = (
@@ -11,13 +13,13 @@ _STRINGS = (
     "healthy",
     "production",
     "release",
-    "session.duration",
+    SessionMetricKey.SESSION_DURATION.value,
     "session.status",
-    "session",
+    SessionMetricKey.SESSION.value,
     "staging",
-    "user",
+    SessionMetricKey.USER.value,
     "init",
-    "session.error",
+    SessionMetricKey.SESSION_ERROR.value,
     "abnormal",
 )
 

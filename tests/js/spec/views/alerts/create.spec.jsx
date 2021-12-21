@@ -34,7 +34,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('ProjectAlertsCreate', function () {
-  TeamStore.loadInitialData([]);
+  TeamStore.loadInitialData([], false, null);
   const projectAlertRuleDetailsRoutes = [
     {
       path: '/organizations/:orgId/alerts/',
@@ -128,7 +128,7 @@ describe('ProjectAlertsCreate', function () {
     ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = mountWithTheme(
-      <AlertsContainer organization={organization} params={params}>
+      <AlertsContainer>
         <AlertBuilderProjectProvider params={params}>
           <ProjectAlertsCreate
             params={params}
@@ -142,7 +142,7 @@ describe('ProjectAlertsCreate', function () {
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
     mockRouterPush(wrapper, router);
 

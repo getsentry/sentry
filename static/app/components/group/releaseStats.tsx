@@ -80,17 +80,17 @@ const GroupReleaseStats = ({
           <SidebarSection
             secondary
             title={
-              <span>
+              <Fragment>
                 {t('Last seen')}
                 <TooltipWrapper>
                   <Tooltip
                     title={t('When the most recent event in this issue was captured.')}
                     disableForVisualTest
                   >
-                    <StyledIconQuest size="xs" color="gray200" />
+                    <IconQuestion size="xs" color="gray200" />
                   </Tooltip>
                 </TooltipWrapper>
-              </span>
+              </Fragment>
             }
           >
             <SeenInfo
@@ -112,17 +112,17 @@ const GroupReleaseStats = ({
           <SidebarSection
             secondary
             title={
-              <span>
+              <Fragment>
                 {t('First seen')}
                 <TooltipWrapper>
                   <Tooltip
                     title={t('When the first event in this issue was captured.')}
                     disableForVisualTest
                   >
-                    <StyledIconQuest size="xs" color="gray200" />
+                    <IconQuestion size="xs" color="gray200" />
                   </Tooltip>
                 </TooltipWrapper>
-              </span>
+              </Fragment>
             }
           >
             <SeenInfo
@@ -156,9 +156,4 @@ export default memo(GroupReleaseStats);
 
 const TooltipWrapper = styled('span')`
   margin-left: ${space(0.5)};
-`;
-
-const StyledIconQuest = styled(IconQuestion)`
-  position: relative;
-  top: 2px;
 `;

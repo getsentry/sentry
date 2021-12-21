@@ -1,6 +1,7 @@
 import Alert from 'sentry/components/alert';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {
+  DISABLED as DISABLED_STATUS,
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
@@ -218,18 +219,24 @@ export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_ap
 export type IntegrationFeature = {
   description: string;
   featureGate: string;
+  featureId: number;
 };
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
-  | typeof PENDING;
+  | typeof PENDING
+  | typeof DISABLED_STATUS;
 
 type IntegrationDialog = {
   actionText: string;
   body: string;
 };
 
+/**
+ * @deprecated This type is being removed in favor of DocIntegration
+ * and is will actually coordinate with the backend
+ */
 export type DocumentIntegration = {
   slug: string;
   name: string;
@@ -238,6 +245,17 @@ export type DocumentIntegration = {
   description: string;
   features: IntegrationFeature[];
   resourceLinks: Array<{title: string; url: string}>;
+};
+
+export type DocIntegration = {
+  name: string;
+  slug: string;
+  author: string;
+  url: string;
+  description: string;
+  avatar: Avatar;
+  features?: IntegrationFeature[];
+  resources?: Array<{title: string; url: string}>;
 };
 
 type IntegrationAspects = {

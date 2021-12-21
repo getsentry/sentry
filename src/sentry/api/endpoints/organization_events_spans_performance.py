@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import dataclasses
 from itertools import chain
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,9 +16,12 @@ from snuba_sdk.orderby import LimitBy
 from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers.rest_framework import ListField
+from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import Dataset, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
 from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
@@ -24,36 +30,55 @@ from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 @dataclasses.dataclass(frozen=True)
 class SpanPerformanceColumn:
     suspect_op_group_columns: List[str]
-    suspect_example_columns: List[str]
+    suspect_op_group_sort: List[str]
+    suspect_example_sort: List[str]
 
 
 SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
     "count": SpanPerformanceColumn(
-        ["count()", "sumArray(spans_exclusive_time)"], ["count()", "sumArray(spans_exclusive_time)"]
+        ["count()", "sumArray(spans_exclusive_time)"],
+        ["count()", "sumArray(spans_exclusive_time)"],
+        ["count()", "sumArray(spans_exclusive_time)"],
     ),
     "avgOccurrence": SpanPerformanceColumn(
+        [
+            "count()",
+            "count_unique(id)",
+            "equation|count() / count_unique(id)",
+            "sumArray(spans_exclusive_time)",
+        ],
         ["equation[0]", "sumArray(spans_exclusive_time)"],
         ["count()", "sumArray(spans_exclusive_time)"],
     ),
     "sumExclusiveTime": SpanPerformanceColumn(
-        ["sumArray(spans_exclusive_time)"], ["sumArray(spans_exclusive_time)"]
+        ["sumArray(spans_exclusive_time)"],
+        ["sumArray(spans_exclusive_time)"],
+        ["sumArray(spans_exclusive_time)"],
     ),
     "p50ExclusiveTime": SpanPerformanceColumn(
-        ["percentileArray(spans_exclusive_time, 0.50)"], ["maxArray(spans_exclusive_time)"]
+        ["percentileArray(spans_exclusive_time, 0.50)"],
+        ["percentileArray(spans_exclusive_time, 0.50)"],
+        ["maxArray(spans_exclusive_time)"],
     ),
     "p75ExclusiveTime": SpanPerformanceColumn(
-        ["percentileArray(spans_exclusive_time, 0.75)"], ["maxArray(spans_exclusive_time)"]
+        ["percentileArray(spans_exclusive_time, 0.75)"],
+        ["percentileArray(spans_exclusive_time, 0.75)"],
+        ["maxArray(spans_exclusive_time)"],
     ),
     "p95ExclusiveTime": SpanPerformanceColumn(
-        ["percentileArray(spans_exclusive_time, 0.95)"], ["maxArray(spans_exclusive_time)"]
+        ["percentileArray(spans_exclusive_time, 0.95)"],
+        ["percentileArray(spans_exclusive_time, 0.95)"],
+        ["maxArray(spans_exclusive_time)"],
     ),
     "p99ExclusiveTime": SpanPerformanceColumn(
-        ["percentileArray(spans_exclusive_time, 0.99)"], ["maxArray(spans_exclusive_time)"]
+        ["percentileArray(spans_exclusive_time, 0.99)"],
+        ["percentileArray(spans_exclusive_time, 0.99)"],
+        ["maxArray(spans_exclusive_time)"],
     ),
 }
 
 
-class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase):  # type: ignore
+class OrganizationEventsSpansEndpointBase(OrganizationEventsEndpointBase):  # type: ignore
     def has_feature(self, request: Request, organization: Organization) -> bool:
         return bool(
             features.has(
@@ -62,78 +87,6 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
                 actor=request.user,
             )
         )
-
-    def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
-        try:
-            params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response(status=404)
-
-        query = request.GET.get("query")
-        span_ops = request.GET.getlist("spanOp")
-        span_groups = request.GET.getlist("spanGroup")
-
-        try:
-            per_suspect = int(request.GET.get("perSuspect", 4))
-            if per_suspect < 0 or per_suspect > 10:
-                raise ValueError
-        except ValueError:
-            raise ParseError(detail="perSuspect must be integer between 0 and 10.")
-
-        if span_groups and any(not is_span_id(group) for group in span_groups):
-            raise ParseError(detail=INVALID_SPAN_ID.format("span.group"))
-
-        direction, orderby_column = self.get_orderby_column(request)
-
-        def data_fn(offset: int, limit: int) -> Any:
-            orderbys = [
-                direction + column
-                for column in SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_op_group_columns
-            ]
-            suspects = query_suspect_span_groups(
-                params, query, span_ops, span_groups, orderbys, limit, offset
-            )
-
-            orderbys = [
-                direction + column
-                for column in SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_example_columns
-            ]
-
-            # Because we want to support pagination, the limit is 1 more than will be
-            # returned and displayed. Since this extra result is only used for
-            # pagination, we do not need to get any example transactions for it.
-            suspects_requiring_examples = suspects[: limit - 1]
-
-            transaction_ids = query_example_transactions(
-                params, query, orderbys, suspects_requiring_examples, per_suspect
-            )
-
-            return [
-                SuspectSpanWithExamples(
-                    examples=[
-                        get_example_transaction(
-                            suspect.project_id,
-                            transaction_id,
-                            suspect.op,
-                            suspect.group,
-                        )
-                        for transaction_id in transaction_ids.get((suspect.op, suspect.group), [])
-                    ],
-                    **dataclasses.asdict(suspect),
-                ).serialize()
-                for suspect in suspects
-            ]
-
-        with self.handle_query_errors():
-            return self.paginate(
-                request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn),
-                default_per_page=4,
-                max_per_page=4,
-            )
 
     def get_orderby_column(self, request: Request) -> Tuple[str, str]:
         orderbys = super().get_orderby(request)
@@ -152,6 +105,178 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
             raise ParseError(detail=f"Can only order by one of {options}")
 
         return direction, orderby
+
+
+class SpansPerformanceSerializer(serializers.Serializer):  # type: ignore
+    field = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    query = serializers.CharField(required=False, allow_null=True)
+    spanOp = ListField(child=serializers.CharField(), required=False, allow_null=True, max_length=4)
+    spanGroup = ListField(
+        child=serializers.CharField(), required=False, allow_null=True, max_length=4
+    )
+    perSuspect = serializers.IntegerField(default=4, min_value=0, max_value=10)
+
+    def validate_spanGroup(self, span_groups):
+        for group in span_groups:
+            if not is_span_id(group):
+                raise serializers.ValidationError(INVALID_SPAN_ID.format("spanGroup"))
+        return span_groups
+
+
+class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpointBase):
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not self.has_feature(request, organization):
+            return Response(status=404)
+
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response(status=404)
+
+        serializer = SpansPerformanceSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serialized = serializer.validated_data
+
+        fields = serialized.get("field", [])
+        query = serialized.get("query")
+        span_ops = serialized.get("spanOp")
+        span_groups = serialized.get("spanGroup")
+        per_suspect = serialized.get("perSuspect")
+
+        direction, orderby_column = self.get_orderby_column(request)
+
+        def data_fn(offset: int, limit: int) -> Any:
+            suspects = query_suspect_span_groups(
+                params,
+                fields,
+                query,
+                span_ops,
+                span_groups,
+                direction,
+                orderby_column,
+                limit,
+                offset,
+            )
+
+            # Because we want to support pagination, the limit is 1 more than will be
+            # returned and displayed. Since this extra result is only used for
+            # pagination, we do not need to get any example transactions for it.
+            suspects_requiring_examples = [
+                Span(suspect.op, suspect.group) for suspect in suspects[: limit - 1]
+            ]
+
+            example_transactions = query_example_transactions(
+                params, query, direction, orderby_column, suspects_requiring_examples, per_suspect
+            )
+
+            return [
+                SuspectSpanWithExamples(
+                    examples=[
+                        get_example_transaction(
+                            event,
+                            suspect.op,
+                            suspect.group,
+                        )
+                        for event in example_transactions.get(Span(suspect.op, suspect.group), [])
+                    ],
+                    **dataclasses.asdict(suspect),
+                ).serialize()
+                for suspect in suspects
+            ]
+
+        with self.handle_query_errors():
+            return self.paginate(
+                request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                default_per_page=4,
+                max_per_page=4,
+            )
+
+
+class SpansExamplesSerializer(serializers.Serializer):  # type: ignore
+    query = serializers.CharField(required=False, allow_null=True)
+    span = ListField(child=serializers.CharField(), required=True, allow_null=False, max_length=10)
+
+    def validate_span(self, spans: List[str]) -> List[Span]:
+        try:
+            return [Span.from_str(span) for span in spans]
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+
+class OrganizationEventsSpansEndpoint(OrganizationEventsSpansEndpointBase):
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not self.has_feature(request, organization):
+            return Response(status=404)
+
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response(status=404)
+
+        serializer = SpansExamplesSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serialized = serializer.validated_data
+
+        query = serialized.get("query")
+        spans = serialized["span"]
+
+        direction, orderby_column = self.get_orderby_column(request)
+
+        def data_fn(offset: int, limit: int) -> Any:
+            if len(spans) > 1 and offset > 0:
+                raise ParseError(detail="Can only specify offset with one span.")
+
+            example_transactions = query_example_transactions(
+                params, query, direction, orderby_column, spans, limit, offset
+            )
+
+            return [
+                {
+                    "op": span.op,
+                    "group": span.group,
+                    "examples": [
+                        get_example_transaction(
+                            event,
+                            span.op,
+                            span.group,
+                        ).serialize()
+                        for event in example_transactions.get(span, [])
+                    ],
+                }
+                for span in sorted(spans, key=lambda span: (span.op, span.group))
+            ]
+
+        with self.handle_query_errors():
+            return self.paginate(
+                request,
+                paginator=SpanExamplesPaginator(data_fn=data_fn),
+                default_per_page=3,
+                max_per_page=10,
+            )
+
+
+class SpanExamplesPaginator:
+    def __init__(self, data_fn: Callable[[int, int], Any]):
+        self.data_fn = data_fn
+
+    def get_result(self, limit: int, cursor: Optional[Cursor] = None) -> CursorResult:
+        assert limit > 0
+        offset = cursor.offset if cursor is not None else 0
+        # Request 1 more than limit so we can tell if there is another page
+        data = self.data_fn(offset, limit + 1)
+
+        has_more = any(len(result["examples"]) == limit + 1 for result in data)
+        for result in data:
+            result["examples"] = result["examples"][:limit]
+
+        return CursorResult(
+            data,
+            prev=Cursor(0, max(0, offset - limit), True, offset > 0),
+            next=Cursor(0, max(0, offset + limit), False, has_more),
+        )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -173,6 +298,8 @@ class ExampleSpan:
 @dataclasses.dataclass(frozen=True)
 class ExampleTransaction:
     id: str
+    project_id: int
+    project: str
     description: Optional[str]
     start_timestamp: float
     finish_timestamp: float
@@ -182,6 +309,8 @@ class ExampleTransaction:
     def serialize(self) -> Any:
         return {
             "id": self.id,
+            "projectId": self.project_id,
+            "project": self.project,
             "description": self.description,
             "startTimestamp": self.start_timestamp,
             "finishTimestamp": self.finish_timestamp,
@@ -197,14 +326,14 @@ class SuspectSpan:
     transaction: str
     op: str
     group: str
-    frequency: int
-    count: int
-    avg_occurrences: float
-    sum_exclusive_time: float
-    p50_exclusive_time: float
-    p75_exclusive_time: float
-    p95_exclusive_time: float
-    p99_exclusive_time: float
+    frequency: Optional[int]
+    count: Optional[int]
+    avg_occurrences: Optional[float]
+    sum_exclusive_time: Optional[float]
+    p50_exclusive_time: Optional[float]
+    p75_exclusive_time: Optional[float]
+    p95_exclusive_time: Optional[float]
+    p99_exclusive_time: Optional[float]
 
     def serialize(self) -> Any:
         return {
@@ -236,16 +365,48 @@ class SuspectSpanWithExamples(SuspectSpan):
         return serialized
 
 
+@dataclasses.dataclass(frozen=True)
+class Span:
+    op: str
+    group: str
+
+    @staticmethod
+    def from_str(s: str) -> Span:
+        parts = s.rsplit(":", 1)
+        if len(parts) != 2:
+            raise ValueError(
+                "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)"
+            )
+        if not is_span_id(parts[1]):
+            raise ValueError(INVALID_SPAN_ID.format("spanGroup"))
+        return Span(op=parts[0], group=parts[1])
+
+
+@dataclasses.dataclass(frozen=True)
+class EventID:
+    project_id: int
+    project_slug: str
+    event_id: str
+
+
 def query_suspect_span_groups(
     params: ParamsType,
+    fields: List[str],
     query: Optional[str],
     span_ops: Optional[List[str]],
     span_groups: Optional[List[str]],
-    order_columns: List[str],
+    direction: str,
+    orderby: str,
     limit: int,
     offset: int,
 ) -> List[SuspectSpan]:
+    suspect_span_columns = SPAN_PERFORMANCE_COLUMNS[orderby]
+
     selected_columns: List[str] = [
+        column
+        for column in suspect_span_columns.suspect_op_group_columns + fields
+        if not is_equation(column)
+    ] + [
         "project.id",
         "project",
         "transaction",
@@ -255,12 +416,24 @@ def query_suspect_span_groups(
         "count_unique(id)",
     ]
 
-    equations: List[str] = ["count() / count_unique(id)"]
+    equations: List[str] = [
+        strip_equation(column)
+        for column in suspect_span_columns.suspect_op_group_columns
+        if is_equation(column)
+    ]
 
-    for column in SPAN_PERFORMANCE_COLUMNS.values():
-        for col in column.suspect_op_group_columns:
-            if not col.startswith("equation["):
-                selected_columns.append(col)
+    # TODO: This adds all the possible fields to the query by default. However,
+    # due to the way shards aggregate the rows, this can be slow. As an
+    # optimization, allow the fields to be user specified to only get the
+    # necessary aggregations.
+    #
+    # As part of the transition, continue to add all possible fields when its
+    # not specified, but this should be removed in the future.
+    if not fields:
+        for column in SPAN_PERFORMANCE_COLUMNS.values():
+            for col in column.suspect_op_group_sort:
+                if not col.startswith("equation["):
+                    selected_columns.append(col)
 
     builder = QueryBuilder(
         dataset=Dataset.Discover,
@@ -268,7 +441,7 @@ def query_suspect_span_groups(
         selected_columns=selected_columns,
         equations=equations,
         query=query,
-        orderby=order_columns,
+        orderby=[direction + column for column in suspect_span_columns.suspect_op_group_sort],
         auto_aggregations=True,
         use_aggregate_conditions=True,
         limit=limit,
@@ -309,10 +482,10 @@ def query_suspect_span_groups(
             transaction=suspect["transaction"],
             op=suspect["array_join_spans_op"],
             group=suspect["array_join_spans_group"],
-            frequency=suspect["count_unique_id"],
-            count=suspect["count"],
-            avg_occurrences=suspect["equation[0]"],
-            sum_exclusive_time=suspect["sumArray_spans_exclusive_time"],
+            frequency=suspect.get("count_unique_id"),
+            count=suspect.get("count"),
+            avg_occurrences=suspect.get("equation[0]"),
+            sum_exclusive_time=suspect.get("sumArray_spans_exclusive_time"),
             p50_exclusive_time=suspect.get("percentileArray_spans_exclusive_time_0_50"),
             p75_exclusive_time=suspect.get("percentileArray_spans_exclusive_time_0_75"),
             p95_exclusive_time=suspect.get("percentileArray_spans_exclusive_time_0_95"),
@@ -325,32 +498,36 @@ def query_suspect_span_groups(
 def query_example_transactions(
     params: ParamsType,
     query: Optional[str],
-    order_columns: List[str],
-    suspects: List[SuspectSpan],
+    direction: str,
+    orderby: str,
+    spans: List[Span],
     per_suspect: int = 5,
-) -> Dict[Tuple[str, str], List[str]]:
+    offset: Optional[int] = None,
+) -> Dict[Span, List[EventID]]:
     # there aren't any suspects, early return to save an empty query
-    if not suspects or per_suspect == 0:
+    if not spans or per_suspect == 0:
         return {}
+
+    orderby_columns = SPAN_PERFORMANCE_COLUMNS[orderby].suspect_example_sort
 
     selected_columns: List[str] = [
         "id",
+        "project.id",
+        "project",
         "array_join(spans_op)",
         "array_join(spans_group)",
+        *orderby_columns,
     ]
-
-    for column in SPAN_PERFORMANCE_COLUMNS.values():
-        for col in column.suspect_example_columns:
-            selected_columns.append(col)
 
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         selected_columns=selected_columns,
         query=query,
-        orderby=order_columns,
+        orderby=[direction + column for column in orderby_columns],
         # we want only `per_suspect` examples for each suspect
-        limit=len(suspects) * per_suspect,
+        limit=len(spans) * per_suspect,
+        offset=offset,
         functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
     )
 
@@ -368,42 +545,41 @@ def query_example_transactions(
                 Op.IN,
                 Function(
                     "tuple",
-                    [Function("tuple", [suspect.op, suspect.group]) for suspect in suspects],
+                    [Function("tuple", [suspect.op, suspect.group]) for suspect in spans],
                 ),
             ),
         ]
     )
 
-    # Hack: the limit by clause only allows columns but here we want to
-    # do a limitby on the two array joins. For the time being, directly
-    # do the limitby on the internal snuba name for the span group column
-    # but this should not be relied upon in production, and if two spans
-    # differ only by the span op, this will result in a incorrect query
-    builder.limitby = LimitBy(Column("_snuba_array_join_spans_group"), per_suspect)
+    if len(spans) > 1:
+        # Hack: the limit by clause only allows columns but here we want to
+        # do a limitby on the two array joins. For the time being, directly
+        # do the limitby on the internal snuba name for the span group column
+        # but this should not be relied upon in production, and if two spans
+        # differ only by the span op, this will result in a incorrect query
+        builder.limitby = LimitBy(Column("_snuba_array_join_spans_group"), per_suspect)
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-spans-performance-examples")
 
-    examples: Dict[Tuple[str, str], List[str]] = {
-        (suspect.op, suspect.group): [] for suspect in suspects
-    }
+    examples: Dict[Span, List[EventID]] = {Span(suspect.op, suspect.group): [] for suspect in spans}
 
     for example in results["data"]:
-        key = example["array_join_spans_op"], example["array_join_spans_group"]
-        examples[key].append(example["id"])
+        key = Span(example["array_join_spans_op"], example["array_join_spans_group"])
+        value = EventID(example["project.id"], example["project"], example["id"])
+        examples[key].append(value)
 
     return examples
 
 
 def get_example_transaction(
-    project_id: int,
-    transaction_id: str,
+    event: EventID,
     span_op: str,
     span_group: str,
 ) -> ExampleTransaction:
     span_group_id = int(span_group, 16)
-    event = eventstore.get_event_by_id(project_id, transaction_id)
-    data = event.data
+    nodestore_event = eventstore.get_event_by_id(event.project_id, event.event_id)
+    data = nodestore_event.data
 
     # the transaction itself is a span as well but we need to reconstruct
     # it from the event as it's not present in the spans array
@@ -456,7 +632,9 @@ def get_example_transaction(
     )
 
     return ExampleTransaction(
-        id=transaction_id,
+        id=event.event_id,
+        project_id=event.project_id,
+        project=event.project_slug,
         description=description,
         start_timestamp=data["start_timestamp"],
         finish_timestamp=data["timestamp"],
