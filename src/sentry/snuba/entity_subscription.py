@@ -2,18 +2,25 @@ import re
 from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
-from typing import Any, List, Mapping, Optional, Type, TypedDict, Union
+from typing import Any, Dict, List, Mapping, Optional, Type, TypedDict, Union
 
-from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models import Environment
-from sentry.release_health.metrics import get_tag_values_list, metric_id, tag_key, tag_value
+from sentry.release_health.metrics import (
+    get_tag_values_list,
+    metric_id,
+    reverse_tag_value,
+    tag_key,
+    tag_value,
+)
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
+from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, resolve_column, resolve_snuba_aliases
 
 # TODO: If we want to support security events here we'll need a way to
@@ -109,6 +116,16 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         raise NotImplementedError
 
+    @abstractmethod
+    def aggregate_query_results(
+        self, data: List[Dict[str, Any]], alias: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Method that serves the purpose of receiving query results and applying any necessary
+        aggregations on them
+        """
+        raise NotImplementedError
+
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
@@ -144,6 +161,11 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         return {}
+
+    def aggregate_query_results(
+        self, data: List[Dict[str, Any]], alias: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        return data
 
 
 class EventsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
@@ -205,6 +227,18 @@ class SessionsEntitySubscription(BaseEntitySubscription):
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         return {"organization": self.org_id}
+
+    def aggregate_query_results(
+        self, data: List[Dict[str, Any]], alias: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        col_name = alias if alias else CRASH_RATE_ALERT_AGGREGATE_ALIAS
+        if data[0][col_name] is not None:
+            data[0][col_name] = round((1 - data[0][col_name]) * 100, 3)
+        else:
+            metrics.incr(
+                "incidents.entity_subscription.sessions.aggregate_query_results.no_session_data"
+            )
+        return data
 
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
@@ -292,6 +326,31 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "groupby": self.get_query_groupby(),
             "granularity": self.get_granularity(),
         }
+
+    def aggregate_query_results(
+        self, data: List[Dict[str, Any]], alias: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        value_col_name = alias if alias else "value"
+
+        aggregated_data: Dict[str, Any] = {}
+        session_status = tag_key(self.org_id, "session.status")
+        for row in data:
+            tag_value = reverse_tag_value(self.org_id, row[session_status])
+            aggregated_data[tag_value] = row[value_col_name]
+
+        total_session_count = aggregated_data.get("init", 0)
+        crash_count = aggregated_data.get("crashed", 0)
+        if total_session_count == 0:
+            metrics.incr(
+                "incidents.entity_subscription.metrics.aggregate_query_results.no_session_data"
+            )
+            crash_free_rate = None
+        else:
+            crash_free_rate = round((1 - crash_count / total_session_count) * 100, 3)
+
+        col_name = alias if alias else CRASH_RATE_ALERT_AGGREGATE_ALIAS
+
+        return [{col_name: crash_free_rate}]
 
 
 class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
