@@ -102,7 +102,11 @@ class U2fInterface(AuthenticatorInterface):
                     credentials.append(c)
 
             registration_data, state = self.webauthn_registration_server.register_begin(
-                user={"id": bytes(user.id), "name": user.username, "displayName": user.username},
+                user={
+                    "id": user.id.to_bytes(64, byteorder="big"),
+                    "name": user.username,
+                    "displayName": user.username,
+                },
                 credentials=credentials,
                 # user_verification is where the authenticator verifies that the user is authorized
                 # to use the authenticator, this isn't needed for our usecase so set a discouraged
