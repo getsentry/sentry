@@ -5,7 +5,6 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
-import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -13,9 +12,7 @@ import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import MenuItem from 'sentry/components/menuItem';
 import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -23,25 +20,26 @@ import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Group, Organization} from 'sentry/types';
-import {getUtcDateString} from 'sentry/utils/dates';
+import {GlobalSelection, Organization} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
-import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widget/issueWidget/fields';
 
-import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
-import ContextMenu from './contextMenu';
+import {DRAG_HANDLE_CLASS} from '../gridLayout/dashboard';
+import {Widget, WidgetType} from '../types';
+import {ISSUE_FIELDS} from '../widget/issueWidget/fields';
+
 import IssueWidgetQueries from './issueWidgetQueries';
-import {Widget} from './types';
+import WidgetCardChart from './widgetCardChart';
+import WidgetCardContextMenu from './widgetCardContextMenu';
 import WidgetQueries from './widgetQueries';
 
-type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'> & {
-  tableResults: Group[];
-};
-
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
+
+type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'> & {
+  transformedResults: TableDataRow[];
+};
 
 type Props = WithRouterProps & {
   api: Client;
@@ -64,7 +62,7 @@ type Props = WithRouterProps & {
   widgetLimitReached: boolean;
 };
 
-class IssueWidgetCard extends React.Component<Props> {
+class WidgetCard extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props): boolean {
     if (
       !isEqual(nextProps.widget, this.props.widget) ||
@@ -80,61 +78,9 @@ class IssueWidgetCard extends React.Component<Props> {
     return false;
   }
 
-  transformTableResults(tableResults: Group[]): TableDataRow[] {
-    return tableResults.map(({id, shortId, title, assignedTo, ...resultProps}) => {
-      const transformedResultProps = {};
-      Object.keys(resultProps).map(key => {
-        const value = resultProps[key];
-        transformedResultProps[key] = ['number', 'string'].includes(typeof value)
-          ? value
-          : String(value);
-      });
-      const transformedTableResults = {
-        ...transformedResultProps,
-        id,
-        'issue.id': id,
-        issue: shortId,
-        title,
-        'assignee.type': assignedTo?.type,
-        'assignee.name': assignedTo?.name ?? '',
-        'assignee.id': assignedTo?.id,
-        'assignee.email': assignedTo?.email ?? '',
-      };
-      return transformedTableResults;
-    });
-  }
-
-  tableResultComponent({
-    loading,
-    errorMessage,
-    tableResults,
-  }: TableResultProps): React.ReactNode {
-    const {location, organization, widget} = this.props;
-    if (errorMessage) {
-      return (
-        <ErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
-      );
-    }
-
-    if (loading) {
-      // Align height to other charts.
-      return <LoadingPlaceholder height="200px" />;
-    }
-    const transformedTableResults = this.transformTableResults(tableResults);
-
-    return (
-      <StyledSimpleTableChart
-        location={location}
-        title=""
-        fields={widget.queries[0].fields}
-        loading={loading}
-        metadata={ISSUE_FIELDS}
-        data={transformedTableResults}
-        organization={organization}
-      />
-    );
+  isAllowWidgetsToDiscover() {
+    const {organization} = this.props;
+    return organization.features.includes('connect-discover-and-dashboards');
   }
 
   renderToolbar() {
@@ -158,10 +104,20 @@ class IssueWidgetCard extends React.Component<Props> {
               />
             </IconClick>
           )}
-          <IconClick data-test-id="widget-edit" onClick={onEdit}>
+          <IconClick
+            data-test-id="widget-edit"
+            onClick={() => {
+              onEdit();
+            }}
+          >
             <IconEdit color="textColor" />
           </IconClick>
-          <IconClick data-test-id="widget-delete" onClick={onDelete}>
+          <IconClick
+            data-test-id="widget-delete"
+            onClick={() => {
+              onDelete();
+            }}
+          >
             <IconDelete color="textColor" />
           </IconClick>
         </IconContainer>
@@ -179,39 +135,50 @@ class IssueWidgetCard extends React.Component<Props> {
       onDuplicate,
     } = this.props;
 
-    if (!showContextMenu) {
-      return null;
-    }
-
-    const {start, end, utc, period} = selection.datetime;
-    const datetime =
-      start && end
-        ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
-        : {statsPeriod: period};
-    const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-      query: widget.queries?.[0]?.conditions,
-      ...datetime,
-    })}`;
-
     return (
-      <ContextWrapper>
-        <ContextMenu>
-          <Link to={issuesLocation}>
-            <StyledMenuItem key="open-issues">{t('Open in Issues')}</StyledMenuItem>
-          </Link>
-          <StyledMenuItem
-            key="duplicate-widget"
-            onSelect={onDuplicate}
-            disabled={widgetLimitReached}
-          >
-            {t('Duplicate Widget')}
-          </StyledMenuItem>
-        </ContextMenu>
-      </ContextWrapper>
+      <WidgetCardContextMenu
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        showContextMenu={showContextMenu}
+        widgetLimitReached={widgetLimitReached}
+        onDuplicate={onDuplicate}
+      />
     );
   }
 
-  renderChart() {
+  tableResultComponent({
+    loading,
+    errorMessage,
+    transformedResults,
+  }: TableResultProps): React.ReactNode {
+    const {location, organization, widget} = this.props;
+    if (errorMessage) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
+    if (loading) {
+      // Align height to other charts.
+      return <LoadingPlaceholder height="200px" />;
+    }
+    return (
+      <StyledSimpleTableChart
+        location={location}
+        title=""
+        fields={widget.queries[0].fields}
+        loading={loading}
+        metadata={ISSUE_FIELDS}
+        data={transformedResults}
+        organization={organization}
+      />
+    );
+  }
+
+  renderIssueChart() {
     const {widget, api, organization, selection, renderErrorMessage} = this.props;
     return (
       <IssueWidgetQueries
@@ -220,20 +187,64 @@ class IssueWidgetCard extends React.Component<Props> {
         widget={widget}
         selection={selection}
       >
-        {({tableResults, errorMessage, loading}) => {
+        {({transformedResults, errorMessage, loading}) => {
           return (
             <React.Fragment>
               {typeof renderErrorMessage === 'function'
                 ? renderErrorMessage(errorMessage)
                 : null}
               <LoadingScreen loading={loading} />
-              {this.tableResultComponent({tableResults, loading, errorMessage})}
+              {this.tableResultComponent({transformedResults, loading, errorMessage})}
               {this.renderToolbar()}
             </React.Fragment>
           );
         }}
       </IssueWidgetQueries>
     );
+  }
+
+  renderDiscoverChart() {
+    const {widget, api, organization, selection, renderErrorMessage, location, router} =
+      this.props;
+    return (
+      <WidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+      >
+        {({tableResults, timeseriesResults, errorMessage, loading}) => {
+          return (
+            <React.Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <WidgetCardChart
+                timeseriesResults={timeseriesResults}
+                tableResults={tableResults}
+                errorMessage={errorMessage}
+                loading={loading}
+                location={location}
+                widget={widget}
+                selection={selection}
+                router={router}
+                organization={organization}
+              />
+              {this.renderToolbar()}
+            </React.Fragment>
+          );
+        }}
+      </WidgetQueries>
+    );
+  }
+
+  renderChart() {
+    const {widget} = this.props;
+
+    if (widget.widgetType === WidgetType.DISCOVER) {
+      return this.renderDiscoverChart();
+    }
+    return this.renderIssueChart();
   }
 
   render() {
@@ -260,31 +271,7 @@ class IssueWidgetCard extends React.Component<Props> {
   }
 }
 
-export default withApi(
-  withOrganization(withGlobalSelection(withRouter(IssueWidgetCard)))
-);
-
-const StyledTransparentLoadingMask = styled(props => (
-  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
-))`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const LoadingScreen = ({loading}: {loading: boolean}) => {
-  if (!loading) {
-    return null;
-  }
-  return (
-    <StyledTransparentLoadingMask visible={loading}>
-      <LoadingIndicator mini />
-    </StyledTransparentLoadingMask>
-  );
-};
-const LoadingPlaceholder = styled(Placeholder)`
-  background-color: ${p => p.theme.surface200};
-`;
+export default withApi(withOrganization(withGlobalSelection(withRouter(WidgetCard))));
 
 const ErrorCard = styled(Placeholder)`
   display: flex;
@@ -311,30 +298,11 @@ const StyledPanel = styled(Panel, {
   flex-direction: column;
 `;
 
-const WidgetTitle = styled(HeaderTitle)`
-  ${overflowEllipsis};
-`;
-
-const WidgetHeader = styled('div')`
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-`;
-
-const StyledSimpleTableChart = styled(SimpleTableChart)`
-  margin-top: ${space(1.5)};
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  box-shadow: none;
-`;
-
 const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: auto;
 
   width: 100%;
   height: 100%;
@@ -361,20 +329,50 @@ const IconClick = styled('div')`
   }
 `;
 
-const ContextWrapper = styled('div')`
-  margin-left: ${space(1)};
-`;
-
-const StyledMenuItem = styled(MenuItem)`
-  white-space: nowrap;
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
 const StyledIconGrabbable = styled(IconGrabbable)`
   &:hover {
     cursor: grab;
   }
+`;
+
+const WidgetTitle = styled(HeaderTitle)`
+  ${overflowEllipsis};
+`;
+
+const WidgetHeader = styled('div')`
+  padding: ${space(2)} ${space(3)} 0 ${space(3)};
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StyledTransparentLoadingMask = styled(props => (
+  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
+))`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const LoadingScreen = ({loading}: {loading: boolean}) => {
+  if (!loading) {
+    return null;
+  }
+  return (
+    <StyledTransparentLoadingMask visible={loading}>
+      <LoadingIndicator mini />
+    </StyledTransparentLoadingMask>
+  );
+};
+
+const LoadingPlaceholder = styled(Placeholder)`
+  background-color: ${p => p.theme.surface200};
+`;
+
+const StyledSimpleTableChart = styled(SimpleTableChart)`
+  margin-top: ${space(1.5)};
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSizeMedium};
+  box-shadow: none;
 `;

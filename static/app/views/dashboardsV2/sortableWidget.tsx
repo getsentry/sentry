@@ -4,8 +4,7 @@ import {useSortable} from '@dnd-kit/sortable';
 
 import theme from 'sentry/utils/theme';
 
-import IssueWidgetCard from './issueWidgetCard';
-import {Widget, WidgetType} from './types';
+import {Widget} from './types';
 import WidgetCard from './widgetCard';
 import WidgetWrapper from './widgetWrapper';
 
@@ -105,11 +104,7 @@ function SortableWidget(props: Props) {
         },
       }}
     >
-      {widget.widgetType === WidgetType.ISSUE ? (
-        <IssueWidgetCard {...widgetProps} />
-      ) : (
-        <WidgetCard {...widgetProps} />
-      )}
+      <WidgetCard {...widgetProps} />
     </WidgetWrapper>
   );
 }

@@ -1,8 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
-import {Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {Widget} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 type Props = {
@@ -41,11 +40,7 @@ function SortableWidget({
 
   return (
     <WidgetWrapper>
-      {widget.widgetType === WidgetType.ISSUE ? (
-        <IssueWidgetCard {...widgetProps} />
-      ) : (
-        <WidgetCard {...widgetProps} />
-      )}
+      <WidgetCard {...widgetProps} />
     </WidgetWrapper>
   );
 }

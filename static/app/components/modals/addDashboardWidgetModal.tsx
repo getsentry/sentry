@@ -33,7 +33,6 @@ import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
-import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -649,7 +648,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 error={errors?.queries?.[0]}
                 onChange={widgetQuery => this.handleQueryChange(widgetQuery, 0)}
               />
-              <IssueWidgetCard
+              <WidgetCard
                 organization={organization}
                 selection={querySelection}
                 widget={{...this.state, displayType: DisplayType.TABLE}}
