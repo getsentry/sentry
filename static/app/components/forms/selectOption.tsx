@@ -28,10 +28,10 @@ const Option = (props: Props) => {
             isFocused={props.isFocused}
             showDividers={props.selectProps.showDividers}
           >
-            <Text>
+            <div>
               <Label>{props.label}</Label>
               {props.data.details && <Details>{props.data.details}</Details>}
-            </Text>
+            </div>
             {props.data.leadingItems && (
               <TrailingItems>{props.data.trailingItems}</TrailingItems>
             )}
@@ -121,8 +121,6 @@ const LeadingItems = styled('div')`
   height: 1.4em;
   gap: ${space(1)};
 `;
-
-const Text = styled('div')``;
 
 const Label = styled('p')`
   margin-bottom: 0;
