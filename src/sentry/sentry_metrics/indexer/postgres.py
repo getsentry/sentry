@@ -1,6 +1,7 @@
 from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set
 
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
+from sentry.utils import metrics
 from sentry.utils.services import Service
 
 
@@ -17,7 +18,8 @@ class PGStringIndexer(Service):  # type: ignore
         # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
         # records might have be created between when we queried in `bulk_record` and the
         # attempt to create the rows down below.
-        MetricsKeyIndexer.objects.bulk_create(records, ignore_conflicts=True)
+        with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
+            MetricsKeyIndexer.objects.bulk_create(records, ignore_conflicts=True)
         # Using `ignore_conflicts=True` prevents the pk from being set on the model
         # instances.
         #
@@ -34,7 +36,18 @@ class PGStringIndexer(Service):  # type: ignore
         mapped_result: MutableMapping[str, int] = {r.string: r.id for r in cache_results}
 
         unmapped = set(strings).difference(mapped_result.keys())
-        new_mapped = self._bulk_record(unmapped)
+        if not unmapped:
+            metrics.incr("sentry_metrics.indexer.memcache.hit")
+            return mapped_result
+        else:
+            percent_unmapped = int((len(unmapped) / len(strings)) * 100)
+            metrics.incr(
+                "sentry_metrics.indexer.memcache.miss",
+                tags={"percent_missed": percent_unmapped},
+            )
+
+        with metrics.timer("sentry_metrics.indexer._bulk_record"):
+            new_mapped = self._bulk_record(unmapped)
 
         for new in new_mapped:
             mapped_result[new.string] = new.id
