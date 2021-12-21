@@ -69,10 +69,10 @@ type Props = {
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   handleAddLibraryWidgets: (widgets: Widget[]) => void;
+  layout: Layout[];
+  onLayoutChange: (layout: Layout[]) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
-  layout?: Layout[];
-  onLayoutChange?: (layout: Layout[]) => void;
 };
 
 type State = {
@@ -84,12 +84,12 @@ class Dashboard extends Component<Props, State> {
   constructor(props) {
     super(props);
     const {layout, dashboard, organization} = props;
-    const hasLayout = organization.features.includes('dashboard-grid-layout') && !!layout;
+    const isUsingGrid = organization.features.includes('dashboard-grid-layout');
     this.state = {
       isMobile: false,
       layouts: {
-        [DESKTOP]: hasLayout ? layout : [],
-        [MOBILE]: hasLayout ? getMobileLayout(layout, dashboard.widgets) : [],
+        [DESKTOP]: isUsingGrid ? layout : [],
+        [MOBILE]: isUsingGrid ? getMobileLayout(layout, dashboard.widgets) : [],
       },
     };
   }
@@ -222,7 +222,7 @@ class Dashboard extends Component<Props, State> {
       const newLayout = layouts[DESKTOP].filter(
         ({i}) => i !== constructGridItemKey(widgetToDelete)
       );
-      onLayoutChange && onLayoutChange(newLayout);
+      onLayoutChange(newLayout);
     }
   };
 
@@ -338,7 +338,7 @@ class Dashboard extends Component<Props, State> {
     });
 
     // The desktop layout is the source of truth
-    onLayoutChange && onLayoutChange(newLayouts[DESKTOP]);
+    onLayoutChange(newLayouts[DESKTOP]);
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {
