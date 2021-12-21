@@ -187,6 +187,7 @@ export const AVATAR_URL_MAP = {
   user: 'avatar',
   sentryAppColor: 'sentry-app-avatar',
   sentryAppSimple: 'sentry-app-avatar',
+  docIntegration: 'doc-integration-avatar',
 };
 
 export const MENU_CLOSE_DELAY = 200;

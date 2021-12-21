@@ -254,6 +254,7 @@ export type DocIntegration = {
   url: string;
   popularity: number;
   description: string;
+  isDraft: boolean;
   avatar: Avatar;
   features?: IntegrationFeature[];
   resources?: Array<{title: string; url: string}>;

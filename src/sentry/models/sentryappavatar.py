@@ -1,10 +1,16 @@
+from collections import defaultdict
 from enum import Enum
+from typing import TYPE_CHECKING, List
 
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey
+from sentry.db.models.manager import BaseManager
 
 from . import AvatarBase
+
+if TYPE_CHECKING:
+    from sentry.models.sentryapp import SentryApp
 
 
 class SentryAppAvatarTypes(Enum):
@@ -16,11 +22,25 @@ class SentryAppAvatarTypes(Enum):
         return tuple((_.value, _.name.lower()) for _ in SentryAppAvatarTypes)
 
 
+class SentryAppAvatarManager(BaseManager):
+    def get_by_apps_as_dict(self, sentry_apps: List["SentryApp"]):
+        """
+        Returns a dict mapping sentry_app_id (key) to List[SentryAppAvatar] (value)
+        """
+        avatars = SentryAppAvatar.objects.filter(sentry_app__in=sentry_apps)
+        avatar_to_app_map = defaultdict(set)
+        for avatar in avatars:
+            avatar_to_app_map[avatar.sentry_app_id].add(avatar)
+        return avatar_to_app_map
+
+
 class SentryAppAvatar(AvatarBase):
     """
     A SentryAppAvatar associates a SentryApp with a logo photo File
     and specifies which type of logo it is.
     """
+
+    objects = SentryAppAvatarManager()
 
     AVATAR_TYPES = SentryAppAvatarTypes.get_choices()
 
