@@ -22,17 +22,17 @@ type Props = {
   widget: Widget;
   selection: GlobalSelection;
   onDuplicate: () => void;
-  showContextMenu?: boolean;
   widgetLimitReached: boolean;
+  showContextMenu?: boolean;
 };
 
 function WidgetCardContextMenu({
   organization,
   selection,
   widget,
-  showContextMenu,
   widgetLimitReached,
   onDuplicate,
+  showContextMenu,
 }: Props) {
   function isAllowWidgetsToDiscover() {
     return organization.features.includes('connect-discover-and-dashboards');
