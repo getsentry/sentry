@@ -302,39 +302,28 @@ class Dashboard extends Component<Props, State> {
     const {isMobile} = this.state;
     const {isEditing, organization, widgetLimitReached} = this.props;
 
+    const widgetProps = {
+      widget,
+      isEditing,
+      widgetLimitReached,
+      onDelete: this.handleDeleteWidget(widget),
+      onEdit: this.handleEditWidget(widget, index),
+      onDuplicate: this.handleDuplicateWidget(widget, index),
+    };
+
     if (organization.features.includes('dashboard-grid-layout')) {
       const key = constructGridItemKey(widget);
       const dragId = key;
       return (
         <GridItem key={key} data-grid={getDefaultPosition(index, widget.displayType)}>
-          <SortableWidget
-            widget={widget}
-            dragId={dragId}
-            isEditing={isEditing}
-            onDelete={this.handleDeleteWidget(widget)}
-            onEdit={this.handleEditWidget(widget, index)}
-            hideDragHandle={isMobile}
-            onDuplicate={this.handleDuplicateWidget(widget, index)}
-            widgetLimitReached={widgetLimitReached}
-          />
+          <SortableWidget {...widgetProps} dragId={dragId} hideDragHandle={isMobile} />
         </GridItem>
       );
     }
 
     const key = generateWidgetId(widget, index);
     const dragId = key;
-    return (
-      <SortableWidget
-        key={key}
-        widget={widget}
-        dragId={dragId}
-        isEditing={isEditing}
-        onDelete={this.handleDeleteWidget(widget)}
-        onEdit={this.handleEditWidget(widget, index)}
-        onDuplicate={this.handleDuplicateWidget(widget, index)}
-        widgetLimitReached={widgetLimitReached}
-      />
-    );
+    return <SortableWidget {...widgetProps} key={key} dragId={dragId} />;
   }
 
   handleLayoutChange = (_, allLayouts: Layouts) => {
