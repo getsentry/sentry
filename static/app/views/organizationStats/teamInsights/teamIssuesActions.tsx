@@ -9,6 +9,7 @@ import IdBadge from 'sentry/components/idBadge';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
@@ -869,6 +870,7 @@ class TeamIssuesActions extends AsyncComponent<Props, State> {
     const allReviewedByDay: Record<string, Record<string, number>> = {};
 
     // Total reviewed & total reviewed keyed by project ID
+    // TODO: add types
     const projectTotals: any = {};
 
     if (issuesBreakdown) {
@@ -904,6 +906,10 @@ class TeamIssuesActions extends AsyncComponent<Props, State> {
       }
     }
 
+    const sortedProjectIds = Object.entries(projectTotals)
+      .map(([projectId, {total}]) => ({projectId, total}))
+      .sort((a, b) => b.total - a.total);
+
     return (
       <Fragment>
         <IssuesChartWrapper>
@@ -932,22 +938,23 @@ class TeamIssuesActions extends AsyncComponent<Props, State> {
           headers={[
             t('Project'),
             ...actions.map(action => <AlignRight key={action}>{t(action)}</AlignRight>),
-            <AlignRight key="total">{t('total')}</AlignRight>,
+            <AlignRight key="total">
+              {t('total')} <IconArrow direction="down" size="12px" color="gray300" />
+            </AlignRight>,
           ]}
           isLoading={loading}
         >
-          {projects.map(project => {
+          {sortedProjectIds.map(({projectId}) => {
+            const project = projects.find(p => p.id === projectId);
             return (
-              <Fragment key={project.id}>
+              <Fragment key={projectId}>
                 <ProjectBadgeContainer>
                   <ProjectBadge avatarSize={18} project={project} />
                 </ProjectBadgeContainer>
                 {actions.map(action => (
-                  <AlignRight key={action}>
-                    {projectTotals[project.id][action]}
-                  </AlignRight>
+                  <AlignRight key={action}>{projectTotals[projectId][action]}</AlignRight>
                 ))}
-                <AlignRight>{projectTotals[project.id].total}</AlignRight>
+                <AlignRight>{projectTotals[projectId].total}</AlignRight>
               </Fragment>
             );
           })}
