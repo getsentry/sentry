@@ -17,7 +17,8 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
 
         # show disabled org integrations but not ones being deleted
         integrations = OrganizationIntegration.objects.filter(
-            organization=organization, status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED]
+            organization=organization,
+            status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED, ObjectStatus.PENDING_DELETION],
         )
 
         if "provider_key" in request.GET:
