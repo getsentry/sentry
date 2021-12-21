@@ -252,6 +252,7 @@ export type DocIntegration = {
   slug: string;
   author: string;
   url: string;
+  popularity: number;
   description: string;
   avatar: Avatar;
   features?: IntegrationFeature[];
