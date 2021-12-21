@@ -69,10 +69,10 @@ type Props = {
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   handleAddLibraryWidgets: (widgets: Widget[]) => void;
+  paramDashboardId?: string;
+  newWidget?: Widget;
   layout?: Layout[];
   onLayoutChange?: (layout: Layout[]) => void;
-  newWidget?: Widget;
-  paramDashboardId?: string;
 };
 
 type State = {
