@@ -35,10 +35,11 @@ class U2FInterfaceTest(TestCase):
 
         assert challenge["publicKey"]["rp"] == {"id": "richardmasentry.ngrok.io", "name": "Sentry"}
         assert challenge["publicKey"]["user"] == {
-            "id": bytes(self.user.id),
+            "id": self.user.id.to_bytes(64, byteorder="big"),
             "name": self.user.username,
             "displayName": self.user.username,
         }
+        assert int.from_bytes(challenge["publicKey"]["user"]["id"], byteorder="big") == self.user.id
         assert len(challenge["publicKey"]["pubKeyCredParams"]) == 4
 
     def test_try_enroll_webauthn(self):

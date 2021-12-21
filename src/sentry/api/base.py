@@ -205,6 +205,7 @@ class Endpoint(APIView):
                 caller_ip=str(self.request.META.get("REMOTE_ADDR")),
                 user_agent=str(self.request.META.get("HTTP_USER_AGENT")),
                 rate_limited=str(getattr(self.request, "will_be_rate_limited", False)),
+                rate_limit_category=str(getattr(self.request, "rate_limit_category", None)),
                 request_duration_seconds=time.time() - request_start_time,
             )
             api_access_logger.info("api.access", extra=log_metrics)
