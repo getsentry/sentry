@@ -80,12 +80,18 @@ class IntegrationTypes(Enum):
     DOC_INTEGRATION = 1
 
 
+INTEGRATION_MODELS_BY_TYPE = {
+    IntegrationTypes.SENTRY_APP.value: SentryApp,
+    IntegrationTypes.DOC_INTEGRATION.value: DocIntegration,
+}
+
+
 class IntegrationFeatureManager(BaseManager):
     def get_by_targets_as_dict(
         self, targets: List[Union[SentryApp, DocIntegration]], target_type: IntegrationTypes
     ):
         """
-        Returns a Dict mapping target_id (key) to List[IntegrationFeatures] (value)
+        Returns a dict mapping target_id (key) to List[IntegrationFeatures] (value)
         """
         features = self.filter(
             target_type=target_type.value, target_id__in={target.id for target in targets}
@@ -94,6 +100,31 @@ class IntegrationFeatureManager(BaseManager):
         for feature in features:
             features_by_target[feature.target_id].add(feature)
         return features_by_target
+
+    def get_descriptions_as_dict(self, features: List["IntegrationFeature"]):
+        """
+        Returns a dict mapping IntegrationFeature id (key) to description (value)
+        This will do bulk requests for each type of Integration, rather than individual transactions for
+        requested description.
+        """
+        # Create a mapping of {int_type: {int_id: description}}
+        # e.g. {0 : {1 : "ExampleApp1", "2": "ExampleApp2"}}
+        #      (where 0 == IntegrationTypes.SENTRY_APP.value)
+        #      (where 1,2 == SentryApp.id)
+        names_by_id_by_type = defaultdict(dict)
+        for integration_type, model in INTEGRATION_MODELS_BY_TYPE.items():
+            model_ids = {
+                feature.target_id for feature in features if feature.target_type == integration_type
+            }
+            for integration in model.objects.filter(id__in=model_ids):
+                names_by_id_by_type[integration_type][integration.id] = integration.name
+        # Interpret the above mapping to directly map {feature_id: description}
+        return {
+            feature.id: Feature.description(
+                feature.feature, names_by_id_by_type[feature.target_type][feature.target_id]
+            )
+            for feature in features
+        }
 
 
 class IntegrationFeature(Model):
