@@ -9,8 +9,6 @@ from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
 
-DEFAULT_BLOCK_SIZE = int(32 * 1e6)
-
 
 class AddressParamType(click.ParamType):
     name = "address"

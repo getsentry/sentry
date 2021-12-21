@@ -233,15 +233,15 @@ def devserver(
             for name, topic in settings.KAFKA_SUBSCRIPTION_RESULT_TOPICS.items():
                 daemons += [_get_daemon("subscription-consumer", "--topic", topic, suffix=name)]
 
-        # if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
-        #     if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
-        #         # The metrics indexer produces directly to kafka, so it makes
-        #         # no sense to run it with SnubaEventStream.
-        #         raise click.ClickException(
-        #             "`SENTRY_USE_METRICS_DEV` can only be used when "
-        #             "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
-        #         )
-        #     daemons += [_get_daemon("metrics")]
+        if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
+            if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
+                # The metrics indexer produces directly to kafka, so it makes
+                # no sense to run it with SnubaEventStream.
+                raise click.ClickException(
+                    "`SENTRY_USE_METRICS_DEV` can only be used when "
+                    "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
+                )
+            daemons += [_get_daemon("metrics")]
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
