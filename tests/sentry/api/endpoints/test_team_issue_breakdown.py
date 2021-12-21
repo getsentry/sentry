@@ -89,6 +89,17 @@ class TeamIssueBreakdownTest(APITestCase):
         compare_response(statuses, response.data[project2.id][yesterday])
         compare_response(statuses, response.data[project2.id][two_days_ago])
 
+        statuses = ["resolved", "new"]
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, statsPeriod="7d", statuses=statuses
+        )
+        compare_response(statuses, response.data[project1.id][today], new=1, total=1)
+        compare_response(statuses, response.data[project1.id][yesterday])
+        compare_response(statuses, response.data[project1.id][two_days_ago], resolved=1, total=1)
+        compare_response(statuses, response.data[project2.id][today], new=1, resolved=2, total=3)
+        compare_response(statuses, response.data[project2.id][yesterday])
+        compare_response(statuses, response.data[project2.id][two_days_ago])
+
     def test_old_format(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")

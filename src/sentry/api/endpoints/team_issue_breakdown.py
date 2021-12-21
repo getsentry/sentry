@@ -43,6 +43,14 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
             new_format = False
 
         new_issues = []
+
+        base_day_format = {"total": 0}
+        if new_format:
+            for status in statuses:
+                base_day_format[status_to_string_lookup[status]] = 0
+        else:
+            base_day_format["reviewed"] = 0
+
         if GroupHistoryStatus.NEW in statuses:
             statuses.remove(GroupHistoryStatus.NEW)
             new_issues = list(
@@ -69,13 +77,6 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
             .values("project", "bucket", "status")
             .annotate(count=Count("id"))
         )
-
-        base_day_format = {"total": 0}
-        if new_format:
-            for status in statuses:
-                base_day_format[status_to_string_lookup[status]] = 0
-        else:
-            base_day_format["reviewed"] = 0
 
         current_day, date_series_dict = start, {}
         while current_day < end:
