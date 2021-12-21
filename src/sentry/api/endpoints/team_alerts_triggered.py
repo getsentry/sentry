@@ -69,12 +69,13 @@ class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):  # type
 
 
 class TriggeredAlertRuleSerializer(AlertRuleSerializer):
-    WEEKS_TO_FETCH = 8
+    def __init__(self, start, end):
+        super().__init__()
+        self.start = start
+        self.end = end
 
     def get_attrs(self, item_list, user, **kwargs):
         result = super().get_attrs(item_list, user, **kwargs)
-        end = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        start = end - timedelta(days=7 * self.WEEKS_TO_FETCH)
 
         qs = (
             AlertRule.objects.filter(
@@ -89,8 +90,8 @@ class TriggeredAlertRuleSerializer(AlertRuleSerializer):
                         ],
                     )
                 ),
-                incident__date_added__gte=start,
-                incident__date_added__lt=end,
+                incident__date_added__gte=self.start,
+                incident__date_added__lt=self.end,
                 id__in=[item.id for item in item_list],
             )
             .values("id")
@@ -140,11 +141,15 @@ class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):  # type:
             owner__in=owner_ids,
         ).annotate(count=Count("id"))
 
+        stats_start, stats_end = get_date_range_from_params(request.GET)
+
         return self.paginate(
             default_per_page=10,
             request=request,
             queryset=qs,
             order_by=("-count", "name"),
-            on_results=lambda x: serialize(x, request.user, TriggeredAlertRuleSerializer()),
+            on_results=lambda x: serialize(
+                x, request.user, TriggeredAlertRuleSerializer(stats_start, stats_end)
+            ),
             paginator_cls=OffsetPaginator,
         )
