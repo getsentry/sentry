@@ -29,7 +29,7 @@ class BaseQuerySubscriptionTest:
 
     @fixture
     def valid_wrapper(self):
-        return {"version": 2, "payload": self.valid_payload}
+        return {"version": 3, "payload": self.valid_payload}
 
     @fixture
     def valid_payload(self):
@@ -42,6 +42,16 @@ class BaseQuerySubscriptionTest:
                         tags[3] WHERE org_id = 1 AND project_id IN tuple(1) AND metric_id = 16
                         AND tags[3] IN tuple(13, 4)""",
             },
+            "entity": "metrics_counters",
+            "timestamp": "2020-01-01T01:23:45.1234",
+        }
+
+    @fixture
+    def old_payload(self):
+        return {
+            "subscription_id": "1234",
+            "result": {"data": [{"hello": 50}]},
+            "request": {"some": "data"},
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
@@ -146,12 +156,15 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
         assert str(cm.exception) == "Version specified in wrapper has no schema"
 
     def test_valid(self):
-        self.run_test({"version": 2, "payload": self.valid_payload})
+        self.run_test({"version": 3, "payload": self.valid_payload})
 
     def test_valid_nan(self):
         payload = deepcopy(self.valid_payload)
         payload["result"]["data"][0]["hello"] = float("nan")
-        self.run_test({"version": 2, "payload": payload})
+        self.run_test({"version": 3, "payload": payload})
+
+    def test_old_version(self):
+        self.run_test({"version": 2, "payload": self.old_payload})
 
     def test_invalid_wrapper(self):
         self.run_invalid_schema_test({})
