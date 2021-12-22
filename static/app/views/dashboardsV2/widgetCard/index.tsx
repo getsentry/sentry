@@ -26,7 +26,7 @@ import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {DRAG_HANDLE_CLASS} from '../gridLayout/dashboard';
+import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {Widget, WidgetType} from '../types';
 import {ISSUE_FIELDS} from '../widget/issueWidget/fields';
 
