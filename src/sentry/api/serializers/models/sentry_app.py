@@ -7,6 +7,7 @@ from sentry.constants import SentryAppStatus
 from sentry.models import IntegrationFeature, SentryApp
 from sentry.models.integrationfeature import IntegrationTypes
 from sentry.models.sentryapp import MASKED_VALUE
+from sentry.models.sentryappavatar import SentryAppAvatar
 from sentry.models.user import User
 from sentry.utils.compat import map
 
@@ -14,11 +15,20 @@ from sentry.utils.compat import map
 @register(SentryApp)
 class SentryAppSerializer(Serializer):
     def get_attrs(self, item_list: List[SentryApp], user: User, **kwargs: Any):
-        features_by_sentry_app_id = IntegrationFeature.objects.get_by_targets_as_dict(
+        # Get associated IntegrationFeatures
+        app_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.SENTRY_APP
         )
+
+        # Get associated SentryAppAvatars
+        app_avatar_attrs = SentryAppAvatar.objects.get_by_apps_as_dict(sentry_apps=item_list)
+
         return {
-            item: {"features": features_by_sentry_app_id.get(item.id, set())} for item in item_list
+            item: {
+                "features": app_feature_attrs.get(item.id, set()),
+                "avatars": app_avatar_attrs.get(item.id, set()),
+            }
+            for item in item_list
         }
 
     def serialize(self, obj, attrs, user, access):
@@ -64,6 +74,6 @@ class SentryAppSerializer(Serializer):
                 }
             )
 
-        data.update({"avatars": [serialize(avatar) for avatar in obj.avatar.all()]})
+        data.update({"avatars": serialize(attrs.get("avatars"), user)})
 
         return data

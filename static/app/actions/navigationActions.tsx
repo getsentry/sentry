@@ -1,3 +1,5 @@
 import Reflux from 'reflux';
 
-export default Reflux.createActions(['setLastRoute']);
+const NavigationActions = Reflux.createActions(['setLastRoute']);
+
+export default NavigationActions;
