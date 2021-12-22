@@ -28,7 +28,7 @@ import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
 
 import ContextMenu from '../contextMenu';
-import {DRAG_HANDLE_CLASS} from '../gridLayout/dashboard';
+import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {Widget} from '../types';
 
 import WidgetCardChart from './chart';

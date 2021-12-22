@@ -32,7 +32,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widget/issueWidget/fields';
 
 import ContextMenu from '../contextMenu';
-import {DRAG_HANDLE_CLASS} from '../gridLayout/dashboard';
+import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {Widget} from '../types';
 
 import IssueWidgetQueries from './issueWidgetQueries';
