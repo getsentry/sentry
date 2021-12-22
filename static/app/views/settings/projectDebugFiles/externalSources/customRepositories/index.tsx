@@ -292,8 +292,6 @@ function CustomRepositories({
 
     const hasFeature = hasSymbolSourcesFeature && hasCustomSymbolSourcesFeature;
 
-    console.log({hasSymbolSourcesFeature});
-
     return (
       <HookedCustomSymbolSources
         disabled={hasCustomSymbolSourcesFeature}
