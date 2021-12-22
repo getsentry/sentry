@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'sentry/components/acl/access';
 import ActionButton from 'sentry/components/actions/button';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import Button from 'sentry/components/button';
@@ -25,6 +24,8 @@ type Props = {
   onEdit: () => void;
   onDelete: () => void;
   showDetails: boolean;
+  hasFeature: boolean;
+  hasAccess: boolean;
 };
 
 function Actions({
@@ -36,6 +37,8 @@ function Actions({
   onEdit,
   onDelete,
   showDetails,
+  hasFeature,
+  hasAccess,
 }: Props) {
   function renderConfirmDelete(element: React.ReactElement) {
     return (
@@ -93,70 +96,76 @@ function Actions({
           {t('Details')}
         </StyledDropdownButton>
       )}
-      <Access access={['project:write']}>
-        {({hasAccess}) => (
-          <Fragment>
-            <ButtonTooltip
-              title={t(
-                'You do not have permission to edit custom repository configurations.'
-              )}
-              disabled={hasAccess}
-            >
-              <ActionBtn
-                disabled={!hasAccess || isDetailsDisabled}
-                onClick={onEdit}
-                size="small"
-              >
-                {t('Configure')}
-              </ActionBtn>
-            </ButtonTooltip>
 
-            {!hasAccess || isDetailsDisabled ? (
-              <ButtonTooltip
-                title={t(
-                  'You do not have permission to delete custom repository configurations.'
-                )}
-                disabled={hasAccess}
-              >
-                <ActionBtn size="small" disabled>
-                  {t('Delete')}
-                </ActionBtn>
-              </ButtonTooltip>
-            ) : (
-              renderConfirmDelete(<ActionBtn size="small">{t('Delete')}</ActionBtn>)
-            )}
-            <DropDownWrapper>
-              <DropdownLink
-                caret={false}
-                customTitle={
-                  <StyledActionButton
-                    label={t('Actions')}
-                    disabled={!hasAccess || isDetailsDisabled}
-                    title={
-                      !hasAccess
-                        ? t(
-                            'You do not have permission to edit and delete custom repository configurations.'
-                          )
-                        : undefined
-                    }
-                    icon={<IconEllipsis />}
-                  />
-                }
-                anchorRight
-              >
-                <MenuItemActionLink title={t('Configure')} onClick={onEdit}>
-                  {t('Configure')}
-                </MenuItemActionLink>
-                {renderConfirmDelete(
-                  <MenuItemActionLink title={t('Delete')}>
-                    {t('Delete')}
-                  </MenuItemActionLink>
-                )}
-              </DropdownLink>
-            </DropDownWrapper>
-          </Fragment>
-        )}
-      </Access>
+      <ButtonTooltip
+        title={
+          !hasFeature
+            ? undefined
+            : !hasAccess
+            ? t('You do not have permission to edit custom repositories configurations.')
+            : undefined
+        }
+        disabled={hasAccess || hasFeature}
+      >
+        <ActionBtn
+          disabled={!hasAccess || isDetailsDisabled || hasFeature}
+          onClick={onEdit}
+          size="small"
+        >
+          {t('Configure')}
+        </ActionBtn>
+      </ButtonTooltip>
+
+      {!hasAccess || isDetailsDisabled || hasFeature ? (
+        <ButtonTooltip
+          title={
+            !hasFeature
+              ? undefined
+              : !hasAccess
+              ? t(
+                  'You do not have permission to delete custom repositories configurations.'
+                )
+              : undefined
+          }
+          disabled={hasAccess || isDetailsDisabled || hasFeature}
+        >
+          <ActionBtn size="small" disabled>
+            {t('Delete')}
+          </ActionBtn>
+        </ButtonTooltip>
+      ) : (
+        renderConfirmDelete(<ActionBtn size="small">{t('Delete')}</ActionBtn>)
+      )}
+      <DropDownWrapper>
+        <DropdownLink
+          caret={false}
+          disabled={!hasAccess || isDetailsDisabled || hasFeature}
+          customTitle={
+            <StyledActionButton
+              label={t('Actions')}
+              disabled={!hasAccess || isDetailsDisabled || hasFeature}
+              title={
+                !hasFeature
+                  ? undefined
+                  : !hasAccess
+                  ? t(
+                      'You do not have permission to edit and delete custom repositories configurations.'
+                    )
+                  : undefined
+              }
+              icon={<IconEllipsis />}
+            />
+          }
+          anchorRight
+        >
+          <MenuItemActionLink title={t('Configure')} onClick={onEdit}>
+            {t('Configure')}
+          </MenuItemActionLink>
+          {renderConfirmDelete(
+            <MenuItemActionLink title={t('Delete')}>{t('Delete')}</MenuItemActionLink>
+          )}
+        </DropdownLink>
+      </DropDownWrapper>
     </StyledButtonBar>
   );
 }

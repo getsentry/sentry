@@ -920,7 +920,7 @@ SENTRY_FEATURES = {
     "organizations:filters-and-sampling": False,
     # Enable Dynamic Sampling errors in the org settings
     "organizations:filters-and-sampling-error-rules": False,
-    # Allow organizations to configure built-in symbol sources.
+    # Allow organizations to configure external symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
