@@ -5,10 +5,9 @@ import styled from '@emotion/styled';
 import {Organization} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
-import IssueWidgetCard from './issueWidgetCard';
-import {Widget, WidgetType} from './types';
-import DiscoverWidgetCard from './widgetCard';
+import {Widget} from './types';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
 type Props = {
@@ -60,9 +59,7 @@ function SortableWidget(props: Props) {
     };
   }, [currentWidgetDragging]);
 
-  let widgetProps:
-    | ComponentProps<typeof IssueWidgetCard>
-    | ComponentProps<typeof DiscoverWidgetCard> = {
+  let widgetProps: ComponentProps<typeof WidgetCard> = {
     widget,
     isEditing,
     widgetLimitReached,
@@ -74,9 +71,6 @@ function SortableWidget(props: Props) {
     currentWidgetDragging,
     showContextMenu: true,
   };
-
-  const WidgetCard =
-    widget.widgetType === WidgetType.ISSUE ? IssueWidgetCard : DiscoverWidgetCard;
 
   if (organization.features.includes('dashboard-grid-layout')) {
     widgetProps = {

@@ -31,7 +31,8 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
-import {Widget} from './types';
+import {Widget} from '../types';
+
 import WidgetQueries from './widgetQueries';
 
 type TableResultProps = Pick<
