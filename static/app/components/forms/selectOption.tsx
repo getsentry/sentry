@@ -6,7 +6,7 @@ import space from 'sentry/styles/space';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
-const Option = (props: Props) => {
+function Option(props: Props) {
   return (
     <Wrap>
       <selectComponents.Option {...props}>
