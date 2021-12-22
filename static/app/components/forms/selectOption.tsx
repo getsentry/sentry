@@ -40,7 +40,7 @@ function Option(props: Props) {
       </selectComponents.Option>
     </Wrap>
   );
-};
+}
 
 export default Option;
 
