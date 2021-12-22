@@ -30,8 +30,8 @@ import {DRAG_HANDLE_CLASS} from '../gridLayout/dashboard';
 import {Widget, WidgetType} from '../types';
 import {ISSUE_FIELDS} from '../widget/issueWidget/fields';
 
+import WidgetCardChart from './chart';
 import IssueWidgetQueries from './issueWidgetQueries';
-import WidgetCardChart from './widgetCardChart';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 import WidgetQueries from './widgetQueries';
 
