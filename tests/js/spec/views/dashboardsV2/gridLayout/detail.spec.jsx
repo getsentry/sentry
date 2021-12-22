@@ -1,5 +1,6 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -122,7 +123,7 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets;
+    let wrapper, initialData, widgets, mockVisit;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -158,7 +159,7 @@ describe('Dashboards > Detail', function () {
           }
         ),
       ];
-      MockApiClient.addMockResponse({
+      mockVisit = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
         method: 'POST',
         body: [],
