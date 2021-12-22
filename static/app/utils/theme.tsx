@@ -10,19 +10,19 @@ import {DataCategory} from 'sentry/types';
  * anywhere else! Instead, use the theme prop or import useTheme.
  */
 export const lightColors = {
-  black: '#1D1127',
-  white: '#FFFFFF',
+  white: '#1D1127',
+  black: '#FFFFFF',
 
   surface100: '#FAF9FB',
   surface200: '#FFFFFF',
   surface300: '#FFFFFF',
   surface400: '#F5F3F7',
 
-  gray500: '#2B2233',
-  gray400: '#4D4158',
+  gray100: '#2B2233',
+  gray200: '#4D4158',
   gray300: '#80708F',
-  gray200: '#DBD6E1',
-  gray100: '#EBE6EF',
+  gray400: '#DBD6E1',
+  gray500: '#EBE6EF',
 
   purple400: '#584AC0',
   purple300: '#6C5FC7',
