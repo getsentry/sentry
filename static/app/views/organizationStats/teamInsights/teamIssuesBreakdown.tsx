@@ -179,7 +179,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
             return (
               <Fragment key={projectId}>
                 <ProjectBadgeContainer>
-                  <ProjectBadge avatarSize={18} project={project} />
+                  {project && <ProjectBadge avatarSize={18} project={project} />}
                 </ProjectBadgeContainer>
                 {statuses.map(action => (
                   <AlignRight key={action}>{projectTotals[projectId][action]}</AlignRight>
