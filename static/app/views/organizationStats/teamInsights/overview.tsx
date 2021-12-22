@@ -27,8 +27,8 @@ import Header from '../header';
 
 import DescriptionCard from './descriptionCard';
 import TeamAlertsTriggered from './teamAlertsTriggered';
-import TeamIssuesActions from './teamIssuesActions';
 import TeamIssuesAge from './teamIssuesAge';
+import TeamIssuesBreakdown from './teamIssuesBreakdown';
 import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
 import TeamReleases from './teamReleases';
@@ -314,7 +314,7 @@ function TeamInsightsOverview({location, router}: Props) {
                   'The new, regressed, and unignored issues that were assigned to your team.'
                 )}
               >
-                <TeamIssuesActions
+                <TeamIssuesBreakdown
                   organization={organization}
                   projects={projects}
                   teamSlug={currentTeam!.slug}
@@ -322,7 +322,7 @@ function TeamInsightsOverview({location, router}: Props) {
                   start={start?.toString()}
                   end={end?.toString()}
                   location={location}
-                  actions={['new', 'regressed', 'unignored']}
+                  statuses={['new', 'regressed', 'unignored']}
                 />
               </DescriptionCard>
             )}
@@ -333,7 +333,7 @@ function TeamInsightsOverview({location, router}: Props) {
                   'How many new and returning issues were reviewed by your team each week. Reviewing an issue includes marking as reviewed, resolving, assigning to another team, or deleting.'
                 )}
               >
-                <TeamIssuesActions
+                <TeamIssuesBreakdown
                   organization={organization}
                   projects={projects}
                   teamSlug={currentTeam!.slug}
@@ -341,7 +341,7 @@ function TeamInsightsOverview({location, router}: Props) {
                   start={start?.toString()}
                   end={end?.toString()}
                   location={location}
-                  actions={['resolved', 'ignored', 'deleted']}
+                  statuses={['resolved', 'ignored', 'deleted']}
                 />
               </DescriptionCard>
             )}
