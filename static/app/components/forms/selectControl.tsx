@@ -348,7 +348,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       showDividers={props.showDividers}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus === undefined ? true : props.openMenuOnFocus}
-      blurInputOnSelect={!(props.multiple || props.multi)}
+      blurInputOnSelect={!props.multiple && !props.multi}
       closeMenuOnSelect={!(props.multiple || props.multi)}
       hideSelectedOptions={false}
       {...rest}
