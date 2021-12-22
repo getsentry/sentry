@@ -275,16 +275,16 @@ class DashboardDetail extends Component<Props, State> {
 
   handleAddLibraryWidgets = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
-    const {dashboardState} = this.state;
-    const modifiedDashboard = {
-      ...cloneDashboard(dashboard),
+    const {dashboardState, modifiedDashboard} = this.state;
+    const newModifiedDashboard = {
+      ...cloneDashboard(modifiedDashboard || dashboard),
       widgets: widgets.map(assignTempId),
     };
-    this.setState({modifiedDashboard});
+    this.setState({modifiedDashboard: newModifiedDashboard});
     if ([DashboardState.CREATE, DashboardState.EDIT].includes(dashboardState)) {
       return;
     }
-    updateDashboard(api, organization.slug, modifiedDashboard).then(
+    updateDashboard(api, organization.slug, newModifiedDashboard).then(
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
