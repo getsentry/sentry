@@ -25,13 +25,9 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard, {
-  assignTempId,
-  constructGridItemKey,
-} from './gridLayout/dashboard';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
-import DnDKitDashboard from './dashboard';
+import Dashboard, {assignTempId, constructGridItemKey} from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import DashboardTitle from './title';
 import {
@@ -498,19 +494,6 @@ class DashboardDetail extends Component<Props, State> {
     const {layout, modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
-    const dashboardProps = {
-      paramDashboardId: dashboardId,
-      dashboard: modifiedDashboard ?? dashboard,
-      organization,
-      isEditing: this.isEditing,
-      widgetLimitReached: this.widgetLimitReached,
-      onUpdate: this.onUpdateWidget,
-      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
-      handleAddLibraryWidgets: this.handleAddLibraryWidgets,
-      router,
-      location,
-    };
-
     return (
       <GlobalSelectionHeader
         skipLoadLastUsed={organization.features.includes('global-views')}
@@ -544,15 +527,20 @@ class DashboardDetail extends Component<Props, State> {
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
-            {organization.features.includes('dashboard-grid-layout') ? (
-              <GridLayoutDashboard
-                {...dashboardProps}
-                layout={layout}
-                onLayoutChange={this.onLayoutChange}
-              />
-            ) : (
-              <DnDKitDashboard {...dashboardProps} />
-            )}
+            <Dashboard
+              paramDashboardId={dashboardId}
+              dashboard={modifiedDashboard ?? dashboard}
+              organization={organization}
+              isEditing={this.isEditing}
+              widgetLimitReached={this.widgetLimitReached}
+              onUpdate={this.onUpdateWidget}
+              onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+              handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+              router={router}
+              location={location}
+              layout={layout}
+              onLayoutChange={this.onLayoutChange}
+            />
           </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
@@ -564,20 +552,6 @@ class DashboardDetail extends Component<Props, State> {
       this.props;
     const {layout, modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
-
-    const dashboardProps = {
-      paramDashboardId: dashboardId,
-      dashboard: modifiedDashboard ?? dashboard,
-      organization,
-      isEditing: this.isEditing,
-      widgetLimitReached: this.widgetLimitReached,
-      onUpdate: this.onUpdateWidget,
-      handleAddLibraryWidgets: this.handleAddLibraryWidgets,
-      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
-      router,
-      location,
-      newWidget,
-    };
 
     return (
       <GlobalSelectionHeader
@@ -636,15 +610,21 @@ class DashboardDetail extends Component<Props, State> {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                {organization.features.includes('dashboard-grid-layout') ? (
-                  <GridLayoutDashboard
-                    {...dashboardProps}
-                    layout={layout}
-                    onLayoutChange={this.onLayoutChange}
-                  />
-                ) : (
-                  <DnDKitDashboard {...dashboardProps} />
-                )}
+                <Dashboard
+                  paramDashboardId={dashboardId}
+                  dashboard={modifiedDashboard ?? dashboard}
+                  organization={organization}
+                  isEditing={this.isEditing}
+                  widgetLimitReached={this.widgetLimitReached}
+                  onUpdate={this.onUpdateWidget}
+                  handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+                  onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+                  router={router}
+                  location={location}
+                  newWidget={newWidget}
+                  layout={layout}
+                  onLayoutChange={this.onLayoutChange}
+                />
               </Layout.Main>
             </Layout.Body>
           </NoProjectMessage>
