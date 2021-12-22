@@ -90,10 +90,7 @@ function BuiltInRepositories({
         {isLoading ? (
           <LoadingIndicator />
         ) : (
-          <Feature
-            features={['organizations:symbol-sources']}
-            organization={organization}
-          >
+          <Feature features={['symbol-sources']} organization={organization}>
             {({hasFeature, features}) => (
               <Fragment>
                 {!hasFeature && (
