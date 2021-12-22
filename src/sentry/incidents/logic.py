@@ -410,10 +410,8 @@ def get_incident_aggregates(
         )
         raise e
 
-    aggregated_result = {
-        "data": entity_subscription.aggregate_query_results(results["data"], alias="count")
-    }
-    return aggregated_result["data"][0]
+    aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
+    return aggregated_result[0]
 
 
 def subscribe_to_incident(incident, user):

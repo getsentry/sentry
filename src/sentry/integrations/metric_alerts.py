@@ -63,12 +63,7 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
         else:
             start, end = None, None
 
-        get_incident_args = {
-            "incident": incident,
-            "start": start,
-            "end": end,
-        }
-        metric_value = get_incident_aggregates(**get_incident_args)["count"]
+        metric_value = get_incident_aggregates(incident=incident, start=start, end=end).get("count")
     time_window = alert_rule.snuba_query.time_window // 60
 
     if agg_text.startswith("%"):

@@ -9,6 +9,7 @@ from sentry.eventstore import Filter
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models import Environment
 from sentry.release_health.metrics import (
+    MetricIndexNotFound,
     get_tag_values_list,
     metric_id,
     reverse_tag_value,
@@ -231,6 +232,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
     def aggregate_query_results(
         self, data: List[Dict[str, Any]], alias: Optional[str] = None
     ) -> List[Dict[str, Any]]:
+        assert len(data) == 1
         col_name = alias if alias else CRASH_RATE_ALERT_AGGREGATE_ALIAS
         if data[0][col_name] is not None:
             data[0][col_name] = round((1 - data[0][col_name]) * 100, 3)
@@ -330,27 +332,31 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def aggregate_query_results(
         self, data: List[Dict[str, Any]], alias: Optional[str] = None
     ) -> List[Dict[str, Any]]:
+        aggregated_results: List[Dict[str, Any]]
         value_col_name = alias if alias else "value"
+        try:
+            translated_data: Dict[str, Any] = {}
+            session_status = tag_key(self.org_id, "session.status")
+            for row in data:
+                tag_value = reverse_tag_value(self.org_id, row[session_status])
+                translated_data[tag_value] = row[value_col_name]
 
-        aggregated_data: Dict[str, Any] = {}
-        session_status = tag_key(self.org_id, "session.status")
-        for row in data:
-            tag_value = reverse_tag_value(self.org_id, row[session_status])
-            aggregated_data[tag_value] = row[value_col_name]
+            total_session_count = translated_data.get("init", 0)
+            crash_count = translated_data.get("crashed", 0)
+            if total_session_count == 0:
+                metrics.incr(
+                    "incidents.entity_subscription.metrics.aggregate_query_results.no_session_data"
+                )
+                crash_free_rate = None
+            else:
+                crash_free_rate = round((1 - crash_count / total_session_count) * 100, 3)
 
-        total_session_count = aggregated_data.get("init", 0)
-        crash_count = aggregated_data.get("crashed", 0)
-        if total_session_count == 0:
-            metrics.incr(
-                "incidents.entity_subscription.metrics.aggregate_query_results.no_session_data"
-            )
-            crash_free_rate = None
-        else:
-            crash_free_rate = round((1 - crash_count / total_session_count) * 100, 3)
+            col_name = alias if alias else CRASH_RATE_ALERT_AGGREGATE_ALIAS
 
-        col_name = alias if alias else CRASH_RATE_ALERT_AGGREGATE_ALIAS
-
-        return [{col_name: crash_free_rate}]
+            aggregated_results = [{col_name: crash_free_rate}]
+        except MetricIndexNotFound:
+            aggregated_results = [{}]
+        return aggregated_results
 
 
 class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
