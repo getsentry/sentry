@@ -31,8 +31,8 @@ import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
 import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widget/issueWidget/fields';
 
-import {DRAG_HANDLE_CLASS} from './gridLayout/dashboard';
 import ContextMenu from './contextMenu';
+import {DRAG_HANDLE_CLASS} from './dashboard';
 import IssueWidgetQueries from './issueWidgetQueries';
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
