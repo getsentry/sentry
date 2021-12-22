@@ -31,7 +31,7 @@ import ContextMenu from '../contextMenu';
 import {DRAG_HANDLE_CLASS} from '../gridLayout/dashboard';
 import {Widget} from '../types';
 
-import WidgetCardChart from './widgetCardChart';
+import WidgetCardChart from './chart';
 import WidgetQueries from './widgetQueries';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
