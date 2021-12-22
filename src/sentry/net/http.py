@@ -120,9 +120,22 @@ class BlacklistAdapter(HTTPAdapter):
         self._pool_connections = connections
         self._pool_maxsize = maxsize
         self._pool_block = block
+        # Begin custom code.
+        # We use our own SafePoolManager here as well as
+        # setting cert validation to be optional since in urllib3>=1.25,
+        # it's made required (for https connections) by default
+        # and we prefer CERT_OPTIONAL for now
+        # (InsecureRequestWarning will still be emitted),
+        # pending investigation to see if it would be ok to switch to required.
         self.poolmanager = SafePoolManager(
-            num_pools=connections, maxsize=maxsize, block=block, strict=True, **pool_kwargs
+            cert_reqs="CERT_OPTIONAL",
+            num_pools=connections,
+            maxsize=maxsize,
+            block=block,
+            strict=True,
+            **pool_kwargs,
         )
+        # End custom code.
 
 
 class TimeoutAdapter(HTTPAdapter):
