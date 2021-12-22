@@ -405,6 +405,7 @@ from .endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredIndexEndpoint,
     TeamAlertsTriggeredTotalsEndpoint,
 )
+from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
@@ -1560,6 +1561,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issue-breakdown/$",
                     TeamIssueBreakdownEndpoint.as_view(),
                     name="sentry-api-0-team-issue-breakdown",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/all-unresolved-issues/$",
+                    TeamAllUnresolvedIssuesEndpoint.as_view(),
+                    name="sentry-api-0-team-all-unresolved-issues",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",
