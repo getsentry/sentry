@@ -49,7 +49,6 @@ import {
 } from 'sentry/views/dashboardsV2/widget/eventWidget/utils';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widget/issueWidget/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
-import IssueWidgetCard from 'sentry/views/dashboardsV2/widgetCard/issueWidgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import Input from 'sentry/views/settings/components/forms/controls/input';
@@ -649,7 +648,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 error={errors?.queries?.[0]}
                 onChange={widgetQuery => this.handleQueryChange(widgetQuery, 0)}
               />
-              <IssueWidgetCard
+              <WidgetCard
                 organization={organization}
                 selection={querySelection}
                 widget={{...this.state, displayType: DisplayType.TABLE}}

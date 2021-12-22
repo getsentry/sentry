@@ -7,6 +7,7 @@ import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionH
 import {t} from 'sentry/locale';
 import {GlobalSelection, Group, OrganizationSummary} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {IssueDisplayOptions, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {Widget, WidgetQuery} from '../types';
@@ -34,9 +35,11 @@ type Props = {
   organization: OrganizationSummary;
   widget: Widget;
   selection: GlobalSelection;
-  children: (
-    props: Pick<State, 'loading' | 'tableResults' | 'errorMessage'>
-  ) => React.ReactNode;
+  children: (props: {
+    loading: boolean;
+    errorMessage: undefined | string;
+    transformedResults: TableDataRow[];
+  }) => React.ReactNode;
 };
 
 type State = {
@@ -87,6 +90,30 @@ class WidgetQueries extends React.Component<Props, State> {
       this.fetchData();
       return;
     }
+  }
+
+  transformTableResults(tableResults: Group[]): TableDataRow[] {
+    return tableResults.map(({id, shortId, title, assignedTo, ...resultProps}) => {
+      const transformedResultProps = {};
+      Object.keys(resultProps).map(key => {
+        const value = resultProps[key];
+        transformedResultProps[key] = ['number', 'string'].includes(typeof value)
+          ? value
+          : String(value);
+      });
+      const transformedTableResults = {
+        ...transformedResultProps,
+        id,
+        'issue.id': id,
+        issue: shortId,
+        title,
+        'assignee.type': assignedTo?.type,
+        'assignee.name': assignedTo?.name ?? '',
+        'assignee.id': assignedTo?.id,
+        'assignee.email': assignedTo?.email ?? '',
+      };
+      return transformedTableResults;
+    });
   }
 
   fetchEventData() {
@@ -146,8 +173,9 @@ class WidgetQueries extends React.Component<Props, State> {
   render() {
     const {children} = this.props;
     const {loading, tableResults, errorMessage} = this.state;
+    const transformedResults = this.transformTableResults(tableResults);
 
-    return children({loading, tableResults, errorMessage});
+    return children({loading, transformedResults, errorMessage});
   }
 }
 

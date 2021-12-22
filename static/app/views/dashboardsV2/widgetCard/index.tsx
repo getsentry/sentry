@@ -1,40 +1,45 @@
 import * as React from 'react';
 import LazyLoad from 'react-lazyload';
-import {Link, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import MenuItem from 'sentry/components/menuItem';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
+import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {GlobalSelection, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
-import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
-import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
 
-import ContextMenu from '../contextMenu';
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {Widget} from '../types';
+import {Widget, WidgetType} from '../types';
+import {ISSUE_FIELDS} from '../widget/issueWidget/fields';
 
 import WidgetCardChart from './chart';
+import IssueWidgetQueries from './issueWidgetQueries';
+import WidgetCardContextMenu from './widgetCardContextMenu';
 import WidgetQueries from './widgetQueries';
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
+
+type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'> & {
+  transformedResults: TableDataRow[];
+};
 
 type Props = WithRouterProps & {
   api: Client;
@@ -99,20 +104,10 @@ class WidgetCard extends React.Component<Props> {
               />
             </IconClick>
           )}
-          <IconClick
-            data-test-id="widget-edit"
-            onClick={() => {
-              onEdit();
-            }}
-          >
+          <IconClick data-test-id="widget-edit" onClick={onEdit}>
             <IconEdit color="textColor" />
           </IconClick>
-          <IconClick
-            data-test-id="widget-delete"
-            onClick={() => {
-              onDelete();
-            }}
-          >
+          <IconClick data-test-id="widget-delete" onClick={onDelete}>
             <IconDelete color="textColor" />
           </IconClick>
         </IconContainer>
@@ -130,102 +125,75 @@ class WidgetCard extends React.Component<Props> {
       onDuplicate,
     } = this.props;
 
-    if (!showContextMenu) {
-      return null;
-    }
-
-    const menuOptions: React.ReactNode[] = [];
-
-    if (
-      (widget.displayType === 'table' || this.isAllowWidgetsToDiscover()) &&
-      organization.features.includes('discover-basic')
-    ) {
-      // Open Widget in Discover
-      if (widget.queries.length) {
-        const eventView = eventViewFromWidget(
-          widget.title,
-          widget.queries[0],
-          selection,
-          widget.displayType
-        );
-        const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
-        if (this.isAllowWidgetsToDiscover()) {
-          // Pull a max of 3 valid Y-Axis from the widget
-          const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-          discoverLocation.query.yAxis = widget.queries[0].fields
-            .filter(field => yAxisOptions.includes(field))
-            .slice(0, 3);
-          switch (widget.displayType) {
-            case DisplayType.WORLD_MAP:
-              discoverLocation.query.display = DisplayModes.WORLDMAP;
-              break;
-            case DisplayType.BAR:
-              discoverLocation.query.display = DisplayModes.BAR;
-              break;
-            default:
-              break;
-          }
-        }
-        if (widget.queries.length === 1) {
-          menuOptions.push(
-            <Link
-              key="open-discover-link"
-              to={discoverLocation}
-              onClick={() => {
-                trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
-                  organization,
-                  widget_type: widget.displayType,
-                });
-              }}
-            >
-              <StyledMenuItem key="open-discover">{t('Open in Discover')}</StyledMenuItem>
-            </Link>
-          );
-        } else {
-          menuOptions.push(
-            <StyledMenuItem
-              key="open-discover"
-              onClick={event => {
-                event.preventDefault();
-                trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
-                  organization,
-                  widget_type: widget.displayType,
-                });
-                openDashboardWidgetQuerySelectorModal({organization, widget});
-              }}
-            >
-              {t('Open in Discover')}
-            </StyledMenuItem>
-          );
-        }
-      }
-    }
-
-    if (organization.features.includes('dashboards-edit')) {
-      menuOptions.push(
-        <StyledMenuItem
-          key="duplicate-widget"
-          data-test-id="duplicate-widget"
-          onSelect={onDuplicate}
-          disabled={widgetLimitReached}
-        >
-          {t('Duplicate Widget')}
-        </StyledMenuItem>
-      );
-    }
-
-    if (!menuOptions.length) {
-      return null;
-    }
-
     return (
-      <ContextWrapper>
-        <ContextMenu>{menuOptions}</ContextMenu>
-      </ContextWrapper>
+      <WidgetCardContextMenu
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        showContextMenu={showContextMenu}
+        widgetLimitReached={widgetLimitReached}
+        onDuplicate={onDuplicate}
+      />
     );
   }
 
-  renderChart() {
+  tableResultComponent({
+    loading,
+    errorMessage,
+    transformedResults,
+  }: TableResultProps): React.ReactNode {
+    const {location, organization, widget} = this.props;
+    if (errorMessage) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
+    if (loading) {
+      // Align height to other charts.
+      return <LoadingPlaceholder height="200px" />;
+    }
+    return (
+      <StyledSimpleTableChart
+        location={location}
+        title=""
+        fields={widget.queries[0].fields}
+        loading={loading}
+        metadata={ISSUE_FIELDS}
+        data={transformedResults}
+        organization={organization}
+      />
+    );
+  }
+
+  renderIssueChart() {
+    const {widget, api, organization, selection, renderErrorMessage} = this.props;
+    return (
+      <IssueWidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+      >
+        {({transformedResults, errorMessage, loading}) => {
+          return (
+            <React.Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <LoadingScreen loading={loading} />
+              {this.tableResultComponent({transformedResults, loading, errorMessage})}
+              {this.renderToolbar()}
+            </React.Fragment>
+          );
+        }}
+      </IssueWidgetQueries>
+    );
+  }
+
+  renderDiscoverChart() {
     const {widget, api, organization, selection, renderErrorMessage, location, router} =
       this.props;
     return (
@@ -258,6 +226,15 @@ class WidgetCard extends React.Component<Props> {
         }}
       </WidgetQueries>
     );
+  }
+
+  renderChart() {
+    const {widget} = this.props;
+
+    if (widget.widgetType === WidgetType.ISSUE) {
+      return this.renderIssueChart();
+    }
+    return this.renderDiscoverChart();
   }
 
   render() {
@@ -359,14 +336,33 @@ const WidgetHeader = styled('div')`
   justify-content: space-between;
 `;
 
-const ContextWrapper = styled('div')`
-  margin-left: ${space(1)};
+const StyledTransparentLoadingMask = styled(props => (
+  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
+))`
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
-const StyledMenuItem = styled(MenuItem)`
-  white-space: nowrap;
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
+const LoadingScreen = ({loading}: {loading: boolean}) => {
+  if (!loading) {
+    return null;
   }
+  return (
+    <StyledTransparentLoadingMask visible={loading}>
+      <LoadingIndicator mini />
+    </StyledTransparentLoadingMask>
+  );
+};
+
+const LoadingPlaceholder = styled(Placeholder)`
+  background-color: ${p => p.theme.surface200};
+`;
+
+const StyledSimpleTableChart = styled(SimpleTableChart)`
+  margin-top: ${space(1.5)};
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSizeMedium};
+  box-shadow: none;
 `;

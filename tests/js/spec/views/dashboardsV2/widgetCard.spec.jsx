@@ -6,6 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import {WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 function openContextMenu(card) {
@@ -30,6 +31,7 @@ describe('Dashboards > WidgetCard', function () {
     title: 'Errors',
     interval: '5m',
     displayType: 'line',
+    widgetType: WidgetType.DISCOVER,
     queries: [
       {
         conditions: 'event.type:error',
