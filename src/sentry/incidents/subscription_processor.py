@@ -293,6 +293,8 @@ class SubscriptionProcessor:
         session_status = tag_key(self.subscription.project.organization.id, "session.status")
         data = {}
 
+        # ToDo(ahmed): Refactor this logic by calling the aggregate_query_results on the
+        #  BaseMetricsEntitySubscription cls
         for row in subscription_update["values"]["data"]:
             tag_value = reverse_tag_value(
                 self.subscription.project.organization.id, row[session_status]
