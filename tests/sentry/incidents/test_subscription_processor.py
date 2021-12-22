@@ -40,6 +40,7 @@ from sentry.incidents.subscription_processor import (
 )
 from sentry.models import Integration
 from sentry.release_health.metrics import tag_key, tag_value
+from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -1697,6 +1698,29 @@ class MetricsCrashRateAlertProcessUpdateTest(
                 }
             )
         return processor
+
+    def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(self):
+        MetricsKeyIndexer.objects.all().delete()
+        rule = self.crash_rate_alert_rule
+        subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
+        processor = SubscriptionProcessor(subscription)
+        processor.process_update(
+            {
+                "subscription_id": subscription.subscription_id,
+                "values": {"data": []},
+                "timestamp": timezone.now(),
+                "interval": 1,
+                "partition": 1,
+                "offset": 1,
+            }
+        )
+        self.assert_no_active_incident(rule)
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.ignore_update.metric_index_not_found"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
 
 
 class TestBuildAlertRuleStatKeys(unittest.TestCase):
