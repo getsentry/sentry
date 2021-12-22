@@ -11,4 +11,5 @@ const GroupingActions = Reflux.createActions([
   'toggleCollapseFingerprint',
   'toggleCollapseFingerprints',
 ]);
+
 export default GroupingActions;
