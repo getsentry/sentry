@@ -288,6 +288,7 @@ class IssueListActions extends React.Component<Props, State> {
         </StyledFlex>
         {!allResultsVisible && pageSelected && (
           <SelectAllNotice>
+            <SelectAllNoticeBackground />
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
                 tct(
@@ -366,6 +367,16 @@ const SelectAllNotice = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: center;
   padding: ${space(0.5)} ${space(1.5)};
+`;
+
+const SelectAllNoticeBackground = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background: ${p => p.theme.background};
 `;
 
 const SelectAllLink = styled('a')`
