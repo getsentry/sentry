@@ -231,10 +231,10 @@ class WidgetCard extends React.Component<Props> {
   renderChart() {
     const {widget} = this.props;
 
-    if (widget.widgetType === WidgetType.DISCOVER) {
-      return this.renderDiscoverChart();
+    if (widget.widgetType === WidgetType.ISSUE) {
+      return this.renderIssueChart();
     }
-    return this.renderIssueChart();
+    return this.renderDiscoverChart();
   }
 
   render() {
