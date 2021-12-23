@@ -2,25 +2,26 @@ import {ComponentType, Fragment} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import round from 'lodash/round';
-import moment from 'moment';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart from 'sentry/components/charts/barChart';
-import MarkLine from 'sentry/components/charts/components/markLine';
-import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import PanelTable from 'sentry/components/panels/panelTable';
-import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {Color, Theme} from 'sentry/utils/theme';
 
-import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
+import {
+  barAxisLabel,
+  convertDaySeriesToWeeks,
+  convertDayValueObjectToSeries,
+  groupByTrend,
+} from './utils';
 
 type Props = AsyncComponent['props'] & {
   theme: Theme;
@@ -29,17 +30,14 @@ type Props = AsyncComponent['props'] & {
   projects: Project[];
 } & DateTimeObject;
 
-type ProjectReleaseCount = {
-  project_avgs: Record<string, number>;
-  release_counts: Record<string, number>;
-  last_week_totals: Record<string, number>;
-};
+type UnresolvedCount = {unresolved: number};
+type ProjectReleaseCount = Record<string, Record<string, UnresolvedCount>>;
 
 type State = AsyncComponent['state'] & {
   /** weekly selected date range */
-  periodReleases: ProjectReleaseCount | null;
+  periodIssues: ProjectReleaseCount | null;
   /** Locked to last 7 days */
-  weekReleases: ProjectReleaseCount | null;
+  weekIssues: ProjectReleaseCount | null;
 };
 
 class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
@@ -48,8 +46,8 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      weekReleases: null,
-      periodReleases: null,
+      weekIssues: null,
+      periodIssues: null,
     };
   }
 
@@ -60,8 +58,8 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
       [
-        'periodReleases',
-        `/teams/${organization.slug}/${teamSlug}/release-count/`,
+        'periodIssues',
+        `/teams/${organization.slug}/${teamSlug}/all-unresolved-issues/`,
         {
           query: {
             ...getParams(datetime),
@@ -69,8 +67,8 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
         },
       ],
       [
-        'weekReleases',
-        `/teams/${organization.slug}/${teamSlug}/release-count/`,
+        'weekIssues',
+        `/teams/${organization.slug}/${teamSlug}/all-unresolved-issues/`,
         {
           query: {
             statsPeriod: '7d',
@@ -96,109 +94,72 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
     }
   }
 
-  getReleaseCount(projectId: number, dataset: 'week' | 'period'): number | null {
-    const {periodReleases, weekReleases} = this.state;
+  getReleaseCount(projectId: number, dataset: 'week' | 'period'): number {
+    const {periodIssues, weekIssues} = this.state;
 
-    const releasesPeriod =
-      dataset === 'week' ? weekReleases?.last_week_totals : periodReleases?.project_avgs;
+    const period = dataset === 'week' ? weekIssues : periodIssues;
 
-    const count = releasesPeriod?.[projectId]
-      ? Math.ceil(releasesPeriod?.[projectId])
-      : 0;
+    const entries = Object.values(period?.[projectId] ?? {});
+    const total = entries.reduce((acc, current) => acc + current.unresolved, 0);
 
-    return count;
-  }
-
-  getTrend(projectId: number): number | null {
-    const periodCount = this.getReleaseCount(projectId, 'period');
-    const weekCount = this.getReleaseCount(projectId, 'week');
-
-    if (periodCount === null || weekCount === null) {
-      return null;
-    }
-
-    return weekCount - periodCount;
+    return Math.round(total / entries.length);
   }
 
   renderLoading() {
     return this.renderBody();
   }
 
-  renderReleaseCount(projectId: string, dataset: 'week' | 'period') {
-    const {loading} = this.state;
-
-    if (loading) {
-      return (
-        <div>
-          <Placeholder width="80px" height="25px" />
-        </div>
-      );
-    }
-
-    const count = this.getReleaseCount(Number(projectId), dataset);
-
-    if (count === null) {
-      return '\u2014';
-    }
-
-    return count;
-  }
-
-  renderTrend(projectId: string) {
-    const {loading} = this.state;
-
-    if (loading) {
-      return (
-        <div>
-          <Placeholder width="80px" height="25px" />
-        </div>
-      );
-    }
-
-    const trend = this.getTrend(Number(projectId));
-
-    if (trend === null) {
-      return '\u2014';
-    }
-
-    return (
-      <SubText color={trend >= 0 ? 'green300' : 'red300'}>
-        {`${round(Math.abs(trend), 3)}`}
-        <PaddedIconArrow direction={trend >= 0 ? 'up' : 'down'} size="xs" />
-      </SubText>
-    );
-  }
-
   renderBody() {
-    const {projects, period, theme, organization} = this.props;
-    const {periodReleases} = this.state;
+    const {projects, period, organization} = this.props;
+    const periodIssues = this.state.periodIssues ?? {};
+
+    const projectTotals: Record<
+      string,
+      {projectId: string; periodAvg: number; weekAvg: number; percentChange: number}
+    > = {};
+    for (const projectId of Object.keys(periodIssues)) {
+      const periodAvg = this.getReleaseCount(Number(projectId), 'period');
+      const weekAvg = this.getReleaseCount(Number(projectId), 'week');
+      const percentChange = Math.abs((weekAvg - periodAvg) / periodAvg);
+      projectTotals[projectId] = {
+        projectId,
+        periodAvg,
+        weekAvg,
+        percentChange: Number.isNaN(percentChange) ? 0 : percentChange,
+      };
+    }
 
     const sortedProjects = projects
-      .map(project => ({project, trend: this.getTrend(Number(project.id)) ?? 0}))
+      .map(project => ({project, trend: projectTotals[project.id]?.percentChange ?? 0}))
       .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
 
     const groupedProjects = groupByTrend(sortedProjects);
 
-    const data = Object.entries(periodReleases?.release_counts ?? {}).map(
-      ([bucket, count]) => ({
-        value: Math.ceil(count),
-        name: new Date(bucket).getTime(),
-      })
+    // All data will contain all pairs of [day, unresolved_count].
+    const allData = Object.values(periodIssues).flatMap(data =>
+      Object.entries(data).map(
+        ([bucket, {unresolved}]) => [bucket, unresolved] as [string, number]
+      )
     );
-    const seriesData = convertDaySeriesToWeeks(data);
+    // Total by day for all projects
+    const totalByDay = allData.reduce((acc, [bucket, unresolved]) => {
+      if (acc[bucket] === undefined) {
+        acc[bucket] = 0;
+      }
+      acc[bucket] += unresolved;
+      return acc;
+    }, {});
 
-    const averageValues = Object.values(periodReleases?.project_avgs ?? {});
-    const projectAvgSum = averageValues.reduce(
-      (total, currentData) => total + currentData,
-      0
-    );
-    const totalPeriodAverage = Math.ceil(projectAvgSum / averageValues.length);
+    const seriesData = convertDaySeriesToWeeks(
+      convertDayValueObjectToSeries(totalByDay)
+    ).map(week => ({...week, value: Math.round(week.value / 7)}));
 
     return (
       <div>
         <ChartWrapper>
           <BarChart
             style={{height: 190}}
+            stacked
             isGroupedByDate
             useShortDate
             period="7d"
@@ -207,39 +168,11 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
             xAxis={barAxisLabel(seriesData.length)}
             series={[
               {
-                seriesName: t('This Period'),
+                seriesName: t('Unresolved Issues'),
                 silent: true,
                 data: seriesData,
-                markLine: MarkLine({
-                  silent: true,
-                  lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-                  data: [{yAxis: totalPeriodAverage}],
-                  label: {
-                    show: false,
-                  },
-                }),
               },
             ]}
-            tooltip={{
-              formatter: seriesParams => {
-                // `seriesParams` can be an array or an object :/
-                const [series] = Array.isArray(seriesParams)
-                  ? seriesParams
-                  : [seriesParams];
-
-                const dateFormat = 'MMM D';
-                const startDate = moment(series.data[0]).format(dateFormat);
-                const endDate = moment(series.data[0]).add(7, 'days').format(dateFormat);
-                return [
-                  '<div class="tooltip-series">',
-                  `<div><span class="tooltip-label">${series.marker} <strong>${series.seriesName}</strong></span> ${series.data[1]}</div>`,
-                  `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
-                  '</div>',
-                  `<div class="tooltip-date">${startDate} - ${endDate}</div>`,
-                  getTooltipArrow(),
-                ].join('');
-              },
-            }}
           />
         </ChartWrapper>
         <StyledPanelTable
@@ -253,33 +186,39 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
             <RightAligned key="diff">{t('Change')}</RightAligned>,
           ]}
         >
-          {groupedProjects.map(({project}) => (
-            <Fragment key={project.id}>
-              <ProjectBadgeContainer>
-                <ProjectBadge
-                  avatarSize={18}
-                  project={project}
-                  to={{
-                    pathname: `/organizations/${organization.slug}/releases/`,
-                    query: {project: project.id},
-                  }}
-                />
-              </ProjectBadgeContainer>
+          {groupedProjects.map(({project}) => {
+            const totals = projectTotals[project.id] ?? {};
 
-              <ScoreWrapper>{this.renderReleaseCount(project.id, 'period')}</ScoreWrapper>
-              <ScoreWrapper>
-                <Link
-                  to={{
-                    pathname: `/organizations/${organization.slug}/releases/`,
-                    query: {project: project.id, statsPeriod: '7d'},
-                  }}
-                >
-                  {this.renderReleaseCount(project.id, 'week')}
-                </Link>
-              </ScoreWrapper>
-              <ScoreWrapper>{this.renderTrend(project.id)}</ScoreWrapper>
-            </Fragment>
-          ))}
+            return (
+              <Fragment key={project.id}>
+                <ProjectBadgeContainer>
+                  <ProjectBadge
+                    avatarSize={18}
+                    project={project}
+                    to={{
+                      pathname: `/organizations/${organization.slug}/releases/`,
+                      query: {project: project.id},
+                    }}
+                  />
+                </ProjectBadgeContainer>
+
+                <ScoreWrapper>{totals.periodAvg}</ScoreWrapper>
+                <ScoreWrapper>{totals.weekAvg}</ScoreWrapper>
+                <ScoreWrapper>
+                  <SubText color={totals.percentChange >= 0 ? 'green300' : 'red300'}>
+                    {formatPercentage(
+                      Number.isNaN(totals.percentChange) ? 0 : totals.percentChange,
+                      0
+                    )}
+                    <PaddedIconArrow
+                      direction={totals.percentChange >= 0 ? 'down' : 'up'}
+                      size="xs"
+                    />
+                  </SubText>
+                </ScoreWrapper>
+              </Fragment>
+            );
+          })}
         </StyledPanelTable>
       </div>
     );
