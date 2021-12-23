@@ -25,13 +25,9 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GridLayoutDashboard, {
-  assignTempId,
-  constructGridItemKey,
-} from './gridLayout/dashboard';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
-import DnDKitDashboard from './dashboard';
+import Dashboard, {assignTempId, constructGridItemKey} from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import DashboardTitle from './title';
 import {
@@ -69,6 +65,7 @@ type State = {
   modifiedDashboard: DashboardDetails | null;
   widgetToBeUpdated?: Widget;
   layout: RGLLayout[];
+  widgetLimitReached: boolean;
 };
 
 class DashboardDetail extends Component<Props, State> {
@@ -76,6 +73,7 @@ class DashboardDetail extends Component<Props, State> {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     layout: getDashboardLayout(this.props.organization.id, this.props.dashboard.id),
+    widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
   };
 
   componentDidMount() {
@@ -174,11 +172,6 @@ class DashboardDetail extends Component<Props, State> {
     return modifiedDashboard ? modifiedDashboard.title : dashboard.title;
   }
 
-  get widgetLimitReached() {
-    const {dashboard} = this.props;
-    return dashboard.widgets.length >= MAX_WIDGETS;
-  }
-
   onEdit = () => {
     const {dashboard} = this.props;
 
@@ -275,16 +268,19 @@ class DashboardDetail extends Component<Props, State> {
 
   handleAddLibraryWidgets = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
-    const {dashboardState} = this.state;
-    const modifiedDashboard = {
-      ...cloneDashboard(dashboard),
+    const {dashboardState, modifiedDashboard} = this.state;
+    const newModifiedDashboard = {
+      ...cloneDashboard(modifiedDashboard || dashboard),
       widgets: widgets.map(assignTempId),
     };
-    this.setState({modifiedDashboard});
+    this.setState({
+      modifiedDashboard: newModifiedDashboard,
+      widgetLimitReached: widgets.length >= MAX_WIDGETS,
+    });
     if ([DashboardState.CREATE, DashboardState.EDIT].includes(dashboardState)) {
       return;
     }
-    updateDashboard(api, organization.slug, modifiedDashboard).then(
+    updateDashboard(api, organization.slug, newModifiedDashboard).then(
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
@@ -471,6 +467,7 @@ class DashboardDetail extends Component<Props, State> {
       (state: State) => ({
         ...state,
         widgetToBeUpdated: undefined,
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
         modifiedDashboard: {
           ...(state.modifiedDashboard || this.props.dashboard),
           widgets,
@@ -495,21 +492,8 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDefaultDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
-    const {layout, modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
-
-    const dashboardProps = {
-      paramDashboardId: dashboardId,
-      dashboard: modifiedDashboard ?? dashboard,
-      organization,
-      isEditing: this.isEditing,
-      widgetLimitReached: this.widgetLimitReached,
-      onUpdate: this.onUpdateWidget,
-      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
-      handleAddLibraryWidgets: this.handleAddLibraryWidgets,
-      router,
-      location,
-    };
 
     return (
       <GlobalSelectionHeader
@@ -540,19 +524,24 @@ class DashboardDetail extends Component<Props, State> {
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
                 dashboardState={dashboardState}
-                widgetLimitReached={this.widgetLimitReached}
+                widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
-            {organization.features.includes('dashboard-grid-layout') ? (
-              <GridLayoutDashboard
-                {...dashboardProps}
-                layout={layout}
-                onLayoutChange={this.onLayoutChange}
-              />
-            ) : (
-              <DnDKitDashboard {...dashboardProps} />
-            )}
+            <Dashboard
+              paramDashboardId={dashboardId}
+              dashboard={modifiedDashboard ?? dashboard}
+              organization={organization}
+              isEditing={this.isEditing}
+              widgetLimitReached={widgetLimitReached}
+              onUpdate={this.onUpdateWidget}
+              onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+              handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+              router={router}
+              location={location}
+              layout={layout}
+              onLayoutChange={this.onLayoutChange}
+            />
           </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
@@ -562,22 +551,8 @@ class DashboardDetail extends Component<Props, State> {
   renderDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location, newWidget} =
       this.props;
-    const {layout, modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
-
-    const dashboardProps = {
-      paramDashboardId: dashboardId,
-      dashboard: modifiedDashboard ?? dashboard,
-      organization,
-      isEditing: this.isEditing,
-      widgetLimitReached: this.widgetLimitReached,
-      onUpdate: this.onUpdateWidget,
-      handleAddLibraryWidgets: this.handleAddLibraryWidgets,
-      onSetWidgetToBeUpdated: this.onSetWidgetToBeUpdated,
-      router,
-      location,
-      newWidget,
-    };
 
     return (
       <GlobalSelectionHeader
@@ -630,21 +605,27 @@ class DashboardDetail extends Component<Props, State> {
                   onAddWidget={this.onAddWidget}
                   onDelete={this.onDelete(dashboard)}
                   dashboardState={dashboardState}
-                  widgetLimitReached={this.widgetLimitReached}
+                  widgetLimitReached={widgetLimitReached}
                 />
               </Layout.HeaderActions>
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                {organization.features.includes('dashboard-grid-layout') ? (
-                  <GridLayoutDashboard
-                    {...dashboardProps}
-                    layout={layout}
-                    onLayoutChange={this.onLayoutChange}
-                  />
-                ) : (
-                  <DnDKitDashboard {...dashboardProps} />
-                )}
+                <Dashboard
+                  paramDashboardId={dashboardId}
+                  dashboard={modifiedDashboard ?? dashboard}
+                  organization={organization}
+                  isEditing={this.isEditing}
+                  widgetLimitReached={widgetLimitReached}
+                  onUpdate={this.onUpdateWidget}
+                  handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+                  onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+                  router={router}
+                  location={location}
+                  newWidget={newWidget}
+                  layout={layout}
+                  onLayoutChange={this.onLayoutChange}
+                />
               </Layout.Main>
             </Layout.Body>
           </NoProjectMessage>
