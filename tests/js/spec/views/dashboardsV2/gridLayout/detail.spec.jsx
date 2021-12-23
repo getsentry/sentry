@@ -1,6 +1,3 @@
-import {browserHistory} from 'react-router';
-
-import {createListeners} from 'sentry-test/createListeners';
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
@@ -9,7 +6,6 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {constructGridItemKey} from 'sentry/views/dashboardsV2/dashboard';
-import {DashboardState} from 'sentry/views/dashboardsV2/types';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -28,8 +24,7 @@ describe('Dashboards > Detail', function () {
   const projects = [TestStubs.Project()];
 
   describe('prebuilt dashboards', function () {
-    let wrapper;
-    let initialData, mockVisit;
+    let wrapper, initialData;
 
     beforeEach(function () {
       act(() => ProjectsStore.loadInitialData(projects));
@@ -54,7 +49,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/default-overview/',
         body: TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
       });
-      mockVisit = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
         method: 'POST',
         body: [],
@@ -67,126 +62,6 @@ describe('Dashboards > Detail', function () {
       if (wrapper) {
         wrapper.unmount();
       }
-    });
-
-    it('can delete', async function () {
-      const deleteMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/default-overview/',
-        method: 'DELETE',
-      });
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
-          router={initialData.router}
-          location={location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      // Enter edit mode.
-      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
-
-      const modal = await mountGlobalModal();
-
-      // Click delete, confirm will show
-      wrapper.find('Controls Button[data-test-id="dashboard-delete"]').simulate('click');
-      await tick();
-
-      await modal.update();
-
-      // Click confirm
-      modal.find('button[aria-label="Confirm"]').simulate('click');
-
-      expect(deleteMock).toHaveBeenCalled();
-    });
-
-    it('can rename and save', async function () {
-      const fireEvent = createListeners('window');
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/default-overview/',
-        method: 'PUT',
-        body: TestStubs.Dashboard([], {id: '8', title: 'Updated prebuilt'}),
-      });
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      // Enter edit mode.
-      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
-
-      // Rename
-      const dashboardTitle = wrapper.find('DashboardTitle Label');
-      dashboardTitle.simulate('click');
-
-      wrapper.find('StyledInput').simulate('change', {
-        target: {innerText: 'Updated prebuilt', value: 'Updated prebuilt'},
-      });
-
-      act(() => {
-        // Press enter
-        fireEvent.keyDown('Enter');
-      });
-
-      wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
-      await tick();
-
-      expect(updateMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/dashboards/default-overview/',
-        expect.objectContaining({
-          data: expect.objectContaining({title: 'Updated prebuilt'}),
-        })
-      );
-      // Should redirect to the new dashboard.
-      expect(browserHistory.replace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/dashboard/8/',
-        })
-      );
-    });
-
-    it('disables buttons based on features', async function () {
-      initialData = initializeOrg({
-        organization: TestStubs.Organization({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'discover-query',
-            'dashboard-grid-layout',
-          ],
-          projects: [TestStubs.Project()],
-        }),
-      });
-
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      // Edit should be disabled
-      const editProps = wrapper
-        .find('Controls Button[data-test-id="dashboard-edit"]')
-        .props();
-      expect(editProps.disabled).toBe(true);
-      expect(mockVisit).not.toHaveBeenCalled();
     });
 
     it('assigns unique IDs to all widgets so grid keys are unique', async function () {
@@ -249,11 +124,10 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockVisit, mockPut;
+    let wrapper, initialData, widgets, mockVisit;
 
     const openLibraryModal = jest.spyOn(modals, 'openDashboardWidgetLibraryModal');
     const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
-
     beforeEach(function () {
       initialData = initializeOrg({organization});
       widgets = [
@@ -321,7 +195,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
-      mockPut = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
@@ -539,204 +413,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(false);
-    });
-
-    it('hides and shows breadcrumbs based on feature', async function () {
-      const newOrg = initializeOrg({
-        organization: TestStubs.Organization({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'discover-query',
-            'dashboard-grid-layout',
-          ],
-          projects: [TestStubs.Project()],
-        }),
-      });
-
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={newOrg.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={newOrg.router}
-          location={newOrg.router.location}
-        />,
-        newOrg.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('Breadcrumbs').exists()).toBe(false);
-
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      const breadcrumbs = wrapper.find('Breadcrumbs');
-
-      expect(breadcrumbs.exists()).toBe(true);
-      expect(breadcrumbs.find('BreadcrumbLink').find('a').text()).toEqual('Dashboards');
-      expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
-    });
-
-    it('enters edit mode when given a new widget in location query', async function () {
-      initialData.router.location = {
-        query: {
-          displayType: 'line',
-          interval: '5m',
-          queryConditions: ['title:test', 'event.type:test'],
-          queryFields: ['count()', 'failure_count()'],
-          queryNames: ['1', '2'],
-          queryOrderby: '',
-          title: 'Widget Title',
-        },
-      };
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-      expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
-        DashboardState.EDIT
-      );
-    });
-
-    it('enters view mode when not given a new widget in location query', async function () {
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-      expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
-        DashboardState.VIEW
-      );
-    });
-
-    it('can add library widgets', async function () {
-      types.MAX_WIDGETS = 10;
-      initialData = initializeOrg({
-        organization: TestStubs.Organization({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-            'widget-library',
-            'dashboard-grid-layout',
-          ],
-          projects: [TestStubs.Project()],
-        }),
-      });
-
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      // Enter Add Widget mode
-      wrapper
-        .find('Controls Button[data-test-id="add-widget-library"] button')
-        .simulate('click');
-
-      const modal = await mountGlobalModal();
-      await tick();
-      await modal.update();
-
-      modal.find('WidgetLibraryCard').at(1).simulate('click');
-
-      modal.find('Button[data-test-id="confirm-widgets"]').simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('DashboardDetail').state().dashboardState).toEqual(
-        DashboardState.VIEW
-      );
-      expect(mockPut).toHaveBeenCalledTimes(1);
-      expect(mockPut).toHaveBeenCalledWith(
-        '/organizations/org-slug/dashboards/1/',
-        expect.objectContaining({
-          data: expect.objectContaining({
-            title: 'Custom Errors',
-            widgets: [
-              {
-                id: '1',
-                interval: '1d',
-                queries: [
-                  {conditions: 'event.type:error', fields: ['count()'], name: ''},
-                ],
-                title: 'Errors',
-                type: 'line',
-              },
-              {
-                id: '2',
-                interval: '1d',
-                queries: [
-                  {conditions: 'event.type:transaction', fields: ['count()'], name: ''},
-                ],
-                title: 'Transactions',
-                type: 'line',
-              },
-              {
-                id: '3',
-                interval: '1d',
-                queries: [
-                  {
-                    conditions: 'event.type:transaction transaction:/api/cats',
-                    fields: ['p50()'],
-                    name: '',
-                  },
-                ],
-                title: 'p50 of /api/cats',
-                type: 'line',
-              },
-              {
-                displayType: 'top_n',
-                id: undefined,
-                interval: '5m',
-                description: 'Top 5 transactions with the largest volume.',
-                queries: [
-                  {
-                    conditions: '!event.type:error',
-                    fields: ['transaction', 'count()'],
-                    name: '',
-                    orderby: '-count',
-                  },
-                ],
-                title: 'High Throughput Transactions',
-                widgetType: 'discover',
-              },
-            ],
-          }),
-        })
-      );
     });
   });
 });
