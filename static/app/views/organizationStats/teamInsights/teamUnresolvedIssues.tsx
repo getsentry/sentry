@@ -1,5 +1,4 @@
-import {ComponentType, Fragment} from 'react';
-import {withTheme} from '@emotion/react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -14,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {Color, Theme} from 'sentry/utils/theme';
+import type {Color} from 'sentry/utils/theme';
 
 import {
   barAxisLabel,
@@ -24,7 +23,6 @@ import {
 } from './utils';
 
 type Props = AsyncComponent['props'] & {
-  theme: Theme;
   organization: Organization;
   teamSlug: string;
   projects: Project[];
@@ -94,7 +92,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
     }
   }
 
-  getReleaseCount(projectId: number, dataset: 'week' | 'period'): number {
+  getTotalUnresolved(projectId: number, dataset: 'week' | 'period'): number {
     const {periodIssues, weekIssues} = this.state;
 
     const period = dataset === 'week' ? weekIssues : periodIssues;
@@ -110,7 +108,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {projects, period, organization} = this.props;
+    const {projects, period} = this.props;
     const periodIssues = this.state.periodIssues ?? {};
 
     const projectTotals: Record<
@@ -118,8 +116,8 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
       {projectId: string; periodAvg: number; weekAvg: number; percentChange: number}
     > = {};
     for (const projectId of Object.keys(periodIssues)) {
-      const periodAvg = this.getReleaseCount(Number(projectId), 'period');
-      const weekAvg = this.getReleaseCount(Number(projectId), 'week');
+      const periodAvg = this.getTotalUnresolved(Number(projectId), 'period');
+      const weekAvg = this.getTotalUnresolved(Number(projectId), 'week');
       const percentChange = Math.abs((weekAvg - periodAvg) / periodAvg);
       projectTotals[projectId] = {
         projectId,
@@ -192,14 +190,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
             return (
               <Fragment key={project.id}>
                 <ProjectBadgeContainer>
-                  <ProjectBadge
-                    avatarSize={18}
-                    project={project}
-                    to={{
-                      pathname: `/organizations/${organization.slug}/releases/`,
-                      query: {project: project.id},
-                    }}
-                  />
+                  <ProjectBadge avatarSize={18} project={project} />
                 </ProjectBadgeContainer>
 
                 <ScoreWrapper>{totals.periodAvg}</ScoreWrapper>
@@ -225,7 +216,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
   }
 }
 
-export default withTheme(TeamUnresolvedIssues as ComponentType<Props>);
+export default TeamUnresolvedIssues;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
