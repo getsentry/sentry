@@ -2,8 +2,8 @@ import copy
 from datetime import timedelta
 from itertools import chain
 
-from django.db.models import Count, ExpressionWrapper, F, IntegerField, Min, Q
-from django.db.models.functions import TruncDay
+from django.db.models import Count, ExpressionWrapper, F, IntegerField, Min, OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce, TruncDay
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -62,6 +62,23 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
         }
         # TODO: Could get ignored counts from `GroupSnooze` too
 
+        prev_status_sub_qs = Coalesce(
+            Subquery(
+                GroupHistory.objects.filter(
+                    group_id=OuterRef("group_id"),
+                    date_added__lt=OuterRef("date_added"),
+                    status__in=OPEN_STATUSES + CLOSED_STATUSES,
+                )
+                .order_by("-id")
+                .values("status")[:1]
+            ),
+            -1,
+        )
+        dedupe_status_filter = Q(
+            (~Q(prev_status__in=OPEN_STATUSES) & Q(status__in=OPEN_STATUSES))
+            | (~Q(prev_status__in=CLOSED_STATUSES) & Q(status__in=CLOSED_STATUSES))
+        )
+
         # Next, if there's data in the group history table before the stats period then grab that
         # and use it to help calculate the initial unresolved value
         if oldest_history_date < start:
@@ -80,6 +97,8 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
                     date_added__gte=oldest_history_date,
                     date_added__lt=start,
                 )
+                .annotate(prev_status=prev_status_sub_qs)
+                .filter(dedupe_status_filter)
                 .values("project")
                 .annotate(
                     reopened=Count("id", filter=Q(status__in=OPEN_STATUSES)),
@@ -116,7 +135,11 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
                 date_added__gte=start,
                 date_added__lte=end,
             )
-            .annotate(bucket=TruncDay("date_added"))
+            .annotate(
+                bucket=TruncDay("date_added"),
+                prev_status=prev_status_sub_qs,
+            )
+            .filter(dedupe_status_filter)
             .order_by("bucket")
             .values("project", "bucket")
             .annotate(
