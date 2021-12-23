@@ -88,7 +88,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
     return (
       <ChartWrapper>
         <StyledPanelTable
-          isEmpty={!alertsTriggered}
+          isEmpty={!alertsTriggered || data.length === 0}
           emptyMessage={t('No Alerts Owned By This Team')}
           emptyAction={
             <ButtonsContainer>
