@@ -7,7 +7,6 @@ const DEFAULTS = {
   organization: MOCK_ORG,
   organizations: [MOCK_ORG],
   project: TestStubs.Project(),
-  lastRoute: '',
 };
 
 const withLatestContextMock = WrappedComponent =>
