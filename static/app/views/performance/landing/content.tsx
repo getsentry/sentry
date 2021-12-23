@@ -37,6 +37,7 @@ import {
   REACT_NATIVE_COLUMN_TITLES,
 } from './data';
 import {
+  checkIsReactNative,
   getCurrentLandingDisplay,
   getDefaultDisplayFieldForPlatform,
   getDisplayAxes,
@@ -204,9 +205,7 @@ class LandingContent extends Component<Props, State> {
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
     // only react native should contain the stall percentage column
-    const isReactNative = Boolean(
-      eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
-    );
+    const isReactNative = checkIsReactNative(eventView);
     const columnTitles = isReactNative
       ? REACT_NATIVE_COLUMN_TITLES
       : MOBILE_COLUMN_TITLES;
