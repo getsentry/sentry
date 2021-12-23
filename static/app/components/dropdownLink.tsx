@@ -99,6 +99,10 @@ function DropdownLink({
           open: isOpen,
         });
 
+        const {onClick: onClickActor, ...actorProps} = getActorProps({
+          className: cx,
+        });
+
         return (
           <span
             css={getRootCss(theme)}
@@ -106,11 +110,7 @@ function DropdownLink({
               className: topLevelCx,
             })}
           >
-            <a
-              {...getActorProps({
-                className: cx,
-              })}
-            >
+            <a onClick={disabled ? undefined : onClickActor} {...actorProps}>
               {customTitle || (
                 <div className="dropdown-actor-title">
                   {title}
