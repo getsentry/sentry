@@ -92,6 +92,10 @@ class DocIntegrationSerializer(Serializer):
                     target_type=IntegrationTypes.DOC_INTEGRATION.value,
                     feature=feature,
                 )
+        # If we're publishing...
+        if not validated_data.get("is_draft", True):
+            if not doc_integration.avatar.exists():
+                raise serializers.ValidationError({"avatar": "A logo is required for publishing."})
         # Update the DocIntegration
         for key, value in validated_data.items():
             setattr(doc_integration, key, value)
