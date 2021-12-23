@@ -83,6 +83,9 @@ function Actions({
       </ConfirmDelete>
     );
   }
+
+  const actionsDisabled = !hasAccess || isDetailsDisabled || !hasFeature;
+
   return (
     <StyledButtonBar gap={1}>
       {showDetails && (
@@ -105,18 +108,14 @@ function Actions({
             ? t('You do not have permission to edit custom repositories configurations.')
             : undefined
         }
-        disabled={hasAccess || hasFeature}
+        disabled={actionsDisabled}
       >
-        <ActionBtn
-          disabled={!hasAccess || isDetailsDisabled || hasFeature}
-          onClick={onEdit}
-          size="small"
-        >
+        <ActionBtn disabled={actionsDisabled} onClick={onEdit} size="small">
           {t('Configure')}
         </ActionBtn>
       </ButtonTooltip>
 
-      {!hasAccess || isDetailsDisabled || hasFeature ? (
+      {actionsDisabled ? (
         <ButtonTooltip
           title={
             !hasFeature
@@ -127,7 +126,7 @@ function Actions({
                 )
               : undefined
           }
-          disabled={hasAccess || isDetailsDisabled || hasFeature}
+          disabled={actionsDisabled}
         >
           <ActionBtn size="small" disabled>
             {t('Delete')}
@@ -139,11 +138,11 @@ function Actions({
       <DropDownWrapper>
         <DropdownLink
           caret={false}
-          disabled={!hasAccess || isDetailsDisabled || hasFeature}
+          disabled={actionsDisabled}
           customTitle={
             <StyledActionButton
               label={t('Actions')}
-              disabled={!hasAccess || isDetailsDisabled || hasFeature}
+              disabled={actionsDisabled}
               title={
                 !hasFeature
                   ? undefined

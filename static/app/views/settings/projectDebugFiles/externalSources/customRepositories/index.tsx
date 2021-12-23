@@ -343,7 +343,9 @@ function CustomRepositories({
             <Access access={['project:write']}>
               {({hasAccess}) => {
                 return (
-                  <Content>
+                  <Content
+                    hasFeature={hasCustomSymbolSourcesFeature && hasSymbolSourcesFeature}
+                  >
                     <PanelHeader hasButtons>
                       {SECTION_TITLE}
                       {renderAddRepositoryButton({
@@ -359,7 +361,7 @@ function CustomRepositories({
                         hasSymbolSourcesFeature,
                         features: !hasSymbolSourcesFeature
                           ? symbolSourcesFeatures
-                          : [...symbolSourcesFeatures, ...customSymbolSourcesFeatures],
+                          : customSymbolSourcesFeatures,
                       })}
                     </PanelBody>
                   </Content>
@@ -375,8 +377,8 @@ function CustomRepositories({
 
 export default CustomRepositories;
 
-const Content = styled(Panel)`
-  overflow: hidden;
+const Content = styled(Panel)<{hasFeature: boolean}>`
+  ${p => !p.hasFeature && `overflow: hidden;`}
 `;
 
 const StyledMenuItem = styled(MenuItem)`
