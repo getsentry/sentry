@@ -110,6 +110,7 @@ const ExpandIcon = styled(props => (
   cursor: pointer;
   justify-self: flex-end;
 `;
+
 const Alert = styled(
   ({
     type,

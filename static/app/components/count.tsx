@@ -5,9 +5,7 @@ type Props = {
   className?: string;
 };
 
-function Count(props: Props) {
-  const {value, className} = props;
-
+function Count({value, className}: Props) {
   return (
     <span className={className} title={value?.toLocaleString()}>
       {formatAbbreviatedNumber(value)}

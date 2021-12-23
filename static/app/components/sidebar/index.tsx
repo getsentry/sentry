@@ -449,7 +449,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
-  width: ${p => p.theme.sidebar.expandedWidth};
+  width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
   position: fixed;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
@@ -458,7 +458,6 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   z-index: ${p => p.theme.zIndex.sidebar};
   border-right: solid 1px ${p => p.theme.sidebarBorder};
   ${responsiveFlex};
-  ${p => p.collapsed && `width: ${p.theme.sidebar.collapsedWidth};`};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     top: 0;
