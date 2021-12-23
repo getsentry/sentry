@@ -11,6 +11,8 @@ export enum DebugFileFeature {
   SOURCES = 'sources',
 }
 
+type Secret = {'hidden-secret': boolean};
+
 export type BuiltinSymbolSource = {
   hidden: boolean;
   id: string;
@@ -84,7 +86,7 @@ export type CustomRepoAppStoreConnect = {
   bundleId: string;
   id: string;
   name: string;
-  appconnectPrivateKey: {'hidden-secret': boolean} | string;
+  appconnectPrivateKey: Secret;
   details?: AppStoreConnectStatusData;
 };
 
@@ -95,7 +97,7 @@ type CustomRepoHttp = {
   name: string;
   url: string;
   username: string;
-  password: {'hidden-secret': boolean} | string;
+  password: Secret;
 };
 
 type CustomRepoS3 = {
@@ -106,7 +108,7 @@ type CustomRepoS3 = {
   name: string;
   region: string;
   access_key: string;
-  secret_key: {'hidden-secret': boolean} | string;
+  secret_key: Secret;
 };
 
 type CustomRepoGCS = {
@@ -117,7 +119,7 @@ type CustomRepoGCS = {
   layout: {type: string; casing: string};
   name: string;
   prefix: string;
-  private_key: {'hidden-secret': boolean} | string;
+  private_key: Secret;
 };
 
 export type CustomRepo =
