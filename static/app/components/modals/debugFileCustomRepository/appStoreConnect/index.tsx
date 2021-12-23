@@ -12,7 +12,10 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
+import {
+  AppStoreConnectStatusData,
+  CustomRepoAppStoreConnect,
+} from 'sentry/types/debugFiles';
 import {unexpectedErrorMessage} from 'sentry/utils/appStoreValidationErrorMessage';
 import withApi from 'sentry/utils/withApi';
 
@@ -21,27 +24,13 @@ import StepTwo from './stepTwo';
 import {AppStoreApp, StepOneData, StepTwoData} from './types';
 import {getAppStoreErrorMessage} from './utils';
 
-type InitialData = {
-  type: string;
-  appId: string;
-  appName: string;
-  appconnectIssuer: string;
-  appconnectKey: string;
-  appconnectPrivateKey: {
-    'hidden-secret': boolean;
-  };
-  bundleId: string;
-  id: string;
-  name: string;
-};
-
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   onSubmit: () => void;
   appStoreConnectStatusData?: AppStoreConnectStatusData;
-  initialData?: InitialData;
+  initialData?: CustomRepoAppStoreConnect;
 };
 
 const steps = [t('App Store Connect credentials'), t('Choose an application')];
