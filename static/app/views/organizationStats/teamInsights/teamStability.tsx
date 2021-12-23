@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import IdBadge from 'sentry/components/idBadge';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
@@ -182,6 +184,16 @@ class TeamStability extends AsyncComponent<Props, State> {
     return (
       <StyledPanelTable
         isEmpty={projects.length === 0}
+        emptyMessage={t('No Projects With Release Health Enabled')}
+        emptyAction={
+          <Button
+            size="small"
+            external
+            href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
+          >
+            {t('Learn More')}
+          </Button>
+        }
         headers={[
           t('Project'),
           <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
@@ -207,7 +219,7 @@ class TeamStability extends AsyncComponent<Props, State> {
 
 export default TeamStability;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
@@ -218,6 +230,14 @@ const StyledPanelTable = styled(PanelTable)`
   & > div {
     padding: ${space(1)} ${space(2)};
   }
+
+  ${p =>
+    p.isEmpty &&
+    css`
+      & > div:last-child {
+        padding: 48px ${space(2)};
+      }
+    `}
 `;
 
 const RightAligned = styled('span')`
