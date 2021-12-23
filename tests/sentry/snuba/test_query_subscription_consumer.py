@@ -139,16 +139,18 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
                 payload.pop(field)
         if update_fields:
             payload.update(update_fields)
-        self.run_invalid_schema_test({"version": 2, "payload": payload})
+        self.run_invalid_schema_test({"version": 3, "payload": payload})
 
     def test_invalid_payload(self):
         self.run_invalid_payload_test(remove_fields=["subscription_id"])
         self.run_invalid_payload_test(remove_fields=["result"])
         self.run_invalid_payload_test(remove_fields=["timestamp"])
+        self.run_invalid_payload_test(remove_fields=["entity"])
         self.run_invalid_payload_test(update_fields={"subscription_id": ""})
         self.run_invalid_payload_test(update_fields={"result": {}})
         self.run_invalid_payload_test(update_fields={"result": {"hello": "hi"}})
         self.run_invalid_payload_test(update_fields={"timestamp": -1})
+        self.run_invalid_payload_test(update_fields={"entity": -1})
 
     def test_invalid_version(self):
         with self.assertRaises(InvalidMessageError) as cm:
