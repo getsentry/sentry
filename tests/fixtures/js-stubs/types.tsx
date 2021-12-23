@@ -108,7 +108,7 @@ type TestStubFixtures = {
   Tags: OverridableStubList;
   Team: OverridableStub;
   TeamAlertsTriggered: SimpleStub;
-  TeamIssuesReviewed: SimpleStub;
+  TeamIssuesBreakdown: SimpleStub;
   TeamResolutionTime: SimpleStub;
   Tombstones: OverridableStubList;
   UpdateSdkAndEnableIntegrationSuggestion: SimpleStub;

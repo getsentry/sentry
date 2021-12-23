@@ -95,7 +95,7 @@ describe('TeamInsightsOverview', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesReviewed(),
+      body: TestStubs.TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -112,7 +112,7 @@ describe('TeamInsightsOverview', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesReviewed(),
+      body: TestStubs.TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
