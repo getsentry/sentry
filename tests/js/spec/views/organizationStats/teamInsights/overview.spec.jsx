@@ -144,7 +144,7 @@ describe('TeamInsightsOverview', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered-breakdown/`,
-      body: TestStubs.TeamAlertsTriggeredBreakdown(),
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
