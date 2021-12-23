@@ -18,6 +18,12 @@ class SortOptions:
 
     @classmethod
     def as_choices(cls):
+        """
+        Returns a tuple of (value, label) pairs for the given `cls` enum.
+
+        :param cls: The enum to return values from
+        :type cls: Enum
+        """
         return (
             (cls.DATE, _("Last Seen")),
             (cls.NEW, _("First Seen")),

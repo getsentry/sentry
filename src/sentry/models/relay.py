@@ -41,6 +41,10 @@ class Relay(Model):
         return PublicKey.parse(self.public_key)
 
     def has_org_access(self, org):
+        """
+        :param self: The current object instance.
+        :type self: :class:'sentry.auth.helper.AuthHelper'
+        """
         # Internal relays always have access
         if self.is_internal:
             return True
@@ -56,6 +60,9 @@ class Relay(Model):
 
     @staticmethod
     def for_keys(keys):
+        """
+        Returns all the relays that are configured with one of the specified keys
+        """
         """
         Returns all the relays that are configured with one of the specified keys
         """

@@ -69,6 +69,14 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             return list(queryset[offset : offset + limit])
 
         def on_results(results):
+            """
+            .. function: on_results(results)
+                :param results: The results of the query.
+                :type results: list
+
+                Returns a JSON response containing the
+            serialized `Team` objects in `results`, with a count of total number of objects matching the query, and an offset index for pagination.
+            """
             results = serialize(
                 results,
                 None,
@@ -106,6 +114,30 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return (args, kwargs)
 
     def _get_team(self, organization, team_id):
+        """
+        _get_team(organization, team_id)
+
+        Retrieve a team by its id.  If the team does not exist or is not visible, an exception will be raised.
+
+            :param
+        organization: The organization that owns the project
+            :param team_id: The identifier of the desired team
+
+            :raises Team.DoesNotExist if no
+        matching item exists.
+
+            .. code-block: python
+
+                >>> from sentry import _get_team
+                >>> from sentry.models import Organization,
+        TeamStatus
+                >>> org = Organization(name="My Company") # doctest: +SKIP
+                >>> org.save() # doctest: +SKIP
+                >>> _get_team(org, 1) #
+        doctest: +SKIP  raise DoesNotExist when no matching item exists (no teams at all or none with this id).   Docstring explains what happens in these
+        cases and why they are errors rather than empty lists/objects as for other methods like get().   Docstring also explains that we use "raise" instead
+        of "raise ... from ..." because we want to preserve line numbers in tracebacks so they point to exactly where __getitem__ was
+        """
         team = (
             Team.objects.filter(organization=organization, id=team_id)
             .select_related("organization")
@@ -236,6 +268,12 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return self.http_method_not_allowed(request)
 
     def _get_member_id_for_remove_op(self, operation):
+        """
+        _get_member_id_for_remove_op(operation)
+
+        Given a dictionary representing an operation in the SCIM filter, return the member id that is being removed.
+        If no value is found for "value" then try to parse out the member id from a filter string like so: members[value eq "123124"]
+        """
         if "value" in operation:
             # azure sends member ids in this format under the key 'value'
             return operation["value"][0]["value"]

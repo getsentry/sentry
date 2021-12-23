@@ -145,6 +145,11 @@ class TeamAdmin(admin.ModelAdmin):
     raw_id_fields = ("organization",)
 
     def save_model(self, request, obj, form, change):
+        """
+        Saves the model.
+
+        If the organization of this user is changed, then it transfers all of its data to that organization.
+        """
         prev_org = obj.organization_id
         super().save_model(request, obj, form, change)
         if not change:

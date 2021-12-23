@@ -55,8 +55,26 @@ class GroupResolution(Model):
 
         This is used to suggest if a regression has occurred.
         """
+        """
+        Determine if a resolution exists for the given group and release.
+
+        This is used to suggest if a regression has occurred.
+        """
 
         def compare_release_dates_for_in_next_release(res_release, res_release_datetime, release):
+            """
+            Compares release versions based on date for `GroupResolution.Type.in_next_release`.
+
+            :param res_release: The ID of the release to compare against, or
+            None if no resolution found yet.
+            :type res_release: int|None
+            :param res_release_datetime: The datetime of the release to compare against, or None if
+            no resolution found yet.  If not None, this will be used instead of ``res`` in order to make sure that a resolution is compared with a future version
+            rather than an older one (which could happen when using timestamps).  This is important because we want ``inNextRelease`` resolutions to point at
+            newer versions rather than older ones so that they are enforced properly by Sentry and don't flicker when you reload your dashboard/issue list after
+            resolving them without doing anything else (e.g., releasing).  Note that this should be given as a UTC-aware timestamp; e.g., from `datetime`'s
+            :meth`~datetime.utcnow`.
+            """
             """
             Helper function that compares release versions based on date for
             `GroupResolution.Type.in_next_release`

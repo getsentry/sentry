@@ -39,6 +39,12 @@ class User(Interface):
         return super().to_python(data, **kwargs)
 
     def to_json(self):
+        """
+        Converts a user to JSON.
+
+        :param self: The user to convert
+        :type self: User
+        """
         return prune_empty_keys(
             {
                 "id": self.id,

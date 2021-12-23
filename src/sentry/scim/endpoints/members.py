@@ -72,6 +72,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             )
 
     def _should_delete_member(self, operation):
+        """
+        :param operation: A dictionary representing a patch operation.
+        :returns bool: True if the member should be deleted, False otherwise.
+        """
         if operation["op"].lower() == MemberPatchOps.REPLACE:
             if isinstance(operation["value"], dict) and operation["value"]["active"] is False:
                 # how okta sets active to false
@@ -138,6 +142,13 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             return list(queryset[offset : offset + limit])
 
         def on_results(results):
+            """
+            Returns a list of members in the organization.
+
+            :param start_index: The index of the first member to return.
+            :type start_index: int, optional,
+            default=1
+            """
             results = serialize(
                 results,
                 None,

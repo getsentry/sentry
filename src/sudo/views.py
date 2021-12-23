@@ -40,6 +40,12 @@ class SudoView(View):
         return request.method == "POST" and context["form"].is_valid()
 
     def grant_sudo_privileges(self, request, redirect_to):
+        """
+        Grant sudo privileges to the current user.
+
+        :param request: The current request object.
+        :type request: :class:`django.http.HttpRequest`
+        """
         grant_sudo_privileges(request)
         # Restore the redirect destination from the GET request
         redirect_to = request.session.pop(REDIRECT_TO_FIELD_NAME, redirect_to)
@@ -53,6 +59,15 @@ class SudoView(View):
     @method_decorator(csrf_protect)
     @method_decorator(login_required)
     def dispatch(self, request):
+        """
+        :param redirect_to:
+            The URL to be redirected to after successful login.
+
+            If :attr:`REDIRECT_FIELD_NAME` is not specified in the request, this
+        value will be used.
+
+        :type redirect_to: str or NoneType
+        """
         redirect_to = request.GET.get(REDIRECT_FIELD_NAME, REDIRECT_URL)
 
         # Make sure we're not redirecting to other sites

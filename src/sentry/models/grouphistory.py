@@ -96,6 +96,20 @@ PREVIOUS_STATUSES = {
 
 class GroupHistoryManager(BaseManager):
     def filter_to_team(self, team):
+        """
+        Filters a queryset of groups to only return those which the given team
+        has explicit permission to access.
+
+        The team must either have
+        ``event_logging.view_team`` permissions set on
+        the project, or be a member of it in order to see it.
+
+        :param queryset: A queryset for :py:class:`Group
+        <sentry.models.group.Group>` objects
+            with an optional filter applied (e.g., by status).
+        :param team: The target Team object for permission
+        checking purposes, as a Model object or primary key value (integer/string).  # noQA E501 line too long
+        """
         from sentry.models import GroupAssignee, Project
 
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
@@ -212,6 +226,13 @@ def record_group_history(
 
 
 def activity_type_to_history_status(status):
+    """
+    Converts an activity status to a history status.
+
+    :param int status: The activity status.
+    :returns: The corresponding history status, or ``None`` if
+    the input is invalid.
+    """
     from sentry.models import Activity
 
     # TODO: This could be improved; defined above at the very least

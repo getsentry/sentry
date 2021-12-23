@@ -116,6 +116,13 @@ def get_tag(data, key):
 
 
 def plugin_is_regression(group, event):
+    """
+    Determine if an event is a regression.
+
+    :param group: The group to check (an instance of :class:`sentry.models.Group`)
+    :param event: The event to
+    check (an instance of :class:`sentry.models.Event`)
+    """
     project = event.project
     for plugin in plugins.for_project(project):
         result = safe_execute(
@@ -157,6 +164,21 @@ def crashreports_exceeded(current_count, max_count):
 
 
 def get_stored_crashreports(cache_key, event, max_crashreports):
+    """
+    .. function: get_stored_crashreports(cache_key, event, max_crashreports)
+        :param cache_key: The key used to store the number of stored crash
+    reports in the cache.
+        :param event: The Event object that contains a group ID.
+        :param max_crashreports: An integer specifying how many crash
+    reports are allowed to be stored for an issue before they start getting pruned.
+
+        If ``max-crashreports`` was bumped to get a more accurate number,
+    this function will return ``True`` if there are more than ``max-crashreports`` stored crash reports associated with the issue (according to its group
+    ID). Otherwise it will return ``False``.
+
+        .. note :: This is not meant as a public API and may change at any time for any reason. Please use at
+    your own risk!
+    """
     # There are two common cases: Storing crash reports is disabled, or is
     # unbounded. In both cases, there is no need in caching values or querying
     # the database.
@@ -641,6 +663,27 @@ def _pull_out_data(jobs, projects):
 
 @metrics.wraps("save_event.get_or_create_release_many")
 def _get_or_create_release_many(jobs, projects):
+    """
+    _get_or_create_release(jobs, projects)
+
+    Given a list of jobs and projects, this function will return a mapping from release versions to the job that
+    was used to create it. It also adds the corresponding dist name and tag for each job. If no release version is available on a job (e.g., because it
+    does not have one), then ``None`` is stored as its value in the returned mapping instead of an actual Release object instance. This function also
+    stores datetime objects representing when each release was added into its corresponding Release object instance's ``date_added`` attribute if such
+    information is available (i.e., if there exists at least one job with a valid release version).
+
+        :param jobs: A list of dictionaries containing
+    information about individual jobs that are part of an event group processed by this pipeline stage
+        :type jobs: List[Dict[str, Any]]
+
+        :param
+    projects: A dictionary mapping project IDs to Project instances whose keys correspond with those in `jobs` above
+        :type projects: Dict[str,
+    Project]
+
+        :returns releases: A dictionary mapping tuples containing ``(project ID, version)`` pairs to their corresponding Release objects or None
+    values
+    """
     jobs_with_releases = {}
     release_date_added = {}
 
@@ -680,6 +723,23 @@ def _get_or_create_release_many(jobs, projects):
 
 @metrics.wraps("save_event.get_event_user_many")
 def _get_event_user_many(jobs, projects):
+    """
+    _get_event_user(projects, data)
+        Return the user associated with the event.
+
+        The user is determined in this order:
+
+            1. If there is a
+    'user' attribute on the event, that value is used
+            2. If there are values for any of these attributes in ``data``: ['ip', 'email', 'id'] then
+    those values are used to query Sentry's users API and return a single object if one exists (otherwise None). This behavior can be disabled by setting
+    ``SENTRY_USE_UIDS`` to False.
+            3. Otherwise None will be returned and no tags will be set on the event
+
+        :param projects: A mapping of
+    project ids -> project instances from ALL projects being processed by this job (not just this task/job). This allows us to look up additional metadata
+    such as organization id for example when processing some events like identify which require it)
+    """
     for job in jobs:
         data = job["data"]
         user = _get_event_user(projects[job["project_id"]], data)
@@ -693,6 +753,21 @@ def _get_event_user_many(jobs, projects):
 
 @metrics.wraps("save_event.derive_plugin_tags_many")
 def _derive_plugin_tags_many(jobs, projects):
+    """
+    .. function: derive_plugin_tags(jobs, projects)
+
+        Derives `tag` keys for all jobs using the :ref:`sentry.plugins.base.manager.PluginManager`.
+    This is so that plugins can add new tags to a job without having to explicitly alter the job itself (or add extra fields).
+
+        For example, if a
+    plugin had this method:
+
+            >>> def get_tags(self, event):
+            >>>     return [('server', event['server'])]
+
+        It would be called on all
+    events and any returned tags would be added to the job as if they were defined within ``tags`` (eventually allowing them to be searchable).
+    """
     # XXX: We ought to inline or remove this one for sure
     plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
 
@@ -709,6 +784,13 @@ def _derive_plugin_tags_many(jobs, projects):
 
 @metrics.wraps("save_event.derive_interface_tags_many")
 def _derive_interface_tags_many(jobs):
+    """
+    .. function: derive_interface_tags(jobs)
+
+        For each job in ``jobs``, apply the tags from all interfaces to the
+        top-level ``data`` key.
+    :param jobs: A list of jobs with an "event" key, which itself should have a "data" key.
+    """
     # XXX: We ought to inline or remove this one for sure
     for job in jobs:
         data = job["data"]
@@ -723,6 +805,19 @@ def _derive_interface_tags_many(jobs):
 
 @metrics.wraps("save_event.materialize_metadata_many")
 def _materialize_metadata_many(jobs):
+    """
+    _materialize_metadata_many(jobs)
+
+    Given a list of jobs, each job is materialized by adding derived attributes to the event data.  The event type is
+    used to determine the metadata that should be added.  The metadata for each job is stored in `event_metadata`.
+
+        :param jobs: A list of jobs which
+    are dictionaries containing an 'event' key and optional 'data' and 'project' keys.
+        :type jobs: [dict]
+
+        :returns: None; instead `job['data']`
+    will be modified in place with new attributes from the event type's get_metadata function.
+    """
     for job in jobs:
         # we want to freeze not just the metadata and type in but also the
         # derived attributes.  The reason for this is that we push this
@@ -751,6 +846,20 @@ def _materialize_metadata_many(jobs):
 
 @metrics.wraps("save_event.get_or_create_environment_many")
 def _get_or_create_environment_many(jobs, projects):
+    """
+    Get or create an environment for a job.
+
+    :param list jobs: A list of jobs to get or create environments for.
+    :param dict projects: A dictionary
+    mapping project ids to :class:`~taiga2.models.Project` objects that the jobs belong to.
+
+        For each job in ``jobs``, if it doesn't have an
+    environment already, then get (or create) one from the project's list of environments and assign it as the job's environment property value (if there
+    is no such property yet).
+
+        .. note :: The function does not return anything; rather, it modifies its first argument in place by adding new
+    properties with values that are instances of :class:`~taiga2.models.Environment`.
+    """
     for job in jobs:
         job["environment"] = Environment.get_or_create(
             project=projects[job["project_id"]], name=job["environment"]
@@ -759,6 +868,13 @@ def _get_or_create_environment_many(jobs, projects):
 
 @metrics.wraps("save_event.get_or_create_release_associated_models")
 def _get_or_create_release_associated_models(jobs, projects):
+    """
+    Get or create the release, environment, and associated project_release and project_environment models.
+
+    :param jobs: A list of job dicts from the
+    /jobs/ endpoint.
+    :param projects: A mapping of project ids to their corresponding Project instances.
+    """
     # XXX: This is possibly unnecessarily detached from
     # _get_or_create_release_many, but we do not want to destroy order of
     # execution right now
@@ -838,6 +954,11 @@ def _tsdb_record_all_metrics(jobs):
 
 @metrics.wraps("save_event.nodestore_save_many")
 def _nodestore_save_many(jobs):
+    """
+    Save a list of events to nodestore.
+
+    :param jobs: A list of tuples containing an ``Event`` and the ``NodeData`` for that event.
+    """
     inserted_time = datetime.utcnow().replace(tzinfo=UTC).timestamp()
     for job in jobs:
         # Write the event to Nodestore
@@ -858,6 +979,31 @@ def _nodestore_save_many(jobs):
 
 @metrics.wraps("save_event.eventstream_insert_many")
 def _eventstream_insert_many(jobs):
+    """
+    Inserts a group and event into the event stream.
+
+    The following events are published:
+
+     - ``event.created`` when an event is captured for the first
+    time ever,
+     - ``event.discarded`` when an active or muted event is filtered out by rules,
+     - ``event.dropped`` when an active or muted event is
+    dropped due to rate limiting, and
+     - ``event.merged`` when two events are merged together into a single one (for example on deduplication).
+
+     The
+    following attributes can be set on the `EventCommon` object before passing it to this function:
+
+      * `project_id` specifies which project should
+    receive this particular message (overrides any project specified in data)
+
+      * `group_id` specifies what group should receive this particular message
+    (overrides any group specified in data)
+
+      * `is_new` indicates whether this Group/Event combo hasn't been seen before -- if it's false, then we won't
+    publish "first seen" metrics for it since we consider that to be irrelevant metadata knowledge that doesn't need publishing through EventStreams /
+    Sentry Insights; if true then we will publish these metrics as normal; defaults to True
+    """
     for job in jobs:
         if job["event"].project_id == settings.SENTRY_PROJECT:
             metrics.incr(
@@ -884,6 +1030,15 @@ def _eventstream_insert_many(jobs):
 
 @metrics.wraps("save_event.track_outcome_accepted_many")
 def _track_outcome_accepted_many(jobs):
+    """
+    Track the outcome of a single event job in snuba.
+
+    :param org_id: The organization that this job is operating on.
+    :param project_id: The project that
+    this job is operating on. Can be ``None``.
+    :param key_id: The key id for the data that this job has processed. Can be ``None`` (for example, when
+    deleting a  model).
+    """
     for job in jobs:
         event = job["event"]
 
@@ -901,6 +1056,23 @@ def _track_outcome_accepted_many(jobs):
 
 @metrics.wraps("event_manager.get_event_instance")
 def _get_event_instance(data, project_id):
+    """
+    _get_event_instance(data, project_id)
+
+    :param data: A dictionary containing the event data.
+    :type data: dict
+
+        :param project_id: The ID of the
+    current project.
+        :type projectIdsListType: int
+
+        :returns An Event object with a populated event dictionary.  If an ``eventID`` is provided in
+    the input parameters, it will be used to generate this new Event object; otherwise, a random UUID4 string will be generated as the ``eventID`` for
+    this new Event object.  This function does not check whether or not another Event exists with an identical ``eventID`` value (i.e., one that has been
+    created by calling this function).  It is assumed that any checks on existence have been performed before calling this function and that it's being
+    called in a context where creating another duplicate record would either be irrelevant or something to avoid anyway (e.g., due to some other unique
+    constraint).
+    """
     event_id = data.get("event_id")
 
     return eventstore.create_event(
@@ -917,6 +1089,20 @@ def _get_event_user(project, data):
 
 
 def _get_event_user_impl(project, data, metrics_tags):
+    """
+    _get_event_user(project, data, metrics)
+
+    .. functionauthor: <a href="mailto:jessica@sentry.io">Jessica Mather</a>
+
+        :param project: A
+    :class:`Project` object.
+        :param data: The event payload as a dictionary.
+        :param metrics: An optional dict-like object that will be used to
+    store relevant Prometheus values (timing and counts).
+
+        Returns an EventUser instance or None if no user is associated with the event payload. If a
+    cache key is given then it will be populated with the EventUser id if one is created in this function call.
+    """
     user_data = data.get("user")
     if not user_data:
         metrics_tags["event_has_user"] = "false"
@@ -1245,6 +1431,36 @@ def _find_existing_grouphash(
 
 
 def _handle_regression(group, event, release):
+    """
+    .. function_name: _handle_regression(group, event, release)
+    .. function_parameters:
+        * group (Group): The Group that has been marked as resolved.
+    * event (Event): The Event that caused the regression.
+        * release (Release or None): The Release associated with the new Event. May be ``None`` if
+    no commit link is configured for this Project.  # noqafrom django.db import connection
+
+            .. note ::
+
+                This is a Django database
+    cursor used to interact with the database in ways not supported by Django ORM methods because of lack of support for raw SQL queries and statements in
+    ORM methods at this time other than ``get()`` and ``filter()`` which return single objects instead of multiple rows/objects when used on related
+    fields such as ForeignKeys or ManyToManyFields). See :doc:`Django docs <django:topics/db/sql>` for more information about how to use it properly since
+    it's an advanced topic and there are limitations / gotchas you need to know about using cursors from Django DB API directly instead of ORM methods
+    like `filter().select_related("user") <http://bit.ly/2hTItvf>`_.
+
+            .. warning ::
+
+                You must pass a valid model instance into each
+    method call on **connection** otherwise you will get an exception! It does not support passing positional arguments like model IDs from lists or
+    querysets either so don't do it! If you want all objects matching some criteria then use `model._default_manager.<method name>(<criteria>)
+    <http://bit.ly/2hTItvf>`_. For example, if we wanted all GroupHash objects where project=12345 we would write something similar to
+    `GroupHash._default_manager\`.get(project=12345)`. This also applies to any foreign key relationships too such as getting User instances who have
+    reported events linked via a Group object by doing something similar to `User._default_manager\`.get(groups__id=12345). Or even getting Events linked
+    via their tags attribute using something like `Event._default_manager\`.filter(tags__key="url").select-related("group", "project", "user") which
+    returns multiple rows per tag because they're selected in the query along with those three related fields so they can be loaded into memory
+    efficiently without hitting another database roundtrip just for those 3 fields per tag row returned from above query! So long as your code only relies
+    on
+    """
     if not group.is_resolved():
         return
 
@@ -1348,6 +1564,23 @@ def _handle_regression(group, event, release):
 
 
 def _process_existing_aggregate(group, event, data, release):
+    """
+    Updates an existing group.  If ``data`` is provided, ``message``,
+    ``culprit`` and other properties on the group are updated to reflect the new data.
+    - **group**: The :class:`Group` (or its ID) to update.
+    - **event**: The :class:`Event` that caused this issue to be created.
+      This will be used for
+    tracebacks and other metadata retrival purposes.
+    - **data** (optional): New data about this issue which represents a modification of the original
+    exception that triggered this event/issue originally..  This can include stacktraces or any other information you think may help triage or provide
+    context for your problem report later on in Sentry's UI..
+
+      .. note :: In order for this system to capture and display source code context, you must
+    also provide values for both `filename_*`, as well as `lineno_*`.  You can set these values by calling `set_culprit()`.
+
+      >>> group = Group(id=1) #
+    Note that it's possible we already have an Event here from before we got our hands on it... but let's pretend...
+    """
     date = max(event.datetime, group.last_seen)
     extra = {"last_seen": date, "score": ScoreClause(group), "data": data["data"]}
     if event.search_message and event.search_message != group.message:
@@ -1652,6 +1885,19 @@ def save_attachments(cache_key, attachments, job):
 
 @metrics.wraps("event_manager.save_transactions.materialize_event_metrics")
 def _materialize_event_metrics(jobs):
+    """
+    _materialize_event_metrics(jobs)
+
+    For each job in `jobs`, ensure the event has a ``"_metrics"`` key. This is usually created during and prefilled with
+    ingestion sizes.
+    Then, capture the actual size that goes into node store for ``bytes.stored.event`` metric name under
+    ``job["event"].data["_metrics"]`` dict value.
+
+        :param jobs: A list of jobs to process (must be iterable).
+
+        :returns: None; updates `jobs` in
+    place with new keys/values as needed to materialize metrics data for events stored by this function call.
+    """
     for job in jobs:
         # Ensure the _metrics key exists. This is usually created during
         # and prefilled with ingestion sizes.
@@ -1717,6 +1963,14 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
 
 @metrics.wraps("save_event.calculate_span_grouping")
 def _calculate_span_grouping(jobs, projects):
+    """
+    _calculate_span_grouping(jobs, projects)
+        For each job in jobs, calculate the span grouping for that job's event and write it to the event.
+    :param jobs: A list of dictionaries containing information about a transaction.
+        :type jobs: list(dict)
+        :param projects: A dictionary mapping
+    project ids to project instances.
+    """
     for job in jobs:
         # Make sure this snippet doesn't crash ingestion
         # as the feature is under development.
@@ -1740,6 +1994,14 @@ def _calculate_span_grouping(jobs, projects):
 
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
+    """
+    Saves a list of events to the database.
+
+    :param jobs: A list of dictionaries containing event data that is to be saved in the database.  This should
+    be a raw event dictionary as returned by `read_and_validate_data`.
+    :param projects: A dictionary mapping project ids to `Project` instances, used for
+    looking up related information.
+    """
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
         organization_ids = {project.organization_id for project in projects.values()}
 

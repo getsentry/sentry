@@ -19,6 +19,22 @@ DataPath = List[Union[str, int]]
 
 
 def get_interface(name):
+    """
+    Given a name, return the corresponding interface class.
+
+    The interface name is looked up in the following order:
+
+        1. An exact match of `name` to
+    an interface class's `id`.
+        2. A case-insensitive match of `name` to an interface class's canonical_name (e.g., "sentry"). This allows short names
+    and abbreviations for interfaces (e.g., "minidump" can be used instead of "processors:stacktrace:frames:in_app:is_minidump").
+        3. A case-
+    insensitive partial match to any element in the list returned by settings().SENTRY_INTERFACES ("raven", "sentry", etc.). This allows generic names
+    such as 'notification' or 'logger' to be used at any level of specificity ("processors:" would resolve to all known processors). If multiple matches
+    are found, they will be sorted alphabetically and one will be picked arbitrarily based on which name was registered first (via
+    settings().SENTRY_INTERFACES). Note that this lookup may not respect precedence if you have many plugins installed with overlapping namespace prefixes
+    under SENTRY_(CELERY|
+    """
     try:
         name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
@@ -34,6 +50,16 @@ def get_interface(name):
 
 
 def get_interfaces(data):
+    """
+    .. function: get_interfaces(data)
+
+        :param data:
+            A mapping of interface names to normalized data.
+
+        :returns:
+            An ordered mapping
+    of interface names to unserialized values. Interfaces are sorted by their score, descending.
+    """
     result = []
     for key, data in data.items():
         # Skip invalid interfaces that were nulled out during normalization
@@ -83,6 +109,10 @@ class Interface:
 
     @classproperty
     def external_type(cls):
+        """
+        The external name of the interface.  This is mostly the same as
+        path with some small differences (message, debugmeta).
+        """
         """The external name of the interface.  This is mostly the same as
         path with some small differences (message, debugmeta).
         """

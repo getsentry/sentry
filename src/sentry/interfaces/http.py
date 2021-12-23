@@ -20,6 +20,18 @@ http_method_re = re.compile(r"^[A-Z\-_]{3,32}$")
 
 
 def format_headers(value):
+    """
+    .. function: format_headers(value)
+
+        Formats a dict or list into a tuple of ``(name, value)`` pairs.
+
+        :param value: The dictionary to
+    normalize.
+        :type value: dict or list
+
+        :returns: A tuple containing the normalized headers. Each header is a ``(name, value)`` pair with both
+    parts being strings. If ``value`` is a list then multiple pairs will be returned with the same name for each item in the list.
+    """
     if not value:
         return ()
 
@@ -46,6 +58,11 @@ def format_headers(value):
 
 
 def format_cookies(value):
+    """
+    .. function: format_cookies(value)
+
+        Formats a cookies string into a list of (key, value) tuples.
+    """
     if not value:
         return ()
 
@@ -129,6 +146,12 @@ class Http(Interface):
         return super().to_python(data, **kwargs)
 
     def to_json(self):
+        """
+        .. function: to_json()
+
+            :returns: A JSON-serializable dictionary that contains all of the data in this request.
+            :rtype: dict
+        """
         return prune_empty_keys(
             {
                 "method": self.method,
@@ -145,6 +168,14 @@ class Http(Interface):
 
     @property
     def full_url(self):
+        """
+        Returns the full URL for this request.
+
+        :param url: The base URL. If not provided, uses :attr:`url`.
+        :param query_string: A query string to append to
+        the URL. If a query string is provided, it will be appended with ``?`` before the actual query string (unless there's already a question mark).
+        Defaults to None.
+        """
         url = self.url
         if url:
             if self.query_string:

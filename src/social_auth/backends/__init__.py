@@ -166,6 +166,14 @@ class SocialAuthBackend:
 
     @classmethod
     def tokens(cls, instance):
+        """
+        Return the tokens needed to authenticate the access to any API the service
+        might provide. The return value will be a dictionary with the token type
+        name
+        as key and the token value.
+
+            instance must be a UserSocialAuth instance.
+        """
         """Return the tokens needed to authenticate the access to any API the
         service might provide. The return value will be a dictionary with the
         token type name as key and the token value.
@@ -373,6 +381,10 @@ class OAuthAuth(BaseAuth):
 
     @classmethod
     def get_key_and_secret(cls):
+        """
+        Return tuple with Consumer Key and Consumer Secret for current
+        service provider. Must return (key, secret), order *must* be respected.
+        """
         """Return tuple with Consumer Key and Consumer Secret for current
         service provider. Must return (key, secret), order *must* be respected.
         """
@@ -391,6 +403,17 @@ class OAuthAuth(BaseAuth):
         return scope
 
     def get_scope_argument(self):
+        """
+        This function returns a dictionary of the query parameters that will be used in the HTTP request.
+        The returned dictionary includes one item:
+        ``scope``, whose value is a list of strings representing
+        the scopes that were registered for this client application. The default implementation
+        simply returns
+        a list containing one item, which is the string representation of :attr:`~OAuth2RequestValidator.SCOPE_DEFAULT_VALUE`.
+
+            :returns: A
+        dictionary with at least one key-value pair where the key is ``scope`` and its value is a list of strings representing scope names.
+        """
         param = {}
         scope = self.get_scope()
         if scope:
@@ -637,6 +660,13 @@ class BaseOAuth2(OAuthAuth):
 
     @classmethod
     def refresh_token_params(cls, token, provider):
+        """
+        Refresh access token for the given provider.
+
+        :param str token: The refresh token retrieved in the past.
+        :param str provider: Provider name as a
+        string (e.g., ``"facebook"``).
+        """
         client_id, client_secret = cls.get_key_and_secret()
         return {
             "refresh_token": token,
@@ -647,6 +677,23 @@ class BaseOAuth2(OAuthAuth):
 
     @classmethod
     def refresh_token(cls, token, provider):
+        """
+        Refreshes an OAuth 2 token.
+
+        :param token: The token to be refreshed.
+        :type  token: str or dict
+
+            :param provider_settings: A dictionary containing
+        the settings for the provider that issued the original access and refresh tokens (e.g., ``{"id": 123, "secret": "abc"}``). This is not required if
+        ``token`` is a string (instead of a dict).
+            :type  provider_settings: dict or None
+
+            :returns response_json -- The decoded JSON response from
+        the server, as a dictionary. If there was an error, this will contain only two keys, ``error`` and ``error_description``; otherwise it will contain at
+        least four keys--``access_token`, ``expires_in`, `refresh` (the same value passed for parameter `refresh`), and `scope` (a list of strings
+        representing scopes to which this access token grants access). See http://tools.ietf.org/html/rfc6749#section-5.1 for more information about these
+        values; in particular, note that you must not assume that expires\ _in == 0 means the access\ _token will
+        """
         params = cls.refresh_token_params(token, provider)
         response = requests.post(
             cls.REFRESH_TOKEN_URL or cls.ACCESS_TOKEN_URL, data=params, headers=cls.auth_headers()
@@ -668,6 +715,12 @@ class BaseOAuth2(OAuthAuth):
 
     @classmethod
     def revoke_token(cls, token, uid):
+        """
+        Revoke a token.
+
+        :param token: The access or refresh token to revoke
+        :param uid: The user id whose access token is being revoked
+        """
         if not cls.REVOKE_TOKEN_URL:
             return
         url = cls.REVOKE_TOKEN_URL.format(token=token, uid=uid)

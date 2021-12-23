@@ -34,6 +34,30 @@ class GroupRelease(Model):
 
     @classmethod
     def get_cache_key(cls, group_id, release_id, environment):
+        """
+        :param cls:
+        :param group_id:
+        :param release_id:
+        :param environment:
+
+            Returns a cache key for the given parameters. The cache key is used to store
+        whether or not an issue is seen in the given (group, release, environment) combination.
+
+            This uses `get_cache_key` under the hood.
+
+                >>>
+        from sentry import eventstore  # doctest: +SKIP
+                >>> from sentry import eventstore  # doctest: +SKIP
+                >>> from django.conf import
+        settings  # doctest: +SKIP
+                >>> settings.SENTRY_ENABLE_EXPLORE_CODE = True  # doctest: +SKIP
+
+            ``eventstore`` has a method called ``get``
+        that takes an event ID and returns an Event object with additional metadata such as stacktraces and resolved/unresolved state if available (depending
+        on what was configured when creating your instance of ``eventstore``). It also accepts keyword arguments which are passed directly to Elasticsearch
+        under the hood so you can use any filtering options Elasticsearch provides like time range selection or query filters via keyword arguments to this
+        method call
+        """
         return "grouprelease:1:{}:{}".format(
             group_id, md5_text(f"{release_id}:{environment}").hexdigest()
         )

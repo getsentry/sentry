@@ -9,6 +9,14 @@ except ImportError:
 
 
 def get_package_version(module_name, app):
+    """
+    .. function: get_package_name(app)
+
+        Return package name for given app.
+
+        :param app: App to inspect
+        :type app: module
+    """
     version = None
 
     # Try to pull version from pkg_resource first
@@ -48,6 +56,11 @@ def get_package_version(module_name, app):
 
 
 def get_all_package_versions():
+    """
+    Get the version of all installed packages.
+
+    :returns: A dictionary mapping package names to their versions.
+    """
     packages = {}
     for module_name, app in sys.modules.items():
         # ignore items that look like submodules

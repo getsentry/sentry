@@ -32,6 +32,26 @@ def generate_secret():
 
 
 def get_next_schedule(base_datetime, schedule_type, schedule):
+    """
+    Get the next schedule occurrence for a given schedule type and base datetime.
+
+    :param base_datetime: The starting point to calculate the next schedule
+    from.
+    :type base_datetime: :class:`~datetime.datetime`
+        :param str schedule_type: The type of interval (crontab or interval) that is being used by
+    this scheduled job.
+
+        :returns NextScheduleTimeStamp, ScheduleType, int -- A tuple containing the timestamp of when to run again and either
+    ``crontab`` or ``interval`` as a string value in order to indicate which kind of scheduling is being used currently by this scheduled job's execution
+    flow; and an integer representing how many times we've calculated since our last run time stamp (which can be useful for calculating elapsed time
+    between runs).
+
+            Example usage with Airflow's DAG context variables feature that allows you to pass variables from your Airflow DAG definition
+    into your tasks via context variable dictionary objects passed into methods like `PythonOperator <airflowhdi.operators>`__'s `python_callable
+    <airflowhdi.operators>`__ method argument like so ::
+
+                import airflowhdi
+    """
     if schedule_type == ScheduleType.CRONTAB:
         itr = croniter(schedule, base_datetime)
         next_schedule = itr.get_next(datetime)
@@ -53,6 +73,17 @@ def get_next_schedule(base_datetime, schedule_type, schedule):
 
 
 def get_monitor_context(monitor):
+    """
+    Returns a dictionary containing the following keys:
+
+    * ``id`` - the monitor's GUID
+    * ``name`` - the monitor's name
+    * ``config`` - a copy of the
+    monitor's configuration, with any secret values redacted. If this is an object that was decoded from JSON, it will be returned as a Python dict.
+    Otherwise it will be returned as whatever type was originally encoded into JSON (e.g., an integer).
+    * ``status`` - one of "OK", "ERROR", or "UNKNOWN"
+    based on whether or not there were errors when running this monitor last time it ran; if no runs have occurred yet, status is set to UNKNOWN
+    """
     config = monitor.config.copy()
     if "schedule_type" in config:
         config["schedule_type"] = monitor.get_schedule_type_display()

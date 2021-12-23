@@ -9,6 +9,11 @@ except Exception:
 
 
 def _get_git_revision(path):
+    """
+    .. function: get_git_revision(path)
+
+        Return the git revision for the repository in ``path``, or None if it cannot be determined.
+    """
     if not os.path.exists(os.path.join(path, ".git")):
         return None
     try:

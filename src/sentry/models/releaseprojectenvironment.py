@@ -86,6 +86,24 @@ class ReleaseProjectEnvironment(Model):
 
     @property
     def adoption_stages(self):
+        """
+        This function takes a list of dictionaries and returns a dictionary with the number of adoptions, unadoptions, and total
+        number of releases. The
+        function also checks to see if there are any adopted or unadopted releases. If there are no
+        adopted or unadopted releases then the stage is set to low
+        adoption. If there is only one adopted release then it will be
+        set as an adopted release while setting all other releases as not yet released. If more
+        than one adopted release exists, 
+        then all but the last two will be set as replaced while setting the last two as adopted and not yet released
+        respectively. 
+
+            :param self: A list containing dictionaries that contain information about each individual release in order from most recent to
+        least recent (i.e., [{'name': 'v1', 'date': datetime(2019, 1, 1)}, {'name': 'v2', 'date': datetime(2019, 2 ,1)}])
+
+            :returns: A dictionary with
+        three keys representing number of adoptions (int), number of non-adoptions (int), and total number of releases (int). It also contains another key
+        called "stage" which indicates whether an adoption stage
+        """
         if self.adopted is not None and self.unadopted is None:
             stage = ReleaseStages.ADOPTED
         elif self.adopted is not None and self.unadopted is not None:

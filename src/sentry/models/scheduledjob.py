@@ -5,6 +5,11 @@ from sentry.db.models import JSONField, Model, sane_repr
 
 
 def schedule_jobs(jobs):
+    """
+    Schedules a list of jobs.
+
+    :param jobs: A list of tuples containing the payload, name and date scheduled for each job to be scheduled.
+    """
     ScheduledJob.objects.bulk_create(
         [
             ScheduledJob(payload=payload, name=name, date_scheduled=date_scheduled)

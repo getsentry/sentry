@@ -87,6 +87,10 @@ class ApiKey(Model):
         return filter(bool, self.allowed_origins.split("\n"))
 
     def get_audit_log_data(self):
+        """
+        :param label: A short, human-readable label for this audit log entry.
+        :param key: The unique identifier of the event that occurred.
+        """
         return {
             "label": self.label,
             "key": self.key,

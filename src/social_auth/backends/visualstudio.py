@@ -73,6 +73,24 @@ class VisualStudioAuth(BaseOAuth2):
 
     @classmethod
     def refresh_token_params(cls, token, provider):
+        """
+        :param token:
+            The refresh token to use when requesting a new access token.
+        :type token: str
+
+            :param provider:
+                The name of the social
+        auth provider being used (e.g., ``"github"``). This is just used in the associated URL names and can be anything you want.
+            :type provider: str
+        :returns dict[str, Any]: A dictionary containing parameters that will be sent to the remote OAuth server as part of an OAuth refresh request. For
+        example, this may contain a client_assertion_type parameter with value "urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer". This
+        function should not return any sensitive information like secrets or passwords and instead raise an exception if it cannot obtain such information for
+        some reason (in which case it's up to whoever owns this code to decide how best to handle that).
+
+                    .. note :: In addition to these
+        parameters, this function must also include **all** other query string arguments from the original redirect except for those representing state
+        returned by the identity provider during authorization grant flow (these are handled internally by this class),
+        """
         secret = setting(cls.SETTINGS_CLIENT_SECRET_NAME)
 
         return {

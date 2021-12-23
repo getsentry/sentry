@@ -12,6 +12,12 @@ class RestrictiveAdminSite(admin.AdminSite):
 
 
 def make_site():
+    """
+    Creates a restrictive admin site that only allows the models listed in the `models` argument.
+
+    :param models: A list of model classes to be allowed
+    access to the admin site.
+    """
     admin.autodiscover()
 
     # now kill off autodiscover since it would reset the registry

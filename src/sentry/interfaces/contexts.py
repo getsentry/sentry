@@ -13,6 +13,13 @@ context_types = {}
 
 class _IndexFormatter(string.Formatter):
     def format_field(self, value, format_spec):
+        """
+        :param value:
+            The value to format.
+        :param format_spec:
+            A formatting specification. If empty and `value` is a boolean, use "yes" or "no".
+        Otherwise, just return `value`.
+        """
         if not format_spec and isinstance(value, bool):
             return value and "yes" or "no"
         return string.Formatter.format_field(self, value, format_spec)
@@ -48,6 +55,10 @@ class ContextType:
 
     @classmethod
     def values_for_data(cls, data):
+        """
+        :param data: A dictionary of contexts.
+        :returns: A list of contexts that are instances of the given class.
+        """
         rv = []
         for context in (data.get("contexts") or {}).values():
             if context and context.get("type") == cls.type:
@@ -56,6 +67,11 @@ class ContextType:
 
     @classmethod
     def primary_value_for_data(cls, data):
+        """
+        Returns the first value of ``contexts`` in a data dictionary that has type equal to the class' type attribute.
+        If no such value exists, returns an
+        empty list.
+        """
         val = get_path(data, "contexts", cls.type)
         if val and val.get("type") == cls.type:
             return val
@@ -156,6 +172,28 @@ class Contexts(Interface):
 
     @classmethod
     def normalize_context(cls, alias, data):
+        """
+        Normalizes a context definition.
+
+        :param alias: The name of the context.
+        :type alias: str
+
+        :param data: A dictionary containing the context
+        definition.  This is expected to have been created by `normalize_context`.
+            If it isn't, then this function will attempt to normalize it before
+        proceeding with validation and normalization of its contents.
+
+            .. note ::
+
+                This parameter is not named ``definition`` because that could
+        be confused with a field in the data that contains an actual definition (e.g., ``"definition": "a string or list of strings"``).  In fact, this
+        parameter can contain other arbitrary fields besides "definition".  It's recommended that you use names such as ``data["my_field"] = ...`` instead of
+        ``data["definition"] = ...`` unless you're certain what your schema contains for this parameter (and even then, be cautious).
+
+            .. warning :: If
+        any fields are added to `data` after calling `normalize_context`, they will not be normalized!   You should only add new fields if you're certain they
+        conform to your desired schema!   For example, if I wanted my contexts' definitions to
+        """
         ctx_type = data.get("type", alias)
         ctx_cls = context_types.get(ctx_type, DefaultContextType)
         return ctx_cls(alias, data)

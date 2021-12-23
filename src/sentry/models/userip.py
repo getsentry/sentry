@@ -26,6 +26,23 @@ class UserIP(Model):
 
     @classmethod
     def log(cls, user, ip_address):
+        """
+        Logs the user's IP address and optionally their country code and region.
+
+        :param user: The User object to log the IP for.
+        :type user:
+        :class:`~django.contrib.auth.models.User` or :class:"~django_user_ip_address"."UserIP"
+
+            * If a User object is provided, it will be used to
+        retrieve the ip address of that user if they are logged in, otherwise ``None`` will be returned instead of an ip address (since we can't get one).
+        This allows this function to be called from anywhere without worrying about whether or not it was passed a valid request object with an associated
+        authenticated session (e-mail) as long as you pass in either a UserIP model instance or None for ``user`` instead of a request object/session id
+        pair).
+
+            * If no such authenticated session exists but you provide either an AnonymousUser model instance or None for ``user`` then this function
+        will return None since anonymous users don't have any IP addresses associated with them anyway (and also because there's no way to determine what
+        their real e-mail would have been when they were anonymous so we can't look up their real IP information).
+        """
         # Only log once every 5 minutes for the same user/ip_address pair
         # since this is hit pretty frequently by all API calls in the UI, etc.
         cache_key = f"userip.log:{user.id}:{ip_address}"

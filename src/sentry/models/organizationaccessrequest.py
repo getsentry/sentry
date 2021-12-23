@@ -23,6 +23,13 @@ class OrganizationAccessRequest(Model):
     __repr__ = sane_repr("team_id", "member_id")
 
     def send_request_email(self):
+        """
+        Send an email to all members which have granted access to the given team.
+
+        :param self: The current object (the team)
+        :type self:
+        :class:`sentry.models.Team`
+        """
         from sentry.models import OrganizationMember
         from sentry.utils.email import MessageBuilder
 
@@ -67,6 +74,13 @@ class OrganizationAccessRequest(Model):
         msg.send_async([m.user.email for m in member_list])
 
     def send_approved_email(self):
+        """
+        Sends an email to a user after their access request has been approved.
+
+        :param self: The instance of the class that is being called.
+        :param user: The
+        User object whose access was approved.
+        """
         from sentry.utils.email import MessageBuilder
 
         user = self.member.user

@@ -8,6 +8,13 @@ from sentry.utils.strings import strip, truncatechars
 
 
 def get_tree_label_part_details(part):
+    """
+    Get the label for a tree part.
+
+    :param dict part: The tree part to get the label for.
+    :returns str: The label of the given ``part`` or ``<unknown>``
+    if no valid key is found in it.
+    """
     # Note: This function also exists in JS in app/utils/events.tsx, to make
     # porting efforts simpler it's recommended to keep both variants structurally
     # similar.
@@ -55,6 +62,20 @@ class BaseEvent:
     id = None
 
     def get_metadata(self, data):
+        """
+        Extract metadata from a file.
+
+        :param data: The contents of the file.
+        :returns: A dictionary containing extracted metadata, or ``None`` if no metadata
+        was found in the file.
+
+            If this function returns ``None``, it's probably because no metadata can be extracted from *data*. This could be because
+        the data is malformed (e.g., not valid JSON), empty, or just doesn't contain any known keys to extract (e.g., "title").
+
+            If you want to add
+        support for extracting additional keys in your subclassed version of :class:`~dxr_code_search._utils._metadata_extractor`, you should add them to its
+        ``KEYS`` class attribute and override its :func:`~dxr_code_search._utils._metadata_extractor._get()` method accordingly.
+        """
         metadata = self.extract_metadata(data)
         title = data.get("title")
         if title is not None:
@@ -65,6 +86,17 @@ class BaseEvent:
         return metadata
 
     def get_title(self, metadata):
+        """
+        Compute the title for a document.
+
+        If the document has a ``title`` metadata field, use that as the title.  Otherwise, compute and return a reasonable
+        default value from several fields in the metadata:
+
+            * The "title" field if it exists
+            * The first header in Markdown or reStructuredText (with
+        "#" characters stripped)
+            * The value of an "abstract" field if it exists (see :func:`get_abstract()`)
+        """
         title = metadata.get("title")
         if title is not None:
             return title
@@ -88,6 +120,36 @@ class DefaultEvent(BaseEvent):
     key = "default"
 
     def extract_metadata(self, data):
+        """
+        Extracts metadata from a Sentry event.
+
+        :param data: A dictionary containing the event data.
+        :returns: A dictionary containing the title of the event,
+        or ``None`` if it doesn't have one.
+
+            The title is obtained by looking at either the formatted message or message field in a Sentry log entry, and
+        taking only its first line (i.e., truncating after any newline character). If neither of those fields are present, then an unlabeled title is used
+        instead (i.e., "unlabeled event").
+
+            .. note :: This function does not return anything because it mutates `data` directly! It's important to pass
+        in a copy of `data` rather than modifying `data` itself so that other code can use unmodified versions as well.
+        """
+        """
+        Extracts metadata from a Sentry event.
+
+        :param data: A dictionary containing the event data.
+        :returns: A dictionary containing the title of the event,
+        or ``None`` if it does not have one.
+
+            The title is taken to be the first line of :data:`data['logentry']['formatted'] <data>`, or
+        :data:`data['logentry']['message'] <data>`. If neither field exists, then ``None`` is returned instead.
+
+            .. note ::
+
+                This function assumes
+        that both fields exist in :obj:`event_dict`, and will return incorrect results otherwise (or crash). It also assumes that they are strings, and will
+        return incorrect results if they are not (or crash).
+        """
         message = strip(
             get_path(data, "logentry", "formatted") or get_path(data, "logentry", "message")
         )

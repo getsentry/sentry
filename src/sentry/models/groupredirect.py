@@ -28,6 +28,12 @@ class GroupRedirect(Model):
 
     @classmethod
     def create_for_group(cls, from_group, to_group):
+        """
+        Create a GroupAssignee object.
+
+        :param from_group: The group to transfer assignees from.
+        :type from_group: :class:`sentry.models.Group`
+        """
         return cls.objects.create(
             organization_id=to_group.project.organization_id,
             group_id=to_group.id,

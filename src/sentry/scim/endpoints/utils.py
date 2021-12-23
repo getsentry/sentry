@@ -50,6 +50,11 @@ class SCIMQueryParamSerializer(serializers.Serializer):
     )
 
     def validate_filter(self, filter):
+        """
+        Validate a filter.
+
+        :param str filter: The SCIM filter to validate.
+        """
         try:
             filter = parse_filter_conditions(filter)
         except SCIMFilterError:
@@ -100,6 +105,27 @@ class SCIMEndpoint(OrganizationEndpoint):
         pass
 
     def list_api_format(self, results, total_results, start_index):
+        """
+        .. function: list_api_format(results, total_results, start_index)
+
+            :param results:
+            :type results:
+            :param total_results:
+            :type
+        total_results:
+            :param startIndex:  # TODO what is this? What's the max value? Is it inclusive or exclusive of the end index? If exclusive should
+        we add 1 to make it inclusive?? Or just leave as-is. I think as-is for now. But need to test in dev and prod env. And document here! :)
+                The
+        ``startIndex`` attribute defines the offset within the collection of entities returned by a particular request that corresponds to a given page number
+        (starting with ``1``). This attribute MUST be included if there are more than one pages of entities returned by a request (see section 5). The
+        ``startIndex`` attribute MUST NOT be present if there is only one page of entities returned by a request.
+
+                .. note ::
+
+                    In some
+        cases, an API may return resources that do not fit into memory or can only be retrieved in batches ("streaming"). In these cases, an API MAY specify
+        that consumers must use multiple requests to retrieve all resources from such APIs via
+        """
         return {
             "schemas": [SCIM_API_LIST],
             "totalResults": total_results,  # TODO: audit perf of queryset.count()

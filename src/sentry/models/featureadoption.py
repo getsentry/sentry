@@ -109,6 +109,26 @@ manager.add(92, "metric_alert_rules", "Metric Alert Rules", "web", prerequisite=
 
 class FeatureAdoptionManager(BaseManager):
     def in_cache(self, organization_id, feature_id):
+        """
+        Checks if a feature is enabled for an organization.
+
+        :param organization_id: The ID of the organization to check.
+        :param feature_id: The ID of the
+        feature to check.
+
+            :returns bool True if the feature is enabled, False otherwise or if there was an error connecting to Redis.
+
+            Example usage
+        (in a view function):
+
+                >>> from sentry import features
+                >>> features = FeatureAdoption(organization)  # Initialize FeatureAdoption
+        object with your org's id here!
+                >>> has_feature = features.has('organizations:my-feature')  # returns True or False based on whether this org
+        has my-feature available in Sentry's list of available features (defined in sentry/features/__init__). If you want it cached, use `cached` instead and
+        access its value via `features._has_cache['organizations']['my-feature']`. This will also cache any additional information about that specific item
+        like its description or category for you as well so that future calls are very fast!
+        """
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         feature_matches = []
         with redis.clusters.get("default").map() as client:
@@ -117,12 +137,25 @@ class FeatureAdoptionManager(BaseManager):
         return any([p.value for p in feature_matches])
 
     def set_cache(self, organization_id, feature_id):
+        """
+        Sets the cache for a feature flag.
+        :param organization_id: The id of the organization this feature belongs to.
+        :type organization_id: int
+        """
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         with redis.clusters.get("default").map() as client:
             client.sadd(org_key, feature_id)
         return True
 
     def get_all_cache(self, organization_id):
+        """
+        Get all feature adoption cache keys for an organization.
+
+        :param organization_id: The ID of the organization to retrieve feature adoption cache keys
+        for.
+        :returns set(int): A set of all feature adoption cache keys for the given ``organization_id``. This will be a singleton set if there are no
+        cached values, and an empty set if there are none cached values available in Redis or Postgres.
+        """
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         result = []
         with redis.clusters.get("default").map() as client:

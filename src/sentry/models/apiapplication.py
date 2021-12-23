@@ -74,6 +74,13 @@ class ApiApplication(Model):
         return value in ("code", "token")
 
     def is_valid_redirect_uri(self, value):
+        """
+        Checks if the given value is a valid redirect URI for this client.
+
+        :param str value: The URI to check.
+        :returns bool: True if the given value is a
+        valid redirect URI, False otherwise.
+        """
         v_netloc = urlparse(value).netloc
         for ruri in self.redirect_uris.split("\n"):
             if v_netloc != urlparse(ruri).netloc:
@@ -91,6 +98,25 @@ class ApiApplication(Model):
         return [a for a in self.allowed_origins.split("\n") if a]
 
     def get_audit_log_data(self):
+        """
+        Get the audit log data for an OAuth application.
+
+        :param client_id: The ID of the OAuth Application
+        :type client_id: int
+        :returns: dict -- a
+        dictionary containing the audit log data for an OAuth application.
+
+            * **client_id** - The ID of the associated Django auth user.
+            * **name** -
+        The name provided when the token was created
+            * **redirect_uris** - A list of redirect URIs associated with this token, if any.  This is a string
+        containing all URIs separated by newlines (\n).  If there are no redirect URIs, this will be ``None`` or an empty string.  This field is automatically
+        managed and should not be modified directly unless you understand its limitations..
+            * **allowed-origins** - A list of allowed origins associated
+        with this token, if any.  This is a string containing all origins separated by newlines (\n). If there are no allowed origins, this will be ``None``
+        or an empty string..   This field is automatically managed and should not be modified directly unless you understand its limitations..   It can only
+        contain URLs that use HTTP or
+        """
         return {
             "client_id": self.client_id,
             "name": self.name,

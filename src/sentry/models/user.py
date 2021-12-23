@@ -197,6 +197,10 @@ class User(BaseModel, AbstractBaseUser):
     __repr__ = sane_repr("id")
 
     def delete(self):
+        """
+        :param self: The user object.
+        :type self: User
+        """
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
         avatar = self.avatar.first()
@@ -227,6 +231,14 @@ class User(BaseModel, AbstractBaseUser):
         return self.get_unverified_emails().exists()
 
     def has_usable_password(self):
+        """
+        Returns True if the user has a usable password.
+
+        A usable password is defined as one that's not empty and not equal to "". This behavior matches what
+        Django 1.6 - 2.0 did, but does not match what Django 2.1 will do (where an empty string or None will be considered a valid password). To transition to
+        the new behavior, just remove this override and replace all callsites of ``user_instance.has_usable_password()`` with ``not user_instance._password ==
+        ""`` or ``not user_instance._password is None`` .
+        """
         if self.password == "" or self.password is None:
             # This is the behavior we've been relying on from Django 1.6 - 2.0.
             # In 2.1, a "" or None password is considered usable.
@@ -248,6 +260,10 @@ class User(BaseModel, AbstractBaseUser):
         return self.username
 
     def get_salutation_name(self):
+        """
+        :param name: The full name of the user.
+        :type name: str
+        """
         name = self.name or self.username.split("@", 1)[0].split(".", 1)[0]
         first_name = name.split(" ", 1)[0]
         return first_name.capitalize()
@@ -289,6 +305,29 @@ class User(BaseModel, AbstractBaseUser):
             self.send_confirm_email_singular(email, is_new_user)
 
     def merge_to(from_user, to_user):
+        """
+        Merge two users together, moving almost all of the information from ``from_user`` to ``to_user``.
+
+        This will move over:
+
+            * UserEmail objects
+        (which are accessible via EmailAddress)
+            * Authenticator objects (only associated with ``from_user``)
+            * GroupAssignee objects (assigned to
+        groups that were created by or belong to ``from_user``)
+            * GroupBookmark objects (bookmarks for groups that were created by or belong to
+        ``from_user``)
+            * GroupSeen objects (seen state for groups that were created by or belong to ``from_user``)  # noQA: E501 line too long, pylint:
+        disable=C0301  # pragma nocover due because we don't know how often this happens in practice and it's a very niche case. Also not covered in tests
+        because they would be really slow and not provide much benefit.)  # noQA: E501 line too long, pylint: disable=C0301  # pragma nocover due because we
+        don't know how often this happens in practice and it's a very niche case. Also not covered in tests because they would be really slow and not provide
+        much benefit.)       # noQA: E501 line too long, pylint: disable=C0301       # pragma nocover due because we don't know how often this happens in
+        practice and it's a very niche case. Also not covered in tests because they would be really slow and not provide much benefit.)    # noQA: E501 line
+        too long, pylint: disable=C0301       # pragma nocover due because we don't know how often this happens in practice and it's a very niche case. Also
+        not covered in tests than are extremely time-consuming without providing any additional value.")         # noQA : C901 - This function is hard to test
+        since its output depends on the order of execution of other functions which makes mocking difficult.. We should refactor so each function can be
+        tested easily instead.. For now just testing end
+        """
         # TODO: we could discover relations automatically and make this useful
         from sentry import roles
         from sentry.models import (
@@ -401,6 +440,12 @@ class User(BaseModel, AbstractBaseUser):
         return Project.objects.get_for_user_ids({self.id})
 
     def get_orgs_require_2fa(self):
+        """
+        Get all organizations that the user is a member of and where 2FA is required.
+
+        :returns: A queryset of :class:`~sentry.models.Organization` instances
+        where 2FA is required for the user to be a member of them.
+        """
         from sentry.models import Organization, OrganizationStatus
 
         return Organization.objects.filter(

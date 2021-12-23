@@ -77,6 +77,14 @@ def generate_slug(name, is_internal=False):
 
 
 def track_response_code(status, integration_slug, webhook_event):
+    """
+    track_response_code(status, integration_slug, webhook_event)
+        Increment a counter for the HTTP response status code.
+
+        :param status: The HTTP
+    response status code.
+        :type status: int
+    """
     metrics.incr(
         "integration-platform.http_response",
         sample_rate=1.0,
@@ -208,6 +216,12 @@ class SentryApp(ParanoidModel, HasApiScopes):
         ).exists()
 
     def build_signature(self, body):
+        """
+        Builds a signature for the given body using the client secret.
+
+        :param str body: The request body to sign.
+        :returns str: The signature of the request.
+        """
         secret = self.application.client_secret
         return hmac.new(
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256

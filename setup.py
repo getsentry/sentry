@@ -49,6 +49,12 @@ class SentrySDistCommand(SDistCommand):
 
 class SentryBuildCommand(BuildCommand):
     def run(self):
+        """
+        Builds the documentation and static assets for the SDK.
+        """
+        """
+        Builds the documentation for this project.
+        """
         from distutils import log as distutils_log
 
         distutils_log.set_threshold(distutils_log.WARN)
@@ -62,6 +68,12 @@ class SentryBuildCommand(BuildCommand):
 
 class SentryDevelopCommand(DevelopCommand):
     def run(self):
+        """
+        Builds the documentation and static assets for the SDK.
+        """
+        """
+        Builds the documentation for this project.
+        """
         DevelopCommand.run(self)
         if not IS_LIGHT_BUILD:
             self.run_command("build_integration_docs")

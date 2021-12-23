@@ -19,6 +19,12 @@ PROJECT_ID = 2
 
 
 def main(argv):
+    """
+    .. function: main(argv)
+       :noindex:
+
+       Dumps the symbolSource configuration as stored in the project option.
+    """
     if argv[0] == "dump-cfg":
         # Dumps the symbolSource configuration as stored in the project option.
         project = Project.objects.get(pk=PROJECT_ID)
@@ -62,6 +68,19 @@ def main(argv):
 
 
 def appconnect_config():
+    """
+    Get the appStoreConnect configuration for a project.
+
+    :param PROJECT_ID: The ID of the project to get the config from.
+    :type PROJECT_ID: int
+    :returns: A dictionary containing all of the relevant information about how to connect to App Store Connect and what API keys are used by Sentry. This
+    is returned as a dictionary so that it can be serialized into JSON when stored in Sentry's database (see `SYMBOL_SOURCES`).
+        :rtype dict
+    :raises KeyError if no appStoreConnect config exists for this project.  In practice, this should never happen because we always create an empty entry
+    in `SYMBOL_SOURCES` when creating a new Project, but it's good practice to include just in case there is ever some unexpected state where that isn't
+    true.)  If you want your code not to crash if no symbol sources exist yet, you should catch this error and handle appropriately; e.g., prompt users
+    with instructions on how they can configure their projects via UI or CLI commands like `sentry-cli symbol-sources`.
+    """
     project = Project.objects.get(pk=PROJECT_ID)
     raw_config = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
     symbol_sources = json.loads(raw_config)

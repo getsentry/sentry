@@ -26,6 +26,10 @@ class UserReport(Model):
     __repr__ = sane_repr("event_id", "name", "email")
 
     def notify(self):
+        """
+        :param project_id: The ID of the project to which this event belongs.
+        :type project_id: int
+        """
         from django.contrib.auth.models import AnonymousUser
 
         from sentry.api.serializers import UserReportWithGroupSerializer, serialize

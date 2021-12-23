@@ -214,6 +214,15 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
 
 
 def reprocess_event(project_id, event_id, start_time):
+ """
+ Reprocess an event with the given `event_id` and store it in the cache.
+
+ :param project_id: The ID of the project that this event is for.
+ :type
+ project_id: int
+ :param event_id: The ID of the Event to reprocess. This must be a real Event, not a ReprocessingAttempt object (which are created when
+ an attempt to process an event fails). See also :ref:`reprocessing`.
+ """
 
     from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
@@ -397,6 +406,27 @@ def buffered_delete_old_primary_hash(
 
 
 def _copy_attachment_into_cache(attachment_id, attachment, file, cache_key, cache_timeout):
+    """
+    .. function: _copy_attachment_into_cache(attachment_id, attachment, file, cache_key, cache_timeout)
+        :noindex:
+
+        Copies the given `file` into
+    the attachment cache. The resulting key is stored in `cache-key`.
+
+        :param attachment-id: The ID of the event's first known `EventAttachment`
+    object.
+            This is used to prevent us from accidentally creating duplicate keys when processing an event with multiple attachments.
+            If
+    we've already seen this event and cached its attachments before (i.e., if there are multiple EventAttachment objects), then we'll use that key instead
+    of generating a new one.
+        :type attachment-id: int
+
+        :param file: A Django File object representing the uploaded file contents for this single
+    EventAttachment object being processed by reprocessing code (i.e., not necessarily associated with an entire reprocessed event).
+            It will be
+    read chunk by chunk into memory and stored in Redis as necessary to satisfy requests for chunks of it via our API until it can be copied into
+    permanent storage on S3 or locally on disk (depending on configuration). See ``sentry/attachments
+    """
     fp = file.getfile()
     chunk_index = 0
     size = 0
@@ -665,6 +695,16 @@ def is_group_finished(group_id):
 
 
 def get_progress(group_id):
+    """
+    .. function: get_progress(group_id)
+
+        Get the progress of a reprocessing job.
+
+        :param group_id: The ID of the reprocessing job to check
+    :type group_id: str
+        :returns: A tuple containing the number of events processed and a dictionary with information about this reprocessing job. If
+    no info is available, returns None for both values in tuple.
+    """
     pending = _get_sync_redis_client().get(_get_sync_counter_key(group_id))
     info = _get_sync_redis_client().get(_get_info_reprocessed_key(group_id))
     if pending is None:

@@ -94,6 +94,12 @@ class Event:
         self.data = data
 
     def serialize(self):
+        """
+        Serialize a :class:`~uuid.UUID` object to a string.
+
+        :param uuid_obj: The UUID object to serialize.
+        :type uuid_obj: :class:`~uuid.UUID`
+        """
         return {
             "uuid": b64encode(self.uuid.bytes),
             "timestamp": to_timestamp(self.datetime),

@@ -18,6 +18,23 @@ def _escape_key(key):
 
 
 def get_pii_config(project):
+    """
+    Merges a list of (key, value) pairs into one dict.
+
+    The key in the first pair is prefixed with "organization:" and "project:", respectively. If any
+    keys collide, the colliding key is only present once in the result and its value is the combination of all values specified for that key in all pairs.
+    For example:
+
+        >>> _merge_pii_configs([("organization:", {"remove_ip_address": True}), ("project:", {"remove_ip_address": False})]) ==
+    {'remove_ip_address': False}
+        True
+
+        >>> _merge({"foo": 1}, {"bar": 2}) == {'foo': 1, 'bar': 2}
+        True
+
+        >>> _merge({"foo": [1]}, {"foo":
+    [2]}) == {'foo': [1, 2]}
+    """
     def _decode(value):
         if value:
             return safe_execute(json.loads, value, _with_transaction=False)
@@ -43,6 +60,15 @@ def get_pii_config(project):
 
 
 def get_datascrubbing_settings(project):
+    """
+    .. function: get_datascrubbing_settings(project)
+
+        Returns a dictionary with the keys `excludeFields`, `scrubData`,
+        `scrubIpAddresses` and
+    `sensitiveFields`. The values of those keys are lists.
+
+        :param project: A :class:`Project` instance.
+    """
     org = project.organization
     rv = {}
 
@@ -72,6 +98,24 @@ def get_datascrubbing_settings(project):
 
 
 def get_all_pii_configs(project):
+    """
+    Get all PII configs for a project.
+
+    :param project: The project to get the PII config from.
+    :returns: A list of PII configs that apply to the given
+    ``project``, in order of priority (most important first). If a ``project`` has its own PII config, it is returned first. Then if datascrubbing
+    settings are enabled on the ``project``, its datascrubbing settings are returned next. Finally if any organization that owns the ``project`` enables
+    datascrubbing on an organization-level, then those settings are returned last.
+
+        Example output (just showing keys):
+
+        .. code-block :: python
+    [{'applications': {'exclude': [], 'include': []}, 'conditions': {'exclude_fields_if_missing_field_has': None}, 'description': None,
+    'enabledFieldsAndConditionsOnlyIfEnabledForOrganizationOrProjectSettings = False',  # noqastartline
+             'fieldsToMatchAgainstOnNoMatch =
+    ['email']',  # noqastartline
+             'matchingType = 1',  # noqastartline
+    """
     # Note: This logic is duplicated in Relay store.
     pii_config = get_pii_config(project)
     if pii_config:
@@ -81,6 +125,13 @@ def get_all_pii_configs(project):
 
 
 def scrub_data(project, event):
+    """
+    Scrubs PII data from the event payload.
+
+    :param project: The project that the event is related to. This is used to retrieve relevant configuration for
+    PII scrubbing.
+    :type project: :class:`sentry.models.Project`
+    """
     for config in get_all_pii_configs(project):
         metrics.timing(
             "datascrubbing.config.num_applications", len(config.get("applications") or ())
@@ -134,6 +185,14 @@ def _merge_pii_configs(prefixes_and_configs):
 
 
 def validate_pii_config_update(organization, value):
+    """
+    Validate PII config update.
+
+    :param organization: The organization object.
+    :type organization: :class:'sentry.models.organization'
+    :param value: The
+    PII config JSON string to validate against the schema and apply to the current organization's settings or return an error if it fails validation..
+    """
     if not value:
         return value
 
@@ -146,6 +205,23 @@ def validate_pii_config_update(organization, value):
 
 
 def _prefix_rule_references_in_rule(custom_rules, rule_def, prefix):
+    """
+    Prefixes all rule references in the given rule definition with the given prefix.
+
+    :param dict custom_rules: A dictionary of custom rules to use for
+    this operation.
+    :param dict rule_definition: The definition of a single rule, as defined in `the documentation
+    <../../docs/configuration/rules.html>`_.  This is a dictionary that may contain one or more of the following keys (note that if you omit either
+    ``type`` or ``rule`` from your definitions, they will be added automatically):
+
+        * **type** - The type of this particular set of rules; must be one
+    of "multiple" or "single".  Defaults to "single".
+        * **rule** - If present, specifies an explicit list (or tuple) containing only other rules to
+    execute instead; if not present then it defaults to executing all applicable rules for this case based on any conditions specified below and by
+    searching through any applicable packages installed on the system.  You can also specify multiple values here by using a list or tuple instead and
+    specifying multiple items; each item should itself be either another list containing only valid names as strings, another tuple containing only valid
+    names as strings, another string value which is assumed to represent exactly
+    """
     if not isinstance(rule_def, dict):
         return rule_def
 

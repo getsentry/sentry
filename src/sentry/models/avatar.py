@@ -35,6 +35,14 @@ class AvatarBase(Model):
         return super().save(*args, **kwargs)
 
     def get_file(self):
+        """
+        .. function: get_file()
+
+            Returns the file associated with this event.
+
+            :returns: The file object or None if no file is associated with this
+        event.
+        """
         from sentry.models import File
 
         if self.file_id is None:
@@ -61,6 +69,18 @@ class AvatarBase(Model):
         cache.delete_many([self.get_cache_key(x) for x in self.ALLOWED_SIZES])
 
     def get_cached_photo(self, size):
+        """
+        Get a cached photo of the given size.
+
+        :param self: The object instance to get the photo from.
+        :type self: :class:`~app.models.Photo` or
+        :class:"~app.models._FileAttachment` subclass instance with a ``file`` attribute that is an instance of `werkzeug's FileStorage
+        <http://werkzeug.pocoo.org/docs/0.10/datastructures/#werkzeug-datastructures-filestorage>_`.
+        :param int size: The width and height in pixels for the
+        desired photo, must be one of :attr:'ALLOWED_SIZES'.  If not specified, defaults to ``100`` if 'mini' in kwargs else ``800`` .  If 'original' is
+        specified as a kwarg then no resizing will occur and you'll get whatever resolution was uploaded by the user (if any).  This parameter will be ignored
+        if this object does not have an image file attached to it or if there are errors encountered while opening it as an Image object (see below).
+        """
         file = self.get_file()
         if not file:
             return

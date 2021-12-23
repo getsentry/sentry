@@ -67,6 +67,9 @@ class LostPasswordHash(Model):
 
     @classmethod
     def for_user(cls, user):
+        """
+        Returns the PasswordHash instance associated with the given user. If no such instance exists, one is created and returned.
+        """
         # NOTE(mattrobenolt): Some security people suggest we invalidate
         # existing password hashes, but this opens up the possibility
         # of a DoS vector where then password resets are continually

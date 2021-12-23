@@ -44,6 +44,12 @@ class ApiToken(Model, HasApiScopes):
 
     @classmethod
     def from_grant(cls, grant):
+        """
+        Creates a new authorization code for the given grant.
+
+        :param grant: The :class:`~oauth2_provider.models.Grant` associated with this code that should
+        be revoked.
+        """
         with transaction.atomic():
             return cls.objects.create(
                 application=grant.application, user=grant.user, scope_list=grant.get_scopes()

@@ -81,6 +81,22 @@ class GroupSnooze(Model):
         return True
 
     def test_frequency_rates(self):
+        """
+        Returns ``True`` if the rate of events for a group exceeds the specified threshold.
+
+        :param int count: The maximum number of times an event should be
+        recorded within a given window.
+        :param timedelta window: The time period in which to check for events. Defaults to 1 hour.
+
+            :returns bool
+        is_rate_limited: Whether or not this group has exceeded its rate limit, based on the provided parameters and current state of metrics data in
+        Redis/Memcached/etc..
+
+            .. note :: This function will return ``False`` if there are no metrics stored for this key (i.e., it has never been used
+        before). Otherwise, it will return ``True`` once that key reaches *or exceeds* the given threshold value (which defaults to 100). If you want more
+        fine-grained control over when this function returns True, then you can use :py:func`~sentry_plugins.snooze._frequency_rates` instead; however, that
+        method requires more information about your environment and might not be as suitable for some situations compared to using this one directly.
+        """
         from sentry import tsdb
 
         metrics.incr("groupsnooze.test_frequency_rates")
@@ -97,6 +113,13 @@ class GroupSnooze(Model):
         return True
 
     def test_user_rates(self):
+        """
+        Returns True if the number of users affected by a group has not exceeded the threshold within a given time period.
+
+        :param self: A Snooze instance.
+        :param rate_limit_timespan: The timespan in seconds over which to calculate the user count for this snooze object. Defaults to 60 minutes (3600
+        seconds).
+        """
         from sentry import tsdb
 
         metrics.incr("groupsnooze.test_user_rates")

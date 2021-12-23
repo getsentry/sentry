@@ -53,6 +53,22 @@ class BitbucketBackend(OAuthBackend):
 
     @classmethod
     def tokens(cls, instance):
+        """
+        .. function: tokens(cls, instance)
+            Return the tokens needed to authenticate the access to any API the service might provide. Bitbucket uses a pair
+        of OAuthToken consisting on a oauth_token and oauth_token_secret.
+
+            :param cls:
+                The UserSocialAuth class for this backend
+        (BitbucketOAuth2).
+
+            :param instance:
+                A UserSocialAuth instance with an access token.
+
+            :returns:
+                A dictionary containing
+        ``oauth_token`` and ``oauth_token`` keys or None if no tokens were given.
+        """
         """Return the tokens needed to authenticate the access to any API the
         service might provide. Bitbucket uses a pair of OAuthToken consisting
         on a oauth_token and oauth_token_secret.

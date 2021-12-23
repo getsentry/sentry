@@ -73,6 +73,25 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
     @classmethod
     def from_actor_identifier(cls, actor_identifier):
+        """
+        Returns an Actor tuple corresponding to a User or Team associated with the given identifier.
+
+        Forms `actor_identifier` can take:
+            1231 -> look up
+        User by id
+            "1231" -> look up User by id
+            "user:1231" -> look up User by id
+            "team:1231" -> look up Team by id
+
+          :raises
+        serializers.ValidationError if unable to resolve actor identifier.
+
+          :param actor_identifier: An integer or string identifying a user, team, or
+        organization (e.g., 1234)
+
+          :returns A 2-tuple of (Actor Identifier, Actor Model) where the model is either a `User` or `Team`. If no matching
+        user/team is found for the given actor identifier then this will return None and raise an exception instead of returning it as its second value.
+        """
         from sentry.models import Team, User
         from sentry.utils.auth import find_users
 

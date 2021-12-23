@@ -73,6 +73,33 @@ class Rule(namedtuple("Rule", "matcher owners")):
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
     def test(self, data):
+        """
+        Tests a data point against the filter.
+
+        :param str type: The type of filter to apply.  This is used to determine which test method(s) to call on the
+        data point.
+        :param object data: The value that will be tested against the filters in this :class:`Filter`.  For example, if ``type`` is ``tags``, then
+        this would be a list of tags for an issue or PR (e.g., ["bug", "enhancement"]).  If ``type`` is ``paths_changed``, then this would be a list of paths
+        changed in an issue or PR (e.g., ["src/main/java/com/dropbox/"], etc.).
+        """
+        """
+        Test a data point against the rule.
+
+        :param str type: The type of rule to test against.  Must be one of ``url``, ``path``, or ``module``.
+        :param dict
+        data: The JSON-serializable object to test against the rule.  This is typically a frame from an exception's stack trace in an event payload (e.g.,
+        :py:attr`sentry_sdk.transport._EventTransportBase._get_event_data`).
+
+            .. note ::
+
+                If the value for this parameter is not serializable into
+        JSON, then it will be converted as follows before testing it against this rule's regular expression pattern matching rules and other tests that may
+        apply to its type (e.g., URL):
+
+                    - If it's a string, then encode() with UTF-8 encoding and quote special characters with backslashes before
+        quoting any double quotes found within the string itself using Python's :py:func`urllib2quote`.  For example, "foo bar" becomes "foo%20bar".
+        - Otherwise if it isn't already serializable into JSON without applying any changes (i..e., no recursion), raise a ValueError
+        """
         return self.matcher.test(data)
 
 
@@ -99,6 +126,33 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return cls(data["type"], data["pattern"])
 
     def test(self, data):
+        """
+        Tests a data point against the filter.
+
+        :param str type: The type of filter to apply.  This is used to determine which test method(s) to call on the
+        data point.
+        :param object data: The value that will be tested against the filters in this :class:`Filter`.  For example, if ``type`` is ``tags``, then
+        this would be a list of tags for an issue or PR (e.g., ["bug", "enhancement"]).  If ``type`` is ``paths_changed``, then this would be a list of paths
+        changed in an issue or PR (e.g., ["src/main/java/com/dropbox/"], etc.).
+        """
+        """
+        Test a data point against the rule.
+
+        :param str type: The type of rule to test against.  Must be one of ``url``, ``path``, or ``module``.
+        :param dict
+        data: The JSON-serializable object to test against the rule.  This is typically a frame from an exception's stack trace in an event payload (e.g.,
+        :py:attr`sentry_sdk.transport._EventTransportBase._get_event_data`).
+
+            .. note ::
+
+                If the value for this parameter is not serializable into
+        JSON, then it will be converted as follows before testing it against this rule's regular expression pattern matching rules and other tests that may
+        apply to its type (e.g., URL):
+
+                    - If it's a string, then encode() with UTF-8 encoding and quote special characters with backslashes before
+        quoting any double quotes found within the string itself using Python's :py:func`urllib2quote`.  For example, "foo bar" becomes "foo%20bar".
+        - Otherwise if it isn't already serializable into JSON without applying any changes (i..e., no recursion), raise a ValueError
+        """
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
@@ -112,6 +166,13 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return False
 
     def test_url(self, data):
+        """
+        Determine whether the URL of a request is matched by this rule.
+
+        :param data: A dictionary containing the parsed HAR log entry for a request.
+        :returns
+        bool: True if the URL matches, False otherwise.
+        """
         try:
             url = data["request"]["url"]
         except KeyError:
@@ -119,6 +180,13 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return url and glob_match(url, self.pattern, ignorecase=True)
 
     def test_frames(self, data, keys):
+        """
+        Checks if the given data contains a frame that matches the given pattern.
+
+        :param dict data: The raw event data to check for frames in.
+        :param list
+        keys: A list of keys to search for frames in.
+        """
         for frame in _iter_frames(data):
             for key in keys:
                 value = frame.get(key)
@@ -131,6 +199,13 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return False
 
     def test_tag(self, data):
+        """
+        Checks if the given data contains a tag with the given name and value.
+
+        :param dict data: The data to check.
+        :param str pattern: The tag name or glob
+        pattern to match against.
+        """
         tag = self.type[5:]
         for k, v in get_path(data, "tags", filter=True) or ():
             if k == tag and glob_match(v, self.pattern):
@@ -184,6 +259,24 @@ class OwnershipVisitor(NodeVisitor):
         return [_f for _f in children if _f]
 
     def visit_line(self, node, children):
+        """
+        A concise reStructuredText docstring for the above function that explains what the code does without using general terms or examples:
+        ``visit_line(self, node, children)``
+
+            * **Parameters**
+
+                ``node`` (:class:`parso.python.tree.PythonNode`): The root node of a parsed file
+        or module source code string passed to :func:`parso.parse`.
+
+                ``children`` (list): A list of parso objects representing each line in a Python
+        source code string passed to :func:`parso.parse`.  For example, if you pass in `"print('hello world')\n"`, then this will be a list containing two
+        elements--the first being an instance of :class:`parso._python_module._ModulePartNode`, and the second being an instance of
+        :class:\'~parso._python_tree.PythonErrorLeaf\'.'  This is because parso represents all whitespace as error leafs by default when parsing Python source
+        codes strings into parsers trees like this one below for demonstration purposes... ::
+
+                    from parso import parse
+        print(str(parse("print('hello world')\
+        """
         _, line, _ = children
         comment_or_rule_or_empty = line[0]
         if comment_or_rule_or_empty:
@@ -209,6 +302,26 @@ class OwnershipVisitor(NodeVisitor):
         return owners
 
     def visit_owner(self, node, children):
+        """
+        Parse an owner expression.
+
+        :param str text: The raw text of the owner expression to parse.
+        :returns Owner: An object representing the parsed owner
+        expression. This will be a :class:`~Owner` if it's a user, and a :class:`~TeamOwner` if it's a team.
+
+            * If `text` is ``"me"``, then this will
+        return ``Owner("user", "me")`` (where "me" is replaced by the current user's email address).
+            * If `text` is ``"!joe@example.com"``, then this will
+        return ``Owner("user", "joe@example.com")`` (case insensitive). Note that we don't support negative selectors like ! or - here; they must be in square
+        brackets instead (see below). We also don't support globbing here; use fnmatch instead (see below).
+            * If `text == "@my-team-name"`, then this will
+        return ``TeamOwner(...)`` where ... is computed as described in :func:`.parse_team_owner`.
+
+          .. note ::
+
+             We don't currently support parsing
+        arbitrary regexes or
+        """
         _, is_team, pattern = children
         type = "team" if is_team else "user"
         # User emails are case insensitive, so coerce them
@@ -320,6 +433,14 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
 
 
 def _iter_frames(data):
+    """
+    Iterates over the frames in a stacktrace or exception.
+
+    :param data: A dictionary containing an ``exception`` key, which itself contains a ``values``
+    key. The value of this second level must be an iterable containing dictionaries with at least a ``stacktrace`` key, which again must contain a
+    ``frames`` key.
+    :returns: An iterator that yields all the frames from all values of the exception/stacktrace object.
+    """
     try:
         yield from get_path(data, "stacktrace", "frames", filter=True) or ()
     except KeyError:
@@ -356,6 +477,14 @@ def load_schema(schema):
 
 
 def convert_schema_to_rules_text(schema):
+    """
+    Convert a schema to a text file containing the rules it contains.
+
+    The format of the output is:
+
+        <matcher_type>:<pattern>
+    <owner_type>:<identifier> [<owner_type>:<identifier>]...
+    """
     rules = load_schema(schema)
     text = ""
 
@@ -504,6 +633,22 @@ def resolve_actors(owners: Iterable["Owner"], project_id: int) -> Mapping["Owner
 
 
 def create_schema_from_issue_owners(issue_owners, project_id):
+    """
+    Create a schema from the given issue owners.
+
+    :param issue_owners: A list of rules that define who can resolve an issue.
+    :type  issue_owners: [Rule]
+    The format of each rule is as follows, with all parts being required unless otherwise noted.
+
+            * `<owner>` - An individual user or team name to
+    allow resolving issues (e.g., ``@user``).
+            * `<owner> <operator>` - An individual user or team name to allow resolving issues, combined with an
+    operator (e.g., ``@user OR @team``). Operators are defined in :ref:`operators`. All operators must be prefixed by a space character; e-mail addresses
+    and usernames cannot contain spaces so this is not ambiguous and does not need to be specified explicitly for these cases either way.. If multiple
+    rules are provided for the same owner but using different operators, only one will match when determining whether an owner can resolve an issue; which
+    one is unspecified but it will always be the most specific rule that matches if there are multiple matching rules for a single owner (i.e., if two
+    separate rules specify ``@user OR @team`` then both will
+    """
     try:
         rules = parse_rules(issue_owners)
     except ParseError as e:

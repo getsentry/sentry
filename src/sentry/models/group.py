@@ -48,6 +48,15 @@ ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
 def parse_short_id(short_id):
+    """
+    Parses a short ID into its slug and short ID integer components.
+
+    :param str short_id: The encoded short ID. It consists of the lowercase
+    base32-encoded slug value followed by a dash and the base32-encoded id value, i.e., `<slug>-<id>`.
+    :returns ShortId or NoneType: If parsing succeeds,
+    returns an instance of :class`ShortId`, otherwise returns `None`. Note that this function will not perform any validation on the slug or id values; it
+    only confirms that they are properly encoded in base32.
+    """
     match = _short_id_re.match(short_id.strip())
     if match is None:
         return None
@@ -273,6 +282,23 @@ class GroupManager(BaseManager):
         return self.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id):
+        """
+        .. function: filter_by_event_id(project_ids, event_id)
+
+            Filters the queryset to only include Group objects which have received an event with a
+        given ID in one of
+            the specified projects.
+
+            :param project_ids: A list of project IDs to restrict the query to.
+            :type projectIds: [int]
+        :param eventId: The ID of an Event object that should be present in a Group's ``events`` attribute.
+                This is used as part of a SQL `IN`
+        expression comparing each group's ``event`` attribute against this value.
+                It is not checked for validity here since it could be anything from
+        0 (invalid Event ID) up to 2^63-1 (LONG).  # noQA E501 line too long (131 > 120 characters).  # noQA E501 line too long (131 > 120 characters).  #
+        noQA E501 line too long (131 > 120 characters).  # noQA E501 line too long (131 > 120 characters).   # noQA E501 line too long (> 100 chars), so moved
+        docstring above code block instead.   # no
+        """
         events = eventstore.get_events(
             filter=eventstore.Filter(
                 event_ids=[event_id],
@@ -329,6 +355,13 @@ class GroupManager(BaseManager):
         return self.get(id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1])
 
     def filter_to_team(self, team):
+        """
+        Filters the queryset to only include groups that are assigned to a team in the given list of teams.
+
+        :param team_ids: A list of ids for teams which
+        should be included.
+        :type team_ids: [int]
+        """
         from sentry.models import GroupAssignee, Project
 
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
@@ -456,6 +489,11 @@ class Group(Model):
             return f"{self.project.slug.upper()}-{base32_encode(self.short_id)}"
 
     def is_over_resolve_age(self):
+        """
+        .. function: is_over_resolve_age()
+
+            Checks if the event has passed the resolve age.
+        """
         resolve_age = self.project.get_option("sentry:resolve_age", None)
         if not resolve_age:
             return False
@@ -474,6 +512,23 @@ class Group(Model):
         return self.get_status() == GroupStatus.RESOLVED
 
     def get_status(self):
+        """
+        .. function: get_status()
+
+            Returns the current status of a group.  This is determined based on the
+            following possible states:
+
+             *
+        **unresolved** -- when there are >=MIN_UNRESOLVED_THRESHOLD events
+               unresolved
+             * **resolved** -- all events in a snoozed issue have been
+        marked as resolved, or
+               once the issue has been around for long enough that it is unlikely to be useful to keep it snoozed any longer.  Note
+        that this means issues older than ``GROUP_SNOOZE_DAYS`` days old will not be automatically resolved (but still counted against max stats).
+        :returns: one of ``GroupStatus.UNRESOLVED``, ``GroupStatus.IGNORED``, or ``GroupStatus.RESOLVED``; depending on what the most important status for
+        this group is right now based on our heuristics and thresholds defined above in `get_status`.   For example, if an issue has only 1 event so far and
+        we're at `MINIMUM UNRESOLVED EVENT THRESHOLD` then we'll mark it as unresolved no matter what - but if there
+        """
         # XXX(dcramer): GroupSerializer reimplements this logic
         from sentry.models import GroupSnooze
 
@@ -493,6 +548,9 @@ class Group(Model):
         return status
 
     def get_share_id(self):
+        """
+        :returns: the UUID of the first GroupShare for a group, or None if it has not been shared yet.
+        """
         from sentry.models import GroupShare
 
         try:
@@ -551,6 +609,16 @@ class Group(Model):
             return None
 
     def get_first_release(self):
+        """
+        Get the first release of a project.
+
+        :param project_id: The ID of the project to get the first release from.
+        :type project_id: int
+
+            :returns: The
+        version number of the first release or None if no releases exist for this Project.
+            :rtype: str or NoneType
+        """
         if self.first_release_id is None:
             first_release = self.__get_release(self.project_id, self.id, True)
             return first_release
@@ -619,6 +687,21 @@ class Group(Model):
 
     @staticmethod
     def issues_mapping(group_ids, project_ids, organization):
+        """
+        Create a dictionary of group_ids to their qualified_short_ids
+
+        :param list group_ids: A list of Group IDs.
+        :param list project_ids: A list of Project
+        IDs.
+        :param Organization organization: The Organization that the Groups belong to.
+
+            :returns dict(int, str): Returns a dictionary mapping Group
+        IDs to their qualified short IDS (e.g., 'my-org/my-project/123').
+
+                {123456789012, 'my-org/my-project/123'}  # where 123456789012 is the Group
+        ID and my-org is the Organization slug and my-project is the Project slug and 123 is the Event ID within that project for an example event with this
+        issue.
+        """
         """Create a dictionary of group_ids to their qualified_short_ids"""
         return {
             i.id: i.qualified_short_id

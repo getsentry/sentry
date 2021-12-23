@@ -22,6 +22,9 @@ class SudoForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_password(self):
+        """
+        Validates the password by authenticating against the user's username.
+        """
         username = self.user.get_username()
 
         if auth.authenticate(

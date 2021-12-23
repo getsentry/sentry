@@ -22,6 +22,9 @@ class CheckInStatus:
 
     @classmethod
     def as_choices(cls):
+        """
+        Returns a tuple of tuples containing the status code and its string representation.
+        """
         return (
             (cls.UNKNOWN, "unknown"),
             (cls.OK, "ok"),

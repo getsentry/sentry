@@ -41,6 +41,25 @@ class ProjectCodeOwners(DefaultFieldsModel):
     @classmethod
     def get_codeowners_cached(self, project_id):
         """
+        .. function: get_codeowners_cached(self, project_id)
+            Cached read access to sentry_projectcodeowners.
+
+            This method implements a negative cache
+        which saves us
+            a pile of read queries in post_processing as most projects
+            don't have CODEOWNERS.
+
+           :param self: The instance of the class
+        itself (e.g., ``self``).  This parameter is not used in this function but is included because it's needed for all functions that are part of a class.
+        It can be ignored when calling the function outside of the class structure or when creating your own wrapper functions around this core codebase's API
+        calls.
+           :type self: <class 'sentry-api-0-project-external-issues'>
+
+           :param project_id: The ID for the Sentry Project you're querying data from
+        (e.g., ``"1"``).  If no value is provided, then an error will be raised and nothing will happen (i.e., you must specify a valid Project ID).  Note
+        that if no value is specified, then 1) we assume that you're querying some global resource and 2) we assume that there
+        """
+        """
         Cached read access to sentry_projectcodeowners.
 
         This method implements a negative cache which saves us
@@ -58,6 +77,12 @@ class ProjectCodeOwners(DefaultFieldsModel):
 
     @classmethod
     def validate_codeowners_associations(self, codeowners, project):
+        """
+        Validate the associations between codeowners and users/teams.
+
+        :param codeowners: A list of CODEOWNERS rules.
+        :type codeowners: list(str)
+        """
         from sentry.api.endpoints.project_codeowners import validate_association
         from sentry.models import (
             ExternalActor,
@@ -132,6 +157,9 @@ class ProjectCodeOwners(DefaultFieldsModel):
 
     @classmethod
     def merge_code_owners_list(self, code_owners_list):
+        """
+        Merge list of code_owners into a single code_owners object concatenating all the rules. We assume schema version is constant.
+        """
         """
         Merge list of code_owners into a single code_owners object concatenating
         all the rules. We assume schema version is constant.

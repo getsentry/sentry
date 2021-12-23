@@ -35,6 +35,10 @@ class Breadcrumbs(Interface):
         return super().to_python({"values": values}, **kwargs)
 
     def to_json(self):
+        """
+        :param values:
+            A list of :class:`~sentry.interfaces.breadcrumbs.Breadcrumb`.
+        """
         return prune_empty_keys(
             {
                 "values": [
@@ -57,6 +61,12 @@ class Breadcrumbs(Interface):
 
     @classmethod
     def normalize_crumb(cls, crumb):
+        """
+        Normalize a crumb dict.
+
+        :param dict crumb: A raw event from the Sentry API.
+        :returns: The normalized crumb.
+        """
         crumb = dict(crumb)
         ts = parse_timestamp(crumb.get("timestamp"))
         if ts:
@@ -71,6 +81,21 @@ class Breadcrumbs(Interface):
 
     def get_api_context(self, is_public=False, platform=None):
         def _convert(x):
+            """
+            Convert a log record to a dictionary.
+
+            :param x: A log record as returned by :func:`logging.Logger.makeRecord`.
+            :returns: A dictionary with the
+            following keys and values (all optional):
+
+                ``type`` (*string*) -- The type of message, e.g., "error" or "warning".
+
+                ``timestamp`` (*datetime*)
+            -- The time at which the event occurred; if not specified, defaults to *now*.
+
+                ``level`` (*string*) -- The level of importance for this event; if
+            not specified, defaults to "info".  Possible values are "debug", "info", "warning", and finally error.
+            """
             return {
                 "type": x["type"],
                 "timestamp": x["timestamp"] and to_datetime(x["timestamp"]),

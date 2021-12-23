@@ -58,6 +58,21 @@ class Template(Interface):
         return "\n".join(result)
 
     def get_traceback(self, event, context):
+        """
+        Prints a traceback for an exception.
+
+        :param event: The AWS Lambda event object. This is passed implicitly by the Lambda service and contains data of
+        the request sent to your code. It also has metadata about the request, such as which function was called and how long it took to process the request.
+        :type event: dict
+
+            :param context: The AWS Lambda context object. This is also passed implicitly by the Lambda service and contains runtime
+        information about your code's execution, such as details about any exceptions that were thrown while processing your function, or information related
+        to timing functions with `timeit`. 
+            :type context: dict
+
+                :returns str -- A string containing a formatted traceback for an exception raised
+        in your function's code block.
+        """
         result = [event.message, "", f'File "{self.filename}", line {self.lineno}', ""]
         result.extend([n[1].strip("\n") if n[1] else "" for n in context])
 

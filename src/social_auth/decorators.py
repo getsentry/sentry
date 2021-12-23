@@ -14,6 +14,23 @@ def dsa_view(redirect_name=None):
     """
 
     def dec(func):
+        """
+        dec(func)
+            @wraps(func)
+            def wrapper(request, backend, *args, **kwargs):
+                if redirect_name:
+                    redirect = reverse(redirect_name,
+        args=(backend,) )  # no need to call reverse() here because the decorator will do it for us.  (It's called by get_backend().)   # no need to call
+        reverse() here because the decorator will do it for us.  (It's called by get_backend().)   # no need to call reverse() here because the decorator will
+        do it for us.  (It's called by get_backend().)   # no need to call reverse() here because the decorator will do it for us.  (It's called by
+        get_backend().)   # no need to call reverse() here because the decorator will do it for us.  (It's called by get_backend().)    
+
+                else:
+        redirect = request.path
+
+                request.social_auth=getattr('social', 'auth')      ## this is a hack that allows me access social auth from within my
+        views without having them inherit
+        """
         @wraps(func)
         def wrapper(request, backend, *args, **kwargs):
             if redirect_name:

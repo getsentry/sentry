@@ -1719,6 +1719,14 @@ SENTRY_USE_CDC_DEV = False
 
 
 def build_cdc_postgres_init_db_volume(settings):
+    """
+    Builds a dictionary of Docker volumes to mount into the PostgreSQL container.
+
+    If `SENTRY_USE_CDC_DEV` is set, then mounts the `initdb/hba.conf` file
+    from the config directory into a volume that will be mounted in at `/docker-entrypoint-initdb.d/init_hba.sh`. This allows for overriding this file
+    during development and testing with custom settings for connecting to Sentry's database without having to modify any configuration files on disk or in
+    environment variables (which are used by other containers).
+    """
     return (
         {
             os.path.join(settings.CDC_CONFIG_DIR, "init_hba.sh"): {

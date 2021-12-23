@@ -36,6 +36,13 @@ class GroupMetaManager(BaseManager):
     __cache = property(_get_cache, _set_cache)
 
     def contribute_to_class(self, model, name):
+        """
+        .. automethod :: cache_model.CacheModelMixin.contribute_to_class
+
+        Connects the :func:`cache_model.CacheModelMixin.clear_local_cache` signal handler to
+        Django's ``request-finished`` and ``task-postrun`` signals, allowing the cache to be cleared automatically when appropriate (e.g., after a save or
+        delete).
+        """
         model.CacheNotPopulated = CacheNotPopulated
         super().contribute_to_class(model, name)
         task_postrun.connect(self.clear_local_cache)
@@ -45,6 +52,11 @@ class GroupMetaManager(BaseManager):
         self.__cache = {}
 
     def populate_cache(self, instance_list):
+        """
+        Populates the cache for all of the group's `GroupTagValue` objects.
+
+        :param instance_list: A list of Group instances to populate the cache with.
+        """
         for group in instance_list:
             self.__cache.setdefault(group.id, {})
 
@@ -70,6 +82,10 @@ class GroupMetaManager(BaseManager):
         return inst_cache.get(key, default)
 
     def unset_value(self, instance, key):
+        """
+        Removes the value for the given ``key`` in this ``group`` for
+        the provided ``instance``.
+        """
         self.filter(group=instance, key=key).delete()
         try:
             del self.__cache[instance.id][key]
@@ -77,6 +93,12 @@ class GroupMetaManager(BaseManager):
             pass
 
     def set_value(self, instance, key, value):
+        """
+        Sets the value of a key for a group.
+
+        :param instance: The group to set the value for.
+        :type instance: :class:`Group` or :class:
+        """
         self.create_or_update(group=instance, key=key, values={"value": value})
         self.__cache.setdefault(instance.id, {})
         self.__cache[instance.id][key] = value

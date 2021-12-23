@@ -111,6 +111,12 @@ def safe_urlread(response):
 
 
 def expose_url(url):
+    """
+    Expose a URL for the user.
+
+    :param url: The URL to expose. If ``None``, an empty string will be returned instead.
+    :type url: str or NoneType
+    """
     if url is None:
         return "<unknown>"
     if url[:5] == "data:":

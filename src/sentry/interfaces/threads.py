@@ -44,7 +44,18 @@ class Threads(Interface):
         return super().to_python({"values": threads}, **kwargs)
 
     def to_json(self):
+        """
+        :param self:
+        :returns:
+        """
         def export_thread(data):
+            """
+            .. function: export_thread(data)
+
+                :param data: A thread to be exported.
+                :type data: dict
+                :returns: A thread that is ready for export.
+            """
             if data is None:
                 return None
 
@@ -65,6 +76,13 @@ class Threads(Interface):
 
     def get_api_context(self, is_public=False, platform=None):
         def export_thread(data):
+            """
+            .. function: export_thread(data)
+
+                :param data: A thread to be exported.
+                :type data: dict
+                :returns: A thread that is ready for export.
+            """
             rv = {
                 "id": data["id"],
                 "current": data["current"],

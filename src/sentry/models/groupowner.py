@@ -50,6 +50,16 @@ class GroupOwner(Model):
         super().save(*args, **kwargs)
 
     def owner_id(self):
+        """
+        Get the owner ID for a given user or team.
+
+        :param user_id: The ID of the :class:`~github3.users.ShortUser` to get an owner ID for, if provided
+        :type
+        user_id: int or None, optional
+            :param team_id: The ID of the :class:`~github3.orgs.ShortTeam` to get an owner ID for, if provided
+            :type
+        team_id; int or None, optional
+        """
         if self.user_id:
             return f"user:{self.user_id}"
 
@@ -65,6 +75,11 @@ class GroupOwner(Model):
 
 
 def get_owner_details(group_list):
+    """
+    Given a list of groups, return a dictionary with the group ids as keys and the values being lists of dictionaries containing
+    the owner type, actor
+    identifier (e.g. email address), and date added for each group owner.
+    """
     group_ids = [g.id for g in group_list]
     group_owners = GroupOwner.objects.filter(group__in=group_ids)
     owner_details = defaultdict(list)

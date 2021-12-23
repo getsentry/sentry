@@ -134,6 +134,19 @@ class Mechanism(Interface):
         return super().to_python(data, **kwargs)
 
     def to_json(self):
+        """
+        :param values:
+            A list of :class:`Value` objects.
+        """
+        """
+        :param values: A list of :class:`Value` objects.
+        :param exc_omitted: If ``True``, the value is unknown due to an exception being raised while
+        attempting to retrieve it.
+        """
+        """
+        :param values:
+            A list of :class:`Value` objects.
+        """
         return prune_empty_keys(
             {
                 "type": self.type,
@@ -147,6 +160,19 @@ class Mechanism(Interface):
         )
 
     def iter_tags(self):
+        """
+        Iterate over the tags of a :class:`~.TagSet`.
+
+        The first tag is always the mechanism, which may be an instance of :class:`~.Mechanism`, or None if no
+        mechanism was specified in the tag set. The remaining tags are in arbitrary order, and may be instances of :class:`~.Tag`, or strings that will be
+        converted to instances of :class:`~.Tag`.
+        """
+        """
+        Iterate over the tags of a :class:`~.TagSet`.
+
+        If the tagset has no values, this function returns an empty iterator. Otherwise, it iterates over all
+        tags in the first value's mechanism (if any). If that value has no mechanism or its mechanism is empty, this function returns an empty iterator.
+        """
         yield (self.path, self.type)
 
         if self.handled is not None:
@@ -249,6 +275,19 @@ class SingleException(Interface):
         return super().to_python(new_data, **kwargs)
 
     def to_json(self):
+        """
+        :param values:
+            A list of :class:`Value` objects.
+        """
+        """
+        :param values: A list of :class:`Value` objects.
+        :param exc_omitted: If ``True``, the value is unknown due to an exception being raised while
+        attempting to retrieve it.
+        """
+        """
+        :param values:
+            A list of :class:`Value` objects.
+        """
         mechanism = (
             isinstance(self.mechanism, Mechanism)
             and self.mechanism.to_json()
@@ -398,6 +437,19 @@ class Exception(Interface):
     # methods below might throw if None exceptions are in ``values``.
 
     def to_json(self):
+        """
+        :param values:
+            A list of :class:`Value` objects.
+        """
+        """
+        :param values: A list of :class:`Value` objects.
+        :param exc_omitted: If ``True``, the value is unknown due to an exception being raised while
+        attempting to retrieve it.
+        """
+        """
+        :param values:
+            A list of :class:`Value` objects.
+        """
         return prune_empty_keys(
             {
                 "values": [v and v.to_json() for v in self.values] or None,
@@ -455,6 +507,19 @@ class Exception(Interface):
         return ""
 
     def iter_tags(self):
+        """
+        Iterate over the tags of a :class:`~.TagSet`.
+
+        The first tag is always the mechanism, which may be an instance of :class:`~.Mechanism`, or None if no
+        mechanism was specified in the tag set. The remaining tags are in arbitrary order, and may be instances of :class:`~.Tag`, or strings that will be
+        converted to instances of :class:`~.Tag`.
+        """
+        """
+        Iterate over the tags of a :class:`~.TagSet`.
+
+        If the tagset has no values, this function returns an empty iterator. Otherwise, it iterates over all
+        tags in the first value's mechanism (if any). If that value has no mechanism or its mechanism is empty, this function returns an empty iterator.
+        """
         if not self.values or not self.values[0]:
             return
 

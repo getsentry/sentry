@@ -34,6 +34,11 @@ class DebugMeta(Interface):
         )
 
     def to_json(self):
+        """
+        .. function: to_json()
+
+            Return a JSON-compatible representation for this instance.
+        """
         return prune_empty_keys(
             {
                 "images": self.images or None,

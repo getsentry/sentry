@@ -27,6 +27,11 @@ def pad_hex_addr(addr, length):
 
 
 def trim_package(pkg):
+    """
+    trim_package(pkg)
+
+    Return the last component of a package name without file extensions. If `pkg` is ``None``, return ``"?"``.
+    """
     if not pkg:
         return "?"
     pkg = pkg.split("/")[-1]
@@ -36,6 +41,14 @@ def trim_package(pkg):
 
 
 def to_hex_addr(addr):
+    """
+    Convert an address to a hexadecimal string.
+
+    :param addr: The address to convert. May be an integer or a string containing the hexadecimal
+    representation of the address. If None, returns None; if not specified, raises ValueError.
+    :returns str: A 24-character long hexadecimal
+    representation of ``addr`` or None if ``addr`` is None.
+    """
     if addr is None:
         return None
     elif isinstance(addr, int):
@@ -86,6 +99,15 @@ def get_context(lineno, context_line, pre_context=None, post_context=None):
 
 
 def is_newest_frame_first(event):
+    """
+    Returns ``True`` if the stacktrace for each exception in a group should be
+    displayed in newest first order.  This defaults to ``True`` if and only if
+    the platform is not "python".
+
+        :param event: A :py:class:`Event` instance.
+
+        :returns bool: Returns `True` or `False`.
+    """
     newest_first = event.platform not in ("python", None)
 
     if env.request and env.request.user.is_authenticated:
@@ -160,6 +182,16 @@ class Frame(Interface):
         return super().to_python(data, **kwargs)
 
     def to_json(self):
+        """
+        :param frames: A list of :class:`Frame` objects.
+        :param frames_omitted: A 2-tuple indicating the beginning and end of a range of frame indexes where
+        extra frames have been omitted (defaults to `(0, 0)`).
+        """
+        """
+        :param frames: A list of :class:`Frame` objects.
+        :param frames_omitted: A 2-tuple indicating the number of leading and trailing frames that have been
+        elided. Useful for pagination, when it is desired not to show the first/last few stack frames in a result.
+        """
         return prune_empty_keys(
             {
                 "abs_path": self.abs_path or None,
@@ -277,6 +309,11 @@ class Frame(Interface):
         }
 
     def is_url(self):
+    """
+    Return True if the given string is a URL.
+
+    :param str abs_path: The absolute path to check.
+    """
         if not self.abs_path:
             return False
         # URLs can be generated such that they are:
@@ -293,6 +330,25 @@ class Frame(Interface):
         return self.filename.startswith("Caused by: ")
 
     def is_unhashable_module(self, platform):
+        """
+        Returns ``True`` if the given module is an unhashable module (i.e. a
+        module that doesn't exist in the codebase and therefore has no
+        stable hash) or
+        ``False`` otherwise.  The following are examples of
+        unhashable modules:
+
+            * Modules with dashes or other non-identifier characters in them
+
+              -
+        `my_package/my_module`
+
+              - `django-stuff/thing`
+
+            * Modules from Java lambda functions (these change each time they're compiled)
+
+              -
+        `$$Lambda$py4j0x6g1v73kn6mf7zq8t3a5w2s/.MyClass`
+        """
         # Fix for the case where module is a partial copy of the URL
         # and should not be hashed
         if (
@@ -464,6 +520,12 @@ class Stacktrace(Interface):
         return any(frame.in_app for frame in self.frames)
 
     def get_longest_address(self):
+        """
+        Return the highest address of any frame in this stacktrace.
+
+        :returns: The highest address of any frame in this stacktrace, or ``None`` if there are
+        no frames.
+        """
         rv = None
         for frame in self.frames:
             rv = max_addr(rv, frame.instruction_addr)
@@ -504,6 +566,16 @@ class Stacktrace(Interface):
         }
 
     def to_json(self):
+        """
+        :param frames: A list of :class:`Frame` objects.
+        :param frames_omitted: A 2-tuple indicating the beginning and end of a range of frame indexes where
+        extra frames have been omitted (defaults to `(0, 0)`).
+        """
+        """
+        :param frames: A list of :class:`Frame` objects.
+        :param frames_omitted: A 2-tuple indicating the number of leading and trailing frames that have been
+        elided. Useful for pagination, when it is desired not to show the first/last few stack frames in a result.
+        """
         return prune_empty_keys(
             {
                 "frames": [f and f.to_json() for f in self.frames] or None,

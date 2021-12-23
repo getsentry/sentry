@@ -12,6 +12,16 @@ class Bit:
             self.mask = ~self.mask
 
     def __repr__(self):
+        """
+        A bitfield class that can be used to represent a set of flags.
+
+        :param iterable keys: The names of the flags in this bitfield.
+        """
+        """
+        This is a class that implements a bit field.
+
+        :param int size: The number of bits in the field.
+        """
         return "<%s: number=%d, is_set=%s>" % (self.__class__.__name__, self.number, self.is_set)
 
     def __int__(self):
@@ -135,6 +145,16 @@ class BitHandler:
         return cmp(self._value, other)
 
     def __repr__(self):
+        """
+        A bitfield class that can be used to represent a set of flags.
+
+        :param iterable keys: The names of the flags in this bitfield.
+        """
+        """
+        This is a class that implements a bit field.
+
+        :param int size: The number of bits in the field.
+        """
         return "<{}: {}>".format(
             self.__class__.__name__,
             ", ".join(f"{k}={self.get_bit(n).is_set}" for n, k in enumerate(self._keys)),
@@ -177,6 +197,10 @@ class BitHandler:
         return bool(self.get_bit(bit_number))
 
     def __getattr__(self, key):
+        """
+        :param key: The name of the flag to get.
+        :type key: str
+        """
         if key.startswith("_"):
             return object.__getattribute__(self, key)
         if key not in self._keys:
@@ -186,6 +210,11 @@ class BitHandler:
     __getitem__ = __getattr__
 
     def __setattr__(self, key, value):
+        """
+        Sets the bit at offset in the binary representation of self, and returns
+        the new value of self. Raises an :exc:`AttributeError` if offset is out of
+        range (i.e., larger than or equal to :attr:`~BitField.length`, or negative).
+        """
         if key.startswith("_"):
             return object.__setattr__(self, key, value)
         if key not in self._keys:
@@ -213,6 +242,11 @@ class BitHandler:
         return Bit(bit_number, self._value & mask != 0)
 
     def set_bit(self, bit_number, true_or_false):
+        """
+        Set the bit at `bit_number` to 1 if `true_or_false` is True,
+        otherwise set it to 0. Returns a new Bit object with the value of
+        this bit.
+        """
         mask = 2 ** int(bit_number)
         if true_or_false:
             self._value |= mask
@@ -234,6 +268,11 @@ class BitHandler:
             yield (k, getattr(self, k).is_set)
 
     def get_label(self, flag):
+        """
+        Returns the label for a given flag.
+
+        :param flag: The name of the flag or its index in :attr:`flags`.
+        """
         if isinstance(flag, str):
             flag = self._keys.index(flag)
         if isinstance(flag, Bit):

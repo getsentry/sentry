@@ -31,6 +31,10 @@ class FileWrapperWSGIHandler(WSGIHandler):
     we upgraded, this wouldn't be relevant anymore."""
 
     def __call__(self, environ, start_response):
+        """
+        WSGI middleware that wraps an application in a try/except block and returns
+        a generic HTTP 500 error page if an exception is raised.
+        """
         response = super().__call__(environ, start_response)
         if hasattr(response, "streaming") and response.streaming:
             try:

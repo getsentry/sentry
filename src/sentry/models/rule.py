@@ -53,6 +53,13 @@ class Rule(Model):
 
     @classmethod
     def get_for_project(cls, project_id):
+        """
+        Returns a list of rules for the given project.
+        :param cls: The Rule class to use.
+        :type cls: type
+        :param project_id: The ID of the project to get
+        rules for.
+        """
         cache_key = f"project:{project_id}:rules"
         rules_list = cache.get(cache_key)
         if rules_list is None:
@@ -62,6 +69,9 @@ class Rule(Model):
 
     @property
     def created_by(self):
+        """
+        :returns: the user who created this rule
+        """
         try:
             created_activity = RuleActivity.objects.get(
                 rule=self, type=RuleActivityType.CREATED.value

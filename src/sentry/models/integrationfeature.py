@@ -23,6 +23,9 @@ class Feature:
 
     @classmethod
     def as_choices(cls):
+        """
+        Returns a tuple of tuples containing the `IntegrationType` and its string representation.
+        """
         return (
             (cls.API, "integrations-api"),
             (cls.ISSUE_LINK, "integrations-issue-link"),
@@ -36,6 +39,14 @@ class Feature:
 
     @classmethod
     def as_str(cls, feature):
+        """
+        Return the feature name for a given feature flag.
+
+        :param cls: The FeatureFlag class
+        :param feature: The string identifier of the flag
+        :returns: A
+        string describing the integration type, or None if not found.
+        """
         if feature == cls.ISSUE_LINK:
             return "integrations-issue-link"
         if feature == cls.STACKTRACE_LINK:
@@ -155,6 +166,13 @@ class IntegrationFeature(Model):
 
     @property
     def description(self):
+        """
+        :param self: The :class:`IntegrationFeature` instance.
+        """
+        """
+        :param self: The instance of the class.
+        :type self: FeatureDescription
+        """
         from sentry.models import DocIntegration, SentryApp
 
         if self.user_description:

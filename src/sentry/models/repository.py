@@ -39,6 +39,18 @@ class Repository(Model, PendingDeletionMixin):
         return self.provider and self.provider.startswith("integrations:")
 
     def get_provider(self):
+        """
+        :param provider:
+            The unique string identifier for the service that provides repository hosting.
+            This is used to route requests through the
+        integration pipeline to a specialized provider.
+
+            If no integration is available for this provider, this should be left unset.
+
+          :returns:
+             A
+        subclass of :class:`RepositoryProvider`. If no suitable implementation could be found, ``None`` will be returned instead.
+        """
         from sentry.plugins.base import bindings
 
         if self.has_integration_provider():
@@ -49,6 +61,13 @@ class Repository(Model, PendingDeletionMixin):
         return provider_cls(self.provider)
 
     def generate_delete_fail_email(self, error_message):
+        """
+        Generate an email to send when a repository deletion fails.
+
+        :param self: A :class:`Repository` instance.
+        :param error_message: An error message
+        explaining what went wrong during the deletion process.
+        """
         from sentry.utils.email import MessageBuilder
 
         new_context = {
@@ -86,6 +105,21 @@ def on_delete(instance, actor=None, **kwargs):
         return
 
     def handle_exception(e):
+        """
+        This function is used to handle exceptions that occur in the ``delete_organization`` method of the ``OrganizationIntegration`` class.
+
+        :param e: The
+        exception that occurred.
+        :type e: Exception
+
+            :param actor: The user who triggered the action resulting in this exception being raised. This
+        parameter is optional and defaults to None if not specified. It will be passed as None if not specified or empty, but it can also be set explicitly to
+        a value of 'None'. 
+            :type actor: User
+
+            :returns error_message - A concise reStructuredText docstring for the above function that explains what
+        the code does without using general terms or examples.: str
+        """
         from sentry.exceptions import InvalidIdentity, PluginError
         from sentry.shared_integrations.exceptions import IntegrationError
 

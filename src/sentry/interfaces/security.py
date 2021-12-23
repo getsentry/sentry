@@ -189,6 +189,9 @@ class Csp(SecurityReport):
         """
         If this is a locally-sourced script-src error, gives the type.
         """
+        """
+        If this is a locally-sourced script-src error, gives the type.
+        """
         if (
             self.violated_directive
             and self.effective_directive == "script-src"
@@ -201,6 +204,16 @@ class Csp(SecurityReport):
         return None
 
     def _normalize_uri(self, value):
+        """
+        .. function: normalize_uri(value)
+
+            Normalizes a URI. If the value is ``LOCAL``, then returns ``LOCAL``.
+            Otherwise, returns a normalized form
+        of the value as long as it is valid
+            scheme://hostname[:port].
+
+            :param str value: The URI to normalize.
+        """
         if value in ("", self.LOCAL, self.LOCAL.strip("'")):
             return self.LOCAL
 

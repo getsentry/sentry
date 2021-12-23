@@ -42,6 +42,11 @@ class OrganizationStatus(IntEnum):
 
     @classmethod
     def as_choices(cls):
+        """
+        Convert a Python Enum to a tuple of tuples containing the value and label for each member.
+
+        :param cls: The enum class to convert.
+        """
         result = []
         for name, member in cls.__members__.items():
             # an alias
@@ -168,6 +173,9 @@ class Organization(Model):
     @classmethod
     def get_default(cls):
         """
+        :returns: the organization used in single organization mode
+        """
+        """
         Return the organization used in single organization mode.
         """
 
@@ -214,6 +222,10 @@ class Organization(Model):
         return queryset.exists()
 
     def get_audit_log_data(self):
+        """
+        :param self: The object instance.
+        :type self: :class:'Project'
+        """
         return {
             "id": self.id,
             "slug": self.slug,
@@ -238,6 +250,9 @@ class Organization(Model):
         return self._default_owner
 
     def has_single_owner(self):
+        """
+        :returns: ``True`` if the organization has a single owner, otherwise ``False``
+        """
         from sentry.models import OrganizationMember
 
         count = OrganizationMember.objects.filter(
@@ -246,6 +261,30 @@ class Organization(Model):
         return count == 1
 
     def merge_to(from_org, to_org):
+        """
+        Migrates an organization and related attributes to a new organization.
+
+        :param from_org: The Organization instance you want to migrate data from.
+        :type from_org: :class:`sentry.models.Organization`
+             :param to_org: The Organization instance you want to migrate data into (must be different
+        than `from_org`).  # noQA W505
+             :type to_org; class 'sentry.models.Organization'
+
+            * Updates the `organization foreign key on each of its
+        related models (e..g, projects) so that each points at the new org instead of the old one  # noQA E501
+
+            * Migrates all Project instances in this
+        organization into another one using Project._transfer(), which handles copying over their custom settings/fields/etc correctly  # noQA E501
+
+            *
+        Migrates all Release instances in this organization into another one using Release._transfer(), which handles copying over their custom fields
+        correctly  # noQA E501
+
+            * Updates any other models that have a foreign key onto Organization with the correct value for `organization`. This
+        includes things like AuthProvider, ApiKey, AuditLogEntry, etc - any model where an Organization is used as a ForeignKey field will need its FK updated
+        after calling _transfer(). These are represented by ATTRIBUTE__MODELLIST above and handled by doUpdate() below - they're broken out separately just
+        for readability / ease of understanding what's going on here :)   # noQA E501
+        """
         from sentry.models import (
             ApiKey,
             AuditLogEntry,
@@ -353,6 +392,26 @@ class Organization(Model):
             )
 
         def do_update(queryset, params):
+            """
+            Update the given model with the given parameters.
+
+            :param queryset: The queryset to update.
+            :type queryset: :class:`django.db.models.QuerySet` or
+            :class:`django_analyses.models.*` subclass
+                instance (e,g., :class:`.Run`, :class:`.Result`, etc.)
+
+                .. note ::
+
+                    This function is
+            intended to be used as a callback for a bulk operation on a QuerySet of instances of one of the models in this package that have an ``organization``
+            field and are therefore associated with an organization (e,g., Run, Result).
+
+                    If you're not using this function as part of such an operation
+            then you should probably use the regular update method instead since it's more explicit about what it does and will be faster because it doesn't
+            perform any additional queries while this function does but will still work if there is no organization field on your model class so long as you know
+            how to interpret its results!  In fact, unless I find some reason to change my mind I'll make sure that all new code uses update() instead since
+            there's no need for something like this at all!  It
+            """
             model_name = queryset.model.__name__.lower()
             try:
                 with transaction.atomic(using=router.db_for_write(queryset.model)):
@@ -428,6 +487,20 @@ class Organization(Model):
         return OrganizationOption.objects.unset_value(self, *args, **kwargs)
 
     def send_delete_confirmation(self, audit_log_entry, countdown):
+        """
+        Sends an email to all owners confirming that the deletion has been queued.
+
+        :param self: The Organization being deleted.
+        :param audit_log_entry: An
+        AuditLogEntry instance for this deletion action. This is used to log who requested the deletion and when. It is optional, but it's best to fill this
+        in so that we can track down what happened if an issue occurs later on (e.g., user forgot their org ID).
+        :param countdown: How long, in seconds,
+        before the organization should be removed from Sentry entirely? This should be based on how long it takes your DELETE endpoint to process a delete
+        request (e.g., 30 seconds). Note that you can send a ``DELETE`` request manually at any time via your API client if you need more fine-grained control
+        over when things are removed from Sentry than what each interval provides (see `sentry/api/endpoints/organization_details` for details). We recommend
+        setting this value slightly higher than however long you think it'll take to delete everything related to the organization so there's enough time for
+        someone accidentally clicking through and restoring their org before everything gets purged out of Sentry completely by cron job
+        """
         from sentry import options
         from sentry.utils.email import MessageBuilder
 
@@ -449,6 +522,12 @@ class Organization(Model):
         ).send_async([o.email for o in owners])
 
     def _handle_requirement_change(self, request, task):
+        """
+        _handle_requirement_change(self, request, task)
+
+        Given a `request` object and a `task` function that takes an organization id and sends the change to
+        Sentry's event stream, send the current requirement state of this project to Sentry.
+        """
         from sentry.models import ApiKey
 
         actor_id = request.user.id if request.user and request.user.is_authenticated else None
@@ -462,11 +541,23 @@ class Organization(Model):
         task.delay(self.id, actor_id=actor_id, actor_key_id=api_key_id, ip_address=ip_address)
 
     def handle_2fa_required(self, request):
+        """
+        .. function: handle_2fa_required(self, request)
+            :noindex:
+
+            This function is called when a user attempts to access the site without having 2FA
+        enabled. It will remove all users that do not have 2FA enabled from the organization and send them an email explaining why they have been removed.
+        """
         from sentry.tasks.auth import remove_2fa_non_compliant_members
 
         self._handle_requirement_change(request, remove_2fa_non_compliant_members)
 
     def handle_email_verification_required(self, request):
+        """
+        Handle email verification required.
+
+        If the organization requires email verification, remove all members that do not have a valid email address.
+        """
         from sentry.tasks.auth import remove_email_verification_non_compliant_members
 
         if features.has("organizations:required-email-verification", self):

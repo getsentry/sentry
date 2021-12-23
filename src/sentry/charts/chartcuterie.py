@@ -30,6 +30,15 @@ class Chartcuterie(ChartRenderer):
 
     @property
     def storage_options(self):
+        """
+        .. function: storage_options()
+            :noindex:
+
+            Returns the configured storage options for chart rendering.
+
+            If no custom driver is configured,
+        this will return ``None``.
+        """
         backend = options.get("chart-rendering.storage.backend")
         opts = options.get("chart-rendering.storage.options")
 

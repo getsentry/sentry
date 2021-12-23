@@ -29,6 +29,13 @@ class SudoMiddleware(MiddlewareMixin):
         return has_sudo_privileges(request)
 
     def process_request(self, request):
+        """
+        Checks if the user is logged in and has superuser privileges.
+
+        :param request: The HttpRequest object associated with this request.
+        :returns: True if
+        the user is logged in and has superuser privileges, False otherwise.
+        """
         assert hasattr(request, "session"), (
             "The Sudo middleware requires session middleware to be installed."
             "Edit your MIDDLEWARE setting to insert "
@@ -38,6 +45,24 @@ class SudoMiddleware(MiddlewareMixin):
         request.is_sudo = lambda: self.has_sudo_privileges(request)
 
     def process_response(self, request, response):
+        """
+        Sets a signed cookie named ``<COOKIE_NAME>`` on the response object.
+        The cookie will be marked as “secure” if ``<COOKIE_SECURE>`` is truthy, and
+        “httponly” (i.e., not accessible to JavaScript) if ``<COOKIE_HTTPONLY>`` is truthy.
+        If ``max_age=None``, the cookie will be a session cookie and will
+        expire upon the user agent closing. Otherwise, max_age must be an integer number of seconds or None; in this case the specified value will be used as
+        the session expiration (and passed directly to `setcookie()`). If either argument is left unspecified, that setting is left unchanged from its current
+        value or default value:
+
+            * COOKIE_NAME: "sudo"
+
+            * COOKIE_SALT: "django-sudo"
+
+            * COOKIE_SECURE: True  # Only send via HTTPS
+
+            *
+        COOKIE_HTTPONLY: True  # Not accessible by JavaScript code
+        """
         is_sudo = getattr(request, "_sudo", None)
 
         if is_sudo is None:

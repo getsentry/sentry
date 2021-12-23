@@ -44,6 +44,21 @@ class Environment(Model):
 
     @classmethod
     def is_valid_name(cls, value):
+        """
+        .. function: is_valid_name(value)
+
+            Return ``True`` if the given string is a valid environment name.
+
+        Args:
+            value (str): The environment name
+        to validate.
+
+            Returns:
+                bool: ``True`` if the given string is a valid environment name, otherwise ``False``.
+
+                If you change the
+        rules here also update the event ingestion schema in Relay.
+        """
         """Limit length and reject problematic bytes
 
         If you change the rules here also update the event ingestion schema in Relay.
@@ -62,6 +77,10 @@ class Environment(Model):
 
     @classmethod
     def get_for_organization_id(cls, organization_id, name):
+        """
+        Get the :class:`Environment` with the given name for the organization with
+        the given ID. If no environment is found, returns None.
+        """
         name = cls.get_name_or_default(name)
 
         cache_key = cls.get_cache_key(organization_id, name)
@@ -75,6 +94,13 @@ class Environment(Model):
 
     @classmethod
     def get_or_create(cls, project, name):
+        """
+        Gets or creates an environment given a project and name.
+
+        :param project: The project to lookup the environment in
+        :param name: The name of the
+        environment
+        """
         with metrics.timer("models.environment.get_or_create") as metrics_tags:
             name = cls.get_name_or_default(name)
 

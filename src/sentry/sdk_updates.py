@@ -19,6 +19,22 @@ class SdkSetupState:
         self.integrations = list(integrations or ())
 
     def copy(self):
+        """
+        Copy a `SdkSetupState` object.
+
+        :param sdk_name: The SDK name.
+        :param sdk_name: str
+        :param sdk_name: The SDK version. This is usually the semantic
+        version number of the SDK, e.g., '1.0' or '2'. This may also be used to store other information about the installed version of an SDK, such as a git
+        SHA-1 hash for an installed release build from PyPI, or a build number for an installed development build from PyPI (in this case it should start with
+        ``dev``). In these cases it is recommended that some sort of convention be used so that code can understand what you mean when you pass in this value
+        into your ``SdkSetupState`` object and back out again; otherwise there would not be any guarantee that two developers who are using different
+        versions/builds of their particular library will have matching values here (and if they do then we've got bigger problems than just avoiding
+        collisions between them!).  :type sdk_name=str
+
+            :param modules=None): A list containing all modules currently imported by your program and
+        available in its namespace at setup time (i.e., all modules found
+        """
         return type(self)(
             sdk_name=self.sdk_name,
             sdk_version=self.sdk_version,
@@ -28,6 +44,15 @@ class SdkSetupState:
 
     @classmethod
     def from_event_json(cls, event_data):
+        """
+        .. function: from_event_json(event_data)
+
+            Creates a :class:`EventSDK` instance from the given event data.
+
+            :param dict event_data:
+                The
+        raw event data.
+        """
         sdk_name = get_path(event_data, "sdk", "name")
         if sdk_name:
             sdk_name = sdk_name.lower().rsplit(":", 1)[0]
@@ -52,6 +77,33 @@ class SdkIndexState:
 
 class Suggestion:
     def to_json(self):
+        """
+        Change the SDK used to generate the application.
+
+        :param new_sdk_name: The name of the SDK to use. Must be one of ``"android"``, ``"ios"``, or
+        ``"webgl2``".
+        """
+        """
+        Change the SDK used to execute a function.
+
+        :param newSdkName: The name of the SDK to use. Must be one of `"python"` or `"nodejs"`.
+        """
+        """
+        Change the SDK used to run a project.
+
+        :param new_sdk_name: The name of the SDK to use for running this project. Must be one of ``"default"``,
+        ``"pygameZero"``, or ``"pixiJS`".
+        """
+        """
+        Change the SDK used to generate the documentation.
+
+        :param newSdkName: The name of the SDK to use.
+        :type newSdkName: str
+
+            :returns sdkUrl: The URL
+        for the specified SDK's documentation.
+            :rtype sdkUrl: str
+        """
         raise NotImplementedError()
 
     def __eq__(self, other):
@@ -64,6 +116,33 @@ class EnableIntegrationSuggestion(Suggestion):
         self.integration_url = integration_url
 
     def to_json(self):
+        """
+        Change the SDK used to generate the application.
+
+        :param new_sdk_name: The name of the SDK to use. Must be one of ``"android"``, ``"ios"``, or
+        ``"webgl2``".
+        """
+        """
+        Change the SDK used to execute a function.
+
+        :param newSdkName: The name of the SDK to use. Must be one of `"python"` or `"nodejs"`.
+        """
+        """
+        Change the SDK used to run a project.
+
+        :param new_sdk_name: The name of the SDK to use for running this project. Must be one of ``"default"``,
+        ``"pygameZero"``, or ``"pixiJS`".
+        """
+        """
+        Change the SDK used to generate the documentation.
+
+        :param newSdkName: The name of the SDK to use.
+        :type newSdkName: str
+
+            :returns sdkUrl: The URL
+        for the specified SDK's documentation.
+            :rtype sdkUrl: str
+        """
         return {
             "type": "enableIntegration",
             "integrationName": self.integration_name,
@@ -71,6 +150,26 @@ class EnableIntegrationSuggestion(Suggestion):
         }
 
     def get_new_state(self, old_state):
+        """
+        Returns a new state object with the given SDK name.
+
+        If any of the module names are in `old_state.modules`, then it will not be changed.
+        """
+        """
+        .. function: get_new_state(old_state)
+
+            :param old_state: The state of the system before this operation.
+            :type old_state: State
+            :returns:
+        The state of the system after this operation.
+        """
+        """
+        .. function: get_new_state(old_state)
+
+            If the old state has one of the modules in :attr:`module_names`, then return
+            that state. Otherwise,
+        return a new state with :attr:`new_sdk_name`.
+        """
         if self.integration_name in old_state.integrations:
             return old_state
 
@@ -86,6 +185,33 @@ class UpdateSDKSuggestion(Suggestion):
         self.ignore_patch_version = ignore_patch_version
 
     def to_json(self):
+        """
+        Change the SDK used to generate the application.
+
+        :param new_sdk_name: The name of the SDK to use. Must be one of ``"android"``, ``"ios"``, or
+        ``"webgl2``".
+        """
+        """
+        Change the SDK used to execute a function.
+
+        :param newSdkName: The name of the SDK to use. Must be one of `"python"` or `"nodejs"`.
+        """
+        """
+        Change the SDK used to run a project.
+
+        :param new_sdk_name: The name of the SDK to use for running this project. Must be one of ``"default"``,
+        ``"pygameZero"``, or ``"pixiJS`".
+        """
+        """
+        Change the SDK used to generate the documentation.
+
+        :param newSdkName: The name of the SDK to use.
+        :type newSdkName: str
+
+            :returns sdkUrl: The URL
+        for the specified SDK's documentation.
+            :rtype sdkUrl: str
+        """
         return {
             "type": "updateSdk",
             "sdkName": self.sdk_name,
@@ -94,6 +220,26 @@ class UpdateSDKSuggestion(Suggestion):
         }
 
     def get_new_state(self, old_state):
+        """
+        Returns a new state object with the given SDK name.
+
+        If any of the module names are in `old_state.modules`, then it will not be changed.
+        """
+        """
+        .. function: get_new_state(old_state)
+
+            :param old_state: The state of the system before this operation.
+            :type old_state: State
+            :returns:
+        The state of the system after this operation.
+        """
+        """
+        .. function: get_new_state(old_state)
+
+            If the old state has one of the modules in :attr:`module_names`, then return
+            that state. Otherwise,
+        return a new state with :attr:`new_sdk_name`.
+        """
         if self.new_sdk_version is None:
             return old_state
 
@@ -126,6 +272,33 @@ class ChangeSDKSuggestion(Suggestion):
         self.module_names = module_names
 
     def to_json(self):
+        """
+        Change the SDK used to generate the application.
+
+        :param new_sdk_name: The name of the SDK to use. Must be one of ``"android"``, ``"ios"``, or
+        ``"webgl2``".
+        """
+        """
+        Change the SDK used to execute a function.
+
+        :param newSdkName: The name of the SDK to use. Must be one of `"python"` or `"nodejs"`.
+        """
+        """
+        Change the SDK used to run a project.
+
+        :param new_sdk_name: The name of the SDK to use for running this project. Must be one of ``"default"``,
+        ``"pygameZero"``, or ``"pixiJS`".
+        """
+        """
+        Change the SDK used to generate the documentation.
+
+        :param newSdkName: The name of the SDK to use.
+        :type newSdkName: str
+
+            :returns sdkUrl: The URL
+        for the specified SDK's documentation.
+            :rtype sdkUrl: str
+        """
         return {
             "type": "changeSdk",
             "newSdkName": self.new_sdk_name,
@@ -133,6 +306,26 @@ class ChangeSDKSuggestion(Suggestion):
         }
 
     def get_new_state(self, old_state):
+        """
+        Returns a new state object with the given SDK name.
+
+        If any of the module names are in `old_state.modules`, then it will not be changed.
+        """
+        """
+        .. function: get_new_state(old_state)
+
+            :param old_state: The state of the system before this operation.
+            :type old_state: State
+            :returns:
+        The state of the system after this operation.
+        """
+        """
+        .. function: get_new_state(old_state)
+
+            If the old state has one of the modules in :attr:`module_names`, then return
+            that state. Otherwise,
+        return a new state with :attr:`new_sdk_name`.
+        """
         if old_state.sdk_name == self.new_sdk_name:
             return old_state
 
@@ -341,6 +534,11 @@ def get_sdk_index():
 
 
 def get_sdk_versions():
+    """
+    .. function: get_sdk_versions()
+
+        Return a mapping of SDK names to versions.
+    """
     try:
         rv = settings.SDK_VERSIONS
         rv.update((key, info["version"]) for (key, info) in get_sdk_index().items())
@@ -351,6 +549,13 @@ def get_sdk_versions():
 
 
 def get_sdk_urls():
+    """
+    .. function: get_sdk_urls()
+
+        Return a mapping of SDK name to docs URL.
+
+        :returns: A dictionary mapping SDK names to docs URLs
+    """
     try:
         rv = dict(settings.SDK_URLS)
         rv.update((key, info["main_docs_url"]) for (key, info) in get_sdk_index().items())
@@ -361,6 +566,25 @@ def get_sdk_urls():
 
 
 def _get_suggested_updates_step(setup_state, index_state, ignore_patch_version):
+    """
+    .. function: get_suggested_updates(setup_state, index_state, ignore_patch=False)
+
+        Yields a series of :class:`Suggestion` instances that represent
+    the
+        recommended updates for the project's dependencies.
+
+        The suggestions are sorted by priority and then specificity (i.e., how
+        specific
+    the suggestion is). Suggestions are only emitted if they would
+        change behavior at all.
+
+         - **sdk** -- Update to a newer SDK with ``pip install
+    --upgrade <name>``. This will also suggest changing back to minor versions if necessary. Note that this will not include newer patch versions unless
+    `ignore-patch` is set to `True`. For example, if your SDK is version ``2`` and you have an uninstalled ``django>=1.8`` it will suggest using
+    ``django<1.9`` instead of just using a new major version like ``django>=3`` which may contain incompatible changes between 2 and 3 (or even 1 and 2).
+    If you're running Django 1.* but want to upgrade past Python 2 support in Sentry 8, use `ignore-patch`.
+         - **change sdk
+    """
     if not setup_state.sdk_name or not setup_state.sdk_version:
         return
 

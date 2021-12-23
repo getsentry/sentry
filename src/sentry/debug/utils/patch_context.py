@@ -22,6 +22,10 @@ class PatchContext:
         self.unpatch()
 
     def patch(self):
+        """
+        Replaces the ``attr`` attribute of the given object with a wrapped version that
+        executes ``callback`` before executing the original function.
+        """
         with self._lock:
             func = getattr(self.target, self.attr)
 

@@ -167,6 +167,11 @@ class Team(Model):
 
     @property
     def member_set(self):
+        """
+        :returns a QuerySet of all Users that belong to this Team
+
+        :rtype: QuerySet[User]
+        """
         """:returns a QuerySet of all Users that belong to this Team"""
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
