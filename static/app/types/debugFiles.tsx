@@ -81,10 +81,10 @@ export type CustomRepoAppStoreConnect = {
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
-  appconnectPrivateKey: string;
   bundleId: string;
   id: string;
   name: string;
+  appconnectPrivateKey: {'hidden-secret': boolean} | string;
   details?: AppStoreConnectStatusData;
 };
 
@@ -94,17 +94,19 @@ type CustomRepoHttp = {
   layout: {casing: string; type: string};
   name: string;
   url: string;
+  username: string;
+  password: {'hidden-secret': boolean} | string;
 };
 
 type CustomRepoS3 = {
   type: CustomRepoType.S3;
-  access_key: string;
   bucket: string;
   id: string;
   layout: {type: string; casing: string};
   name: string;
   region: string;
-  secret_key: string;
+  access_key: string;
+  secret_key: {'hidden-secret': boolean} | string;
 };
 
 type CustomRepoGCS = {
@@ -115,7 +117,7 @@ type CustomRepoGCS = {
   layout: {type: string; casing: string};
   name: string;
   prefix: string;
-  private_key: string;
+  private_key: {'hidden-secret': boolean} | string;
 };
 
 export type CustomRepo =
