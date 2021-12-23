@@ -133,6 +133,39 @@ class TeamStability extends AsyncComponent<Props, State> {
     return weekScore - periodScore;
   }
 
+  getMiniBarChartSeries(project: Project, response: SessionApiResponse) {
+    const sumSessions = getSeriesSum(
+      response.groups.filter(group => group.by.project === Number(project.id)),
+      SessionField.SESSIONS,
+      response.intervals,
+    );
+
+    const countSeries = getCountSeries(
+      SessionField.SESSIONS,
+      response.groups.find(
+        g =>
+          g.by.project === Number(project.id) &&
+          g.by['session.status'] === SessionStatus.HEALTHY
+      ),
+      response.intervals
+    );
+
+    const countSeriesWeeklyTotals: number[] = Array(sumSessions.length / 7).fill(0);
+    countSeries.forEach((s, idx) => countSeriesWeeklyTotals[Math.floor(idx/7)] += s.value);
+
+    const sumSessionsWeeklyTotals: number[] = Array(sumSessions.length / 7).fill(0);
+    sumSessions.forEach((s, idx) => sumSessionsWeeklyTotals[Math.floor(idx/7)] += s);
+
+    const data = countSeriesWeeklyTotals.map((value, idx) => ({
+      name: countSeries[idx * 7].name,
+      value: sumSessionsWeeklyTotals[idx]
+        ? formatFloat((value / sumSessionsWeeklyTotals[idx]) * 100, 2)
+        : 0,
+    }));
+
+    return [{seriesName: t('Crash Free Sessions'), data}];
+  }
+
   renderLoading() {
     return this.renderBody();
   }
@@ -222,57 +255,27 @@ class TeamStability extends AsyncComponent<Props, State> {
               <RightAligned key="diff">{t('Difference')}</RightAligned>,
             ]}
           >
-            {groupedProjects.map(({project}) => {
-              const sumSessions =
-                response &&
-                getSeriesSum(
-                  response.groups.filter(
-                    group => group.by.project === Number(project.id)
-                  ),
-                  SessionField.SESSIONS,
-                  response.intervals
-                );
+            {groupedProjects.map(({project}) => (
+              <Fragment key={project.id}>
+                <ProjectBadgeContainer>
+                  <ProjectBadge avatarSize={18} project={project} />
+                </ProjectBadgeContainer>
 
-              return (
-                <Fragment key={project.id}>
-                  <ProjectBadgeContainer>
-                    <ProjectBadge avatarSize={18} project={project} />
-                  </ProjectBadgeContainer>
-
-                  <div>
-                    {response && !loading && sumSessions && (
-                      <MiniBarChart
-                        isGroupedByDate
-                        showTimeInTooltip
-                        series={[
-                          {
-                            seriesName: t('Crash Free Sessions'),
-                            data: getCountSeries(
-                              SessionField.SESSIONS,
-                              response.groups.find(
-                                g =>
-                                  g.by.project === Number(project.id) &&
-                                  g.by['session.status'] === SessionStatus.HEALTHY
-                              ),
-                              response.intervals
-                            ).map(({name, value}, idx) => ({
-                              name,
-                              value: sumSessions[idx]
-                                ? formatFloat((value / sumSessions[idx]) * 100, 2)
-                                : 0,
-                            })),
-                          },
-                        ]}
-                        height={25}
-                      />
-                    )}
-                  </div>
-                  <ScoreWrapper>{this.renderScore(project.id, 'period')}</ScoreWrapper>
-                  <ScoreWrapper>{this.renderScore(project.id, 'week')}</ScoreWrapper>
-                  <ScoreWrapper>{this.renderTrend(project.id)}</ScoreWrapper>
-                </Fragment>
-              );
-            })}
+                <div>
+                  {response && !loading && (
+                    <MiniBarChart
+                      isGroupedByDate
+                      showTimeInTooltip
+                      series={this.getMiniBarChartSeries(project, response)}
+                      height={25}
+                    />
+                  )}
+                </div>
+                <ScoreWrapper>{this.renderScore(project.id, 'period')}</ScoreWrapper>
+                <ScoreWrapper>{this.renderScore(project.id, 'week')}</ScoreWrapper>
+                <ScoreWrapper>{this.renderTrend(project.id)}</ScoreWrapper>
+              </Fragment>
+            ))}
           </StyledPanelTable>
         )}
       </SessionsRequest>
@@ -289,6 +292,8 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   margin-bottom: 0;
   border: 0;
   box-shadow: unset;
+  /* overflow when bar chart tooltip gets cutoff for the top row */
+  overflow: visible;
 
   & > div {
     padding: ${space(1)} ${space(2)};
