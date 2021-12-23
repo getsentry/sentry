@@ -46,7 +46,6 @@ class OrganizationSerializerTest(TestCase):
             "relay",
             "release-adoption-chart",
             "release-adoption-stage",
-            "release-comparison",
             "semver",
             "shared-issues",
             "sso-basic",
