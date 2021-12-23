@@ -12,18 +12,6 @@ import Tooltip from 'sentry/components/tooltip';
 
 type ButtonPriority = React.ComponentProps<typeof DropdownButton>['priority'];
 
-type DefaultProps = {
-  /**
-   * Should the menu contents always be rendered?  Defaults to true.
-   * Set to false to have menu contents removed from the DOM on close.
-   */
-  alwaysRenderMenu: boolean;
-  /**
-   * Width of the menu. Defaults to 100% of the button width.
-   */
-  menuWidth: string;
-};
-
 type ChildrenArgs = {
   isOpen: boolean;
   getMenuProps: GetMenuPropsFn;
@@ -34,7 +22,16 @@ type ButtonArgs = {
   getActorProps: GetActorPropsFn;
 };
 
-type Props = DefaultProps & {
+type Props = {
+  /**
+   * Should the menu contents always be rendered?  Defaults to true.
+   * Set to false to have menu contents removed from the DOM on close.
+   */
+  alwaysRenderMenu: boolean;
+  /**
+   * Width of the menu. Defaults to 100% of the button width.
+   */
+  menuWidth: string;
   children:
     | ((args: ChildrenArgs) => React.ReactElement)
     | React.ReactElement
@@ -76,15 +73,20 @@ type Props = DefaultProps & {
  * including the button + menu options. Use the `button` or `label` prop to set
  * the button content and `children` to provide menu options.
  */
-class DropdownControl extends React.Component<Props> {
-  static defaultProps: DefaultProps = {
-    alwaysRenderMenu: true,
-    menuWidth: '100%',
-  };
-
-  renderButton(isOpen: boolean, getActorProps: GetActorPropsFn) {
-    const {label, button, buttonProps, buttonTooltipTitle, priority} = this.props;
-
+function DropdownControl({
+  alwaysRenderMenu = true,
+  menuWidth = '100%',
+  children,
+  label,
+  button,
+  alignRight,
+  buttonProps,
+  buttonTooltipTitle,
+  blendWithActor,
+  priority,
+  className,
+}: Props) {
+  const renderButton = (isOpen: boolean, getActorProps: GetActorPropsFn) => {
     if (button) {
       return button({isOpen, getActorProps});
     }
@@ -112,11 +114,9 @@ class DropdownControl extends React.Component<Props> {
         {label}
       </StyledDropdownButton>
     );
-  }
+  };
 
-  renderChildren(isOpen: boolean, getMenuProps: GetMenuPropsFn) {
-    const {children, alignRight, menuWidth, blendWithActor, priority} = this.props;
-
+  const renderChildren = (isOpen: boolean, getMenuProps: GetMenuPropsFn) => {
     if (typeof children === 'function') {
       return children({isOpen, getMenuProps});
     }
@@ -136,24 +136,20 @@ class DropdownControl extends React.Component<Props> {
         {children}
       </Content>
     );
-  }
+  };
 
-  render() {
-    const {alwaysRenderMenu, className} = this.props;
-
-    return (
-      <Container className={className}>
-        <DropdownMenu alwaysRenderMenu={alwaysRenderMenu}>
-          {({isOpen, getMenuProps, getActorProps}) => (
-            <React.Fragment>
-              {this.renderButton(isOpen, getActorProps)}
-              {this.renderChildren(isOpen, getMenuProps)}
-            </React.Fragment>
-          )}
-        </DropdownMenu>
-      </Container>
-    );
-  }
+  return (
+    <Container className={className}>
+      <DropdownMenu alwaysRenderMenu={alwaysRenderMenu}>
+        {({isOpen, getMenuProps, getActorProps}) => (
+          <React.Fragment>
+            {renderButton(isOpen, getActorProps)}
+            {renderChildren(isOpen, getMenuProps)}
+          </React.Fragment>
+        )}
+      </DropdownMenu>
+    </Container>
+  );
 }
 
 const Container = styled('div')`
