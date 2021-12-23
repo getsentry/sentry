@@ -21,7 +21,7 @@ type Props = {
   isLoading: boolean;
 };
 
-function ExternalSources({
+function Sources({
   api,
   organization,
   customRepositories,
@@ -55,4 +55,4 @@ function ExternalSources({
   );
 }
 
-export default ExternalSources;
+export default Sources;

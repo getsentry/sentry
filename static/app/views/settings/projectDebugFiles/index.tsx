@@ -19,7 +19,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import DebugFileRow from './debugFileRow';
-import ExternalSources from './externalSources';
+import Sources from './sources';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -181,7 +181,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 
         <PermissionAlert />
 
-        <ExternalSources
+        <Sources
           api={this.api}
           location={location}
           router={router}

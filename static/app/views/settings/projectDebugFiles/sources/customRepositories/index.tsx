@@ -25,8 +25,6 @@ import {Organization, Project} from 'sentry/types';
 import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import {defined} from 'sentry/utils';
 
-import {NOT_ENABLED_FEATURE_MESSAGE} from '../utils';
-
 import Repository from './repository';
 import {
   customRepoTypeLabel,
@@ -211,15 +209,11 @@ function CustomRepositories({
 
   function renderAddRepositoryButton({
     hasAccess,
-    hasCustomSymbolSourcesFeature,
-    hasSymbolSourcesFeature,
+    hasFeature,
   }: {
     hasAccess: boolean;
-    hasSymbolSourcesFeature: boolean;
-    hasCustomSymbolSourcesFeature: boolean;
+    hasFeature: boolean;
   }) {
-    const hasFeature = hasSymbolSourcesFeature && hasCustomSymbolSourcesFeature;
-
     return (
       <Tooltip
         title={
@@ -277,31 +271,24 @@ function CustomRepositories({
 
   function renderContent({
     hasAccess,
-    hasCustomSymbolSourcesFeature,
-    hasSymbolSourcesFeature,
+    hasFeature,
     features,
   }: {
     hasAccess: boolean;
-    hasCustomSymbolSourcesFeature: boolean;
-    hasSymbolSourcesFeature: boolean;
+    hasFeature: boolean;
     features: string[];
   }) {
     if (isLoading) {
       return <LoadingIndicator />;
     }
 
-    const hasFeature = hasSymbolSourcesFeature && hasCustomSymbolSourcesFeature;
-
     return (
-      <HookedCustomSymbolSources
-        disabled={hasCustomSymbolSourcesFeature}
-        organization={organization}
-      >
+      <HookedCustomSymbolSources disabled={hasFeature} organization={organization}>
         {!hasFeature && (
           <FeatureDisabled
             features={features}
             alert={PanelAlert}
-            message={NOT_ENABLED_FEATURE_MESSAGE}
+            message={t('This feature is not enabled on your Sentry installation.')}
             featureName={SECTION_TITLE}
           />
         )}
@@ -333,43 +320,30 @@ function CustomRepositories({
   }
 
   return (
-    <Feature features={['symbol-sources']} organization={organization}>
-      {({hasFeature: hasSymbolSourcesFeature, features: symbolSourcesFeatures}) => (
-        <Feature features={['custom-symbol-sources']} organization={organization}>
-          {({
-            hasFeature: hasCustomSymbolSourcesFeature,
-            features: customSymbolSourcesFeatures,
-          }) => (
-            <Access access={['project:write']}>
-              {({hasAccess}) => {
-                return (
-                  <Content
-                    hasFeature={hasCustomSymbolSourcesFeature && hasSymbolSourcesFeature}
-                  >
-                    <PanelHeader hasButtons>
-                      {SECTION_TITLE}
-                      {renderAddRepositoryButton({
-                        hasAccess,
-                        hasCustomSymbolSourcesFeature,
-                        hasSymbolSourcesFeature,
-                      })}
-                    </PanelHeader>
-                    <PanelBody>
-                      {renderContent({
-                        hasAccess,
-                        hasCustomSymbolSourcesFeature,
-                        hasSymbolSourcesFeature,
-                        features: !hasSymbolSourcesFeature
-                          ? symbolSourcesFeatures
-                          : customSymbolSourcesFeatures,
-                      })}
-                    </PanelBody>
-                  </Content>
-                );
-              }}
-            </Access>
-          )}
-        </Feature>
+    <Feature features={['custom-symbol-sources']} organization={organization}>
+      {({hasFeature, features}) => (
+        <Access access={['project:write']}>
+          {({hasAccess}) => {
+            return (
+              <Content hasFeature={hasFeature}>
+                <PanelHeader hasButtons>
+                  {SECTION_TITLE}
+                  {renderAddRepositoryButton({
+                    hasAccess,
+                    hasFeature,
+                  })}
+                </PanelHeader>
+                <PanelBody>
+                  {renderContent({
+                    hasAccess,
+                    hasFeature,
+                    features,
+                  })}
+                </PanelBody>
+              </Content>
+            );
+          }}
+        </Access>
       )}
     </Feature>
   );

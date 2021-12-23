@@ -3,7 +3,7 @@ import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary
 
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
-import CustomRepositories from 'sentry/views/settings/projectDebugFiles/externalSources/customRepositories';
+import CustomRepositories from 'sentry/views/settings/projectDebugFiles/sources/customRepositories';
 
 describe('Custom Repositories', function () {
   const api = new MockApiClient();
@@ -46,7 +46,7 @@ describe('Custom Repositories', function () {
     // Help content
     expect(
       screen.getByText(
-        "# Enables the Custom Repositories feature SENTRY_FEATURES['symbol-sources'] = True"
+        "# Enables the Custom Repositories feature SENTRY_FEATURES['custom-symbol-sources'] = True"
       )
     ).toBeInTheDocument();
 
@@ -66,110 +66,10 @@ describe('Custom Repositories', function () {
     expect(screen.getByLabelText('Actions')).toBeDisabled();
   });
 
-  it('renders with symbol-sources - only feature enabled', function () {
-    const newOrganization = {
-      ...organization,
-      features: [...organization.features, 'symbol-sources'],
-    };
-
-    const {rerender} = mountWithTheme(
-      <CustomRepositories {...props} organization={newOrganization} />
-    );
-
-    // Section title
-    expect(screen.getByText('Custom Repositories')).toBeInTheDocument();
-
-    // Feature disabled warning
-    expect(
-      screen.getByText('This feature is not enabled on your Sentry installation.')
-    ).toBeInTheDocument();
-
-    // Expand help component
-    userEvent.click(screen.getByRole('button', {name: 'Help'}));
-
-    // Help content
-    expect(
-      screen.getByText(
-        "# Enables the Custom Repositories feature SENTRY_FEATURES['custom-symbol-sources'] = True"
-      )
-    ).toBeInTheDocument();
-
-    // Disabled button
-    expect(screen.getByText('Add Repository').closest('button')).toBeDisabled();
-
-    // Content
-    expect(screen.getByText('No custom repositories configured')).toBeInTheDocument();
-
-    // Renders disabled repository list
-    rerender(
-      <CustomRepositories
-        {...props}
-        organization={newOrganization}
-        customRepositories={[repository]}
-      />
-    );
-
-    // Content
-    expect(screen.getByText(repository.name)).toBeInTheDocument();
-    expect(screen.getByText(DEBUG_SOURCE_TYPES.http)).toBeInTheDocument();
-    expect(screen.getByLabelText('Actions')).toBeInTheDocument();
-    expect(screen.getByLabelText('Actions')).toBeDisabled();
-  });
-
-  it('renders with custom-symbol-sources - only feature enabled', function () {
+  it('renders with custom-symbol-sources feature enabled', function () {
     const newOrganization = {
       ...organization,
       features: [...organization.features, 'custom-symbol-sources'],
-    };
-
-    const {rerender} = mountWithTheme(
-      <CustomRepositories {...props} organization={newOrganization} />
-    );
-
-    // Section title
-    expect(screen.getByText('Custom Repositories')).toBeInTheDocument();
-
-    // Feature disabled warning
-    expect(
-      screen.getByText('This feature is not enabled on your Sentry installation.')
-    ).toBeInTheDocument();
-
-    // Expand help component
-    userEvent.click(screen.getByRole('button', {name: 'Help'}));
-
-    // Help content
-    expect(
-      screen.getByText(
-        "# Enables the Custom Repositories feature SENTRY_FEATURES['symbol-sources'] = True"
-      )
-    ).toBeInTheDocument();
-
-    // Disabled button
-    expect(screen.getByText('Add Repository').closest('button')).toBeDisabled();
-
-    // Content
-    expect(screen.getByText('No custom repositories configured')).toBeInTheDocument();
-
-    // Renders disabled repository list
-    rerender(
-      <CustomRepositories
-        {...props}
-        organization={newOrganization}
-        customRepositories={[repository]}
-      />
-    );
-
-    // Content
-    expect(screen.getByText(repository.name)).toBeInTheDocument();
-    expect(screen.getByText(DEBUG_SOURCE_TYPES.http)).toBeInTheDocument();
-    expect(screen.getByLabelText('Actions')).toBeInTheDocument();
-    expect(screen.getByLabelText('Actions')).toBeDisabled();
-  });
-
-  it('renders with all required feature flag enabled', function () {
-    const newOrganization = {
-      ...organization,
-      features: [...organization.features, 'symbol-sources', 'custom-symbol-sources'],
     };
 
     const {rerender} = mountWithTheme(
