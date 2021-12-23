@@ -34,6 +34,17 @@ class TeamIssueBreakdownTest(APITestCase):
         self.create_group_history(
             group=group1_1, date_added=before_now(days=5), status=GroupHistoryStatus.RESOLVED
         )
+        # Duplicate statuses shouldn't count multiple times.
+        self.create_group_history(
+            group=group1_1,
+            date_added=before_now(days=4, hours=10),
+            status=GroupHistoryStatus.RESOLVED,
+        )
+        self.create_group_history(
+            group=group1_1,
+            date_added=before_now(days=4, hours=8),
+            status=GroupHistoryStatus.RESOLVED,
+        )
         self.create_group_history(
             group=group1_1, date_added=before_now(days=3), status=GroupHistoryStatus.UNRESOLVED
         )
@@ -45,6 +56,16 @@ class TeamIssueBreakdownTest(APITestCase):
         )
         self.create_group_history(
             group=group1_4, date_added=before_now(days=9), status=GroupHistoryStatus.RESOLVED
+        )
+        self.create_group_history(
+            group=group1_4,
+            date_added=before_now(days=8, hours=7),
+            status=GroupHistoryStatus.RESOLVED,
+        )
+        self.create_group_history(
+            group=group1_4,
+            date_added=before_now(days=8, hours=6),
+            status=GroupHistoryStatus.RESOLVED,
         )
         project2 = self.create_project(teams=[self.team])
         group2_1 = self.create_group(project=project2, first_seen=before_now(days=40))
