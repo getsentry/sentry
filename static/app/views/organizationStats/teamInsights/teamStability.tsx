@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 
-import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import Button from 'sentry/components/button';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import IdBadge from 'sentry/components/idBadge';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
@@ -27,7 +26,6 @@ import {
 import {formatFloat} from 'sentry/utils/formatters';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
 import {Color} from 'sentry/utils/theme';
-import withApi from 'sentry/utils/withApi';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {groupByTrend} from './utils';
@@ -35,7 +33,6 @@ import {groupByTrend} from './utils';
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   projects: Project[];
-  api: Client;
   period?: string;
 } & DateTimeObject;
 
@@ -186,7 +183,7 @@ class TeamStability extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {api, organization, projects, period} = this.props;
+    const {organization, projects, period} = this.props;
 
     const sortedProjects = projects
       .map(project => ({project, trend: this.getTrend(Number(project.id)) ?? 0}))
@@ -196,7 +193,7 @@ class TeamStability extends AsyncComponent<Props, State> {
 
     return (
       <SessionsRequest
-        api={api}
+        api={this.api}
         project={projects.map(({id}) => Number(id))}
         organization={organization}
         interval="1d"
@@ -208,15 +205,16 @@ class TeamStability extends AsyncComponent<Props, State> {
           <StyledPanelTable
             isEmpty={projects.length === 0}
             emptyMessage={t('No Projects With Release Health Enabled')}
-        emptyAction={
-          <Button
-            size="small"
-            external
-            href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
-          >
-            {t('Learn More')}
-          </Button>
-        }headers={[
+            emptyAction={
+              <Button
+                size="small"
+                external
+                href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
+              >
+                {t('Learn More')}
+              </Button>
+            }
+            headers={[
               t('Project'),
               <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
               <RightAligned key="avg">{tct('[period] Avg', {period})}</RightAligned>,
@@ -282,7 +280,7 @@ class TeamStability extends AsyncComponent<Props, State> {
   }
 }
 
-export default withApi(TeamStability);
+export default TeamStability;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr 0.2fr;
