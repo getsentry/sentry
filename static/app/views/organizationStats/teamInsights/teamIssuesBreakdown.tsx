@@ -140,6 +140,14 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
       .map(([projectId, {total}]) => ({projectId, total}))
       .sort((a, b) => b.total - a.total);
 
+    const allSeries = Object.keys(allReviewedByDay).map(projectId => ({
+      seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
+      data: convertDaySeriesToWeeks(
+        convertDayValueObjectToSeries(allReviewedByDay[projectId])
+      ),
+      silent: true,
+    }));
+
     return (
       <Fragment>
         <IssuesChartWrapper>
@@ -151,15 +159,9 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
               isGroupedByDate
               useShortDate
               legend={{right: 0, top: 0}}
-              xAxis={barAxisLabel(4)}
+              xAxis={barAxisLabel(allSeries[0]?.data.length ?? 0)}
               yAxis={{minInterval: 1}}
-              series={Object.keys(allReviewedByDay).map(projectId => ({
-                seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
-                data: convertDaySeriesToWeeks(
-                  convertDayValueObjectToSeries(allReviewedByDay[projectId])
-                ),
-                silent: true,
-              }))}
+              series={allSeries}
             />
           )}
         </IssuesChartWrapper>
