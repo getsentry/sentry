@@ -204,8 +204,8 @@ class LandingContent extends Component<Props, State> {
     const axisOptions = getMobileAxisOptions(organization);
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
-    const isReactNative = checkIsReactNative(eventView);
     // only react native should contain the stall percentage column
+    const isReactNative = checkIsReactNative(eventView);
     const columnTitles = isReactNative
       ? REACT_NATIVE_COLUMN_TITLES
       : MOBILE_COLUMN_TITLES;
