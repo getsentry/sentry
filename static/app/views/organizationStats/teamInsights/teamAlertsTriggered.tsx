@@ -10,6 +10,7 @@ import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -17,10 +18,6 @@ import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {Color} from 'sentry/utils/theme';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
-
-import PanelTable from '../../../components/panels/panelTable';
-
-import PanelTable from '../../../components/panels/panelTable';
 
 import {
   barAxisLabel,
@@ -126,15 +123,35 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
   renderBody() {
     const {organization, period, projects} = this.props;
     const {alertsTriggered, alertsTriggeredRules} = this.state;
-    const data = convertDayValueObjectToSeries(alertsTriggered ?? {});
-    const seriesData = convertDaySeriesToWeeks(data);
+    const seriesData = convertDaySeriesToWeeks(
+      convertDayValueObjectToSeries(alertsTriggered ?? {})
+    );
 
     return (
       <Fragment>
         <ChartWrapper>
-          <StyledPanelTable
-          isEmpty={!alertsTriggered || data.length === 0}
-          emptyMessage={t('No Alerts Owned By This Team')}
+          <BarChart
+            style={{height: 190}}
+            isGroupedByDate
+            useShortDate
+            period="7d"
+            legend={{right: 0, top: 0}}
+            yAxis={{minInterval: 1}}
+            xAxis={barAxisLabel(seriesData.length)}
+            series={[
+              {
+                seriesName: t('Alerts Triggered'),
+                data: seriesData,
+                silent: true,
+              },
+            ]}
+          />
+        </ChartWrapper>
+        <StyledPanelTable
+          isEmpty={
+            !alertsTriggered || !alertsTriggeredRules || alertsTriggeredRules.length === 0
+          }
+          emptyMessage={t("No Alerts Triggered For This Team's Projects")}
           emptyAction={
             <ButtonsContainer>
               <Button
@@ -153,27 +170,6 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
               </Button>
             </ButtonsContainer>
           }
-          headers={[]}
-        >
-            <BarChart
-              style={{height: 190}}
-              isGroupedByDate
-              useShortDate
-              period="7d"
-              legend={{right: 0, top: 0}}
-              yAxis={{minInterval: 1}}
-              xAxis={barAxisLabel(seriesData.length)}
-              series={[
-                {
-                  seriesName: t('Alerts Triggered'),
-                  data: seriesData,
-                  silent: true,
-                },
-              ]}
-            />
-          </StyledPanelTable>
-        </ChartWrapper>
-        <StyledPanelTable
           headers={[
             t('Alert Rule'),
             t('Project'),
@@ -181,7 +177,6 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
             <AlignRight key="curr">{t('This Week')}</AlignRight>,
             <AlignRight key="diff">{t('Difference')}</AlignRight>,
           ]}
-          isEmpty={!alertsTriggeredRules || alertsTriggeredRules.length === 0}
         >
           {alertsTriggeredRules &&
             alertsTriggeredRules.map(rule => (
@@ -228,6 +223,7 @@ const StyledPanelTable = styled(PanelTable)`
   & > div {
     padding: ${space(1)} ${space(2)};
   }
+
   ${p =>
     p.isEmpty &&
     css`
@@ -256,27 +252,6 @@ const PaddedIconArrow = styled(IconArrow)`
 
 const SubText = styled('div')<{color: Color}>`
   color: ${p => p.theme[p.color]};
-`;
-
-const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
-  grid-template-columns: 1fr;
-  font-size: ${p => p.theme.fontSizeMedium};
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  box-shadow: unset;
-
-  & > div {
-    padding: ${space(1)} ${space(2)};
-  }
-
-  ${p =>
-    p.isEmpty &&
-    css`
-      & > div:last-child {
-        padding: 48px ${space(2)};
-      }
-    `}
 `;
 
 const ButtonsContainer = styled('div')`
