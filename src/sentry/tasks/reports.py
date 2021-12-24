@@ -287,12 +287,14 @@ def build_project_series(start__stop, project):
     ]
     transaction_series = zerofill_clean(transaction_series)
 
+    # Format of error_series: [(resolve, unresolved)]
     error_series = merge_series(
         resolved_error_series,
         total_error_series,
         lambda resolved, total: (resolved, total - resolved),
     )
 
+    # Format of this seroe: [(resolved , unresolved, transactions)]
     return merge_series(
         error_series,
         transaction_series,

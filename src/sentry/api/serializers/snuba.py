@@ -103,6 +103,8 @@ def value_from_row(row, tagkey):
 
 
 def zerofill(data, start, end, rollup, allow_partial_buckets=False, fill_default=None):
+    if fill_default is None:
+        fill_default = []
     rv = []
     end = int(to_timestamp(end))
     rollup_start = (int(to_timestamp(start)) // rollup) * rollup
@@ -126,9 +128,6 @@ def zerofill(data, start, end, rollup, allow_partial_buckets=False, fill_default
                 continue
         except IndexError:
             pass
-
-        if fill_default is None:
-            fill_default = []
 
         rv.append((key, fill_default))
     # Add any remaining rows that are not aligned to the rollup and are lower than the
