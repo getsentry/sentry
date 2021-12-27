@@ -73,7 +73,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
 
   get formFields() {
     const data = this.model.getTransformedData();
-    return Object.keys(data).map(key => ({name: key, value: data[key]}));
+    return Object.entries(data).map(([name, value]) => ({name, value}));
   }
 
   handleSubmit = () => {
