@@ -8,6 +8,8 @@ import TeamStore from 'sentry/stores/teamStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
+import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
+import * as utils from 'sentry/views/performance/landing/utils';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 const WrappedComponent = ({data}) => {
@@ -151,6 +153,21 @@ describe('Performance > Landing > Index', function () {
     wrapper.update();
 
     expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders react-native table headers in mobile view', async function () {
+    jest.spyOn(utils, 'checkIsReactNative').mockReturnValueOnce(true);
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.MOBILE},
+    });
+
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    const table = wrapper.find('Table');
+    expect(table.exists()).toBe(true);
+    expect(table.props().columnTitles).toEqual(REACT_NATIVE_COLUMN_TITLES);
   });
 
   it('renders all transactions view', async function () {
