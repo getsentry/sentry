@@ -316,13 +316,10 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
     def dispatch(self, request: Request, pipeline) -> Response:
         if request.method == "POST":
             raw_data = request.POST
-            # might need to convert lists to a value
             data = {}
             for key, val in raw_data.items():
-                if isinstance(val, list):
-                    data[key] = val[0]
-                else:
-                    data[key] = val
+                # convert boolean to string
+                data[key] = val == "true"
             pipeline.bind_state("enabled_lambdas", data)
             return pipeline.next_step()
 
