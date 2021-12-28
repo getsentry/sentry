@@ -121,10 +121,6 @@ class BitField(BigIntegerField):
         .. function: get_prep_value(value)
            :param value: The value to be prepared for saving in the database.
            :type value: BitHandler or int
-
-           If
-        *value* is an instance of :class:`BitHandler`, return its `mask`. Otherwise, if *value* is not None, convert it to an int and return it. If *value* is
-        None, return None.
         """
         if value is None:
             return None
@@ -139,20 +135,6 @@ class BitField(BigIntegerField):
         :type value:
             :class:`str`, :class:`bytes`, or a type that can be converted into bytes using the
         built-in Python function :func:`bytes()`.
-
-            .. note ::
-
-                If you pass a byte string, it will be interpreted as having the system's native
-        encoding. This is not always correct, but it might work in many cases if you're lucky. It's best to pass Unicode strings and let me handle the
-        conversion to your current encoding.
-
-          .. warning ::
-
-              You must ensure that either (1) ``value`` is already encoded in UTF-8 or (2) ``encoding``
-        is set to `None`. If neither of these are true, you risk losing data when passing the value through Python's decoding machinery which may result in
-        your application crashing due to an invalid character being present where there should have been text content instead. **Do not** just ignore this
-        warning as doing so could result in some of your user base being unable use parts of your application resulting in unexpected bugs and issues that did
-        not exist before! See also `this blog post <http://undocprintable.com/blog
         """
         if isinstance(value, Bit):
             value = value.mask
