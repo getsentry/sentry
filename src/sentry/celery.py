@@ -20,15 +20,6 @@ def patch_thread_ident():
         `BaseDatabaseWrapper` class to check that
     different threads are not accessing
         the same database connection concurrently by using thread identifieres.
-
-        This code is based on Django 1.3
-    version of this method and should work with
-        any recent version of Django back as far as it supports Python 2 (which was released in 2008).
-    * If :mod:`django.db.backends` is not available, nothing happens - no error raised, no traceback generated; just nothing happens (no exception
-    thrown). This allows one to specify a custom database backend that doesn't use Django but still hooks into pycassa's connection pooling system
-    properly and so works fine with pycassa without having to monkey-patch anything or modify any settings etc.; see :attr:`.pool._configure_pool`.
-    * If :mod:`django.db.backends`, but the required classes are missing from its namespace then again nothing happens - no error raised, no traceback
-    generated; just nothing happens (no exception thrown). This allows one to
     """
     # monkey patch django.
     # This patch make sure that we use real threads to get the ident which
