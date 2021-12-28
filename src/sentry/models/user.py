@@ -307,26 +307,6 @@ class User(BaseModel, AbstractBaseUser):
     def merge_to(from_user, to_user):
         """
         Merge two users together, moving almost all of the information from ``from_user`` to ``to_user``.
-
-        This will move over:
-
-            * UserEmail objects
-        (which are accessible via EmailAddress)
-            * Authenticator objects (only associated with ``from_user``)
-            * GroupAssignee objects (assigned to
-        groups that were created by or belong to ``from_user``)
-            * GroupBookmark objects (bookmarks for groups that were created by or belong to
-        ``from_user``)
-            * GroupSeen objects (seen state for groups that were created by or belong to ``from_user``)  # noQA: E501 line too long, pylint:
-        disable=C0301  # pragma nocover due because we don't know how often this happens in practice and it's a very niche case. Also not covered in tests
-        because they would be really slow and not provide much benefit.)  # noQA: E501 line too long, pylint: disable=C0301  # pragma nocover due because we
-        don't know how often this happens in practice and it's a very niche case. Also not covered in tests because they would be really slow and not provide
-        much benefit.)       # noQA: E501 line too long, pylint: disable=C0301       # pragma nocover due because we don't know how often this happens in
-        practice and it's a very niche case. Also not covered in tests because they would be really slow and not provide much benefit.)    # noQA: E501 line
-        too long, pylint: disable=C0301       # pragma nocover due because we don't know how often this happens in practice and it's a very niche case. Also
-        not covered in tests than are extremely time-consuming without providing any additional value.")         # noQA : C901 - This function is hard to test
-        since its output depends on the order of execution of other functions which makes mocking difficult.. We should refactor so each function can be
-        tested easily instead.. For now just testing end
         """
         # TODO: we could discover relations automatically and make this useful
         from sentry import roles
