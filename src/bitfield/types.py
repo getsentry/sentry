@@ -17,11 +17,6 @@ class Bit:
 
         :param iterable keys: The names of the flags in this bitfield.
         """
-        """
-        This is a class that implements a bit field.
-
-        :param int size: The number of bits in the field.
-        """
         return "<%s: number=%d, is_set=%s>" % (self.__class__.__name__, self.number, self.is_set)
 
     def __int__(self):
@@ -111,10 +106,6 @@ class Bit:
 
 
 class BitHandler:
-    """
-    Represents an array of bits, each as a ``Bit`` object.
-    """
-
     def __init__(self, value, keys, labels=None):
         # TODO: change to bitarray?
         if value:
@@ -149,11 +140,6 @@ class BitHandler:
         A bitfield class that can be used to represent a set of flags.
 
         :param iterable keys: The names of the flags in this bitfield.
-        """
-        """
-        This is a class that implements a bit field.
-
-        :param int size: The number of bits in the field.
         """
         return "<{}: {}>".format(
             self.__class__.__name__,
@@ -197,10 +183,6 @@ class BitHandler:
         return bool(self.get_bit(bit_number))
 
     def __getattr__(self, key):
-        """
-        :param key: The name of the flag to get.
-        :type key: str
-        """
         if key.startswith("_"):
             return object.__getattribute__(self, key)
         if key not in self._keys:
@@ -268,11 +250,6 @@ class BitHandler:
             yield (k, getattr(self, k).is_set)
 
     def get_label(self, flag):
-        """
-        Returns the label for a given flag.
-
-        :param flag: The name of the flag or its index in :attr:`flags`.
-        """
         if isinstance(flag, str):
             flag = self._keys.index(flag)
         if isinstance(flag, Bit):
