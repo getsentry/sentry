@@ -68,13 +68,6 @@ class BaseEvent:
         :param data: The contents of the file.
         :returns: A dictionary containing extracted metadata, or ``None`` if no metadata
         was found in the file.
-
-            If this function returns ``None``, it's probably because no metadata can be extracted from *data*. This could be because
-        the data is malformed (e.g., not valid JSON), empty, or just doesn't contain any known keys to extract (e.g., "title").
-
-            If you want to add
-        support for extracting additional keys in your subclassed version of :class:`~dxr_code_search._utils._metadata_extractor`, you should add them to its
-        ``KEYS`` class attribute and override its :func:`~dxr_code_search._utils._metadata_extractor._get()` method accordingly.
         """
         metadata = self.extract_metadata(data)
         title = data.get("title")
@@ -133,22 +126,6 @@ class DefaultEvent(BaseEvent):
 
             .. note :: This function does not return anything because it mutates `data` directly! It's important to pass
         in a copy of `data` rather than modifying `data` itself so that other code can use unmodified versions as well.
-        """
-        """
-        Extracts metadata from a Sentry event.
-
-        :param data: A dictionary containing the event data.
-        :returns: A dictionary containing the title of the event,
-        or ``None`` if it does not have one.
-
-            The title is taken to be the first line of :data:`data['logentry']['formatted'] <data>`, or
-        :data:`data['logentry']['message'] <data>`. If neither field exists, then ``None`` is returned instead.
-
-            .. note ::
-
-                This function assumes
-        that both fields exist in :obj:`event_dict`, and will return incorrect results otherwise (or crash). It also assumes that they are strings, and will
-        return incorrect results if they are not (or crash).
         """
         message = strip(
             get_path(data, "logentry", "formatted") or get_path(data, "logentry", "message")
