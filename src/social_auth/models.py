@@ -130,19 +130,9 @@ class UserSocialAuth(models.Model):
             your settings to determine which field will be used as the username for
             users that are not using the
         default authentication backend.
-
             :param cls: The class of Django's User model being used, usually `User`.
                 This parameter is only needed if
         you're using a custom User model and need to specify its USERNAME_FIELD setting.
-
-                .. note: For backwards compatibility purposes, this can also
-        be specified as ``cls=User`` but this use is deprecated and will be removed in Passlib 1.8 .
-
-                .. versionadded: 1.6 - added support for non-
-        default User models (requires Django 1.5+)
-
-            :type cls: class or str matching one of django's builtin User classes, or subclass thereof; optional
-        if USERNAME_FIELD setting was previously set by passlib via ``set_django_password_context`` method on library load)
         """
         if hasattr(user, "USERNAME_FIELD"):
             # Django 1.5 custom user model, 'username' is just for internal
@@ -165,18 +155,6 @@ class UserSocialAuth(models.Model):
         :param values: A dict with keys corresponding to the `cls` model field names.
             For example,
         if you have a custom user model with two extra fields, 'age' and 'bio', then this function should be called like so:
-
-                >>>
-        convert_values(MyUser, {'username': 'johndoe', 'age': 21})  # ...doctest: +SKIP
-                {'username': 'johndoe', 'age': 21}
-
-            This would correspond
-        to a call from ``request.data`` or similar in your view code like so (assuming Django Rest Framework is used):
-
-                >>> request =
-        factory.post('/users/', {'username': ...}, format='json')  # ...doctest: +SKIP
-                >>> kwargs = {}  # **request** passed as keyword arguments by
-        DRF when calling view functions...  # no
         """
         user_model = cls.user_model()
         if hasattr(user_model, "USERNAME_FIELD"):
@@ -223,7 +201,6 @@ class UserSocialAuth(models.Model):
         :returns: The first (and
         only) object found matching that e-mail address, or None if no such object exists in the database
         """
-        """Case insensitive search"""
         # Do case-insensitive match, since real-world email address is
         # case-insensitive.
         return cls.user_model().objects.get(email__iexact=email)
@@ -237,10 +214,6 @@ class UserSocialAuth(models.Model):
             :type cls:
             :param user_or_id:
             :type user_or_id:
-
-           * Returns the User
-        object for a given id or username.  If the input is an integer then it returns the User object for that id.  Otherwise it looks up the username and
-        returns that matching User object.  If no match is found then a DoesNotExist exception is raised.
         """
         if isinstance(user_or_id, cls.user_model()):
             return user_or_id
@@ -256,15 +229,6 @@ class UserSocialAuth(models.Model):
         Create a new ``SocialAuth`` instance for a given user.
 
         :param user: The user to create the social auth for.
-        :type user:
-        :class:`~django.contrib.auth.models.User` or :class:\
-                    `~allauthdemo_auth_exchange_organizationsappusermodel`.\n\n.. note:\n    This
-        function assumes that the provided ``user`` has already been saved to the database, and will not save it again if it hasn't been saved yet (which is
-        likely in most cases). If you need to use this function with an unsaved User object, make sure you save it first before passing it into this
-        function!\n.. note:\n    This code assumes that there are no other social auth instances in existence with this same combination of provider and uid!
-        If there are, then they will be overwritten by this code! So be careful when using this method on an existing User object which may have previously
-        logged in via Facebook or Google using their respective providers -- unless you want those accounts disconnected from their respective login providers
-        after logging them out here through Python Social Auth (which is probably what you want!)\
         """
         if not isinstance(uid, str):
             uid = str(uid)
@@ -274,18 +238,6 @@ class UserSocialAuth(models.Model):
     def get_social_auth(cls, provider, uid, user):
         """
         Get or create an instance of UserSocialAuth for the given provider and uid.
-
-        :param cls: The model class
-        :type cls: type
-        :param provider: The name of
-        the provider e.g. facebook, twitter etc..
-            See `allauth.socialaccount` PROVIDERS for complete list
-        :type provider: str | unicode
-        :param uid: The
-        account identifier within a network (typically username)  # noQA E501 line too long (122 > 120 characters)  # noQA E501 line too long (122 > 120
-        characters)  # noQA E501 line too long (122 > 120 characters)  # noQA E501 line too long (122 > 120 characters)  # noQA E501 line too long (122 > 120
-        characters)      # noQa 501 lines over 79 character limit (#1121, @rln )
-        #noqagithub/pybitbucket/pull/1121/#comment-5c4e8b6f2d927d0e3c04cf087dfa9b8f-eafmvjn).
         """
         try:
             instance = cls.objects.get(provider=provider, uid=uid, user=user)
