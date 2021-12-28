@@ -19,12 +19,6 @@ PROJECT_ID = 2
 
 
 def main(argv):
-    """
-    .. function: main(argv)
-       :noindex:
-
-       Dumps the symbolSource configuration as stored in the project option.
-    """
     if argv[0] == "dump-cfg":
         # Dumps the symbolSource configuration as stored in the project option.
         project = Project.objects.get(pk=PROJECT_ID)
