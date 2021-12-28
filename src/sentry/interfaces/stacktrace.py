@@ -187,11 +187,6 @@ class Frame(Interface):
         :param frames_omitted: A 2-tuple indicating the beginning and end of a range of frame indexes where
         extra frames have been omitted (defaults to `(0, 0)`).
         """
-        """
-        :param frames: A list of :class:`Frame` objects.
-        :param frames_omitted: A 2-tuple indicating the number of leading and trailing frames that have been
-        elided. Useful for pagination, when it is desired not to show the first/last few stack frames in a result.
-        """
         return prune_empty_keys(
             {
                 "abs_path": self.abs_path or None,
@@ -334,20 +329,7 @@ class Frame(Interface):
         Returns ``True`` if the given module is an unhashable module (i.e. a
         module that doesn't exist in the codebase and therefore has no
         stable hash) or
-        ``False`` otherwise.  The following are examples of
-        unhashable modules:
-
-            * Modules with dashes or other non-identifier characters in them
-
-              -
-        `my_package/my_module`
-
-              - `django-stuff/thing`
-
-            * Modules from Java lambda functions (these change each time they're compiled)
-
-              -
-        `$$Lambda$py4j0x6g1v73kn6mf7zq8t3a5w2s/.MyClass`
+        ``False`` otherwise.  
         """
         # Fix for the case where module is a partial copy of the URL
         # and should not be hashed
@@ -405,88 +387,6 @@ class Stacktrace(Interface):
     removed the 8th frame, the value would be (8, 9), meaning it started at the
     8th frame, and went until the 9th (the number of frames omitted is
     end-start). The values should be based on a one-index.
-
-    The list of frames should be ordered by the oldest call first.
-
-    Each frame must contain the following attributes:
-
-    ``filename``
-      The relative filepath to the call
-
-    OR
-
-    ``function``
-      The name of the function being called
-
-    OR
-
-    ``module``
-      Platform-specific module path (e.g. stacktrace)
-
-    The following additional attributes are supported:
-
-    ``lineno``
-      The line number of the call
-    ``colno``
-      The column number of the call
-    ``abs_path``
-      The absolute path to filename
-    ``context_line``
-      Source code in filename at lineno
-    ``pre_context``
-      A list of source code lines before context_line (in order) -- usually [lineno - 5:lineno]
-    ``post_context``
-      A list of source code lines after context_line (in order) -- usually [lineno + 1:lineno + 5]
-    ``in_app``
-      Signifies whether this frame is related to the execution of the relevant
-      code in this stacktrace. For example, the frames that might power the
-      framework's webserver of your app are probably not relevant, however calls
-      to the framework's library once you start handling code likely are. See
-      notes below on implicit ``in_app`` behavior.
-    ``vars``
-      A mapping of variables which were available within this frame (usually context-locals).
-    ``package``
-      Name of the package or object file that the frame is contained in.  This
-      for instance can be the name of a DLL, .NET Assembly, jar file, object
-      file etc.
-
-    >>> {
-    >>>     "frames": [{
-    >>>         "abs_path": "/real/file/name.py"
-    >>>         "filename": "file/name.py",
-    >>>         "function": "myfunction",
-    >>>         "vars": {
-    >>>             "key": "value"
-    >>>         },
-    >>>         "pre_context": [
-    >>>             "line1",
-    >>>             "line2"
-    >>>         ],
-    >>>         "context_line": "line3",
-    >>>         "lineno": 3,
-    >>>         "in_app": true,
-    >>>         "post_context": [
-    >>>             "line4",
-    >>>             "line5"
-    >>>         ],
-    >>>     }],
-    >>>     "frames_omitted": [13, 56]
-    >>> }
-
-    Implicit ``in_app`` behavior exists when the value is not specified on all
-    frames within a stacktrace (or collectively within an exception if this is
-    part of a chain).
-
-    If **any frame** is marked with ``in_app=True`` or ``in_app=False``:
-
-    - Set ``in_app=False`` where ``in_app is None``
-
-    If **all frames** are marked identical values for ``in_app``:
-
-    - Set ``in_app=False`` on all frames
-
-    .. note:: This interface can be passed as the 'stacktrace' key in addition
-              to the full interface path.
     """
 
     score = 1950
@@ -570,11 +470,6 @@ class Stacktrace(Interface):
         :param frames: A list of :class:`Frame` objects.
         :param frames_omitted: A 2-tuple indicating the beginning and end of a range of frame indexes where
         extra frames have been omitted (defaults to `(0, 0)`).
-        """
-        """
-        :param frames: A list of :class:`Frame` objects.
-        :param frames_omitted: A 2-tuple indicating the number of leading and trailing frames that have been
-        elided. Useful for pagination, when it is desired not to show the first/last few stack frames in a result.
         """
         return prune_empty_keys(
             {
