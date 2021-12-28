@@ -23,17 +23,6 @@ def get_pii_config(project):
 
     The key in the first pair is prefixed with "organization:" and "project:", respectively. If any
     keys collide, the colliding key is only present once in the result and its value is the combination of all values specified for that key in all pairs.
-    For example:
-
-        >>> _merge_pii_configs([("organization:", {"remove_ip_address": True}), ("project:", {"remove_ip_address": False})]) ==
-    {'remove_ip_address': False}
-        True
-
-        >>> _merge({"foo": 1}, {"bar": 2}) == {'foo': 1, 'bar': 2}
-        True
-
-        >>> _merge({"foo": [1]}, {"foo":
-    [2]}) == {'foo': [1, 2]}
     """
     def _decode(value):
         if value:
@@ -106,15 +95,6 @@ def get_all_pii_configs(project):
     ``project``, in order of priority (most important first). If a ``project`` has its own PII config, it is returned first. Then if datascrubbing
     settings are enabled on the ``project``, its datascrubbing settings are returned next. Finally if any organization that owns the ``project`` enables
     datascrubbing on an organization-level, then those settings are returned last.
-
-        Example output (just showing keys):
-
-        .. code-block :: python
-    [{'applications': {'exclude': [], 'include': []}, 'conditions': {'exclude_fields_if_missing_field_has': None}, 'description': None,
-    'enabledFieldsAndConditionsOnlyIfEnabledForOrganizationOrProjectSettings = False',  # noqastartline
-             'fieldsToMatchAgainstOnNoMatch =
-    ['email']',  # noqastartline
-             'matchingType = 1',  # noqastartline
     """
     # Note: This logic is duplicated in Relay store.
     pii_config = get_pii_config(project)
@@ -212,15 +192,7 @@ def _prefix_rule_references_in_rule(custom_rules, rule_def, prefix):
     this operation.
     :param dict rule_definition: The definition of a single rule, as defined in `the documentation
     <../../docs/configuration/rules.html>`_.  This is a dictionary that may contain one or more of the following keys (note that if you omit either
-    ``type`` or ``rule`` from your definitions, they will be added automatically):
-
-        * **type** - The type of this particular set of rules; must be one
-    of "multiple" or "single".  Defaults to "single".
-        * **rule** - If present, specifies an explicit list (or tuple) containing only other rules to
-    execute instead; if not present then it defaults to executing all applicable rules for this case based on any conditions specified below and by
-    searching through any applicable packages installed on the system.  You can also specify multiple values here by using a list or tuple instead and
-    specifying multiple items; each item should itself be either another list containing only valid names as strings, another tuple containing only valid
-    names as strings, another string value which is assumed to represent exactly
+    ``type`` or ``rule`` from your definitions, they will be added automatically)
     """
     if not isinstance(rule_def, dict):
         return rule_def
