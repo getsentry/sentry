@@ -137,7 +137,7 @@ class TeamStability extends AsyncComponent<Props, State> {
     const sumSessions = getSeriesSum(
       response.groups.filter(group => group.by.project === Number(project.id)),
       SessionField.SESSIONS,
-      response.intervals,
+      response.intervals
     );
 
     const countSeries = getCountSeries(
@@ -151,10 +151,12 @@ class TeamStability extends AsyncComponent<Props, State> {
     );
 
     const countSeriesWeeklyTotals: number[] = Array(sumSessions.length / 7).fill(0);
-    countSeries.forEach((s, idx) => countSeriesWeeklyTotals[Math.floor(idx/7)] += s.value);
+    countSeries.forEach(
+      (s, idx) => (countSeriesWeeklyTotals[Math.floor(idx / 7)] += s.value)
+    );
 
     const sumSessionsWeeklyTotals: number[] = Array(sumSessions.length / 7).fill(0);
-    sumSessions.forEach((s, idx) => sumSessionsWeeklyTotals[Math.floor(idx/7)] += s);
+    sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)] += s));
 
     const data = countSeriesWeeklyTotals.map((value, idx) => ({
       name: countSeries[idx * 7].name,
