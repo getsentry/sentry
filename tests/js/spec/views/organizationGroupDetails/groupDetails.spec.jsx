@@ -3,8 +3,8 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
 import GroupStore from 'sentry/stores/groupStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import GroupDetails from 'sentry/views/organizationGroupDetails';
 
@@ -110,7 +110,7 @@ describe('groupDetails', () => {
   afterEach(() => {
     act(() => ProjectsStore.reset());
     GroupStore.reset();
-    GlobalSelectionStore.reset();
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 

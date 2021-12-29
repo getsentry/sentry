@@ -22,12 +22,12 @@ import {
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {uniqueId} from 'sentry/utils/guid';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
@@ -58,7 +58,7 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
-  selection: GlobalSelection;
+  selection: PageFilters;
   isEditing: boolean;
   router: InjectedRouter;
   location: Location;
@@ -453,7 +453,7 @@ class Dashboard extends Component<Props, State> {
   }
 }
 
-export default withApi(withGlobalSelection(Dashboard));
+export default withApi(withPageFilters(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;

@@ -21,8 +21,8 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   DateString,
-  GlobalSelection,
   Organization,
+  PageFilters,
   RelativePeriod,
   SelectValue,
   TagCollection,
@@ -30,7 +30,7 @@ import {
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Measurements from 'sentry/utils/measurements/measurements';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
 import {
@@ -63,7 +63,7 @@ import {TAB, TabsButtonBar} from './dashboardWidgetLibraryModal/tabsButtonBar';
 export type DashboardWidgetModalOptions = {
   organization: Organization;
   dashboard?: DashboardDetails;
-  selection?: GlobalSelection;
+  selection?: PageFilters;
   onAddWidget?: (data: Widget) => void;
   widget?: Widget;
   onUpdateWidget?: (nextWidget: Widget) => void;
@@ -83,7 +83,7 @@ type Props = ModalRenderProps &
   DashboardWidgetModalOptions & {
     api: Client;
     organization: Organization;
-    selection: GlobalSelection;
+    selection: PageFilters;
     tags: TagCollection;
   };
 
@@ -278,7 +278,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         interval: widgetData.interval,
         title: widgetData.title,
         ...queryData,
-        // Propagate global header selection
+        // Propagate page filters
         ...selection.datetime,
         project: selection.projects,
         environment: selection.environments,
@@ -544,8 +544,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const state = this.state;
     const errors = state.errors;
 
-    // Construct GlobalSelection object using statsPeriod/start/end props so we can render widget graph using saved timeframe from Saved/Prebuilt Query
-    const querySelection: GlobalSelection = statsPeriod
+    // Construct PageFilters object using statsPeriod/start/end props so we can
+    // render widget graph using saved timeframe from Saved/Prebuilt Query
+    const querySelection: PageFilters = statsPeriod
       ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
       : start && end
       ? {...selection, datetime: {start, end, period: '', utc: null}}
@@ -767,4 +768,4 @@ const StyledFieldLabel = styled(FieldLabel)`
   padding-bottom: ${space(1)};
 `;
 
-export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));
+export default withApi(withPageFilters(withTags(AddDashboardWidgetModal)));

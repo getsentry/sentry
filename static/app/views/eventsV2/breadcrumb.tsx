@@ -32,7 +32,7 @@ class DiscoverBreadcrumb extends Component<Props> {
           query: {
             ...location.query,
             ...eventView.generateBlankQueryStringObject(),
-            ...eventView.getGlobalSelectionQuery(),
+            ...eventView.getPageFiltersQuery(),
           },
         }
       : null;

@@ -24,7 +24,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
@@ -36,10 +36,10 @@ import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
 import {
   BaseGroup,
-  GlobalSelection,
   Group,
   Member,
   Organization,
+  PageFilters,
   SavedSearch,
   TagCollection,
 } from 'sentry/types';
@@ -54,9 +54,9 @@ import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 
 import IssueListActions from './actions';
@@ -92,7 +92,7 @@ type Props = {
   location: Location;
   organization: Organization;
   params: Params;
-  selection: GlobalSelection;
+  selection: PageFilters;
   savedSearch: SavedSearch;
   savedSearches: SavedSearch[];
   savedSearchLoading: boolean;
@@ -123,7 +123,7 @@ type State = {
   query?: string;
 };
 
-type EndpointParams = Partial<GlobalSelection['datetime']> & {
+type EndpointParams = Partial<PageFilters['datetime']> & {
   project: number[];
   environment: string[];
   query?: string;
@@ -1114,7 +1114,7 @@ class IssueListOverview extends React.Component<Props, State> {
 }
 
 export default withApi(
-  withGlobalSelection(
+  withPageFilters(
     withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
   )
 );
