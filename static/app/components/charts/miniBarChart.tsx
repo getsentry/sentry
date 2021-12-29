@@ -80,7 +80,6 @@ type Props = Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> & {
 function MiniBarChart({
   markers,
   emphasisColors,
-  series: _series,
   series,
   hideDelay,
   tooltipFormatter,
