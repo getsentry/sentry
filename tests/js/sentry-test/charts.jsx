@@ -9,12 +9,14 @@ const data = [
   [1543881600000, 13],
 ];
 const model = {
-  xAxis: [
-    {
-      rangeStart: 1543449600000,
-      rangeEnd: 1543708800000,
-    },
-  ],
+  _payload: {
+    batch: [
+      {
+        startValue: 1543449600000,
+        endValue: 1543708800000,
+      },
+    ],
+  },
   series: [
     {
       data,
@@ -29,17 +31,17 @@ export const chart = {
 // eslint-disable-next-line
 export const doZoom = (wrapper, chart = chart) => {
   wrapper.find('ChartZoom').instance().handleDataZoom({}, chart);
-  wrapper.find('ChartZoom').instance().handleChartFinished();
+  wrapper.find('ChartZoom').instance().handleChartFinished({}, chart);
 };
 
-export const mockZoomRange = (rangeStart, rangeEnd) => {
+export const mockZoomRange = (startValue, endValue) => {
   chart.getModel.mockImplementation(() => ({
-    option: {
-      ...model,
-      xAxis: [
+    ...model,
+    _payload: {
+      batch: [
         {
-          rangeStart,
-          rangeEnd,
+          startValue,
+          endValue,
         },
       ],
     },

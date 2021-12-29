@@ -34,6 +34,29 @@ class GroupHistoryStatus:
     DELETED = 8
     DELETED_AND_DISCARDED = 9
     REVIEWED = 10
+    # Just reserving this for us with queries, we don't store the first time a group is created in
+    # `GroupHistoryStatus`
+    NEW = 20
+
+
+string_to_status_lookup = {
+    "unresolved": GroupHistoryStatus.UNRESOLVED,
+    "resolved": GroupHistoryStatus.RESOLVED,
+    "set_resolved_in_release": GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+    "set_resolved_in_commit": GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+    "set_resolved_in_pull_request": GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+    "auto_resolved": GroupHistoryStatus.AUTO_RESOLVED,
+    "ignored": GroupHistoryStatus.IGNORED,
+    "unignored": GroupHistoryStatus.UNIGNORED,
+    "assigned": GroupHistoryStatus.ASSIGNED,
+    "unassigned": GroupHistoryStatus.UNASSIGNED,
+    "regressed": GroupHistoryStatus.REGRESSED,
+    "deleted": GroupHistoryStatus.DELETED,
+    "deleted_and_discarded": GroupHistoryStatus.DELETED_AND_DISCARDED,
+    "reviewed": GroupHistoryStatus.REVIEWED,
+    "new": GroupHistoryStatus.NEW,
+}
+status_to_string_lookup = {status: string for string, status in string_to_status_lookup.items()}
 
 
 ACTIONED_STATUSES = [

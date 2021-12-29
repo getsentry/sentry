@@ -3,13 +3,13 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as globalActions from 'app/actionCreators/globalSelection';
-import OrganizationActions from 'app/actions/organizationActions';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import ConfigStore from 'app/stores/configStore';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import {getItem} from 'app/utils/localStorage';
+import * as globalActions from 'sentry/actionCreators/globalSelection';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import ConfigStore from 'sentry/stores/configStore';
+import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {getItem} from 'sentry/utils/localStorage';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,
@@ -24,7 +24,7 @@ const changeQuery = (routerContext, query) => ({
   },
 });
 
-jest.mock('app/utils/localStorage', () => ({
+jest.mock('sentry/utils/localStorage', () => ({
   getItem: jest.fn(),
   setItem: jest.fn(),
 }));
@@ -628,7 +628,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   describe('forceProject selection mode', function () {
-    beforeEach(function () {
+    beforeEach(async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [],
@@ -655,6 +655,9 @@ describe('GlobalSelectionHeader', function () {
         />,
         initialData.routerContext
       );
+
+      await tick();
+      wrapper.update();
     });
 
     it('renders a back button to the forced project', function () {
@@ -662,9 +665,9 @@ describe('GlobalSelectionHeader', function () {
       expect(back).toHaveLength(1);
     });
 
-    it('renders only environments from the forced project', async function () {
-      await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-      await wrapper.update();
+    it('renders only environments from the forced project', function () {
+      wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+      wrapper.update();
 
       const items = wrapper.find('MultipleEnvironmentSelector EnvironmentSelectorItem');
       expect(items.length).toEqual(1);
@@ -931,7 +934,8 @@ describe('GlobalSelectionHeader', function () {
 
   describe('projects list', function () {
     let memberProject, nonMemberProject, initialData;
-    beforeEach(function () {
+
+    beforeEach(async function () {
       memberProject = TestStubs.Project({id: '3', isMember: true});
       nonMemberProject = TestStubs.Project({id: '4', isMember: false});
       initialData = initializeOrg({
@@ -950,6 +954,9 @@ describe('GlobalSelectionHeader', function () {
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );
+
+      await tick();
+      wrapper.update();
     });
 
     it('gets member projects', function () {
@@ -958,7 +965,7 @@ describe('GlobalSelectionHeader', function () {
       ]);
     });
 
-    it('gets all projects if superuser', function () {
+    it('gets all projects if superuser', async function () {
       ConfigStore.config = {
         user: {
           isSuperuser: true,
@@ -969,6 +976,9 @@ describe('GlobalSelectionHeader', function () {
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );
+
+      await tick();
+      wrapper.update();
 
       expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
         memberProject,

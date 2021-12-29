@@ -8,6 +8,7 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from exam import fixture, patcher
 
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
@@ -28,18 +29,25 @@ class BaseQuerySubscriptionTest:
 
     @fixture
     def valid_wrapper(self):
-        return {"version": 2, "payload": self.valid_payload}
+        return {"version": 3, "payload": self.valid_payload}
 
     @fixture
-    def old_payload(self):
+    def valid_payload(self):
         return {
             "subscription_id": "1234",
-            "values": {"data": [{"hello": 50}]},
+            "result": {"data": [{"hello": 50}]},
+            "request": {
+                "some": "data",
+                "query": """MATCH (metrics_counters) SELECT sum(value) AS value BY
+                        tags[3] WHERE org_id = 1 AND project_id IN tuple(1) AND metric_id = 16
+                        AND tags[3] IN tuple(13, 4)""",
+            },
+            "entity": "metrics_counters",
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
     @fixture
-    def valid_payload(self):
+    def old_payload(self):
         return {
             "subscription_id": "1234",
             "result": {"data": [{"hello": 50}]},
@@ -63,13 +71,15 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             pool.urlopen.return_value.status = 202
             self.consumer.handle_message(
                 self.build_mock_message(
-                    self.valid_wrapper, topic=settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS
+                    self.valid_wrapper, topic=settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
                 )
             )
             pool.urlopen.assert_called_once_with(
                 "DELETE",
-                "/{}/subscriptions/{}".format(
-                    QueryDatasets.EVENTS.value, self.valid_payload["subscription_id"]
+                "/{}/{}/subscriptions/{}".format(
+                    QueryDatasets.METRICS.value,
+                    EntityKey.MetricsCounters.value,
+                    self.valid_payload["subscription_id"],
                 ),
             )
         self.metrics.incr.assert_called_once_with(
@@ -129,16 +139,18 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
                 payload.pop(field)
         if update_fields:
             payload.update(update_fields)
-        self.run_invalid_schema_test({"version": 2, "payload": payload})
+        self.run_invalid_schema_test({"version": 3, "payload": payload})
 
     def test_invalid_payload(self):
         self.run_invalid_payload_test(remove_fields=["subscription_id"])
         self.run_invalid_payload_test(remove_fields=["result"])
         self.run_invalid_payload_test(remove_fields=["timestamp"])
+        self.run_invalid_payload_test(remove_fields=["entity"])
         self.run_invalid_payload_test(update_fields={"subscription_id": ""})
         self.run_invalid_payload_test(update_fields={"result": {}})
         self.run_invalid_payload_test(update_fields={"result": {"hello": "hi"}})
         self.run_invalid_payload_test(update_fields={"timestamp": -1})
+        self.run_invalid_payload_test(update_fields={"entity": -1})
 
     def test_invalid_version(self):
         with self.assertRaises(InvalidMessageError) as cm:
@@ -146,15 +158,15 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
         assert str(cm.exception) == "Version specified in wrapper has no schema"
 
     def test_valid(self):
-        self.run_test({"version": 2, "payload": self.valid_payload})
+        self.run_test({"version": 3, "payload": self.valid_payload})
 
     def test_valid_nan(self):
         payload = deepcopy(self.valid_payload)
         payload["result"]["data"][0]["hello"] = float("nan")
-        self.run_test({"version": 2, "payload": payload})
+        self.run_test({"version": 3, "payload": payload})
 
     def test_old_version(self):
-        self.run_test({"version": 1, "payload": self.old_payload})
+        self.run_test({"version": 2, "payload": self.old_payload})
 
     def test_invalid_wrapper(self):
         self.run_invalid_schema_test({})

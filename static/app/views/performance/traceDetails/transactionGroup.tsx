@@ -4,9 +4,9 @@ import {Location} from 'history';
 import {
   ScrollbarManagerChildrenProps,
   withScrollbarManager,
-} from 'app/components/events/interfaces/spans/scrollbarManager';
-import {Organization} from 'app/types';
-import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
+} from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import {Organization} from 'sentry/types';
+import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
 import TransactionBar from './transactionBar';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';

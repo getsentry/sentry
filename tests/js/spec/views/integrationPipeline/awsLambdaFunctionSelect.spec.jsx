@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import AwsLambdaFunctionSelect from 'app/views/integrationPipeline/awsLambdaFunctionSelect';
+import {Client} from 'sentry/api';
+import AwsLambdaFunctionSelect from 'sentry/views/integrationPipeline/awsLambdaFunctionSelect';
 
 describe('AwsLambdaFunctionSelect', () => {
   let wrapper;

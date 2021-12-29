@@ -1,30 +1,30 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {assignToActor, assignToUser, clearAssignment} from 'app/actionCreators/group';
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import SuggestedAvatarStack from 'app/components/avatar/suggestedAvatarStack';
-import TeamAvatar from 'app/components/avatar/teamAvatar';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import {ItemsBeforeFilter} from 'app/components/dropdownAutoComplete/types';
-import DropdownBubble from 'app/components/dropdownBubble';
-import Highlight from 'app/components/highlight';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import TextOverflow from 'app/components/textOverflow';
-import Tooltip from 'app/components/tooltip';
-import {IconAdd, IconChevron, IconClose, IconUser} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import GroupStore from 'app/stores/groupStore';
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import space from 'app/styles/space';
-import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'app/types';
-import {buildTeamId, buildUserId, valueIsEqual} from 'app/utils';
+import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
+import TeamAvatar from 'sentry/components/avatar/teamAvatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
+import DropdownBubble from 'sentry/components/dropdownBubble';
+import Highlight from 'sentry/components/highlight';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TextOverflow from 'sentry/components/textOverflow';
+import Tooltip from 'sentry/components/tooltip';
+import {IconAdd, IconChevron, IconClose, IconUser} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import GroupStore from 'sentry/stores/groupStore';
+import MemberListStore from 'sentry/stores/memberListStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import space from 'sentry/styles/space';
+import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'sentry/types';
+import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
 type SuggestedAssignee = Actor & {
   suggestedReason: SuggestedOwnerReason;
@@ -391,7 +391,7 @@ class AssigneeSelector extends React.Component<Props, State> {
     const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
       suspectCommit: tct('Based on [commit:commit data]', {
         commit: (
-          <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
+          <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
         ),
       }),
       ownershipRule: t('Matching Issue Owners Rule'),

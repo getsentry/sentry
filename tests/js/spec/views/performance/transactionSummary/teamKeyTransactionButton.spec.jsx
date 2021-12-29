@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import EventView from 'app/utils/discover/eventView';
-import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
-import TeamKeyTransactionButton from 'app/views/performance/transactionSummary/teamKeyTransactionButton';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import EventView from 'sentry/utils/discover/eventView';
+import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
+import TeamKeyTransactionButton from 'sentry/views/performance/transactionSummary/teamKeyTransactionButton';
 
 async function clickTeamKeyTransactionDropdown(wrapper) {
   wrapper.find('Button').simulate('click');
@@ -36,7 +36,7 @@ describe('TeamKeyTransactionButton', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.loadInitialData([project]));
-    act(() => void TeamStore.loadInitialData(teams));
+    act(() => void TeamStore.loadInitialData(teams, false, null));
   });
 
   it('fetches key transactions with project param', async function () {

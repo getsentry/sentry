@@ -1,7 +1,7 @@
 import isUndefined from 'lodash/isUndefined';
 import Reflux from 'reflux';
 
-import {HookName, Hooks} from 'app/types/hooks';
+import {HookName, Hooks} from 'sentry/types/hooks';
 
 type HookStoreInterface = {
   // XXX(epurkhiser): We could type this as {[H in HookName]?:

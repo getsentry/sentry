@@ -1,32 +1,32 @@
-import React from 'react';
+import {Fragment} from 'react';
 
-import AlertLink from 'app/components/alertLink';
-import AsyncComponent from 'app/components/asyncComponent';
-import Link from 'app/components/links/link';
-import {IconMail} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import withOrganizations from 'app/utils/withOrganizations';
+import AlertLink from 'sentry/components/alertLink';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Link from 'sentry/components/links/link';
+import {IconMail} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
   NOTIFICATION_SETTINGS_TYPES,
   NotificationSettingsObject,
   SELF_NOTIFICATION_SETTINGS_TYPES,
-} from 'app/views/settings/account/notifications/constants';
-import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
-import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
+} from 'sentry/views/settings/account/notifications/constants';
+import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
+import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
 import {
   decideDefault,
   getParentIds,
   getStateToPutForDefault,
   isSufficientlyComplex,
   mergeNotificationSettings,
-} from 'app/views/settings/account/notifications/utils';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {FieldObject} from 'app/views/settings/components/forms/type';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+} from 'sentry/views/settings/account/notifications/utils';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import {FieldObject} from 'sentry/views/settings/components/forms/type';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = AsyncComponent['props'] & {
   organizations: Organization[];
@@ -83,21 +83,11 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
-  get notificationSettingsType() {
-    const hasApprovalFeatureFlag =
-      this.props.organizations.filter(org => org.features?.includes('slack-requests'))
-        .length > 0;
-    // filter out approvals if the feature flag isn't set
-    return NOTIFICATION_SETTINGS_TYPES.filter(
-      type => type !== 'approval' || hasApprovalFeatureFlag
-    );
-  }
-
   getInitialData(): {[key: string]: string} {
     const {notificationSettings} = this.state;
 
     return Object.fromEntries(
-      this.notificationSettingsType.map(notificationType => [
+      NOTIFICATION_SETTINGS_TYPES.map(notificationType => [
         notificationType,
         decideDefault(notificationType, notificationSettings),
       ])
@@ -108,11 +98,11 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {notificationSettings} = this.state;
 
     const fields: FieldObject[] = [];
-    for (const notificationType of this.notificationSettingsType) {
+    for (const notificationType of NOTIFICATION_SETTINGS_TYPES) {
       const field = Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
         getData: data => this.getStateToPutForDefault(data, notificationType),
         help: (
-          <React.Fragment>
+          <Fragment>
             <p>
               {NOTIFICATION_SETTING_FIELDS[notificationType].help}
               &nbsp;
@@ -123,7 +113,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
                 Fine tune
               </Link>
             </p>
-          </React.Fragment>
+          </Fragment>
         ),
       }) as any;
 
@@ -143,7 +133,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {legacyData} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title="Notifications" />
         <TextBlock>Personal notifications sent via email or an integration.</TextBlock>
         <FeedbackAlert />
@@ -171,7 +161,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         <AlertLink to="/settings/account/emails" icon={<IconMail />}>
           {t('Looking to add or remove an email address? Use the emails panel.')}
         </AlertLink>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

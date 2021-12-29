@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import NavTabs from 'app/components/navTabs';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import NavTabs from 'sentry/components/navTabs';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 /**
  * Base container for 66/33 containers.
@@ -85,17 +85,21 @@ export const Title = styled('h1')`
  * Uses a horizontal layout in wide viewports to put space between
  * the headings and the actions container. In narrow viewports these elements
  * are stacked vertically.
+ *
+ * Use `noActionWrap` to disable wrapping if there are minimal actions.
  */
-export const Header = styled('div')`
+export const Header = styled('div')<{noActionWrap?: boolean}>`
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: ${p =>
+    !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
+
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: minmax(0, 1fr) auto;
     padding: ${space(2)} ${space(4)} 0 ${space(4)};
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 `;
 

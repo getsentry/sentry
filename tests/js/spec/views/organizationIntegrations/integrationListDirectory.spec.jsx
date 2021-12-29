@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import IntegrationListDirectory from 'app/views/organizationIntegrations/integrationListDirectory';
+import {Client} from 'sentry/api';
+import IntegrationListDirectory from 'sentry/views/organizationIntegrations/integrationListDirectory';
 
 const mockResponse = mocks => {
   mocks.forEach(([url, body]) =>
@@ -48,12 +48,13 @@ describe('IntegrationListDirectory', function () {
     it('shows installed integrations at the top in order of weight', async function () {
       expect(wrapper.find('SearchBar').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
-      expect(wrapper.find('IntegrationRow')).toHaveLength(14);
+      expect(wrapper.find('IntegrationRow')).toHaveLength(16);
 
       [
         'bitbucket',
         'pagerduty',
         'my-headband-washer-289499',
+        'grafana',
         'clickup',
         'asayer',
         'bitbucket_pipelines',
@@ -64,6 +65,7 @@ describe('IntegrationListDirectory', function () {
         'octohook',
         'rocketchat',
         'amazon-sqs',
+        'insightfinder',
         'la-croix-monitor',
       ].map((name, index) =>
         expect(wrapper.find('IntegrationRow').at(index).props().slug).toEqual(name)

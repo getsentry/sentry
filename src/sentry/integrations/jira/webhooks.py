@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.integrations.atlassian_connect import (
@@ -101,10 +103,10 @@ class JiraIssueUpdatedWebhook(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args, **kwargs) -> Response:
         try:
             token = request.META["HTTP_AUTHORIZATION"].split(" ", 1)[1]
         except (KeyError, IndexError):

@@ -133,11 +133,13 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "owner": {"id": self.org.id, "slug": self.org.slug},
             "featureData": [
                 {
+                    "featureId": 0,
                     "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
                     "featureGate": "integrations-api",
                 }
             ],
             "popularity": self.popularity,
+            "avatars": [],
         }
 
     def test_update_unpublished_app(self):

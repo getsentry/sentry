@@ -1,13 +1,19 @@
 import moment from 'moment';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IntervalPeriod} from 'app/types';
-import {defined} from 'app/utils';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {IntervalPeriod} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 
+type SingleParamValue = string | undefined | null;
+type ParamValue = string[] | SingleParamValue;
+
 const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?$';
 
+/**
+ * Parses a stats period into `period` and `periodLength`
+ */
 export function parseStatsPeriod(input: string | IntervalPeriod) {
   const result = input.match(STATS_PERIOD_PATTERN);
 
@@ -17,44 +23,31 @@ export function parseStatsPeriod(input: string | IntervalPeriod) {
 
   const period = result[1];
 
-  let periodLength = result[2];
-  if (!periodLength) {
-    // default to seconds.
-    // this behaviour is based on src/sentry/utils/dates.py
-    periodLength = 's';
-  }
+  // default to seconds. this behaviour is based on src/sentry/utils/dates.py
+  const periodLength = result[2] || 's';
 
-  return {
-    period,
-    periodLength,
-  };
+  return {period, periodLength};
 }
 
+/**
+ * Normalizes a stats period string
+ */
 function coerceStatsPeriod(input: string) {
   const result = parseStatsPeriod(input);
 
-  if (!result) {
-    return undefined;
-  }
-
-  const {period, periodLength} = result;
-
-  return `${period}${periodLength}`;
+  return result ? `${result.period}${result.periodLength}` : undefined;
 }
 
-function getStatsPeriodValue(
-  maybe: string | string[] | undefined | null
-): string | undefined {
+/**
+ * Normalizes a string or string[] into a standard stats period string.
+ *
+ * Undefined and null inputs are returned as undefined.
+ */
+function getStatsPeriodValue(maybe: ParamValue) {
   if (Array.isArray(maybe)) {
-    if (maybe.length <= 0) {
-      return undefined;
-    }
-
     const result = maybe.find(coerceStatsPeriod);
-    if (!result) {
-      return undefined;
-    }
-    return coerceStatsPeriod(result);
+
+    return result ? coerceStatsPeriod(result) : undefined;
   }
 
   if (typeof maybe === 'string') {
@@ -64,13 +57,16 @@ function getStatsPeriodValue(
   return undefined;
 }
 
-// We normalize potential datetime strings into the form that would be valid
-// if it were to be parsed by datetime.strptime using the format %Y-%m-%dT%H:%M:%S.%f
-// This format was transformed to the form that moment.js understands using
-// https://gist.github.com/asafge/0b13c5066d06ae9a4446
-const normalizeDateTimeString = (
-  input: Date | string | undefined | null
-): string | undefined => {
+/**
+ * We normalize potential datetime strings into the form that would be valid if
+ * it was to be parsed by datetime.strptime using the format
+ * %Y-%m-%dT%H:%M:%S.%f
+ *
+ * This format was transformed to the form that moment.js understands using [0]
+ *
+ * [0]: https://gist.github.com/asafge/0b13c5066d06ae9a4446
+ */
+function normalizeDateTimeString(input: Date | SingleParamValue) {
   if (!input) {
     return undefined;
   }
@@ -82,46 +78,44 @@ const normalizeDateTimeString = (
   }
 
   return parsed.format('YYYY-MM-DDTHH:mm:ss.SSS');
-};
+}
 
-const getDateTimeString = (
-  maybe: Date | string | string[] | undefined | null
-): string | undefined => {
-  if (Array.isArray(maybe)) {
-    if (maybe.length <= 0) {
-      return undefined;
-    }
+/**
+ * Normalizes a string or string[] into the date time string.
+ *
+ * Undefined and null inputs are returned as undefined.
+ */
+function getDateTimeString(maybe: Date | ParamValue) {
+  const result = Array.isArray(maybe)
+    ? maybe.find(needle => moment.utc(needle).isValid())
+    : maybe;
 
-    const result = maybe.find(needle => moment.utc(needle).isValid());
+  return normalizeDateTimeString(result);
+}
 
-    return normalizeDateTimeString(result);
+/**
+ * Normalize a UTC parameter
+ */
+function parseUtcValue(utc: boolean | SingleParamValue) {
+  if (!defined(utc)) {
+    return undefined;
   }
 
-  return normalizeDateTimeString(maybe);
-};
+  return utc === true || utc === 'true' ? 'true' : 'false';
+}
 
-const parseUtcValue = (utc: any) => {
-  if (defined(utc)) {
-    return utc === true || utc === 'true' ? 'true' : 'false';
-  }
-  return undefined;
-};
+/**
+ * Normalizes a string or string[] into the UTC parameter.
+ *
+ * Undefined and null inputs are returned as undefined.
+ */
+function getUtcValue(maybe: boolean | ParamValue) {
+  const result = Array.isArray(maybe)
+    ? maybe.find(needle => !!parseUtcValue(needle))
+    : maybe;
 
-const getUtcValue = (
-  maybe: string | string[] | boolean | undefined | null
-): string | undefined => {
-  if (Array.isArray(maybe)) {
-    if (maybe.length <= 0) {
-      return undefined;
-    }
-
-    return maybe.find(needle => !!parseUtcValue(needle));
-  }
-
-  return parseUtcValue(maybe);
-};
-
-type ParamValue = string | string[] | undefined | null;
+  return parseUtcValue(result);
+}
 
 type ParsedParams = {
   start?: string;
@@ -144,21 +138,21 @@ type InputParams = {
   [others: string]: any;
 };
 
-type GetParamsOptions = {
+type Options = {
   allowEmptyPeriod?: boolean;
   allowAbsoluteDatetime?: boolean;
   allowAbsolutePageDatetime?: boolean;
   defaultStatsPeriod?: string;
 };
-export function getParams(
-  params: InputParams,
-  {
+
+export function getParams(params: InputParams, options: Options = {}): ParsedParams {
+  const {
     allowEmptyPeriod = false,
     allowAbsoluteDatetime = true,
     allowAbsolutePageDatetime = false,
     defaultStatsPeriod = DEFAULT_STATS_PERIOD,
-  }: GetParamsOptions = {}
-): ParsedParams {
+  } = options;
+
   const {
     pageStatsPeriod,
     pageStart,
@@ -189,23 +183,22 @@ export function getParams(
       : getDateTimeString(end)
     : null;
 
-  if (!(dateTimeStart && dateTimeEnd)) {
-    if (!coercedPeriod && !allowEmptyPeriod) {
-      coercedPeriod = defaultStatsPeriod;
-    }
+  if ((!dateTimeStart || !dateTimeEnd) && !coercedPeriod && !allowEmptyPeriod) {
+    coercedPeriod = defaultStatsPeriod;
   }
 
-  return Object.fromEntries(
-    Object.entries({
-      statsPeriod: coercedPeriod,
-      start: coercedPeriod ? null : dateTimeStart,
-      end: coercedPeriod ? null : dateTimeEnd,
-      // coerce utc into a string (it can be both: a string representation from router,
-      // or a boolean from time range picker)
-      utc: getUtcValue(pageUtc ?? utc),
-      ...otherParams,
-    })
-      // Filter null values
-      .filter(([_key, value]) => defined(value))
-  );
+  const object = {
+    statsPeriod: coercedPeriod,
+    start: coercedPeriod ? null : dateTimeStart,
+    end: coercedPeriod ? null : dateTimeEnd,
+    // coerce utc into a string (it can be both: a string representation from
+    // router, or a boolean from time range picker)
+    utc: getUtcValue(pageUtc ?? utc),
+    ...otherParams,
+  };
+
+  // Filter null values
+  const paramEntries = Object.entries(object).filter(([_, value]) => defined(value));
+
+  return Object.fromEntries(paramEntries);
 }

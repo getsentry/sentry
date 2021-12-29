@@ -1,11 +1,11 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
-import {IconRefresh} from 'app/icons';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import Alert from 'sentry/components/alert';
+import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
+import {IconRefresh} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 
 type Props = {
   organization: Organization;

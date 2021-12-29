@@ -1,17 +1,17 @@
 import {Component} from 'react';
-import DocumentTitle from 'react-document-title';
 import {browserHistory} from 'react-router';
 
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'app/constants';
-import {t, tct} from 'app/locale';
-import {Choices} from 'app/types';
-import ApiForm from 'app/views/settings/components/forms/apiForm';
-import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
-import FormField from 'app/views/settings/components/forms/formField';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import {Choices} from 'sentry/types';
+import ApiForm from 'sentry/views/settings/components/forms/apiForm';
+import MultipleCheckbox from 'sentry/views/settings/components/forms/controls/multipleCheckbox';
+import FormField from 'sentry/views/settings/components/forms/formField';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const SORTED_DEFAULT_API_ACCESS_SCOPES = DEFAULT_API_ACCESS_SCOPES.sort();
 const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
@@ -28,7 +28,7 @@ export default class ApiNewToken extends Component {
 
   render() {
     return (
-      <DocumentTitle title="Create API Token - Sentry">
+      <SentryDocumentTitle title={t('Create API Token')}>
         <div>
           <SettingsPageHeader title={t('Create New Token')} />
           <TextBlock>
@@ -72,7 +72,7 @@ export default class ApiNewToken extends Component {
             </ApiForm>
           </Panel>
         </div>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

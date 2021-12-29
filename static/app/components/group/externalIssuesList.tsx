@@ -1,19 +1,19 @@
 import styled from '@emotion/styled';
 
-import AlertLink from 'app/components/alertLink';
-import AsyncComponent from 'app/components/asyncComponent';
-import ErrorBoundary from 'app/components/errorBoundary';
-import ExternalIssueActions from 'app/components/group/externalIssueActions';
-import PluginActions from 'app/components/group/pluginActions';
-import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
-import IssueSyncListElement from 'app/components/issueSyncListElement';
-import Placeholder from 'app/components/placeholder';
-import {IconGeneric} from 'app/icons';
-import {t} from 'app/locale';
-import ExternalIssueStore from 'app/stores/externalIssueStore';
-import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
-import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
-import space from 'app/styles/space';
+import AlertLink from 'sentry/components/alertLink';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import ExternalIssueActions from 'sentry/components/group/externalIssueActions';
+import PluginActions from 'sentry/components/group/pluginActions';
+import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
+import IssueSyncListElement from 'sentry/components/issueSyncListElement';
+import Placeholder from 'sentry/components/placeholder';
+import {IconGeneric} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ExternalIssueStore from 'sentry/stores/externalIssueStore';
+import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
+import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import space from 'sentry/styles/space';
 import {
   Group,
   GroupIntegration,
@@ -22,9 +22,9 @@ import {
   Project,
   SentryAppComponent,
   SentryAppInstallation,
-} from 'app/types';
-import {Event} from 'app/types/event';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import SidebarSection from './sidebarSection';
 

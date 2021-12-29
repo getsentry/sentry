@@ -1,79 +1,53 @@
-import {Component} from 'react';
+import {useEffect, useState} from 'react';
 
-import {Client} from 'app/api';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
+import Button from 'sentry/components/button';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
+import {t} from 'sentry/locale';
+import useApi from 'sentry/utils/useApi';
 
 type Props = {
-  api: Client;
   hash?: boolean | string;
 };
 
-type State = {
-  finished: boolean;
-};
+function SetupWizard({hash = false}: Props) {
+  const api = useApi();
+  const [finished, setFinished] = useState(false);
 
-class SetupWizard extends Component<Props, State> {
-  static defaultProps = {
-    hash: false,
-  };
-
-  state: State = {
-    finished: false,
-  };
-
-  UNSAFE_componentWillMount() {
-    this.pollFinished();
+  async function checkFinished() {
+    try {
+      await api.requestPromise(`/wizard/${hash}/`);
+    } catch {
+      setFinished(true);
+      window.setTimeout(() => window.close(), 10000);
+    }
   }
 
-  pollFinished() {
-    return new Promise<void>(resolve => {
-      this.props.api.request(`/wizard/${this.props.hash}/`, {
-        method: 'GET',
-        success: () => {
-          setTimeout(() => this.pollFinished(), 1000);
-        },
-        error: () => {
-          resolve();
-          this.setState({finished: true});
-          setTimeout(() => window.close(), 10000);
-        },
-      });
-    });
-  }
+  useEffect(() => {
+    const poller = window.setInterval(checkFinished, 1000);
 
-  renderSuccess() {
-    return (
-      <div className="row">
-        <h5>{t('Return to your terminal to complete your setup')}</h5>
-        <h5>{t('(This window will close in 10 seconds)')}</h5>
-        <button className="btn btn-default" onClick={() => window.close()}>
-          Close browser tab
-        </button>
-      </div>
-    );
-  }
+    return () => window.clearTimeout(poller);
+  }, []);
 
-  renderLoading() {
-    return (
-      <div className="row">
-        <h5>{t('Waiting for wizard to connect')}</h5>
-      </div>
-    );
-  }
-
-  render() {
-    const {finished} = this.state;
-
-    return (
+  return (
+    <ThemeAndStyleProvider>
       <div className="container">
-        <LoadingIndicator style={{margin: '2em auto'}} finished={finished}>
-          {finished ? this.renderSuccess() : this.renderLoading()}
-        </LoadingIndicator>
+        {!finished ? (
+          <LoadingIndicator style={{margin: '2em auto'}}>
+            <div className="row">
+              <h5>{t('Waiting for wizard to connect')}</h5>
+            </div>
+          </LoadingIndicator>
+        ) : (
+          <div className="row">
+            <h5>{t('Return to your terminal to complete your setup')}</h5>
+            <h5>{t('(This window will close in 10 seconds)')}</h5>
+            <Button onClick={() => window.close()}>{t('Close browser tab')}</Button>
+          </div>
+        )}
       </div>
-    );
-  }
+    </ThemeAndStyleProvider>
+  );
 }
 
-export default withApi(SetupWizard);
+export default SetupWizard;

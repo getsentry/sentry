@@ -1,4 +1,4 @@
-import SimilarSpectrum from 'app/components/similarSpectrum';
+import SimilarSpectrum from 'sentry/components/similarSpectrum';
 
 export default {
   title: 'Components/Data Visualization/Misc/Similar Spectrum',

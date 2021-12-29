@@ -2,15 +2,15 @@ import {createRef, Fragment, HTMLProps, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 import {
   Column,
   generateFieldAsString,
   isLegalEquationColumn,
-} from 'app/utils/discover/fields';
-import Input from 'app/views/settings/components/forms/controls/input';
+} from 'sentry/utils/discover/fields';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 const NONE_SELECTED = -1;
 
@@ -451,7 +451,7 @@ const DropdownListItem = styled(ListItem)`
 
   &:hover,
   &.active {
-    background: ${p => p.theme.focus};
+    background: ${p => p.theme.hover};
   }
 `;
 

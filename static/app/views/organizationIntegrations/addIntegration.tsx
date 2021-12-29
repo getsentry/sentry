@@ -1,10 +1,10 @@
 import * as React from 'react';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
+import {IntegrationProvider, IntegrationWithConfig, Organization} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
   children: (
@@ -85,7 +85,7 @@ export default class AddIntegration extends React.Component<Props> {
       query = {...query, ...modalParams};
     }
 
-    const installUrl = `${url}?${queryString.stringify(query)}`;
+    const installUrl = `${url}?${qs.stringify(query)}`;
     const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
 
     this.dialog = window.open(installUrl, name, opts);

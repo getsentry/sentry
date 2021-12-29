@@ -2,10 +2,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'app/stores/configStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'app/utils/discover/fields';
+import ConfigStore from 'sentry/stores/configStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 
 describe('getFieldRenderer', function () {
   let location, context, project, organization, data, user;
@@ -231,6 +231,24 @@ describe('getFieldRenderer', function () {
 
     // Since there is no project column, it is not wrapped with the dropdown
     expect(wrapper.find('TeamKeyTransaction')).toHaveLength(0);
+  });
+
+  it('can render issue assignees', function () {
+    const renderer = getFieldRenderer('assignee');
+    expect(renderer).toBeInstanceOf(Function);
+    const wrapper = mountWithTheme(
+      renderer(
+        {
+          'assignee.type': 'user',
+          'assignee.id': '1',
+          'assignee.name': 'sentry user',
+          'assignee.email': 'user@sentry.io',
+        },
+        {location, organization}
+      )
+    );
+
+    expect(wrapper.find('Tooltip').props().title).toEqual('Assigned to sentry user');
   });
 
   describe('ops breakdown', () => {

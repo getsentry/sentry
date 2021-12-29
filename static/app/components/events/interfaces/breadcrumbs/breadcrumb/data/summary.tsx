@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import ContextData from 'app/components/contextData';
-import space from 'app/styles/space';
+import ContextData from 'sentry/components/contextData';
+import space from 'sentry/styles/space';
 
 type Props = {
   children: React.ReactNode;

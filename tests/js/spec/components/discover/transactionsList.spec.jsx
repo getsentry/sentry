@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import TransactionsList from 'app/components/discover/transactionsList';
-import {t} from 'app/locale';
-import EventView from 'app/utils/discover/eventView';
+import {Client} from 'sentry/api';
+import TransactionsList from 'sentry/components/discover/transactionsList';
+import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
 
 describe('TransactionsList', function () {
   let wrapper;
@@ -322,100 +322,6 @@ describe('TransactionsList', function () {
       expect(wrapper.find('GridCell')).toHaveLength(2);
       // 2 for the counts
       expect(wrapper.find('GridCellNumber')).toHaveLength(2);
-    });
-  });
-
-  describe('Baseline', function () {
-    beforeEach(function () {
-      initialize({
-        organization: {features: 'transaction-comparison'},
-      });
-      eventView = EventView.fromSavedQuery({
-        id: '',
-        name: 'baseline query',
-        version: 2,
-        fields: ['id', 'transaction.duration'],
-        projects: [project.id],
-      });
-      options = [
-        {
-          sort: {kind: 'desc', field: 'transaction.duration'},
-          value: 'slow',
-          label: t('Slow Transactions'),
-        },
-      ];
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/eventsv2/`,
-        body: {
-          meta: {id: 'string', 'transaction.duration': 'duration'},
-          data: [
-            {id: 'a', 'transaction.duration': 123},
-            {id: 'c', 'transaction.duration': 12345},
-          ],
-        },
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/event-baseline/`,
-        body: {
-          'transaction.duration': 1234,
-        },
-      });
-    });
-
-    it('renders baseline comparison correctly', async function () {
-      wrapper = mountWithTheme(
-        <TransactionsList
-          api={api}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-          baseline="/"
-        />
-      );
-
-      await tick();
-      wrapper.update();
-
-      const titles = ['id', 'transaction.duration', 'Compared to Baseline'];
-      const headers = wrapper.find('SortLink');
-      expect(headers).toHaveLength(titles.length);
-      headers.forEach((header, i) => {
-        expect(header.text()).toEqual(titles[i]);
-      });
-
-      const cellTexts = ['1.11 seconds faster', '11.11 seconds slower'];
-      const cells = wrapper.find('BodyCellContainer[data-test-id="baseline-cell"]');
-      expect(cells).toHaveLength(2);
-      cells.forEach((cell, i) => {
-        expect(cell.text()).toEqual(cellTexts[i]);
-      });
-    });
-
-    it('renders View All Events button when provided with handler', async function () {
-      wrapper = mountWithTheme(
-        <TransactionsList
-          api={api}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-          baseline="/"
-          handleOpenAllEventsClick={() => {}}
-        />
-      );
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('Button').last().find('span').children().html()).toEqual(
-        'View All Events'
-      );
     });
   });
 });

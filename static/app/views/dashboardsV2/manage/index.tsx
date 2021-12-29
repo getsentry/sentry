@@ -2,28 +2,32 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Organization, SelectValue} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {decodeScalar} from 'app/utils/queryString';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import Switch from 'sentry/components/switchButton';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, SelectValue} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {decodeScalar} from 'sentry/utils/queryString';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 
 import {DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
+import TemplateCard from './templateCard';
+import {setShowTemplates, shouldShowTemplates} from './utils';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Dashboards'), value: 'mydashboards'},
@@ -44,9 +48,17 @@ type Props = {
 type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
+  showTemplates: boolean;
 } & AsyncView['state'];
 
 class ManageDashboards extends AsyncView<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      showTemplates: shouldShowTemplates(),
+    };
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
     return [
@@ -76,11 +88,9 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   handleSearch(query: string) {
-    const {location, router} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.search',
-      eventName: 'Dashboards Manager: Search',
-      organization_id: parseInt(this.props.organization.id, 10),
+    const {location, router, organization} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.search', {
+      organization,
     });
 
     router.push({
@@ -90,11 +100,9 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   handleSortChange = (value: string) => {
-    const {location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.change_sort',
-      eventName: 'Dashboards Manager: Sort By Changed',
-      organization_id: parseInt(this.props.organization.id, 10),
+    const {location, organization} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.change_sort', {
+      organization,
       sort: value,
     });
     browserHistory.push({
@@ -107,10 +115,38 @@ class ManageDashboards extends AsyncView<Props, State> {
     });
   };
 
+  toggleTemplates = () => {
+    const {showTemplates} = this.state;
+    const {organization} = this.props;
+
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.toggle', {
+      organization,
+      show_templates: !showTemplates,
+    });
+
+    this.setState({showTemplates: !showTemplates}, () => {
+      setShowTemplates(!showTemplates);
+    });
+  };
+
   getQuery() {
     const {query} = this.props.location.query;
 
     return typeof query === 'string' ? query : undefined;
+  }
+
+  renderTemplates() {
+    const {organization} = this.props;
+    return (
+      <Feature organization={organization} features={['dashboards-template']}>
+        <TemplateContainer>
+          <TemplateCard title="Default" widgetCount={10} />
+          <TemplateCard title="Frontend" widgetCount={9} />
+          <TemplateCard title="Backend" widgetCount={13} />
+          <TemplateCard title="Mobile" widgetCount={4} />
+        </TemplateContainer>
+      </Feature>
+    );
   }
 
   renderActions() {
@@ -169,18 +205,26 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   onCreate() {
     const {organization, location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.create.start',
-      eventName: 'Dashboards Manager: Dashboard Create Started',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('dashboards_manage.create.start', {
+      organization,
     });
+
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
       query: location.query,
     });
   }
 
+  renderLoading() {
+    return (
+      <PageContent>
+        <LoadingIndicator />
+      </PageContent>
+    );
+  }
+
   renderBody() {
+    const {showTemplates} = this.state;
     const {organization} = this.props;
 
     return (
@@ -195,18 +239,34 @@ class ManageDashboards extends AsyncView<Props, State> {
               <PageContent>
                 <StyledPageHeader>
                   {t('Dashboards')}
-                  <Button
-                    data-test-id="dashboard-create"
-                    onClick={event => {
-                      event.preventDefault();
-                      this.onCreate();
-                    }}
-                    priority="primary"
-                    icon={<IconAdd size="xs" isCircled />}
-                  >
-                    {t('Create Dashboard')}
-                  </Button>
+                  <ButtonContainer>
+                    <Feature
+                      organization={organization}
+                      features={['dashboards-template']}
+                    >
+                      <SwitchContainer>
+                        {t('Show Templates')}
+                        <TemplateSwitch
+                          isActive={showTemplates}
+                          size="lg"
+                          toggle={this.toggleTemplates}
+                        />
+                      </SwitchContainer>
+                    </Feature>
+                    <Button
+                      data-test-id="dashboard-create"
+                      onClick={event => {
+                        event.preventDefault();
+                        this.onCreate();
+                      }}
+                      priority="primary"
+                      icon={<IconAdd size="xs" isCircled />}
+                    >
+                      {t('Create Dashboard')}
+                    </Button>
+                  </ButtonContainer>
                 </StyledPageHeader>
+                {showTemplates && this.renderTemplates()}
                 {this.renderActions()}
                 {this.renderDashboards()}
               </PageContent>
@@ -240,6 +300,32 @@ const StyledActions = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: auto;
   }
+`;
+
+const SwitchContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  display: inline;
+  padding-right: ${space(2)};
+`;
+
+const TemplateSwitch = styled(Switch)`
+  vertical-align: middle;
+  display: inline;
+  margin-left: ${space(1)};
+`;
+
+const ButtonContainer = styled('div')`
+  display: inline;
+`;
+
+const TemplateContainer = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  grid-gap: ${space(2)};
+  padding-bottom: ${space(4)};
 `;
 
 export default withApi(withOrganization(ManageDashboards));

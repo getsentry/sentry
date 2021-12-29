@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, release_health
@@ -269,7 +270,7 @@ class OrganizationReleaseDetailsEndpoint(
     ReleaseAnalyticsMixin,
     OrganizationReleaseDetailsPaginationMixin,
 ):
-    def get(self, request, organization, version):
+    def get(self, request: Request, organization, version) -> Response:
         """
         Retrieve an Organization's Release
         ``````````````````````````````````
@@ -367,7 +368,7 @@ class OrganizationReleaseDetailsEndpoint(
             )
         )
 
-    def put(self, request, organization, version):
+    def put(self, request: Request, organization, version) -> Response:
         """
         Update an Organization's Release
         ````````````````````````````````
@@ -495,7 +496,7 @@ class OrganizationReleaseDetailsEndpoint(
 
             return Response(serialize(release, request.user))
 
-    def delete(self, request, organization, version):
+    def delete(self, request: Request, organization, version) -> Response:
         """
         Delete an Organization's Release
         ````````````````````````````````

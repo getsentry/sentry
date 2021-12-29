@@ -3,8 +3,8 @@
  * Common constants here
  */
 
-import {t} from 'app/locale';
-import {Scope} from 'app/types';
+import {t} from 'sentry/locale';
+import {Scope} from 'sentry/types';
 
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';
@@ -185,6 +185,9 @@ export const AVATAR_URL_MAP = {
   organization: 'organization-avatar',
   project: 'project-avatar',
   user: 'avatar',
+  sentryAppColor: 'sentry-app-avatar',
+  sentryAppSimple: 'sentry-app-avatar',
+  docIntegration: 'doc-integration-avatar',
 };
 
 export const MENU_CLOSE_DELAY = 200;

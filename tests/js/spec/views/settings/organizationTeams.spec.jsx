@@ -2,14 +2,14 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import TeamStore from 'app/stores/teamStore';
-import recreateRoute from 'app/utils/recreateRoute';
-import OrganizationTeams from 'app/views/settings/organizationTeams/organizationTeams';
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import TeamStore from 'sentry/stores/teamStore';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import OrganizationTeams from 'sentry/views/settings/organizationTeams/organizationTeams';
 
 recreateRoute.mockReturnValue('');
 
-jest.mock('app/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
 }));
 
@@ -59,7 +59,7 @@ describe('OrganizationTeams', function () {
 
     it('can join team and have link to details', function () {
       const mockTeams = [TestStubs.Team({hasAccess: true, isMember: false})];
-      act(() => void TeamStore.loadInitialData(mockTeams));
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       const wrapper = createWrapper({
         access: new Set([]),
       });
@@ -93,7 +93,7 @@ describe('OrganizationTeams', function () {
 
     it('can request access to team and does not have link to details', function () {
       const mockTeams = [TestStubs.Team({hasAccess: false, isMember: false})];
-      act(() => void TeamStore.loadInitialData(mockTeams));
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       const wrapper = createWrapper({
         access: new Set([]),
       });
@@ -105,7 +105,7 @@ describe('OrganizationTeams', function () {
 
     it('can leave team when you are a member', function () {
       const mockTeams = [TestStubs.Team({hasAccess: true, isMember: true})];
-      act(() => void TeamStore.loadInitialData(mockTeams));
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       const wrapper = createWrapper({
         access: new Set([]),
       });

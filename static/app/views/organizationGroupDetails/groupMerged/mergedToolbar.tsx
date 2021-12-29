@@ -2,14 +2,14 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {openDiffModal} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import {PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import GroupingStore from 'app/stores/groupingStore';
-import space from 'app/styles/space';
-import {Group, Organization, Project} from 'app/types';
+import {openDiffModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import {PanelHeader} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import GroupingStore from 'sentry/stores/groupingStore';
+import space from 'sentry/styles/space';
+import {Group, Organization, Project} from 'sentry/types';
 
 type Props = {
   orgId: Organization['slug'];

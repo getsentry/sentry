@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
-import ConfigStore from 'app/stores/configStore';
+import TimeRangeSelector from 'sentry/components/organizations/timeRangeSelector';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('TimeRangeSelector', function () {
   let wrapper;

@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import Dashboard from 'app/views/dashboardsV2/dashboard';
-import {DisplayType} from 'app/views/dashboardsV2/types';
+import Dashboard from 'sentry/views/dashboardsV2/dashboard';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({
@@ -17,6 +17,7 @@ describe('Dashboards > Dashboard', () => {
   const newWidget = {
     title: 'Test Query',
     displayType: DisplayType.LINE,
+    widgetType: WidgetType.DISCOVER,
     interval: '5m',
     queries: [
       {
@@ -47,10 +48,14 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={mock}
+        handleAddLibraryWidgets={mock}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         newWidget={newWidget}
+        widgetLimitReached={false}
+        layout={[]}
+        onLayoutChange={() => undefined}
       />,
       initialData.routerContext
     );
@@ -68,9 +73,13 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={mock}
+        handleAddLibraryWidgets={mock}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
+        widgetLimitReached={false}
+        layout={[]}
+        onLayoutChange={() => undefined}
       />,
       initialData.routerContext
     );
@@ -79,5 +88,27 @@ describe('Dashboards > Dashboard', () => {
     await tick();
     wrapper.update();
     expect(mock).toHaveBeenCalled();
+  });
+
+  it('displays widgets with drag handle when in edit mode', () => {
+    const dashboardWithOneWidget = {...mockDashboard, widgets: [newWidget]};
+    const wrapper = mountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={dashboardWithOneWidget}
+        organization={initialData.organization}
+        onUpdate={() => undefined}
+        onSetWidgetToBeUpdated={() => undefined}
+        handleAddLibraryWidgets={() => undefined}
+        router={initialData.router}
+        location={initialData.location}
+        widgetLimitReached={false}
+        layout={[]}
+        onLayoutChange={() => undefined}
+        isEditing
+      />,
+      initialData.routerContext
+    );
+    expect(wrapper.find('StyledIconGrabbable')).toHaveLength(1);
   });
 });

@@ -1,7 +1,7 @@
 import {Location} from 'history';
 
-import {WebVital} from 'app/utils/discover/fields';
-import VitalsCardDiscoverQuery from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {WebVital} from 'sentry/utils/discover/fields';
+import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 
 import {VitalBar} from '../landing/vitalsCards';
 
@@ -14,7 +14,7 @@ type Props = {
   hideDurationDetail?: boolean;
 };
 
-export default function vitalInfo(props: Props) {
+function VitalInfo(props: Props) {
   const {
     vital,
     location,
@@ -43,3 +43,5 @@ export default function vitalInfo(props: Props) {
     </VitalsCardDiscoverQuery>
   );
 }
+
+export default VitalInfo;

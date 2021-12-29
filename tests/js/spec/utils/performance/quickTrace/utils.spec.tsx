@@ -1,9 +1,9 @@
-import {Event} from 'app/types/event';
-import {TraceFull} from 'app/utils/performance/quickTrace/types';
+import {Event} from 'sentry/types/event';
+import {TraceFull} from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   parseQuickTrace,
-} from 'app/utils/performance/quickTrace/utils';
+} from 'sentry/utils/performance/quickTrace/utils';
 
 type Position = {
   generation: number;

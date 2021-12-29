@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {t} from 'app/locale';
-import {DisplayModes} from 'app/utils/discover/types';
-import ChartFooter from 'app/views/eventsV2/chartFooter';
+import {t} from 'sentry/locale';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import ChartFooter from 'sentry/views/eventsV2/chartFooter';
 
 describe('EventsV2 > ChartFooter', function () {
   const features = ['discover-basic'];
@@ -96,9 +96,8 @@ describe('EventsV2 > ChartFooter', function () {
 
   it('renders display limits with default limit when top 5 mode is selected', async function () {
     const organization = TestStubs.Organization({
-      features: [...features, 'discover-top-events'],
+      features,
     });
-
     // Start off with an invalid view (empty is invalid)
     const initialData = initializeOrg({
       organization,

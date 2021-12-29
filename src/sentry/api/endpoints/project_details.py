@@ -6,6 +6,7 @@ from itertools import chain
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
@@ -360,7 +361,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Retrieve a Project
         ``````````````````
@@ -385,7 +386,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
-    def put(self, request, project):
+    def put(self, request: Request, project) -> Response:
         """
         Update a Project
         ````````````````
@@ -429,6 +430,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         allow_dynamic_sampling = features.has(
             "organizations:filters-and-sampling", project.organization, actor=request.user
+        )
+
+        allow_dynamic_sampling_error_rules = features.has(
+            "organizations:filters-and-sampling-error-rules",
+            project.organization,
+            actor=request.user,
         )
 
         if not allow_dynamic_sampling and result.get("dynamicSampling"):
@@ -612,6 +619,19 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
+            if (
+                not allow_dynamic_sampling_error_rules
+                and self._dynamic_sampling_contains_error_rule(raw_dynamic_sampling)
+            ):
+                return Response(
+                    {
+                        "detail": [
+                            "Dynamic Sampling only accepts rules of type transaction or trace"
+                        ]
+                    },
+                    status=400,
+                )
+
             fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
             project.update_option("sentry:dynamic_sampling", fixed_rules)
 
@@ -733,7 +753,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
     @sudo_required
-    def delete(self, request, project):
+    def delete(self, request: Request, project) -> Response:
         """
         Delete a Project
         ````````````````
@@ -814,3 +834,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         raw_dynamic_sampling["next_id"] = next_id
         return raw_dynamic_sampling
+
+    def _dynamic_sampling_contains_error_rule(self, raw_dynamic_sampling):
+        if raw_dynamic_sampling is not None:
+            rules = raw_dynamic_sampling.get("rules", [])
+            for rule in rules:
+                if rule["type"] == "error":
+                    return True

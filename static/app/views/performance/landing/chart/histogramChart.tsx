@@ -3,23 +3,27 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import BarChart from 'app/components/charts/barChart';
-import BarChartZoom from 'app/components/charts/barChartZoom';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import Placeholder from 'app/components/placeholder';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {IconWarning} from 'app/icons/iconWarning';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {Series} from 'app/types/echarts';
-import EventView from 'app/utils/discover/eventView';
-import getDynamicText from 'app/utils/getDynamicText';
-import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
-import {HistogramData} from 'app/utils/performance/histogram/types';
-import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
+import BarChart from 'sentry/components/charts/barChart';
+import BarChartZoom from 'sentry/components/charts/barChartZoom';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconWarning} from 'sentry/icons/iconWarning';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import EventView from 'sentry/utils/discover/eventView';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import {
+  computeBuckets,
+  formatHistogramData,
+} from 'sentry/utils/performance/histogram/utils';
 
 import {DoubleHeaderContainer} from '../../styles';
 import {getFieldOrBackup} from '../display/utils';
@@ -119,6 +123,7 @@ type ChartProps = {
   grid?: BarChart['props']['grid'];
   disableXAxis?: boolean;
   disableZoom?: boolean;
+  disableChartPadding?: boolean;
   colors?: string[];
 };
 
@@ -134,6 +139,7 @@ export function Chart(props: ChartProps) {
     grid,
     disableXAxis,
     disableZoom,
+    disableChartPadding,
     colors,
   } = props;
   if (!chartData) {
@@ -165,6 +171,7 @@ export function Chart(props: ChartProps) {
     type: 'value' as const,
     axisLabel: {
       color: theme.chartLabel,
+      formatter: formatAbbreviatedNumber,
     },
   };
 
@@ -181,7 +188,7 @@ export function Chart(props: ChartProps) {
       >
         {zoomRenderProps => {
           return (
-            <BarChartContainer>
+            <BarChartContainer hasPadding={!disableChartPadding}>
               <MaskContainer>
                 <TransparentLoadingMask visible={isLoading} />
                 {getDynamicText({
@@ -215,8 +222,8 @@ export function Chart(props: ChartProps) {
   );
 }
 
-const BarChartContainer = styled('div')`
-  padding-top: ${space(1)};
+const BarChartContainer = styled('div')<{hasPadding?: boolean}>`
+  padding-top: ${p => (p.hasPadding ? space(1) : 0)};
   position: relative;
 `;
 

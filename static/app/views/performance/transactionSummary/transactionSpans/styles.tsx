@@ -1,17 +1,16 @@
-import {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SectionHeading} from 'app/components/charts/styles';
-import {Panel} from 'app/components/panels';
-import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
-import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
-import Tooltip from 'app/components/tooltip';
-import {IconArrow} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {formatPercentage} from 'app/utils/formatters';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {Panel} from 'sentry/components/panels';
+import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
+import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import Tooltip from 'sentry/components/tooltip';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {formatPercentage} from 'sentry/utils/formatters';
 
 import {PerformanceDuration} from '../../utils';
 
@@ -41,16 +40,32 @@ export const UpperPanel = styled(Panel)`
   }
 `;
 
-export const LowerPanel = styled('div')`
+export const LowerPanel = styled('div')<{expandable: boolean}>`
   > div {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+
+    ${p =>
+      p.expandable &&
+      `
+      margin-bottom: 0;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      `}
   }
+`;
+
+export const FooterPanel = styled(Panel)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(1)} ${space(0)} ${space(1)} ${space(3)};
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 `;
 
 type HeaderItemProps = {
   label: string;
-  value: ReactNode;
+  value: React.ReactNode;
   align: 'left' | 'right';
   isSortKey?: boolean;
 };

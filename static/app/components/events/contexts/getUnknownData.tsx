@@ -1,7 +1,7 @@
 import startCase from 'lodash/startCase';
 
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {KeyValueListData} from 'app/types';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {KeyValueListData} from 'sentry/types';
 
 function getUnknownData(
   allData: Record<string, any>,

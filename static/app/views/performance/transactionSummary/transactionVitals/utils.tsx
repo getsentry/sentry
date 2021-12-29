@@ -1,8 +1,8 @@
-import {ECharts} from 'echarts';
+import type {ECharts} from 'echarts';
 import {Query} from 'history';
 
-import {HistogramData} from 'app/utils/performance/histogram/types';
-import {getBucketWidth} from 'app/utils/performance/histogram/utils';
+import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import {getBucketWidth} from 'sentry/utils/performance/histogram/utils';
 
 import {Point, Rectangle} from './types';
 

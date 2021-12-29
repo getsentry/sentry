@@ -2,29 +2,29 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location} from 'history';
 
-import ChartZoom from 'app/components/charts/chartZoom';
-import MarkLine from 'app/components/charts/components/markLine';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import LineChart from 'app/components/charts/lineChart';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
-import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
-import {Panel} from 'app/components/panels';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import EventView from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
-import getDynamicText from 'app/utils/getDynamicText';
-import {decodeScalar} from 'app/utils/queryString';
-import useApi from 'app/utils/useApi';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import LineChart from 'sentry/components/charts/lineChart';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
+import {Panel} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {OrganizationSummary} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import EventView from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/discover/fields';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useApi from 'sentry/utils/useApi';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
@@ -108,7 +108,7 @@ function VitalChart({
   const markLines = [
     {
       seriesName: 'Thresholds',
-      type: 'line',
+      type: 'line' as const,
       data: [],
       markLine: MarkLine({
         silent: true,
@@ -131,7 +131,7 @@ function VitalChart({
     },
     {
       seriesName: 'Thresholds',
-      type: 'line',
+      type: 'line' as const,
       data: [],
       markLine: MarkLine({
         silent: true,
@@ -286,6 +286,7 @@ export type _VitalChartProps = Props & {
   reloading: boolean;
   field: string;
   height?: number;
+  utc?: boolean;
   grid: LineChart['props']['grid'];
   vitalFields?: {
     poorCountField: string;
@@ -319,6 +320,7 @@ function __VitalChart(props: _VitalChartProps) {
     reloading,
     height,
     grid,
+    utc,
     vitalFields,
   } = props;
   if (!_results || !vitalFields) {
@@ -333,19 +335,17 @@ function __VitalChart(props: _VitalChartProps) {
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: tooltipFormatter,
+      valueFormatter: (value: number, seriesName?: string) => {
+        return tooltipFormatter(
+          value,
+          vitalFields[0] === WebVital.CLS ? seriesName : yAxis
+        );
+      },
     },
     xAxis: {
-      axisLine: {
-        show: false,
-      },
-      axisTick: {
-        show: false,
-      },
-      splitLine: {
-        show: false,
-      },
+      show: false,
     },
+    xAxes: undefined,
     yAxis: {
       axisLabel: {
         color: theme.chartLabel,
@@ -353,6 +353,9 @@ function __VitalChart(props: _VitalChartProps) {
         formatter: (value: number) => axisLabelFormatter(value, yAxis),
       },
     },
+    utc,
+    isGroupedByDate: true,
+    showTimeInTooltip: true,
   };
 
   const results = _results.filter(s => !!fieldToVitalType(s.seriesName, vitalFields));
@@ -383,6 +386,7 @@ function __VitalChart(props: _VitalChartProps) {
               {...chartOptions}
               onLegendSelectChanged={() => {}}
               series={[...smoothedSeries]}
+              isGroupedByDate
             />
           ),
           fixed: 'Web Vitals Chart',

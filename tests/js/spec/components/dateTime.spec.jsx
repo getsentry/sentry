@@ -1,7 +1,7 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import DateTime from 'app/components/dateTime';
-import ConfigStore from 'app/stores/configStore';
+import DateTime from 'sentry/components/dateTime';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('DateTime', () => {
   const user = {

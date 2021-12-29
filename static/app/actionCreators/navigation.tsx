@@ -1,10 +1,9 @@
 import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
-import {openModal} from 'app/actionCreators/modal';
-import NavigationActions from 'app/actions/navigationActions';
-import ContextPickerModal from 'app/components/contextPickerModal';
-import ProjectsStore from 'app/stores/projectsStore';
+import {openModal} from 'sentry/actionCreators/modal';
+import ContextPickerModal from 'sentry/components/contextPickerModal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 // TODO(ts): figure out better typing for react-router here
 export function navigateTo(
@@ -45,8 +44,4 @@ export function navigateTo(
       ? router.push(to.replace(':projectId', projectById.slug))
       : router.push(to);
   }
-}
-
-export function setLastRoute(route: string) {
-  NavigationActions.setLastRoute(route);
 }

@@ -7,7 +7,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import TeamMisery from 'app/views/organizationStats/teamInsights/teamMisery';
+import TeamMisery from 'sentry/views/organizationStats/teamInsights/teamMisery';
 
 describe('TeamMisery', () => {
   it('should render misery from projects and expand hidden items', async () => {
@@ -114,7 +114,9 @@ describe('TeamMisery', () => {
       {context: routerContext}
     );
 
-    expect(screen.getByText('There are no items to display')).toBeInTheDocument();
+    expect(
+      screen.getByText('No Key Transactions Starred By This Team')
+    ).toBeInTheDocument();
   });
 
   it('should render empty state on error', async () => {

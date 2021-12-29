@@ -5,36 +5,60 @@ import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
 import scrollToElement from 'scroll-to-element';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   addSentryAppToken,
   removeSentryAppToken,
-} from 'app/actionCreators/sentryAppTokens';
-import Button from 'app/components/button';
-import DateTime from 'app/components/dateTime';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {SENTRY_APP_PERMISSIONS} from 'app/constants';
+} from 'sentry/actionCreators/sentryAppTokens';
+import Avatar from 'sentry/components/avatar';
+import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
+import Button from 'sentry/components/button';
+import DateTime from 'sentry/components/dateTime';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {
   internalIntegrationForms,
   publicIntegrationForms,
-} from 'app/data/forms/sentryApplication';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import {InternalAppApiToken, Scope, SentryApp} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Form from 'app/views/settings/components/forms/form';
-import FormField from 'app/views/settings/components/forms/formField';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
+} from 'sentry/data/forms/sentryApplication';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {InternalAppApiToken, Scope, SentryApp} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormField from 'sentry/views/settings/components/forms/formField';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import FormModel, {FieldValue} from 'sentry/views/settings/components/forms/model';
+import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+
+const AVATAR_STYLES = {
+  color: {
+    size: 50,
+    title: t('Default Logo'),
+    previewText: t('The default icon for integrations'),
+    help: t('Image must be between 256px by 256px and 1024px by 1024px.'),
+  },
+  simple: {
+    size: 20,
+    title: t('Default Icon'),
+    previewText: tct('This is a silhouette icon used only for [uiDocs:UI Components]', {
+      uiDocs: (
+        <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/ui-components/" />
+      ),
+    }),
+    help: t(
+      'Image must be between 256px by 256px and 1024px by 1024px, and may only use black and transparent pixels.'
+    ),
+  },
+};
 
 /**
  * Finds the resource in SENTRY_APP_PERMISSIONS that contains a given scope
@@ -139,9 +163,11 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     return [];
   }
 
-  getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitleGen(t('Sentry Integration Details'), orgId, false);
+  getHeaderTitle() {
+    const {app} = this.state;
+    const action = app ? 'Edit' : 'Create';
+    const type = this.isInternal ? 'Internal' : 'Public';
+    return tct('[action] [type] Integration', {action, type});
   }
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
@@ -277,6 +303,79 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     }
   };
 
+  addAvatar = ({avatar}: Model) => {
+    const {app} = this.state;
+    if (app && avatar) {
+      const avatars =
+        app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) || [];
+      avatars.push(avatar);
+      this.setState({app: {...app, avatars}});
+    }
+  };
+
+  getAvatarModel = (isColor: boolean): Model => {
+    const {app} = this.state;
+    const defaultModel: Model = {
+      avatar: {
+        avatarType: 'default',
+        avatarUuid: null,
+      },
+    };
+    if (!app) {
+      return defaultModel;
+    }
+    return {
+      avatar: app?.avatars?.find(({color}) => color === isColor) || defaultModel.avatar,
+    };
+  };
+
+  getAvatarPreview = (isColor: boolean) => {
+    const {app} = this.state;
+    if (!app) {
+      return null;
+    }
+    const avatarStyle = isColor ? 'color' : 'simple';
+    return (
+      <AvatarPreview>
+        <StyledPreviewAvatar
+          size={AVATAR_STYLES[avatarStyle].size}
+          sentryApp={app}
+          isDefault
+        />
+        <AvatarPreviewTitle>{AVATAR_STYLES[avatarStyle].title}</AvatarPreviewTitle>
+        <AvatarPreviewText>{AVATAR_STYLES[avatarStyle].previewText}</AvatarPreviewText>
+      </AvatarPreview>
+    );
+  };
+
+  getAvatarChooser = (isColor: boolean) => {
+    const {app} = this.state;
+    if (!app) {
+      return null;
+    }
+    const avatarStyle = isColor ? 'color' : 'simple';
+    return (
+      <AvatarChooser
+        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
+        allowGravatar={false}
+        allowLetter={false}
+        endpoint={`/sentry-apps/${app.slug}/avatar/`}
+        model={this.getAvatarModel(isColor)}
+        onSave={this.addAvatar}
+        title={isColor ? t('Logo') : t('Small Icon')}
+        help={AVATAR_STYLES[avatarStyle].help.concat(
+          this.isInternal ? '' : t(' Required for publishing.')
+        )}
+        savedDataUrl={undefined}
+        defaultChoice={{
+          allowDefault: true,
+          choiceText: isColor ? t('Default logo') : t('Default small icon'),
+          preview: this.getAvatarPreview(isColor),
+        }}
+      />
+    );
+  };
+
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
@@ -297,7 +396,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title={this.getTitle()} />
+        <SettingsPageHeader title={this.getHeaderTitle()} />
         <Form
           apiMethod={method}
           apiEndpoint={endpoint}
@@ -323,7 +422,8 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               return (
                 <React.Fragment>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
-
+                  {this.getAvatarChooser(true)}
+                  {this.getAvatarChooser(false)}
                   <PermissionsObserver
                     webhookDisabled={webhookDisabled}
                     appPublished={app ? app.status === 'published' : false}
@@ -414,4 +514,28 @@ const CreatedDate = styled('div')`
   flex-direction: column;
   font-size: 14px;
   margin: 0 10px;
+`;
+
+const AvatarPreview = styled('div')`
+  flex: 1;
+  display: grid;
+  grid: 25px 25px / 50px 1fr;
+`;
+
+const StyledPreviewAvatar = styled(Avatar)`
+  grid-area: 1 / 1 / 3 / 2;
+  justify-self: end;
+`;
+
+const AvatarPreviewTitle = styled('span')`
+  display: block;
+  grid-area: 1 / 2 / 2 / 3;
+  padding-left: ${space(2)};
+  font-weight: bold;
+`;
+
+const AvatarPreviewText = styled('span')`
+  display: block;
+  grid-area: 2 / 2 / 3 / 3;
+  padding-left: ${space(2)};
 `;

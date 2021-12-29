@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectPerformance from 'app/views/settings/projectPerformance/projectPerformance';
+import ProjectPerformance from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
   const org = TestStubs.Organization({features: ['performance-view']});

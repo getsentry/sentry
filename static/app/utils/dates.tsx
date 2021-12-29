@@ -1,8 +1,8 @@
 import moment from 'moment';
 
-import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
-import ConfigStore from 'app/stores/configStore';
-import {DateString} from 'app/types';
+import {parseStatsPeriod} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import ConfigStore from 'sentry/stores/configStore';
+import {DateString} from 'sentry/types';
 
 // TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';

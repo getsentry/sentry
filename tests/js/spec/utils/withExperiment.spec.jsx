@@ -1,14 +1,14 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'app/stores/configStore';
-import {logExperiment} from 'app/utils/analytics';
-import withExperiment from 'app/utils/withExperiment';
+import ConfigStore from 'sentry/stores/configStore';
+import {logExperiment} from 'sentry/utils/analytics';
+import withExperiment from 'sentry/utils/withExperiment';
 
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/utils/analytics', () => ({
   logExperiment: jest.fn(),
 }));
 
-jest.mock('app/data/experimentConfig', () => ({
+jest.mock('sentry/data/experimentConfig', () => ({
   experimentConfig: {
     orgExperiment: {
       key: 'orgExperiment',
@@ -35,22 +35,27 @@ describe('withConfig HoC', function () {
     experiments: {orgExperiment: 1},
   };
 
-  const MyComponent = () => null;
+  function MyComponent(props) {
+    return <span>{props.experimentAssignment}</span>;
+  }
+  function TriggerComponent(props) {
+    return <button onClick={props.logExperiment}>click me</button>;
+  }
 
   it('injects org experiment assignment', function () {
     const Container = withExperiment(MyComponent, {experiment: 'orgExperiment'});
-    const wrapper = mountWithTheme(<Container organization={organization} />);
+    mountWithTheme(<Container organization={organization} />);
 
-    expect(wrapper.find('MyComponent').prop('experimentAssignment')).toEqual(1);
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 
   it('injects user experiment assignment', function () {
     ConfigStore.set('user', {id: 123, experiments: {userExperiment: 2}});
 
     const Container = withExperiment(MyComponent, {experiment: 'userExperiment'});
-    const wrapper = mountWithTheme(<Container />);
+    mountWithTheme(<Container />);
 
-    expect(wrapper.find('MyComponent').prop('experimentAssignment')).toEqual(2);
+    expect(screen.getByText('2')).toBeInTheDocument();
   });
 
   it('logs experiment assignment', function () {
@@ -61,16 +66,15 @@ describe('withConfig HoC', function () {
   });
 
   it('defers logging when injectLogExperiment is true', function () {
-    const Container = withExperiment(MyComponent, {
+    const Container = withExperiment(TriggerComponent, {
       experiment: 'orgExperiment',
       injectLogExperiment: true,
     });
-    const wrapper = mountWithTheme(<Container organization={organization} />);
-
+    mountWithTheme(<Container organization={organization} />);
     expect(logExperiment).not.toHaveBeenCalled();
 
     // Call log experiment and verify it was called
-    wrapper.find('MyComponent').prop('logExperiment')();
+    fireEvent.click(screen.getByRole('button'));
     expect(logExperiment).toHaveBeenCalledWith({key: 'orgExperiment', organization});
   });
 });

@@ -5,28 +5,28 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
 import {
   DateTimeObject,
   getDiffInMinutes,
   ONE_WEEK,
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
-} from 'app/components/charts/utils';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
+} from 'sentry/components/charts/utils';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
 import {
   GlobalSelection,
   HealthStatsPeriodOption,
   Organization,
   SessionApiResponse,
   SessionField,
-} from 'app/types';
-import {defined, percent} from 'app/utils';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
+} from 'sentry/types';
+import {defined, percent} from 'sentry/utils';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
 
 import {getCrashFreePercent} from '../utils';
 

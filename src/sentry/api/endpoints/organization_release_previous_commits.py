@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
@@ -8,7 +9,7 @@ from sentry.models import Release
 
 
 class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request, organization, version):
+    def get(self, request: Request, organization, version) -> Response:
         """
         Retrieve an Organization's Most Recent Release with Commits
         ````````````````````````````````````````````````````````````

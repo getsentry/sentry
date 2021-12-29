@@ -3,8 +3,8 @@ import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
-import {defined} from 'app/utils';
-import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
+import {defined} from 'sentry/utils';
+import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import FormPanel from './formPanel';
 import {Field, FieldObject, JsonFormObject} from './type';

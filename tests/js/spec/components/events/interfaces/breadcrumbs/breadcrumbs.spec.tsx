@@ -1,10 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {getAllByTextContent} from 'sentry-test/utils';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import Breadcrumbs from 'app/components/events/interfaces/breadcrumbs';
-import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
-import {EntryType} from 'app/types/event';
+import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {EntryType} from 'sentry/types/event';
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
@@ -84,7 +84,7 @@ describe('Breadcrumbs', () => {
         screen.queryByText('Sorry, no breadcrumbs match your search query')
       ).not.toBeInTheDocument();
 
-      expect(getAllByTextContent('sup')).toHaveLength(3);
+      expect(screen.getAllByText(textWithMarkupMatcher('sup'))).toHaveLength(3);
     });
 
     it('should filter crumbs based on crumb level', function () {
@@ -94,7 +94,7 @@ describe('Breadcrumbs', () => {
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
-      expect(getAllByTextContent('Warning')).toHaveLength(6);
+      expect(screen.getAllByText(textWithMarkupMatcher('Warning'))).toHaveLength(6);
     });
 
     it('should filter crumbs based on crumb category', function () {
@@ -102,7 +102,7 @@ describe('Breadcrumbs', () => {
 
       userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
 
-      expect(getAllByTextContent('error')).toHaveLength(2);
+      expect(screen.getAllByText(textWithMarkupMatcher('error'))).toHaveLength(2);
     });
   });
 

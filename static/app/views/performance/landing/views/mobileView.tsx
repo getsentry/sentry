@@ -1,15 +1,19 @@
-import {usePageError} from 'app/utils/performance/contexts/pageError';
-import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
-import {MOBILE_COLUMN_TITLES} from '../data';
+import {MOBILE_COLUMN_TITLES, REACT_NATIVE_COLUMN_TITLES} from '../data';
+import {checkIsReactNative} from '../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
 
 export function MobileView(props: BasePerformanceViewProps) {
+  const columnTitles = checkIsReactNative(props.eventView)
+    ? REACT_NATIVE_COLUMN_TITLES
+    : MOBILE_COLUMN_TITLES;
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div>
@@ -34,7 +38,7 @@ export function MobileView(props: BasePerformanceViewProps) {
         />
         <Table
           {...props}
-          columnTitles={MOBILE_COLUMN_TITLES} // TODO(k-fish): Add react native column titles
+          columnTitles={columnTitles}
           setError={usePageError().setPageError}
         />
       </div>

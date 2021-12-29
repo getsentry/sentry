@@ -1,11 +1,10 @@
-import {ReactNode} from 'react';
 import omit from 'lodash/omit';
 
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
-} from 'app/utils/discover/genericDiscoverQuery';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import withApi from 'sentry/utils/withApi';
 
 import {SpanOps} from './types';
 
@@ -18,7 +17,7 @@ type ChildrenProps = Omit<GenericChildrenProps<SpanOpsProps>, 'tableData'> & {
 };
 
 type Props = RequestProps & {
-  children: (props: ChildrenProps) => ReactNode;
+  children: (props: ChildrenProps) => React.ReactNode;
 };
 
 function SpanOpsQuery(props: Props) {

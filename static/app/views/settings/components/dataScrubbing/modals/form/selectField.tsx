@@ -2,8 +2,8 @@ import * as React from 'react';
 import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
-import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
-import space from 'app/styles/space';
+import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import space from 'sentry/styles/space';
 
 type Props = Pick<
   ControlProps,

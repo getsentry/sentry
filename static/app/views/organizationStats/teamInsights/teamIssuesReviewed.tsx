@@ -1,18 +1,19 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import BarChart from 'app/components/charts/barChart';
-import {DateTimeObject} from 'app/components/charts/utils';
-import IdBadge from 'app/components/idBadge';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import PanelTable from 'app/components/panels/panelTable';
-import Placeholder from 'app/components/placeholder';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {formatPercentage} from 'app/utils/formatters';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import BarChart from 'sentry/components/charts/barChart';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import IdBadge from 'sentry/components/idBadge';
+import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import PanelTable from 'sentry/components/panels/panelTable';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {formatPercentage} from 'sentry/utils/formatters';
 
 import {
   barAxisLabel,
@@ -139,8 +140,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                   seriesName: t('Reviewed'),
                   data: reviewedSeries,
                   silent: true,
-                  // silent is not incldued in the type for BarSeries
-                } as any,
+                },
                 {
                   seriesName: t('Not Reviewed'),
                   data: notReviewedSeries,
@@ -151,6 +151,8 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
           )}
         </IssuesChartWrapper>
         <StyledPanelTable
+          isEmpty={projects.length === 0}
+          emptyMessage={t('No Projects Assigned To This Team')}
           headers={[
             t('Project'),
             <AlignRight key="forReview">{t('For Review')}</AlignRight>,
@@ -201,6 +203,14 @@ const StyledPanelTable = styled(PanelTable)`
   & > div {
     padding: ${space(1)} ${space(2)};
   }
+
+  ${p =>
+    p.isEmpty &&
+    css`
+      & > div:last-child {
+        padding: 48px ${space(2)};
+      }
+    `}
 `;
 
 const ProjectBadgeContainer = styled('div')`

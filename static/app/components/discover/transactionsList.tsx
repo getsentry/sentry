@@ -3,29 +3,28 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import DiscoverButton from 'app/components/discoverButton';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import Pagination, {CursorHandler} from 'app/components/pagination';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
-import {Sort} from 'app/utils/discover/fields';
-import BaselineQuery from 'app/utils/performance/baseline/baselineQuery';
-import {TrendsEventsDiscoverQuery} from 'app/utils/performance/trends/trendsDiscoverQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {Actions} from 'app/views/eventsV2/table/cellAction';
-import {TableColumn} from 'app/views/eventsV2/table/types';
-import {decodeColumnOrder} from 'app/views/eventsV2/utils';
-import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
-import {mapShowTransactionToPercentile} from 'app/views/performance/transactionSummary/transactionEvents/utils';
-import {TransactionFilterOptions} from 'app/views/performance/transactionSummary/utils';
-import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import DiscoverButton from 'sentry/components/discoverButton';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
+import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {Actions} from 'sentry/views/eventsV2/table/cellAction';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+import {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
 
 import TransactionsTable from './transactionsTable';
 
@@ -100,14 +99,6 @@ type Props = {
       query: Query
     ) => LocationDescriptor
   >;
-  /**
-   * The name of the transaction to find a baseline for.
-   */
-  baseline?: string;
-  /**
-   * The callback for when a baseline cell is clicked.
-   */
-  handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
   /**
    * The callback for when Open in Discover is clicked.
    */
@@ -256,7 +247,6 @@ class TransactionsList extends React.Component<Props> {
       limit,
       titles,
       generateLink,
-      baseline,
       forceLoading,
     } = this.props;
 
@@ -264,13 +254,7 @@ class TransactionsList extends React.Component<Props> {
     const columnOrder = eventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
 
-    const baselineTransactionName = organization.features.includes(
-      'transaction-comparison'
-    )
-      ? baseline ?? null
-      : null;
-
-    let tableRenderer = ({isLoading, pageLinks, tableData, baselineData}) => (
+    const tableRenderer = ({isLoading, pageLinks, tableData}) => (
       <React.Fragment>
         <Header>
           {this.renderHeader()}
@@ -286,11 +270,9 @@ class TransactionsList extends React.Component<Props> {
           location={location}
           isLoading={isLoading}
           tableData={tableData}
-          baselineData={baselineData ?? null}
           columnOrder={columnOrder}
           titles={titles}
           generateLink={generateLink}
-          baselineTransactionName={baselineTransactionName}
           handleCellAction={handleCellAction}
         />
       </React.Fragment>
@@ -301,24 +283,7 @@ class TransactionsList extends React.Component<Props> {
         isLoading: true,
         pageLinks: null,
         tableData: null,
-        baselineData: null,
       });
-    }
-
-    if (baselineTransactionName) {
-      const orgTableRenderer = tableRenderer;
-      tableRenderer = ({isLoading, pageLinks, tableData}) => (
-        <BaselineQuery eventView={eventView} orgSlug={organization.slug}>
-          {baselineQueryProps => {
-            return orgTableRenderer({
-              isLoading: isLoading || baselineQueryProps.isLoading,
-              pageLinks,
-              tableData,
-              baselineData: baselineQueryProps.results,
-            });
-          }}
-        </BaselineQuery>
-      );
     }
 
     return (
@@ -373,7 +338,6 @@ class TransactionsList extends React.Component<Props> {
               location={location}
               isLoading={isLoading}
               tableData={trendsData}
-              baselineData={null}
               titles={['transaction', 'percentage', 'difference']}
               columnOrder={decodeColumnOrder([
                 {field: 'transaction'},
@@ -381,7 +345,6 @@ class TransactionsList extends React.Component<Props> {
                 {field: 'trend_difference()'},
               ])}
               generateLink={generateLink}
-              baselineTransactionName={null}
             />
           </React.Fragment>
         )}

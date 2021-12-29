@@ -16,6 +16,7 @@ from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
+from sentry.web.frontend.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -37,6 +38,7 @@ from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
+from sentry.web.frontend.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
@@ -582,6 +584,16 @@ urlpatterns += [
         r"^team-avatar/(?P<avatar_id>[^\/]+)/$",
         TeamAvatarPhotoView.as_view(),
         name="sentry-team-avatar-url",
+    ),
+    url(
+        r"^sentry-app-avatar/(?P<avatar_id>[^\/]+)/$",
+        SentryAppAvatarPhotoView.as_view(),
+        name="sentry-app-avatar-url",
+    ),
+    url(
+        r"^doc-integration-avatar/(?P<avatar_id>[^\/]+)/$",
+        DocIntegrationAvatarPhotoView.as_view(),
+        name="sentry-doc-integration-avatar-url",
     ),
     # Serve chartcuterie configuration module
     url(

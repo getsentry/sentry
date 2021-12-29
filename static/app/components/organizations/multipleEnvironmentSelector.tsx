@@ -4,23 +4,23 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
-import {Client} from 'app/api';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import {MenuFooterChildProps} from 'app/components/dropdownAutoComplete/menu';
-import {Item} from 'app/components/dropdownAutoComplete/types';
-import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
-import Highlight from 'app/components/highlight';
-import HeaderItem from 'app/components/organizations/headerItem';
-import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconWindow} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {MenuFooterChildProps} from 'sentry/components/dropdownAutoComplete/menu';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import Highlight from 'sentry/components/highlight';
+import GlobalSelectionHeaderRow from 'sentry/components/organizations/globalSelectionHeaderRow';
+import HeaderItem from 'sentry/components/organizations/headerItem';
+import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {IconWindow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {Organization, Project} from 'sentry/types';
+import {analytics} from 'sentry/utils/analytics';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import theme from 'sentry/utils/theme';
+import withApi from 'sentry/utils/withApi';
 
 type DefaultProps = {
   /**

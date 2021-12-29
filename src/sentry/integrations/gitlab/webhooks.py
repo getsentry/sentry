@@ -1,6 +1,6 @@
 import logging
 
-import dateutil.parser
+from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
 from django.http import Http404, HttpResponse
 from django.utils import timezone
@@ -8,6 +8,8 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -111,6 +113,8 @@ class MergeEventWebhook(Webhook):
                 "gitlab.webhook.invalid-merge-data",
                 extra={"integration_id": integration.id, "error": str(e)},
             )
+            # TODO(mgaeta): This try/catch is full of reportUnboundVariable errors.
+            return
 
         if not author_email:
             raise Http404()
@@ -129,7 +133,7 @@ class MergeEventWebhook(Webhook):
                     "author": author,
                     "message": body,
                     "merge_commit_sha": merge_commit_sha,
-                    "date_added": dateutil.parser.parse(created_at).astimezone(timezone.utc),
+                    "date_added": parse_date(created_at).astimezone(timezone.utc),
                 },
             )
         except IntegrityError:
@@ -183,9 +187,7 @@ class PushEventWebhook(Webhook):
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
-                        date_added=dateutil.parser.parse(commit["timestamp"]).astimezone(
-                            timezone.utc
-                        ),
+                        date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
             except IntegrityError:
                 pass
@@ -197,13 +199,13 @@ class GitlabWebhookEndpoint(View):
     _handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         token = "<unknown>"
         try:
             # Munge the token to extract the integration external_id.

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import ProjectLatestAlerts from 'app/views/projectDetail/projectLatestAlerts';
+import ProjectLatestAlerts from 'sentry/views/projectDetail/projectLatestAlerts';
 
 describe('ProjectDetail > ProjectLatestAlerts', function () {
   let endpointMock, rulesEndpointMock;

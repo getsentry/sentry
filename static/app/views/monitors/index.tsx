@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {PageContent} from 'app/styles/organization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import Feature from 'sentry/components/acl/feature';
+import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import {PageContent} from 'sentry/styles/organization';
+import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 
 const Body = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
@@ -27,4 +27,3 @@ const MonitorsContainer: React.FC = ({children}) => (
 );
 
 export default withGlobalSelection(MonitorsContainer);
-export {MonitorsContainer};
