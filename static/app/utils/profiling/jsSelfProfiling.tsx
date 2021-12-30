@@ -1,4 +1,5 @@
 import {stackMarkerToHumanReadable} from './formatters/stackMarkerToHumanReadable';
+import {Frame} from './frame';
 
 function createMarkerFrame(marker: JSSelfProfiling.Marker): JSSelfProfiling.Frame {
   return {
@@ -20,15 +21,16 @@ function createMarkerFrame(marker: JSSelfProfiling.Marker): JSSelfProfiling.Fram
 export function resolveJSSelfProfilingStack(
   trace: JSSelfProfiling.Trace,
   stackId: JSSelfProfiling.Sample['stackId'],
+  frameIndex: Record<number, Frame>,
   marker?: JSSelfProfiling.Marker
-): JSSelfProfiling.Frame[] {
+): Frame[] {
   // If there is no stack associated with a sample, it means the thread was idle
 
-  const callStack: JSSelfProfiling.Frame[] = [];
+  const callStack: Frame[] = [];
 
   // There can only be one marker per callStack, so prepend it to the start of the stack
   if (marker && marker !== 'script') {
-    callStack.unshift(createMarkerFrame(marker));
+    callStack.unshift(new Frame({...createMarkerFrame(marker), key: marker}));
   }
 
   if (stackId === undefined) return callStack;
@@ -48,7 +50,7 @@ export function resolveJSSelfProfilingStack(
       return callStack;
     }
 
-    callStack.unshift(trace.frames[stack.frameId]);
+    callStack.unshift(frameIndex[stack.frameId]);
 
     if (stack.parentId) {
       stack = trace.stacks[stack.parentId];

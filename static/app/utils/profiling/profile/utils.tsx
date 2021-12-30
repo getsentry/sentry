@@ -1,10 +1,18 @@
 import {Frame} from 'sentry/utils/profiling/frame';
 
 export function createFrameIndex(
-  frames: Profiling.RawProfileBase['shared']['frames']
+  frames: Profiling.RawProfileBase['shared']['frames'],
+  trace?: JSSelfProfiling.Trace
 ): Record<string | number, Frame> {
   return frames.reduce((acc, frame, index) => {
-    acc[index] = new Frame({key: index, ...frame});
+    acc[index] = new Frame({
+      key: index,
+      resource:
+        trace && typeof frame.resource === 'number'
+          ? trace.resources[frame.resource]
+          : undefined,
+      ...frame,
+    });
     return acc;
   }, {});
 }
