@@ -1231,7 +1231,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_cols,
             where=where_clause,
             groupby=query_cols,
-            orderby=[OrderBy(col, Direction.DESC) for col in query_cols],
         )
         result = raw_snql_query(
             query,
@@ -1968,9 +1967,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
             entity = Entity(EntityKey.MetricsSets.value)
             having_clause = [Condition(users_column, Op.GT, 0)]
-
-        # Tiebreaker
-        order_by_clause.extend([OrderBy(col, Direction.DESC) for col in query_cols])
 
         query = Query(
             dataset=Dataset.Metrics.value,
