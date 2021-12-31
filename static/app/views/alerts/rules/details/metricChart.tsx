@@ -67,7 +67,6 @@ type Props = WithRouterProps & {
   organization: Organization;
   projects: Project[] | AvatarProject[];
   interval: string;
-  filter: React.ReactNode;
   query: string;
   orgId: string;
   handleZoom: (start: DateString, end: DateString) => void;
@@ -332,7 +331,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       selectedIncident,
       interval,
       handleZoom,
-      filter,
       query,
       incidents,
       rule,
@@ -541,7 +539,7 @@ class MetricChart extends React.PureComponent<Props, State> {
             <ChartTitle>
               {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
             </ChartTitle>
-            {query ? filter : null}
+            <ChartFilters>{query || null}</ChartFilters>
           </ChartHeader>
           {getDynamicText({
             value: (
@@ -808,6 +806,13 @@ const ChartHeader = styled('div')`
 const ChartTitle = styled('header')`
   display: flex;
   flex-direction: row;
+`;
+
+const ChartFilters = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-family: ${p => p.theme.text.familyMono};
+  font-weight: normal;
+  color: ${p => p.theme.subText};
 `;
 
 const ChartActions = styled(PanelFooter)`
