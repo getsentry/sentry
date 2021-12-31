@@ -809,7 +809,7 @@ const ChartTitle = styled('header')`
 `;
 
 const ChartFilters = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
   font-weight: normal;
   color: ${p => p.theme.subText};
