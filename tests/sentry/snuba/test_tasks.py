@@ -157,7 +157,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
 
     @responses.activate
     def test_granularity_on_metrics_crash_rate_alerts(self):
-        for tag in [SessionMetricKey.SESSION.value, "session.status"]:
+        for tag in [SessionMetricKey.SESSION.value, SessionMetricKey.USER.value, "session.status"]:
             indexer.record(tag)
         for (time_window, expected_granularity) in [
             (30, 10),
@@ -165,21 +165,23 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
             (5 * 60, 3600),
             (25 * 60, 3600 * 24),
         ]:
-            sub = self.create_subscription(
-                dataset=QueryDatasets.METRICS,
-                aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-                time_window=int(timedelta(minutes=time_window).total_seconds()),
-                status=QuerySubscription.Status.CREATING,
-            )
-            with patch("sentry.snuba.tasks._snuba_pool") as pool:
-                resp = Mock()
-                resp.status = 202
-                resp.data = json.dumps({"subscription_id": "123" + f"{time_window}"})
-                pool.urlopen.return_value = resp
+            for idx, aggregate in enumerate(["sessions", "users"]):
+                sub = self.create_subscription(
+                    dataset=QueryDatasets.METRICS,
+                    aggregate=f"percentage({aggregate}_crashed, {aggregate}) AS "
+                    f"_crash_rate_alert_aggregate",
+                    time_window=int(timedelta(minutes=time_window).total_seconds()),
+                    status=QuerySubscription.Status.CREATING,
+                )
+                with patch("sentry.snuba.tasks._snuba_pool") as pool:
+                    resp = Mock()
+                    resp.status = 202
+                    resp.data = json.dumps({"subscription_id": "123" + f"{time_window + idx}"})
+                    pool.urlopen.return_value = resp
 
-                create_subscription_in_snuba(sub.id)
-                request_body = json.loads(pool.urlopen.call_args[1]["body"])
-                assert request_body["granularity"] == expected_granularity
+                    create_subscription_in_snuba(sub.id)
+                    request_body = json.loads(pool.urlopen.call_args[1]["body"])
+                    assert request_body["granularity"] == expected_granularity
 
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
@@ -315,6 +317,31 @@ class BuildSnubaFilterTest(TestCase):
         ]
         assert snuba_filter.groupby == [session_status]
 
+    def test_simple_users_for_metrics(self):
+        for tag in [SessionMetricKey.USER.value, "session.status", "crashed", "init"]:
+            indexer.record(tag)
+        entity_subscription = get_entity_subscription_for_dataset(
+            dataset=QueryDatasets.METRICS,
+            time_window=3600,
+            aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+            extra_fields={"org_id": self.organization.id},
+        )
+        snuba_filter = build_snuba_filter(
+            entity_subscription,
+            query="",
+            environment=None,
+        )
+        org_id = self.organization.id
+        session_status = tag_key(org_id, "session.status")
+        session_status_tag_values = get_tag_values_list(org_id, ["crashed", "init"])
+        assert snuba_filter
+        assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
+        assert snuba_filter.conditions == [
+            ["metric_id", "=", metric_id(org_id, SessionMetricKey.USER)],
+            [session_status, "IN", session_status_tag_values],
+        ]
+        assert snuba_filter.groupby == [session_status]
+
     def test_aliased_query_events(self):
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.EVENTS,
@@ -356,7 +383,7 @@ class BuildSnubaFilterTest(TestCase):
             ["environment", "=", "development"],
         ]
 
-    def test_query_and_environment_metrics(self):
+    def test_query_and_environment_sessions_metrics(self):
         env = self.create_environment(self.project, name="development")
         for tag in [
             SessionMetricKey.SESSION.value,
@@ -420,6 +447,45 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.conditions == [
             ["release", "=", "ahmed@12.2"],
             ["environment", "=", "development"],
+        ]
+
+    def test_query_and_environment_users_metrics(self):
+        env = self.create_environment(self.project, name="development")
+        for tag in [
+            SessionMetricKey.USER.value,
+            "session.status",
+            "environment",
+            "development",
+            "init",
+            "crashed",
+            "release",
+            "ahmed@12.2",
+        ]:
+            indexer.record(tag)
+        entity_subscription = get_entity_subscription_for_dataset(
+            dataset=QueryDatasets.METRICS,
+            time_window=3600,
+            aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+            extra_fields={"org_id": self.organization.id},
+        )
+        snuba_filter = build_snuba_filter(
+            entity_subscription,
+            query="release:ahmed@12.2",
+            environment=env,
+        )
+        org_id = self.organization.id
+        assert snuba_filter
+        assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
+        assert snuba_filter.groupby == [tag_key(org_id, "session.status")]
+        assert snuba_filter.conditions == [
+            ["metric_id", "=", metric_id(org_id, SessionMetricKey.USER)],
+            [
+                tag_key(org_id, "session.status"),
+                "IN",
+                get_tag_values_list(org_id, ["crashed", "init"]),
+            ],
+            [tag_key(org_id, "environment"), "=", tag_value(org_id, "development")],
+            [tag_key(org_id, "release"), "=", tag_value(org_id, "ahmed@12.2")],
         ]
 
     def test_aliased_query_transactions(self):

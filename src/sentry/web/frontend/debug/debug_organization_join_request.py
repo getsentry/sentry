@@ -1,4 +1,6 @@
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import InviteStatus, Organization, OrganizationMember, User
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
@@ -7,7 +9,7 @@ from .mail import render_preview_email_for_notification
 
 
 class DebugOrganizationJoinRequestEmailView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="default", name="Default")
         user_to_join = User(name="Rick Swan")
         pending_member = OrganizationMember(

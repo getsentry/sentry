@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -9,7 +10,7 @@ from sentry.models import EventUser, Group, ProjectTeam, Team
 
 
 class OrganizationUserIssuesEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request, organization, user_id):
+    def get(self, request: Request, organization, user_id) -> Response:
         limit = request.GET.get("limit", 100)
 
         project_ids = organization.project_set.values_list("id", flat=True)
