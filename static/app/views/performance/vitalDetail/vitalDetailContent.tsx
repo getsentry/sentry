@@ -28,6 +28,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
 
 import Breadcrumb from '../breadcrumb';
+import MetricsSearchBar from '../metricsSearchBar';
+import {MetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
 import Table from './table';
@@ -43,8 +45,8 @@ type Props = {
   organization: Organization;
   projects: Project[];
   router: InjectedRouter;
-
   vitalName: WebVital;
+  isMetricsData: boolean;
 };
 
 type State = {
@@ -177,7 +179,8 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {location, eventView, organization, vitalName, projects} = this.props;
+    const {location, eventView, organization, vitalName, projects, isMetricsData} =
+      this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
     const vital = vitalName || WebVital.LCP;
@@ -198,6 +201,7 @@ class VitalDetailContent extends React.Component<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
+              <MetricsSwitch onSwitch={() => this.handleSearch('')} />
               <Feature organization={organization} features={['incidents']}>
                 {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
               </Feature>
@@ -212,14 +216,24 @@ class VitalDetailContent extends React.Component<Props, State> {
           )}
           <Layout.Main fullWidth>
             <StyledDescription>{description}</StyledDescription>
-            <StyledSearchBar
-              searchSource="performance_vitals"
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={this.handleSearch}
-            />
+            {isMetricsData ? (
+              <StyledMetricsSearchBar
+                searchSource="performance_vitals_metrics"
+                orgSlug={organization.slug}
+                projectIds={eventView.project}
+                query={query}
+                onSearch={this.handleSearch}
+              />
+            ) : (
+              <StyledSearchBar
+                searchSource="performance_vitals"
+                organization={organization}
+                projectIds={eventView.project}
+                query={query}
+                fields={eventView.fields}
+                onSearch={this.handleSearch}
+              />
+            )}
             <VitalChart
               organization={organization}
               query={eventView.query}
@@ -239,6 +253,7 @@ class VitalDetailContent extends React.Component<Props, State> {
                 start={eventView.start}
                 end={eventView.end}
                 statsPeriod={eventView.statsPeriod}
+                isMetricsData={isMetricsData}
               />
             </StyledVitalInfo>
 
@@ -272,6 +287,8 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 }
 
+export default withProjects(VitalDetailContent);
+
 const StyledDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(3)};
@@ -285,4 +302,6 @@ const StyledVitalInfo = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export default withProjects(VitalDetailContent);
+const StyledMetricsSearchBar = styled(MetricsSearchBar)`
+  margin-bottom: ${space(2)};
+`;

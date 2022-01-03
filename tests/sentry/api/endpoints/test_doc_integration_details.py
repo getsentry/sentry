@@ -87,12 +87,12 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         """
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(
-            self.doc_1.slug, status_code=status.HTTP_200_OK, **self.payload
+            self.doc_2.slug, status_code=status.HTTP_200_OK, **self.payload
         )
-        self.doc_1.refresh_from_db()
-        assert serialize(self.doc_1) == response.data
+        self.doc_2.refresh_from_db()
+        assert serialize(self.doc_2) == response.data
         features = IntegrationFeature.objects.filter(
-            target_id=self.doc_1.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+            target_id=self.doc_2.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
         )
         assert features.exists()
         assert len(features) == 3
@@ -146,9 +146,9 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         """
         self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "features": [0, 0, 0, 0, 1, 1, 1, 2]}
-        self.get_success_response(self.doc_1.slug, status_code=status.HTTP_200_OK, **payload)
+        self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK, **payload)
         features = IntegrationFeature.objects.filter(
-            target_id=self.doc_1.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+            target_id=self.doc_2.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
         )
         assert features.exists()
         assert len(features) == 3
@@ -158,11 +158,11 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         Tests that a name alteration is permitted and does not have an
         effect on the slug of the DocIntegration
         """
-        previous_slug = self.doc_1.slug
+        previous_slug = self.doc_2.slug
         self.login_as(user=self.superuser, superuser=True)
-        self.get_success_response(self.doc_1.slug, status_code=status.HTTP_200_OK, **self.payload)
-        self.doc_1.refresh_from_db()
-        assert self.doc_1.slug == previous_slug
+        self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK, **self.payload)
+        self.doc_2.refresh_from_db()
+        assert self.doc_2.slug == previous_slug
 
     def test_update_invalid_metadata(self):
         """
@@ -177,7 +177,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         for resources in invalid_resources.values():
             payload = {**self.payload, "resources": resources}
             response = self.get_error_response(
-                self.doc_1.slug, status_code=status.HTTP_400_BAD_REQUEST, **payload
+                self.doc_2.slug, status_code=status.HTTP_400_BAD_REQUEST, **payload
             )
             assert "metadata" in response.data.keys()
 
@@ -199,15 +199,46 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
 
     def test_update_ignore_keys(self):
         """
-        Test that certain reserved keys cannot be overridden by the
+        Tests that certain reserved keys cannot be overridden by the
         request payload. They must be created by the API.
         """
         self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "metadata": {"should": "not override"}}
-        self.get_success_response(self.doc_1.slug, status_code=status.HTTP_200_OK, **payload)
+        self.get_success_response(self.doc_2.slug, status_code=status.HTTP_200_OK, **payload)
         # Ensure the DocIntegration was not created with the ignored keys' values
         for key in self.ignored_keys:
-            assert getattr(self.doc_1, key) is not payload[key]
+            assert getattr(self.doc_2, key) is not payload[key]
+
+    def test_update_simple_without_avatar(self):
+        """
+        Tests that the DocIntegration can be edited without an
+        associated DocIntegrationAvatar.
+        """
+        self.login_as(user=self.superuser, superuser=True)
+        payload = {**self.payload, "is_draft": True}
+        response = self.get_success_response(
+            self.doc_1.slug, status_code=status.HTTP_200_OK, **payload
+        )
+        self.doc_1.refresh_from_db()
+        assert serialize(self.doc_1) == response.data
+
+    def test_update_publish_without_avatar(self):
+        """
+        Tests that the DocIntegration cannot be published without an
+        associated DocIntegrationAvatar.
+        """
+        self.login_as(user=self.superuser, superuser=True)
+        response = self.get_error_response(
+            self.doc_1.slug, status_code=status.HTTP_400_BAD_REQUEST, **self.payload
+        )
+        assert "avatar" in response.data.keys()
+        avatar = self.create_doc_integration_avatar(doc_integration=self.doc_1)
+        response = self.get_success_response(
+            self.doc_1.slug, status_code=status.HTTP_200_OK, **self.payload
+        )
+        self.doc_1.refresh_from_db()
+        assert serialize(self.doc_1) == response.data
+        assert serialize(avatar) == response.data["avatar"]
 
 
 class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):

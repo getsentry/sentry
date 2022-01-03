@@ -81,7 +81,7 @@ function VitalInfo({
         project={projectIds}
         environment={environment}
         field={fields}
-        query={new MutableSearch(query).removeFilter('transaction.op').formatString()} // TODO(metrics): not all tags will be compatible with metrics
+        query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
         groupBy={['measurement_rating']}
       >
         {({loading: isLoading, response}) => {
