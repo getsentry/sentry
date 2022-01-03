@@ -17,8 +17,9 @@ import EventsRequest from 'sentry/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import {SectionHeading} from 'sentry/components/charts/styles';
+import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
 import {getTooltipArrow} from 'sentry/components/charts/utils';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
   StatsPeriodType,
@@ -536,11 +537,14 @@ class MetricChart extends React.PureComponent<Props, State> {
       <ChartPanel>
         <StyledPanelBody withPadding>
           <ChartHeader>
-            <ChartTitle>
+            <HeaderTitleLegend>
               {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
-            </ChartTitle>
-            <ChartFilters>{query || null}</ChartFilters>
+            </HeaderTitleLegend>
           </ChartHeader>
+          <ChartFilters>
+            <StyledCircleIndicator size={8} />
+            {`${rule.aggregate} ${query}`}
+          </ChartFilters>
           {getDynamicText({
             value: (
               <ChartZoom
@@ -559,7 +563,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                     grid={{
                       left: space(0.25),
                       right: space(2),
-                      top: space(2),
+                      top: space(3),
                       bottom: 0,
                     }}
                     yAxis={{
@@ -803,16 +807,16 @@ const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const ChartTitle = styled('header')`
-  display: flex;
-  flex-direction: row;
+const StyledCircleIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.formText};
+  height: ${space(1)};
+  margin-right: ${space(0.5)};
 `;
 
 const ChartFilters = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  font-family: ${p => p.theme.text.familyMono};
-  font-weight: normal;
-  color: ${p => p.theme.subText};
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.textColor};
 `;
 
 const ChartActions = styled(PanelFooter)`

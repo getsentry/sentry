@@ -222,11 +222,6 @@ export default class DetailsBody extends React.Component<Props> {
         </SidebarGroup>
 
         <SidebarGroup>
-          <Heading>{t('Filters')}</Heading>
-          {this.getFilter()}
-        </SidebarGroup>
-
-        <SidebarGroup>
           <Heading>{t('Thresholds and Actions')}</Heading>
           {typeof criticalTrigger?.alertThreshold === 'number' &&
             this.renderTrigger(
