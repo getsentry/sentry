@@ -8,6 +8,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.event_search import (
+    AggregateFilter,
     AggregateKey,
     SearchConfig,
     SearchFilter,
@@ -223,16 +224,16 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     def test_rel_time_filter(self):
         now = timezone.now()
         with freeze_time(now):
-            assert parse_search_query("first_seen:+7d") == [
+            assert parse_search_query("time:+7d") == [
                 SearchFilter(
-                    key=SearchKey(name="first_seen"),
+                    key=SearchKey(name="time"),
                     operator="<=",
                     value=SearchValue(raw_value=now - timedelta(days=7)),
                 )
             ]
-            assert parse_search_query("first_seen:-2w") == [
+            assert parse_search_query("time:-2w") == [
                 SearchFilter(
-                    key=SearchKey(name="first_seen"),
+                    key=SearchKey(name="time"),
                     operator=">=",
                     value=SearchValue(raw_value=now - timedelta(days=14)),
                 )
@@ -245,15 +246,15 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         now = timezone.now()
         with freeze_time(now):
             assert parse_search_query("last_seen():+7d") == [
-                SearchFilter(
-                    key=SearchKey(name="last_seen()"),
+                AggregateFilter(
+                    key=AggregateKey(name="last_seen()"),
                     operator="<=",
                     value=SearchValue(raw_value=now - timedelta(days=7)),
                 )
             ]
             assert parse_search_query("last_seen():-2w") == [
-                SearchFilter(
-                    key=SearchKey(name="last_seen()"),
+                AggregateFilter(
+                    key=AggregateKey(name="last_seen()"),
                     operator=">=",
                     value=SearchValue(raw_value=now - timedelta(days=14)),
                 )
@@ -263,29 +264,29 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ]
 
     def test_specific_time_filter(self):
-        assert parse_search_query("first_seen:2018-01-01") == [
+        assert parse_search_query("time:2018-01-01") == [
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(raw_value=datetime.datetime(2018, 1, 1, tzinfo=timezone.utc)),
             ),
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(raw_value=datetime.datetime(2018, 1, 2, tzinfo=timezone.utc)),
             ),
         ]
 
-        assert parse_search_query("first_seen:2018-01-01T05:06:07Z") == [
+        assert parse_search_query("time:2018-01-01T05:06:07Z") == [
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
                 ),
             ),
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
@@ -293,16 +294,16 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-        assert parse_search_query("first_seen:2018-01-01T05:06:07+00:00") == [
+        assert parse_search_query("time:2018-01-01T05:06:07+00:00") == [
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
                 ),
             ),
             SearchFilter(
-                key=SearchKey(name="first_seen"),
+                key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(
                     raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)

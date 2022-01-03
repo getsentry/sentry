@@ -1052,14 +1052,11 @@ default_config = SearchConfig(
     date_keys={
         "start",
         "end",
-        "first_seen",
-        "last_seen",
+        "last_seen()",
         "time",
         "timestamp",
         "timestamp.to_hour",
         "timestamp.to_day",
-        "transaction.start_time",
-        "transaction.end_time",
     },
     boolean_keys={
         "error.handled",
