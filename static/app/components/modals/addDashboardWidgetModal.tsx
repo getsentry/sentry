@@ -596,6 +596,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               required
             >
               <Input
+                data-test-id="widget-title-input"
                 type="text"
                 name="title"
                 maxLength={255}
