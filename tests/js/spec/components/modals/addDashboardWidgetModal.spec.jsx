@@ -1111,7 +1111,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       wrapper.unmount();
     });
 
-    it('renders the dataset selector', async function () {
+    it('renders the dataset selector', function () {
       const wrapper = mountModalWithRtl({
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
