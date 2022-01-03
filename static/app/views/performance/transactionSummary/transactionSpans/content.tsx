@@ -18,6 +18,7 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useProjects from 'sentry/utils/useProjects';
 
 import {SetStateAction} from '../types';
 
@@ -44,12 +45,13 @@ type Props = {
   location: Location;
   organization: Organization;
   eventView: EventView;
+  projectId: string;
   setError: SetStateAction<string | undefined>;
   transactionName: string;
 };
 
 function SpansContent(props: Props) {
-  const {location, organization, eventView, setError, transactionName} = props;
+  const {location, organization, eventView, projectId, setError, transactionName} = props;
   const query = decodeScalar(location.query.query, '');
 
   function handleChange(key: string) {
@@ -80,6 +82,8 @@ function SpansContent(props: Props) {
   const sort = getSuspectSpanSortFromEventView(eventView);
   const spansView = getSpansEventView(eventView, sort.field);
   const totalsView = getTotalsView(eventView);
+
+  const {projects} = useProjects();
 
   return (
     <Layout.Main fullWidth>
@@ -164,6 +168,7 @@ function SpansContent(props: Props) {
                         eventView={eventView}
                         totals={totals}
                         preview={2}
+                        project={projects.find(p => p.id === projectId)}
                       />
                     ))}
                     <Pagination pageLinks={pageLinks} />
