@@ -11,7 +11,7 @@ import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/saved
 import {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownLink from 'sentry/components/dropdownLink';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {
   FilterType,
   ParseResult,

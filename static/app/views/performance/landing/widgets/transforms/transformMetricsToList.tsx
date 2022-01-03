@@ -1,4 +1,4 @@
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {defined} from 'sentry/utils';
 import {MetricsRequestRenderProps} from 'sentry/utils/metrics/metricsRequest';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';

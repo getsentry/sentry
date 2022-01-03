@@ -540,7 +540,7 @@ describe('getExpandedResults()', function () {
     expect(result.environment).toEqual(['staging', 'dev']);
   });
 
-  it('applies tags that overlap globalselection state', () => {
+  it('applies tags that overlap PageFilters state', () => {
     const view = new EventView({
       ...state,
       fields: [{field: 'project'}, {field: 'environment'}, {field: 'title'}],

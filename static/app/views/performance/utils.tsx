@@ -5,9 +5,9 @@ import Duration from 'sentry/components/duration';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {
-  GlobalSelection,
   Organization,
   OrganizationSummary,
+  PageFilters,
   Project,
   ReleaseProject,
 } from 'sentry/types';
@@ -220,7 +220,7 @@ export function removeTracingKeysFromSearch(
   return currentFilter;
 }
 
-export function addRoutePerformanceContext(selection: GlobalSelection) {
+export function addRoutePerformanceContext(selection: PageFilters) {
   const transaction = getCurrentSentryReactTransaction();
   const days = statsPeriodToDays(
     selection.datetime.period,

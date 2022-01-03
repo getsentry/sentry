@@ -8,10 +8,10 @@ import {
   updateDateTime,
   updateEnvironments,
   updateProjects,
-} from 'sentry/actionCreators/globalSelection';
+} from 'sentry/actionCreators/pageFilters';
 import {DATE_TIME_KEYS} from 'sentry/constants/pageFilters';
 import ConfigStore from 'sentry/stores/configStore';
-import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {PageContent} from 'sentry/styles/organization';
 import useProjects from 'sentry/utils/useProjects';
@@ -46,7 +46,11 @@ type Props = WithRouterProps &
     skipLoadLastUsed?: boolean;
   };
 
-function GlobalSelectionHeaderContainer({skipLoadLastUsed, children, ...props}: Props) {
+/**
+ * The page filters container handles initalization of page filters for the
+ * wrapped content. Children will not be rendered until the filters are ready.
+ */
+function Container({skipLoadLastUsed, children, ...props}: Props) {
   const {
     location,
     router,
@@ -58,7 +62,7 @@ function GlobalSelectionHeaderContainer({skipLoadLastUsed, children, ...props}: 
     specificProjectSlugs,
   } = props;
 
-  const {isReady} = useLegacyStore(GlobalSelectionStore);
+  const {isReady} = useLegacyStore(PageFiltersStore);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
@@ -169,4 +173,6 @@ function GlobalSelectionHeaderContainer({skipLoadLastUsed, children, ...props}: 
   );
 }
 
-export default withOrganization(withRouter(GlobalSelectionHeaderContainer));
+const PageFiltersContainer = withOrganization(withRouter(Container));
+
+export default PageFiltersContainer;

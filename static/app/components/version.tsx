@@ -29,9 +29,9 @@ type Props = {
    */
   anchor?: boolean;
   /**
-   * Should link to release page preserve user's global selection values
+   * Should link to release page preserve user's page filter values
    */
-  preserveGlobalSelection?: boolean;
+  preservePageFilters?: boolean;
   /**
    * Should there be a tooltip with raw version on hover
    */
@@ -41,7 +41,7 @@ type Props = {
    */
   withPackage?: boolean;
   /**
-   * Will add project ID to the linked url (can be overridden by preserveGlobalSelection).
+   * Will add project ID to the linked url (can be overridden by preservePageFilters).
    * If not provided and user does not have global-views enabled, it will try to take it from current url query.
    */
   projectId?: string;
@@ -56,7 +56,7 @@ const Version = ({
   version,
   organization,
   anchor = true,
-  preserveGlobalSelection,
+  preservePageFilters,
   tooltipRawVersion,
   withPackage,
   projectId,
@@ -68,7 +68,7 @@ const Version = ({
 
   let releaseDetailProjectId: null | undefined | string | string[];
   if (projectId) {
-    // we can override preserveGlobalSelection's project id
+    // we can override preservePageFilters's project id
     releaseDetailProjectId = projectId;
   } else if (!organization?.features.includes('global-views')) {
     // we need this for users without global-views, otherwise they might get `This release may not be in your selected project`
@@ -86,7 +86,7 @@ const Version = ({
         },
         className,
       };
-      if (preserveGlobalSelection) {
+      if (preservePageFilters) {
         return (
           <GlobalSelectionLink {...props}>
             <VersionText truncate={truncate}>{versionToDisplay}</VersionText>

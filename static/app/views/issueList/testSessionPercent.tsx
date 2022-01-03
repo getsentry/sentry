@@ -10,21 +10,21 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
 import {
-  GlobalSelection,
   Group,
   GroupStats,
   Organization,
+  PageFilters,
   SavedQueryVersions,
 } from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
-  selection: GlobalSelection;
+  selection: PageFilters;
   params: {orgId: string};
   organization: Organization;
 };
@@ -201,7 +201,7 @@ function SessionPercentWrapper(props: Props) {
   );
 }
 
-export default withGlobalSelection(withOrganization(SessionPercentWrapper));
+export default withPageFilters(withOrganization(SessionPercentWrapper));
 
 const StyledInput = styled(Input)`
   width: 100px;

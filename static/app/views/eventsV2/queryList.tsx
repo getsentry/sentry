@@ -5,8 +5,8 @@ import classNames from 'classnames';
 import {Location, Query} from 'history';
 import moment from 'moment';
 
-import {resetGlobalSelection} from 'sentry/actionCreators/globalSelection';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import DropdownMenu from 'sentry/components/dropdownMenu';
@@ -53,7 +53,7 @@ class QueryList extends React.Component<Props> {
      * We need to reset global selection here because the saved queries can define their own projects
      * in the query. This can lead to mismatched queries for the project
      */
-    resetGlobalSelection();
+    resetPageFilters();
   }
 
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {

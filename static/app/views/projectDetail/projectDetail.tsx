@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {updateProjects} from 'sentry/actionCreators/globalSelection';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
+import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -17,17 +17,17 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -49,7 +49,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   projects: Project[];
   loadingProjects: boolean;
-  selection: GlobalSelection;
+  selection: PageFilters;
 };
 
 type State = AsyncView['state'];
@@ -193,7 +193,7 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         disableMultipleProjectSelection
         skipLoadLastUsed
         onUpdateProjects={this.handleProjectChange}
@@ -329,7 +329,7 @@ class ProjectDetail extends AsyncView<Props, State> {
             </Layout.Body>
           </StyledPageContent>
         </NoProjectMessage>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 }
@@ -369,4 +369,4 @@ StyledGlobalAppStoreConnectUpdateAlert.defaultProps = {
   Wrapper: p => <Layout.Main fullWidth {...p} />,
 };
 
-export default withProjects(withGlobalSelection(ProjectDetail));
+export default withProjects(withPageFilters(ProjectDetail));

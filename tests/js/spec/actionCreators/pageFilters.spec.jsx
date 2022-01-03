@@ -5,19 +5,19 @@ import {
   updateParams,
   updateParamsWithoutHistory,
   updateProjects,
-} from 'sentry/actionCreators/globalSelection';
-import GlobalSelectionActions from 'sentry/actions/globalSelectionActions';
+} from 'sentry/actionCreators/pageFilters';
+import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 
-describe('GlobalSelection ActionCreators', function () {
+describe('PageFilters ActionCreators', function () {
   const organization = TestStubs.Organization();
   beforeEach(function () {
     localStorage.getItem.mockClear();
-    jest.spyOn(GlobalSelectionActions, 'updateProjects');
-    jest.spyOn(GlobalSelectionActions, 'initializeUrlState').mockImplementation();
-    GlobalSelectionActions.updateProjects.mockClear();
+    jest.spyOn(PageFiltersActions, 'updateProjects');
+    jest.spyOn(PageFiltersActions, 'initializeUrlState').mockImplementation();
+    PageFiltersActions.updateProjects.mockClear();
   });
 
   describe('initializeUrlState', function () {
@@ -37,7 +37,7 @@ describe('GlobalSelection ActionCreators', function () {
       expect(localStorage.getItem).toHaveBeenCalledWith(
         `global-selection:${organization.slug}`
       );
-      expect(GlobalSelectionActions.initializeUrlState).toHaveBeenCalledWith(
+      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           environments: [],
           projects: [1],
@@ -72,7 +72,7 @@ describe('GlobalSelection ActionCreators', function () {
         },
         router,
       });
-      expect(GlobalSelectionActions.initializeUrlState).toHaveBeenCalledWith(
+      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           datetime: {
             start: null,
@@ -97,7 +97,7 @@ describe('GlobalSelection ActionCreators', function () {
         },
         router,
       });
-      expect(GlobalSelectionActions.initializeUrlState).toHaveBeenCalledWith(
+      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           datetime: {
             start: null,
@@ -173,7 +173,7 @@ describe('GlobalSelection ActionCreators', function () {
       });
 
       expect(localStorage.getItem).not.toHaveBeenCalled();
-      expect(GlobalSelectionActions.initializeUrlState).toHaveBeenCalledWith({
+      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith({
         datetime: {
           start: null,
           end: null,
@@ -197,15 +197,12 @@ describe('GlobalSelection ActionCreators', function () {
   describe('updateProjects()', function () {
     it('updates', function () {
       updateProjects([1, 2]);
-      expect(GlobalSelectionActions.updateProjects).toHaveBeenCalledWith(
-        [1, 2],
-        undefined
-      );
+      expect(PageFiltersActions.updateProjects).toHaveBeenCalledWith([1, 2], undefined);
     });
 
     it('does not update invalid projects', function () {
       updateProjects(['1']);
-      expect(GlobalSelectionActions.updateProjects).not.toHaveBeenCalled();
+      expect(PageFiltersActions.updateProjects).not.toHaveBeenCalled();
     });
   });
 

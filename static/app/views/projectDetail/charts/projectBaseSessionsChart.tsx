@@ -17,12 +17,12 @@ import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {Theme} from 'sentry/utils/theme';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 
@@ -33,7 +33,7 @@ import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 type Props = {
   title: string;
   router: InjectedRouter;
-  selection: GlobalSelection;
+  selection: PageFilters;
   api: Client;
   organization: Organization;
   onTotalValuesChange: (value: number | null) => void;
@@ -309,4 +309,4 @@ class Chart extends Component<ChartProps, ChartState> {
   }
 }
 
-export default withGlobalSelection(ProjectBaseSessionsChart);
+export default withPageFilters(ProjectBaseSessionsChart);

@@ -1,7 +1,7 @@
 import mean from 'lodash/mean';
 import moment from 'moment';
 
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';

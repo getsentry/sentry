@@ -122,7 +122,7 @@ class GroupEventDetails extends Component<Props, State> {
     );
     fetchSentryAppInstallations(api, orgSlug);
 
-    // TODO(marcos): Sometimes GlobalSelectionStore cannot pick a project.
+    // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
     if (projectId) {
       fetchSentryAppComponents(api, orgSlug, projectId);
     } else {

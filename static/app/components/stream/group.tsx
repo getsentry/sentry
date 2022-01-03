@@ -25,12 +25,12 @@ import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {
-  GlobalSelection,
   Group,
   GroupReprocessing,
   InboxDetails,
   NewQuery,
   Organization,
+  PageFilters,
   User,
 } from 'sentry/types';
 import {defined, percent, valueIsEqual} from 'sentry/utils';
@@ -39,8 +39,8 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {queryToObj} from 'sentry/utils/stream';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
 import {
   getTabs,
@@ -79,7 +79,7 @@ const defaultProps = {
 
 type Props = {
   id: string;
-  selection: GlobalSelection;
+  selection: PageFilters;
   organization: Organization;
   displayReprocessingLayout?: boolean;
   query?: string;
@@ -602,7 +602,7 @@ class StreamGroup extends React.Component<Props, State> {
   }
 }
 
-export default withGlobalSelection(withOrganization(StreamGroup));
+export default withPageFilters(withOrganization(StreamGroup));
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{

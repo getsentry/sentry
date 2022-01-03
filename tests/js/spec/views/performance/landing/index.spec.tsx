@@ -22,7 +22,7 @@ const WrappedComponent = ({data}) => {
         location={data.router.location}
         eventView={eventView}
         projects={data.projects}
-        selection={eventView.getGlobalSelection()}
+        selection={eventView.getPageFilters()}
         shouldShowOnboarding={false}
         handleSearch={() => {}}
         handleTrendsClick={() => {}}

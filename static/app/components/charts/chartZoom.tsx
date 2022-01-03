@@ -8,7 +8,7 @@ import type {
 import moment from 'moment';
 import * as qs from 'query-string';
 
-import {updateDateTime} from 'sentry/actionCreators/globalSelection';
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import {DateString} from 'sentry/types';

@@ -1,4 +1,4 @@
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {GenericChildrenProps} from 'sentry/utils/discover/genericDiscoverQuery';

@@ -31,7 +31,7 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
   props: QueryHandlerProps<T> & {query: QueryDefinitionWithKey<T>}
 ) {
   const query = props.query;
-  const globalSelection = props.queryProps.eventView.getGlobalSelection();
+  const globalSelection = props.queryProps.eventView.getPageFilters();
   const start = globalSelection.datetime.start
     ? getUtcToLocalDateObject(globalSelection.datetime.start)
     : null;

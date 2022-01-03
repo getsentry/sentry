@@ -7,7 +7,7 @@ import {Client} from 'sentry/api';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, SelectValue, TagCollection} from 'sentry/types';
+import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {explodeField, generateFieldAsString} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
@@ -24,7 +24,7 @@ import WidgetQueryFields from './widgetQueryFields';
 type Props = {
   api: Client;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   query: WidgetQuery;
   error?: Record<string, any>;
   onChange: (widgetQuery: WidgetQuery) => void;

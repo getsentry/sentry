@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {t} from 'sentry/locale';
-import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -18,8 +18,8 @@ import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
 import {addRoutePerformanceContext} from '../../utils';
@@ -44,7 +44,7 @@ type TotalValues = Record<string, number>;
 
 type Props = {
   location: Location;
-  selection: GlobalSelection;
+  selection: PageFilters;
   organization: Organization;
   projects: Project[];
 };
@@ -236,4 +236,4 @@ function getTotalsEventView(
   ]);
 }
 
-export default withGlobalSelection(withProjects(withOrganization(TransactionOverview)));
+export default withPageFilters(withProjects(withOrganization(TransactionOverview)));

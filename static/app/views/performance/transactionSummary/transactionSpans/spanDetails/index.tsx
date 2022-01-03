@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -47,7 +47,7 @@ export default function SpanDetails(props: Props) {
         organization={organization}
         renderDisabled={NoAccess}
       >
-        <GlobalSelectionHeader
+        <PageFiltersContainer
           lockedMessageSubject={t('transaction')}
           shouldForceProject={defined(project)}
           forceProject={project}
@@ -67,7 +67,7 @@ export default function SpanDetails(props: Props) {
               />
             </NoProjectMessage>
           </StyledPageContent>
-        </GlobalSelectionHeader>
+        </PageFiltersContainer>
       </Feature>
     </SentryDocumentTitle>
   );

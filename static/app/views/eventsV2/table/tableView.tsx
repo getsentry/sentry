@@ -381,7 +381,7 @@ class TableView extends React.Component<TableViewProps> {
             orgSlug: organization.slug,
             transaction: String(value),
             projectID,
-            query: nextView.getGlobalSelectionQuery(),
+            query: nextView.getPageFiltersQuery(),
           });
 
           browserHistory.push(next);
@@ -397,7 +397,7 @@ class TableView extends React.Component<TableViewProps> {
               value
             )}/`,
             query: {
-              ...nextView.getGlobalSelectionQuery(),
+              ...nextView.getPageFiltersQuery(),
 
               project: maybeProject ? maybeProject.id : undefined,
             },

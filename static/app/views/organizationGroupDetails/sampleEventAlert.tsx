@@ -5,10 +5,10 @@ import PageAlertBar from 'sentry/components/pageAlertBar';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
 function SampleEventAlert({
@@ -16,7 +16,7 @@ function SampleEventAlert({
   organization,
   projects,
 }: {
-  selection: GlobalSelection;
+  selection: PageFilters;
   organization: Organization;
   projects: Project[];
 }) {
@@ -58,7 +58,7 @@ function SampleEventAlert({
   );
 }
 
-export default withProjects(withOrganization(withGlobalSelection(SampleEventAlert)));
+export default withProjects(withOrganization(withPageFilters(SampleEventAlert)));
 
 const TextWrapper = styled('span')`
   margin: 0 ${space(1)};

@@ -8,18 +8,18 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
 
@@ -41,7 +41,7 @@ type Props = {
   organization: Organization;
   location: Location;
   eventView: EventView;
-  selection: GlobalSelection;
+  selection: PageFilters;
 };
 
 type State = {
@@ -196,7 +196,7 @@ class TrendsContent extends React.Component<Props, State> {
     const query = getTransactionSearchQuery(location);
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         defaultSelection={{
           datetime: {
             start: null,
@@ -291,7 +291,7 @@ class TrendsContent extends React.Component<Props, State> {
             </DefaultTrends>
           </Layout.Main>
         </Layout.Body>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 }
@@ -359,4 +359,4 @@ const TrendsLayoutContainer = styled('div')`
   }
 `;
 
-export default withGlobalSelection(TrendsContent);
+export default withPageFilters(TrendsContent);

@@ -9,7 +9,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, SelectValue} from 'sentry/types';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {
   explodeField,
   generateFieldAsString,
@@ -34,7 +34,7 @@ const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
 
 type Props = {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   displayType: Widget['displayType'];
   queries: WidgetQuery[];
   errors?: Array<Record<string, any>>;

@@ -4,8 +4,8 @@ import {Observer} from 'mobx-react';
 import Access from 'sentry/components/acl/access';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import {GlobalSelection, Project, SelectValue} from 'sentry/types';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import {PageFilters, Project, SelectValue} from 'sentry/types';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import Field from 'sentry/views/settings/components/forms/field';
 import Form from 'sentry/views/settings/components/forms/form';
@@ -38,7 +38,7 @@ const INTERVALS: SelectValue<string>[] = [
 type Props = {
   monitor?: Monitor;
   projects: Project[];
-  selection: GlobalSelection;
+  selection: PageFilters;
   apiEndpoint: string;
   apiMethod: Form['props']['apiMethod'];
   onSubmitSuccess: Form['props']['onSubmitSuccess'];
@@ -240,4 +240,4 @@ class MonitorForm extends Component<Props> {
   }
 }
 
-export default withGlobalSelection(withProjects(MonitorForm));
+export default withPageFilters(withProjects(MonitorForm));

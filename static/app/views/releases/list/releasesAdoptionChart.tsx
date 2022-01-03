@@ -30,13 +30,13 @@ import {
   getParams,
   parseStatsPeriod,
   StatsPeriodType,
-} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+} from 'sentry/components/organizations/pageFilters/getParams';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, SessionApiResponse} from 'sentry/types';
+import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
@@ -48,7 +48,7 @@ import {ReleasesDisplayOption} from './releasesDisplayOptions';
 type Props = {
   api: Client;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   activeDisplay: ReleasesDisplayOption;
   location: Location;
   router: InjectedRouter;

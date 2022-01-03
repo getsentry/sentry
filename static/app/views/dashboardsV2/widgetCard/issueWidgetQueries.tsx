@@ -3,9 +3,9 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
-import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import {GlobalSelection, Group, OrganizationSummary} from 'sentry/types';
+import {Group, OrganizationSummary, PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {IssueDisplayOptions, IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -17,7 +17,7 @@ const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 const DEFAULT_COLLAPSE = ['stats', 'filtered', 'lifetime'];
 
-type EndpointParams = Partial<GlobalSelection['datetime']> & {
+type EndpointParams = Partial<PageFilters['datetime']> & {
   project: number[];
   environment: string[];
   query?: string;
@@ -34,7 +34,7 @@ type Props = {
   api: Client;
   organization: OrganizationSummary;
   widget: Widget;
-  selection: GlobalSelection;
+  selection: PageFilters;
   children: (props: {
     loading: boolean;
     errorMessage: undefined | string;
