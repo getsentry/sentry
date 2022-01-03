@@ -540,6 +540,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       selectedWidgets,
       onUpdateWidget,
       onAddLibraryWidget,
+      source,
     } = this.props;
     const state = this.state;
     const errors = state.errors;
@@ -626,6 +627,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             </StyledField>
           </DoubleFieldWrapper>
           {organization.features.includes('issues-in-dashboards') &&
+            source === DashboardWidgetSource.DASHBOARDS &&
             state.displayType === DisplayType.TABLE && (
               <React.Fragment>
                 <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
