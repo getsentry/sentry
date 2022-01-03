@@ -42,16 +42,31 @@ export class JSSelfProfile extends Profile {
       'milliseconds'
     );
 
-    for (let i = 0; i < profile.samples.length; i++) {
-      const stack = resolveJSSelfProfilingStack(
+    // Because JS self profiling takes an initial sample when we call new Profiler(),
+    // it means that the first sample weight will always be zero. We want to append the sample with 0 weight,
+    //  because the 2nd sample may part of the first sample's stack. This way we keep the most information we can of the stack trace
+    jsSelfProfile.appendSample(
+      resolveJSSelfProfilingStack(
         profile,
-        profile.samples[i].stackId,
+        profile.samples[0].stackId,
         frameIndex,
-        profile.samples[i].marker
-      );
+        profile.samples[0].marker
+      ),
+      0
+    );
 
-      const time = profile.samples[i - 1]?.timestamp ?? startedAt;
-      jsSelfProfile.appendSample(stack, profile.samples[i].timestamp - time);
+    // We start at stack 1, because we've already appended stack 0 above. The weight of each sample is the
+    // difference between the current sample and the previous one.
+    for (let i = 1; i < profile.samples.length; i++) {
+      jsSelfProfile.appendSample(
+        resolveJSSelfProfilingStack(
+          profile,
+          profile.samples[i].stackId,
+          frameIndex,
+          profile.samples[i].marker
+        ),
+        profile.samples[i].timestamp - profile.samples[i - 1].timestamp
+      );
     }
 
     return jsSelfProfile.build();
@@ -74,14 +89,17 @@ export class JSSelfProfile extends Profile {
 
       node.addToTotalWeight(weight);
 
-      let start = framesInStack.length - 1;
+      // TODO: This is On^2, because we iterate over all frames in the stack to check if our
+      // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
+      // We check the stack in a top-down order to find the first recursive frame.
+      let stackHeight = framesInStack.length - 1;
 
-      while (start >= 0) {
-        if (framesInStack[start].frame === node.frame) {
+      while (stackHeight >= 0) {
+        if (framesInStack[stackHeight].frame === node.frame) {
           node.setRecursive(node);
           break;
         }
-        start--;
+        stackHeight--;
       }
 
       framesInStack.push(node);
@@ -93,6 +111,9 @@ export class JSSelfProfile extends Profile {
       this.minFrameDuration = Math.min(weight, this.minFrameDuration);
     }
 
+    // Lock the stack node, so we make sure we dont mutate it in the future.
+    // The samples should be ordered by timestamp when processed so we should never
+    // iterate over them again in the future.
     for (const child of node.children) {
       child.lock();
     }
@@ -103,6 +124,7 @@ export class JSSelfProfile extends Profile {
       stackNode.frame.addToTotalWeight(weight);
     }
 
+    // If node is the same as the previous sample, add the weight to the previous sample
     if (node === lastOfArray(this.samples)) {
       this.weights[this.weights.length - 1] += weight;
     } else {

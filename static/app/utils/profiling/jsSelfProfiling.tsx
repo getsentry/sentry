@@ -43,7 +43,7 @@ export function resolveJSSelfProfilingStack(
     throw new Error(`Missing stackId ${stackId} in trace, cannot resolve stack`);
   }
 
-  while (stack) {
+  while (stack !== undefined) {
     // If the frameId pointer cannot be resolved, it means the format is corrupt or partial (possibly due to termination reasons).
     // This should never happen, but in the offchance that it somehow does, it should be handled.
     if (!trace.frames[stack.frameId]) {
@@ -52,7 +52,7 @@ export function resolveJSSelfProfilingStack(
 
     callStack.unshift(frameIndex[stack.frameId]);
 
-    if (stack.parentId) {
+    if (stack.parentId !== undefined) {
       stack = trace.stacks[stack.parentId];
     } else {
       stack = undefined;
