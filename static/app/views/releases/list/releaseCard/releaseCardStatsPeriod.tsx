@@ -4,12 +4,12 @@ import {Location} from 'history';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, HealthStatsPeriodOption} from 'sentry/types';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import {HealthStatsPeriodOption, PageFilters} from 'sentry/types';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 type Props = {
   location: Location;
-  selection: GlobalSelection;
+  selection: PageFilters;
 };
 
 const ReleaseCardStatsPeriod = ({location, selection}: Props) => {
@@ -66,4 +66,4 @@ const Period = styled(Link)<{selected: boolean}>`
   }
 `;
 
-export default withGlobalSelection(ReleaseCardStatsPeriod);
+export default withPageFilters(ReleaseCardStatsPeriod);

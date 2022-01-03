@@ -5,13 +5,13 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
-  GlobalSelection,
   MetricQuery,
   Organization,
+  PageFilters,
   Project,
   SessionApiResponse,
 } from 'sentry/types';
@@ -46,8 +46,8 @@ type Props = {
   api: Client;
   organization: Organization;
   projectId: Project['id'];
-  environments: GlobalSelection['environments'];
-  datetime: GlobalSelection['datetime'];
+  environments: PageFilters['environments'];
+  datetime: PageFilters['datetime'];
   location: Location;
   children: (args: ChildrenArgs) => React.ReactElement;
   groupings: MetricQuery[];

@@ -10,7 +10,7 @@ import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Group, Organization} from 'sentry/types';
+import {Group, Organization, PageFilters} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import withApi from 'sentry/utils/withApi';
 
@@ -22,7 +22,7 @@ type Props = {
   api: Client;
   allResultsVisible: boolean;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   groupIds: string[];
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;

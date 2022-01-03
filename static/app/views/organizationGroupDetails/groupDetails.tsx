@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -548,7 +548,7 @@ class GroupDetails extends React.Component<Props, State> {
 
     return (
       <SentryDocumentTitle noSuffix title={this.getTitle()}>
-        <GlobalSelectionHeader
+        <PageFiltersContainer
           skipLoadLastUsed
           forceProject={project}
           showDateSelector={false}
@@ -558,7 +558,7 @@ class GroupDetails extends React.Component<Props, State> {
           showProjectSettingsLink
         >
           <PageContent>{this.renderPageContent()}</PageContent>
-        </GlobalSelectionHeader>
+        </PageFiltersContainer>
       </SentryDocumentTitle>
     );
   }

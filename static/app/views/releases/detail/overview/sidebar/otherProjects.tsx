@@ -4,7 +4,7 @@ import {Location} from 'history';
 import Button from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import IdBadge from 'sentry/components/idBadge';
-import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';

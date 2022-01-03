@@ -8,7 +8,7 @@ import Alert from 'sentry/components/alert';
 import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -110,7 +110,7 @@ function PageLayout(props: Props) {
         renderDisabled={NoAccess}
       >
         <PerformanceEventViewProvider value={{eventView}}>
-          <GlobalSelectionHeader
+          <PageFiltersContainer
             lockedMessageSubject={t('transaction')}
             shouldForceProject={defined(project)}
             forceProject={project}
@@ -161,7 +161,7 @@ function PageLayout(props: Props) {
                 </Layout.Body>
               </NoProjectMessage>
             </StyledPageContent>
-          </GlobalSelectionHeader>
+          </PageFiltersContainer>
         </PerformanceEventViewProvider>
       </Feature>
     </SentryDocumentTitle>

@@ -16,7 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconWarning} from 'sentry/icons';
-import {GlobalSelection} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
@@ -29,7 +29,7 @@ type Props = {
   location: Location;
   isLoading: boolean;
   errored: boolean;
-  selection: GlobalSelection;
+  selection: PageFilters;
   router: InjectedRouter;
   platform?: PlatformKey;
 };
