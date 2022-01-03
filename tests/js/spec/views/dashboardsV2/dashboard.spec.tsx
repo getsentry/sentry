@@ -48,10 +48,14 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={mock}
+        handleAddLibraryWidgets={mock}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         newWidget={newWidget}
+        widgetLimitReached={false}
+        layout={[]}
+        onLayoutChange={() => undefined}
       />,
       initialData.routerContext
     );
@@ -69,9 +73,13 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={mock}
+        handleAddLibraryWidgets={mock}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
+        widgetLimitReached={false}
+        layout={[]}
+        onLayoutChange={() => undefined}
       />,
       initialData.routerContext
     );
@@ -80,5 +88,27 @@ describe('Dashboards > Dashboard', () => {
     await tick();
     wrapper.update();
     expect(mock).toHaveBeenCalled();
+  });
+
+  it('displays widgets with drag handle when in edit mode', () => {
+    const dashboardWithOneWidget = {...mockDashboard, widgets: [newWidget]};
+    const wrapper = mountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={dashboardWithOneWidget}
+        organization={initialData.organization}
+        onUpdate={() => undefined}
+        onSetWidgetToBeUpdated={() => undefined}
+        handleAddLibraryWidgets={() => undefined}
+        router={initialData.router}
+        location={initialData.location}
+        widgetLimitReached={false}
+        layout={[]}
+        onLayoutChange={() => undefined}
+        isEditing
+      />,
+      initialData.routerContext
+    );
+    expect(wrapper.find('StyledIconGrabbable')).toHaveLength(1);
   });
 });

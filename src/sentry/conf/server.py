@@ -920,7 +920,7 @@ SENTRY_FEATURES = {
     "organizations:filters-and-sampling": False,
     # Enable Dynamic Sampling errors in the org settings
     "organizations:filters-and-sampling-error-rules": False,
-    # Allow organizations to configure built-in symbol sources.
+    # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
@@ -1087,14 +1087,17 @@ SENTRY_FEATURES = {
     "organizations:release-adoption-stage": True,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
-    # Enable the new release details experience
-    "organizations:release-comparison": True,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
+    "organizations:team-insights-v2": False,
+    # Enable login with WebAuthn
+    "organizations:webauthn-login": False,
+    # Enable registering new key with WebAuthn
+    "organizations:webauthn-register": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

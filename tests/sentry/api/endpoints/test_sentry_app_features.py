@@ -26,15 +26,13 @@ class SentryAppFeaturesTest(APITestCase):
         assert response.status_code == 200
 
         assert {
+            "featureId": self.api_feature.feature,
             "description": self.api_feature.description,
             "featureGate": self.api_feature.feature_str(),
-            "targetId": self.sentry_app.id,
-            "targetType": IntegrationTypes.SENTRY_APP.value,
         } in response.data
 
         assert {
+            "featureId": self.issue_link_feature.feature,
             "description": self.issue_link_feature.description,
             "featureGate": self.issue_link_feature.feature_str(),
-            "targetId": self.sentry_app.id,
-            "targetType": IntegrationTypes.SENTRY_APP.value,
         } in response.data

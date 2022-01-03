@@ -1246,13 +1246,23 @@ function buildRoutes() {
           }
           component={SafeLazyLoad}
         />
-        <Route
-          path="spans/"
-          componentPromise={() =>
-            import('sentry/views/performance/transactionSummary/transactionSpans')
-          }
-          component={SafeLazyLoad}
-        />
+        <Route path="spans/">
+          <IndexRoute
+            componentPromise={() =>
+              import('sentry/views/performance/transactionSummary/transactionSpans')
+            }
+            component={SafeLazyLoad}
+          />
+          <Route
+            path=":spanSlug/"
+            componentPromise={() =>
+              import(
+                'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
+              )
+            }
+            component={SafeLazyLoad}
+          />
+        </Route>
       </Route>
       <Route
         path="vitaldetail/"
@@ -1267,11 +1277,6 @@ function buildRoutes() {
       <Route
         path=":eventSlug/"
         componentPromise={() => import('sentry/views/performance/transactionDetails')}
-        component={SafeLazyLoad}
-      />
-      <Route
-        path="compare/:baselineEventSlug/:regressionEventSlug/"
-        componentPromise={() => import('sentry/views/performance/compare')}
         component={SafeLazyLoad}
       />
     </Route>

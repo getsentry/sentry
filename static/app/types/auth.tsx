@@ -82,6 +82,9 @@ export type ChallengeData = {
   authenticateRequests: u2f.SignRequest;
   registerRequests: u2f.RegisterRequest;
   registeredKeys: u2f.RegisteredKey[];
+  // for WebAuthn register
+  webAuthnRegisterData: string;
+  webAuthnAuthenticationData: string;
 };
 
 export type EnrolledAuthenticator = {

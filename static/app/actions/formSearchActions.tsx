@@ -1,3 +1,5 @@
 import Reflux from 'reflux';
 
-export default Reflux.createActions(['loadSearchMap']);
+const FormSearchActions = Reflux.createActions(['loadSearchMap']);
+
+export default FormSearchActions;

@@ -33,7 +33,6 @@ import withApi from 'sentry/utils/withApi';
 import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
-import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -242,7 +241,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     errors: FlatValidationError,
     widgetData: Widget
   ) => {
-    const {closeModal, organization} = this.props;
+    const {closeModal, organization, selection} = this.props;
     const {selectedDashboard, dashboards} = this.state;
     // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
     if (
@@ -279,6 +278,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         interval: widgetData.interval,
         title: widgetData.title,
         ...queryData,
+        // Propagate global header selection
+        ...selection.datetime,
+        project: selection.projects,
+        environment: selection.environments,
       };
 
       trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.confirm', {
@@ -645,13 +648,15 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 error={errors?.queries?.[0]}
                 onChange={widgetQuery => this.handleQueryChange(widgetQuery, 0)}
               />
-              <IssueWidgetCard
+              <WidgetCard
                 organization={organization}
                 selection={querySelection}
                 widget={{...this.state, displayType: DisplayType.TABLE}}
                 isEditing={false}
                 onDelete={() => undefined}
                 onEdit={() => undefined}
+                onDuplicate={() => undefined}
+                widgetLimitReached={false}
                 renderErrorMessage={errorMessage =>
                   typeof errorMessage === 'string' && (
                     <PanelAlert type="error">{errorMessage}</PanelAlert>
@@ -693,6 +698,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 isEditing={false}
                 onDelete={() => undefined}
                 onEdit={() => undefined}
+                onDuplicate={() => undefined}
+                widgetLimitReached={false}
                 renderErrorMessage={errorMessage =>
                   typeof errorMessage === 'string' && (
                     <PanelAlert type="error">{errorMessage}</PanelAlert>

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import Dashboard from 'sentry/views/dashboardsV2/gridLayout/dashboard';
+import Dashboard from 'sentry/views/dashboardsV2/dashboard';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > Dashboard', () => {
@@ -48,12 +48,14 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={mock}
+        handleAddLibraryWidgets={mock}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         newWidget={newWidget}
         layout={[]}
         onLayoutChange={() => undefined}
+        widgetLimitReached={false}
       />,
       initialData.routerContext
     );
@@ -71,11 +73,13 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={mock}
+        handleAddLibraryWidgets={mock}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         layout={[]}
         onLayoutChange={() => undefined}
+        widgetLimitReached={false}
       />,
       initialData.routerContext
     );

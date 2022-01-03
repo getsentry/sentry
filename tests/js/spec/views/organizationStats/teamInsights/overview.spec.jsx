@@ -60,6 +60,38 @@ describe('TeamInsightsOverview', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/sessions/`,
+      body: {
+        start: '2021-10-30T00:00:00Z',
+        end: '2021-12-24T00:00:00Z',
+        query: '',
+        intervals: [],
+        groups: [
+          {
+            by: {project: 1, 'session.status': 'healthy'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'crashed'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'errored'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'abnormal'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
@@ -95,7 +127,7 @@ describe('TeamInsightsOverview', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesReviewed(),
+      body: TestStubs.TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -112,11 +144,21 @@ describe('TeamInsightsOverview', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesReviewed(),
+      body: TestStubs.TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/teams/org-slug/${team2.slug}/release-count/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/teams/org-slug/${team2.slug}/issues/old/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/teams/org-slug/${team2.slug}/unresolved-issue-age/`,
       body: [],
     });
   });
@@ -128,9 +170,13 @@ describe('TeamInsightsOverview', () => {
   function createWrapper() {
     const teams = [team1, team2, team3];
     const projects = [project1, project2];
-    const organization = TestStubs.Organization({teams, projects});
+    const organization = TestStubs.Organization({
+      teams,
+      projects,
+      features: ['team-insights-v2'],
+    });
     const context = TestStubs.routerContext([{organization}]);
-    TeamStore.loadInitialData(teams);
+    TeamStore.loadInitialData(teams, false, null);
 
     return mountWithTheme(
       <OrganizationContext.Provider value={organization}>
@@ -181,7 +227,7 @@ describe('TeamInsightsOverview', () => {
   it('shows users with no teams the join team button', () => {
     createWrapper();
     ProjectsStore.loadInitialData([{...project1, isMember: false}]);
-    TeamStore.loadInitialData([]);
+    TeamStore.loadInitialData([], false, null);
 
     expect(screen.getByText('Join a Team')).toBeInTheDocument();
   });
