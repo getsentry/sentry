@@ -142,7 +142,9 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
           <SelectControl
             value={query.orderby || IssueSortOptions.DATE}
             name="orderby"
-            options={generateIssueWidgetOrderOptions()}
+            options={generateIssueWidgetOrderOptions(
+              organization?.features?.includes('issue-list-trend-sort')
+            )}
             onChange={(option: SelectValue<string>) =>
               this.handleFieldChange('orderby')(option.value)
             }

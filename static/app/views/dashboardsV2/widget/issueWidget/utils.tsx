@@ -34,8 +34,14 @@ const ISSUE_WIDGET_SORT_OPTIONS = [
   IssueSortOptions.USER,
 ];
 
-export function generateIssueWidgetOrderOptions(): SelectValue<string>[] {
-  return ISSUE_WIDGET_SORT_OPTIONS.map(sortOption => ({
+export function generateIssueWidgetOrderOptions(
+  includeRelativeChange: boolean
+): SelectValue<string>[] {
+  const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
+  if (includeRelativeChange) {
+    sortOptions.push(IssueSortOptions.TREND);
+  }
+  return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),
     value: sortOption,
   }));
