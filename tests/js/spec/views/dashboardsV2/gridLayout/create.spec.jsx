@@ -1,13 +1,16 @@
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  mountGlobalModal,
+  mountWithTheme,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboardsV2/create';
 
 describe('Dashboards > Create', function () {
-  enforceActOnUseLegacyStoreHook();
   const organization = TestStubs.Organization({
     features: [
       'dashboards-basic',
@@ -19,7 +22,7 @@ describe('Dashboards > Create', function () {
   });
 
   describe('new dashboards', function () {
-    let wrapper, initialData;
+    let initialData;
 
     const projects = [TestStubs.Project()];
     beforeEach(function () {
@@ -51,9 +54,6 @@ describe('Dashboards > Create', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
-      if (wrapper) {
-        wrapper.unmount();
-      }
     });
 
     it('can create with new widget', async function () {
@@ -65,34 +65,30 @@ describe('Dashboards > Create', function () {
         body: TestStubs.Dashboard([{}], {id: '1', title: 'Custom Errors'}),
       });
       const widgetTitle = 'Widget Title';
-      wrapper = mountWithTheme(
+      mountWithTheme(
         <CreateDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug'}}
           router={initialData.router}
           location={initialData.router.location}
         />,
-        initialData.routerContext
+        {context: initialData.routerContext}
       );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        // Wrap with act because GlobalSelectionHeaderContainer triggers update
+        await tick();
+      });
+      screen.getByTestId('widget-add').click();
 
-      wrapper.find('button[data-test-id="widget-add"]').simulate('click');
-
-      const modal = await mountGlobalModal();
-      await tick();
-      await modal.update();
+      mountGlobalModal();
 
       // Add a custom widget to the dashboard
-      modal.find('CustomButton').simulate('click');
-      await tick();
-      await tick();
-      await modal.update();
-      modal.find('input[name="title"]').type(widgetTitle);
-      modal.find('button[data-test-id="add-widget"]').simulate('click');
+      (await screen.findByText('Custom Widget')).click();
+      userEvent.type(await screen.findByTestId('widget-title-input'), widgetTitle);
+      screen.getByText('Save').click();
 
       // Committing dashboard should complete without throwing error
-      wrapper.find('button[data-test-id="dashboard-commit"]').simulate('click');
+      screen.getByText('Save and Finish').click();
       await tick();
     });
   });
