@@ -455,6 +455,7 @@ function generateGenericPerformanceEventView(
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
   }
+
   return eventView;
 }
 
@@ -684,7 +685,7 @@ function generateFrontendPageloadPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  // event.type and transaction.op are not valid metric tags, so it will be added to the query only
+  // event.type and transaction.op are not valid metric tags, so they will be added to the query only
   // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
@@ -757,7 +758,7 @@ function generateFrontendOtherPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  // event.type and !transaction.op are not valid metric tags, so it will be added to the query only
+  // event.type and !transaction.op are not valid metric tags, so they will be added to the query only
   // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
@@ -859,7 +860,7 @@ export function generatePerformanceVitalDetailView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  // event.type and has are not valid metric tags, so it will be added to the query only
+  // event.type and has are not valid metric tags, so they will be added to the query only
   // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);

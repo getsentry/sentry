@@ -61,6 +61,8 @@ function generateEventView({
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
+  // event.type and transaction.op are not valid metric tags, so they will be added to the query only
+  // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     conditions
       .setFilterValues('event.type', ['transaction'])
