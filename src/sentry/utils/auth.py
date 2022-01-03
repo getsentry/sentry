@@ -206,7 +206,7 @@ def has_completed_sso(request, organization_id) -> bool:
         metrics.incr("sso.session-timed-out")
         return False
 
-    metrics.incr("sso.had-session")
+    metrics.incr("sso.session-verify-success")
 
     return True
 
