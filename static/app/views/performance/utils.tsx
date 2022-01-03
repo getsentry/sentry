@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
-import {Location, LocationDescriptor, Query} from 'history';
+import {Location} from 'history';
 
 import Duration from 'sentry/components/duration';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {
   GlobalSelection,
@@ -218,28 +218,6 @@ export function removeTracingKeysFromSearch(
   });
 
   return currentFilter;
-}
-
-export function getTransactionComparisonUrl({
-  organization,
-  baselineEventSlug,
-  regressionEventSlug,
-  transaction,
-  query,
-}: {
-  organization: OrganizationSummary;
-  baselineEventSlug: string;
-  regressionEventSlug: string;
-  transaction: string;
-  query: Query;
-}): LocationDescriptor {
-  return {
-    pathname: `/organizations/${organization.slug}/performance/compare/${baselineEventSlug}/${regressionEventSlug}/`,
-    query: {
-      ...query,
-      transaction,
-    },
-  };
 }
 
 export function addRoutePerformanceContext(selection: GlobalSelection) {

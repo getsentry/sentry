@@ -13,7 +13,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
   openAddDashboardWidgetModal: jest.fn(),
 }));
 
-function mountModal({initialData}, onApply, closeModal) {
+function mountModal({initialData}, onApply, closeModal, widgets = []) {
   const routerContext = TestStubs.routerContext();
   return mountWithTheme(
     <DashboardWidgetLibraryModal
@@ -21,7 +21,7 @@ function mountModal({initialData}, onApply, closeModal) {
       Footer={stubEl}
       Body={stubEl}
       organization={initialData.organization}
-      dashboard={TestStubs.Dashboard([], {
+      dashboard={TestStubs.Dashboard(widgets, {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
@@ -55,12 +55,14 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     // Checking initial modal states
     container = mountModal({initialData});
 
-    expect(screen.queryByText('All Events')).toBeInTheDocument();
-    expect(screen.queryByText('Total Errors')).toBeInTheDocument();
-    expect(screen.queryByText('Affected Users')).toBeInTheDocument();
-    expect(screen.queryByText('Handled vs. Unhandled')).toBeInTheDocument();
-    expect(screen.queryByText('Errors by Country')).toBeInTheDocument();
-    expect(screen.queryByText('Errors by Browser')).toBeInTheDocument();
+    expect(screen.queryByText('Duration Distribution')).toBeInTheDocument();
+    expect(screen.queryByText('High Throughput Transactions')).toBeInTheDocument();
+    expect(screen.queryByText('LCP by Country')).toBeInTheDocument();
+    expect(screen.queryByText('Miserable Users')).toBeInTheDocument();
+    expect(screen.queryByText('Slow vs Fast Transactions')).toBeInTheDocument();
+    expect(screen.queryByText('Top Issues')).toBeInTheDocument();
+    expect(screen.queryByText('Top Unhandled Error Types')).toBeInTheDocument();
+    expect(screen.queryByText('Users Affected by Errors')).toBeInTheDocument();
 
     expect(
       screen.getByRole('button', {name: 'Widget Library', current: true})
@@ -79,10 +81,20 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     // Checking initial modal states
     const mockApply = jest.fn();
     const closeModal = jest.fn();
-    container = mountModal({initialData}, mockApply, closeModal);
+    container = mountModal({initialData}, mockApply, closeModal, [
+      TestStubs.Widget(
+        [{name: '', orderby: '', conditions: 'event.type:error', fields: ['count()']}],
+        {
+          title: 'Errors',
+          interval: '1d',
+          id: '1',
+          displayType: 'line',
+        }
+      ),
+    ]);
 
     // Select some widgets
-    const allEvents = screen.queryByText('All Events');
+    const allEvents = screen.queryByText('High Throughput Transactions');
     userEvent.click(allEvents);
 
     expect(screen.getByTestId('confirm-widgets')).toBeEnabled();
@@ -90,20 +102,34 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
 
     expect(mockApply).toHaveBeenCalledTimes(1);
     expect(mockApply).toHaveBeenCalledWith([
-      {
-        displayType: 'area',
-        id: undefined,
-        interval: '5m',
-        description: 'Area chart reflecting all error and transaction events.',
+      expect.objectContaining({
+        displayType: 'line',
+        id: '1',
+        interval: '1d',
         queries: [
           {
-            conditions: '!event.type:transaction',
+            conditions: 'event.type:error',
             fields: ['count()'],
             name: '',
             orderby: '',
           },
         ],
-        title: 'All Events',
+        title: 'Errors',
+      }),
+      {
+        displayType: 'top_n',
+        id: undefined,
+        interval: '5m',
+        description: 'Top 5 transactions with the largest volume.',
+        queries: [
+          {
+            conditions: '!event.type:error',
+            fields: ['transaction', 'count()'],
+            name: '',
+            orderby: '-count',
+          },
+        ],
+        title: 'High Throughput Transactions',
         widgetType: 'discover',
       },
     ]);
@@ -132,10 +158,10 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     container = mountModal({initialData}, mockApply, closeModal);
 
     // Select some widgets
-    const allEvents = screen.queryByText('All Events');
+    const allEvents = screen.queryByText('High Throughput Transactions');
     userEvent.click(allEvents);
 
-    const totalErrors = screen.queryByText('Total Errors');
+    const totalErrors = screen.queryByText('Users Affected by Errors');
     userEvent.click(totalErrors);
 
     expect(screen.getByTestId('confirm-widgets')).toBeDisabled();

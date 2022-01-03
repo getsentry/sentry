@@ -1,6 +1,7 @@
 import logging
 
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -38,7 +39,7 @@ class MetricsSerializer(serializers.Serializer):
 class InternalBeaconEndpoint(Endpoint):
     permission_classes = ()
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         serializer = MetricsSerializer(data=request.data)
 
         if not serializer.is_valid():

@@ -1,7 +1,14 @@
+from collections import defaultdict
+from enum import Enum
+from typing import List, Union
+
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
+from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model
+from sentry.db.models.manager import BaseManager
+from sentry.models.integration import DocIntegration
+from sentry.models.sentryapp import SentryApp
 
 
 class Feature:
@@ -68,10 +75,72 @@ class Feature:
         )
 
 
+class IntegrationTypes(Enum):
+    SENTRY_APP = 0
+    DOC_INTEGRATION = 1
+
+
+INTEGRATION_MODELS_BY_TYPE = {
+    IntegrationTypes.SENTRY_APP.value: SentryApp,
+    IntegrationTypes.DOC_INTEGRATION.value: DocIntegration,
+}
+
+
+class IntegrationFeatureManager(BaseManager):
+    def get_by_targets_as_dict(
+        self, targets: List[Union[SentryApp, DocIntegration]], target_type: IntegrationTypes
+    ):
+        """
+        Returns a dict mapping target_id (key) to List[IntegrationFeatures] (value)
+        """
+        features = self.filter(
+            target_type=target_type.value, target_id__in={target.id for target in targets}
+        )
+        features_by_target = defaultdict(set)
+        for feature in features:
+            features_by_target[feature.target_id].add(feature)
+        return features_by_target
+
+    def get_descriptions_as_dict(self, features: List["IntegrationFeature"]):
+        """
+        Returns a dict mapping IntegrationFeature id (key) to description (value)
+        This will do bulk requests for each type of Integration, rather than individual transactions for
+        requested description.
+        """
+        # Create a mapping of {int_type: {int_id: description}}
+        # e.g. {0 : {1 : "ExampleApp1", "2": "ExampleApp2"}}
+        #      (where 0 == IntegrationTypes.SENTRY_APP.value)
+        #      (where 1,2 == SentryApp.id)
+        names_by_id_by_type = defaultdict(dict)
+        for integration_type, model in INTEGRATION_MODELS_BY_TYPE.items():
+            model_ids = {
+                feature.target_id for feature in features if feature.target_type == integration_type
+            }
+            for integration in model.objects.filter(id__in=model_ids):
+                names_by_id_by_type[integration_type][integration.id] = integration.name
+        # Interpret the above mapping to directly map {feature_id: description}
+        return {
+            feature.id: Feature.description(
+                feature.feature, names_by_id_by_type[feature.target_type][feature.target_id]
+            )
+            for feature in features
+        }
+
+
 class IntegrationFeature(Model):
     __include_in_export__ = False
 
-    sentry_app = FlexibleForeignKey("sentry.SentryApp")
+    objects = IntegrationFeatureManager()
+
+    # the id of the sentry_app or doc_integration
+    target_id = BoundedBigIntegerField()
+    target_type = BoundedPositiveIntegerField(
+        default=0,
+        choices=(
+            (IntegrationTypes.SENTRY_APP, "sentry_app"),
+            (IntegrationTypes.DOC_INTEGRATION, "doc_integration"),
+        ),
+    )
     user_description = models.TextField(null=True)
     feature = BoundedPositiveIntegerField(default=0, choices=Feature.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
@@ -79,13 +148,20 @@ class IntegrationFeature(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_integrationfeature"
-        unique_together = (("sentry_app", "feature"),)
+        unique_together = (("target_id", "target_type", "feature"),)
 
     def feature_str(self):
         return Feature.as_str(self.feature)
 
     @property
     def description(self):
+        from sentry.models import DocIntegration, SentryApp
+
         if self.user_description:
             return self.user_description
-        return Feature.description(self.feature, self.sentry_app.name)
+
+        if self.target_type == IntegrationTypes.SENTRY_APP.value:
+            integration = SentryApp.objects.get(id=self.target_id)
+        else:
+            integration = DocIntegration.objects.get(id=self.target_id)
+        return Feature.description(self.feature, integration.name)

@@ -26,18 +26,6 @@ export const experimentList = [
     assignments: [0, 1],
   },
   {
-    key: 'TargetedUpsellModalExperimentV3',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
-  },
-  {
-    key: 'OrgStatsBannerExperiment',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
-  },
-  {
     key: 'ContactSalesOnCheckoutExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
@@ -51,6 +39,12 @@ export const experimentList = [
   },
   {
     key: 'TrialTagsOnCheckoutExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+  {
+    key: 'ViewSampleSandboxExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],

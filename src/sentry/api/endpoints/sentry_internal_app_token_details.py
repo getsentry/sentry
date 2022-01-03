@@ -1,5 +1,6 @@
 from django.http import Http404
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
@@ -10,7 +11,7 @@ from sentry.models import ApiToken
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission,)
 
-    def convert_args(self, request, sentry_app_slug, api_token, *args, **kwargs):
+    def convert_args(self, request: Request, sentry_app_slug, api_token, *args, **kwargs):
         # get the sentry_app from the SentryAppBaseEndpoint class
         (args, kwargs) = super().convert_args(request, sentry_app_slug, *args, **kwargs)
 
@@ -21,7 +22,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 
         return (args, kwargs)
 
-    def delete(self, request, sentry_app, api_token):
+    def delete(self, request: Request, sentry_app, api_token) -> Response:
         # Validate the token is associated with the application
         if api_token.application_id != sentry_app.application_id:
             raise Http404

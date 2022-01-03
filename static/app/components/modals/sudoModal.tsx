@@ -86,7 +86,6 @@ class SudoModal extends React.Component<Props, State> {
     const {superuser} = this.props;
     const {error} = this.state;
     const user = ConfigStore.get('user');
-
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>
@@ -134,7 +133,11 @@ class SudoModal extends React.Component<Props, State> {
             autoFocus
             flexibleControlStateSize
           />
-          <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+          <U2fContainer
+            displayMode="sudo"
+            onTap={this.handleU2fTap}
+            isWebauthnSigninFFEnabled
+          />
         </Form>
       </React.Fragment>
     );

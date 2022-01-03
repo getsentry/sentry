@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
@@ -14,7 +15,7 @@ class CommentSerializer(serializers.Serializer):
 
 
 class CommentDetailsEndpoint(IncidentEndpoint):
-    def convert_args(self, request, activity_id, *args, **kwargs):
+    def convert_args(self, request: Request, activity_id, *args, **kwargs):
         # See GroupNotesDetailsEndpoint:
         #   We explicitly don't allow a request with an ApiKey
         #   since an ApiKey is bound to the Organization, not
@@ -45,7 +46,7 @@ class CommentDetailsEndpoint(IncidentEndpoint):
 class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
     permission_classes = (IncidentPermission,)
 
-    def delete(self, request, organization, incident, activity):
+    def delete(self, request: Request, organization, incident, activity) -> Response:
         """
         Delete a comment
         ````````````````
@@ -59,7 +60,7 @@ class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
 
         return Response(status=204)
 
-    def put(self, request, organization, incident, activity):
+    def put(self, request: Request, organization, incident, activity) -> Response:
         """
         Update an existing comment
         ``````````````````````````

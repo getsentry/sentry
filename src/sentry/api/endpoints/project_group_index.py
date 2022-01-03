@@ -1,5 +1,6 @@
 import functools
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore
@@ -19,6 +20,7 @@ from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
@@ -27,9 +29,17 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectEventPermission,)
 
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(3, 1),
+            RateLimitCategory.USER: RateLimit(3, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(3, 1),
+        }
+    }
+
     @track_slo_response("workflow")
     @rate_limit_endpoint(limit=3, window=1)
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a Project's Issues
         ```````````````````````
@@ -161,7 +171,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         return response
 
     @track_slo_response("workflow")
-    def put(self, request, project):
+    def put(self, request: Request, project) -> Response:
         """
         Bulk Mutate a List of Issues
         ````````````````````````````
@@ -229,7 +239,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         )
 
     @track_slo_response("workflow")
-    def delete(self, request, project):
+    def delete(self, request: Request, project) -> Response:
         """
         Bulk Remove a List of Issues
         ````````````````````````````

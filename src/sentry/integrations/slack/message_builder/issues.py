@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from typing import Any, Callable, Mapping, Sequence
 
 from django.core.cache import cache
@@ -23,11 +22,10 @@ from sentry.models import (
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
-
-from ..utils import build_notification_footer
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 
@@ -276,8 +274,8 @@ def get_title_link(
     if event and link_to_event:
         url = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
 
-    elif issue_details:
-        referrer = re.sub("Notification$", "Slack", notification.__class__.__name__)
+    elif issue_details and notification:
+        referrer = notification.get_referrer(ExternalProviders.SLACK)
         url = group.get_absolute_url(params={"referrer": referrer})
 
     else:
@@ -342,7 +340,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         color = get_color(event_for_tags, self.notification)
         fields = build_tag_fields(event_for_tags, self.tags)
         footer = (
-            build_notification_footer(self.notification, self.recipient)
+            self.notification.build_notification_footer(self.recipient)
             if self.notification and self.recipient
             else build_footer(self.group, project, self.rules)
         )

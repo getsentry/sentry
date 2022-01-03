@@ -1,3 +1,7 @@
+// XXX(epurkhiser): Ensure the LatestContextStore is initialized before we set
+// the active org. Otherwise we will trigger an action that does nothing
+import 'sentry/stores/latestContextStore';
+
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -9,6 +13,7 @@ import TeamActions from 'sentry/actions/teamActions';
 import {Client, ResponseMeta} from 'sentry/api';
 import {Organization, Project, Team} from 'sentry/types';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
 async function fetchOrg(
   api: Client,
@@ -147,10 +152,22 @@ export async function fetchOrganizationDetails(
   };
 
   const loadTeamsAndProjects = async () => {
-    const [[projects], [teams]] = await fetchProjectsAndTeams(slug, isInitialFetch);
+    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(
+      slug,
+      isInitialFetch
+    );
 
     ProjectActions.loadProjects(projects);
-    TeamActions.loadTeams(teams);
+
+    const teamPageLinks = resp?.getResponseHeader('Link');
+    if (teamPageLinks) {
+      const paginationObject = parseLinkHeader(teamPageLinks);
+      const hasMore = paginationObject?.next?.results ?? false;
+      const cursor = paginationObject.next?.cursor;
+      TeamActions.loadTeams(teams, hasMore, cursor);
+    } else {
+      TeamActions.loadTeams(teams);
+    }
   };
 
   return Promise.all([loadOrganization(), loadTeamsAndProjects()]);

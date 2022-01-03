@@ -1,4 +1,5 @@
 from django.http.response import Http404
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -10,7 +11,7 @@ from sentry.plugins.base import plugins
 
 
 class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
 
         """
         List one or more plugin configurations, including a `projectList` for each plugin which contains

@@ -920,7 +920,7 @@ SENTRY_FEATURES = {
     "organizations:filters-and-sampling": False,
     # Enable Dynamic Sampling errors in the org settings
     "organizations:filters-and-sampling-error-rules": False,
-    # Allow organizations to configure built-in symbol sources.
+    # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
@@ -1035,6 +1035,8 @@ SENTRY_FEATURES = {
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
+    # Enable mobile vitals
+    "organizations:performance-mobile-vitals": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
@@ -1042,6 +1044,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enables experimental new-style selection filters to replace the GSH
+    "organizations:selection-filters-v2": False,
     # Enable logging for weekly reports
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
@@ -1083,14 +1087,17 @@ SENTRY_FEATURES = {
     "organizations:release-adoption-stage": True,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
-    # Enable the new release details experience
-    "organizations:release-comparison": True,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
+    "organizations:team-insights-v2": False,
+    # Enable login with WebAuthn
+    "organizations:webauthn-login": False,
+    # Enable registering new key with WebAuthn
+    "organizations:webauthn-register": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1181,6 +1188,9 @@ SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
 
 # sample rate for the relay projectconfig endpoint
 SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
+
+# sample rate for relay's cache invalidation task
+SENTRY_RELAY_TASK_APM_SAMPLING = 0
 
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
@@ -1842,6 +1852,7 @@ SENTRY_DEVSERVICES = {
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
+                "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,

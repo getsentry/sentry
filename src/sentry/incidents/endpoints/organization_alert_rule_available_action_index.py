@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -61,7 +62,7 @@ def build_action_response(
 
 
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Fetches actions that an alert rule can perform for an organization
         """
