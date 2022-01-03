@@ -280,6 +280,9 @@ type Props = {
    */
   style?: React.CSSProperties;
 
+  /**
+   * If true, ignores height value and auto-scales chart to fit container height.
+   */
   autoHeightResize?: boolean;
 };
 
@@ -487,7 +490,6 @@ function BaseChartUnwrapped({
   };
 
   const chartStyles = {
-    // height: getDimensionValue(height),
     height: autoHeightResize ? '100%' : getDimensionValue(height),
     width: getDimensionValue(width),
     ...style,

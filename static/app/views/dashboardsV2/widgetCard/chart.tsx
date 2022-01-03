@@ -219,6 +219,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
             {getDynamicText({
               value: this.chartComponent({
                 series,
+                autoHeightResize: organization.features.includes('dashboard-grid-layout'),
               }),
               fixed: <Placeholder height="200px" testId="skeleton-ui" />,
             })}
@@ -248,9 +249,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
-      autoHeightResize:
-        organization.features.includes('dashboard-grid-layout') &&
-        (widget.id || widget.tempId),
+      autoHeightResize: organization.features.includes('dashboard-grid-layout'),
       grid: {
         left: 4,
         right: 0,
