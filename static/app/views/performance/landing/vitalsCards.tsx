@@ -147,7 +147,7 @@ function GenericCards(props: GenericCardsProps) {
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
-  const globalSelection = eventView.getGlobalSelection();
+  const globalSelection = eventView.getPageFilters();
   const start = globalSelection.datetime.start
     ? getUtcToLocalDateObject(globalSelection.datetime.start)
     : undefined;

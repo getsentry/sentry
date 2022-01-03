@@ -4,6 +4,7 @@ from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery,
 from django.db.models.functions import Coalesce
 from django.utils.timezone import make_aware
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -27,7 +28,7 @@ from .utils import parse_team_params
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Fetches alert rules and legacy rules for an organization
         """
@@ -145,7 +146,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAlertRulePermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Fetches alert rules for an organization
         """
@@ -167,7 +168,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
             default_per_page=25,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create an alert rule
         """

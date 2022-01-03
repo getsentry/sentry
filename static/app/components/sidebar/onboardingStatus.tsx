@@ -116,7 +116,7 @@ function OnboardingStatus({
 const Heading = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.white};
   margin-bottom: ${space(0.25)};
 `;
 

@@ -3,6 +3,8 @@ from functools import reduce
 from urllib.parse import quote
 
 from jwt import ExpiredSignatureError
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.serializers import StreamGroupSerializer, serialize
 from sentry.integrations.atlassian_connect import (
@@ -34,7 +36,7 @@ class JiraIssueHookView(JiraBaseHook):
         )
         return client.set_issue_property(issue_key, group_link_num)
 
-    def get(self, request, issue_key, *args, **kwargs):
+    def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
         with configure_scope() as scope:
             try:
                 integration = get_integration_from_request(request, "jira")

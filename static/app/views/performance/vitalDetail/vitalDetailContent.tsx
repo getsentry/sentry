@@ -12,7 +12,7 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {IconChevron} from 'sentry/icons';
 import {IconFlag} from 'sentry/icons/iconFlag';
@@ -28,6 +28,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
 
 import Breadcrumb from '../breadcrumb';
+import MetricsSearchBar from '../metricsSearchBar';
+import {MetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
 import Table from './table';
@@ -43,8 +45,8 @@ type Props = {
   organization: Organization;
   projects: Project[];
   router: InjectedRouter;
-
   vitalName: WebVital;
+  isMetricsData: boolean;
 };
 
 type State = {
@@ -176,10 +178,55 @@ class VitalDetailContent extends React.Component<Props, State> {
     );
   }
 
+  renderContent(vital: WebVital) {
+    const {isMetricsData, location, organization, eventView} = this.props;
+    const query = decodeScalar(location.query.query, '');
+
+    if (isMetricsData) {
+      return (
+        <React.Fragment>
+          <StyledMetricsSearchBar
+            searchSource="performance_vitals_metrics"
+            orgSlug={organization.slug}
+            projectIds={eventView.project}
+            query={query}
+            onSearch={this.handleSearch}
+          />
+          <div>{'TODO'}</div>
+          <StyledVitalInfo>{'TODO'}</StyledVitalInfo>
+        </React.Fragment>
+      );
+    }
+
+    return (
+      <React.Fragment>
+        <StyledSearchBar
+          searchSource="performance_vitals"
+          organization={organization}
+          projectIds={eventView.project}
+          query={query}
+          fields={eventView.fields}
+          onSearch={this.handleSearch}
+        />
+        <VitalChart
+          organization={organization}
+          query={eventView.query}
+          project={eventView.project}
+          environment={eventView.environment}
+          start={eventView.start}
+          end={eventView.end}
+          statsPeriod={eventView.statsPeriod}
+        />
+        <StyledVitalInfo>
+          <VitalInfo location={location} vital={vital} />
+        </StyledVitalInfo>
+      </React.Fragment>
+    );
+  }
+
   render() {
     const {location, eventView, organization, vitalName, projects} = this.props;
     const {incompatibleAlertNotice} = this.state;
-    const query = decodeScalar(location.query.query, '');
 
     const vital = vitalName || WebVital.LCP;
 
@@ -200,6 +247,7 @@ class VitalDetailContent extends React.Component<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
+              <MetricsSwitch onSwitch={() => this.handleSearch('')} />
               <Feature organization={organization} features={['incidents']}>
                 {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
               </Feature>
@@ -214,27 +262,7 @@ class VitalDetailContent extends React.Component<Props, State> {
           )}
           <Layout.Main fullWidth>
             <StyledDescription>{description}</StyledDescription>
-            <StyledSearchBar
-              searchSource="performance_vitals"
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={this.handleSearch}
-            />
-            <VitalChart
-              organization={organization}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
-              start={eventView.start}
-              end={eventView.end}
-              statsPeriod={eventView.statsPeriod}
-            />
-            <StyledVitalInfo>
-              <VitalInfo location={location} vital={vital} />
-            </StyledVitalInfo>
-
+            {this.renderContent(vital)}
             <Teams provideUserTeams>
               {({teams, initiallyLoaded}) =>
                 initiallyLoaded ? (
@@ -265,6 +293,8 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 }
 
+export default withProjects(VitalDetailContent);
+
 const StyledDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(3)};
@@ -278,4 +308,6 @@ const StyledVitalInfo = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export default withProjects(VitalDetailContent);
+const StyledMetricsSearchBar = styled(MetricsSearchBar)`
+  margin-bottom: ${space(2)};
+`;

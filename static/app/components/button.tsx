@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef as reactForwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -36,22 +36,32 @@ type Props = {
 
   // This is only used with `<ButtonBar>`
   barId?: string;
+  children?: React.ReactNode;
 };
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> & Props;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
-class BaseButton extends React.Component<ButtonProps, {}> {
-  static defaultProps: ButtonProps = {
-    disabled: false,
-    align: 'center',
-  };
-
+function BaseButton({
+  size,
+  to,
+  busy,
+  href,
+  title,
+  icon,
+  children,
+  label,
+  borderless,
+  align = 'center',
+  priority,
+  disabled = false,
+  tooltipProps,
+  onClick,
+  ...buttonProps
+}: Props) {
   // Intercept onClick and propagate
-  handleClick = (e: React.MouseEvent) => {
-    const {disabled, busy, onClick} = this.props;
-
+  function handleClick(e: React.MouseEvent) {
     // Don't allow clicks when disabled or busy
     if (disabled || busy) {
       e.preventDefault();
@@ -64,82 +74,57 @@ class BaseButton extends React.Component<ButtonProps, {}> {
     }
 
     onClick(e);
-  };
-
-  getUrl = <T extends Url>(prop: T): T | undefined =>
-    this.props.disabled ? undefined : prop;
-
-  render() {
-    const {
-      size,
-      to,
-      href,
-      title,
-      icon,
-      children,
-      label,
-      borderless,
-      align,
-      priority,
-      disabled,
-      tooltipProps,
-
-      // destructure from `buttonProps`
-      // not necessary, but just in case someone re-orders props
-      onClick: _onClick,
-      ...buttonProps
-    } = this.props;
-    // For `aria-label`
-    const screenReaderLabel =
-      label || (typeof children === 'string' ? children : undefined);
-
-    // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
-    // Let's use props to determine which to serve up, so we don't have to think about it.
-    // *Note* you must still handle tabindex manually.
-    const button = (
-      <StyledButton
-        aria-label={screenReaderLabel}
-        aria-disabled={disabled}
-        disabled={disabled}
-        to={this.getUrl(to)}
-        href={this.getUrl(href)}
-        size={size}
-        priority={priority}
-        borderless={borderless}
-        {...buttonProps}
-        onClick={this.handleClick}
-        role="button"
-      >
-        <ButtonLabel
-          align={align}
-          size={size}
-          priority={priority}
-          borderless={borderless}
-        >
-          {icon && (
-            <Icon size={size} hasChildren={!!children}>
-              {icon}
-            </Icon>
-          )}
-          {children}
-        </ButtonLabel>
-      </StyledButton>
-    );
-
-    // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
-    if (title) {
-      return (
-        <Tooltip skipWrapper {...tooltipProps} title={title}>
-          {button}
-        </Tooltip>
-      );
-    }
-
-    return button;
   }
+
+  function getUrl<T extends Url>(prop: T): T | undefined {
+    return disabled ? undefined : prop;
+  }
+
+  // For `aria-label`
+  const screenReaderLabel =
+    label || (typeof children === 'string' ? children : undefined);
+
+  // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
+  // Let's use props to determine which to serve up, so we don't have to think about it.
+  // *Note* you must still handle tabindex manually.
+  const button = (
+    <StyledButton
+      aria-label={screenReaderLabel}
+      aria-disabled={disabled}
+      disabled={disabled}
+      to={getUrl(to)}
+      href={getUrl(href)}
+      size={size}
+      priority={priority}
+      borderless={borderless}
+      {...buttonProps}
+      onClick={handleClick}
+      role="button"
+    >
+      <ButtonLabel align={align} size={size} priority={priority} borderless={borderless}>
+        {icon && (
+          <Icon size={size} hasChildren={!!children}>
+            {icon}
+          </Icon>
+        )}
+        {children}
+      </ButtonLabel>
+    </StyledButton>
+  );
+
+  // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
+  if (title) {
+    return (
+      <Tooltip skipWrapper {...tooltipProps} title={title}>
+        {button}
+      </Tooltip>
+    );
+  }
+
+  return button;
 }
 
-const Button = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
+const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
   <BaseButton forwardRef={ref} {...props} />
 ));
 
@@ -219,7 +204,7 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
 };
 
 const StyledButton = styled(
-  React.forwardRef<any, ButtonProps>(
+  reactForwardRef<any, ButtonProps>(
     (
       {forwardRef, size: _size, external, to, href, disabled, ...otherProps}: Props,
       forwardRefAlt
@@ -307,6 +292,7 @@ const ButtonLabel = styled('span', {
     typeof prop === 'string' && isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
 })<ButtonLabelProps>`
   display: grid;
+  height: 100%;
   grid-auto-flow: column;
   align-items: center;
   justify-content: ${p => p.align};

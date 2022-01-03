@@ -21,8 +21,12 @@ def map_value_to_constant(constant, value):
     return getattr(constant, value)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class OrganizationMonitorsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Retrieve monitors for an organization
         `````````````````````````````````````
@@ -81,7 +85,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Create a monitor
         ````````````````

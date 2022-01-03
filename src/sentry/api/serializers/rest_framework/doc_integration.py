@@ -6,6 +6,7 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
+from sentry.api.fields.avatar import AvatarField
 from sentry.api.serializers.rest_framework.sentry_app import URLField
 from sentry.api.validators.doc_integration import validate_metadata_schema
 from sentry.models.integration import DocIntegration
@@ -58,7 +59,7 @@ class DocIntegrationSerializer(Serializer):
 
     def create(self, validated_data: MutableMapping[str, Any]) -> DocIntegration:
         slug = self._generate_slug(validated_data["name"])
-        features = validated_data.pop("features")
+        features = validated_data.pop("features") if validated_data.get("features") else []
         with transaction.atomic():
             doc_integration = DocIntegration.objects.create(slug=slug, **validated_data)
             IntegrationFeature.objects.bulk_create(
@@ -76,22 +77,40 @@ class DocIntegrationSerializer(Serializer):
     def update(
         self, doc_integration: DocIntegration, validated_data: MutableMapping[str, Any]
     ) -> DocIntegration:
-        features = validated_data.pop("features")
-        # Delete any unused features
-        unused_features = IntegrationFeature.objects.filter(
-            target_id=doc_integration.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
-        ).exclude(feature__in=features)
-        for unused_feature in unused_features:
-            unused_feature.delete()
-        # Create any new features
-        for feature in features:
-            IntegrationFeature.objects.get_or_create(
-                target_id=doc_integration.id,
-                target_type=IntegrationTypes.DOC_INTEGRATION.value,
-                feature=feature,
-            )
+        if validated_data.get("features"):
+            features = validated_data.pop("features")
+            # Delete any unused features
+            unused_features = IntegrationFeature.objects.filter(
+                target_id=doc_integration.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+            ).exclude(feature__in=features)
+            for unused_feature in unused_features:
+                unused_feature.delete()
+            # Create any new features
+            for feature in features:
+                IntegrationFeature.objects.get_or_create(
+                    target_id=doc_integration.id,
+                    target_type=IntegrationTypes.DOC_INTEGRATION.value,
+                    feature=feature,
+                )
+        # If we're publishing...
+        if not validated_data.get("is_draft", True):
+            if not doc_integration.avatar.exists():
+                raise serializers.ValidationError({"avatar": "A logo is required for publishing."})
         # Update the DocIntegration
         for key, value in validated_data.items():
             setattr(doc_integration, key, value)
         doc_integration.save()
         return doc_integration
+
+
+class DocIntegrationAvatarSerializer(Serializer):
+    avatar_photo = AvatarField(required=True)
+    avatar_type = serializers.ChoiceField(choices=(("upload", "upload")))
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        if not attrs.get("avatar_photo"):
+            raise serializers.ValidationError({"avatar_photo": "A logo is required."})
+
+        return attrs

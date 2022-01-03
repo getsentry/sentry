@@ -1,5 +1,8 @@
 import logging
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from .generic_webhook import VercelGenericWebhookEndpoint, verify_signature
 
 logger = logging.getLogger("sentry.integrations.vercel.webhooks")
@@ -14,7 +17,7 @@ class VercelWebhookEndpoint(VercelGenericWebhookEndpoint):
 
     """
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         if not request.META.get("HTTP_X_ZEIT_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
             return self.respond(status=401)
