@@ -333,7 +333,7 @@ class DashboardDetail extends Component<Props, State> {
       i: constructGridItemKey(newWidgets[index]),
     }));
     saveDashboardLayout(organizationId, dashboardId, newLayout);
-    this.setState({layout: newLayout, modifiedDashboard: null});
+    this.setState({layout: newLayout});
   };
 
   onCommit = () => {
@@ -360,7 +360,6 @@ class DashboardDetail extends Component<Props, State> {
               });
               this.setState({
                 dashboardState: DashboardState.VIEW,
-                modifiedDashboard: null,
               });
 
               // redirect to new dashboard
