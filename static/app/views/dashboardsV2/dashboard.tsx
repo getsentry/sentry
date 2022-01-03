@@ -72,6 +72,7 @@ type Props = {
   layout: Layout[];
   onLayoutChange: (layout: Layout[]) => void;
   paramDashboardId?: string;
+  paramTemplateId?: string;
   newWidget?: Widget;
 };
 

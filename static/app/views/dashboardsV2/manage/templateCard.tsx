@@ -11,9 +11,10 @@ import space from 'sentry/styles/space';
 type Props = {
   title: string;
   widgetCount: number;
+  onPreview: () => void;
 };
 
-function TemplateCard({title, widgetCount}: Props) {
+function TemplateCard({title, widgetCount, onPreview}: Props) {
   return (
     <StyledCard>
       <Header>
@@ -24,7 +25,9 @@ function TemplateCard({title, widgetCount}: Props) {
         </CardText>
       </Header>
       <ButtonContainer>
-        <StyledButton priority="default">{t('Preview')}</StyledButton>
+        <StyledButton priority="default" onClick={onPreview}>
+          {t('Preview')}
+        </StyledButton>
         <StyledButton priority="primary" icon={<IconAdd size="xs" isCircled />}>
           {t('Add Dashboard')}
         </StyledButton>

@@ -28,7 +28,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import Dashboard, {assignTempId, constructGridItemKey} from './dashboard';
-import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
+import {DEFAULT_STATS_PERIOD} from './data';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
@@ -124,7 +124,6 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboard} = this.props;
     switch (dashboardState) {
       case DashboardState.CREATE:
-        return cloneDashboard(EMPTY_DASHBOARD);
       case DashboardState.EDIT:
         return cloneDashboard(dashboard);
       default: {
