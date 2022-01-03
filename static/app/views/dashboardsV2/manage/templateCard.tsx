@@ -12,9 +12,10 @@ type Props = {
   title: string;
   widgetCount: number;
   onPreview: () => void;
+  onAdd: () => void;
 };
 
-function TemplateCard({title, widgetCount, onPreview}: Props) {
+function TemplateCard({title, widgetCount, onPreview, onAdd}: Props) {
   return (
     <StyledCard>
       <Header>
@@ -28,7 +29,11 @@ function TemplateCard({title, widgetCount, onPreview}: Props) {
         <StyledButton priority="default" onClick={onPreview}>
           {t('Preview')}
         </StyledButton>
-        <StyledButton priority="primary" icon={<IconAdd size="xs" isCircled />}>
+        <StyledButton
+          priority="primary"
+          onClick={onAdd}
+          icon={<IconAdd size="xs" isCircled />}
+        >
           {t('Add Dashboard')}
         </StyledButton>
       </ButtonContainer>

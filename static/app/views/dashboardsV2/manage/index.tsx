@@ -2,6 +2,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
@@ -24,7 +25,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import {DASHBOARDS_TEMPLATES} from '../data';
-import {DashboardListItem} from '../types';
+import {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
 import TemplateCard from './templateCard';
@@ -146,6 +147,7 @@ class ManageDashboards extends AsyncView<Props, State> {
               title={dashboard.title}
               widgetCount={dashboard.widgets.length}
               onPreview={() => this.onPreview(dashboard.id)}
+              onAdd={() => this.onAdd(dashboard)}
               key={dashboard.title}
             />
           ))}
@@ -218,6 +220,13 @@ class ManageDashboards extends AsyncView<Props, State> {
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
       query: location.query,
     });
+  }
+
+  onAdd(dashboard: DashboardDetails) {
+    const {organization, api} = this.props;
+    createDashboard(api, organization.slug, dashboard, true).then(() =>
+      this.onDashboardsChange()
+    );
   }
 
   onPreview(dashboardId: string) {
