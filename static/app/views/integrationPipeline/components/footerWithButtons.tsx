@@ -16,8 +16,11 @@ export default function FooterWithButtons({
   formProps,
   ...rest
 }: Props) {
-  // Since this is form we submit with, we may need to pass a hidden replica of the form inputs
-  // so we can submit those
+  /**
+   * We use a form post here to replicate what we do with standard HTML views for the integration pipeline.
+   * Since this is a form post, we need to pass a hidden replica of the form inputs
+   * so we can submit this form instead of the one collecting the user inputs.
+   */
   return (
     <Footer data-test-id="aws-lambda-footer-form" {...formProps}>
       {formFields?.map(field => {
