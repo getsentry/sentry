@@ -168,7 +168,7 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  renderIssueChart() {
+  renderIssueChart = () => {
     const {widget, api, organization, selection, renderErrorMessage} = this.props;
     return (
       <IssueWidgetQueries
@@ -191,9 +191,9 @@ class WidgetCard extends React.Component<Props> {
         }}
       </IssueWidgetQueries>
     );
-  }
+  };
 
-  renderDiscoverChart() {
+  renderDiscoverChart = () => {
     const {widget, api, organization, selection, renderErrorMessage, location, router} =
       this.props;
     return (
@@ -226,15 +226,16 @@ class WidgetCard extends React.Component<Props> {
         }}
       </WidgetQueries>
     );
-  }
+  };
 
   renderChart() {
     const {widget} = this.props;
 
+    let renderer = this.renderDiscoverChart;
     if (widget.widgetType === WidgetType.ISSUE) {
-      return this.renderIssueChart();
+      renderer = this.renderIssueChart;
     }
-    return this.renderDiscoverChart();
+    return <WidgetContent>{renderer()}</WidgetContent>;
   }
 
   render() {
@@ -334,6 +335,10 @@ const WidgetHeader = styled('div')`
   width: 100%;
   display: flex;
   justify-content: space-between;
+`;
+
+const WidgetContent = styled('div')`
+  flex: 1;
 `;
 
 const StyledTransparentLoadingMask = styled(props => (

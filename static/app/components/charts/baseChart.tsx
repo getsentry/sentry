@@ -279,6 +279,8 @@ type Props = {
    * Inline styles
    */
   style?: React.CSSProperties;
+
+  autoHeightResize?: boolean;
 };
 
 function BaseChartUnwrapped({
@@ -322,6 +324,7 @@ function BaseChartUnwrapped({
   yAxis = {},
   xAxis = {},
 
+  autoHeightResize = false,
   height = 200,
   width = 'auto',
   renderer = 'svg',
@@ -484,7 +487,8 @@ function BaseChartUnwrapped({
   };
 
   const chartStyles = {
-    height: getDimensionValue(height),
+    // height: getDimensionValue(height),
+    height: autoHeightResize ? '100%' : getDimensionValue(height),
     width: getDimensionValue(width),
     ...style,
   };
@@ -525,7 +529,12 @@ function BaseChartUnwrapped({
         onChartReady={onChartReady}
         onEvents={eventsMap}
         style={chartStyles}
-        opts={{height, width, renderer, devicePixelRatio}}
+        opts={{
+          height: autoHeightResize ? 'auto' : height,
+          width,
+          renderer,
+          devicePixelRatio,
+        }}
         option={chartOption}
       />
     </ChartContainer>
@@ -535,6 +544,8 @@ function BaseChartUnwrapped({
 // Contains styling for chart elements as we can't easily style those
 // elements directly
 const ChartContainer = styled('div')`
+  height: 100%;
+
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-date {

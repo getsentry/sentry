@@ -164,8 +164,15 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
   }
 
   render() {
-    const {theme, tableResults, timeseriesResults, errorMessage, loading, widget} =
-      this.props;
+    const {
+      theme,
+      tableResults,
+      timeseriesResults,
+      errorMessage,
+      loading,
+      widget,
+      organization,
+    } = this.props;
 
     if (widget.displayType === 'table') {
       return (
@@ -241,6 +248,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
+      autoHeightResize:
+        organization.features.includes('dashboard-grid-layout') &&
+        (widget.id || widget.tempId),
       grid: {
         left: 4,
         right: 0,
@@ -346,6 +356,7 @@ const BigNumber = styled('div')`
 `;
 
 const ChartWrapper = styled('div')`
+  height: 100%;
   padding: 0 ${space(3)} ${space(3)};
 `;
 
