@@ -40,7 +40,6 @@ describe('Dashboards > Dashboard', () => {
     });
   });
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
-    const mock = jest.fn();
     const mockHandleAddCustomWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
@@ -48,8 +47,8 @@ describe('Dashboards > Dashboard', () => {
         dashboard={mockDashboard}
         organization={initialData.organization}
         isEditing={false}
-        onUpdate={mock}
-        handleAddLibraryWidgets={mock}
+        onUpdate={() => undefined}
+        handleAddLibraryWidgets={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
@@ -67,7 +66,6 @@ describe('Dashboards > Dashboard', () => {
   });
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
-    const mock = jest.fn();
     const mockHandleAddCustomWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
@@ -75,8 +73,8 @@ describe('Dashboards > Dashboard', () => {
         dashboard={mockDashboard}
         organization={initialData.organization}
         isEditing={false}
-        onUpdate={mock}
-        handleAddLibraryWidgets={mock}
+        onUpdate={() => undefined}
+        handleAddLibraryWidgets={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
