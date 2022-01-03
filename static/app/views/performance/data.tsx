@@ -450,6 +450,8 @@ function generateGenericPerformanceEventView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  // event.type is not a valid metric tag, so it will be added to the query only
+  // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
   }
@@ -519,9 +521,13 @@ function generateBackendPerformanceEventView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
+  // event.type is not a valid metric tag, so it will be added to the query only
+  // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
   }
+
   return eventView;
 }
 
@@ -606,9 +612,13 @@ function generateMobilePerformanceEventView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
+  // event.type is not a valid metric tag, so it will be added to the query only
+  // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
   }
+
   return eventView;
 }
 
@@ -674,6 +684,8 @@ function generateFrontendPageloadPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
+  // event.type and transaction.op are not valid metric tags, so it will be added to the query only
+  // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
     eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
@@ -744,6 +756,9 @@ function generateFrontendOtherPerformanceEventView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
+  // event.type and !transaction.op are not valid metric tags, so it will be added to the query only
+  // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
@@ -843,6 +858,9 @@ export function generatePerformanceVitalDetailView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
+  // event.type and has are not valid metric tags, so it will be added to the query only
+  // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
     eventView.additionalConditions.addFilterValues('has', [vitalName]);

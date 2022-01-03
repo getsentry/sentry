@@ -120,15 +120,23 @@ export function parseSpanSlug(spanSlug: string | undefined): SpanSlug | undefine
   return {op, group};
 }
 
-export function generateSpansEventView(
-  location: Location,
-  transactionName: string
-): EventView {
+export function generateSpansEventView({
+  location,
+  transactionName,
+  isMetricsData,
+}: {
+  location: Location;
+  transactionName: string;
+  isMetricsData: boolean;
+}): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-  conditions
-    .setFilterValues('event.type', ['transaction'])
-    .setFilterValues('transaction', [transactionName]);
+
+  if (!isMetricsData) {
+    conditions.setFilterValues('event.type', ['transaction']);
+  }
+
+  conditions.setFilterValues('transaction', [transactionName]);
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
