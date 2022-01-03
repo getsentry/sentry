@@ -179,23 +179,27 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           `)}
         </TextBlock>
 
-        <PermissionAlert />
+        {organization.features.includes('symbol-sources') && (
+          <Fragment>
+            <PermissionAlert />
 
-        <Sources
-          api={this.api}
-          location={location}
-          router={router}
-          projSlug={project.slug}
-          organization={organization}
-          customRepositories={
-            (project.symbolSources
-              ? JSON.parse(project.symbolSources)
-              : []) as CustomRepo[]
-          }
-          builtinSymbolSources={project.builtinSymbolSources ?? []}
-          builtinSymbolSourceOptions={builtinSymbolSources ?? []}
-          isLoading={loading}
-        />
+            <Sources
+              api={this.api}
+              location={location}
+              router={router}
+              projSlug={project.slug}
+              organization={organization}
+              customRepositories={
+                (project.symbolSources
+                  ? JSON.parse(project.symbolSources)
+                  : []) as CustomRepo[]
+              }
+              builtinSymbolSources={project.builtinSymbolSources ?? []}
+              builtinSymbolSourceOptions={builtinSymbolSources ?? []}
+              isLoading={loading}
+            />
+          </Fragment>
+        )}
 
         <Wrapper>
           <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
