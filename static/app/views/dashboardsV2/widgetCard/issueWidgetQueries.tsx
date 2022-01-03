@@ -126,7 +126,7 @@ class WidgetQueries extends React.Component<Props, State> {
       project: selection.projects,
       environment: selection.environments,
       query: query.conditions,
-      sort: DEFAULT_SORT,
+      sort: query.orderby || DEFAULT_SORT,
       display: DEFAULT_DISPLAY,
       collapse: DEFAULT_COLLAPSE,
     };
