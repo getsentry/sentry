@@ -1,11 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountGlobalModal,
-  mountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {mountGlobalModal} from 'sentry-test/modal';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboardsV2/create';
@@ -27,7 +22,12 @@ describe('Dashboards > Create', function () {
     const projects = [TestStubs.Project()];
     beforeEach(function () {
       act(() => ProjectsStore.loadInitialData(projects));
-      initialData = initializeOrg({organization});
+      initialData = initializeOrg({
+        organization,
+        project: undefined,
+        projects: [],
+        router: {},
+      });
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
@@ -39,6 +39,7 @@ describe('Dashboards > Create', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
+        // @ts-ignore
         body: [TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'})],
       });
       MockApiClient.addMockResponse({
@@ -62,6 +63,7 @@ describe('Dashboards > Create', function () {
         method: 'POST',
         // Dashboard detail requires the number of widgets returned to match
         // the number of layouts, which is 1 in this case
+        // @ts-ignore
         body: TestStubs.Dashboard([{}], {id: '1', title: 'Custom Errors'}),
       });
       const widgetTitle = 'Widget Title';
@@ -71,6 +73,7 @@ describe('Dashboards > Create', function () {
           params={{orgId: 'org-slug'}}
           router={initialData.router}
           location={initialData.router.location}
+          {...initialData.router}
         />,
         {context: initialData.routerContext}
       );
