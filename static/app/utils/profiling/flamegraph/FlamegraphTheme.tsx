@@ -1,4 +1,4 @@
-import {fromLumaChromaHue, makeColorMap, triangle} from './../colors/utils';
+import {makeColorBucketTheme, makeColorMap} from './../colors/utils';
 import {Frame} from './../frame';
 
 const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',
@@ -71,7 +71,7 @@ export interface FlamegraphTheme {
     COLOR_MAP: (
       frames: ReadonlyArray<Frame>,
       colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
-      sortByKey?: (frame: Frame) => string
+      sortByKey?: (a: Frame, b: Frame) => number
     ) => Map<Frame['key'], Color>;
     STACK_TO_COLOR: (
       frames: ReadonlyArray<Frame>,
@@ -100,16 +100,6 @@ export const LCH_DARK = {
   C_d: 0.1,
   L_0: 0.2,
   L_d: 0.1,
-};
-
-export const makeColorBucketTheme = (lch: LCH) => {
-  return (t: number): Color => {
-    const x = triangle(30.0 * t);
-    const H = 360.0 * (0.9 * t);
-    const C = lch.C_0 + lch.C_d * x;
-    const L = lch.L_0 - lch.L_d * x;
-    return fromLumaChromaHue(L, C, H);
-  };
 };
 
 const makeStackToColor = (

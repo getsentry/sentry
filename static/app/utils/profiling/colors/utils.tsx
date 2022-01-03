@@ -1,6 +1,6 @@
 import {Frame} from '../frame';
 
-import {Color, FlamegraphTheme} from './../flamegraph/FlamegraphTheme';
+import {Color, FlamegraphTheme, LCH} from './../flamegraph/FlamegraphTheme';
 
 const uniqueBy = <T,>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array<T> => {
   const cb = typeof predicate === 'function' ? predicate : (o: T) => o[predicate];
@@ -75,19 +75,33 @@ export function defaultFrameSortKey(frame: Frame): string {
   return (frame.file || '') + frame.name;
 }
 
+function defaultFrameSort(a: Frame, b: Frame): number {
+  return defaultFrameSortKey(a) > defaultFrameSortKey(b) ? 1 : -1;
+}
+
+export const makeColorBucketTheme = (lch: LCH) => {
+  return (t: number): Color => {
+    const x = triangle(30.0 * t);
+    const H = 360.0 * (0.9 * t);
+    const C = lch.C_0 + lch.C_d * x;
+    const L = lch.L_0 - lch.L_d * x;
+    return fromLumaChromaHue(L, C, H);
+  };
+};
+
 export const makeColorMap = (
   frames: ReadonlyArray<Frame>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
-  sortByKey: typeof defaultFrameSortKey = defaultFrameSortKey
+  sortBy: (a: Frame, b: Frame) => number = defaultFrameSort
 ): Map<Frame['key'], Color> => {
   const colors = new Map<Frame['key'], Color>();
 
-  const sortedFrames = [...frames].sort((a, b) => (sortByKey(a) > sortByKey(b) ? 1 : -1));
+  const sortedFrames = [...frames].sort(sortBy);
   const length = sortedFrames.length;
 
   for (let i = 0; i < length; i++) {
     colors.set(
-      sortedFrames[i].name + sortedFrames[i].file,
+      sortedFrames[i].name + (sortedFrames[i].file ? sortedFrames[i].file : ''),
       colorBucket(Math.floor((255 * i) / frames.length) / 256, sortedFrames[i])
     );
   }
@@ -95,7 +109,7 @@ export const makeColorMap = (
   return colors;
 };
 
-export const colorMapByRecursion = (
+export const makeColorMapByRecursion = (
   frames: ReadonlyArray<Frame>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<Frame['key'], Color> => {
@@ -110,7 +124,7 @@ export const colorMapByRecursion = (
     const frame = sortedFrames[i];
 
     colors.set(
-      frame.name + frame.file,
+      frame.name + (frame.file ? frame.file : ''),
       colorBucket(Math.floor((255 * i) / sortedFrames.length) / 256, frame)
     );
   }
@@ -118,7 +132,7 @@ export const colorMapByRecursion = (
   return colors;
 };
 
-export const colorMapByImage = (
+export const makeColorMapByImage = (
   frames: ReadonlyArray<Frame>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<Frame['key'], Color> => {
@@ -143,7 +157,7 @@ export const colorMapByImage = (
 
     for (const frame of imageFrames) {
       colors.set(
-        frame.name + frame.file,
+        frame.name + (frame.file ? frame.file : ''),
         colorBucket(Math.floor((255 * i) / sortedFrames.length) / 256, frame)
       );
     }
