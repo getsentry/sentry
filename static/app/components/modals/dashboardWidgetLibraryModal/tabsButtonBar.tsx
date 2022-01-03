@@ -5,6 +5,7 @@ import {
   openAddDashboardWidgetModal,
   openDashboardWidgetLibraryModal,
 } from 'sentry/actionCreators/modal';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -65,7 +66,10 @@ export function TabsButtonBar({
           }
         }}
       >
-        {t('Widget Library')}
+        <div>
+          {t('Widget Library')}
+          <FeatureBadge type="alpha" />
+        </div>
       </LibraryButton>
       <CustomButton
         barId={TAB.Custom}
@@ -94,7 +98,7 @@ export function TabsButtonBar({
 }
 
 const StyledButtonBar = styled(ButtonBar)`
-  display: inline;
+  display: inline-flex;
   margin-bottom: ${space(2)};
 `;
 
@@ -106,4 +110,5 @@ const LibraryButton = styled(Button)`
 const CustomButton = styled(Button)`
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
+  line-height: 17px;
 `;
