@@ -60,6 +60,38 @@ describe('TeamInsightsOverview', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/sessions/`,
+      body: {
+        start: '2021-10-30T00:00:00Z',
+        end: '2021-12-24T00:00:00Z',
+        query: '',
+        intervals: [],
+        groups: [
+          {
+            by: {project: 1, 'session.status': 'healthy'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'crashed'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'errored'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'abnormal'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
@@ -90,6 +122,10 @@ describe('TeamInsightsOverview', () => {
       body: TestStubs.TeamAlertsTriggered(),
     });
     MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/alerts-triggered-index/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
       body: TestStubs.TeamResolutionTime(),
     });
@@ -105,6 +141,10 @@ describe('TeamInsightsOverview', () => {
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered/`,
       body: TestStubs.TeamAlertsTriggered(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,

@@ -281,6 +281,7 @@ function TeamInsightsOverview({location, router}: Props) {
             >
               <TeamAlertsTriggered
                 organization={organization}
+                projects={projects}
                 teamSlug={currentTeam!.slug}
                 period={period}
                 start={start?.toString()}

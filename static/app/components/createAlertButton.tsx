@@ -172,7 +172,7 @@ function IncompatibleQueryAlert({
         </React.Fragment>
       )}
       <StyledCloseButton
-        icon={<IconClose color="yellow300" size="sm" isCircled />}
+        icon={<IconClose size="sm" />}
         aria-label={t('Close')}
         size="zero"
         onClick={onClose}
@@ -438,6 +438,5 @@ const StyledCloseButton = styled(Button)`
   &:hover,
   &:focus {
     background-color: transparent;
-    opacity: 1;
   }
 `;
