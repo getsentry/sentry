@@ -6,6 +6,7 @@ import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -39,6 +40,14 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
 
   return initialData;
 }
+
+const WrappedComponent = ({organization, ...props}) => {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <TransactionSummary organization={organization} {...props} />
+    </OrganizationContext.Provider>
+  );
+};
 
 describe('Performance > TransactionSummary', function () {
   enforceActOnUseLegacyStoreHook();
@@ -265,7 +274,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders basic UI elements', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -308,7 +317,7 @@ describe('Performance > TransactionSummary', function () {
     const initialData = initializeData();
     initialData.organization.features.push('incidents');
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -343,7 +352,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -375,7 +384,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -393,7 +402,7 @@ describe('Performance > TransactionSummary', function () {
   it('triggers a navigation on search', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -424,7 +433,7 @@ describe('Performance > TransactionSummary', function () {
   it('can mark a transaction as key', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -458,7 +467,7 @@ describe('Performance > TransactionSummary', function () {
   it('triggers a navigation on transaction filter', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -492,7 +501,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders pagination buttons', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -527,7 +536,7 @@ describe('Performance > TransactionSummary', function () {
 
     const initialData = initializeData({query: {query: 'tag:value'}});
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -556,7 +565,7 @@ describe('Performance > TransactionSummary', function () {
       query: {query: 'tag:value event.type:transaction'},
     });
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -579,7 +588,7 @@ describe('Performance > TransactionSummary', function () {
       features: ['performance-suspect-spans-view'],
     });
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -595,7 +604,7 @@ describe('Performance > TransactionSummary', function () {
   it('adds search condition on transaction status when clicking on status breakdown', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -622,7 +631,7 @@ describe('Performance > TransactionSummary', function () {
   it('appends tag value to existing query when clicked', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionSummary
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
