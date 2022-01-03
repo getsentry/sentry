@@ -66,6 +66,7 @@ type Props = {
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   handleAddLibraryWidgets: (widgets: Widget[]) => void;
+  handleAddCustomWidget: (widget: Widget) => void;
   layout: Layout[];
   onLayoutChange: (layout: Layout[]) => void;
   paramDashboardId?: string;
@@ -129,11 +130,11 @@ class Dashboard extends Component<Props, State> {
   }
 
   async addNewWidget() {
-    const {api, organization, newWidget} = this.props;
+    const {api, organization, newWidget, handleAddCustomWidget} = this.props;
     if (newWidget) {
       try {
         await validateWidget(api, organization.slug, newWidget);
-        this.handleAddComplete(newWidget);
+        handleAddCustomWidget(newWidget);
       } catch (error) {
         // Don't do anything, widget isn't valid
         addErrorMessage(error);
@@ -147,7 +148,13 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard, selection, handleAddLibraryWidgets} = this.props;
+    const {
+      organization,
+      dashboard,
+      selection,
+      handleAddLibraryWidgets,
+      handleAddCustomWidget,
+    } = this.props;
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
@@ -160,7 +167,7 @@ class Dashboard extends Component<Props, State> {
         organization,
         dashboard,
         selection,
-        onAddWidget: this.handleAddComplete,
+        onAddWidget: handleAddCustomWidget,
         onAddLibraryWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
         source: DashboardWidgetSource.LIBRARY,
       });
@@ -248,6 +255,7 @@ class Dashboard extends Component<Props, State> {
       location,
       paramDashboardId,
       onSetWidgetToBeUpdated,
+      handleAddCustomWidget,
     } = this.props;
 
     if (organization.features.includes('metrics')) {
@@ -279,7 +287,7 @@ class Dashboard extends Component<Props, State> {
       organization,
       widget,
       selection,
-      onAddWidget: this.handleAddComplete,
+      onAddWidget: handleAddCustomWidget,
       onUpdateWidget: this.handleUpdateComplete(widget),
     };
     openAddDashboardWidgetModal({

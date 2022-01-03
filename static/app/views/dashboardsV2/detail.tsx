@@ -548,6 +548,7 @@ class DashboardDetail extends Component<Props, State> {
               onUpdate={this.onUpdateWidget}
               onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
               handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+              handleAddCustomWidget={this.handleAddCustomWidget}
               router={router}
               location={location}
               layout={layout}
@@ -630,6 +631,7 @@ class DashboardDetail extends Component<Props, State> {
                   widgetLimitReached={widgetLimitReached}
                   onUpdate={this.onUpdateWidget}
                   handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+                  handleAddCustomWidget={this.handleAddCustomWidget}
                   onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
                   router={router}
                   location={location}
