@@ -177,7 +177,7 @@ class Dashboard extends Component<Props, State> {
       organization,
       dashboard,
       selection,
-      onAddWidget: this.handleAddComplete,
+      onAddWidget: handleAddCustomWidget,
       source: DashboardWidgetSource.DASHBOARDS,
     });
   };
@@ -201,14 +201,6 @@ class Dashboard extends Component<Props, State> {
         dataSet: DataSet.EVENTS,
       },
     });
-  };
-
-  handleAddComplete = (widget: Widget) => {
-    let newWidget = widget;
-    if (this.props.organization.features.includes('dashboard-grid-layout')) {
-      newWidget = assignTempId(widget);
-    }
-    this.props.onUpdate([...this.props.dashboard.widgets, newWidget]);
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
