@@ -185,7 +185,9 @@ class ReleaseIssues extends Component<Props, State> {
         };
       case IssuesType.RESOLVED:
         return {
-          path: `/organizations/${organization.slug}/releases/${version}/resolved/`,
+          path: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+            version
+          )}/resolved/`,
           queryParams: {...queryParams, query: ''},
         };
       case IssuesType.UNHANDLED:
@@ -224,7 +226,9 @@ class ReleaseIssues extends Component<Props, State> {
   async fetchIssuesCount() {
     const {api, organization, version} = this.props;
     const issueCountEndpoint = this.getIssueCountEndpoint();
-    const resolvedEndpoint = `/organizations/${organization.slug}/releases/${version}/resolved/`;
+    const resolvedEndpoint = `/organizations/${
+      organization.slug
+    }/releases/${encodeURIComponent(version)}/resolved/`;
 
     try {
       await Promise.all([

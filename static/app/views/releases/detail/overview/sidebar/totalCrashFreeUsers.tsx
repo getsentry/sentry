@@ -36,7 +36,9 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
     return [
       [
         'releaseStats',
-        `/projects/${organization.slug}/${projectSlug}/releases/${version}/stats/`,
+        `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
+          version
+        )}/stats/`,
         {
           query: {
             ...getParams(
