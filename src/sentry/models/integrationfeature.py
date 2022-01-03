@@ -87,11 +87,11 @@ class Feature:
         if feature == cls.RELEASE_MANAGEMENT:
             return "Notify Sentry of new releases being deployed in %s." % name
         if feature == cls.VISUALIZATION:
-            return "Visualize Sentry data in %s" % name
+            return "Visualize Sentry data in %s." % name
         if feature == cls.CHAT:
-            return "Get Sentry notifications in %s" & name
+            return "Get Sentry notifications in %s." & name
         if feature == cls.SESSION_REPLAY:
-            return "Link Sentry errors to the session replay in %s " % name
+            return "Link Sentry errors to the session replay in %s." % name
         # default
         return (
             "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)."
