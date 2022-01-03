@@ -1050,7 +1050,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   describe('Issue Widgets', function () {
-    function mountIssueModal({onAddWidget, onUpdateWidget, widget}) {
+    function mountModalWithRtl({onAddWidget, onUpdateWidget, widget, source}) {
       return reactMountWithTheme(
         <AddDashboardWidgetModal
           Header={stubEl}
@@ -1062,13 +1062,14 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           onUpdateWidget={onUpdateWidget}
           widget={widget}
           closeModal={() => void 0}
+          source={source || types.DashboardWidgetSource.DASHBOARDS}
         />
       );
     }
 
     it('sets widgetType to issues', async function () {
       const onAdd = jest.fn(() => {});
-      const wrapper = mountIssueModal({
+      const wrapper = mountModalWithRtl({
         onAddWidget: onAdd,
         onUpdateWidget: () => undefined,
       });
@@ -1094,6 +1095,32 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           widgetType: 'issue',
         })
       );
+      wrapper.unmount();
+    });
+
+    it('does not render the dataset selector', async function () {
+      const wrapper = mountModalWithRtl({
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DISCOVERV2,
+      });
+      await tick();
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Table'));
+      expect(screen.queryByText('Data Set')).not.toBeInTheDocument();
+      wrapper.unmount();
+    });
+
+    it('renders the dataset selector', function () {
+      const wrapper = mountModalWithRtl({
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Table'));
+
+      expect(screen.getByText('Data Set')).toBeInTheDocument();
       wrapper.unmount();
     });
   });
