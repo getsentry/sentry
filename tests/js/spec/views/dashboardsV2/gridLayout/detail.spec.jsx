@@ -126,7 +126,6 @@ describe('Dashboards > Detail', function () {
   describe('custom dashboards', function () {
     let wrapper, initialData, widgets, mockVisit;
 
-    const openLibraryModal = jest.spyOn(modals, 'openDashboardWidgetLibraryModal');
     const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -391,7 +390,12 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
-      expect(openLibraryModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: types.DashboardWidgetSource.LIBRARY,
+        })
+      );
     });
 
     it('hides add widget option', async function () {

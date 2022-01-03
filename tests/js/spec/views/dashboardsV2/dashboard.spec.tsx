@@ -41,6 +41,7 @@ describe('Dashboards > Dashboard', () => {
   });
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mock = jest.fn();
+    const mockHandleAddCustomWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -49,6 +50,7 @@ describe('Dashboards > Dashboard', () => {
         isEditing={false}
         onUpdate={mock}
         handleAddLibraryWidgets={mock}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
@@ -61,11 +63,12 @@ describe('Dashboards > Dashboard', () => {
     );
     await tick();
     wrapper.update();
-    expect(mock).toHaveBeenCalled();
+    expect(mockHandleAddCustomWidget).toHaveBeenCalled();
   });
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mock = jest.fn();
+    const mockHandleAddCustomWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -74,6 +77,7 @@ describe('Dashboards > Dashboard', () => {
         isEditing={false}
         onUpdate={mock}
         handleAddLibraryWidgets={mock}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
@@ -83,11 +87,11 @@ describe('Dashboards > Dashboard', () => {
       />,
       initialData.routerContext
     );
-    expect(mock).not.toHaveBeenCalled();
+    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     wrapper.setProps({newWidget});
     await tick();
     wrapper.update();
-    expect(mock).toHaveBeenCalled();
+    expect(mockHandleAddCustomWidget).toHaveBeenCalled();
   });
 
   it('displays widgets with drag handle when in edit mode', () => {
