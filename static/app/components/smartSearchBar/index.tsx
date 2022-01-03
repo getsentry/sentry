@@ -37,7 +37,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearchType, Tag, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -402,11 +402,8 @@ class SmartSearchBar extends React.Component<Props, State> {
       savedSearchType,
       searchSource,
     } = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'search.searched',
-      eventName: 'Search: Performed search',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('search.searched', {
+      organization,
       query,
       search_type: savedSearchType === 0 ? 'issues' : 'events',
       search_source: searchSource,
@@ -462,6 +459,35 @@ class SmartSearchBar extends React.Component<Props, State> {
 
     this.setState(makeQueryState(query), this.updateAutoCompleteItems);
     callIfFunction(this.props.onChange, evt.target.value, evt);
+  };
+
+  /**
+   * Prevent pasting extra spaces from formatted text
+   */
+  onPaste = (evt: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    // Cancel paste
+    evt.preventDefault();
+
+    // Get text representation of clipboard
+    const text = evt.clipboardData.getData('text/plain').replace('\n', '').trim();
+
+    // Create new query
+    const currentQuery = this.state.query;
+    const cursorPosStart = this.searchInput.current!.selectionStart;
+    const cursorPosEnd = this.searchInput.current!.selectionEnd;
+    const textBefore = currentQuery.substring(0, cursorPosStart);
+    const textAfter = currentQuery.substring(cursorPosEnd, currentQuery.length);
+    const mergedText = `${textBefore}${text}${textAfter}`;
+
+    // Insert text manually
+    this.setState(makeQueryState(mergedText), () => {
+      this.updateAutoCompleteItems();
+      // Update cursor position after updating text
+      const newCursorPosition = cursorPosStart + text.length;
+      this.searchInput.current!.selectionStart = newCursorPosition;
+      this.searchInput.current!.selectionEnd = newCursorPosition;
+    });
+    callIfFunction(this.props.onChange, mergedText, evt);
   };
 
   onInputClick = () => this.updateAutoCompleteItems();
@@ -1179,10 +1205,8 @@ class SmartSearchBar extends React.Component<Props, State> {
     let replaceToken = replaceText;
     if (cursorToken.type === Token.Filter) {
       if (item.type === ItemType.TAG_OPERATOR) {
-        trackAnalyticsEvent({
-          eventKey: 'search.operator_autocompleted',
-          eventName: 'Search: Operator Autocompleted',
-          organization_id: this.props.organization.id,
+        trackAdvancedAnalyticsEvent('search.operator_autocompleted', {
+          organization: this.props.organization,
           query: removeSpace(query),
           search_operator: replaceText,
           search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
@@ -1252,12 +1276,10 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   onAutoComplete = (replaceText: string, item: SearchItem) => {
     if (item.type === ItemType.RECENT_SEARCH) {
-      trackAnalyticsEvent({
-        eventKey: 'search.searched',
-        eventName: 'Search: Performed search',
-        organization_id: this.props.organization.id,
+      trackAdvancedAnalyticsEvent('search.searched', {
+        organization: this.props.organization,
         query: replaceText,
-        source: this.props.savedSearchType === 0 ? 'issues' : 'events',
+        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
         search_source: 'recent_search',
       });
 
@@ -1312,6 +1334,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         onKeyDown={this.onKeyDown}
         onChange={this.onQueryChange}
         onClick={this.onInputClick}
+        onPaste={this.onPaste}
         disabled={disabled}
         maxLength={maxQueryLength}
         spellCheck={false}

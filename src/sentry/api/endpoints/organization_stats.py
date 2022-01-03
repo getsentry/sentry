@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
@@ -9,7 +10,7 @@ from sentry.utils.compat import map
 
 
 class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Retrieve Event Counts for an Organization
         `````````````````````````````````````````

@@ -42,7 +42,7 @@ describe('Performance > VitalDetail', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
-    act(() => void TeamStore.loadInitialData([]));
+    act(() => void TeamStore.loadInitialData([], false, null));
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -186,7 +186,7 @@ describe('Performance > VitalDetail', function () {
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
 
     // It shows the vital card
-    expect(wrapper.find('vitalInfo')).toHaveLength(1);
+    expect(wrapper.find('VitalInfo')).toHaveLength(1);
 
     // It shows a chart
     expect(wrapper.find('VitalChart')).toHaveLength(1);

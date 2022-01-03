@@ -19,6 +19,7 @@ type TestStubFixtures = {
   AuthProviders: OverridableStubList;
   Authenticators: SimpleStub;
   AllAuthenticators: SimpleStub;
+  BuiltInSymbolSources: OverridableStubList;
   BitbucketIntegrationConfig: SimpleStub;
   Broadcast: OverridableStub;
   Commit: OverridableStub;
@@ -109,6 +110,7 @@ type TestStubFixtures = {
   Team: OverridableStub;
   TeamAlertsTriggered: SimpleStub;
   TeamIssuesReviewed: SimpleStub;
+  TeamIssuesBreakdown: SimpleStub;
   TeamResolutionTime: SimpleStub;
   Tombstones: OverridableStubList;
   UpdateSdkAndEnableIntegrationSuggestion: SimpleStub;

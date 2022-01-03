@@ -4,6 +4,7 @@ from django.db.models import Q
 from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -58,7 +59,7 @@ def _scim_member_serializer_with_expansion(organization):
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
-    def _delete_member(self, request, organization, member):
+    def _delete_member(self, request: Request, organization, member):
         audit_data = member.get_audit_log_data()
         if OrganizationMemberDetailsEndpoint.is_only_owner(member):
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
@@ -128,7 +129,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             ),
         ],
     )
-    def get(self, request, organization, member):
+    def get(self, request: Request, organization, member) -> Response:
         """
         Query an individual organization member with a SCIM User GET Request.
         - The `name` object will contain fields `firstName` and `lastName` with the values of `N/A`.
@@ -140,7 +141,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         )
         return Response(context)
 
-    def patch(self, request, organization, member):
+    def patch(self, request: Request, organization, member):
         operations = request.data.get("Operations", [])
         if len(operations) > 100:
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
@@ -158,7 +159,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         )
         return Response(context)
 
-    def delete(self, request, organization, member):
+    def delete(self, request: Request, organization, member) -> Response:
         self._delete_member(request, organization, member)
         return Response(status=204)
 
@@ -166,7 +167,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         # note that SCIM doesn't care about changing results as they're queried
 
         query_params = self.get_query_parameters(request)
@@ -206,7 +207,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             cursor_cls=SCIMCursor,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         serializer = OrganizationMemberSerializer(
             data={
                 "email": request.data.get("userName"),

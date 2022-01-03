@@ -185,7 +185,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ? theme.background
         : theme.textColor,
       backgroundColor: state.isFocused
-        ? theme.focus
+        ? theme.hover
         : state.isSelected
         ? theme.active
         : 'transparent',

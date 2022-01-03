@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from sentry.constants import SentryAppStatus
 from sentry.models import OrganizationMember, SentryApp
-from sentry.models.integrationfeature import IntegrationTypes
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.utils import json
@@ -134,10 +133,9 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "owner": {"id": self.org.id, "slug": self.org.slug},
             "featureData": [
                 {
+                    "featureId": 0,
                     "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
                     "featureGate": "integrations-api",
-                    "targetId": self.published_app.id,
-                    "targetType": IntegrationTypes.SENTRY_APP.value,
                 }
             ],
             "popularity": self.popularity,

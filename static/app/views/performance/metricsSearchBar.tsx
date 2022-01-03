@@ -21,6 +21,7 @@ type Props = Pick<
 > & {
   orgSlug: Organization['slug'];
   projectIds: number[] | readonly number[];
+  className?: string;
 };
 
 function MetricsSearchBar({
@@ -30,6 +31,8 @@ function MetricsSearchBar({
   maxQueryLength,
   searchSource,
   projectIds,
+  className,
+  ...props
 }: Props) {
   const api = useApi();
   const [tags, setTags] = useState<MetricTag[]>([]);
@@ -99,6 +102,8 @@ function MetricsSearchBar({
           onBlur={onBlur}
           maxQueryLength={maxQueryLength}
           searchSource={searchSource}
+          className={className}
+          query={props.query}
           hasRecentSearches
         />
       )}

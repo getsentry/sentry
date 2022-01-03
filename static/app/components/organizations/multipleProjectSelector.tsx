@@ -5,11 +5,12 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import PlatformList from 'sentry/components/platformList';
 import Tooltip from 'sentry/components/tooltip';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {growIn} from 'sentry/styles/animations';
@@ -35,6 +36,12 @@ type Props = WithRouterProps & {
   showProjectSettingsLink?: boolean;
   lockedMessageSubject?: React.ReactNode;
   footerMessage?: React.ReactNode;
+  customDropdownButton?: (config: {
+    getActorProps: GetActorPropsFn;
+    selectedProjects: Project[];
+    isOpen: boolean;
+  }) => React.ReactElement;
+  customLoadingIndicator?: React.ReactNode;
 };
 
 type State = {
@@ -195,6 +202,8 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       forceProject,
       showProjectSettingsLink,
       footerMessage,
+      customDropdownButton,
+      customLoadingIndicator,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -230,13 +239,15 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
         {this.renderProjectName()}
       </StyledHeaderItem>
     ) : !isGlobalSelectionReady ? (
-      <StyledHeaderItem
-        data-test-id="global-header-project-selector-loading"
-        icon={<IconProject />}
-        loading
-      >
-        {t('Loading\u2026')}
-      </StyledHeaderItem>
+      customLoadingIndicator ?? (
+        <StyledHeaderItem
+          data-test-id="global-header-project-selector-loading"
+          icon={<IconProject />}
+          loading
+        >
+          {t('Loading\u2026')}
+        </StyledHeaderItem>
+      )
     ) : (
       <ClassNames>
         {({css}) => (
@@ -271,6 +282,9 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
             )}
           >
             {({getActorProps, selectedProjects, isOpen}) => {
+              if (customDropdownButton) {
+                return customDropdownButton({getActorProps, selectedProjects, isOpen});
+              }
               const hasSelected = !!selectedProjects.length;
               const title = hasSelected
                 ? selectedProjects.map(({slug}) => slug).join(', ')

@@ -413,6 +413,8 @@ class Table extends React.Component<Props, State> {
 
 const UniqueTagCell = styled('div')`
   text-align: right;
+  justify-self: flex-end;
+  flex-grow: 1;
 `;
 
 const GoodTag = styled(Tag)`
