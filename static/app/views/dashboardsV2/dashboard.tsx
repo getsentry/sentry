@@ -15,10 +15,7 @@ import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {
-  openAddDashboardWidgetModal,
-  openDashboardWidgetLibraryModal,
-} from 'sentry/actionCreators/modal';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
@@ -159,10 +156,13 @@ class Dashboard extends Component<Props, State> {
       trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
         organization,
       });
-      openDashboardWidgetLibraryModal({
+      openAddDashboardWidgetModal({
         organization,
         dashboard,
-        onAddWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+        selection,
+        onAddWidget: this.handleAddComplete,
+        onAddLibraryWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+        source: DashboardWidgetSource.LIBRARY,
       });
       return;
     }

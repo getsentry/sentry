@@ -45,6 +45,28 @@ export function TabsButtonBar({
 }: Props) {
   return (
     <StyledButtonBar active={activeTab}>
+      <CustomButton
+        barId={TAB.Custom}
+        onClick={() => {
+          if (activeTab === TAB.Custom) {
+            return;
+          }
+          trackAdvancedAnalyticsEvent('dashboards_views.widget_library.switch_tab', {
+            organization,
+            to: TAB.Custom,
+          });
+          openAddDashboardWidgetModal({
+            organization,
+            dashboard,
+            selectedWidgets,
+            widget: customWidget,
+            source: DashboardWidgetSource.LIBRARY,
+            onAddLibraryWidget: onAddWidget,
+          });
+        }}
+      >
+        {t('Custom Widget')}
+      </CustomButton>
       <LibraryButton
         barId={TAB.Library}
         onClick={() => {
@@ -71,28 +93,6 @@ export function TabsButtonBar({
           <FeatureBadge type="alpha" />
         </div>
       </LibraryButton>
-      <CustomButton
-        barId={TAB.Custom}
-        onClick={() => {
-          if (activeTab === TAB.Custom) {
-            return;
-          }
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_library.switch_tab', {
-            organization,
-            to: TAB.Custom,
-          });
-          openAddDashboardWidgetModal({
-            organization,
-            dashboard,
-            selectedWidgets,
-            widget: customWidget,
-            source: DashboardWidgetSource.LIBRARY,
-            onAddLibraryWidget: onAddWidget,
-          });
-        }}
-      >
-        {t('Custom Widget')}
-      </CustomButton>
     </StyledButtonBar>
   );
 }
@@ -103,12 +103,12 @@ const StyledButtonBar = styled(ButtonBar)`
 `;
 
 const LibraryButton = styled(Button)`
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 `;
 
 const CustomButton = styled(Button)`
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
   line-height: 17px;
 `;
