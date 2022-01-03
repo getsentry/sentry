@@ -8,6 +8,7 @@ import {DateTimeObject} from 'sentry/components/charts/utils';
 import IdBadge from 'sentry/components/idBadge';
 import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
 import PanelTable from 'sentry/components/panels/panelTable';
+import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -109,6 +110,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {projects, period} = this.props;
+    const {loading} = this.state;
     const periodIssues = this.state.periodIssues ?? {};
 
     const projectTotals: Record<
@@ -155,26 +157,30 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
     return (
       <div>
         <ChartWrapper>
-          <BarChart
-            style={{height: 190}}
-            stacked
-            isGroupedByDate
-            useShortDate
-            period="7d"
-            legend={{right: 3, top: 0}}
-            yAxis={{minInterval: 1}}
-            xAxis={barAxisLabel(seriesData.length)}
-            series={[
-              {
-                seriesName: t('Unresolved Issues'),
-                silent: true,
-                data: seriesData,
-              },
-            ]}
-          />
+          {loading && <Placeholder height="200px" />}
+          {!loading && (
+            <BarChart
+              style={{height: 190}}
+              stacked
+              isGroupedByDate
+              useShortDate
+              period="7d"
+              legend={{right: 3, top: 0}}
+              yAxis={{minInterval: 1}}
+              xAxis={barAxisLabel(seriesData.length)}
+              series={[
+                {
+                  seriesName: t('Unresolved Issues'),
+                  silent: true,
+                  data: seriesData,
+                },
+              ]}
+            />
+          )}
         </ChartWrapper>
         <StyledPanelTable
           isEmpty={projects.length === 0}
+          isLoading={loading}
           headers={[
             t('Projects'),
             <RightAligned key="last">
