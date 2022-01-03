@@ -7,6 +7,7 @@ import {
   performanceEventMap,
   PerformanceEventParameters,
 } from './performanceAnalyticsEvents';
+import {searchEventMap, SearchEventParameters} from './searchAnalyticsEvents';
 import {TeamInsightsEventParameters, workflowEventMap} from './workflowAnalyticsEvents';
 
 type EventParameters = GrowthEventParameters &
@@ -14,7 +15,8 @@ type EventParameters = GrowthEventParameters &
   PerformanceEventParameters &
   DashboardsEventParameters &
   DiscoverEventParameters &
-  TeamInsightsEventParameters;
+  TeamInsightsEventParameters &
+  SearchEventParameters;
 
 const allEventMap = {
   ...growthEventMap,
@@ -23,6 +25,7 @@ const allEventMap = {
   ...dashboardsEventMap,
   ...discoverEventMap,
   ...workflowEventMap,
+  ...searchEventMap,
 };
 
 /**

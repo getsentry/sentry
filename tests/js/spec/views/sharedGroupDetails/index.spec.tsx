@@ -5,6 +5,8 @@ import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 describe('SharedGroupDetails', function () {
   const eventEntry = TestStubs.EventEntry();
   const exception = TestStubs.EventStacktraceException().entries[0];
+  const params = {shareId: 'a'};
+  const router = TestStubs.router({params});
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -24,11 +26,18 @@ describe('SharedGroupDetails', function () {
   });
 
   it('renders', function () {
-    const props = {
-      params: {shareId: 'a'},
-    };
+    const {container} = mountWithTheme(
+      <SharedGroupDetails
+        params={params}
+        api={new MockApiClient()}
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={router.location}
+      />
+    );
 
-    const {container} = mountWithTheme(<SharedGroupDetails {...props} />);
     expect(container).toSnapshot();
   });
 });
