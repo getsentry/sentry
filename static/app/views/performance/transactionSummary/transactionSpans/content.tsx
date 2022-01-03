@@ -24,8 +24,13 @@ import {SetStateAction} from '../types';
 import OpsFilter from './opsFilter';
 import {Actions} from './styles';
 import SuspectSpanCard from './suspectSpanCard';
-import {SpanSort, SpanSortOthers, SpanSortPercentiles, SpansTotalValues} from './types';
-import {getSuspectSpanSortFromEventView, getTotalsView, SPAN_SORT_OPTIONS} from './utils';
+import {SpanSort, SpansTotalValues} from './types';
+import {
+  getSuspectSpanSortFromEventView,
+  getTotalsView,
+  SPAN_SORT_OPTIONS,
+  SPAN_SORT_TO_FIELDS,
+} from './utils';
 
 const ANALYTICS_VALUES = {
   spanOp: (organization: Organization, value: string | undefined) =>
@@ -177,46 +182,6 @@ function SpansContent(props: Props) {
     </Layout.Main>
   );
 }
-
-const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
-  [SpanSortOthers.SUM_EXCLUSIVE_TIME]: [
-    'percentileArray(spans_exclusive_time, 0.75)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortOthers.AVG_OCCURRENCE]: [
-    'percentileArray(spans_exclusive_time, 0.75)',
-    'count()',
-    'count_unique(id)',
-    'equation|count()/count_unique(id)',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortOthers.COUNT]: [
-    'percentileArray(spans_exclusive_time, 0.75)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: [
-    'percentileArray(spans_exclusive_time, 0.5)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: [
-    'percentileArray(spans_exclusive_time, 0.75)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: [
-    'percentileArray(spans_exclusive_time, 0.95)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: [
-    'percentileArray(spans_exclusive_time, 0.99)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-};
 
 function getSpansEventView(eventView: EventView, sort: SpanSort): EventView {
   eventView = eventView.clone();
