@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -150,6 +151,8 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
           )}
         </IssuesChartWrapper>
         <StyledPanelTable
+          isEmpty={projects.length === 0}
+          emptyMessage={t('No Projects Assigned To This Team')}
           headers={[
             t('Project'),
             <AlignRight key="forReview">{t('For Review')}</AlignRight>,
@@ -200,6 +203,14 @@ const StyledPanelTable = styled(PanelTable)`
   & > div {
     padding: ${space(1)} ${space(2)};
   }
+
+  ${p =>
+    p.isEmpty &&
+    css`
+      & > div:last-child {
+        padding: 48px ${space(2)};
+      }
+    `}
 `;
 
 const ProjectBadgeContainer = styled('div')`

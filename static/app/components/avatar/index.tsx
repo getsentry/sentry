@@ -1,17 +1,25 @@
 import * as React from 'react';
 
+import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {AvatarProject, AvatarSentryApp, OrganizationSummary, Team} from 'sentry/types';
+import {
+  AvatarProject,
+  AvatarSentryApp,
+  DocIntegration,
+  OrganizationSummary,
+  Team,
+} from 'sentry/types';
 
 type Props = {
   team?: Team;
   organization?: OrganizationSummary;
   project?: AvatarProject;
   sentryApp?: AvatarSentryApp;
+  docIntegration?: DocIntegration;
   /**
    * True if the Avatar is full color, rather than B&W (Used for SentryAppAvatar)
    */
@@ -32,6 +40,7 @@ const Avatar = React.forwardRef(function Avatar(
     sentryApp,
     isColor = true,
     isDefault = false,
+    docIntegration,
     ...props
   }: Props,
   ref: React.Ref<HTMLSpanElement>
@@ -59,6 +68,10 @@ const Avatar = React.forwardRef(function Avatar(
         {...commonProps}
       />
     );
+  }
+
+  if (docIntegration) {
+    return <DocIntegrationAvatar docIntegration={docIntegration} {...commonProps} />;
   }
 
   return <OrganizationAvatar organization={organization} {...commonProps} />;

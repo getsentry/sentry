@@ -666,7 +666,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('disables add library widgets when max widgets reached', async function () {
-      types.MAX_WIDGETS = 1;
+      types.MAX_WIDGETS = 4;
 
       initialData = initializeOrg({
         organization: TestStubs.Organization({
@@ -692,14 +692,80 @@ describe('Dashboards > Detail', function () {
       );
       await tick();
       wrapper.update();
-      types.MAX_WIDGETS = 30;
 
-      // Enter Add Widget mode
+      expect(wrapper.find('WidgetCard')).toHaveLength(3);
+      expect(
+        wrapper.find('Controls Button[data-test-id="add-widget-library"]').props()
+          .disabled
+      ).toEqual(false);
+      expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(true);
+
+      const card = wrapper.find('WidgetCard').first();
+      card.find('DropdownMenu MoreOptions svg').simulate('click');
+
+      card.update();
+      wrapper.update();
+
+      wrapper
+        .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
+        .simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('WidgetCard')).toHaveLength(4);
       expect(
         wrapper.find('Controls Button[data-test-id="add-widget-library"]').props()
           .disabled
       ).toEqual(true);
       expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
+
+      const card2 = wrapper.find('WidgetCard').first();
+      card2.find('DropdownMenu MoreOptions svg').simulate('click');
+
+      card2.update();
+      wrapper.update();
+
+      expect(
+        wrapper
+          .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
+          .props().disabled
+      ).toEqual(true);
+    });
+
+    it('duplicates widgets', async function () {
+      types.MAX_WIDGETS = 30;
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('WidgetCard')).toHaveLength(3);
+
+      const card = wrapper.find('WidgetCard').first();
+      card.find('DropdownMenu MoreOptions svg').simulate('click');
+
+      card.update();
+      wrapper.update();
+
+      wrapper
+        .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
+        .simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('WidgetCard')).toHaveLength(4);
+      const newCard = wrapper.find('WidgetCard').at(1);
+      expect(newCard.props().title).toEqual(card.props().title);
     });
   });
 });

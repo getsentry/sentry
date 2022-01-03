@@ -93,19 +93,14 @@ class MetricsRequest extends React.Component<Props, State> {
   }
 
   baseQueryParams({previousPeriod = false} = {}) {
-    const {
-      project,
-      environment,
-      field,
-      statsPeriod,
-      start,
-      end,
-      query,
-      groupBy,
-      orderBy,
-      limit,
-      interval,
-    } = this.props;
+    const {project, environment, field, query, groupBy, orderBy, limit, interval} =
+      this.props;
+
+    const {start, end, statsPeriod} = getPeriod({
+      period: this.props.statsPeriod,
+      start: this.props.start,
+      end: this.props.end,
+    });
 
     const commonQuery = {
       project,
@@ -123,8 +118,8 @@ class MetricsRequest extends React.Component<Props, State> {
       return {
         ...commonQuery,
         statsPeriod,
-        start: start ?? undefined,
-        end: end ?? undefined,
+        start,
+        end,
       };
     }
 

@@ -1,6 +1,7 @@
 import sys
 import traceback
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.utils.sdk import capture_exception
@@ -24,7 +25,7 @@ PARANOID_GET = (
 class IntegrationEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
-    def handle_exception(self, request, exc):
+    def handle_exception(self, request: Request, exc) -> Response:
         if hasattr(exc, "code") and exc.code == 503:
             sys.stderr.write(traceback.format_exc())
             event_id = capture_exception()

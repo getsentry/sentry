@@ -1,10 +1,14 @@
 import time
+from base64 import b64encode
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import ugettext as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import features, options
 from sentry.app import ratelimiter
+from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.models import Authenticator
 from sentry.utils import auth, json
 from sentry.web.forms.accounts import TwoFactorForm
@@ -18,15 +22,13 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 class TwoFactorAuthView(BaseView):
     auth_required = False
 
-    def _is_webauthn_signin_ff_enabled(self, user, request_user):
+    def _check_can_webauthn_signin(self, user, request_user):
         orgs = user.get_orgs()
-        if any(
+        return any(
             features.has("organizations:webauthn-login", org, actor=request_user) for org in orgs
-        ):
-            return True
-        return False
+        )
 
-    def perform_signin(self, request, user, interface=None):
+    def perform_signin(self, request: Request, user, interface=None):
         assert auth.login(request, user, passed_2fa=True)
         rv = HttpResponseRedirect(auth.get_login_redirect(request))
         if interface is not None:
@@ -40,13 +42,13 @@ class TwoFactorAuthView(BaseView):
                 )
         return rv
 
-    def fail_signin(self, request, user, form):
+    def fail_signin(self, request: Request, user, form):
         # Ladies and gentlemen: the world's shittiest bruteforce
         # prevention.
         time.sleep(2.0)
         form.errors["__all__"] = [_("Invalid confirmation code. Try again.")]
 
-    def negotiate_interface(self, request, interfaces):
+    def negotiate_interface(self, request: Request, interfaces):
         # If there is only one interface, just pick that one.
         if len(interfaces) == 1:
             return interfaces[0]
@@ -107,7 +109,7 @@ class TwoFactorAuthView(BaseView):
             ):
                 return interface
 
-    def handle(self, request):
+    def handle(self, request: Request) -> Response:
         user = auth.get_pending_2fa_user(request)
         if user is None:
             return HttpResponseRedirect(auth.get_login_url())
@@ -132,14 +134,24 @@ class TwoFactorAuthView(BaseView):
                 content_type="text/plain",
                 status=429,
             )
+        # check if webauthn-login feature flag is enabled for frontend
+        webauthn_signin_ff = self._check_can_webauthn_signin(user, request.user)
 
         if request.method == "GET":
-            activation = interface.activate(request)
+            if interface.type == U2fInterface.type:
+                activation = interface.activate(request, webauthn_signin_ff)
+            else:
+                activation = interface.activate(request)
+
             if activation is not None and activation.type == "challenge":
                 challenge = activation.challenge
+
+                if webauthn_signin_ff and interface.type == U2fInterface.type:
+                    activation.challenge = {}
+                    activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
+
         elif "challenge" in request.POST:
             challenge = json.loads(request.POST["challenge"])
-
         form = TwoFactorForm()
 
         # If an OTP response was supplied, we try to make it pass.
@@ -149,9 +161,6 @@ class TwoFactorAuthView(BaseView):
             if used_interface is not None:
                 return self.perform_signin(request, user, used_interface)
             self.fail_signin(request, user, form)
-
-        # check if webauthn-login feature flag is enabled for frontend
-        webauthn_signin_ff = self._is_webauthn_signin_ff_enabled(user, request.user)
 
         #  If a challenge and response exists, validate
         if challenge:

@@ -1,3 +1,7 @@
+/* eslint-env node */
+/* eslint import/no-nodejs-modules:0 */
+import {TextDecoder, TextEncoder} from 'util';
+
 import {InjectedRouter} from 'react-router';
 import {configure} from '@testing-library/react';
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
@@ -12,6 +16,10 @@ import ConfigStore from 'sentry/stores/configStore';
 import TestStubFixtures from '../fixtures/js-stubs/types';
 
 import {loadFixtures} from './sentry-test/loadFixtures';
+
+// needed by cbor-web for webauthn
+window.TextEncoder = TextEncoder;
+window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of

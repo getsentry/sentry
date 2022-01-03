@@ -1,4 +1,6 @@
 from rest_framework import serializers, status
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import integrations
 from sentry.api.bases.project import ProjectEndpoint
@@ -97,7 +99,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     depending on the source code URL
     """
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         serializer = PathMappingSerializer(
             context={"organization_id": project.organization_id},
             data=request.data,

@@ -112,7 +112,7 @@ class VersionHoverCard extends React.Component<Props, State> {
       ),
       body: (
         <div>
-          <div className="row row-flex">
+          <div className="row">
             <div className="col-xs-4">
               <h6>{t('New Issues')}</h6>
               <div className="count-since">{release.newGroups}</div>

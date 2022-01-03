@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -79,6 +80,7 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
+from .endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
 from .endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
 from .endpoints.doc_integrations import DocIntegrationsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
@@ -399,7 +401,11 @@ from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.team_alerts_triggered import TeamAlertsTriggeredEndpoint
+from .endpoints.team_alerts_triggered import (
+    TeamAlertsTriggeredIndexEndpoint,
+    TeamAlertsTriggeredTotalsEndpoint,
+)
+from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
@@ -1543,13 +1549,23 @@ urlpatterns = [
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/alerts-triggered/$",
-                    TeamAlertsTriggeredEndpoint.as_view(),
+                    TeamAlertsTriggeredTotalsEndpoint.as_view(),
                     name="sentry-api-0-team-alerts-triggered",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/alerts-triggered-index/$",
+                    TeamAlertsTriggeredIndexEndpoint.as_view(),
+                    name="sentry-api-0-team-alerts-triggered-index",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issue-breakdown/$",
                     TeamIssueBreakdownEndpoint.as_view(),
                     name="sentry-api-0-team-issue-breakdown",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/all-unresolved-issues/$",
+                    TeamAllUnresolvedIssuesEndpoint.as_view(),
+                    name="sentry-api-0-team-all-unresolved-issues",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",
@@ -2122,6 +2138,17 @@ urlpatterns = [
         r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/$",
         DocIntegrationDetailsEndpoint.as_view(),
         name="sentry-api-0-doc-integration-details",
+    ),
+    url(
+        r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/avatar/$",
+        DocIntegrationAvatarEndpoint.as_view(),
+        name="sentry-api-0-doc-integration-avatar",
+    ),
+    # Integration Features
+    url(
+        r"^integration-features/$",
+        IntegrationFeaturesEndpoint.as_view(),
+        name="sentry-api-0-integration-features",
     ),
     # Grouping configs
     url(
