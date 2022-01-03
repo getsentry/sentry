@@ -26,14 +26,17 @@ export function generateIssueWidgetFieldOptions(
   return fieldOptions;
 }
 
-export function generateIssueWidgetOrderOptions() {
-  const options: SelectValue<string>[] = [];
-  for (const key in IssueSortOptions) {
-    options.push({
-      label: getSortLabel(IssueSortOptions[key]),
-      value: IssueSortOptions[key],
-    });
-  }
+const ISSUE_WIDGET_SORT_OPTIONS = [
+  IssueSortOptions.DATE,
+  IssueSortOptions.NEW,
+  IssueSortOptions.FREQ,
+  IssueSortOptions.PRIORITY,
+  IssueSortOptions.USER,
+];
 
-  return options;
+export function generateIssueWidgetOrderOptions(): SelectValue<string>[] {
+  return ISSUE_WIDGET_SORT_OPTIONS.map(sortOption => ({
+    label: getSortLabel(sortOption),
+    value: sortOption,
+  }));
 }
