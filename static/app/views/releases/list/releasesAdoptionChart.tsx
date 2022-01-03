@@ -84,6 +84,9 @@ class ReleasesAdoptionChart extends Component<Props> {
 
   getReleasesSeries(response: SessionApiResponse | null) {
     const {activeDisplay} = this.props;
+
+    // If there are many releases, display releases with the highest number of sessions
+    // Often this due to many releases with low session counts or not filtering by environment
     let releases: string[] | undefined;
     if (response?.groups && response.groups.length > 50) {
       releases = response!.groups
