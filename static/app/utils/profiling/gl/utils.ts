@@ -12,13 +12,20 @@ export function createShader(
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 0928245583 (feat(profiling): add gl utils and gl-matrix lib)
   if (success) {
     return shader;
   }
 
   gl.deleteShader(shader);
+<<<<<<< HEAD
   throw new Error('Failed to compile shader');
+=======
+  throw new Error('Failed to create shader');
+>>>>>>> 0928245583 (feat(profiling): add gl utils and gl-matrix lib)
 }
 
 export function createProgram(
