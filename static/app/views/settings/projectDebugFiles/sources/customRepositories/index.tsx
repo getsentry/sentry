@@ -8,13 +8,18 @@ import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
 import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MenuItem from 'sentry/components/menuItem';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
+import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
@@ -28,8 +33,15 @@ import {
   getRequestMessages,
 } from './utils';
 
+const SECTION_TITLE = t('Custom Repositories');
+
 const HookedAppStoreConnectItem = HookOrDefault({
   hookName: 'component:disabled-app-store-connect-item',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
+
+const HookedCustomSymbolSources = HookOrDefault({
+  hookName: 'component:disabled-custom-symbol-sources',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
@@ -40,6 +52,7 @@ type Props = {
   customRepositories: CustomRepo[];
   router: InjectedRouter;
   location: Location;
+  isLoading: boolean;
 };
 
 function CustomRepositories({
@@ -49,6 +62,7 @@ function CustomRepositories({
   projSlug,
   router,
   location,
+  isLoading,
 }: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
@@ -193,12 +207,26 @@ function CustomRepositories({
     });
   }
 
-  return (
-    <Panel>
-      <PanelHeader hasButtons>
-        {t('Custom Repositories')}
+  function renderAddRepositoryButton({
+    hasAccess,
+    hasFeature,
+  }: {
+    hasAccess: boolean;
+    hasFeature: boolean;
+  }) {
+    return (
+      <Tooltip
+        title={
+          !hasFeature
+            ? undefined
+            : !hasAccess
+            ? t('You do not have permission to add custom repositories.')
+            : undefined
+        }
+      >
         <DropdownAutoComplete
           alignMenu="right"
+          disabled={!hasAccess || !hasFeature || isLoading}
           onSelect={item => {
             handleAddRepository(item.value);
           }}
@@ -228,26 +256,42 @@ function CustomRepositories({
           })}
         >
           {({isOpen}) => (
-            <Access access={['project:write']}>
-              {({hasAccess}) => (
-                <DropdownButton
-                  isOpen={isOpen}
-                  title={
-                    !hasAccess
-                      ? t('You do not have permission to add custom repositories.')
-                      : undefined
-                  }
-                  disabled={!hasAccess}
-                  size="small"
-                >
-                  {t('Add Repository')}
-                </DropdownButton>
-              )}
-            </Access>
+            <DropdownButton
+              isOpen={isOpen}
+              disabled={!hasAccess || !hasFeature || isLoading}
+              size="small"
+            >
+              {t('Add Repository')}
+            </DropdownButton>
           )}
         </DropdownAutoComplete>
-      </PanelHeader>
-      <PanelBody>
+      </Tooltip>
+    );
+  }
+
+  function renderContent({
+    hasAccess,
+    hasFeature,
+    features,
+  }: {
+    hasAccess: boolean;
+    hasFeature: boolean;
+    features: string[];
+  }) {
+    if (isLoading) {
+      return <LoadingIndicator />;
+    }
+
+    return (
+      <HookedCustomSymbolSources disabled={hasFeature} organization={organization}>
+        {!hasFeature && (
+          <FeatureDisabled
+            features={features}
+            alert={PanelAlert}
+            message={t('This feature is not enabled on your Sentry installation.')}
+            featureName={SECTION_TITLE}
+          />
+        )}
         {!repositories.length ? (
           <EmptyStateWarning>
             <p>{t('No custom repositories configured')}</p>
@@ -264,17 +308,52 @@ function CustomRepositories({
                     }
                   : repository
               }
+              hasFeature={hasFeature}
+              hasAccess={hasAccess}
               onDelete={handleDeleteRepository}
               onEdit={handleEditRepository}
             />
           ))
         )}
-      </PanelBody>
-    </Panel>
+      </HookedCustomSymbolSources>
+    );
+  }
+
+  return (
+    <Feature features={['custom-symbol-sources']} organization={organization}>
+      {({hasFeature, features}) => (
+        <Access access={['project:write']}>
+          {({hasAccess}) => {
+            return (
+              <Content hasFeature={hasFeature}>
+                <PanelHeader hasButtons>
+                  {SECTION_TITLE}
+                  {renderAddRepositoryButton({
+                    hasAccess,
+                    hasFeature,
+                  })}
+                </PanelHeader>
+                <PanelBody>
+                  {renderContent({
+                    hasAccess,
+                    hasFeature,
+                    features,
+                  })}
+                </PanelBody>
+              </Content>
+            );
+          }}
+        </Access>
+      )}
+    </Feature>
   );
 }
 
 export default CustomRepositories;
+
+const Content = styled(Panel)<{hasFeature: boolean}>`
+  ${p => !p.hasFeature && `overflow: hidden;`}
+`;
 
 const StyledMenuItem = styled(MenuItem)`
   color: ${p => p.theme.textColor};

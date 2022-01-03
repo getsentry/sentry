@@ -19,6 +19,7 @@ type TestStubFixtures = {
   AuthProviders: OverridableStubList;
   Authenticators: SimpleStub;
   AllAuthenticators: SimpleStub;
+  BuiltInSymbolSources: OverridableStubList;
   BitbucketIntegrationConfig: SimpleStub;
   Broadcast: OverridableStub;
   Commit: OverridableStub;

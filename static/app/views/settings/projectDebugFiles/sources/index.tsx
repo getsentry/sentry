@@ -18,9 +18,10 @@ type Props = {
   builtinSymbolSources: string[];
   router: InjectedRouter;
   location: Location;
+  isLoading: boolean;
 };
 
-function ExternalSources({
+function Sources({
   api,
   organization,
   customRepositories,
@@ -29,6 +30,7 @@ function ExternalSources({
   projSlug,
   location,
   router,
+  isLoading,
 }: Props) {
   return (
     <Fragment>
@@ -38,6 +40,7 @@ function ExternalSources({
         builtinSymbolSources={builtinSymbolSources}
         builtinSymbolSourceOptions={builtinSymbolSourceOptions}
         projSlug={projSlug}
+        isLoading={isLoading}
       />
       <CustomRepositories
         api={api}
@@ -46,9 +49,10 @@ function ExternalSources({
         organization={organization}
         customRepositories={customRepositories}
         projSlug={projSlug}
+        isLoading={isLoading}
       />
     </Fragment>
   );
 }
 
-export default ExternalSources;
+export default Sources;

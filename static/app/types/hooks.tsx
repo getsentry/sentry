@@ -72,6 +72,12 @@ type DisabledAppStoreConnectItem = {
   children: React.ReactElement;
 };
 
+type DisabledCustomSymbolSources = {
+  organization: Organization;
+  disabled: boolean;
+  children: React.ReactNode;
+};
+
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
@@ -95,6 +101,7 @@ type FirstPartyIntegrationAdditionalCTAProps = {
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;

@@ -14,9 +14,11 @@ type Props = {
   repository: CustomRepo;
   onDelete: (repositoryId: string) => void;
   onEdit: (repositoryId: string) => void;
+  hasFeature: boolean;
+  hasAccess: boolean;
 };
 
-function Repository({repository, onDelete, onEdit}: Props) {
+function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props) {
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const {id, name, type} = repository;
 
@@ -32,6 +34,8 @@ function Repository({repository, onDelete, onEdit}: Props) {
       <CustomRepositoryActions
         repositoryName={name}
         repositoryType={type}
+        hasFeature={hasFeature}
+        hasAccess={hasAccess}
         onDelete={() => onDelete(id)}
         onEdit={() => onEdit(id)}
         showDetails={repository.type === CustomRepoType.APP_STORE_CONNECT}
