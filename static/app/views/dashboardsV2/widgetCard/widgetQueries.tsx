@@ -64,10 +64,11 @@ type RawResult = EventsStats | MultiSeriesEventsStats;
 function transformSeries(stats: EventsStats, seriesName: string): Series {
   return {
     seriesName,
-    data: stats.data.map(([timestamp, counts]) => ({
-      name: timestamp * 1000,
-      value: counts.reduce((acc, {count}) => acc + count, 0),
-    })),
+    data:
+      stats?.data.map(([timestamp, counts]) => ({
+        name: timestamp * 1000,
+        value: counts.reduce((acc, {count}) => acc + count, 0),
+      })) ?? [],
   };
 }
 
