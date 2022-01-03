@@ -175,7 +175,6 @@ describe('Rect', () => {
 
     expect(b.equals(a)).toBe(true);
   });
-
   it('getters return correct values', () => {
     const rect = new Rect(1, 2, 3, 4);
 
