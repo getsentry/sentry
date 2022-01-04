@@ -69,6 +69,7 @@ export function TabsButtonBar({
       </CustomButton>
       <LibraryButton
         barId={TAB.Library}
+        data-test-id="library-tab"
         onClick={() => {
           if (activeTab === TAB.Library) {
             return;
