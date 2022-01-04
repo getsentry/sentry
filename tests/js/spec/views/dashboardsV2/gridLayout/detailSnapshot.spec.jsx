@@ -126,19 +126,56 @@ describe('Dashboards > Detail', function () {
       }
     });
 
+    // it('renders charts with the full height of the widget', async () => {
+    //   jest.spyOn(utils, 'getDashboardLayout').mockReturnValueOnce([
+    //     {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+    //     {i: 'grid-item-2', x: 2, y: 0, w: 2, h: 2},
+    //   ]);
+
+    //   MockApiClient.addMockResponse({
+    //     url: '/organizations/org-slug/dashboards/1/',
+    //     body: TestStubs.Dashboard(
+    //       [
+    //         TestStubs.Widget(
+    //           [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+    //           {
+    //             title: 'Tall Errors',
+    //             interval: '1d',
+    //             id: '1',
+    //           }
+    //         ),
+    //         TestStubs.Widget(
+    //           [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+    //           {
+    //             title: 'Short Errors',
+    //             interval: '1d',
+    //             id: '2',
+    //           }
+    //         ),
+    //       ],
+    //       {id: '1', title: 'Custom Errors'}
+    //     ),
+    //   });
+    //   wrapper = mountWithTheme(
+    //     <ViewEditDashboard
+    //       organization={initialData.organization}
+    //       params={{orgId: 'org-slug', dashboardId: '1'}}
+    //       router={initialData.router}
+    //       location={initialData.router.location}
+    //     />,
+    //     initialData.routerContext
+    //   );
+    //   await tick();
+    //   wrapper.update();
+
+    //   expect(wrapper).toSnapshot();
+    // });
+
     it('renders charts with the full height of the widget', async () => {
       jest.spyOn(utils, 'getDashboardLayout').mockReturnValueOnce([
         {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
         {i: 'grid-item-2', x: 2, y: 0, w: 2, h: 2},
       ]);
-
-      const data = Array(1200)
-        .fill(null)
-        .map(() => [new Date(), [{count: 10}]]);
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: TestStubs.EventsStats({data}),
-      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(
