@@ -16,7 +16,7 @@ import FormSource from 'sentry/components/search/sources/formSource';
 import RouteSource from 'sentry/components/search/sources/routeSource';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
 import {Result} from './sources/types';
@@ -109,10 +109,8 @@ class Search extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   componentDidMount() {
-    trackAnalyticsEvent({
-      eventKey: `${this.props.entryPoint}.open`,
-      eventName: `${this.props.entryPoint} Open`,
-      organization_id: null,
+    trackAdvancedAnalyticsEvent(`${this.props.entryPoint}.open`, {
+      organization: null,
     });
   }
 
@@ -120,14 +118,11 @@ class Search extends React.Component<Props> {
     if (!item) {
       return;
     }
-
-    trackAnalyticsEvent({
-      eventKey: `${this.props.entryPoint}.select`,
-      eventName: `${this.props.entryPoint} Select`,
+    trackAdvancedAnalyticsEvent(`${this.props.entryPoint}.select`, {
       query: state && state.inputValue,
       result_type: item.resultType,
       source_type: item.sourceType,
-      organization_id: null,
+      organization: null,
     });
 
     const {to, action, configUrl} = item;
@@ -167,11 +162,9 @@ class Search extends React.Component<Props> {
     if (!query) {
       return;
     }
-    trackAnalyticsEvent({
-      eventKey: `${this.props.entryPoint}.query`,
-      eventName: `${this.props.entryPoint} Query`,
+    trackAdvancedAnalyticsEvent(`${this.props.entryPoint}.query`, {
       query,
-      organization_id: null,
+      organization: null,
     });
   }, 200);
 
