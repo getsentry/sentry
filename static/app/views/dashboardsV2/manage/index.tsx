@@ -224,6 +224,11 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   onAdd(dashboard: DashboardDetails) {
     const {organization, api} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
+      organization,
+      dashboard_id: dashboard.id,
+    });
+
     createDashboard(api, organization.slug, dashboard, true).then(() =>
       this.onDashboardsChange()
     );
