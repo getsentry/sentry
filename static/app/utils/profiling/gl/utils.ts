@@ -211,24 +211,30 @@ export class Rect {
   }
 
   toMatrix(): mat3 {
+    const {width: w, height: h, x, y} = this;
     // it's easier to display a matrix as a 3x3 array. WebGl matrices are row first and not column first
     // https://webglfundamentals.org/webgl/lessons/webgl-matrix-vs-math.html
     // prettier-ignore
     return mat3.fromValues(
-      this.width, 0, 0,
-      0, this.height, 0,
-      this.x, this.y, 1
+      w, 0, 0,
+      0, h, 0,
+      x, y, 1
     )
   }
 
   hasIntersectionWith(other: Rect): boolean {
     const top = Math.max(this.top, other.top);
     const bottom = Math.max(top, Math.min(this.bottom, other.bottom));
-    if (bottom - top === 0) return false;
+    if (bottom - top === 0) {
+      return false;
+    }
 
     const left = Math.max(this.left, other.left);
     const right = Math.max(left, Math.min(this.right, other.right));
-    if (right - left === 0) return false;
+
+    if (right - left === 0) {
+      return false;
+    }
     return true;
   }
 
@@ -346,10 +352,19 @@ export class Rect {
   }
 
   equals(rect: Rect): boolean {
-    if (this.x !== rect.x) return false;
-    if (this.y !== rect.y) return false;
-    if (this.width !== rect.width) return false;
-    if (this.height !== rect.height) return false;
+    if (this.x !== rect.x) {
+      return false;
+    }
+    if (this.y !== rect.y) {
+      return false;
+    }
+    if (this.width !== rect.width) {
+      return false;
+    }
+    if (this.height !== rect.height) {
+      return false;
+    }
+
     return true;
   }
 
