@@ -18,7 +18,6 @@ from sentry.integrations import (
 from sentry.integrations.serverless import ServerlessMixin
 from sentry.models import OrganizationIntegration, Project, ProjectStatus
 from sentry.pipeline import PipelineView
-from sentry.utils import json
 from sentry.utils.compat import map
 from sentry.utils.sdk import capture_exception
 
@@ -316,9 +315,11 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
 class AwsLambdaListFunctionsPipelineView(PipelineView):
     def dispatch(self, request: Request, pipeline) -> Response:
         if request.method == "POST":
-            # accept form data or json data
-            # form data is needed for tests
-            data = request.POST or json.loads(request.body)
+            raw_data = request.POST
+            data = {}
+            for key, val in raw_data.items():
+                # form posts have string values for booleans and this form only sends booleans
+                data[key] = val == "true"
             pipeline.bind_state("enabled_lambdas", data)
             return pipeline.next_step()
 
