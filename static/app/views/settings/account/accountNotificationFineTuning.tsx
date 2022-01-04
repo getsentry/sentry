@@ -26,7 +26,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const PanelBodyLineItem = styled(PanelBody)`
-  font-size: 1.4rem;
+  font-size: 1rem;
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
