@@ -449,7 +449,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 Condition(Column("org_id"), Op.EQ, org_id),
                 Condition(Column("project_id"), Op.EQ, project_id),
                 Condition(Column(tag_key(org_id, "release")), Op.EQ, tag_value(org_id, release)),
-                Condition(Column("timestamp"), Op.GTE, datetime.min),
+                Condition(
+                    Column("timestamp"), Op.GTE, datetime(2008, 5, 8)
+                ),  # Date of sentry's first commit
                 Condition(Column("timestamp"), Op.LT, datetime.now(pytz.utc)),
             ]
 

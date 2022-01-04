@@ -439,7 +439,7 @@ const generateLevelTheme = (colors: BaseColors) => ({
 });
 
 const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
-  borderRadius: '3px',
+  borderRadius: '4px',
 
   default: {
     color: alias.textColor,
