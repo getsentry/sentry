@@ -12,12 +12,13 @@ export function createShader(
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+
   if (success) {
     return shader;
   }
 
   gl.deleteShader(shader);
-  throw new Error('Failed to create shader');
+  throw new Error('Failed to compile shader');
 }
 
 export function createProgram(
@@ -157,10 +158,7 @@ export function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement): boolean {
 
 export const Transform = {
   betweenRect(from: Rect, to: Rect): Rect {
-    return new Rect(to.x, to.y, from.width, from.height).scaledBy(
-      to.width / from.width,
-      to.height / from.height
-    );
+    return new Rect(to.x, to.y, to.width / from.width, to.height / from.height);
   },
 };
 
@@ -239,8 +237,7 @@ export class Rect {
   }
 
   containsX(vec: vec2): boolean {
-    const x = vec[0];
-    return x >= this.left && x <= this.right;
+    return vec[0] >= this.left && vec[0] <= this.right;
   }
   containsY(vec: vec2): boolean {
     const y = vec[1];
