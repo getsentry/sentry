@@ -38,7 +38,7 @@ function AlertBuilderProjectProvider(props: Props) {
 
     // fetch members list for mail action fields
     fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [projects]);
+  }, [project]);
 
   if (!initiallyLoaded || fetching) {
     return <LoadingIndicator />;
