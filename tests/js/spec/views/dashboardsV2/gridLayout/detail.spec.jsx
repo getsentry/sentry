@@ -6,7 +6,6 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {constructGridItemKey} from 'sentry/views/dashboardsV2/dashboard';
-import * as utils from 'sentry/views/dashboardsV2/gridLayout/utils';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -414,41 +413,6 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(false);
-    });
-
-    it('renders charts with the full height of the widget', async () => {
-      jest
-        .spyOn(utils, 'getDashboardLayout')
-        .mockReturnValueOnce([{i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6}]);
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(
-          [
-            TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
-              {
-                title: 'Errors',
-                interval: '1d',
-                id: '1',
-              }
-            ),
-          ],
-          {id: '1', title: 'Custom Errors'}
-        ),
-      });
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      expect(wrapper).toSnapshot();
     });
   });
 });
