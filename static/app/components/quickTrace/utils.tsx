@@ -1,6 +1,6 @@
 import {Location, LocationDescriptor} from 'history';
 
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';

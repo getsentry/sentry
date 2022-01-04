@@ -1,22 +1,22 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
-describe('withGlobalSelection HoC', function () {
+describe('withPageFilters HoC', function () {
   beforeEach(() => {
-    GlobalSelectionStore.init();
+    PageFiltersStore.init();
   });
 
   it('handles projects', function () {
     const MyComponent = () => null;
-    const Container = withGlobalSelection(MyComponent);
+    const Container = withPageFilters(MyComponent);
     const wrapper = mountWithTheme(<Container />);
 
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([]);
 
-    act(() => GlobalSelectionStore.updateProjects([1]));
+    act(() => PageFiltersStore.updateProjects([1]));
     wrapper.update();
 
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([1]);
@@ -25,7 +25,7 @@ describe('withGlobalSelection HoC', function () {
   it('handles datetime', function () {
     let selection;
     const MyComponent = () => null;
-    const Container = withGlobalSelection(MyComponent);
+    const Container = withPageFilters(MyComponent);
     const wrapper = mountWithTheme(<Container />);
 
     selection = wrapper.find('MyComponent').prop('selection');
@@ -34,7 +34,7 @@ describe('withGlobalSelection HoC', function () {
     expect(selection.datetime.end).toEqual(null);
 
     act(() =>
-      GlobalSelectionStore.updateDateTime({
+      PageFiltersStore.updateDateTime({
         period: '7d',
         start: null,
         end: null,
@@ -48,7 +48,7 @@ describe('withGlobalSelection HoC', function () {
     expect(selection.datetime.end).toEqual(null);
 
     act(() =>
-      GlobalSelectionStore.updateDateTime({
+      PageFiltersStore.updateDateTime({
         period: null,
         start: '2018-08-08T00:00:00',
         end: '2018-08-08T00:00:00',
@@ -64,12 +64,12 @@ describe('withGlobalSelection HoC', function () {
 
   it('handles environments', function () {
     const MyComponent = () => null;
-    const Container = withGlobalSelection(MyComponent);
+    const Container = withPageFilters(MyComponent);
     const wrapper = mountWithTheme(<Container />);
 
     expect(wrapper.find('MyComponent').prop('selection').environments).toEqual([]);
 
-    act(() => GlobalSelectionStore.updateEnvironments(['beta', 'alpha']));
+    act(() => PageFiltersStore.updateEnvironments(['beta', 'alpha']));
     wrapper.update();
 
     expect(wrapper.find('MyComponent').prop('selection').environments).toEqual([

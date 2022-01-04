@@ -7,11 +7,11 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
-import {Environment, GlobalSelection, Group, Organization, Project} from 'sentry/types';
+import {Environment, Group, Organization, PageFilters, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ReprocessingStatus} from '../utils';
 
@@ -23,7 +23,7 @@ type Props = RouteComponentProps<
 > & {
   api: Client;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   project: Project;
   group: Group;
   event: Event;
@@ -80,4 +80,4 @@ export class GroupEventDetailsContainer extends Component<Props, State> {
   }
 }
 
-export default withApi(withOrganization(withGlobalSelection(GroupEventDetailsContainer)));
+export default withApi(withOrganization(withPageFilters(GroupEventDetailsContainer)));

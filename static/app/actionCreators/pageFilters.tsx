@@ -5,17 +5,17 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import GlobalSelectionActions from 'sentry/actions/globalSelectionActions';
+import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {
   getDefaultSelection,
   getStateFromQuery,
-} from 'sentry/components/organizations/globalSelectionHeader/utils';
+} from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME, LOCAL_STORAGE_KEY, URL_PARAM} from 'sentry/constants/pageFilters';
 import {
   Environment,
-  GlobalSelection,
   MinimalProject,
   Organization,
+  PageFilters,
   Project,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -69,9 +69,11 @@ type UrlParams = {
  */
 type Router = InjectedRouter | null | undefined;
 
-// Reset values in global selection store
-export function resetGlobalSelection() {
-  GlobalSelectionActions.reset();
+/**
+ * Reset values in the page filters store
+ */
+export function resetPageFilters() {
+  PageFiltersActions.reset();
 }
 
 function getProjectIdFromProject(project: MinimalProject) {
@@ -89,7 +91,7 @@ type InitializeUrlStateParams = {
    * If true, do not load from local storage
    */
   skipLoadLastUsed?: boolean;
-  defaultSelection?: Partial<GlobalSelection>;
+  defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
   showAbsolute?: boolean;
 };
@@ -117,9 +119,9 @@ export function initializeUrlState({
   const {datetime: customizedDefaultDateTime, ...customizedDefaultSelection} =
     defaultSelection || {};
 
-  let globalSelection: Omit<GlobalSelection, 'datetime'> & {
+  let pageFilters: Omit<PageFilters, 'datetime'> & {
     datetime: {
-      [K in keyof GlobalSelection['datetime']]: GlobalSelection['datetime'][K] | null;
+      [K in keyof PageFilters['datetime']]: PageFilters['datetime'][K] | null;
     };
   } = {
     ...retrievedDefaultSelection,
@@ -133,23 +135,23 @@ export function initializeUrlState({
       [DATE_TIME.UTC as 'utc']: parsed.utc || customizedDefaultDateTime?.utc || null,
     },
   };
-  if (globalSelection.datetime.start && globalSelection.datetime.end) {
-    globalSelection.datetime.period = null;
+  if (pageFilters.datetime.start && pageFilters.datetime.end) {
+    pageFilters.datetime.period = null;
   }
 
   // We only save environment and project, so if those exist in
   // URL, do not touch local storage
   if (hasProjectOrEnvironmentInUrl) {
-    globalSelection.projects = parsed.project || [];
-    globalSelection.environments = parsed.environment || [];
+    pageFilters.projects = parsed.project || [];
+    pageFilters.environments = parsed.environment || [];
   } else if (!skipLoadLastUsed) {
     try {
       const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgSlug}`;
       const storedValue = localStorage.getItem(localStorageKey);
 
       if (storedValue) {
-        globalSelection = {
-          datetime: globalSelection.datetime,
+        pageFilters = {
+          datetime: pageFilters.datetime,
           ...JSON.parse(storedValue),
         };
       }
@@ -160,7 +162,7 @@ export function initializeUrlState({
     }
   }
 
-  const {projects, environments: environment, datetime} = globalSelection;
+  const {projects, environments: environment, datetime} = pageFilters;
   let newProject: number[] | null = null;
   let project = projects;
 
@@ -192,12 +194,12 @@ export function initializeUrlState({
   }
 
   if (newProject) {
-    globalSelection.projects = newProject;
+    pageFilters.projects = newProject;
     project = newProject;
   }
 
-  GlobalSelectionActions.initializeUrlState(globalSelection);
-  GlobalSelectionActions.setOrganization(organization);
+  PageFiltersActions.initializeUrlState(pageFilters);
+  PageFiltersActions.setOrganization(organization);
 
   // To keep URLs clean, don't push default period if url params are empty
   const parsedWithNoDefaultPeriod = getStateFromQuery(queryParams, {
@@ -221,7 +223,7 @@ export function initializeUrlState({
 }
 
 /**
- * Updates store and global project selection URL param if `router` is supplied
+ * Updates store and  selection URL param if `router` is supplied
  *
  * This accepts `environments` from `options` to also update environments simultaneously
  * as environments are tied to a project, so if you change projects, you may need
@@ -240,7 +242,7 @@ export function updateProjects(
     return;
   }
 
-  GlobalSelectionActions.updateProjects(projects, options?.environments);
+  PageFiltersActions.updateProjects(projects, options?.environments);
   updateParams({project: projects, environment: options?.environments}, router, options);
 }
 
@@ -261,7 +263,7 @@ export function updateDateTime(
   router?: Router,
   options?: Options
 ) {
-  GlobalSelectionActions.updateDateTime(datetime);
+  PageFiltersActions.updateDateTime(datetime);
   // We only save projects/environments to local storage, do not
   // save anything when date changes.
   updateParams(datetime, router, {...options, save: false});
@@ -280,7 +282,7 @@ export function updateEnvironments(
   router?: Router,
   options?: Options
 ) {
-  GlobalSelectionActions.updateEnvironments(environment);
+  PageFiltersActions.updateEnvironments(environment);
   updateParams({environment}, router, options);
 }
 
@@ -305,7 +307,7 @@ export function updateParams(obj: UrlParams, router?: Router, options?: Options)
   }
 
   if (options?.save) {
-    GlobalSelectionActions.save(newQuery);
+    PageFiltersActions.save(newQuery);
   }
 
   router.push({

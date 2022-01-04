@@ -7,7 +7,7 @@ import {
   updateDateTime,
   updateEnvironments,
   updateProjects,
-} from 'sentry/actionCreators/globalSelection';
+} from 'sentry/actionCreators/pageFilters';
 import BackToIssues from 'sentry/components/organizations/backToIssues';
 import HeaderItemPosition from 'sentry/components/organizations/headerItemPosition';
 import HeaderSeparator from 'sentry/components/organizations/headerSeparator';
@@ -21,10 +21,10 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, MinimalProject, Organization, Project} from 'sentry/types';
+import {MinimalProject, Organization, PageFilters, Project} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import Projects from 'sentry/utils/projects';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 const PROJECTS_PER_PAGE = 50;
 
@@ -65,12 +65,12 @@ type Props = {
   /**
    * Currently selected values(s)
    */
-  selection: GlobalSelection;
+  selection: PageFilters;
 
   /**
    * Custom default selection values (e.g. a different default period)
    */
-  defaultSelection?: Partial<GlobalSelection>;
+  defaultSelection?: Partial<PageFilters>;
 
   /**
    * Is global selection store still loading (i.e. not ready)
@@ -409,7 +409,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
   }
 }
 
-export default withGlobalSelection(GlobalSelectionHeader);
+export default withPageFilters(GlobalSelectionHeader);
 
 const BackButtonWrapper = styled('div')`
   display: flex;

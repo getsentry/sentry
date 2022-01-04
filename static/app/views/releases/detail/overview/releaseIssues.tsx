@@ -14,7 +14,7 @@ import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -53,7 +53,7 @@ type Props = {
   api: Client;
   organization: Organization;
   version: string;
-  selection: GlobalSelection;
+  selection: PageFilters;
   location: Location;
   releaseBounds: ReleaseBounds;
   queryFilterDescription?: string;

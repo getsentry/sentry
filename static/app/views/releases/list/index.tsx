@@ -12,7 +12,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
@@ -28,8 +28,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {
-  GlobalSelection,
   Organization,
+  PageFilters,
   Project,
   Release,
   ReleaseStatus,
@@ -39,8 +39,8 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import Projects from 'sentry/utils/projects';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -62,7 +62,7 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   projects: Project[];
-  selection: GlobalSelection;
+  selection: PageFilters;
 };
 
 type State = {
@@ -490,7 +490,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const hasReleasesSetup = releases && releases.length > 0;
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         showAbsolute={false}
         timeRangeHint={t(
           'Changing this date range will recalculate the release metrics.'
@@ -570,7 +570,7 @@ class ReleasesList extends AsyncView<Props, State> {
               : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
           </NoProjectMessage>
         </PageContent>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 }
@@ -653,5 +653,5 @@ const DropdownsWrapper = styled('div')`
   }
 `;
 
-export default withProjects(withOrganization(withGlobalSelection(ReleasesList)));
+export default withProjects(withOrganization(withPageFilters(ReleasesList)));
 export {ReleasesList};
