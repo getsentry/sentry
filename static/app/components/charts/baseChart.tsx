@@ -521,7 +521,7 @@ function BaseChartUnwrapped({
   );
 
   return (
-    <ChartContainer>
+    <ChartContainer autoHeightResize={autoHeightResize}>
       <ReactEchartsCore
         ref={forwardedRef}
         echarts={echarts}
@@ -545,8 +545,8 @@ function BaseChartUnwrapped({
 
 // Contains styling for chart elements as we can't easily style those
 // elements directly
-const ChartContainer = styled('div')`
-  height: 100%;
+const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
+  ${p => p.autoHeightResize && 'height: 100%;'}
 
   /* Tooltip styling */
   .tooltip-series,

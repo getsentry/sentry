@@ -202,6 +202,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     const {location, router, selection} = this.props;
     const {start, end, period, utc} = selection.datetime;
+    const autoHeightResize = organization.features.includes('dashboard-grid-layout');
 
     if (widget.displayType === 'world_map') {
       const {data, title} = processTableResults(tableResults);
@@ -215,11 +216,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          <ChartWrapper>
+          <ChartWrapper autoHeightResize={autoHeightResize}>
             {getDynamicText({
               value: this.chartComponent({
                 series,
-                autoHeightResize: organization.features.includes('dashboard-grid-layout'),
+                autoHeightResize,
               }),
               fixed: <Placeholder height="200px" testId="skeleton-ui" />,
             })}
@@ -249,7 +250,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
-      autoHeightResize: organization.features.includes('dashboard-grid-layout'),
+      autoHeightResize,
       grid: {
         left: 4,
         right: 0,
@@ -305,7 +306,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
-              <ChartWrapper>
+              <ChartWrapper autoHeightResize={autoHeightResize}>
                 {getDynamicText({
                   value: this.chartComponent({
                     ...zoomRenderProps,
@@ -354,8 +355,8 @@ const BigNumber = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')`
-  height: 100%;
+const ChartWrapper = styled('div')<{autoHeightResize: boolean}>`
+  ${p => p.autoHeightResize && 'height: 100%;'}
   padding: 0 ${space(3)} ${space(3)};
 `;
 
