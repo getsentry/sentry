@@ -180,8 +180,8 @@ class RuleNodeList extends React.Component<Props> {
         {
           notify: [] as IssueAlertRuleActionTemplate[],
           ticket: [] as IssueAlertRuleActionTemplate[],
-          frequency: [] as IssueAlertRuleConditionTemplate[],
           change: [] as IssueAlertRuleConditionTemplate[],
+          frequency: [] as IssueAlertRuleConditionTemplate[],
         }
       );
 
@@ -193,10 +193,10 @@ class RuleNodeList extends React.Component<Props> {
               ? t('Send notification to\u{2026}')
               : key === 'ticket'
               ? t('Create new\u{2026}')
-              : key === 'frequency'
-              ? t('Issue frequency')
               : key === 'change'
               ? t('Issue state change')
+              : key === 'frequency'
+              ? t('Issue frequency')
               : null;
 
           return {label, options: createSelectOptions(values)};
