@@ -7,7 +7,7 @@ import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getTooltipArrow} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {t} from 'sentry/locale';
 import {EventsStatsData, OrganizationSummary, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';

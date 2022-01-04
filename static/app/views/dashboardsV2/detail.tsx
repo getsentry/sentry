@@ -16,7 +16,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -65,6 +65,7 @@ type State = {
   modifiedDashboard: DashboardDetails | null;
   widgetToBeUpdated?: Widget;
   layout: RGLLayout[];
+  widgetLimitReached: boolean;
 };
 
 class DashboardDetail extends Component<Props, State> {
@@ -72,6 +73,7 @@ class DashboardDetail extends Component<Props, State> {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     layout: getDashboardLayout(this.props.organization.id, this.props.dashboard.id),
+    widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
   };
 
   componentDidMount() {
@@ -168,11 +170,6 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     return modifiedDashboard ? modifiedDashboard.title : dashboard.title;
-  }
-
-  get widgetLimitReached() {
-    const {dashboard} = this.props;
-    return dashboard.widgets.length >= MAX_WIDGETS;
   }
 
   onEdit = () => {
@@ -276,7 +273,10 @@ class DashboardDetail extends Component<Props, State> {
       ...cloneDashboard(modifiedDashboard || dashboard),
       widgets: widgets.map(assignTempId),
     };
-    this.setState({modifiedDashboard: newModifiedDashboard});
+    this.setState({
+      modifiedDashboard: newModifiedDashboard,
+      widgetLimitReached: widgets.length >= MAX_WIDGETS,
+    });
     if ([DashboardState.CREATE, DashboardState.EDIT].includes(dashboardState)) {
       return;
     }
@@ -333,7 +333,7 @@ class DashboardDetail extends Component<Props, State> {
       i: constructGridItemKey(newWidgets[index]),
     }));
     saveDashboardLayout(organizationId, dashboardId, newLayout);
-    this.setState({layout: newLayout, modifiedDashboard: null});
+    this.setState({layout: newLayout});
   };
 
   onCommit = () => {
@@ -360,7 +360,6 @@ class DashboardDetail extends Component<Props, State> {
               });
               this.setState({
                 dashboardState: DashboardState.VIEW,
-                modifiedDashboard: null,
               });
 
               // redirect to new dashboard
@@ -467,6 +466,7 @@ class DashboardDetail extends Component<Props, State> {
       (state: State) => ({
         ...state,
         widgetToBeUpdated: undefined,
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
         modifiedDashboard: {
           ...(state.modifiedDashboard || this.props.dashboard),
           widgets,
@@ -491,11 +491,11 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDefaultDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
-    const {layout, modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         skipLoadLastUsed={organization.features.includes('global-views')}
         defaultSelection={{
           datetime: {
@@ -523,7 +523,7 @@ class DashboardDetail extends Component<Props, State> {
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
                 dashboardState={dashboardState}
-                widgetLimitReached={this.widgetLimitReached}
+                widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
@@ -532,7 +532,7 @@ class DashboardDetail extends Component<Props, State> {
               dashboard={modifiedDashboard ?? dashboard}
               organization={organization}
               isEditing={this.isEditing}
-              widgetLimitReached={this.widgetLimitReached}
+              widgetLimitReached={widgetLimitReached}
               onUpdate={this.onUpdateWidget}
               onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
               handleAddLibraryWidgets={this.handleAddLibraryWidgets}
@@ -543,18 +543,18 @@ class DashboardDetail extends Component<Props, State> {
             />
           </NoProjectMessage>
         </PageContent>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 
   renderDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location, newWidget} =
       this.props;
-    const {layout, modifiedDashboard, dashboardState} = this.state;
+    const {layout, modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         skipLoadLastUsed={organization.features.includes('global-views')}
         defaultSelection={{
           datetime: {
@@ -604,7 +604,7 @@ class DashboardDetail extends Component<Props, State> {
                   onAddWidget={this.onAddWidget}
                   onDelete={this.onDelete(dashboard)}
                   dashboardState={dashboardState}
-                  widgetLimitReached={this.widgetLimitReached}
+                  widgetLimitReached={widgetLimitReached}
                 />
               </Layout.HeaderActions>
             </Layout.Header>
@@ -615,7 +615,7 @@ class DashboardDetail extends Component<Props, State> {
                   dashboard={modifiedDashboard ?? dashboard}
                   organization={organization}
                   isEditing={this.isEditing}
-                  widgetLimitReached={this.widgetLimitReached}
+                  widgetLimitReached={widgetLimitReached}
                   onUpdate={this.onUpdateWidget}
                   handleAddLibraryWidgets={this.handleAddLibraryWidgets}
                   onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
@@ -629,7 +629,7 @@ class DashboardDetail extends Component<Props, State> {
             </Layout.Body>
           </NoProjectMessage>
         </StyledPageContent>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 

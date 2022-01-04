@@ -19,7 +19,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import DebugFileRow from './debugFileRow';
-import ExternalSources from './externalSources';
+import Sources from './sources';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -166,7 +166,6 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     const {organization, project, router, location} = this.props;
     const {loading, showDetails, builtinSymbolSources, debugFiles, debugFilesPageLinks} =
       this.state;
-    const {features} = organization;
 
     return (
       <Fragment>
@@ -180,10 +179,11 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           `)}
         </TextBlock>
 
-        {features.includes('symbol-sources') && (
+        {organization.features.includes('symbol-sources') && (
           <Fragment>
             <PermissionAlert />
-            <ExternalSources
+
+            <Sources
               api={this.api}
               location={location}
               router={router}
@@ -196,6 +196,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               }
               builtinSymbolSources={project.builtinSymbolSources ?? []}
               builtinSymbolSourceOptions={builtinSymbolSources ?? []}
+              isLoading={loading}
             />
           </Fragment>
         )}

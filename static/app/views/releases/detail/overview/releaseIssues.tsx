@@ -14,7 +14,7 @@ import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -53,7 +53,7 @@ type Props = {
   api: Client;
   organization: Organization;
   version: string;
-  selection: GlobalSelection;
+  selection: PageFilters;
   location: Location;
   releaseBounds: ReleaseBounds;
   queryFilterDescription?: string;
@@ -185,7 +185,9 @@ class ReleaseIssues extends Component<Props, State> {
         };
       case IssuesType.RESOLVED:
         return {
-          path: `/organizations/${organization.slug}/releases/${version}/resolved/`,
+          path: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+            version
+          )}/resolved/`,
           queryParams: {...queryParams, query: ''},
         };
       case IssuesType.UNHANDLED:
@@ -224,7 +226,9 @@ class ReleaseIssues extends Component<Props, State> {
   async fetchIssuesCount() {
     const {api, organization, version} = this.props;
     const issueCountEndpoint = this.getIssueCountEndpoint();
-    const resolvedEndpoint = `/organizations/${organization.slug}/releases/${version}/resolved/`;
+    const resolvedEndpoint = `/organizations/${
+      organization.slug
+    }/releases/${encodeURIComponent(version)}/resolved/`;
 
     try {
       await Promise.all([
