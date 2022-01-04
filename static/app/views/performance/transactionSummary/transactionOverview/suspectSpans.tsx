@@ -28,6 +28,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {SpanSortOthers, SpanSortPercentiles} from '../transactionSpans/types';
 import {
   getSuspectSpanSortFromLocation,
+  SPAN_SORT_TO_FIELDS,
   spansRouteWithQuery,
 } from '../transactionSpans/utils';
 import {generateTransactionLink} from '../utils';
@@ -100,6 +101,9 @@ export default function SuspectSpans(props: Props) {
       )
     )
     .withSorts([{kind: 'desc', field: sort.field}]);
+  const fields = SPAN_SORT_TO_FIELDS[sort.field];
+  sortedEventView.fields = fields ? fields.map(field => ({field})) : [];
+
   const sortColumn: GridColumnSortBy<SuspectSpanTableColumnKeys> = {
     key: sort.field as SuspectSpanTableColumnKeys,
     width: COL_WIDTH_UNDEFINED,
