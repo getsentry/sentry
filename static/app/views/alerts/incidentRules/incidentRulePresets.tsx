@@ -27,6 +27,7 @@ type PresetCtaOpts = {
   eventType?: string;
   start?: string;
   end?: string;
+  fields?: string[];
 };
 
 /**
@@ -39,6 +40,7 @@ export function makeDefaultCta({
   eventType,
   start,
   end,
+  fields,
 }: PresetCtaOpts): PresetCta {
   if (!rule) {
     return {
@@ -61,6 +63,7 @@ export function makeDefaultCta({
       start,
       end,
       extraQueryParams,
+      fields,
     }),
   };
 }

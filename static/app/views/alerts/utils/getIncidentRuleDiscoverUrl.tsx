@@ -21,8 +21,9 @@ export function getIncidentRuleDiscoverUrl(opts: {
   start?: string;
   end?: string;
   extraQueryParams?: Partial<NewQuery>;
+  fields?: string[];
 }) {
-  const {orgSlug, projects, rule, eventType, start, end, extraQueryParams} = opts;
+  const {orgSlug, projects, rule, eventType, start, end, extraQueryParams, fields} = opts;
   const eventTypeTagFilter = eventType && rule?.query ? eventType : '';
 
   if (!projects || !projects.length || !rule || (!start && !end)) {
@@ -41,10 +42,11 @@ export function getIncidentRuleDiscoverUrl(opts: {
       .filter(({slug}) => rule.projects.includes(slug))
       .map(({id}) => Number(id)),
     version: 2,
-    fields:
-      rule.dataset === Dataset.ERRORS
-        ? ['issue', 'count()', 'count_unique(user)']
-        : ['transaction', rule.aggregate],
+    fields: fields
+      ? fields
+      : rule.dataset === Dataset.ERRORS
+      ? ['issue', 'count()', 'count_unique(user)']
+      : ['transaction', rule.aggregate],
     start,
     end,
     ...extraQueryParams,

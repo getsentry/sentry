@@ -281,6 +281,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       eventType: query,
       start: timePeriod.start,
       end: timePeriod.end,
+      fields: ['issue', 'title', 'count()', 'count_unique(user)'],
     };
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);
