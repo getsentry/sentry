@@ -2037,13 +2037,6 @@ FUNCTIONS = {
             result_type_fn=reflective_result_type(),
             redundant_grouping=True,
         ),
-        # Currently only being used by the baseline PoC
-        DiscoverFunction(
-            "absolute_delta",
-            required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
-            column=["abs", [["minus", [ArgValue("column"), ArgValue("target")]]], None],
-            default_result_type="duration",
-        ),
         # These range functions for performance trends, these aren't If functions
         # to avoid allowing arbitrary if statements
         # Not yet supported in Discover, and shouldn't be added to fields.tsx
@@ -2750,14 +2743,6 @@ class QueryFields(QueryBase):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "absolute_delta",
-                    required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
-                    snql_column=lambda args, alias: Function(
-                        "abs", [Function("minus", [args["column"], args["target"]])], alias
-                    ),
-                    default_result_type="duration",
-                ),
-                SnQLFunction(
                     "eps",
                     snql_aggregate=lambda args, alias: Function(
                         "divide", [Function("count", []), args["interval"]], alias
@@ -2870,8 +2855,6 @@ class QueryFields(QueryBase):
                     default_result_type="number",
                     private=True,
                 ),
-                # TODO: implement these
-                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
             ]
         }
 
