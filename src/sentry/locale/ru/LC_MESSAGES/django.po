@@ -16717,22 +16717,18 @@ msgid ""
 msgstr "Частота отказов - это процент зарегистрированных транзакций, которые имели известный и неуспешный статус."
 
 #: static/app/views/performance/data.tsx:325
-#, python-format
 msgid "p50 indicates the duration that 50% of transactions are faster than."
 msgstr "p50 указывает на длительность, по которой 50% транзакций выполняются быстрее."
 
 #: static/app/views/performance/data.tsx:326
-#, python-format
 msgid "p75 indicates the duration that 75% of transactions are faster than."
 msgstr ""
 
 #: static/app/views/performance/data.tsx:327
-#, python-format
 msgid "p95 indicates the duration that 95% of transactions are faster than."
 msgstr "p95 указывает на длительность, по которой 95% транзакций выполняются быстрее."
 
 #: static/app/views/performance/data.tsx:328
-#, python-format
 msgid "p99 indicates the duration that 99% of transactions are faster than."
 msgstr "p99 указывает на длительность, по которой 99% транзакций выполняются быстрее."
 
