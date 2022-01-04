@@ -14,11 +14,8 @@ import Duration from 'sentry/components/duration';
 import IdBadge from 'sentry/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {IconInfo, IconRectangle} from 'sentry/icons';
@@ -104,28 +101,6 @@ export default class DetailsBody extends React.Component<Props> {
     }
 
     return getInterval({start, end}, 'high');
-  }
-
-  getFilter() {
-    const {rule} = this.props;
-    const {dataset, query} = rule ?? {};
-    if (!rule) {
-      return null;
-    }
-
-    const eventType =
-      dataset === Dataset.SESSIONS ? null : extractEventTypeFilterFromRule(rule);
-    const parsedQuery = parseSearch([eventType, query].join(' ').trim());
-
-    return (
-      <Filters>
-        {query || eventType ? (
-          <HighlightQuery parsedQuery={parsedQuery ?? []} />
-        ) : (
-          <NotAvailable />
-        )}
-      </Filters>
-    );
   }
 
   renderTrigger(label: string, threshold: number, actions: Action[]): React.ReactNode {
@@ -570,16 +545,6 @@ const ChartPanel = styled(Panel)`
 
 const RuleText = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const Filters = styled('span')`
-  overflow-wrap: break-word;
-  word-break: break-word;
-  white-space: pre-wrap;
-  font-size: ${p => p.theme.fontSizeSmall};
-
-  line-height: 25px;
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const TriggerConditionContainer = styled('div')`
