@@ -4,7 +4,7 @@ import {Location} from 'history';
 import Button from 'sentry/components/button';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
@@ -37,6 +37,7 @@ type Props = {
   eventView: EventView;
   totals: SpansTotalValues | null;
   preview: number;
+  project?: Project;
 };
 
 export default function SuspectSpanEntry(props: Props) {
@@ -48,6 +49,7 @@ export default function SuspectSpanEntry(props: Props) {
     eventView,
     totals,
     preview,
+    project,
   } = props;
 
   const expandable = suspectSpan.examples.length > preview;
@@ -77,6 +79,7 @@ export default function SuspectSpanEntry(props: Props) {
           isLoading={false}
           location={location}
           organization={organization}
+          project={project}
           suspectSpan={suspectSpan}
           transactionName={transactionName}
           examples={visibileExamples}

@@ -23,6 +23,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useProjects from 'sentry/utils/useProjects';
 
 import {SpanSortOthers, SpanSortPercentiles} from '../transactionSpans/types';
 import {
@@ -105,6 +106,8 @@ export default function SuspectSpans(props: Props) {
     order: 'desc',
   };
 
+  const {projects} = useProjects();
+
   return (
     <SuspectSpansQuery
       location={location}
@@ -117,7 +120,7 @@ export default function SuspectSpans(props: Props) {
         const data = (suspectSpans ?? []).map(suspectSpan => {
           const example = suspectSpan.examples[0];
           return {
-            project: suspectSpan.project,
+            project: projects.find(p => p.id === projectId)?.slug,
             op: suspectSpan.op,
             description: example?.description ?? null,
             p75ExclusiveTime: suspectSpan.p75ExclusiveTime,
