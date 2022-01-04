@@ -84,15 +84,25 @@ class ReleasesAdoptionChart extends Component<Props> {
 
   getReleasesSeries(response: SessionApiResponse | null) {
     const {activeDisplay} = this.props;
-    const releases = response?.groups.map(group => group.by.release);
+
+    // If there are many releases, display releases with the highest number of sessions
+    // Often this due to many releases with low session counts or not filtering by environment
+    let releases: string[] | undefined =
+      response?.groups.map(group => group.by.release as string) ?? [];
+    if (response?.groups && response.groups.length > 50) {
+      releases = response!.groups
+        .sort((a, b) => b.totals['sum(session)'] - a.totals['sum(session)'])
+        .slice(0, 50)
+        .map(group => group.by.release as string);
+    }
 
     if (!releases) {
       return null;
     }
 
     return releases.map(release => ({
-      id: release as string,
-      seriesName: formatVersion(release as string),
+      id: release,
+      seriesName: formatVersion(release),
       data: getAdoptionSeries(
         [response?.groups.find(({by}) => by.release === release)!],
         response?.groups,
