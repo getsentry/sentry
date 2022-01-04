@@ -30,6 +30,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
         )
 
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
     def update_snuba_config_ensure(self, config, poll=60, wait=1):
         self.snuba_update_config(config)
@@ -1162,7 +1163,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         self.assert_suspect_span(response.data, [results])
 
 
-class OrganizationEventsSpansEndpointTest(OrganizationEventsSpansEndpointTestBase):
+class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans"
 
     def test_no_feature(self):
@@ -1330,4 +1331,142 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsSpansEndpointTestBas
         self.assert_span_examples(
             response.data,
             [self.span_example_results("http.server", event)],
+        )
+
+
+class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTestBase):
+    URL = "sentry-api-0-organization-events-spans-stats"
+
+    def test_no_feature(self):
+        response = self.client.get(self.url, format="json")
+        assert response.status_code == 404, response.content
+
+    def test_require_span_param(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"span": [ErrorDetail("This field is required.", code="required")]}
+
+    def test_bad_span_param(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id, "span": ["http.server"]},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "span": [
+                ErrorDetail(
+                    "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)",
+                    code="invalid",
+                )
+            ]
+        }
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id, "span": ["http.server:ab"]},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "span": [
+                ErrorDetail(
+                    "spanGroup must be a valid 16 character hex (containing only digits, or a-f characters)",
+                    code="invalid",
+                )
+            ]
+        }
+
+    def test_multiple_span_param(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "span": [f"http.server:{'ab' * 8}", f"django.middleware:{'cd' * 8}"],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Can only specify 1 span."}
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_one_span(self, mock_raw_snql_query):
+        mock_raw_snql_query.side_effect = [{"data": []}]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "span": f"http.server:{'ab' * 8}",
+                    "yAxis": [
+                        "percentileArray(spans_exclusive_time, 0.75)",
+                        "percentileArray(spans_exclusive_time, 0.95)",
+                        "percentileArray(spans_exclusive_time, 0.99)",
+                    ],
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        # ensure that the result is a proper time series
+        data = response.data
+        series_names = [
+            f"percentileArray(spans_exclusive_time, 0.{percentile})"
+            for percentile in ["75", "95", "99"]
+        ]
+        assert set(data.keys()) == set(series_names)
+        for i, series_name in enumerate(series_names):
+            series = data[series_name]
+            assert series["order"] == i
+            assert [attrs for _, attrs in series["data"]] == [
+                [{"count": 0}],
+                [{"count": 0}],
+            ]
+
+        assert mock_raw_snql_query.call_count == 1
+        query = mock_raw_snql_query.call_args_list[0][0][0]
+
+        # ensure the specified y axes are in the select
+        for percentile in ["75", "95", "99"]:
+            assert (
+                Function(
+                    f"quantile(0.{percentile.rstrip('0')})",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    f"percentileArray_spans_exclusive_time_0_{percentile}",
+                )
+                in query.select
+            )
+
+        spans_op = Function("arrayJoin", [Column("spans.op")], "array_join_spans_op")
+        spans_group = Function("arrayJoin", [Column("spans.group")], "array_join_spans_group")
+
+        # ensure the two span columns are in the group by
+        for column in [spans_op, spans_group]:
+            assert column in query.groupby
+
+        # ensure there is a condition on the span
+        assert (
+            Condition(
+                Function("tuple", [spans_op, spans_group]),
+                Op.IN,
+                Function("tuple", [Function("tuple", ["http.server", "ab" * 8])]),
+            )
+            in query.where
         )

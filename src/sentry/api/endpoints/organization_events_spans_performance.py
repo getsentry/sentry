@@ -316,7 +316,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     rollup,
                     query=query,
                     selected_columns=query_columns,
-                    functions_acl=["array_join", "percentileArray"],
+                    functions_acl=["array_join", "percentileArray", "sumArray"],
                 )
 
                 spans_op = builder.resolve_function("array_join(spans_op)")
@@ -343,21 +343,26 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     snql_query, "api.organization-events-spans-performance-stats"
                 )
 
-                with sentry_sdk.start_span(
-                    op="discover.discover", description="timeseries.transform_results"
-                ):
-                    result = discover.zerofill(
-                        results["data"],
-                        params["start"],
-                        params["end"],
-                        rollup,
-                        "time",
-                    )
+            with sentry_sdk.start_span(
+                op="discover.discover", description="timeseries.transform_results"
+            ):
+                result = discover.zerofill(
+                    results["data"],
+                    params["start"],
+                    params["end"],
+                    rollup,
+                    "time",
+                )
 
-                return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
+            return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
 
         return Response(
-            self.get_event_stats_data(request, organization, get_event_stats),
+            self.get_event_stats_data(
+                request,
+                organization,
+                get_event_stats,
+                query_column="sumArray(spans_exclusive_time)",
+            ),
             status=200,
         )
 
