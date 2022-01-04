@@ -13,16 +13,11 @@ type Props = {
   system?: boolean;
   expand?: React.ReactNode[];
   expandIcon?: React.ReactNode;
+  opaque?: boolean;
   onExpandIconClick?: () => void;
 };
 
 type AlertProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
-
-type AlertThemeProps = {
-  backgroundLight: string;
-  border: string;
-  iconColor: string;
-};
 
 const DEFAULT_TYPE = 'info';
 
@@ -36,51 +31,43 @@ const IconWrapper = styled('span')`
   align-items: center;
 `;
 
-const getAlertColorStyles = ({
-  backgroundLight,
-  border,
-  iconColor,
-}: AlertThemeProps) => css`
-  background: ${backgroundLight};
-  border: 1px solid ${border};
-  ${IconWrapper} {
-    color: ${iconColor};
-  }
-`;
+const alertStyles = ({
+  theme,
+  type = DEFAULT_TYPE,
+  system,
+  opaque,
+}: Props & {theme: Theme}) => {
+  const alertColors = theme.alert[type] ?? theme.alert[DEFAULT_TYPE];
 
-const getSystemAlertColorStyles = ({
-  backgroundLight,
-  border,
-  iconColor,
-}: AlertThemeProps) => css`
-  background: ${backgroundLight};
-  border: 0;
-  border-radius: 0;
-  border-bottom: 1px solid ${border};
-  ${IconWrapper} {
-    color: ${iconColor};
-  }
-`;
+  return css`
+    display: flex;
+    flex-direction: column;
+    margin: 0 0 ${space(3)};
+    padding: ${space(1.5)} ${space(2)};
+    font-size: ${theme.fontSizeLarge};
+    box-shadow: ${theme.dropShadowLight};
+    border-radius: ${theme.borderRadius};
+    border: 1px solid ${alertColors.border};
+    background: ${opaque
+      ? `linear-gradient(${alertColors.backgroundLight}, ${alertColors.backgroundLight}), linear-gradient(${theme.background}, ${theme.background})`
+      : `${alertColors.backgroundLight}`};
 
-const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: Theme}) => css`
-  display: flex;
-  flex-direction: column;
-  margin: 0 0 ${space(3)};
-  padding: ${space(1.5)} ${space(2)};
-  font-size: ${theme.fontSizeLarge};
-  box-shadow: ${theme.dropShadowLight};
-  border-radius: ${theme.borderRadius};
-  background: ${theme.backgroundSecondary};
-  border: 1px solid ${theme.border};
+    a:not([role='button']) {
+      color: ${theme.textColor};
+      border-bottom: 1px dotted ${theme.textColor};
+    }
 
-  a:not([role='button']) {
-    color: ${theme.textColor};
-    border-bottom: 1px dotted ${theme.textColor};
-  }
+    ${system &&
+    `
+    border-width: 0 0 1px 0;
+    border-radius: 0;
+  `}
 
-  ${getAlertColorStyles(theme.alert[type])};
-  ${system && getSystemAlertColorStyles(theme.alert[type])};
-`;
+    ${IconWrapper} {
+      color: ${alertColors.iconColor};
+    }
+  `;
+};
 
 const StyledTextBlock = styled('span')`
   line-height: 1.5;
@@ -120,6 +107,7 @@ const Alert = styled(
     expand,
     expandIcon,
     onExpandIconClick,
+    opaque: _opaque, // don't forward to `div`
     system: _system, // don't forward to `div`
     ...props
   }: AlertProps) => {
