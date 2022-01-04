@@ -41,6 +41,7 @@ type Props = {
 
 export default function SpanDetailsContentWrapper(props: Props) {
   const {location, organization, eventView, projectId, transactionName, spanSlug} = props;
+
   return (
     <Fragment>
       <Layout.Header>
@@ -74,7 +75,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
                 <SuspectSpansQuery
                   location={location}
                   orgSlug={organization.slug}
-                  eventView={eventView}
+                  eventView={getSpansEventView(eventView)}
                   perSuspect={0}
                   spanOps={[spanSlug.op]}
                   spanGroups={[spanSlug.group]}
@@ -257,6 +258,19 @@ function SpanDetailsHeader(props: HeaderProps) {
       </HeaderInfo>
     </ContentHeader>
   );
+}
+
+function getSpansEventView(eventView: EventView): EventView {
+  eventView = eventView.clone();
+  eventView.fields = [
+    {field: 'count()'},
+    {field: 'count_unique(id)'},
+    {field: 'sumArray(spans_exclusive_time)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.75)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.95)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.99)'},
+  ];
+  return eventView;
 }
 
 const ContentHeader = styled('div')`
