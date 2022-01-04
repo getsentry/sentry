@@ -419,8 +419,6 @@ class AsyncComponent<
       }
     }
 
-    console.log({here: this.disableErrorReport});
-
     return (
       <RouteError
         error={error}
