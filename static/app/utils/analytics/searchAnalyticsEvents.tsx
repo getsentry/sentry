@@ -5,7 +5,7 @@ type SearchEventBase = {
 };
 
 type OpenEvent = {};
-type SelectEvent = {query?: string; result_type: string; source_type: string};
+type SelectEvent = {result_type: string; source_type: string; query?: string};
 type QueryEvent = {query: string};
 
 export type SearchEventParameters = {
