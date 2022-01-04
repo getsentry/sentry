@@ -639,7 +639,6 @@ const Wrapper = styled(PanelItem)<{
         height: 100%;
         background-color: ${p.theme.bodyBackground};
         opacity: 0.4;
-        z-index: 1;
       }
 
       @keyframes tintRow {
