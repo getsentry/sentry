@@ -8,8 +8,10 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
 
     def setUp(self):
         super().setUp()
-        self.organization = self.create_organization(owner=self.user)
-        self.doc = self.create_doc_integration(features=[1, 2, 3], is_draft=False)
+        self.organization = self.create_organization(owner=self.user, name="Walter Mitty")
+        self.doc = self.create_doc_integration(
+            name="Quintessence of Life", features=[1, 2, 3], is_draft=False
+        )
         self.login_as(self.user)
 
     def load_page(self, slug):
