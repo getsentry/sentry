@@ -445,7 +445,7 @@ export type AppOrProviderOrPlugin =
   | SentryApp
   | IntegrationProvider
   | PluginWithProjectList
-  | DocumentIntegration;
+  | DocIntegration;
 
 /**
  * Webhooks and servicehooks

@@ -325,8 +325,8 @@ export const docIntegrationList: DocIntegration[] = documentIntegrationList.map(
   })
 );
 
-export const documentIntegrations: {
-  [key: string]: DocumentIntegration;
+export const docIntegrations: {
+  [key: string]: DocIntegration;
 } = Object.fromEntries(
-  documentIntegrationList.map(integration => [integration.slug, integration])
+  docIntegrationList.map(integration => [integration.slug, integration])
 );
