@@ -222,6 +222,10 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   onPreview(dashboardId: string) {
     const {organization, location} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.preview', {
+      organization,
+      dashboard_id: dashboardId,
+    });
 
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}`,
