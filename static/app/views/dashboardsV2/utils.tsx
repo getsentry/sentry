@@ -9,7 +9,7 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
-import {GlobalSelection} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -27,7 +27,7 @@ export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
 export function eventViewFromWidget(
   title: string,
   query: WidgetQuery,
-  selection: GlobalSelection,
+  selection: PageFilters,
   widgetDisplayType?: DisplayType
 ): EventView {
   const {start, end, period: statsPeriod} = selection.datetime;

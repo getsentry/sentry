@@ -16,7 +16,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -344,7 +344,7 @@ class DashboardDetail extends Component<Props, State> {
       i: constructGridItemKey(newWidgets[index]),
     }));
     saveDashboardLayout(organizationId, dashboardId, newLayout);
-    this.setState({layout: newLayout, modifiedDashboard: null});
+    this.setState({layout: newLayout});
   };
 
   onCommit = () => {
@@ -371,7 +371,6 @@ class DashboardDetail extends Component<Props, State> {
               });
               this.setState({
                 dashboardState: DashboardState.VIEW,
-                modifiedDashboard: null,
               });
 
               // redirect to new dashboard
@@ -507,7 +506,7 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboardId} = params;
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         skipLoadLastUsed={organization.features.includes('global-views')}
         defaultSelection={{
           datetime: {
@@ -556,7 +555,7 @@ class DashboardDetail extends Component<Props, State> {
             />
           </NoProjectMessage>
         </PageContent>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 
@@ -567,7 +566,7 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboardId} = params;
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         skipLoadLastUsed={organization.features.includes('global-views')}
         defaultSelection={{
           datetime: {
@@ -643,7 +642,7 @@ class DashboardDetail extends Component<Props, State> {
             </Layout.Body>
           </NoProjectMessage>
         </StyledPageContent>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 

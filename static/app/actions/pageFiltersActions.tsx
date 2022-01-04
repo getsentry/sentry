@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-const GlobalSelectionActions = Reflux.createActions([
+const PageFiltersActions = Reflux.createActions([
   'reset',
   'setOrganization',
   'initializeUrlState',
@@ -10,4 +10,4 @@ const GlobalSelectionActions = Reflux.createActions([
   'save',
 ]);
 
-export default GlobalSelectionActions;
+export default PageFiltersActions;

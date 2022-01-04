@@ -80,10 +80,18 @@ export const DataCategoryName = {
 export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
-export type GlobalSelection = {
-  // Project Ids currently selected
+export type PageFilters = {
+  /**
+   * Currently selected Project IDs
+   */
   projects: number[];
+  /**
+   * Currently selected environment names
+   */
   environments: string[];
+  /**
+   * CUrrently selected time filter
+   */
   datetime: {
     start: DateString;
     end: DateString;

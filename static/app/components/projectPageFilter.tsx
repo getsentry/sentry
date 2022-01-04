@@ -3,14 +3,14 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {updateProjects} from 'sentry/actionCreators/globalSelection';
+import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import DropdownButton from 'sentry/components/dropdownButton';
 import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
 import PlatformList from 'sentry/components/platformList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {MinimalProject} from 'sentry/types';
@@ -68,7 +68,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
   );
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, isReady} = useLegacyStore(GlobalSelectionStore);
+  const {selection, isReady} = useLegacyStore(PageFiltersStore);
 
   const handleChangeProjects = (newProjects: number[] | null) => {
     setCurrentSelectedProjects(newProjects);

@@ -9,13 +9,13 @@ import {
   getInterval,
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
-import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import {
   EventsStats,
-  GlobalSelection,
   MultiSeriesEventsStats,
   OrganizationSummary,
+  PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {parsePeriodToHours} from 'sentry/utils/dates';
@@ -35,7 +35,7 @@ const MAX_BIN_COUNT = 66;
 
 function getWidgetInterval(
   widget: Widget,
-  datetimeObj: Partial<GlobalSelection['datetime']>
+  datetimeObj: Partial<PageFilters['datetime']>
 ): string {
   // Bars charts are daily totals to aligned with discover. It also makes them
   // usefully different from line/area charts until we expose the interval control, or remove it.
@@ -64,10 +64,11 @@ type RawResult = EventsStats | MultiSeriesEventsStats;
 function transformSeries(stats: EventsStats, seriesName: string): Series {
   return {
     seriesName,
-    data: stats.data.map(([timestamp, counts]) => ({
-      name: timestamp * 1000,
-      value: counts.reduce((acc, {count}) => acc + count, 0),
-    })),
+    data:
+      stats?.data.map(([timestamp, counts]) => ({
+        name: timestamp * 1000,
+        value: counts.reduce((acc, {count}) => acc + count, 0),
+      })) ?? [],
   };
 }
 
@@ -107,7 +108,7 @@ type Props = {
   api: Client;
   organization: OrganizationSummary;
   widget: Widget;
-  selection: GlobalSelection;
+  selection: PageFilters;
   children: (
     props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
   ) => React.ReactNode;

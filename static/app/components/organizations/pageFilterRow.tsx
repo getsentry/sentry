@@ -24,7 +24,7 @@ type Props = {
   renderCheckbox?: (options: CheckboxRenderOptions) => React.ReactNode;
 };
 
-function GlobalSelectionHeaderRow({
+function PageFilterRow({
   checked,
   onCheckClick,
   children,
@@ -87,4 +87,4 @@ const CheckboxHitbox = styled('div')`
   align-items: center;
 `;
 
-export default GlobalSelectionHeaderRow;
+export default PageFilterRow;
