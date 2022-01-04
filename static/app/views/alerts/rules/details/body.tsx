@@ -103,6 +103,20 @@ export default class DetailsBody extends React.Component<Props> {
     return getInterval({start, end}, 'high');
   }
 
+  getFilter() {
+    const {rule} = this.props;
+    const {dataset, query} = rule ?? {};
+    if (!rule) {
+      return null;
+    }
+
+    const eventType =
+      dataset === Dataset.SESSIONS ? null : extractEventTypeFilterFromRule(rule);
+    const queryWithEventType = [eventType, query].join(' ').split(' ');
+
+    return queryWithEventType;
+  }
+
   renderTrigger(label: string, threshold: number, actions: Action[]): React.ReactNode {
     const {rule} = this.props;
 
@@ -388,6 +402,7 @@ export default class DetailsBody extends React.Component<Props> {
                     projects={projects}
                     interval={this.getInterval()}
                     query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
+                    filter={this.getFilter()}
                     orgId={orgId}
                     handleZoom={handleZoom}
                   />

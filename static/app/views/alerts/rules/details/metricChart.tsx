@@ -69,6 +69,7 @@ type Props = WithRouterProps & {
   projects: Project[] | AvatarProject[];
   interval: string;
   query: string;
+  filter: string[] | null;
   orgId: string;
   handleZoom: (start: DateString, end: DateString) => void;
 };
@@ -332,7 +333,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       selectedIncident,
       interval,
       handleZoom,
-      query,
+      filter,
       incidents,
       rule,
       organization,
@@ -533,6 +534,8 @@ class MetricChart extends React.PureComponent<Props, State> {
         ''
     );
 
+    const queryFilter = filter?.map((f, idx) => <Filters key={idx}>{f}</Filters>);
+
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
@@ -543,7 +546,8 @@ class MetricChart extends React.PureComponent<Props, State> {
           </ChartHeader>
           <ChartFilters>
             <StyledCircleIndicator size={8} />
-            {`${rule.aggregate} ${query}`}
+            <Filters>{rule.aggregate}</Filters>
+            {queryFilter}
           </ChartFilters>
           {getDynamicText({
             value: (
@@ -817,6 +821,10 @@ const ChartFilters = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.textColor};
+`;
+
+const Filters = styled('span')`
+  margin-right: ${space(1)};
 `;
 
 const ChartActions = styled(PanelFooter)`
