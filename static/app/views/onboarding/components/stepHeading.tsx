@@ -22,7 +22,7 @@ const StepHeading = styled(motion.h2)<{step: number}>`
     background-color: ${p => p.theme.yellow300};
     border-radius: 50%;
     color: ${p => p.theme.textColor};
-    font-size: 1.5rem;
+    font-size: 1rem;
   }
 `;
 
