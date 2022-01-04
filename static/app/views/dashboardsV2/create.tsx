@@ -30,9 +30,9 @@ function CreateDashboard(props: Props) {
     );
   }
 
-  const template = DASHBOARDS_TEMPLATES.find(
-    dashboardTemplate => dashboardTemplate.id === templateId
-  );
+  const template = templateId
+    ? DASHBOARDS_TEMPLATES.find(dashboardTemplate => dashboardTemplate.id === templateId)
+    : undefined;
   const dashboard = template ? cloneDashboard(template) : cloneDashboard(EMPTY_DASHBOARD);
   useEffect(() => {
     const constructedWidget = constructWidgetFromQuery(location.query);
