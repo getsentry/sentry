@@ -89,6 +89,8 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             button = self.browser.element('[data-test-id="add-widget-library"]')
             button.click()
 
+            self.browser.element('[data-test-id="library-tab"]').click()
+
             # Edit the first widget.
             self.browser.element('[data-test-id="widget-library-card-0"]').click()
             self.browser.element('[data-test-id="widget-library-card-2"]').click()

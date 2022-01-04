@@ -65,7 +65,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     expect(screen.queryByText('Users Affected by Errors')).toBeInTheDocument();
 
     expect(
-      screen.getByRole('button', {name: 'Widget Library', current: true})
+      screen.getByRole('button', {name: 'Widget Library beta', current: true})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Custom Widget', current: false})
