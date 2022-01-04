@@ -423,14 +423,16 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(
-          TestStubs.Widget(
-            [{name: '', conditions: 'event.type:error', fields: ['count()']}],
-            {
-              title: 'Errors',
-              interval: '1d',
-              id: '1',
-            }
-          ),
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'Errors',
+                interval: '1d',
+                id: '1',
+              }
+            ),
+          ],
           {id: '1', title: 'Custom Errors'}
         ),
       });
