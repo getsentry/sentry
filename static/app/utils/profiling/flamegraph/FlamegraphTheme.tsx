@@ -1,4 +1,4 @@
-import {makeColorBucketTheme, makeColorMap} from './../colors/utils';
+import {makeColorBucketTheme, makeColorMap, makeStackToColor} from './../colors/utils';
 import {Frame} from './../frame';
 
 const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',
@@ -88,6 +88,7 @@ export interface FlamegraphTheme {
   };
 }
 
+// Luma chroma hue settings for light theme
 export const LCH_LIGHT = {
   C_0: 0.25,
   C_d: 0.2,
@@ -95,45 +96,12 @@ export const LCH_LIGHT = {
   L_d: 0.15,
 };
 
+// Luma chroma hue settings for dark theme
 export const LCH_DARK = {
   C_0: 0.2,
   C_d: 0.1,
   L_0: 0.2,
   L_d: 0.1,
-};
-
-const makeStackToColor = (
-  fallback: [number, number, number, number]
-): FlamegraphTheme['COLORS']['STACK_TO_COLOR'] => {
-  return (
-    frames: ReadonlyArray<Frame>,
-    colorMap: FlamegraphTheme['COLORS']['COLOR_MAP'],
-    colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
-  ) => {
-    const colors = colorMap(frames, colorBucket);
-    const colorBuffer: number[] = [];
-
-    const length = frames.length;
-
-    for (let index = 0; index < length; index++) {
-      const frame = frames[index];
-      const c = colors.get(frame.name + frame.file);
-      const colorWithAlpha = c ? [...c, 1] : fallback;
-
-      for (let i = 0; i < 6; i++) {
-        const offset = index * 6 * 4 + i * 4;
-        colorBuffer[offset] = colorWithAlpha[0];
-        colorBuffer[offset + 1] = colorWithAlpha[1];
-        colorBuffer[offset + 2] = colorWithAlpha[2];
-        colorBuffer[offset + 3] = colorWithAlpha[3];
-      }
-    }
-
-    return {
-      colorBuffer,
-      colorMap: colors,
-    };
-  };
 };
 
 export const LightFlamegraphTheme: FlamegraphTheme = {

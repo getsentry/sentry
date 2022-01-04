@@ -43,6 +43,43 @@ export function fromLumaChromaHue(L: number, C: number, H: number): Color {
   return [clamp(R1 + m, 0, 1), clamp(G1 + m, 0, 1), clamp(B1 + m, 0, 1.0)];
 }
 
+export const makeStackToColor = (
+  fallback: [number, number, number, number]
+): FlamegraphTheme['COLORS']['STACK_TO_COLOR'] => {
+  return (
+    frames: ReadonlyArray<Frame>,
+    colorMap: FlamegraphTheme['COLORS']['COLOR_MAP'],
+    colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
+  ) => {
+    const colors = colorMap(frames, colorBucket);
+
+    const length = frames.length;
+
+    // Length * number of frames * color components
+    const colorBuffer: number[] = new Array(length * 4 * 6);
+
+    for (let index = 0; index < length; index++) {
+      const c = colors.get(
+        frames[index].name + (frames[index].file ? frames[index].file : '')
+      );
+      const colorWithAlpha = c ? [...c, 1] : fallback;
+
+      for (let i = 0; i < 6; i++) {
+        const offset = index * 6 * 4 + i * 4;
+        colorBuffer[offset] = colorWithAlpha[0];
+        colorBuffer[offset + 1] = colorWithAlpha[1];
+        colorBuffer[offset + 2] = colorWithAlpha[2];
+        colorBuffer[offset + 3] = colorWithAlpha[3];
+      }
+    }
+
+    return {
+      colorBuffer,
+      colorMap: colors,
+    };
+  };
+};
+
 export const isNumber = (input: unknown): input is number => {
   return typeof input === 'number' && !isNaN(input);
 };
@@ -68,7 +105,11 @@ export function clamp(number: number, min?: number, max?: number): number {
 }
 
 export function toRGBAString(r: number, g: number, b: number, alpha: number): string {
-  return `rgba(${r * 255}, ${g * 255}, ${b * 255}, ${alpha})`;
+  return `rgba(${clamp(r * 255, 0, 255)}, ${clamp(g * 255, 0, 255)}, ${clamp(
+    b * 255,
+    0,
+    255
+  )}, ${alpha})`;
 }
 
 export function defaultFrameSortKey(frame: Frame): string {
