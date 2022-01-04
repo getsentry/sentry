@@ -181,7 +181,6 @@ from .endpoints.organization_events_has_measurements import (
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
-    OrganizationEventBaseline,
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
 )
@@ -1088,11 +1087,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-trends-stats/$",
                     OrganizationEventsTrendsStatsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trends-stats",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/event-baseline/$",
-                    OrganizationEventBaseline.as_view(),
-                    name="sentry-api-0-organization-event-baseline",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

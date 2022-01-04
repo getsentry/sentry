@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 
 import {DATE_TIME_KEYS, LOCAL_STORAGE_KEY, URL_PARAM} from 'sentry/constants/pageFilters';
-import {GlobalSelection} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import localStorage from 'sentry/utils/localStorage';
@@ -14,7 +14,7 @@ import {getParams} from './getParams';
 
 const DEFAULT_PARAMS = getParams({});
 
-// Parses URL query parameters for values relevant to global selection header
+// Parses URL query parameters for values relevant to page filters
 type GetStateFromQueryOptions = {
   allowEmptyPeriod?: boolean;
   allowAbsoluteDatetime?: boolean;
@@ -63,8 +63,8 @@ export function getStateFromQuery(
 }
 
 /**
- * Extract the global selection parameters from an object
- * Useful for extracting global selection properties from the current URL
+ * Extract the page filter parameters from an object
+ * Useful for extracting page filter properties from the current URL
  * when building another URL.
  */
 export function extractSelectionParameters(query) {
@@ -72,13 +72,13 @@ export function extractSelectionParameters(query) {
 }
 
 /**
- * Extract the global selection datetime parameters from an object.
+ * Extract the page filter datetime parameters from an object.
  */
 export function extractDatetimeSelectionParameters(query) {
   return pickBy(pick(query, Object.values(DATE_TIME_KEYS)), identity);
 }
 
-export function getDefaultSelection(): GlobalSelection {
+export function getDefaultSelection(): PageFilters {
   const utc = DEFAULT_PARAMS.utc;
   return {
     projects: [],
@@ -94,16 +94,13 @@ export function getDefaultSelection(): GlobalSelection {
 
 /**
  * Compare the non-utc values of two selections.
- * Useful when re-fetching data based on globalselection changing.
+ * Useful when re-fetching data based on page filters changing.
  *
  * utc is not compared as there is a problem somewhere in the selection
  * data flow that results in it being undefined | null | boolean instead of null | boolean.
  * The additional undefined state makes this function just as unreliable as isEqual(selection, other)
  */
-export function isSelectionEqual(
-  selection: GlobalSelection,
-  other: GlobalSelection
-): boolean {
+export function isSelectionEqual(selection: PageFilters, other: PageFilters): boolean {
   if (
     !isEqual(selection.projects, other.projects) ||
     !isEqual(selection.environments, other.environments)
@@ -124,9 +121,9 @@ export function isSelectionEqual(
 }
 
 /**
- * Removes globalselection from localstorage
+ * Removes page filters from localstorage
  */
-export function removeGlobalSelectionStorage(orgId: string) {
+export function removePageFiltersStorage(orgId: string) {
   const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgId}`;
   localStorage.removeItem(localStorageKey);
 }

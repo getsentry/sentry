@@ -12,8 +12,8 @@ type CheckedProps = Props &
 
 const checkedCss = (p: CheckedProps) => css`
   display: block;
-  width: ${p.radioSize === 'small' ? '8px' : '1rem'};
-  height: ${p.radioSize === 'small' ? '8px' : '1rem'};
+  width: ${p.radioSize === 'small' ? '8px' : '0.625rem'};
+  height: ${p.radioSize === 'small' ? '8px' : '0.625rem'};
   border-radius: 50%;
   background-color: ${p.theme.active};
   animation: 0.2s ${growIn} ease;

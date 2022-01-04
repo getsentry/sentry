@@ -7,7 +7,7 @@ import Link from 'sentry/components/links/link';
 import MenuItem from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DisplayModes} from 'sentry/utils/discover/types';
@@ -20,7 +20,7 @@ import {Widget, WidgetType} from '../types';
 type Props = {
   organization: Organization;
   widget: Widget;
-  selection: GlobalSelection;
+  selection: PageFilters;
   onDuplicate: () => void;
   widgetLimitReached: boolean;
   showContextMenu?: boolean;

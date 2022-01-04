@@ -5,7 +5,7 @@ import moment from 'moment';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import SidebarSection from 'sentry/components/sidebarSection';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';

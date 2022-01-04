@@ -238,7 +238,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   orgSlug: props.organization.slug,
                   projectID: listItem['project.id'] as string,
                   transaction,
-                  query: props.eventView.getGlobalSelectionQuery(),
+                  query: props.eventView.getPageFiltersQuery(),
                   additionalQuery,
                 });
 
