@@ -683,6 +683,7 @@ def top_events_timeseries(
     allow_empty=True,
     zerofill_results=True,
     include_other=False,
+    functions_acl=None,
     use_snql=False,
 ):
     """
@@ -737,6 +738,7 @@ def top_events_timeseries(
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
             equations=equations,
+            functions_acl=functions_acl,
         )
         if len(top_events["data"]) == limit and include_other:
             other_events_builder = TopEventsQueryBuilder(

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import dataclasses
+from datetime import datetime
 from itertools import chain
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -14,15 +15,16 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import LimitBy
 
 from sentry import eventstore, features
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import ListField
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType
+from sentry.snuba import discover
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import Dataset, raw_snql_query
+from sentry.utils.snuba import Dataset, SnubaTSResult, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
 from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
@@ -78,7 +80,7 @@ SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
 }
 
 
-class OrganizationEventsSpansEndpointBase(OrganizationEventsEndpointBase):  # type: ignore
+class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
     def has_feature(self, request: Request, organization: Organization) -> bool:
         return bool(
             features.has(
@@ -194,7 +196,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
             )
 
 
-class SpansExamplesSerializer(serializers.Serializer):  # type: ignore
+class SpansSerializer(serializers.Serializer):  # type: ignore
     query = serializers.CharField(required=False, allow_null=True)
     span = ListField(child=serializers.CharField(), required=True, allow_null=False, max_length=10)
 
@@ -205,7 +207,7 @@ class SpansExamplesSerializer(serializers.Serializer):  # type: ignore
             raise serializers.ValidationError(str(e))
 
 
-class OrganizationEventsSpansEndpoint(OrganizationEventsSpansEndpointBase):
+class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(request, organization):
             return Response(status=404)
@@ -215,7 +217,7 @@ class OrganizationEventsSpansEndpoint(OrganizationEventsSpansEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        serializer = SpansExamplesSerializer(data=request.GET)
+        serializer = SpansSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
@@ -276,6 +278,82 @@ class SpanExamplesPaginator:
             data,
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
+        )
+
+
+class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not self.has_feature(request, organization):
+            return Response(status=404)
+
+        serializer = SpansSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serialized = serializer.validated_data
+
+        # TODO: The serializer currently supports >1 span.
+        # This will no longer be the case once the examples query is split up.
+        spans = serialized["span"]
+        if len(spans) != 1:
+            raise ParseError(detail="Can only specify 1 span.")
+        span = spans[0]
+
+        def get_event_stats(
+            query_columns: Sequence[str],
+            query: str,
+            params: Dict[str, str],
+            rollup: int,
+            zerofill_results: bool,
+            comparison_delta: Optional[datetime] = None,
+        ) -> SnubaTSResult:
+            # There is only 1 span, but we use the top_events_timeseries in order to
+            # generate the necessary conditions to filter for only the 1 span.
+            results = discover.top_events_timeseries(
+                timeseries_columns=query_columns,
+                selected_columns=[
+                    "array_join(spans_op)",
+                    "array_join(spans_group)",
+                ],
+                user_query=query,
+                params=params,
+                orderby=[],
+                rollup=rollup,
+                limit=1,
+                organization=organization,
+                referrer="api.organization-events-spans-performance-stats",
+                top_events={
+                    "data": [
+                        # The conditions generated only work when there is exactly 1 span here.
+                        # If multiple spans are necessary, you CANNOT simply add more spans to
+                        # this list because the array join optimizer in snuba will not know how
+                        # to handle it.
+                        # Instead, we'll want to insert a condition like
+                        # tuple(array_join(spans_op), array_join(spans_group)) IN tuple(tuple(...), ...)
+                        {"array_join_spans_op": span.op, "array_join_spans_group": span.group}
+                    ]
+                },
+                allow_empty=False,
+                zerofill_results=zerofill_results,
+                functions_acl=["array_join", "percentileArray"],
+                use_snql=True,
+            )
+
+            # If there is data, we have a top event multi axis time series with one top event.
+            # Reshape it so we have a single multi axis time series.
+            #
+            # If there is no data, we already have a single multi axis time series.
+            if not isinstance(results, SnubaTSResult):
+                results = next(iter(results.values()))
+
+            # Don't want order at the top level of the single multi axis time series.
+            if "order" in results.data:
+                del results.data["order"]
+
+            return results
+
+        return Response(
+            self.get_event_stats_data(request, organization, get_event_stats),
+            status=200,
         )
 
 
