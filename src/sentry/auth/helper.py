@@ -173,7 +173,7 @@ class AuthIdentityHandler:
 
         if not is_active_superuser(self.request):
             # set activeorg to ensure correct redirect upon logging in
-            self.request.session["activeorg"] = self.organization.slug
+            auth.set_active_org(self.request, self.organization.slug)
         return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
     def _handle_new_membership(self, auth_identity: AuthIdentity) -> Optional[OrganizationMember]:
@@ -526,8 +526,7 @@ class AuthIdentityHandler:
         state.clear()
 
         if not is_active_superuser(self.request):
-            # set activeorg to ensure correct redirect upon logging in
-            self.request.session["activeorg"] = self.organization.slug
+            auth.set_active_org(self.request, self.organization.slug)
         return self._post_login_redirect()
 
     @property
