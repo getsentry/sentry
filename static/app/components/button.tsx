@@ -293,6 +293,7 @@ const ButtonLabel = styled('span', {
     typeof prop === 'string' && isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
 })<ButtonLabelProps>`
   display: grid;
+  height: 100%;
   grid-auto-flow: column;
   align-items: center;
   justify-content: ${p => p.align};
