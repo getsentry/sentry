@@ -202,7 +202,12 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     const {location, router, selection} = this.props;
     const {start, end, period, utc} = selection.datetime;
-    const autoHeightResize = organization.features.includes('dashboard-grid-layout');
+
+    // Only allow height resizing for widgets that are on a dashboard
+    const autoHeightResize = Boolean(
+      organization.features.includes('dashboard-grid-layout') &&
+        (widget.id || widget.tempId)
+    );
 
     if (widget.displayType === 'world_map') {
       const {data, title} = processTableResults(tableResults);
