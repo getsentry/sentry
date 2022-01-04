@@ -89,7 +89,7 @@ class Feature:
         if feature == cls.VISUALIZATION:
             return "Visualize Sentry data in %s." % name
         if feature == cls.CHAT:
-            return "Get Sentry notifications in %s." & name
+            return "Get Sentry notifications in %s." % name
         if feature == cls.SESSION_REPLAY:
             return "Link Sentry errors to the session replay in %s." % name
         # default
