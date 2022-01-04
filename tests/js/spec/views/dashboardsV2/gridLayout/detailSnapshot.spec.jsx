@@ -4,6 +4,21 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import * as utils from 'sentry/views/dashboardsV2/gridLayout/utils';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
+jest.mock('echarts-for-react/lib/core', () => {
+  // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
+  // guaranteed to be in scope
+  const ReactActual = require('react');
+
+  // We need a class component here because `BaseChart` passes `ref` which will
+  // error if we return a stateless/functional component
+  return class extends ReactActual.Component {
+    render() {
+      // ReactEchartsCore accepts a style prop that determines height
+      return <div style={{...this.props.style, background: 'green'}}>echarts mock</div>;
+    }
+  };
+});
+
 describe('Dashboards > Detail', function () {
   enforceActOnUseLegacyStoreHook();
 
@@ -125,51 +140,6 @@ describe('Dashboards > Detail', function () {
         wrapper.unmount();
       }
     });
-
-    // it('renders charts with the full height of the widget', async () => {
-    //   jest.spyOn(utils, 'getDashboardLayout').mockReturnValueOnce([
-    //     {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
-    //     {i: 'grid-item-2', x: 2, y: 0, w: 2, h: 2},
-    //   ]);
-
-    //   MockApiClient.addMockResponse({
-    //     url: '/organizations/org-slug/dashboards/1/',
-    //     body: TestStubs.Dashboard(
-    //       [
-    //         TestStubs.Widget(
-    //           [{name: '', conditions: 'event.type:error', fields: ['count()']}],
-    //           {
-    //             title: 'Tall Errors',
-    //             interval: '1d',
-    //             id: '1',
-    //           }
-    //         ),
-    //         TestStubs.Widget(
-    //           [{name: '', conditions: 'event.type:error', fields: ['count()']}],
-    //           {
-    //             title: 'Short Errors',
-    //             interval: '1d',
-    //             id: '2',
-    //           }
-    //         ),
-    //       ],
-    //       {id: '1', title: 'Custom Errors'}
-    //     ),
-    //   });
-    //   wrapper = mountWithTheme(
-    //     <ViewEditDashboard
-    //       organization={initialData.organization}
-    //       params={{orgId: 'org-slug', dashboardId: '1'}}
-    //       router={initialData.router}
-    //       location={initialData.router.location}
-    //     />,
-    //     initialData.routerContext
-    //   );
-    //   await tick();
-    //   wrapper.update();
-
-    //   expect(wrapper).toSnapshot();
-    // });
 
     it('renders charts with the full height of the widget', async () => {
       jest.spyOn(utils, 'getDashboardLayout').mockReturnValueOnce([
