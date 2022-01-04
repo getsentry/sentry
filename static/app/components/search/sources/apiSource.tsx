@@ -471,7 +471,7 @@ class ApiSource extends React.Component<Props, State> {
         createDocIntegrationResults(
           docIntegrations,
           orgId,
-          organization.features.includes('integrations-docs-from-db')
+          organization?.features?.includes('integrations-docs-from-db') ?? false
         ),
       ])
     );
