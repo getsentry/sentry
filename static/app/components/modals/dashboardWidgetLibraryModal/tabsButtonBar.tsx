@@ -88,10 +88,8 @@ export function TabsButtonBar({
           }
         }}
       >
-        <div>
-          {t('Widget Library')}
-          <FeatureBadge type="beta" />
-        </div>
+        {t('Widget Library')}
+        <FeatureBadge type="beta" />
       </LibraryButton>
     </StyledButtonBar>
   );
