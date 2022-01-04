@@ -40,6 +40,7 @@ merge-locale-catalogs: build-js-po
 	./bin/merge-catalogs en
 
 compile-locale:
+	$(PIP) install Babel
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
 
