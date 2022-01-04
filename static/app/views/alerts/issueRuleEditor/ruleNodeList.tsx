@@ -180,8 +180,8 @@ class RuleNodeList extends React.Component<Props> {
         {
           notify: [] as IssueAlertRuleActionTemplate[],
           ticket: [] as IssueAlertRuleActionTemplate[],
-          frequency: [] as IssueAlertRuleActionTemplate[],
-          change: [] as IssueAlertRuleActionTemplate[],
+          frequency: [] as IssueAlertRuleConditionTemplate[],
+          change: [] as IssueAlertRuleConditionTemplate[],
         }
       );
 
