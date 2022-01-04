@@ -27,9 +27,12 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {
+      organization,
       params: {integrationSlug},
     } = this.props;
-    return [['doc', `/doc-integrations/${integrationSlug}/`]];
+    return organization.features.includes('integrations-docs-from-db')
+      ? [['doc', `/doc-integrations/${integrationSlug}/`]]
+      : [];
   }
 
   get integrationType() {
@@ -83,12 +86,15 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   renderTopButton() {
     return (
-      <ExternalLink href={this.integration.url} onClick={this.trackClick}>
+      <ExternalLink
+        href={this.integration.url}
+        onClick={this.trackClick}
+        data-test-id="learn-more"
+      >
         <LearnMoreButton
           size="small"
           priority="primary"
           style={{marginLeft: space(1)}}
-          data-test-id="learn-more"
           icon={<StyledIconOpen size="xs" />}
         >
           {t('Learn More')}
