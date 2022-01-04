@@ -5,6 +5,7 @@ from datetime import datetime
 from itertools import chain
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -20,7 +21,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import ListField
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
 from sentry.utils.cursors import Cursor, CursorResult
@@ -306,50 +307,54 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
             zerofill_results: bool,
             comparison_delta: Optional[datetime] = None,
         ) -> SnubaTSResult:
-            # There is only 1 span, but we use the top_events_timeseries in order to
-            # generate the necessary conditions to filter for only the 1 span.
-            results = discover.top_events_timeseries(
-                timeseries_columns=query_columns,
-                selected_columns=[
-                    "array_join(spans_op)",
-                    "array_join(spans_group)",
-                ],
-                user_query=query,
-                params=params,
-                orderby=[],
-                rollup=rollup,
-                limit=1,
-                organization=organization,
-                referrer="api.organization-events-spans-performance-stats",
-                top_events={
-                    "data": [
-                        # The conditions generated only work when there is exactly 1 span here.
-                        # If multiple spans are necessary, you CANNOT simply add more spans to
-                        # this list because the array join optimizer in snuba will not know how
-                        # to handle it.
-                        # Instead, we'll want to insert a condition like
-                        # tuple(array_join(spans_op), array_join(spans_group)) IN tuple(tuple(...), ...)
-                        {"array_join_spans_op": span.op, "array_join_spans_group": span.group}
+            with sentry_sdk.start_span(
+                op="discover.discover", description="timeseries.filter_transform"
+            ):
+                builder = TimeseriesQueryBuilder(
+                    Dataset.Discover,
+                    params,
+                    rollup,
+                    query=query,
+                    selected_columns=query_columns,
+                    functions_acl=["array_join", "percentileArray"],
+                )
+
+                spans_op = builder.resolve_function("array_join(spans_op)")
+                spans_group = builder.resolve_function("array_join(spans_group)")
+
+                # Adding spans.op and spans.group to the group by because
+                # We need them in the query to help the array join optimizer
+                # in snuba take effect but the TimeseriesQueryBuilder
+                # removes all non aggregates from the select clause.
+                builder.groupby.extend([spans_op, spans_group])
+
+                builder.add_conditions(
+                    [
+                        Condition(
+                            Function("tuple", [spans_op, spans_group]),
+                            Op.IN,
+                            Function("tuple", [Function("tuple", [span.op, span.group])]),
+                        ),
                     ]
-                },
-                allow_empty=False,
-                zerofill_results=zerofill_results,
-                functions_acl=["array_join", "percentileArray"],
-                use_snql=True,
-            )
+                )
 
-            # If there is data, we have a top event multi axis time series with one top event.
-            # Reshape it so we have a single multi axis time series.
-            #
-            # If there is no data, we already have a single multi axis time series.
-            if not isinstance(results, SnubaTSResult):
-                results = next(iter(results.values()))
+                snql_query = builder.get_snql_query()
+                results = raw_snql_query(
+                    snql_query, "api.organization-events-spans-performance-stats"
+                )
 
-            # Don't want order at the top level of the single multi axis time series.
-            if "order" in results.data:
-                del results.data["order"]
+                with sentry_sdk.start_span(
+                    op="discover.discover", description="timeseries.transform_results"
+                ):
+                    result = discover.zerofill(
+                        results["data"],
+                        params["start"],
+                        params["end"],
+                        rollup,
+                        "time",
+                    )
 
-            return results
+                return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
 
         return Response(
             self.get_event_stats_data(request, organization, get_event_stats),

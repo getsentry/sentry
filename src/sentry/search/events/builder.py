@@ -127,9 +127,6 @@ class QueryBuilder(QueryFilter):  # type: ignore
                     )
                 )
 
-    def add_conditions(self, conditions: List[Condition]) -> None:
-        self.where += conditions
-
     def get_snql_query(self) -> Query:
         self.validate_having_clause()
 
@@ -372,10 +369,6 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                             conditions.append(And(conditions=[null_condition, non_none_condition]))
                     else:
                         conditions.append(null_condition)
-                elif len(values_list) == 1:
-                    conditions.append(
-                        Condition(resolved_field, Op.EQ if not other else Op.NEQ, values_list[0])
-                    )
                 else:
                     conditions.append(
                         Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)

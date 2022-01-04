@@ -485,6 +485,7 @@ def timeseries_query(
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
+    functions_acl: Optional[Sequence[str]] = None,
     use_snql: Optional[bool] = False,
 ):
     """
@@ -526,6 +527,7 @@ def timeseries_query(
                 query=query,
                 selected_columns=columns,
                 equations=equations,
+                functions_acl=functions_acl,
             )
             query_list = [base_builder]
             if comparison_delta:
