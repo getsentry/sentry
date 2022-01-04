@@ -165,6 +165,13 @@ class RuleNodeList extends React.Component<Props> {
         (acc, curr) => {
           if (curr.actionType === 'ticket') {
             acc.ticket.push(curr);
+          } else if (curr.id.includes('event_frequency')) {
+            acc.frequency.push(curr);
+          } else if (
+            curr.id.includes('sentry.rules.conditions') &&
+            !curr.id.includes('event_frequency')
+          ) {
+            acc.change.push(curr);
           } else {
             acc.notify.push(curr);
           }
@@ -173,18 +180,22 @@ class RuleNodeList extends React.Component<Props> {
         {
           notify: [] as IssueAlertRuleActionTemplate[],
           ticket: [] as IssueAlertRuleActionTemplate[],
+          change: [] as IssueAlertRuleConditionTemplate[],
+          frequency: [] as IssueAlertRuleConditionTemplate[],
         }
       );
 
       options = Object.entries(grouped)
         .filter(([_, values]) => values.length)
         .map(([key, values]) => {
-          const label =
-            key === 'ticket'
-              ? t('Create new\u{2026}')
-              : t('Send notification to\u{2026}');
+          const label = {
+            notify: t('Send notification to\u{2026}'),
+            ticket: t('Create new\u{2026}'),
+            change: t('Issue state change'),
+            frequency: t('Issue frequency'),
+          };
 
-          return {label, options: createSelectOptions(values)};
+          return {label: label[key], options: createSelectOptions(values)};
         });
     }
 

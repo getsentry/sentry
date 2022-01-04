@@ -727,6 +727,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                             <RuleNodeList
                               nodes={this.getConditions()}
                               items={conditions ?? []}
+                              selectType="grouped"
                               placeholder={
                                 hasFeature
                                   ? t('Add optional trigger...')
