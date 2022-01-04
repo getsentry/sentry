@@ -14,6 +14,8 @@ import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
+  isEquation,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -24,10 +26,16 @@ import WidgetQueryFields from './widgetQueryFields';
 
 const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
   const options: SelectValue<string>[] = [];
+  let equations = 0;
   fields.forEach(field => {
-    const alias = getAggregateAlias(field);
-    options.push({label: t('%s asc', field), value: alias});
-    options.push({label: t('%s desc', field), value: `-${alias}`});
+    let alias = getAggregateAlias(field);
+    const label = stripEquationPrefix(field);
+    if (isEquation(field)) {
+      alias = `equation[${equations}]`;
+      equations += 1;
+    }
+    options.push({label: t('%s asc', label), value: alias});
+    options.push({label: t('%s desc', label), value: `-${alias}`});
   });
   return options;
 };
