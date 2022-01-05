@@ -58,7 +58,7 @@ type Props = {
     transformedResults: TableDataRow[];
     issueResults: IssueTableData[];
   }) => React.ReactNode;
-  memberList: User[];
+  memberList?: User[];
 };
 
 type State = {
@@ -130,7 +130,7 @@ class WidgetQueries extends React.Component<Props, State> {
   getSuggestedAssignees(group: Group): SuggestedAssignee[] {
     const {memberList} = this.props;
     const {owners: suggestedOwners} = group;
-    if (!suggestedOwners) {
+    if (!suggestedOwners || !memberList) {
       return [];
     }
 
@@ -264,12 +264,16 @@ class WidgetQueries extends React.Component<Props, State> {
   }
 
   render() {
-    const {children} = this.props;
+    const {children, memberList} = this.props;
     const {loading, tableResults, errorMessage} = this.state;
     const {transformedTableResults: transformedResults, issueResults} =
       this.transformTableResults(tableResults);
-
-    return children({loading, transformedResults, issueResults, errorMessage});
+    return children({
+      loading: loading || !memberList,
+      transformedResults,
+      issueResults,
+      errorMessage,
+    });
   }
 }
 

@@ -15,9 +15,11 @@ import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, User} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -78,12 +80,12 @@ type Props = {
   paramDashboardId?: string;
   paramTemplateId?: string;
   newWidget?: Widget;
-  memberList?: User[];
 };
 
 type State = {
   isMobile: boolean;
   layouts: Layouts;
+  memberList?: User[];
 };
 
 class Dashboard extends Component<Props, State> {
@@ -122,6 +124,9 @@ class Dashboard extends Component<Props, State> {
       this.fetchTags();
     }
     this.addNewWidget();
+
+    // Get member list data for issue widgets
+    this.fetchMemberList();
   }
 
   async componentDidUpdate(prevProps: Props) {
@@ -135,6 +140,18 @@ class Dashboard extends Component<Props, State> {
     if (newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
+  }
+
+  fetchMemberList() {
+    const {api, selection} = this.props;
+    // Stores MemberList in MemberListStore for use in modals and sets state for use is child components
+    fetchOrgMembers(
+      api,
+      this.props.organization.slug,
+      selection.projects?.map(projectId => String(projectId))
+    ).then(_ => {
+      this.setState({memberList: MemberListStore.getAll()});
+    });
   }
 
   async addNewWidget() {
@@ -323,8 +340,8 @@ class Dashboard extends Component<Props, State> {
   }
 
   renderWidget(widget: Widget, index: number) {
-    const {isMobile} = this.state;
-    const {isEditing, organization, widgetLimitReached, memberList} = this.props;
+    const {isMobile, memberList} = this.state;
+    const {isEditing, organization, widgetLimitReached} = this.props;
 
     const widgetProps = {
       widget,

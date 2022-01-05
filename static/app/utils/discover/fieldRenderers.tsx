@@ -18,7 +18,7 @@ import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, SuggestedOwnerReason} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -436,52 +436,94 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   assignee: {
     sortField: 'assignee.name',
-    renderFunc: (_, {issueData}) => {
-      const {assignedTo, suggestedAssignees} = issueData
-        ? issueData
-        : {assignedTo: undefined, suggestedAssignees: undefined};
-      return (
-        <ActorContainer>
-          {assignedTo ? (
-            <ActorAvatar
-              actor={assignedTo}
-              size={28}
-              tooltip={t(
+    renderFunc: (_, {issueData}) => assigneeRenderer(issueData),
+  },
+};
+
+const assigneeRenderer = (issueData?: IssueTableData) => {
+  const {assignedTo, suggestedAssignees} = issueData
+    ? issueData
+    : {assignedTo: undefined, suggestedAssignees: undefined};
+  const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
+    suspectCommit: tct('Based on [commit:commit data]', {
+      commit: (
+        <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
+      ),
+    }),
+    ownershipRule: t('Matching Issue Owners Rule'),
+  };
+  const assignedToSuggestion = suggestedAssignees?.find(
+    actor => actor.id === assignedTo?.id
+  );
+  return (
+    <ActorContainer>
+      {assignedTo ? (
+        <ActorAvatar
+          actor={assignedTo}
+          size={28}
+          tooltip={
+            <TooltipWrapper>
+              {t(
                 `Assigned to ${
                   assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name
                 }`
               )}
-            />
-          ) : suggestedAssignees && suggestedAssignees.length > 0 ? (
-            <SuggestedAvatarStack
-              size={24}
-              owners={suggestedAssignees}
-              tooltipOptions={{isHoverable: true}}
-              tooltip={
-                <TooltipWrapper>
-                  <div>
-                    {tct('Suggestion: [name]', {
-                      name:
-                        suggestedAssignees[0].type === 'team'
-                          ? `#${suggestedAssignees[0].name}`
-                          : suggestedAssignees[0].name,
-                    })}
-                    {suggestedAssignees.length > 1 &&
-                      tn(' + %s other', ' + %s others', suggestedAssignees.length - 1)}
-                  </div>
-                </TooltipWrapper>
-              }
-            />
-          ) : (
-            <Tooltip isHoverable skipWrapper title={<div>{t('Unassigned')}</div>}>
-              <IconUser size="20px" color="gray400" />
-            </Tooltip>
-          )}
-        </ActorContainer>
-      );
-    },
-  },
+              {assignedToSuggestion && (
+                <TooltipSubtext>
+                  {suggestedReasons[assignedToSuggestion.suggestedReason]}
+                </TooltipSubtext>
+              )}
+            </TooltipWrapper>
+          }
+        />
+      ) : suggestedAssignees && suggestedAssignees.length > 0 ? (
+        <SuggestedAvatarStack
+          size={24}
+          owners={suggestedAssignees}
+          tooltipOptions={{isHoverable: true}}
+          tooltip={
+            <TooltipWrapper>
+              <div>
+                {tct('Suggestion: [name]', {
+                  name:
+                    suggestedAssignees[0].type === 'team'
+                      ? `#${suggestedAssignees[0].name}`
+                      : suggestedAssignees[0].name,
+                })}
+                {suggestedAssignees.length > 1 &&
+                  tn(' + %s other', ' + %s others', suggestedAssignees.length - 1)}
+              </div>
+              <TooltipSubtext>
+                {suggestedReasons[suggestedAssignees[0].suggestedReason]}
+              </TooltipSubtext>
+            </TooltipWrapper>
+          }
+        />
+      ) : (
+        <Tooltip isHoverable skipWrapper title={<div>{t('Unassigned')}</div>}>
+          <IconUser size="20px" color="gray400" />
+        </Tooltip>
+      )}
+    </ActorContainer>
+  );
 };
+
+const TooltipWrapper = styled('div')`
+  text-align: left;
+`;
+
+const TooltipSubtext = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const TooltipSubExternalLink = styled(ExternalLink)`
+  color: ${p => p.theme.subText};
+  text-decoration: underline;
+
+  :hover {
+    color: ${p => p.theme.subText};
+  }
+`;
 
 type SpecialFunctionFieldRenderer = (
   fieldName: string
@@ -708,10 +750,6 @@ const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
 
 const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
   background-color: ${p => p.theme.gray100};
-`;
-
-const TooltipWrapper = styled('div')`
-  text-align: left;
 `;
 
 /**

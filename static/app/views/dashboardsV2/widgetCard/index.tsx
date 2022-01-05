@@ -186,7 +186,7 @@ class WidgetCard extends React.Component<Props> {
         organization={organization}
         widget={widget}
         selection={selection}
-        memberList={memberList ?? ([] as User[])}
+        memberList={memberList}
       >
         {({transformedResults, issueResults, errorMessage, loading}) => {
           return (
