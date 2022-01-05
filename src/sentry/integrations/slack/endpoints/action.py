@@ -359,11 +359,18 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         except SlackRequestError as e:
             return self.respond(status=e.status)
 
-        # Actions list may be empty when receiving a dialog response
-        action_list = [
-            MessageAction(**action_data) for action_data in slack_request.data.get("actions", [])
-        ]
-        action_option = action_list[0].value if action_list else None
+        # Actions list may be empty when receiving a dialog response.
+        action_list_raw = slack_request.data.get("actions", [])
+
+        action_list = []
+        action_option = None
+        for action_data in action_list_raw:
+            # Get the _first_ value in the action list.
+            value = action_data.get("value")
+            if value and not action_option:
+                action_option = value
+            if "name" in action_data:
+                action_list.append(MessageAction(**action_data))
 
         # If a user is just clicking our auto response in the messages tab we just return a 200
         if action_option == "sentry_docs_link_clicked":
@@ -435,10 +442,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
 
         if action == "approve_member":
-            key = "integrations.slack.approve_member_invitation"
+            event_name = "integrations.slack.approve_member_invitation"
             verb = "approved"
         else:
-            key = "integrations.slack.reject_member_invitation"
+            event_name = "integrations.slack.reject_member_invitation"
             verb = "rejected"
 
         if original_status == InviteStatus.REQUESTED_TO_BE_INVITED:
@@ -447,11 +454,11 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             invite_type = "Join"
 
         analytics.record(
-            key,
+            event_name,
             actor_id=identity.user_id,
             organization_id=member.organization_id,
             invitation_type=invite_type.lower(),
-            invited_member_id=member.id,
+            invited_member_id=member_id,
         )
 
         manage_url = absolute_uri(
@@ -461,7 +468,6 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         message = SUCCESS_MESSAGE.format(
             email=member.email,
             invite_type=invite_type,
-            key=key,
             url=manage_url,
             verb=verb,
         )
