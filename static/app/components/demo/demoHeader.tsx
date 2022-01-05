@@ -88,7 +88,7 @@ const Wrapper = styled('div')<{collapsed: boolean}>`
   text-transform: uppercase;
   align-items: center;
   white-space: nowrap;
-  gap: 3rem;
+  gap: ${space(4)};
 
   margin-left: calc(
     -1 * ${p => (p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth)}

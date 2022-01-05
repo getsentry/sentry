@@ -39,7 +39,7 @@ const Switch = ({
     role="checkbox"
     aria-checked={isActive}
     isLoading={isLoading}
-    isDisabled={isDisabled}
+    disabled={isDisabled}
     isActive={isActive}
     size={size}
     data-test-id="switch"
@@ -56,10 +56,10 @@ const Switch = ({
 type StyleProps = Partial<Props>;
 
 const getSize = (p: StyleProps) => (p.size === 'sm' ? 16 : 24);
-const getToggleSize = (p: StyleProps) => getSize(p) - (p.size === 'sm' ? 6 : 10);
-const getToggleTop = (p: StyleProps) => (p.size === 'sm' ? 2 : 4);
+const getToggleSize = (p: StyleProps) => getSize(p) - (p.size === 'sm' ? 4 : 8);
+const getToggleTop = (p: StyleProps) => (p.size === 'sm' ? 1 : 3);
 const getTranslateX = (p: StyleProps) =>
-  p.isActive ? getToggleTop(p) + getSize(p) : getToggleTop(p);
+  p.isActive ? getToggleTop(p) + getSize(p) * 0.875 : getToggleTop(p);
 
 const SwitchButton = styled('button')<StyleProps>`
   display: inline-block;
@@ -67,24 +67,21 @@ const SwitchButton = styled('button')<StyleProps>`
   padding: 0;
   border: 1px solid ${p => p.theme.border};
   position: relative;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
-  transition: 0.15s border ease;
-  cursor: ${p => (p.isLoading || p.isDisabled ? 'not-allowed' : 'pointer')};
-  pointer-events: ${p => (p.isLoading || p.isDisabled ? 'none' : null)};
+  box-shadow: inset ${p => p.theme.dropShadowLight};
   height: ${getSize}px;
-  width: ${p => getSize(p) * 2}px;
+  width: ${p => getSize(p) * 1.875}px;
   border-radius: ${getSize}px;
+  transition: border 0.1s, box-shadow 0.1s;
 
-  &:hover,
-  &:focus {
-    outline: none;
-    border-color: ${p => p.theme.border};
+  &[disabled] {
+    cursor: not-allowed;
   }
 
   &:focus,
   &.focus-visible {
     outline: none;
-    box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
+    border-color: ${p => p.theme.focusBorder};
+    box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
   }
 `;
 

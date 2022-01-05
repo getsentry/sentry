@@ -10,7 +10,7 @@ import {
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -34,6 +34,7 @@ import {
   DashboardDetails,
   DashboardListItem,
   DashboardState,
+  DashboardWidgetSource,
   MAX_WIDGETS,
   Widget,
 } from './types';
@@ -300,15 +301,28 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  handleAddCustomWidget = (widget: Widget) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    const newModifiedDashboard = modifiedDashboard || dashboard;
+    let newWidget = widget;
+    if (this.props.organization.features.includes('dashboard-grid-layout')) {
+      newWidget = assignTempId(widget);
+    }
+    this.onUpdateWidget([...newModifiedDashboard.widgets, newWidget]);
+  };
+
   onAddWidget = () => {
     const {organization, dashboard} = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
-    openDashboardWidgetLibraryModal({
+    openAddDashboardWidgetModal({
       organization,
       dashboard,
-      onAddWidget: (widgets: Widget[]) => this.handleAddLibraryWidgets(widgets),
+      onAddWidget: (widget: Widget) => this.handleAddCustomWidget(widget),
+      onAddLibraryWidget: (widgets: Widget[]) => this.handleAddLibraryWidgets(widgets),
+      source: DashboardWidgetSource.LIBRARY,
     });
   };
 
@@ -536,6 +550,7 @@ class DashboardDetail extends Component<Props, State> {
               onUpdate={this.onUpdateWidget}
               onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
               handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+              handleAddCustomWidget={this.handleAddCustomWidget}
               router={router}
               location={location}
               layout={layout}
@@ -618,6 +633,7 @@ class DashboardDetail extends Component<Props, State> {
                   widgetLimitReached={widgetLimitReached}
                   onUpdate={this.onUpdateWidget}
                   handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+                  handleAddCustomWidget={this.handleAddCustomWidget}
                   onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
                   router={router}
                   location={location}
