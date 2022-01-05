@@ -129,13 +129,14 @@ const IgnoreActions = ({
           title={t('Ignore')}
           onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
           icon={<IconMute size="xs" />}
+          hasDropdown
         >
           {t('Ignore')}
         </ActionLink>
       </Tooltip>
       <StyledDropdownLink
         customTitle={
-          <ActionButton
+          <StyledActionButton
             disabled={disabled}
             icon={<IconChevron direction="down" size="xs" />}
           />
@@ -330,6 +331,10 @@ const StyledActionLink = styled(ActionLink)`
 const StyledForActionLink = styled(ActionLink)`
   padding: ${space(0.5)} 0;
   ${actionLinkCss};
+`;
+
+const StyledActionButton = styled(ActionButton)`
+  box-shadow: none;
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
