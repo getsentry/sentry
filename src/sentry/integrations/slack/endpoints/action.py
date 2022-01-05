@@ -44,6 +44,9 @@ NO_PERMISSION_MESSAGE = "You do not have permission to approve member invitation
 NO_IDENTITY_MESSAGE = "Identity not linked for user."
 
 DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
+SUCCESS_MESSAGE = (
+    "{invite_type} request for {email} has been {verb}. <{url}|See Members and Requests>."
+)
 
 RESOLVE_SELECTOR = {
     "label": "Resolve issue",
@@ -100,32 +103,30 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
         return None
 
 
-def get_member_approval_success_message(
+def get_member_approval_success_message_parts(
     member: OrganizationMember,
-    identity: Identity,
     action_option: str,
     original_status: InviteStatus,
-) -> str:
-    if action_option == "approve_member":
-        key = "approve"
-        verb = "approved"
-    else:
-        key = "reject"
-        verb = "rejected"
-
-    invite_type = "Invite" if original_status == InviteStatus.REQUESTED_TO_BE_INVITED else "Join"
-    analytics.record(
-        f"integrations.slack.{key}_member_invitation",
-        actor_id=identity.user_id,
-        organization_id=member.organization_id,
-        invitation_type=invite_type.lower(),
-        invited_member_id=member.id,
-    )
-
+) -> Mapping[str, str]:
     manage_url = absolute_uri(
         reverse("sentry-organization-members", args=[member.organization.slug])
     )
-    return f"{invite_type} request for {member.email} has been {verb}. <{manage_url}|See Members and Requests>."
+
+    kwargs = {"url": manage_url, "email": member.email}
+
+    if action_option == "approve_member":
+        kwargs["key"] = "integrations.slack.approve_member_invitation"
+        kwargs["verb"] = "approved"
+    else:
+        kwargs["key"] = "integrations.slack.reject_member_invitation"
+        kwargs["verb"] = "rejected"
+
+    if original_status == InviteStatus.REQUESTED_TO_BE_INVITED:
+        kwargs["invite_type"] = "Invite"
+    else:
+        kwargs["invite_type"] = "Join"
+
+    return kwargs
 
 
 def _is_message(data: Mapping[str, Any]) -> bool:
@@ -463,11 +464,18 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
             return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
 
-        # record analytics and respond with success
-        message = get_member_approval_success_message(
+        kwargs = get_member_approval_success_message_parts(
             member=member,
-            identity=identity,
             action_option=action_option,
             original_status=original_status,
         )
-        return self.respond({"text": message})
+
+        analytics.record(
+            kwargs["key"],
+            actor_id=identity.user_id,
+            organization_id=member.organization_id,
+            invitation_type=kwargs["invite_type"].lower(),
+            invited_member_id=member.id,
+        )
+
+        return self.respond({"text": SUCCESS_MESSAGE.format(**kwargs)})
