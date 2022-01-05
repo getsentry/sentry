@@ -356,3 +356,18 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         context["projects"] = serialize(project_list, user, ProjectSummarySerializer())
 
         return context
+
+
+class SimplifiedOrganizationSerializer(OrganizationSerializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        return super().get_attrs(item_list, user)
+
+    def serialize(self, obj, attrs, user, access):
+        context = super().serialize(obj, attrs, user)
+        context.update(
+            {
+                "isDefault": obj.is_default,
+                "defaultRole": obj.default_role,
+            }
+        )
+        return context

@@ -9,7 +9,7 @@ from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
 from sentry import roles
-from sentry.api.base import ONE_DAY
+from sentry.api.base import ONE_DAY, VersionedEndpoint, method_version
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -443,8 +443,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
-class OrganizationDetailsEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+class OrganizationDetailsEndpoint(OrganizationEndpoint, VersionedEndpoint):
+    @method_version("get")
+    def get_v0(self, request: Request, organization) -> Response:
         """
         Retrieve an Organization
         ````````````````````````
@@ -465,6 +466,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         )
         context = serialize(organization, request.user, serializer(), access=request.access)
 
+        return self.respond(context)
+
+    @method_version("get", 1)
+    def get_v1(self, request: Request, organization) -> Response:
+        serializer = org_serializers.SimplifiedOrganizationSerializer
+        context = serialize(organization, request.user, serializer(), access=request.access)
         return self.respond(context)
 
     def put(self, request: Request, organization) -> Response:
@@ -559,7 +566,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context, status=202)
 
     @sudo_required
-    def delete(self, request: Request, organization) -> Response:
+    def delete_v0(self, request: Request, organization) -> Response:
         """
         Delete an Organization
         ``````````````````````
