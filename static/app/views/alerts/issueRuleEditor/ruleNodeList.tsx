@@ -147,6 +147,14 @@ class RuleNodeList extends React.Component<Props> {
     const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
       actions.map(node => {
         const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+
+        if (node.id.includes('NotifyEmailAction')) {
+          return {
+            value: node.id,
+            label: t('Issue Owners, Team, or Member'),
+          };
+        }
+
         return {
           value: node.id,
           label: (
@@ -172,6 +180,10 @@ class RuleNodeList extends React.Component<Props> {
             !curr.id.includes('event_frequency')
           ) {
             acc.change.push(curr);
+          } else if (curr.id.includes('sentry.integrations')) {
+            acc.notifyIntegration.push(curr);
+          } else if (curr.id.includes('notify_event')) {
+            acc.notifyIntegration.push(curr);
           } else {
             acc.notify.push(curr);
           }
@@ -179,6 +191,7 @@ class RuleNodeList extends React.Component<Props> {
         },
         {
           notify: [] as IssueAlertRuleActionTemplate[],
+          notifyIntegration: [] as IssueAlertRuleActionTemplate[],
           ticket: [] as IssueAlertRuleActionTemplate[],
           change: [] as IssueAlertRuleConditionTemplate[],
           frequency: [] as IssueAlertRuleConditionTemplate[],
@@ -190,6 +203,7 @@ class RuleNodeList extends React.Component<Props> {
         .map(([key, values]) => {
           const label = {
             notify: t('Send notification to\u{2026}'),
+            notifyIntegration: t('Notify integration\u{2026}'),
             ticket: t('Create new\u{2026}'),
             change: t('Issue state change'),
             frequency: t('Issue frequency'),
