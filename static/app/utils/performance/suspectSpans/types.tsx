@@ -21,9 +21,6 @@ export type SpanExample = {
 };
 
 export type SuspectSpan = SpanExample & {
-  projectId: number;
-  project: string;
-  transaction: string;
   frequency?: number;
   count?: number;
   avgOccurrences?: number;

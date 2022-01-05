@@ -6,7 +6,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
@@ -31,6 +31,7 @@ type Props = {
   transactionName: string;
   isLoading: boolean;
   examples: ExampleTransaction[];
+  project?: Project;
   pageLinks?: string | null;
 };
 
@@ -38,6 +39,7 @@ export default function SpanTable(props: Props) {
   const {
     location,
     organization,
+    project,
     examples,
     suspectSpan,
     transactionName,
@@ -51,7 +53,7 @@ export default function SpanTable(props: Props) {
 
   const data = examples.map(example => ({
     id: example.id,
-    project: suspectSpan.project,
+    project: project?.slug,
     // timestamps are in seconds but want them in milliseconds
     timestamp: example.finishTimestamp * 1000,
     transactionDuration: (example.finishTimestamp - example.startTimestamp) * 1000,

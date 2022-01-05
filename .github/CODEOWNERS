@@ -163,6 +163,7 @@ build-utils/        @getsentry/owners-js-build
 /tests/js/spec/views/discover/                                  @getsentry/discover-n-dashboards
 /static/app/views/dashboardsV2/                                 @getsentry/discover-n-dashboards
 /tests/js/spec/views/dashboardsV2/                              @getsentry/discover-n-dashboards
+/static/app/components/dashboards/                              @getsentry/discover-n-dashboards
 ### Endof Discover/Dashboards ###
 
 
