@@ -566,7 +566,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint, VersionedEndpoint):
         return self.respond(context, status=202)
 
     @sudo_required
-    def delete_v0(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization) -> Response:
         """
         Delete an Organization
         ``````````````````````
