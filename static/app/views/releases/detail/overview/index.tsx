@@ -315,6 +315,7 @@ class ReleaseOverview extends AsyncView<Props> {
 
   handleTransactionsListSortChange = (value: string) => {
     const {location} = this.props;
+    console.log({transaction: value});
     const target = {
       pathname: location.pathname,
       query: {...location.query, showTransactions: value, transactionCursor: undefined},

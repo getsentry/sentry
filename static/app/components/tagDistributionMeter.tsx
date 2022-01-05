@@ -159,7 +159,14 @@ export default class TagDistributionMeter extends React.Component<Props> {
               style={{width: pct + '%'}}
             >
               <Tooltip title={tooltipHtml} containerDisplayMode="block">
-                {value.isOther ? <OtherSegment /> : <Segment {...segmentProps} />}
+                {value.isOther ? (
+                  <OtherSegment />
+                ) : (
+                  <Segment
+                    data-test-id={`tag-${title}-segment-${value.value}-link`}
+                    {...segmentProps}
+                  />
+                )}
               </Tooltip>
             </div>
           );

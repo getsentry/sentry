@@ -177,13 +177,13 @@ class TransactionsList extends React.Component<Props> {
       <React.Fragment>
         <div>
           <DropdownControl
-            data-test-id="filter-transactions"
             button={({isOpen, getActorProps}) => (
               <StyledDropdownButton
                 {...getActorProps()}
                 isOpen={isOpen}
                 prefix={t('Filter')}
                 size="small"
+                data-test-id="filter-transactions"
               >
                 {selected.label}
               </StyledDropdownButton>
