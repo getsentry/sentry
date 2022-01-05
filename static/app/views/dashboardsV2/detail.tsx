@@ -302,11 +302,14 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleAddCustomWidget = (widget: Widget) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    const newModifiedDashboard = modifiedDashboard || dashboard;
     let newWidget = widget;
     if (this.props.organization.features.includes('dashboard-grid-layout')) {
       newWidget = assignTempId(widget);
     }
-    this.onUpdateWidget([...this.props.dashboard.widgets, newWidget]);
+    this.onUpdateWidget([...newModifiedDashboard.widgets, newWidget]);
   };
 
   onAddWidget = () => {
