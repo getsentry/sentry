@@ -51,24 +51,7 @@ describe('IntegrationListDirectory', function () {
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
       expect(wrapper.find('IntegrationRow')).toHaveLength(16);
 
-      [
-        'bitbucket',
-        'pagerduty',
-        'my-headband-washer-289499',
-        'grafana',
-        'clickup',
-        'asayer',
-        'bitbucket_pipelines',
-        'datadog',
-        'fullstory',
-        'github_actions',
-        'netlify',
-        'octohook',
-        'rocketchat',
-        'amazon-sqs',
-        'insightfinder',
-        'la-croix-monitor',
-      ].map((name, index) =>
+      ['my-headband-washer-289499', 'la-croix-monitor'].map((name, index) =>
         expect(wrapper.find('IntegrationRow').at(index).props().slug).toEqual(name)
       );
     });
