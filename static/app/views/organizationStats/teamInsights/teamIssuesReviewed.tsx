@@ -140,11 +140,15 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                   seriesName: t('Reviewed'),
                   data: reviewedSeries,
                   silent: true,
+                  animationDuration: 500,
+                  animationDelay: 0,
                 },
                 {
                   seriesName: t('Not Reviewed'),
                   data: notReviewedSeries,
                   silent: true,
+                  animationDuration: 500,
+                  animationDelay: 500,
                 },
               ]}
             />

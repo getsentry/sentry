@@ -161,7 +161,6 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
           {!loading && (
             <BarChart
               style={{height: 190}}
-              stacked
               isGroupedByDate
               useShortDate
               period="7d"
