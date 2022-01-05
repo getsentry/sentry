@@ -135,23 +135,15 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         color: theme.formText,
         background: theme.background,
         border: `1px solid ${theme.border}`,
-        boxShadow: `inset ${theme.dropShadowLight}`,
+        boxShadow: theme.dropShadowLight,
       },
       borderRadius: theme.borderRadius,
-      transition: 'border 0.1s linear',
+      transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
       minHeight: '40px',
-      '&:hover': {
-        borderColor: theme.border,
-      },
       ...(state.isFocused && {
-        border: `1px solid ${theme.border}`,
-        boxShadow: 'rgba(209, 202, 216, 0.5) 0 0 0 3px',
-      }),
-      ...(state.menuIsOpen && {
-        borderBottomLeftRadius: '0',
-        borderBottomRightRadius: '0',
-        boxShadow: 'none',
+        borderColor: theme.focusBorder,
+        boxShadow: `${theme.focusBorder} 0 0 0 1px`,
       }),
       ...(state.isDisabled && {
         borderColor: theme.border,
@@ -167,12 +159,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     menu: (provided: React.CSSProperties) => ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
-      marginTop: '-1px',
       background: theme.background,
       border: `1px solid ${theme.border}`,
-      borderRadius: `0 0 ${theme.borderRadius} ${theme.borderRadius}`,
-      borderTop: `1px solid ${theme.border}`,
-      boxShadow: theme.dropShadowLight,
+      borderRadius: theme.borderRadius,
+      boxShadow: theme.dropShadowHeavy,
     }),
     option: (provided: React.CSSProperties, state: any) => ({
       ...provided,

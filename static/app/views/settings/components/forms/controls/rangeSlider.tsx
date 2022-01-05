@@ -249,6 +249,7 @@ export const Slider = styled('input')<{hasLabel: boolean}>`
     -webkit-appearance: none;
     margin-top: -7px;
     border: 0;
+    transition: background 0.1s, box-shadow 0.1s;
   }
 
   &::-moz-range-thumb {
@@ -262,6 +263,7 @@ export const Slider = styled('input')<{hasLabel: boolean}>`
     -webkit-appearance: none;
     margin-top: -7px;
     border: 0;
+    transition: background 0.1s, box-shadow 0.1s;
   }
 
   &::-ms-thumb {
@@ -275,6 +277,7 @@ export const Slider = styled('input')<{hasLabel: boolean}>`
     -webkit-appearance: none;
     margin-top: -7px;
     border: 0;
+    transition: background 0.1s, box-shadow 0.1s;
   }
 
   &::-ms-fill-lower {
@@ -332,6 +335,29 @@ export const Slider = styled('input')<{hasLabel: boolean}>`
     &::-ms-track {
       cursor: default;
     }
+  }
+
+  &:not([disabled])::-webkit-slider-runnable-track:hover {
+    background: ${p => p.theme.activeHover};
+  }
+  &:not([disabled])::-moz-range-thumb:hover {
+    background: ${p => p.theme.activeHover};
+  }
+  &:not([disabled])::-ms-thumb:hover {
+    background: ${p => p.theme.activeHover};
+  }
+
+  &:focus::-webkit-slider-thumb,
+  &.focus-visible::-webkit-slider-thumb {
+    box-shadow: ${p => p.theme.background} 0 0 0 3px, ${p => p.theme.focus} 0 0 0 6px;
+  }
+  &:focus::-moz-range-thumb,
+  &.focus-visible::-moz-range-thumb {
+    box-shadow: ${p => p.theme.background} 0 0 0 3px, ${p => p.theme.focus} 0 0 0 6px;
+  }
+  &:focus::-ms-thumb,
+  &.focus-visible::-ms-thumb {
+    box-shadow: ${p => p.theme.background} 0 0 0 3px, ${p => p.theme.focus} 0 0 0 6px;
   }
 `;
 
