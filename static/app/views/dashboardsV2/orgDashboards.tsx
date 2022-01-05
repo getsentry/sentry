@@ -143,7 +143,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
       return <NotFound />;
     }
 
-    return super.renderError(error, true, true);
+    return super.renderError(error, true);
   }
 
   renderComponent() {
