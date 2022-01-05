@@ -31,7 +31,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
     fields,
   } = props;
 
-  const globalSelection = eventView.getGlobalSelection();
+  const globalSelection = eventView.getPageFilters();
 
   if (fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${fields})`);

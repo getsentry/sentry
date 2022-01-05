@@ -2,21 +2,21 @@ import {
   updateDateTime,
   updateEnvironments,
   updateProjects,
-} from 'sentry/actionCreators/globalSelection';
-import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+} from 'sentry/actionCreators/pageFilters';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 jest.mock('sentry/utils/localStorage', () => ({
   getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),
   setItem: jest.fn(),
 }));
 
-describe('GlobalSelectionStore', function () {
+describe('PageFiltersStore', function () {
   afterEach(function () {
-    GlobalSelectionStore.reset();
+    PageFiltersStore.reset();
   });
 
   it('getState()', function () {
-    expect(GlobalSelectionStore.getState()).toEqual({
+    expect(PageFiltersStore.getState()).toEqual({
       isReady: false,
       selection: {
         projects: [],
@@ -27,14 +27,14 @@ describe('GlobalSelectionStore', function () {
   });
 
   it('updateProjects()', async function () {
-    expect(GlobalSelectionStore.getState().selection.projects).toEqual([]);
+    expect(PageFiltersStore.getState().selection.projects).toEqual([]);
     updateProjects([1]);
     await tick();
-    expect(GlobalSelectionStore.getState().selection.projects).toEqual([1]);
+    expect(PageFiltersStore.getState().selection.projects).toEqual([1]);
   });
 
   it('updateDateTime()', async function () {
-    expect(GlobalSelectionStore.getState().selection.datetime).toEqual({
+    expect(PageFiltersStore.getState().selection.datetime).toEqual({
       period: '14d',
       start: null,
       end: null,
@@ -42,7 +42,7 @@ describe('GlobalSelectionStore', function () {
     });
     updateDateTime({period: '2h', start: null, end: null});
     await tick();
-    expect(GlobalSelectionStore.getState().selection.datetime).toEqual({
+    expect(PageFiltersStore.getState().selection.datetime).toEqual({
       period: '2h',
       start: null,
       end: null,
@@ -55,7 +55,7 @@ describe('GlobalSelectionStore', function () {
       utc: true,
     });
     await tick();
-    expect(GlobalSelectionStore.getState().selection.datetime).toEqual({
+    expect(PageFiltersStore.getState().selection.datetime).toEqual({
       period: null,
       start: '2018-08-08T00:00:00',
       end: '2018-09-08T00:00:00',
@@ -69,7 +69,7 @@ describe('GlobalSelectionStore', function () {
       utc: null,
     });
     await tick();
-    expect(GlobalSelectionStore.getState().selection.datetime).toEqual({
+    expect(PageFiltersStore.getState().selection.datetime).toEqual({
       period: null,
       start: null,
       end: null,
@@ -78,9 +78,9 @@ describe('GlobalSelectionStore', function () {
   });
 
   it('updateEnvironments()', async function () {
-    expect(GlobalSelectionStore.getState().selection.environments).toEqual([]);
+    expect(PageFiltersStore.getState().selection.environments).toEqual([]);
     updateEnvironments(['alpha']);
     await tick();
-    expect(GlobalSelectionStore.getState().selection.environments).toEqual(['alpha']);
+    expect(PageFiltersStore.getState().selection.environments).toEqual(['alpha']);
   });
 });

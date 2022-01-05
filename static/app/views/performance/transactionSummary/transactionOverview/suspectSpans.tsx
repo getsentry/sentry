@@ -23,10 +23,12 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useProjects from 'sentry/utils/useProjects';
 
 import {SpanSortOthers, SpanSortPercentiles} from '../transactionSpans/types';
 import {
   getSuspectSpanSortFromLocation,
+  SPAN_SORT_TO_FIELDS,
   spansRouteWithQuery,
 } from '../transactionSpans/utils';
 import {generateTransactionLink} from '../utils';
@@ -99,11 +101,16 @@ export default function SuspectSpans(props: Props) {
       )
     )
     .withSorts([{kind: 'desc', field: sort.field}]);
+  const fields = SPAN_SORT_TO_FIELDS[sort.field];
+  sortedEventView.fields = fields ? fields.map(field => ({field})) : [];
+
   const sortColumn: GridColumnSortBy<SuspectSpanTableColumnKeys> = {
     key: sort.field as SuspectSpanTableColumnKeys,
     width: COL_WIDTH_UNDEFINED,
     order: 'desc',
   };
+
+  const {projects} = useProjects();
 
   return (
     <SuspectSpansQuery
@@ -117,7 +124,7 @@ export default function SuspectSpans(props: Props) {
         const data = (suspectSpans ?? []).map(suspectSpan => {
           const example = suspectSpan.examples[0];
           return {
-            project: suspectSpan.project,
+            project: projects.find(p => p.id === projectId)?.slug,
             op: suspectSpan.op,
             description: example?.description ?? null,
             p75ExclusiveTime: suspectSpan.p75ExclusiveTime,

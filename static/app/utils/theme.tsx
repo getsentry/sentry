@@ -201,6 +201,7 @@ const generateAliases = (colors: BaseColors) => ({
    * Indicates that something is "active" or "selected"
    */
   active: colors.purple300,
+  activeHover: colors.purple400,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -439,7 +440,7 @@ const generateLevelTheme = (colors: BaseColors) => ({
 });
 
 const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
-  borderRadius: '3px',
+  borderRadius: '4px',
 
   default: {
     color: alias.textColor,

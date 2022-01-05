@@ -19,7 +19,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -48,7 +48,7 @@ type WidgetCardChartProps = Pick<
   organization: Organization;
   location: Location;
   widget: Widget;
-  selection: GlobalSelection;
+  selection: PageFilters;
   router: InjectedRouter;
 };
 

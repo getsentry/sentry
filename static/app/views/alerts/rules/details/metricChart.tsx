@@ -22,7 +22,7 @@ import {getTooltipArrow} from 'sentry/components/charts/utils';
 import {
   parseStatsPeriod,
   StatsPeriodType,
-} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+} from 'sentry/components/organizations/pageFilters/getParams';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
@@ -281,6 +281,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       eventType: query,
       start: timePeriod.start,
       end: timePeriod.end,
+      fields: ['issue', 'title', 'count()', 'count_unique(user)'],
     };
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);

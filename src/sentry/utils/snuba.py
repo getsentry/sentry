@@ -607,7 +607,9 @@ class SnubaQueryParams:
     ):
         # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or Dataset.Events
-        self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
+        self.start = start or datetime(
+            2008, 5, 8
+        )  # Date of sentry's first commit. Will be clamped to project retention
         # Snuba has end exclusive but our UI wants it generally to be inclusive.
         # This shows up in unittests: https://github.com/getsentry/sentry/pull/15939
         # We generally however require that the API user is aware of the exclusive
