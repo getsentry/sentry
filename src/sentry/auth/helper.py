@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional, Tuple, Union
 from uuid import uuid4
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
@@ -19,7 +20,7 @@ from django.views import View
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
-from sentry.auth.email import resolve_email_to_user
+from sentry.auth.email import AmbiguousUserResolution, AuthHelperResolution
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
     get_verification_value_from_key,
@@ -106,7 +107,15 @@ class AuthIdentityHandler:
     def _initialize_user(self) -> Union[User, AnonymousUser]:
         email = self.identity.get("email")
         if email:
-            user = resolve_email_to_user(email, self.organization)
+            try:
+                user = AuthHelperResolution(email, self.organization).resolve()
+            except AmbiguousUserResolution as e:
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = "warning"
+                    scope.set_tag("email", self.email)
+                    scope.set_extra("user_ids", sorted(user.id for user in e.users))
+                    sentry_sdk.capture_message("Ambiguous email resolution")
+                return e.users[0]
             if user:
                 return user
         return self.request.user
