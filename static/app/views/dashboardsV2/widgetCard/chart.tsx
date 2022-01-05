@@ -164,8 +164,15 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
   }
 
   render() {
-    const {theme, tableResults, timeseriesResults, errorMessage, loading, widget} =
-      this.props;
+    const {
+      theme,
+      tableResults,
+      timeseriesResults,
+      errorMessage,
+      loading,
+      widget,
+      organization,
+    } = this.props;
 
     if (widget.displayType === 'table') {
       return (
@@ -196,6 +203,12 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     const {location, router, selection} = this.props;
     const {start, end, period, utc} = selection.datetime;
 
+    // Only allow height resizing for widgets that are on a dashboard
+    const autoHeightResize = Boolean(
+      organization.features.includes('dashboard-grid-layout') &&
+        (widget.id || widget.tempId)
+    );
+
     if (widget.displayType === 'world_map') {
       const {data, title} = processTableResults(tableResults);
       const series = [
@@ -208,10 +221,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          <ChartWrapper>
+          <ChartWrapper autoHeightResize={autoHeightResize}>
             {getDynamicText({
               value: this.chartComponent({
                 series,
+                autoHeightResize,
               }),
               fixed: <Placeholder height="200px" testId="skeleton-ui" />,
             })}
@@ -241,6 +255,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
+      autoHeightResize,
       grid: {
         left: 4,
         right: 0,
@@ -296,7 +311,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
-              <ChartWrapper>
+              <ChartWrapper autoHeightResize={autoHeightResize}>
                 {getDynamicText({
                   value: this.chartComponent({
                     ...zoomRenderProps,
@@ -345,7 +360,8 @@ const BigNumber = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')`
+const ChartWrapper = styled('div')<{autoHeightResize: boolean}>`
+  ${p => p.autoHeightResize && 'height: 100%;'}
   padding: 0 ${space(3)} ${space(3)};
 `;
 
