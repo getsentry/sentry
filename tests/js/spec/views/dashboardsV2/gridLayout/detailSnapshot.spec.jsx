@@ -33,51 +33,15 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets;
+    let wrapper, initialData;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
-      widgets = [
-        TestStubs.Widget(
-          [{name: '', conditions: 'event.type:error', fields: ['count()']}],
-          {
-            title: 'Errors',
-            interval: '1d',
-            id: '1',
-          }
-        ),
-        TestStubs.Widget(
-          [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
-          {
-            title: 'Transactions',
-            interval: '1d',
-            id: '2',
-          }
-        ),
-        TestStubs.Widget(
-          [
-            {
-              name: '',
-              conditions: 'event.type:transaction transaction:/api/cats',
-              fields: ['p50()'],
-            },
-          ],
-          {
-            title: 'p50 of /api/cats',
-            interval: '1d',
-            id: '3',
-          }
-        ),
-      ];
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
         method: 'POST',
         body: [],
         statusCode: 200,
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/tags/',
-        body: [],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
@@ -99,37 +63,8 @@ describe('Dashboards > Detail', function () {
         ],
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/1/',
-        method: 'PUT',
-        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
-      });
-      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
         body: TestStubs.EventsStats(),
-      });
-      MockApiClient.addMockResponse({
-        method: 'POST',
-        url: '/organizations/org-slug/dashboards/widgets/',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/recent-searches/',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/issues/',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/eventsv2/',
-        method: 'GET',
-        body: [],
       });
     });
 
