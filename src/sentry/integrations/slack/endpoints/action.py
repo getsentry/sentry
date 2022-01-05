@@ -361,12 +361,12 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         return self.respond(body)
 
-    def handle_unfurl(self, slack_request: SlackActionRequest, action_option: str) -> Response:
+    def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
         organizations = slack_request.integration.organizations.all()
         analytics.record(
             "integrations.slack.chart_unfurl_action",
             organization_id=organizations[0].id,
-            action=action_option,
+            action=action,
         )
         payload = {"delete_original": "true"}
         try:
@@ -389,7 +389,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         action_list = [
             MessageAction(**action_data) for action_data in slack_request.data.get("actions", [])
         ]
-        action_option = action_list and action_list[0].value
+        action_option = action_list[0].value if action_list else None
 
         # If a user is just clicking our auto response in the messages tab we just return a 200
         if action_option == "sentry_docs_link_clicked":
@@ -404,11 +404,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         return self._handle_group_actions(slack_request, request, action_list)
 
-    def handle_member_approval(
-        self,
-        slack_request: SlackActionRequest,
-        action_option: str,
-    ) -> Response:
+    def handle_member_approval(self, slack_request: SlackActionRequest, action: str) -> Response:
         try:
             # get_identity can return nobody
             identity = slack_request.get_identity()
@@ -449,7 +445,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         original_status = InviteStatus(member.invite_status)
         try:
-            if action_option == "approve_member":
+            if action == "approve_member":
                 member.approve_member_invitation(identity.user, referrer="slack")
             else:
                 member.reject_member_invitation(identity.user)
@@ -466,7 +462,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         kwargs = get_member_approval_success_message_parts(
             member=member,
-            action_option=action_option,
+            action_option=action,
             original_status=original_status,
         )
 
