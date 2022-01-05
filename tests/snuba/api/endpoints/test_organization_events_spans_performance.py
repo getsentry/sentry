@@ -182,9 +182,6 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
             result,
             expected_result,
             [
-                "projectId",
-                "project",
-                "transaction",
                 "op",
                 "group",
                 "frequency",
@@ -203,9 +200,6 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
 
     def suspect_span_group_snuba_results(self, op, event):
         results = {
-            "project.id": self.project.id,
-            "project": self.project.slug,
-            "transaction": event.transaction,
             "array_join_spans_op": op,
         }
 
