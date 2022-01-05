@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 
@@ -25,28 +25,24 @@ const TestContainer = ({children}) => (
 describe('BaseChart', function () {
   const {routerContext} = initializeOrg();
   it('can scale to full parent height when given autoHeightResize', async () => {
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <TestContainer>
         <BaseChart autoHeightResize />
       </TestContainer>,
-      routerContext
+      {context: routerContext}
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders with default height when autoHeightResize not provided', async () => {
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <TestContainer>
         <BaseChart />
       </TestContainer>,
-      routerContext
+      {context: routerContext}
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 });

@@ -1,5 +1,5 @@
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import * as utils from 'sentry/views/dashboardsV2/gridLayout/utils';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
@@ -20,8 +20,6 @@ jest.mock('echarts-for-react/lib/core', () => {
 });
 
 describe('Dashboards > Detail', function () {
-  enforceActOnUseLegacyStoreHook();
-
   const organization = TestStubs.Organization({
     features: [
       'global-views',
@@ -33,7 +31,7 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData;
+    let initialData;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -71,9 +69,6 @@ describe('Dashboards > Detail', function () {
     afterEach(function () {
       MockApiClient.clearMockResponses();
       jest.clearAllMocks();
-      if (wrapper) {
-        wrapper.unmount();
-      }
     });
 
     it('renders charts with the full height of the widget', async () => {
@@ -105,19 +100,20 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      wrapper = mountWithTheme(
+      const {container} = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
         />,
-        initialData.routerContext
+        {context: initialData.routerContext}
       );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        await tick();
+      });
 
-      expect(wrapper).toSnapshot();
+      expect(container).toSnapshot();
     });
   });
 });
