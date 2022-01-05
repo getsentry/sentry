@@ -1,8 +1,12 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {
+  mountWithTheme as rtlMountWithTheme,
+  screen,
+} from 'sentry-test/reactTestingLibrary';
 
 import Dashboard from 'sentry/views/dashboardsV2/dashboard';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({
@@ -14,8 +18,9 @@ describe('Dashboards > Dashboard', () => {
     title: 'Test Dashboard',
     widgets: [],
   };
-  const newWidget = {
-    title: 'Test Query',
+  const newWidget: Widget = {
+    id: '1',
+    title: 'Test Discover Widget',
     displayType: DisplayType.LINE,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
@@ -24,6 +29,21 @@ describe('Dashboards > Dashboard', () => {
         name: '',
         conditions: '',
         fields: ['count()'],
+        orderby: '',
+      },
+    ],
+  };
+  const issueWidget: Widget = {
+    id: '2',
+    title: 'Test Issue Widget',
+    displayType: DisplayType.TABLE,
+    widgetType: WidgetType.ISSUE,
+    interval: '5m',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['title'],
         orderby: '',
       },
     ],
@@ -39,6 +59,7 @@ describe('Dashboards > Dashboard', () => {
       body: [],
     });
   });
+
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
     const wrapper = mountWithTheme(
@@ -90,5 +111,67 @@ describe('Dashboards > Dashboard', () => {
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+  });
+
+  it('dashboard does not display issue widgets if the user does not have issue widgets feature flag', async () => {
+    const mockHandleAddCustomWidget = jest.fn();
+    const mockDashboardWithIssueWidget = {
+      ...mockDashboard,
+      widgets: [newWidget, issueWidget],
+    };
+    rtlMountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={mockDashboardWithIssueWidget}
+        organization={initialData.organization}
+        isEditing={false}
+        onUpdate={() => undefined}
+        handleAddLibraryWidgets={() => undefined}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
+        onSetWidgetToBeUpdated={() => undefined}
+        router={initialData.router}
+        location={initialData.location}
+        layout={[]}
+        onLayoutChange={() => undefined}
+        widgetLimitReached={false}
+      />
+    );
+    expect(screen.getByText('Test Discover Widget')).toBeInTheDocument();
+    expect(screen.queryByText('Test Issue Widget')).not.toBeInTheDocument();
+  });
+
+  it('dashboard displays issue widgets if the user has issue widgets feature flag', async () => {
+    const mockHandleAddCustomWidget = jest.fn();
+    const organizationWithFlag = TestStubs.Organization({
+      features: [
+        'dashboards-basic',
+        'dashboards-edit',
+        'dashboard-grid-layout',
+        'issues-in-dashboards',
+      ],
+    });
+    const mockDashboardWithIssueWidget = {
+      ...mockDashboard,
+      widgets: [newWidget, issueWidget],
+    };
+    rtlMountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={mockDashboardWithIssueWidget}
+        organization={organizationWithFlag}
+        isEditing={false}
+        onUpdate={() => undefined}
+        handleAddLibraryWidgets={() => undefined}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
+        onSetWidgetToBeUpdated={() => undefined}
+        router={initialData.router}
+        location={initialData.location}
+        layout={[]}
+        onLayoutChange={() => undefined}
+        widgetLimitReached={false}
+      />
+    );
+    expect(screen.getByText('Test Discover Widget')).toBeInTheDocument();
+    expect(screen.getByText('Test Issue Widget')).toBeInTheDocument();
   });
 });
