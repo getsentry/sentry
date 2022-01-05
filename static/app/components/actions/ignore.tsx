@@ -262,7 +262,9 @@ const IgnoreActions = ({
                 <DropdownLink
                   title={
                     <ActionSubMenu>
-                      {tn('one user\u2026', '%s users\u2026', count)}
+                      {count === 1
+                        ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
+                        : tn('%s user\u2026', '%s users\u2026', count)}
                       <SubMenuChevron>
                         <IconChevron direction="right" size="xs" />
                       </SubMenuChevron>
