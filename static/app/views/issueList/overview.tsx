@@ -659,10 +659,12 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onSelectStatsPeriod = (period: string) => {
+    const {location} = this.props;
     if (period !== this.getGroupStatsPeriod()) {
-      const cursor = this.props.location.query.cursor;
-      const queryPageInt = parseInt(this.props.location.query.page, 10);
-      this.transitionTo({cursor, page: queryPageInt, groupStatsPeriod: period});
+      const cursor = location.query.cursor;
+      const queryPageInt = parseInt(location.query.page, 10);
+      const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
+      this.transitionTo({cursor, page, groupStatsPeriod: period});
     }
   };
 
