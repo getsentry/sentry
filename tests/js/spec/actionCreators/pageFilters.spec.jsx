@@ -1,9 +1,9 @@
 import {
   initializeUrlState,
+  replaceParams,
   updateDateTime,
   updateEnvironments,
   updateParams,
-  updateParamsWithoutHistory,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
@@ -364,7 +364,7 @@ describe('PageFilters ActionCreators', function () {
     });
   });
 
-  describe('updateParamsWithoutHistory()', function () {
+  describe('replaceParams()', function () {
     it('updates history when queries are different', function () {
       const router = TestStubs.router({
         location: {
@@ -374,7 +374,7 @@ describe('PageFilters ActionCreators', function () {
       });
       // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
       // however react-router will treat it as a string if there is only one param
-      updateParamsWithoutHistory(
+      replaceParams(
         {project: [1]},
 
         // Mock router
@@ -395,7 +395,7 @@ describe('PageFilters ActionCreators', function () {
       });
       // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
       // however react-router will treat it as a string if there is only one param
-      updateParamsWithoutHistory(
+      replaceParams(
         {project: [1]},
         // Mock router
         router
