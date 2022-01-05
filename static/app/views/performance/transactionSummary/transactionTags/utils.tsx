@@ -46,7 +46,6 @@ export function tagsRouteWithQuery({
       end: query.end,
       query: query.query,
       tagKey: query.tagKey,
-      origin: query.origin,
     },
   };
 }
