@@ -226,7 +226,7 @@ const StyledHeading = styled(PageHeading)`
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;
-  grid-gap: ${space(0)};
+  gap: ${space(0)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

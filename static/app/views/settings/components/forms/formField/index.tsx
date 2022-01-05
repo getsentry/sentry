@@ -456,7 +456,7 @@ export default FormField;
 const MessageAndActions = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: flex-start;
 `;
 

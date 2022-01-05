@@ -70,7 +70,7 @@ const Wrapper = styled('div')<{color: string}>`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   align-items: center;
-  grid-gap: ${space(0.75)};
+  gap: ${space(0.75)};
   color: ${p => p.color};
   font-size: ${p => p.theme.fontSizeMedium};
   height: 14px;

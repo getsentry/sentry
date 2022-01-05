@@ -113,7 +113,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledActions = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: auto max-content max-content;
   align-items: center;
   margin-bottom: ${space(3)};

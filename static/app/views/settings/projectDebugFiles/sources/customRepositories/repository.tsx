@@ -76,12 +76,12 @@ const TypeAndStatus = styled('div')`
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   align-items: center;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: max-content minmax(200px, max-content);
     grid-row: 2 / 3;
-    grid-gap: ${space(1)};
+    gap: ${space(1)};
   }
 `;

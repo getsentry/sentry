@@ -42,7 +42,7 @@ export default Details;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin-top: ${space(0.5)};
   align-items: center;
 
@@ -52,7 +52,7 @@ const Wrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     margin-top: ${space(1)};
     grid-template-columns: max-content 1fr;
-    grid-gap: ${space(1)};
+    gap: ${space(1)};
     grid-row: 3/3;
     grid-column: 1/-1;
   }

@@ -19,7 +19,7 @@ const Item = styled(({title, subtitle, children, className}: Props) => (
   </ListItem>
 ))`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
 `;
 
 export default Item;
