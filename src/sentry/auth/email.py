@@ -17,9 +17,11 @@ def resolve_email_to_user(email: str) -> Optional[User]:
     if len(candidate_users) == 1:
         return candidate_users[0]
 
+    arbitrary_choice = candidate_users[0]
     with sentry_sdk.push_scope() as scope:
         scope.level = "warning"
         scope.set_tag("email", email)
         scope.set_extra("user_ids", sorted(user.id for user in candidate_users))
+        scope.set_extra("chosen_user", arbitrary_choice.id)
         sentry_sdk.capture_message("Ambiguous email resolution")
-    return candidate_users[0]
+    return arbitrary_choice
