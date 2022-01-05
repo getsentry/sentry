@@ -22,7 +22,6 @@ import {defined} from 'sentry/utils';
 import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';
 import withLatestContext from 'sentry/utils/withLatestContext';
-import {docIntegrationList} from 'sentry/views/organizationIntegrations/constants';
 
 import {ChildProps, Result, ResultItem} from './types';
 
@@ -195,12 +194,9 @@ async function createSentryAppResults(
 
 async function createDocIntegrationResults(
   docIntegrationPromise: Promise<DocIntegration[]>,
-  orgId: string,
-  hasFeatureFlag: boolean
+  orgId: string
 ): Promise<ResultItem[]> {
-  const docIntegrations = hasFeatureFlag
-    ? (await docIntegrationPromise) || []
-    : docIntegrationList;
+  const docIntegrations = (await docIntegrationPromise) || [];
   return docIntegrations.map(docIntegration => ({
     title: docIntegration.name,
     description: (
@@ -212,7 +208,7 @@ async function createDocIntegrationResults(
     ),
     model: docIntegration,
     sourceType: 'docIntegration',
-    resultType: hasFeatureFlag ? 'docIntegration' : 'integration',
+    resultType: 'docIntegration',
     to: `/settings/${orgId}/document-integrations/${docIntegration.slug}/`,
   }));
 }
@@ -468,11 +464,7 @@ class ApiSource extends React.Component<Props, State> {
         createIntegrationResults(integrations, orgId),
         createPluginResults(plugins, orgId),
         createSentryAppResults(sentryApps, orgId),
-        createDocIntegrationResults(
-          docIntegrations,
-          orgId,
-          organization?.features?.includes('integrations-docs-from-db') ?? false
-        ),
+        createDocIntegrationResults(docIntegrations, orgId),
       ])
     );
 
