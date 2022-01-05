@@ -30,6 +30,7 @@ type TestStubFixtures = {
   DebugSymbols: OverridableStub;
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
+  DocIntegration: OverridableStub;
   Entries: SimpleStub;
   Event: OverridableStub;
   EventEntry: OverridableStub;

@@ -9,6 +9,7 @@ import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
 import SelectControl from 'sentry/components/forms/selectControl';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -20,7 +21,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   AppOrProviderOrPlugin,
-  DocumentIntegration,
+  DocIntegration,
   Integration,
   IntegrationProvider,
   Organization,
@@ -33,7 +34,7 @@ import {
   getAlertText,
   getCategoriesForIntegration,
   getSentryAppInstallStatus,
-  isDocumentIntegration,
+  isDocIntegration,
   isPlugin,
   isSentryApp,
   trackIntegrationAnalytics,
@@ -42,7 +43,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
-import {documentIntegrations, POPULARITY_WEIGHT} from './constants';
+import {docIntegrations, POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
 
 const FirstPartyIntegrationAlert = HookOrDefault({
@@ -69,6 +70,7 @@ type State = {
   appInstalls: SentryAppInstallation[] | null;
   orgOwnedApps: SentryApp[] | null;
   publishedApps: SentryApp[] | null;
+  publishedDocs: DocIntegration[] | null;
   config: {providers: IntegrationProvider[]} | null;
   extraApp?: SentryApp;
   searchInput: string;
@@ -100,7 +102,8 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   onLoadAllEndpointsSuccess() {
-    const {publishedApps, orgOwnedApps, extraApp, plugins} = this.state;
+    const {organization} = this.props;
+    const {publishedApps, orgOwnedApps, extraApp, plugins, publishedDocs} = this.state;
     const published = publishedApps || [];
     // If we have an extra app in state from query parameter, add it as org owned app
     if (orgOwnedApps !== null && extraApp) {
@@ -120,12 +123,15 @@ export class IntegrationListDirectory extends AsyncComponent<
      * 3. Internal apps available to that org
      */
 
+    const docs = organization.features.includes('integrations-docs-from-db')
+      ? publishedDocs ?? []
+      : Object.values(docIntegrations);
     const combined = ([] as AppOrProviderOrPlugin[])
       .concat(published)
       .concat(orgOwned ?? [])
       .concat(this.providers)
       .concat(plugins ?? [])
-      .concat(Object.values(documentIntegrations));
+      .concat(docs);
 
     const list = this.sortIntegrations(combined);
 
@@ -180,6 +186,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
       ['plugins', `/organizations/${orgId}/plugins/configs/`],
+      ['publishedDocs', '/doc-integrations/'],
     ];
     /**
      * optional app to load for super users
@@ -224,7 +231,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       return 0;
     }
 
-    if (isDocumentIntegration(integration)) {
+    if (isDocIntegration(integration)) {
       return 0;
     }
 
@@ -445,18 +452,19 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   };
 
-  renderDocumentIntegration = (integration: DocumentIntegration) => {
+  renderDocIntegration = (doc: DocIntegration) => {
     const {organization} = this.props;
     return (
       <IntegrationRow
-        key={`doc-int-${integration.slug}`}
+        key={`doc-int-${doc.slug}`}
         organization={organization}
-        type="documentIntegration"
-        slug={integration.slug}
-        displayName={integration.name}
+        type="docIntegration"
+        slug={doc.slug}
+        displayName={doc.name}
         publishStatus="published"
         configurations={0}
-        categories={getCategoriesForIntegration(integration)}
+        categories={getCategoriesForIntegration(doc)}
+        customIcon={<DocIntegrationAvatar docIntegration={doc} size={36} />}
       />
     );
   };
@@ -468,8 +476,8 @@ export class IntegrationListDirectory extends AsyncComponent<
     if (isPlugin(integration)) {
       return this.renderPlugin(integration);
     }
-    if (isDocumentIntegration(integration)) {
-      return this.renderDocumentIntegration(integration);
+    if (isDocIntegration(integration)) {
+      return this.renderDocIntegration(integration);
     }
     return this.renderProvider(integration);
   };

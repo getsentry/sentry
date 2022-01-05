@@ -39,6 +39,8 @@ export type ResultItem = {
     | 'issue'
     | 'event'
     | 'integration'
+    | 'sentryApp'
+    | 'docIntegration'
     | 'help-docs'
     | 'help-develop'
     | 'help-help-center'
