@@ -21,12 +21,15 @@ type State = {
   isReady: boolean;
 };
 
-type PageFiltersStoreInterface = CommonStoreInterface<State> & {
-  state: PageFilters;
+type Internals = {
+  selection: PageFilters;
+  hasInitialState: boolean;
+  organization: Organization | null;
+};
 
-  reset(state?: PageFilters): void;
+type PageFiltersStoreInterface = CommonStoreInterface<State> & {
+  reset(selection?: PageFilters): void;
   onReset(): void;
-  isReady(): boolean;
   onSetOrganization(organization: Organization): void;
   onInitializeUrlState(newSelection: PageFilters): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
@@ -35,11 +38,13 @@ type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   onSave(data: UpdateData): void;
 };
 
-const storeConfig: Reflux.StoreDefinition & PageFiltersStoreInterface = {
-  state: getDefaultSelection(),
+const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterface = {
+  selection: getDefaultSelection(),
+  hasInitialState: false,
+  organization: null,
 
   init() {
-    this.reset(this.state);
+    this.reset(this.selection);
     this.listenTo(PageFiltersActions.reset, this.onReset);
     this.listenTo(PageFiltersActions.initializeUrlState, this.onInitializeUrlState);
     this.listenTo(PageFiltersActions.setOrganization, this.onSetOrganization);
@@ -49,15 +54,9 @@ const storeConfig: Reflux.StoreDefinition & PageFiltersStoreInterface = {
     this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments);
   },
 
-  reset(state) {
-    // Has passed the enforcement state
-    this._hasEnforcedProject = false;
+  reset(selection) {
     this._hasInitialState = false;
-    this.state = state || getDefaultSelection();
-  },
-
-  isReady() {
-    return this._hasInitialState;
+    this.selection = selection || getDefaultSelection();
   },
 
   onSetOrganization(organization) {
@@ -69,15 +68,15 @@ const storeConfig: Reflux.StoreDefinition & PageFiltersStoreInterface = {
    */
   onInitializeUrlState(newSelection) {
     this._hasInitialState = true;
-    this.state = newSelection;
+    this.selection = newSelection;
     this.trigger(this.getState());
   },
 
   getState() {
-    return {
-      selection: this.state,
-      isReady: this.isReady(),
-    };
+    const isReady = this._hasInitialState;
+    const {selection} = this;
+
+    return {selection, isReady};
   },
 
   onReset() {
@@ -86,37 +85,37 @@ const storeConfig: Reflux.StoreDefinition & PageFiltersStoreInterface = {
   },
 
   updateProjects(projects = [], environments = null) {
-    if (isEqual(this.state.projects, projects)) {
+    if (isEqual(this.selection.projects, projects)) {
       return;
     }
 
-    this.state = {
-      ...this.state,
+    this.selection = {
+      ...this.selection,
       projects,
-      environments: environments === null ? this.state.environments : environments,
+      environments: environments === null ? this.selection.environments : environments,
     };
     this.trigger(this.getState());
   },
 
   updateDateTime(datetime) {
-    if (isEqualWithDates(this.state.datetime, datetime)) {
+    if (isEqualWithDates(this.selection.datetime, datetime)) {
       return;
     }
 
-    this.state = {
-      ...this.state,
+    this.selection = {
+      ...this.selection,
       datetime,
     };
     this.trigger(this.getState());
   },
 
   updateEnvironments(environments) {
-    if (isEqual(this.state.environments, environments)) {
+    if (isEqual(this.selection.environments, environments)) {
       return;
     }
 
-    this.state = {
-      ...this.state,
+    this.selection = {
+      ...this.selection,
       environments: environments ?? [],
     };
     this.trigger(this.getState());
