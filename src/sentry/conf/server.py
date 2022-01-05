@@ -1071,8 +1071,6 @@ SENTRY_FEATURES = {
     "organizations:sso-scim": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
-    # Enable transaction comparison view for performance.
-    "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
     # Enable percent-based conditions on issue rules

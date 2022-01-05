@@ -19,6 +19,7 @@ from django.views import View
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
+from sentry.auth.email import resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
     get_verification_value_from_key,
@@ -35,7 +36,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     User,
-    UserEmail,
 )
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
@@ -101,9 +101,15 @@ class AuthIdentityHandler:
     identity: Mapping[str, Any]
 
     def __post_init__(self) -> None:
-        self.user: Union[User, AnonymousUser] = (
-            self._find_user_from_email(self.identity.get("email")) or self.request.user
-        )
+        self.user: Union[User, AnonymousUser] = self._initialize_user()
+
+    def _initialize_user(self) -> Union[User, AnonymousUser]:
+        email = self.identity.get("email")
+        if email:
+            user = resolve_email_to_user(email)
+            if user:
+                return user
+        return self.request.user
 
     class _NotCompletedSecurityChecks(Exception):
         pass
@@ -341,17 +347,6 @@ class AuthIdentityHandler:
             return OrganizationMember.objects.get(user=self.user, organization=self.organization)
         except OrganizationMember.DoesNotExist:
             return self._handle_new_membership(auth_identity)
-
-    @staticmethod
-    def _find_user_from_email(email: Optional[str]) -> Optional[User]:
-        if email is None:
-            return None
-
-        # TODO(dcramer): its possible they have multiple accounts and at
-        # least one is managed (per the check below)
-        return User.objects.filter(
-            id__in=UserEmail.objects.filter(email__iexact=email).values("user"), is_active=True
-        ).first()
 
     def _respond(
         self,
