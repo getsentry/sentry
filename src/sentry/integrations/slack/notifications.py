@@ -142,7 +142,6 @@ def _notify_recipient(
     attachments: List[SlackAttachment],
     channel: str,
     integration: Integration,
-    is_multiple: bool,
 ) -> None:
     # Make a local copy to which we can append.
     local_attachments = copy(attachments)
@@ -170,7 +169,6 @@ def _notify_recipient(
         "notification": notification,
         "recipient": recipient.id,
         "channel_id": channel,
-        "is_multiple": is_multiple,
     }
     post_message.apply_async(
         kwargs={
@@ -180,23 +178,6 @@ def _notify_recipient(
         }
     )
     notification.record_notification_sent(recipient, ExternalProviders.SLACK)
-
-
-def check_if_is_multiple(
-    notification: BaseNotification,
-    recipient: Team | User,
-    tokens_by_channel: Mapping[str, str],
-) -> bool:
-    is_multiple = len(tokens_by_channel.keys()) > 1
-    if is_multiple:
-        logger.info(
-            "notification.multiple.slack_post",
-            extra={
-                "notification": notification,
-                "recipient": recipient.id,
-            },
-        )
-    return is_multiple
 
 
 @register_notification_provider(ExternalProviders.SLACK)
@@ -209,7 +190,6 @@ def send_notification_as_slack(
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
     data = get_integrations_by_channel_by_recipient(notification.organization, recipients)
     for recipient, integrations_by_channel in data.items():
-        is_multiple = check_if_is_multiple(notification, recipient, integrations_by_channel)
         attachments = get_attachments(
             notification,
             recipient,
@@ -224,7 +204,6 @@ def send_notification_as_slack(
                 attachments=attachments,
                 channel=channel,
                 integration=integration,
-                is_multiple=is_multiple,
             )
 
     metrics.incr(
