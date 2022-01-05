@@ -31,7 +31,7 @@ function ThemeAndStyleProvider({children}: Props) {
       {ReactDOM.createPortal(
         <Fragment>
           <meta name="color-scheme" content={config.theme} />
-          <meta name="theme-color" content={theme.backgroundSecondary} />
+          <meta name="theme-color" content={theme.sidebar.background} />
         </Fragment>,
         document.head
       )}
