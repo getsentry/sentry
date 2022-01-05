@@ -30,6 +30,7 @@ const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
   fields.forEach(field => {
     let alias = getAggregateAlias(field);
     const label = stripEquationPrefix(field);
+    // Equations are referenced via a standard alias following this pattern
     if (isEquation(field)) {
       alias = `equation[${equations}]`;
       equations += 1;
