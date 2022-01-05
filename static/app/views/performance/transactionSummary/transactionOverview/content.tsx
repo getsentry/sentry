@@ -203,13 +203,12 @@ class SummaryContent extends React.Component<Props> {
     );
 
     const query = decodeScalar(location.query.query, '');
-    const origin = decodeScalar(location.query.origin, '');
     const totalCount = totalValues === null ? null : totalValues.count;
 
     // NOTE: This is not a robust check for whether or not a transaction is a front end
     // transaction, however it will suffice for now.
     const hasWebVitals =
-      isSummaryViewFrontendPageLoad(eventView, projects, origin) ||
+      isSummaryViewFrontendPageLoad(eventView, projects) ||
       (totalValues !== null &&
         VITAL_GROUPS.some(group =>
           group.vitals.some(vital => {
@@ -218,7 +217,7 @@ class SummaryContent extends React.Component<Props> {
           })
         ));
 
-    const isFrontendView = isSummaryViewFrontend(eventView, projects, origin);
+    const isFrontendView = isSummaryViewFrontend(eventView, projects);
 
     const transactionsListTitles = [
       t('event id'),

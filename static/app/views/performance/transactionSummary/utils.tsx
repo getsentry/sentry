@@ -77,7 +77,6 @@ export function transactionSummaryRouteWithQuery({
       display,
       trendFunction,
       trendColumn,
-      origin: query.origin,
       ...additionalQuery,
     },
   };

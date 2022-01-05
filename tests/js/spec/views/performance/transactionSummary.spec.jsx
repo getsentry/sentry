@@ -6,7 +6,9 @@ import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {TransactionMetric} from 'sentry/utils/metrics/fields';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {MetricsSwitchContext} from 'sentry/views/performance/metricsSwitch';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -14,9 +16,13 @@ const teams = [
   TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
 ];
 
-function initializeData({features: additionalFeatures = [], query = {}} = {}) {
+function initializeData({
+  features: additionalFeatures = [],
+  query = {},
+  project: prj,
+} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const project = TestStubs.Project({teams});
+  const project = prj ?? TestStubs.Project({teams});
   const organization = TestStubs.Organization({
     features,
     projects: [project],
@@ -28,7 +34,7 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
       location: {
         query: {
           transaction: '/performance',
-          project: '2',
+          project: project.id,
           transactionCursor: '1:0:0',
           ...query,
         },
@@ -41,10 +47,12 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
   return initialData;
 }
 
-const WrappedComponent = ({organization, ...props}) => {
+const WrappedComponent = ({organization, isMetricsData = false, ...props}) => {
   return (
     <OrganizationContext.Provider value={organization}>
-      <TransactionSummary organization={organization} {...props} />
+      <MetricsSwitchContext.Provider value={{isMetricsData}}>
+        <TransactionSummary organization={organization} {...props} />
+      </MetricsSwitchContext.Provider>
     </OrganizationContext.Provider>
   );
 };
@@ -310,6 +318,7 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure status breakdown exists
     expect(wrapper.find('StatusBreakdown')).toHaveLength(1);
+
     wrapper.unmount();
   });
 
@@ -650,6 +659,111 @@ describe('Performance > TransactionSummary', function () {
     const fooSegment = wrapper.find('[data-test-id="tag-foo-segment-bar"] Segment');
     const fooTarget = fooSegment.props().to;
     expect(fooTarget.query.query).toEqual('foo:bar');
+    wrapper.unmount();
+  });
+
+  it('renders Web Vitals widget', async function () {
+    const initialData = initializeData({
+      project: TestStubs.Project({teams, platform: 'javascript'}),
+      query: {
+        query:
+          'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    // It renders the web vitals widget
+    expect(wrapper.find('VitalsHeading')).toHaveLength(1);
+    expect(wrapper.find('VitalInfo')).toHaveLength(1);
+
+    wrapper.unmount();
+  });
+
+  it('renders Web Vitals widget - metrics based', async function () {
+    const fields = [
+      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FCP})`,
+      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP})`,
+      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID})`,
+      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS})`,
+    ];
+
+    const metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsFieldByMeasurementRating({fields}),
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/tags/`,
+      body: [],
+    });
+
+    const initialData = initializeData({
+      project: TestStubs.Project({teams, platform: 'javascript'}),
+      query: {
+        query: 'transaction:/organizations/:orgId/issues/',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={initialData.organization}
+        location={initialData.router.location}
+        isMetricsData
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(metricsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [2],
+          environment: [],
+          field: [
+            'count(sentry.transactions.measurements.fcp)',
+            'count(sentry.transactions.measurements.lcp)',
+            'count(sentry.transactions.measurements.fid)',
+            'count(sentry.transactions.measurements.cls)',
+          ],
+          query: 'transaction:/organizations/:orgId/issues/',
+          groupBy: ['measurement_rating'],
+          orderBy: undefined,
+          limit: undefined,
+          interval: '1h',
+          datasource: undefined,
+          statsPeriod: '14d',
+          start: undefined,
+          end: undefined,
+        }),
+      })
+    );
+
+    // It renders the web vitals widget
+    expect(wrapper.find('VitalsHeading')).toHaveLength(1);
+    expect(wrapper.find('VitalInfo')).toHaveLength(1);
+
+    const vitalStatues = wrapper.find('VitalStatus');
+    expect(vitalStatues).toHaveLength(3);
+
+    expect(vitalStatues.at(0).text()).toEqual(' 78%');
+    expect(vitalStatues.at(1).text()).toEqual(' 6%');
+    expect(vitalStatues.at(2).text()).toEqual(' 17%');
+
     wrapper.unmount();
   });
 });

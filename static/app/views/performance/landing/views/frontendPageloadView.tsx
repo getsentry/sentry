@@ -4,7 +4,6 @@ import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/perf
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 import {FRONTEND_PAGELOAD_COLUMN_TITLES} from '../data';
-import {LandingDisplayField} from '../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
@@ -42,7 +41,6 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
           {...props}
           columnTitles={FRONTEND_PAGELOAD_COLUMN_TITLES}
           setError={usePageError().setPageError}
-          origin={LandingDisplayField.FRONTEND_PAGELOAD}
         />
       </div>
     </PerformanceDisplayProvider>

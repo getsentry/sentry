@@ -21,7 +21,6 @@ import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReact
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {LandingDisplayField} from './landing/utils';
 import {DEFAULT_MAX_DURATION} from './trends/utils';
 
 /**
@@ -103,31 +102,19 @@ export function platformAndConditionsToPerformanceType(
 /**
  * Used for transaction summary to check the view itself, since it can have conditions which would exclude it from having vitals aside from platform.
  */
-export function isSummaryViewFrontendPageLoad(
-  eventView: EventView,
-  projects: Project[],
-  origin: string
-) {
+export function isSummaryViewFrontendPageLoad(eventView: EventView, projects: Project[]) {
   return (
     platformAndConditionsToPerformanceType(projects, eventView) ===
-      PROJECT_PERFORMANCE_TYPE.FRONTEND ||
-    origin === LandingDisplayField.FRONTEND_PAGELOAD ||
-    origin === LandingDisplayField.FRONTEND_OTHER
+    PROJECT_PERFORMANCE_TYPE.FRONTEND
   );
 }
 
-export function isSummaryViewFrontend(
-  eventView: EventView,
-  projects: Project[],
-  origin: string
-) {
+export function isSummaryViewFrontend(eventView: EventView, projects: Project[]) {
   return (
     platformAndConditionsToPerformanceType(projects, eventView) ===
       PROJECT_PERFORMANCE_TYPE.FRONTEND ||
     platformAndConditionsToPerformanceType(projects, eventView) ===
-      PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER ||
-    origin === LandingDisplayField.FRONTEND_PAGELOAD ||
-    origin === LandingDisplayField.FRONTEND_OTHER
+      PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER
   );
 }
 
