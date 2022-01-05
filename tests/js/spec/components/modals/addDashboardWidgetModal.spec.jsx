@@ -1075,7 +1075,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
       userEvent.click(screen.getByText('Line Chart'));
       userEvent.click(screen.getByText('Table'));
-      userEvent.click(screen.getByText('Issues (Assignees, Status, ...)'));
+      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.click(screen.getByTestId('add-widget'));
 
       await tick();
