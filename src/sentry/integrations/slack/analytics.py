@@ -29,7 +29,7 @@ class SlackIntegrationNotificationSent(analytics.Event):
     )
 
 
-class IdentityLinked(analytics.Event):  # type: ignore
+class IntegrationIdentityLinked(analytics.Event):  # type: ignore
     type = "integrations.identity_linked"
 
     attributes = (
@@ -76,7 +76,7 @@ class IntegrationSlackRejectMemberInvitation(IntegrationSlackApproveMemberInvita
 analytics.register(SlackIntegrationAssign)
 analytics.register(SlackIntegrationNotificationSent)
 analytics.register(SlackIntegrationStatus)
-analytics.register(IdentityLinked)
+analytics.register(IntegrationIdentityLinked)
 analytics.register(IntegrationSlackChartUnfurl)
 analytics.register(IntegrationSlackLinkIdentity)
 analytics.register(IntegrationSlackApproveMemberInvitation)
