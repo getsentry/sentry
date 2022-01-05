@@ -661,7 +661,8 @@ class IssueListOverview extends React.Component<Props, State> {
   onSelectStatsPeriod = (period: string) => {
     if (period !== this.getGroupStatsPeriod()) {
       const cursor = this.props.location.query.cursor;
-      this.transitionTo({cursor, groupStatsPeriod: period});
+      const queryPageInt = parseInt(this.props.location.query.page, 10);
+      this.transitionTo({cursor, page: queryPageInt, groupStatsPeriod: period});
     }
   };
 
