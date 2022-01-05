@@ -20,7 +20,7 @@ import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, User} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -31,7 +31,7 @@ import {Widget, WidgetType} from '../types';
 import {ISSUE_FIELDS} from '../widget/issueWidget/fields';
 
 import WidgetCardChart from './chart';
-import IssueWidgetQueries from './issueWidgetQueries';
+import IssueWidgetQueries, {IssueTableData} from './issueWidgetQueries';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 import WidgetQueries from './widgetQueries';
 
@@ -39,6 +39,7 @@ type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'liste
 
 type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'> & {
   transformedResults: TableDataRow[];
+  issueResults?: IssueTableData[];
 };
 
 type Props = WithRouterProps & {
@@ -60,6 +61,7 @@ type Props = WithRouterProps & {
   noLazyLoad?: boolean;
   hideDragHandle?: boolean;
   widgetLimitReached: boolean;
+  memberList?: User[];
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -71,7 +73,8 @@ class WidgetCard extends React.Component<Props> {
       this.props.isSorting !== nextProps.isSorting ||
       this.props.hideToolbar !== nextProps.hideToolbar ||
       this.props.widgetLimitReached !== nextProps.widgetLimitReached ||
-      this.props.hideDragHandle !== nextProps.hideDragHandle
+      this.props.hideDragHandle !== nextProps.hideDragHandle ||
+      this.props.memberList !== nextProps.memberList
     ) {
       return true;
     }
@@ -145,6 +148,7 @@ class WidgetCard extends React.Component<Props> {
     loading,
     errorMessage,
     transformedResults,
+    issueResults,
   }: TableResultProps): React.ReactNode {
     const {location, organization, widget} = this.props;
     if (errorMessage) {
@@ -167,28 +171,36 @@ class WidgetCard extends React.Component<Props> {
         loading={loading}
         metadata={ISSUE_FIELDS}
         data={transformedResults}
+        issueData={issueResults}
         organization={organization}
       />
     );
   }
 
   renderIssueChart() {
-    const {widget, api, organization, selection, renderErrorMessage} = this.props;
+    const {widget, api, organization, selection, renderErrorMessage, memberList} =
+      this.props;
     return (
       <IssueWidgetQueries
         api={api}
         organization={organization}
         widget={widget}
         selection={selection}
+        memberList={memberList ?? ([] as User[])}
       >
-        {({transformedResults, errorMessage, loading}) => {
+        {({transformedResults, issueResults, errorMessage, loading}) => {
           return (
             <React.Fragment>
               {typeof renderErrorMessage === 'function'
                 ? renderErrorMessage(errorMessage)
                 : null}
               <LoadingScreen loading={loading} />
-              {this.tableResultComponent({transformedResults, loading, errorMessage})}
+              {this.tableResultComponent({
+                transformedResults,
+                issueResults,
+                loading,
+                errorMessage,
+              })}
               {this.renderToolbar()}
             </React.Fragment>
           );

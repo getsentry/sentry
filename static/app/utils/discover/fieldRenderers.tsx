@@ -5,6 +5,7 @@ import {Location} from 'history';
 import partial from 'lodash/partial';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import Count from 'sentry/components/count';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -16,8 +17,8 @@ import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {Actor, Organization} from 'sentry/types';
+import {t, tct, tn} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -34,6 +35,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
+import {IssueTableData} from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -62,6 +64,7 @@ type RenderFunctionBaggage = {
   organization: Organization;
   location: Location;
   eventView?: EventView;
+  issueData?: IssueTableData;
 };
 
 type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
@@ -433,17 +436,13 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   assignee: {
     sortField: 'assignee.name',
-    renderFunc: data => {
-      const assignedTo: Actor = {
-        type: data['assignee.type'],
-        id: data['assignee.id'],
-        name: data['assignee.name'],
-        email: data['assignee.email'],
-      };
-
+    renderFunc: (_, {issueData}) => {
+      const {assignedTo, suggestedAssignees} = issueData
+        ? issueData
+        : {assignedTo: undefined, suggestedAssignees: undefined};
       return (
         <ActorContainer>
-          {assignedTo.type && assignedTo.id && assignedTo.name ? (
+          {assignedTo ? (
             <ActorAvatar
               actor={assignedTo}
               size={28}
@@ -452,6 +451,26 @@ const SPECIAL_FIELDS: SpecialFields = {
                   assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name
                 }`
               )}
+            />
+          ) : suggestedAssignees && suggestedAssignees.length > 0 ? (
+            <SuggestedAvatarStack
+              size={24}
+              owners={suggestedAssignees}
+              tooltipOptions={{isHoverable: true}}
+              tooltip={
+                <TooltipWrapper>
+                  <div>
+                    {tct('Suggestion: [name]', {
+                      name:
+                        suggestedAssignees[0].type === 'team'
+                          ? `#${suggestedAssignees[0].name}`
+                          : suggestedAssignees[0].name,
+                    })}
+                    {suggestedAssignees.length > 1 &&
+                      tn(' + %s other', ' + %s others', suggestedAssignees.length - 1)}
+                  </div>
+                </TooltipWrapper>
+              }
             />
           ) : (
             <Tooltip isHoverable skipWrapper title={<div>{t('Unassigned')}</div>}>
@@ -689,6 +708,10 @@ const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
 
 const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
   background-color: ${p => p.theme.gray100};
+`;
+
+const TooltipWrapper = styled('div')`
+  text-align: left;
 `;
 
 /**

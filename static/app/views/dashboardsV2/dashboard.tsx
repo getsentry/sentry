@@ -19,7 +19,7 @@ import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, User} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {uniqueId} from 'sentry/utils/guid';
 import theme from 'sentry/utils/theme';
@@ -78,6 +78,7 @@ type Props = {
   paramDashboardId?: string;
   paramTemplateId?: string;
   newWidget?: Widget;
+  memberList?: User[];
 };
 
 type State = {
@@ -323,7 +324,7 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile} = this.state;
-    const {isEditing, organization, widgetLimitReached} = this.props;
+    const {isEditing, organization, widgetLimitReached, memberList} = this.props;
 
     const widgetProps = {
       widget,
@@ -332,6 +333,7 @@ class Dashboard extends Component<Props, State> {
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      memberList,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {

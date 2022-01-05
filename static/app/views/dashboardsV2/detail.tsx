@@ -10,6 +10,7 @@ import {
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -18,9 +19,10 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, User} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -67,6 +69,7 @@ type State = {
   widgetToBeUpdated?: Widget;
   layout: RGLLayout[];
   widgetLimitReached: boolean;
+  memberList: User[];
 };
 
 class DashboardDetail extends Component<Props, State> {
@@ -75,6 +78,7 @@ class DashboardDetail extends Component<Props, State> {
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     layout: getDashboardLayout(this.props.organization.id, this.props.dashboard.id),
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
+    memberList: [],
   };
 
   componentDidMount() {
@@ -82,6 +86,9 @@ class DashboardDetail extends Component<Props, State> {
     this.checkStateRoute();
     router.setRouteLeaveHook(route, this.onRouteLeave);
     window.addEventListener('beforeunload', this.onUnload);
+
+    // Get member list data for issue widgets
+    this.fetchMemberList();
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -107,6 +114,12 @@ class DashboardDetail extends Component<Props, State> {
     if (location.pathname === dashboardDetailsRoute && !!this.state.widgetToBeUpdated) {
       this.onSetWidgetToBeUpdated(undefined);
     }
+  }
+
+  fetchMemberList() {
+    fetchOrgMembers(this.props.api, this.props.organization.slug).then(_ => {
+      this.setState({memberList: MemberListStore.getAll()});
+    });
   }
 
   updateRouteAfterSavingWidget() {
@@ -520,7 +533,8 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDefaultDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
-    const {layout, modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
+    const {layout, modifiedDashboard, dashboardState, widgetLimitReached, memberList} =
+      this.state;
     const {dashboardId} = params;
 
     return (
@@ -570,6 +584,7 @@ class DashboardDetail extends Component<Props, State> {
               location={location}
               layout={layout}
               onLayoutChange={this.onLayoutChange}
+              memberList={memberList}
             />
           </NoProjectMessage>
         </PageContent>
@@ -580,7 +595,8 @@ class DashboardDetail extends Component<Props, State> {
   renderDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location, newWidget} =
       this.props;
-    const {layout, modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
+    const {layout, modifiedDashboard, dashboardState, widgetLimitReached, memberList} =
+      this.state;
     const {dashboardId} = params;
 
     return (
@@ -655,6 +671,7 @@ class DashboardDetail extends Component<Props, State> {
                   newWidget={newWidget}
                   layout={layout}
                   onLayoutChange={this.onLayoutChange}
+                  memberList={memberList}
                 />
               </Layout.Main>
             </Layout.Body>

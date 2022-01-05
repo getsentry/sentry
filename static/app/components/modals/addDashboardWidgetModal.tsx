@@ -19,6 +19,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {
   DateString,
@@ -27,6 +28,7 @@ import {
   RelativePeriod,
   SelectValue,
   TagCollection,
+  User,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Measurements from 'sentry/utils/measurements/measurements';
@@ -103,6 +105,7 @@ type State = {
   selectedDashboard?: SelectValue<string>;
   userHasModified: boolean;
   widgetType: WidgetType;
+  memberList?: User[];
 };
 
 const newQuery = {
@@ -140,6 +143,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         dashboards: [],
         userHasModified: false,
         widgetType: WidgetType.DISCOVER,
+        memberList: MemberListStore.loaded ? MemberListStore.getAll() : undefined,
       };
       return;
     }
@@ -154,6 +158,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       dashboards: [],
       userHasModified: false,
       widgetType: widget.widgetType ?? WidgetType.DISCOVER,
+      memberList: MemberListStore.loaded ? MemberListStore.getAll() : undefined,
     };
   }
 
@@ -163,6 +168,23 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
     this.handleDefaultFields();
   }
+
+  componentWillUnmount() {
+    this.unlisteners.forEach(unlistener => unlistener?.());
+  }
+
+  unlisteners = [
+    MemberListStore.listen((users: User[]) => {
+      this.handleMemberListUpdate(users);
+    }, undefined),
+  ];
+
+  handleMemberListUpdate = (members: User[]) => {
+    if (members === this.state.memberList) {
+      return;
+    }
+    this.setState({memberList: members});
+  };
 
   get omitDashboardProp() {
     // when opening from discover or issues page, the user selects the dashboard in the widget UI
@@ -544,6 +566,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       source,
     } = this.props;
     const state = this.state;
+    const {memberList} = state;
     const errors = state.errors;
 
     // Construct PageFilters object using statsPeriod/start/end props so we can
@@ -673,6 +696,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 isSorting={false}
                 currentWidgetDragging={false}
                 noLazyLoad
+                memberList={memberList}
               />
             </React.Fragment>
           ) : (
@@ -716,6 +740,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 isSorting={false}
                 currentWidgetDragging={false}
                 noLazyLoad
+                memberList={memberList}
               />
             </React.Fragment>
           )}

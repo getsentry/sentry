@@ -2,7 +2,7 @@ import {ComponentProps, useEffect} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
-import {Organization} from 'sentry/types';
+import {Organization, User} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
@@ -20,6 +20,7 @@ type Props = {
   widgetLimitReached: boolean;
   organization: Organization;
   hideDragHandle?: boolean;
+  memberList?: User[];
 };
 
 function SortableWidget(props: Props) {
@@ -33,6 +34,7 @@ function SortableWidget(props: Props) {
     onDelete,
     onEdit,
     onDuplicate,
+    memberList,
   } = props;
 
   const {
@@ -70,6 +72,7 @@ function SortableWidget(props: Props) {
     hideToolbar: isSorting,
     currentWidgetDragging,
     showContextMenu: true,
+    memberList,
   };
 
   if (organization.features.includes('dashboard-grid-layout')) {

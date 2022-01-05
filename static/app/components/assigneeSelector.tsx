@@ -26,7 +26,7 @@ import space from 'sentry/styles/space';
 import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'sentry/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
-type SuggestedAssignee = Actor & {
+export type SuggestedAssignee = Actor & {
   suggestedReason: SuggestedOwnerReason;
   assignee: AssignableTeam | User;
 };

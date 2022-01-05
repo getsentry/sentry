@@ -3,9 +3,11 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
+import {SuggestedAssignee} from 'sentry/components/assigneeSelector';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import {Group, OrganizationSummary, PageFilters} from 'sentry/types';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {Actor, Group, OrganizationSummary, PageFilters, Team, User} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {IssueDisplayOptions, IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -16,6 +18,8 @@ const MAX_ITEMS = 5;
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 const DEFAULT_COLLAPSE = ['stats', 'filtered', 'lifetime'];
+const DEFAULT_EXPAND = ['owners'];
+import {buildTeamId} from 'sentry/utils';
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
   project: number[];
@@ -28,6 +32,19 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   page?: number | string;
   display?: string;
   collapse?: string[];
+  expand?: string[];
+};
+
+export type IssueTableData = {
+  assignedTo: Actor;
+  suggestedAssignees: SuggestedAssignee[];
+};
+
+type AssignableTeam = {
+  id: string;
+  display: string;
+  email: string;
+  team: Team;
 };
 
 type Props = {
@@ -39,7 +56,9 @@ type Props = {
     loading: boolean;
     errorMessage: undefined | string;
     transformedResults: TableDataRow[];
+    issueResults: IssueTableData[];
   }) => React.ReactNode;
+  memberList: User[];
 };
 
 type State = {
@@ -92,8 +111,75 @@ class WidgetQueries extends React.Component<Props, State> {
     }
   }
 
-  transformTableResults(tableResults: Group[]): TableDataRow[] {
-    return tableResults.map(({id, shortId, title, assignedTo, ...resultProps}) => {
+  assignableTeams(group: Group): AssignableTeam[] {
+    if (!group) {
+      return [];
+    }
+
+    const teams = ProjectsStore.getBySlug(group.project.slug)?.teams ?? [];
+    return teams
+      .sort((a, b) => a.slug.localeCompare(b.slug))
+      .map(team => ({
+        id: buildTeamId(team.id),
+        display: `#${team.slug}`,
+        email: team.id,
+        team,
+      }));
+  }
+
+  getSuggestedAssignees(group: Group): SuggestedAssignee[] {
+    const {memberList} = this.props;
+    const {owners: suggestedOwners} = group;
+    if (!suggestedOwners) {
+      return [];
+    }
+
+    const assignableTeams = this.assignableTeams(group);
+    const suggestedAssignees: Array<SuggestedAssignee | null> = suggestedOwners.map(
+      owner => {
+        // converts a backend suggested owner to a suggested assignee
+        const [ownerType, id] = owner.owner.split(':');
+        if (ownerType === 'user') {
+          const member = memberList.find(user => user.id === id);
+          if (member) {
+            return {
+              type: 'user',
+              id,
+              name: member.name,
+              suggestedReason: owner.type,
+              assignee: member,
+            };
+          }
+        } else if (ownerType === 'team') {
+          const matchingTeam = assignableTeams.find(
+            assignableTeam => assignableTeam.id === owner.owner
+          );
+          if (matchingTeam) {
+            return {
+              type: 'team',
+              id,
+              name: matchingTeam.team.name,
+              suggestedReason: owner.type,
+              assignee: matchingTeam,
+            };
+          }
+        }
+
+        return null;
+      }
+    );
+
+    return suggestedAssignees.filter(owner => !!owner) as SuggestedAssignee[];
+  }
+
+  transformTableResults(tableResults: Group[]): {
+    transformedTableResults: TableDataRow[];
+    issueResults: IssueTableData[];
+  } {
+    const transformedTableResults: TableDataRow[] = [];
+    const issueResults: IssueTableData[] = [];
+    tableResults.forEach(group => {
+      const {id, shortId, title, assignedTo, ...resultProps} = group;
       const transformedResultProps = {};
       Object.keys(resultProps).map(key => {
         const value = resultProps[key];
@@ -101,19 +187,25 @@ class WidgetQueries extends React.Component<Props, State> {
           ? value
           : String(value);
       });
-      const transformedTableResults = {
+
+      const transformedTableResult = {
         ...transformedResultProps,
         id,
         'issue.id': id,
         issue: shortId,
         title,
-        'assignee.type': assignedTo?.type,
-        'assignee.name': assignedTo?.name ?? '',
-        'assignee.id': assignedTo?.id,
-        'assignee.email': assignedTo?.email ?? '',
       };
-      return transformedTableResults;
+      transformedTableResults.push(transformedTableResult);
+
+      const suggestedAssignees = this.getSuggestedAssignees(group);
+      const additionalTableResult = {
+        id,
+        assignedTo,
+        suggestedAssignees,
+      };
+      issueResults.push(additionalTableResult);
     });
+    return {transformedTableResults, issueResults};
   }
 
   fetchEventData() {
@@ -129,6 +221,7 @@ class WidgetQueries extends React.Component<Props, State> {
       sort: query.orderby || DEFAULT_SORT,
       display: DEFAULT_DISPLAY,
       collapse: DEFAULT_COLLAPSE,
+      expand: DEFAULT_EXPAND,
     };
 
     if (selection.datetime.period) {
@@ -173,9 +266,10 @@ class WidgetQueries extends React.Component<Props, State> {
   render() {
     const {children} = this.props;
     const {loading, tableResults, errorMessage} = this.state;
-    const transformedResults = this.transformTableResults(tableResults);
+    const {transformedTableResults: transformedResults, issueResults} =
+      this.transformTableResults(tableResults);
 
-    return children({loading, transformedResults, errorMessage});
+    return children({loading, transformedResults, issueResults, errorMessage});
   }
 }
 
