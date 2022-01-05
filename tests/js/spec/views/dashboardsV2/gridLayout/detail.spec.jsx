@@ -235,6 +235,7 @@ describe('Dashboards > Detail', function () {
       jest.clearAllMocks();
       if (wrapper) {
         wrapper.unmount();
+        wrapper = null;
       }
     });
 
@@ -462,6 +463,7 @@ describe('Dashboards > Detail', function () {
         />,
         {context: initialData.routerContext}
       );
+      await tick();
 
       await screen.findByText('First Widget');
       await screen.findByText('Second Widget');
@@ -476,7 +478,7 @@ describe('Dashboards > Detail', function () {
             TestStubs.Widget(
               [{name: '', conditions: 'event.type:error', fields: ['count()']}],
               {
-                title: 'First',
+                title: 'First Widget',
                 interval: '1d',
                 id: '1',
               }
@@ -498,9 +500,9 @@ describe('Dashboards > Detail', function () {
         />,
         {context: initialData.routerContext}
       );
+      await tick();
 
       await screen.findByText('First Widget');
-      await screen.findByText('Second Widget');
     });
   });
 });
