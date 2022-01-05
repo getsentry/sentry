@@ -56,19 +56,12 @@ class Updater(Mediator, SentryAppMixin):
     def _update_features(self):
         if not self.user.is_superuser and self.sentry_app.status == SentryAppStatus.PUBLISHED:
             raise APIError("Cannot update features on a published integration.")
-        # Delete any unused features
-        unused_features = IntegrationFeature.objects.filter(
-            target_id=self.sentry_app.id, target_type=IntegrationTypes.SENTRY_APP.value
-        ).exclude(feature__in=list(self.features))
-        for unused_feature in unused_features:
-            unused_feature.delete()
-        # Create any new features
-        for feature in self.features:
-            IntegrationFeature.objects.get_or_create(
-                target_id=self.sentry_app.id,
-                target_type=IntegrationTypes.SENTRY_APP.value,
-                feature=feature,
-            )
+
+        IntegrationFeature.objects.clean_update(
+            incoming_features=list(self.features),
+            target=self.sentry_app,
+            target_type=IntegrationTypes.SENTRY_APP,
+        )
 
     @if_param("name")
     def _update_name(self):
