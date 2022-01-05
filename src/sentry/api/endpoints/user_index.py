@@ -1,4 +1,6 @@
 from django.db.models import Q
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.paginator import DateTimePaginator
@@ -12,7 +14,7 @@ from sentry.search.utils import tokenize_query
 class UserIndexEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         queryset = User.objects.distinct()
 
         query = request.GET.get("query")

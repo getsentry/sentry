@@ -133,30 +133,38 @@ function makeExample(opt: ExampleOpt): ExampleTransaction {
 function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
   const {op, group, examples} = opt;
   return {
-    projectId: 1,
-    project: 'bar',
-    transaction: 'transaction-1',
     op,
     group,
     frequency: 1,
     count: 1,
     avgOccurrences: 1,
-    sumExclusiveTime: 1,
+    sumExclusiveTime: 5,
     p50ExclusiveTime: 1,
-    p75ExclusiveTime: 1,
-    p95ExclusiveTime: 1,
-    p99ExclusiveTime: 1,
+    p75ExclusiveTime: 2,
+    p95ExclusiveTime: 3,
+    p99ExclusiveTime: 4,
     examples: examples.map(makeExample),
   };
 }
 
-export function generateSuspectSpansResponse(opts?: {examples?: number}) {
-  const {examples} = opts ?? {};
+export function generateSuspectSpansResponse(opts?: {
+  examples?: number;
+  examplesOnly?: boolean;
+}) {
+  const {examples, examplesOnly} = opts ?? {};
   return SAMPLE_SPANS.map(sampleSpan => {
     const span = {...sampleSpan};
     if (defined(examples)) {
       span.examples = span.examples.slice(0, examples);
     }
-    return makeSuspectSpan(span);
+    const suspectSpans = makeSuspectSpan(span);
+    if (examplesOnly) {
+      return {
+        op: suspectSpans.op,
+        group: suspectSpans.group,
+        examples: suspectSpans.examples,
+      };
+    }
+    return suspectSpans;
   });
 }

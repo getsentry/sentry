@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import Dashboard from 'sentry/views/dashboardsV2/gridLayout/dashboard';
+import Dashboard from 'sentry/views/dashboardsV2/dashboard';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > Dashboard', () => {
@@ -40,49 +40,55 @@ describe('Dashboards > Dashboard', () => {
     });
   });
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
-    const mock = jest.fn();
+    const mockHandleAddCustomWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
         isEditing={false}
-        onUpdate={mock}
+        onUpdate={() => undefined}
+        handleAddLibraryWidgets={() => undefined}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         newWidget={newWidget}
         layout={[]}
         onLayoutChange={() => undefined}
+        widgetLimitReached={false}
       />,
       initialData.routerContext
     );
     await tick();
     wrapper.update();
-    expect(mock).toHaveBeenCalled();
+    expect(mockHandleAddCustomWidget).toHaveBeenCalled();
   });
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
-    const mock = jest.fn();
+    const mockHandleAddCustomWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
         isEditing={false}
-        onUpdate={mock}
+        onUpdate={() => undefined}
+        handleAddLibraryWidgets={() => undefined}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         layout={[]}
         onLayoutChange={() => undefined}
+        widgetLimitReached={false}
       />,
       initialData.routerContext
     );
-    expect(mock).not.toHaveBeenCalled();
+    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     wrapper.setProps({newWidget});
     await tick();
     wrapper.update();
-    expect(mock).toHaveBeenCalled();
+    expect(mockHandleAddCustomWidget).toHaveBeenCalled();
   });
 });

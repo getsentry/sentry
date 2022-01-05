@@ -446,10 +446,6 @@ const FeatureListItem = styled('span')`
 `;
 
 const Description = styled('div')`
-  font-size: 1.5rem;
-  line-height: 2.1rem;
-  margin-bottom: ${space(2)};
-
   li {
     margin-bottom: 6px;
   }

@@ -69,3 +69,11 @@ class InvalidSearchQuery(Exception):
 
 class UnableToAcceptMemberInvitationException(Exception):
     pass
+
+
+class UnsupportedQuerySubscription(Exception):
+    pass
+
+
+class InvalidQuerySubscription(Exception):
+    pass

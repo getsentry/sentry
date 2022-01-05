@@ -16,6 +16,7 @@ export const lightColors = {
   surface100: '#FAF9FB',
   surface200: '#FFFFFF',
   surface300: '#FFFFFF',
+  surface400: '#F5F3F7',
 
   gray500: '#2B2233',
   gray400: '#4D4158',
@@ -49,9 +50,9 @@ export const lightColors = {
   red100: 'rgba(245, 84, 89, 0.09)',
 
   pink400: '#E50675',
-  pink300: '#FA2991',
-  pink200: 'rgba(250, 51, 150, 0.5)',
-  pink100: 'rgba(250, 51, 150, 0.1)',
+  pink300: '#F91A8A',
+  pink200: 'rgba(249, 26, 138, 0.5)',
+  pink100: 'rgba(249, 26, 138, 0.1)',
 };
 
 /**
@@ -65,6 +66,7 @@ export const darkColors = {
   surface100: '#1A141F',
   surface200: '#241D2A',
   surface300: '#2C2433',
+  surface400: '#362E3E',
 
   gray500: '#EBE6EF',
   gray400: '#D6D0DC',
@@ -97,10 +99,10 @@ export const darkColors = {
   red200: 'rgba(250, 79, 84, 0.4)',
   red100: 'rgba(250, 79, 84, 0.1)',
 
-  pink400: '#EF067A',
-  pink300: '#FA3396',
-  pink200: 'rgba(250, 51, 150, 0.55)',
-  pink100: 'rgba(250, 51, 150, 0.13)',
+  pink400: '#C4317A',
+  pink300: '#D1478C',
+  pink200: 'rgba(209, 71, 140, 0.55)',
+  pink100: 'rgba(209, 71, 140, 0.13)',
 };
 
 const lightShadows = {
@@ -191,15 +193,22 @@ const generateAliases = (colors: BaseColors) => ({
   disabledBorder: colors.gray200,
 
   /**
+   * Indicates a "hover" state, to suggest that an interactive element is clickable
+   */
+  hover: colors.surface400,
+
+  /**
    * Indicates that something is "active" or "selected"
    */
   active: colors.purple300,
+  activeHover: colors.purple400,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: colors.surface100,
+  focus: colors.purple200,
+  focusBorder: colors.purple300,
 
   /**
    * Inactive
@@ -211,19 +220,6 @@ const generateAliases = (colors: BaseColors) => ({
    */
   linkColor: colors.blue300,
   linkHoverColor: colors.blue300,
-
-  /**
-   * Secondary button colors
-   */
-  secondaryButtonBorder: colors.gray200,
-
-  secondaryButtonText: colors.gray500,
-
-  /**
-   * Primary button colors
-   */
-  primaryButtonBorder: colors.purple200,
-  primaryButtonBorderActive: colors.purple300,
 
   /**
    * Form placeholder text color
@@ -444,70 +440,77 @@ const generateLevelTheme = (colors: BaseColors) => ({
 });
 
 const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
-  borderRadius: '3px',
+  borderRadius: '4px',
 
   default: {
-    color: alias.secondaryButtonText,
-    colorActive: alias.secondaryButtonText,
+    color: alias.textColor,
+    colorActive: alias.textColor,
     background: alias.background,
-    backgroundActive: alias.background,
-    border: alias.secondaryButtonBorder,
-    borderActive: alias.secondaryButtonBorder,
-    focusShadow: color(colors.gray200).alpha(0.5).string(),
+    backgroundActive: alias.backgroundSecondary,
+    border: alias.border,
+    borderActive: alias.border,
+    focusBorder: alias.focusBorder,
+    focusShadow: alias.focus,
   },
   primary: {
     color: colors.white,
     colorActive: colors.white,
     background: colors.purple300,
-    backgroundActive: '#4e3fb4',
-    border: alias.primaryButtonBorder,
-    borderActive: alias.primaryButtonBorderActive,
-    focusShadow: colors.purple200,
+    backgroundActive: colors.purple400,
+    border: colors.purple300,
+    borderActive: colors.purple300,
+    focusBorder: alias.focusBorder,
+    focusShadow: alias.focus,
   },
   success: {
     color: colors.white,
     colorActive: colors.white,
-    background: '#3fa372',
-    backgroundActive: colors.green300,
-    border: '#7ccca5',
-    borderActive: '#7ccca5',
+    background: colors.green300,
+    backgroundActive: colors.green400,
+    border: colors.green300,
+    borderActive: colors.green300,
+    focusBorder: colors.green300,
     focusShadow: colors.green200,
   },
   danger: {
     color: colors.white,
     colorActive: colors.white,
     background: colors.red300,
-    backgroundActive: '#bf2a1d',
-    border: '#bf2a1d',
-    borderActive: '#7d1c13',
+    backgroundActive: colors.red400,
+    border: colors.red300,
+    borderActive: colors.red300,
+    focusBorder: colors.red300,
     focusShadow: colors.red200,
   },
   link: {
     color: colors.blue300,
     colorActive: colors.blue300,
     background: 'transparent',
-    border: false,
-    borderActive: false,
     backgroundActive: 'transparent',
-    focusShadow: false,
+    border: 'transparent',
+    borderActive: 'transparent',
+    focusBorder: alias.focusBorder,
+    focusShadow: alias.focus,
   },
   disabled: {
     color: alias.disabled,
     colorActive: alias.disabled,
-    border: alias.disabledBorder,
-    borderActive: alias.disabledBorder,
     background: alias.background,
     backgroundActive: alias.background,
-    focusShadow: false,
+    border: alias.disabledBorder,
+    borderActive: alias.disabledBorder,
+    focusBorder: 'transparent',
+    focusShadow: 'transparent',
   },
   form: {
     color: alias.textColor,
     colorActive: alias.textColor,
     background: alias.background,
-    backgroundActive: alias.background,
+    backgroundActive: alias.backgroundSecondary,
     border: alias.formInputBorder,
     borderActive: alias.formInputBorder,
-    focusShadow: false,
+    focusBorder: alias.focusBorder,
+    focusShadow: alias.focus,
   },
 });
 

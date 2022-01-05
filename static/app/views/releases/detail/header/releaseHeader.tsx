@@ -92,7 +92,7 @@ const ReleaseHeader = ({
             {
               to: `/organizations/${organization.slug}/releases/`,
               label: t('Releases'),
-              preserveGlobalSelection: true,
+              preservePageFilters: true,
             },
             {label: t('Release Details')},
           ]}

@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
@@ -10,7 +11,7 @@ from sentry.models import CheckInStatus, MonitorCheckIn
 
 class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     # TODO(dcramer): probably convert to tsdb
-    def get(self, request, project, monitor):
+    def get(self, request: Request, project, monitor) -> Response:
         args = self._parse_args(request)
 
         stats = OrderedDict()

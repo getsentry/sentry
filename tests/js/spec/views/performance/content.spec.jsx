@@ -4,7 +4,7 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as globalSelection from 'sentry/actionCreators/globalSelection';
+import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -78,7 +78,7 @@ describe('Performance > Content', function () {
   beforeEach(function () {
     act(() => void TeamStore.loadInitialData([], false, null));
     browserHistory.push = jest.fn();
-    jest.spyOn(globalSelection, 'updateDateTime');
+    jest.spyOn(pageFilters, 'updateDateTime');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -262,7 +262,7 @@ describe('Performance > Content', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
-    globalSelection.updateDateTime.mockRestore();
+    pageFilters.updateDateTime.mockRestore();
   });
 
   it('renders basic UI elements', async function () {
@@ -297,6 +297,34 @@ describe('Performance > Content', function () {
       TestStubs.Project({id: 2, firstTransactionEvent: true}),
     ];
     const data = initializeData(projects, {project: [1]});
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+
+    // onboarding should show.
+    expect(wrapper.find('Onboarding')).toHaveLength(1);
+
+    // Chart and table should not show.
+    expect(wrapper.find('ChartFooter')).toHaveLength(0);
+    expect(wrapper.find('Table')).toHaveLength(0);
+    wrapper.unmount();
+  });
+
+  it('renders onboarding state for new landing when the selected project has no events', async function () {
+    const projects = [
+      TestStubs.Project({id: 1, firstTransactionEvent: false}),
+      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+    ];
+    const data = initializeData(projects, {project: [1]}, [
+      ...FEATURES,
+      'performance-landing-widgets',
+    ]);
 
     const wrapper = mountWithTheme(
       <WrappedComponent
@@ -375,7 +403,7 @@ describe('Performance > Content', function () {
     );
     await tick();
     wrapper.update();
-    expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
+    expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
     wrapper.unmount();
   });
 
@@ -397,7 +425,7 @@ describe('Performance > Content', function () {
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
 
-    expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
+    expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({

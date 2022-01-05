@@ -1,5 +1,6 @@
 from typing import Optional, Tuple
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import configure_scope
 
@@ -47,7 +48,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     """
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         # should probably feature gate
         filepath = request.GET.get("file")
         if not filepath:

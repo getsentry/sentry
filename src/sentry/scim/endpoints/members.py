@@ -1,12 +1,15 @@
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
+from sentry.api.exceptions import ConflictError
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
@@ -30,9 +33,6 @@ from .constants import (
 from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
-from rest_framework.exceptions import PermissionDenied
-
-from sentry.api.exceptions import ConflictError
 
 
 def _scim_member_serializer_with_expansion(organization):
@@ -53,7 +53,7 @@ def _scim_member_serializer_with_expansion(organization):
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
-    def _delete_member(self, request, organization, member):
+    def _delete_member(self, request: Request, organization, member):
         audit_data = member.get_audit_log_data()
         if OrganizationMemberDetailsEndpoint.is_only_owner(member):
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
@@ -81,14 +81,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 return True
         return False
 
-    def get(self, request, organization, member):
+    def get(self, request: Request, organization, member) -> Response:
         context = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
         )
         return Response(context)
 
-    def patch(self, request, organization, member):
+    def patch(self, request: Request, organization, member):
         operations = request.data.get("Operations", [])
         if len(operations) > 100:
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
@@ -106,7 +106,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         )
         return Response(context)
 
-    def delete(self, request, organization, member):
+    def delete(self, request: Request, organization, member) -> Response:
         self._delete_member(request, organization, member)
         return Response(status=204)
 
@@ -114,7 +114,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         # note that SCIM doesn't care about changing results as they're queried
 
         query_params = self.get_query_parameters(request)
@@ -154,7 +154,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             cursor_cls=SCIMCursor,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         serializer = OrganizationMemberSerializer(
             data={
                 "email": request.data.get("userName"),

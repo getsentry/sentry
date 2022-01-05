@@ -32,7 +32,7 @@ const SelectorItem = styled(BaseSelectorItem)`
 
   &:hover {
     color: ${p => p.theme.textColor};
-    background: ${p => p.theme.focus};
+    background: ${p => p.theme.hover};
   }
 `;
 

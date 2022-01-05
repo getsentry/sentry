@@ -19,6 +19,7 @@ from django.views import View
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
+from sentry.auth.email import resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
     get_verification_value_from_key,
@@ -35,7 +36,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     User,
-    UserEmail,
 )
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
@@ -81,7 +81,7 @@ class AuthHelperSessionStore(PipelineSessionStore):
         self.request.session.modified = True
 
 
-def _using_okta_migration_workaround(
+def using_okta_migration_workaround(
     organization: Organization, user: User, auth_provider: Optional[AuthProvider]
 ) -> bool:
     # XXX(leedongwei): Workaround for migrating Okta instance
@@ -101,9 +101,15 @@ class AuthIdentityHandler:
     identity: Mapping[str, Any]
 
     def __post_init__(self) -> None:
-        self.user: Union[User, AnonymousUser] = (
-            self._find_user_from_email(self.identity.get("email")) or self.request.user
-        )
+        self.user: Union[User, AnonymousUser] = self._initialize_user()
+
+    def _initialize_user(self) -> Union[User, AnonymousUser]:
+        email = self.identity.get("email")
+        if email:
+            user = resolve_email_to_user(email)
+            if user:
+                return user
+        return self.request.user
 
     class _NotCompletedSecurityChecks(Exception):
         pass
@@ -342,17 +348,6 @@ class AuthIdentityHandler:
         except OrganizationMember.DoesNotExist:
             return self._handle_new_membership(auth_identity)
 
-    @staticmethod
-    def _find_user_from_email(email: Optional[str]) -> Optional[User]:
-        if email is None:
-            return None
-
-        # TODO(dcramer): its possible they have multiple accounts and at
-        # least one is managed (per the check below)
-        return User.objects.filter(
-            id__in=UserEmail.objects.filter(email__iexact=email).values("user"), is_active=True
-        ).first()
-
     def _respond(
         self,
         template: str,
@@ -388,12 +383,18 @@ class AuthIdentityHandler:
             and verification_value["user_id"] == self.user.id
         )
 
-    def _has_usable_password(self):
-        return isinstance(self.user, User) and self.user.has_usable_password()
-
     @property
     def _logged_in_user(self) -> Optional[User]:
+        """The user, if they have authenticated on this session."""
         return self.request.user if self.request.user.is_authenticated else None
+
+    @property
+    def _app_user(self) -> Optional[User]:
+        """The user, if they are represented persistently in our app."""
+        return self.user if isinstance(self.user, User) else None
+
+    def _has_usable_password(self):
+        return self._app_user and self._app_user.has_usable_password()
 
     def handle_unknown_identity(
         self,
@@ -421,7 +422,7 @@ class AuthIdentityHandler:
             else AuthenticationForm(
                 self.request,
                 self.request.POST if self.request.POST.get("op") == "login" else None,
-                initial={"username": self.user.username if isinstance(self.user, User) else None},
+                initial={"username": self._app_user and self._app_user.username},
             )
         )
         # we don't trust all IDP email verification, so users can also confirm via one time email link
@@ -433,16 +434,13 @@ class AuthIdentityHandler:
                 is_account_verified = self.has_verified_account(verification_value)
 
         is_new_account = not self.user.is_authenticated  # stateful
-        if self.identity.get("email_verified") or is_account_verified:
+        if self._app_user and self.identity.get("email_verified") or is_account_verified:
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
-            has_membership = (
-                isinstance(self.user, User)
-                and OrganizationMember.objects.filter(
-                    user=self.user, organization=self.organization
-                ).exists()
-            )
+            has_membership = OrganizationMember.objects.filter(
+                user=self._app_user, organization=self.organization
+            ).exists()
             if has_membership:
                 try:
                     self._login(self.user)
@@ -453,7 +451,7 @@ class AuthIdentityHandler:
                     if (
                         self._has_usable_password()
                         or is_account_verified
-                        or _using_okta_migration_workaround(
+                        or using_okta_migration_workaround(
                             self.organization, self.user, self.auth_provider
                         )
                     ):
@@ -540,9 +538,9 @@ class AuthIdentityHandler:
             return self._logged_in_user, "auth-confirm-link"
 
         if features.has("organizations:idp-automatic-migration", self.organization):
-            if not self._has_usable_password():
+            if self._app_user and not self._has_usable_password():
                 send_one_time_account_confirm_link(
-                    self.user,
+                    self._app_user,
                     self.organization,
                     self.auth_provider,
                     self.identity["email"],
@@ -742,7 +740,7 @@ class AuthHelper(Pipeline):
 
             auth_handler = self.auth_handler(identity)
             if not auth_identity:
-                if _using_okta_migration_workaround(
+                if using_okta_migration_workaround(
                     self.organization, self.request.user, auth_provider
                 ):
                     identity["email_verified"] = True

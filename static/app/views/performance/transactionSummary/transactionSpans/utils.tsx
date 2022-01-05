@@ -1,10 +1,19 @@
 import {Location, Query} from 'history';
 
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {SpanSortOption, SpanSortOthers, SpanSortPercentiles} from './types';
+import {
+  SpanSlug,
+  SpanSort,
+  SpanSortOption,
+  SpanSortOthers,
+  SpanSortPercentiles,
+} from './types';
 
 export function generateSpansRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/spans/`;
@@ -99,3 +108,110 @@ export function getSuspectSpanSortFromEventView(eventView: EventView): SpanSortO
   const sort = eventView.sorts.length ? eventView.sorts[0].field : DEFAULT_SORT;
   return getSuspectSpanSort(sort);
 }
+
+export function parseSpanSlug(spanSlug: string | undefined): SpanSlug | undefined {
+  if (!defined(spanSlug)) {
+    return undefined;
+  }
+
+  const delimiterPos = spanSlug.lastIndexOf(':');
+  if (delimiterPos < 0) {
+    return undefined;
+  }
+
+  const op = spanSlug.slice(0, delimiterPos);
+  const group = spanSlug.slice(delimiterPos + 1);
+
+  return {op, group};
+}
+
+export function generateSpansEventView(
+  location: Location,
+  transactionName: string
+): EventView {
+  const query = decodeScalar(location.query.query, '');
+  const conditions = new MutableSearch(query);
+  conditions
+    .setFilterValues('event.type', ['transaction'])
+    .setFilterValues('transaction', [transactionName]);
+
+  const eventView = EventView.fromNewQueryWithLocation(
+    {
+      id: undefined,
+      version: 2,
+      name: transactionName,
+      fields: [...Object.values(SpanSortOthers), ...Object.values(SpanSortPercentiles)],
+      query: conditions.formatString(),
+      projects: [],
+    },
+    location
+  );
+
+  const sort = getSuspectSpanSortFromLocation(location);
+  return eventView.withSorts([{field: sort.field, kind: 'desc'}]);
+}
+
+/**
+ * For the totals view, we want to get some transaction level stats like
+ * the number of transactions and the sum of the transaction duration.
+ * This requires the removal of any aggregate conditions as they can result
+ * in unexpected empty responses.
+ */
+export function getTotalsView(eventView: EventView): EventView {
+  const totalsView = eventView.withColumns([
+    {kind: 'function', function: ['count', '', undefined, undefined]},
+    {kind: 'function', function: ['sum', 'transaction.duration', undefined, undefined]},
+  ]);
+
+  const conditions = new MutableSearch(eventView.query);
+
+  // filter out any aggregate conditions
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
+  });
+
+  totalsView.query = conditions.formatString();
+  return totalsView;
+}
+
+export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
+  [SpanSortOthers.SUM_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortOthers.AVG_OCCURRENCE]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'count_unique(id)',
+    'equation|count()/count_unique(id)',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortOthers.COUNT]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.5)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.95)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.99)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+};

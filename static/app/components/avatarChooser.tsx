@@ -24,7 +24,8 @@ type AvatarChooserType =
   | 'team'
   | 'organization'
   | 'sentryAppColor'
-  | 'sentryAppSimple';
+  | 'sentryAppSimple'
+  | 'docIntegration';
 type DefaultChoice = {
   preview?: React.ReactNode;
   allowDefault?: boolean;
@@ -226,7 +227,6 @@ class AvatarChooser extends React.Component<Props, State> {
               )}
               {isDefault && preview}
             </AvatarGroup>
-            {help && <AvatarHelp>{help}</AvatarHelp>}
             <AvatarUploadSection>
               {allowGravatar && avatarType === 'gravatar' && (
                 <Well>
@@ -244,6 +244,7 @@ class AvatarChooser extends React.Component<Props, State> {
                 />
               )}
               <AvatarSubmit className="form-actions">
+                {help && <AvatarHelp>{help}</AvatarHelp>}
                 <Button
                   type="button"
                   priority="primary"
@@ -262,7 +263,7 @@ class AvatarChooser extends React.Component<Props, State> {
 }
 
 const AvatarHelp = styled('p')`
-  margin: ${space(1)} 0 ${space(2)};
+  margin-right: auto;
   color: ${p => p.theme.gray300};
   font-size: 14px;
   width: 50%;
@@ -274,19 +275,20 @@ const AvatarGroup = styled('div')<{inline: boolean}>`
 `;
 
 const AvatarForm = styled('div')`
-  line-height: 1.5em;
-  padding: 1em 1.25em;
-  margin: 1em 0.5em 0;
+  line-height: ${space(3)};
+  padding: ${space(1.5)} ${space(2)};
+  margin: ${space(1.5)} ${space(1)} ${space(0.5)};
 `;
 
 const AvatarSubmit = styled('fieldset')`
   display: flex;
-  justify-content: flex-end;
-  margin-top: 1.25em;
+  align-items: center;
+  margin-top: ${space(4)};
+  padding-top: ${space(1.5)};
 `;
 
 const AvatarUploadSection = styled('div')`
-  margin-top: 1em;
+  margin-top: ${space(1.5)};
 `;
 
 export default withApi(AvatarChooser);

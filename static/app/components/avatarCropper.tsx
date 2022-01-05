@@ -27,7 +27,8 @@ type Props = {
     | 'organization'
     | 'project'
     | 'sentryAppColor'
-    | 'sentryAppSimple';
+    | 'sentryAppSimple'
+    | 'docIntegration';
   savedDataUrl?: string;
 };
 
@@ -390,7 +391,7 @@ class AvatarCropper extends React.Component<Props, State> {
     const upload = <a onClick={this.uploadClick} />;
     const uploader = (
       <Well hasImage centered>
-        <p>{tct('[upload:Upload a photo] to get started.', {upload})}</p>
+        <p>{tct('[upload:Upload an image] to get started.', {upload})}</p>
       </Well>
     );
 

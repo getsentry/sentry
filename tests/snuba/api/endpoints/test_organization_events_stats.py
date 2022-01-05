@@ -995,7 +995,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         self.enabled_features = {
             "organizations:discover-basic": True,
-            "organizations:discover-top-events": True,
         }
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
@@ -1580,7 +1579,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "orderby": ["-count()"],
+                    "orderby": ["-count()", "user"],
                     "field": ["user", "count()"],
                     "topEvents": 5,
                 },
@@ -1591,7 +1590,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        assert data["email:bar@example.com"]["order"] == 0
+        assert data["email:bar@example.com"]["order"] == 1
         assert [attrs for time, attrs in data["email:bar@example.com"]["data"]] == [
             [{"count": 7}],
             [{"count": 0}],
@@ -1610,7 +1609,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "orderby": ["-count()"],
+                    "orderby": ["-count()", "user"],
                     "field": ["user", "user.email", "count()"],
                     "topEvents": 5,
                 },
@@ -1621,7 +1620,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        assert data["email:bar@example.com,bar@example.com"]["order"] == 0
+        assert data["email:bar@example.com,bar@example.com"]["order"] == 1
         assert [attrs for time, attrs in data["email:bar@example.com,bar@example.com"]["data"]] == [
             [{"count": 7}],
             [{"count": 0}],

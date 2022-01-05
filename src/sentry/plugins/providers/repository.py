@@ -2,6 +2,7 @@ from logging import getLogger
 
 from django.db import IntegrityError, transaction
 from django.urls import reverse
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
@@ -28,7 +29,7 @@ class RepositoryProvider(ProviderMixin):
     def __init__(self, id):
         self.id = id
 
-    def dispatch(self, request, organization, **kwargs):
+    def dispatch(self, request: Request, organization, **kwargs):
         if self.needs_auth(request.user):
             # TODO(dcramer): this should be a 401
             return Response(

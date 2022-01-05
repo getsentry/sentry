@@ -29,10 +29,10 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
-from sentry.release_health.metrics import reverse_tag_value, tag_key
+from sentry.release_health.metrics import MetricIndexNotFound, reverse_tag_value, tag_key
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
-from sentry.snuba.tasks import build_snuba_filter
+from sentry.snuba.tasks import build_snuba_filter, get_entity_subscription_for_dataset
 from sentry.utils import metrics, redis
 from sentry.utils.compat import zip
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -176,13 +176,20 @@ class SubscriptionProcessor:
         snuba_query = self.subscription.snuba_query
         start = end - timedelta(seconds=snuba_query.time_window)
 
+        entity_subscription = get_entity_subscription_for_dataset(
+            dataset=QueryDatasets(snuba_query.dataset),
+            aggregate=snuba_query.aggregate,
+            time_window=snuba_query.time_window,
+            extra_fields={
+                "org_id": self.subscription.project.organization,
+                "event_types": snuba_query.event_types,
+            },
+        )
         try:
             snuba_filter = build_snuba_filter(
-                QueryDatasets(snuba_query.dataset),
+                entity_subscription,
                 snuba_query.query,
-                snuba_query.aggregate,
                 snuba_query.environment,
-                snuba_query.event_types,
                 params={
                     "project_id": [self.subscription.project_id],
                     "start": start,
@@ -283,29 +290,37 @@ class SubscriptionProcessor:
         count is just ignored
         - `crashed` represents the total sessions or user counts that crashed.
         """
-        session_status = tag_key(self.subscription.project.organization.id, "session.status")
-        data = {}
+        try:
+            session_status = tag_key(self.subscription.project.organization.id, "session.status")
+            data = {}
 
-        for row in subscription_update["values"]["data"]:
-            tag_value = reverse_tag_value(
-                self.subscription.project.organization.id, row[session_status]
-            )
-            data[tag_value] = row["value"]
+            # ToDo(ahmed): Refactor this logic by calling the aggregate_query_results on the
+            #  BaseMetricsEntitySubscription cls
+            for row in subscription_update["values"]["data"]:
+                tag_value = reverse_tag_value(
+                    self.subscription.project.organization.id, row[session_status]
+                )
+                data[tag_value] = row["value"]
 
-        total_session_count = data.get("init", 0)
-        crash_count = data.get("crashed", 0)
+            total_session_count = data.get("init", 0)
+            crash_count = data.get("crashed", 0)
 
-        if total_session_count == 0:
-            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return
-
-        if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-            min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-            if total_session_count < min_threshold:
-                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
+            if total_session_count == 0:
+                metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
                 return
 
-        aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
+            if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
+                min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
+                if total_session_count < min_threshold:
+                    metrics.incr(
+                        "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
+                    )
+                    return
+
+            aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
+        except MetricIndexNotFound:
+            metrics.incr("incidents.alert_rules.ignore_update.metric_index_not_found")
+            aggregation_value = None
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update):

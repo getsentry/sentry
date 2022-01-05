@@ -58,7 +58,7 @@ function wrapErrorHandling<T extends any[], U>(
   };
 }
 
-export default class AsyncComponent<
+class AsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
 > extends React.Component<P, S> {
@@ -66,27 +66,35 @@ export default class AsyncComponent<
     router: PropTypes.object,
   };
 
-  // Override this flag to have the component reload it's state when the window
-  // becomes visible again. This will set the loading and reloading state, but
-  // will not render a loading state during reloading.
-  //
-  // eslint-disable-next-line react/sort-comp
+  /**
+   * Override this flag to have the component reload its state when the window
+   * becomes visible again. This will set the loading and reloading state, but
+   * will not render a loading state during reloading.
+   *
+   * eslint-disable-next-line react/sort-comp
+   */
   reloadOnVisible = false;
 
-  // When enabling reloadOnVisible, this flag may be used to turn on and off
-  // the reloading. This is useful if your component only needs to reload when
-  // becoming visible during certain states.
-  //
-  // eslint-disable-next-line react/sort-comp
+  /**
+   * When enabling reloadOnVisible, this flag may be used to turn on and off
+   * the reloading. This is useful if your component only needs to reload when
+   * becoming visible during certain states.
+   *
+   * eslint-disable-next-line react/sort-comp
+   */
   shouldReloadOnVisible = false;
 
-  // This affects how the component behaves when `remountComponent` is called
-  // By default, the component gets put back into a "loading" state when re-fetching data.
-  // If this is true, then when we fetch data, the original ready component remains mounted
-  // and it will need to handle any additional "reloading" states
+  /**
+   * This affects how the component behaves when `remountComponent` is called
+   * By default, the component gets put back into a "loading" state when re-fetching data.
+   * If this is true, then when we fetch data, the original ready component remains mounted
+   * and it will need to handle any additional "reloading" states
+   */
   shouldReload = false;
 
-  // should `renderError` render the `detail` attribute of a 400 error
+  /**
+   * should `renderError` render the `detail` attribute of a 400 error
+   */
   shouldRenderBadRequests = false;
 
   constructor(props: P, context: any) {
@@ -113,9 +121,6 @@ export default class AsyncComponent<
       document.addEventListener('visibilitychange', this.visibilityReloader);
     }
   }
-
-  // Compatibility shim for child classes that call super on this hook.
-  UNSAFE_componentWillReceiveProps(_newProps: P, _newContext: any) {}
 
   componentDidUpdate(prevProps: P, prevContext: any) {
     const isRouterInContext = !!prevContext.router;
@@ -339,24 +344,6 @@ export default class AsyncComponent<
   }
 
   /**
-   * @deprecated use getEndpoints
-   */
-  getEndpointParams() {
-    // eslint-disable-next-line no-console
-    console.warn('getEndpointParams is deprecated');
-    return {};
-  }
-
-  /**
-   * @deprecated use getEndpoints
-   */
-  getEndpoint() {
-    // eslint-disable-next-line no-console
-    console.warn('getEndpoint is deprecated');
-    return null;
-  }
-
-  /**
    * Return a list of endpoint queries to make.
    *
    * return [
@@ -364,11 +351,7 @@ export default class AsyncComponent<
    * ]
    */
   getEndpoints(): Array<[string, string, any?, any?]> {
-    const endpoint = this.getEndpoint();
-    if (!endpoint) {
-      return [];
-    }
-    return [['data', endpoint, this.getEndpointParams()]];
+    return [];
   }
 
   renderSearchInput({stateKey, url, ...props}: RenderSearchInputArgs) {
@@ -394,23 +377,19 @@ export default class AsyncComponent<
     return <LoadingIndicator />;
   }
 
-  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+  renderError(error?: Error, disableLog = false, disableReport = true): React.ReactNode {
     const {errors} = this.state;
 
     // 401s are captured by SudoModal, but may be passed back to AsyncComponent if they close the modal without identifying
-    const unauthorizedErrors = Object.values(errors).find(
-      resp => resp && resp.status === 401
-    );
+    const unauthorizedErrors = Object.values(errors).find(resp => resp?.status === 401);
 
     // Look through endpoint results to see if we had any 403s, means their role can not access resource
-    const permissionErrors = Object.values(errors).find(
-      resp => resp && resp.status === 403
-    );
+    const permissionErrors = Object.values(errors).find(resp => resp?.status === 403);
 
     // If all error responses have status code === 0, then show error message but don't
     // log it to sentry
     const shouldLogSentry =
-      !!Object.values(errors).find(resp => resp && resp.status !== 0) || disableLog;
+      !!Object.values(errors).find(resp => resp?.status !== 0) || disableLog;
 
     if (unauthorizedErrors) {
       return (
@@ -424,10 +403,7 @@ export default class AsyncComponent<
 
     if (this.shouldRenderBadRequests) {
       const badRequests = Object.values(errors)
-        .filter(
-          resp =>
-            resp && resp.status === 400 && resp.responseJSON && resp.responseJSON.detail
-        )
+        .filter(resp => resp?.status === 400 && resp?.responseJSON?.detail)
         .map(resp => resp.responseJSON.detail);
 
       if (badRequests.length) {
@@ -444,13 +420,12 @@ export default class AsyncComponent<
     );
   }
 
-  shouldRenderLoading() {
-    const {loading, reloading} = this.state;
-    return loading && (!this.shouldReload || !reloading);
+  get shouldRenderLoading() {
+    return this.state.loading && (!this.shouldReload || !this.state.reloading);
   }
 
   renderComponent() {
-    return this.shouldRenderLoading()
+    return this.shouldRenderLoading
       ? this.renderLoading()
       : this.state.error
       ? this.renderError(new Error('Unable to load all required endpoints'))
@@ -469,3 +444,5 @@ export default class AsyncComponent<
     return this.renderComponent();
   }
 }
+
+export default AsyncComponent;

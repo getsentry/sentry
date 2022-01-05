@@ -59,6 +59,21 @@ export function getSeriesAverage(
     : totalCount / dataPoints;
 }
 
+export function getSeriesSum(
+  groups: SessionApiResponse['groups'] = [],
+  field: SessionField,
+  intervals: SessionApiResponse['intervals'] = []
+) {
+  const dataPointsSums: number[] = Array(intervals.length).fill(0);
+  const groupSeries = groups.map(group => group.series[field]);
+
+  groupSeries.forEach(series => {
+    series.forEach((dataPoint, idx) => (dataPointsSums[idx] += dataPoint));
+  });
+
+  return dataPointsSums;
+}
+
 export function getSessionStatusRate(
   groups: SessionApiResponse['groups'] = [],
   field: SessionField,

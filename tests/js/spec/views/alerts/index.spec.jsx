@@ -8,6 +8,7 @@ describe('AlertsContainer', function () {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
       const {container} = mountWithTheme(<AlertsContainer />, {
         context: TestStubs.routerContext([{organization}]),
+        organization,
       });
       expect(container).toBeEmptyDOMElement();
     });

@@ -3,14 +3,14 @@ import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {
   IconActivity,
   IconChevron,
@@ -126,7 +126,7 @@ function Sidebar({location, organization}: Props) {
 
       // Handle cmd-click (mac) and meta-click (linux)
       if (evt.metaKey) {
-        const q = queryString.stringify(query);
+        const q = qs.stringify(query);
         evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
         return;
       }
@@ -449,7 +449,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
-  width: ${p => p.theme.sidebar.expandedWidth};
+  width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
   position: fixed;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
@@ -458,7 +458,6 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   z-index: ${p => p.theme.zIndex.sidebar};
   border-right: solid 1px ${p => p.theme.sidebarBorder};
   ${responsiveFlex};
-  ${p => p.collapsed && `width: ${p.theme.sidebar.collapsedWidth};`};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     top: 0;

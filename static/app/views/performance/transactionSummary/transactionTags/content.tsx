@@ -7,7 +7,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';

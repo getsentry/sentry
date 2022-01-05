@@ -17,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -63,7 +64,7 @@ def allow_cors_options(func):
     """
 
     @functools.wraps(func)
-    def allow_cors_options_wrapper(self, request, *args, **kwargs):
+    def allow_cors_options_wrapper(self, request: Request, *args, **kwargs):
 
         if request.method == "OPTIONS":
             response = HttpResponse(status=200)
@@ -107,7 +108,7 @@ class Endpoint(APIView):
     rate_limits: Mapping[str, Mapping[RateLimitCategory | str, RateLimit]] = {}
     enforce_rate_limit: bool = False
 
-    def build_cursor_link(self, request, name, cursor):
+    def build_cursor_link(self, request: Request, name, cursor):
         querystring = None
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
@@ -130,10 +131,10 @@ class Endpoint(APIView):
             has_results="true" if bool(cursor) else "false",
         )
 
-    def convert_args(self, request, *args, **kwargs):
+    def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(self, request, exc):
+    def handle_exception(self, request: Request, exc):
         try:
             response = super().handle_exception(exc)
         except Exception:
@@ -147,10 +148,10 @@ class Endpoint(APIView):
             response.exception = True
         return response
 
-    def create_audit_entry(self, request, transaction_id=None, **kwargs):
+    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
 
-    def load_json_body(self, request):
+    def load_json_body(self, request: Request):
         """
         Attempts to load the request body when it's JSON.
 
@@ -207,13 +208,14 @@ class Endpoint(APIView):
                 caller_ip=str(self.request.META.get("REMOTE_ADDR")),
                 user_agent=str(self.request.META.get("HTTP_USER_AGENT")),
                 rate_limited=str(getattr(self.request, "will_be_rate_limited", False)),
+                rate_limit_category=str(getattr(self.request, "rate_limit_category", None)),
                 request_duration_seconds=time.time() - request_start_time,
             )
             api_access_logger.info("api.access", extra=log_metrics)
         except Exception:
             api_access_logger.exception("api.access")
 
-    def initialize_request(self, request, *args, **kwargs):
+    def initialize_request(self, request: Request, *args, **kwargs):
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
         # request. Then when we call `rv.auth` it attempts to authenticate,
@@ -233,7 +235,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
@@ -315,11 +317,11 @@ class Endpoint(APIView):
 
         return self.response
 
-    def add_cors_headers(self, request, response):
+    def add_cors_headers(self, request: Request, response):
         response["Access-Control-Allow-Origin"] = request.META["HTTP_ORIGIN"]
         response["Access-Control-Allow-Methods"] = ", ".join(self.http_method_names)
 
-    def add_cursor_headers(self, request, response, cursor_result):
+    def add_cursor_headers(self, request: Request, response, cursor_result):
         if cursor_result.hits is not None:
             response["X-Hits"] = cursor_result.hits
         if cursor_result.max_hits is not None:
@@ -337,7 +339,7 @@ class Endpoint(APIView):
     def respond_with_text(self, text):
         return self.respond({"text": text})
 
-    def get_per_page(self, request, default_per_page=100, max_per_page=100):
+    def get_per_page(self, request: Request, default_per_page=100, max_per_page=100):
         try:
             per_page = int(request.GET.get("per_page", default_per_page))
         except ValueError:
@@ -349,7 +351,7 @@ class Endpoint(APIView):
 
         return per_page
 
-    def get_cursor_from_request(self, request, cursor_cls=Cursor):
+    def get_cursor_from_request(self, request: Request, cursor_cls=Cursor):
         if not request.GET.get(self.cursor_name):
             return
 
@@ -548,7 +550,7 @@ class VersionedEndpoint(Endpoint):
 
 
 class EnvironmentMixin:
-    def _get_environment_func(self, request, organization_id):
+    def _get_environment_func(self, request: Request, organization_id):
         """\
         Creates a function that when called returns the ``Environment``
         associated with a request object, or ``None`` if no environment was
@@ -563,11 +565,11 @@ class EnvironmentMixin:
         """
         return functools.partial(self._get_environment_from_request, request, organization_id)
 
-    def _get_environment_id_from_request(self, request, organization_id):
+    def _get_environment_id_from_request(self, request: Request, organization_id):
         environment = self._get_environment_from_request(request, organization_id)
         return environment and environment.id
 
-    def _get_environment_from_request(self, request, organization_id):
+    def _get_environment_from_request(self, request: Request, organization_id):
         if not hasattr(request, "_cached_environment"):
             environment_param = request.GET.get("environment")
             if environment_param is None:
@@ -583,7 +585,7 @@ class EnvironmentMixin:
 
 
 class StatsMixin:
-    def _parse_args(self, request, environment_id=None):
+    def _parse_args(self, request: Request, environment_id=None):
         try:
             resolution = request.GET.get("resolution")
             if resolution:
@@ -638,7 +640,7 @@ class StatsMixin:
 
 
 class ReleaseAnalyticsMixin:
-    def track_set_commits_local(self, request, organization_id=None, project_ids=None):
+    def track_set_commits_local(self, request: Request, organization_id=None, project_ids=None):
         analytics.record(
             "release.set_commits_local",
             user_id=request.user.id if request.user and request.user.id else None,

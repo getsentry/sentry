@@ -1,4 +1,4 @@
-import {FC, useEffect, useRef} from 'react';
+import {FC, Fragment, useEffect, useRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -15,7 +15,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
@@ -23,6 +23,7 @@ import useTeams from 'sentry/utils/useTeams';
 
 import MetricsSearchBar from '../metricsSearchBar';
 import {MetricsSwitch, useMetricsSwitch} from '../metricsSwitch';
+import Onboarding from '../onboarding';
 import {getTransactionSearchQuery} from '../utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
@@ -43,6 +44,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   projects: Project[];
+  selection: PageFilters;
   shouldShowOnboarding: boolean;
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
@@ -151,45 +153,62 @@ export function PerformanceLanding(props: Props) {
       <Layout.Body>
         <Layout.Main fullWidth>
           <GlobalSdkUpdateAlert />
-          <SearchContainerWithFilter>
-            {isMetricsData ? (
-              <MetricsSearchBar
-                searchSource="performance_landing_metrics"
-                orgSlug={organization.slug}
-                query={filterString}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-                projectIds={eventView.project}
-              />
-            ) : (
-              <SearchBar
-                searchSource="performance_landing"
-                organization={organization}
-                projectIds={eventView.project}
-                query={filterString}
-                fields={generateAggregateFields(
-                  organization,
-                  [...eventView.fields, {field: 'tps()'}],
-                  ['epm()', 'eps()']
-                )}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
-            )}
-          </SearchContainerWithFilter>
-          {initiallyLoaded ? (
-            <TeamKeyTransactionManager.Provider
+          {showOnboarding ? (
+            <Onboarding
               organization={organization}
-              teams={teams}
-              selectedTeams={['myteams']}
-              selectedProjects={eventView.project.map(String)}
-            >
-              <GenericQueryBatcher>
-                <ViewComponent {...props} />
-              </GenericQueryBatcher>
-            </TeamKeyTransactionManager.Provider>
+              project={
+                props.selection.projects.length > 0
+                  ? // If some projects selected, use the first selection
+                    projects.find(
+                      project => props.selection.projects[0].toString() === project.id
+                    ) || projects[0]
+                  : // Otherwise, use the first project in the org
+                    projects[0]
+              }
+            />
           ) : (
-            <LoadingIndicator />
+            <Fragment>
+              <SearchContainerWithFilter>
+                {isMetricsData ? (
+                  <MetricsSearchBar
+                    searchSource="performance_landing_metrics"
+                    orgSlug={organization.slug}
+                    query={filterString}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                    projectIds={eventView.project}
+                  />
+                ) : (
+                  <SearchBar
+                    searchSource="performance_landing"
+                    organization={organization}
+                    projectIds={eventView.project}
+                    query={filterString}
+                    fields={generateAggregateFields(
+                      organization,
+                      [...eventView.fields, {field: 'tps()'}],
+                      ['epm()', 'eps()']
+                    )}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                )}
+              </SearchContainerWithFilter>
+              {initiallyLoaded ? (
+                <TeamKeyTransactionManager.Provider
+                  organization={organization}
+                  teams={teams}
+                  selectedTeams={['myteams']}
+                  selectedProjects={eventView.project.map(String)}
+                >
+                  <GenericQueryBatcher>
+                    <ViewComponent {...props} />
+                  </GenericQueryBatcher>
+                </TeamKeyTransactionManager.Provider>
+              ) : (
+                <LoadingIndicator />
+              )}
+            </Fragment>
           )}
         </Layout.Main>
       </Layout.Body>

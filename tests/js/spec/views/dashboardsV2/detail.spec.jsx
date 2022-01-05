@@ -184,6 +184,7 @@ describe('Dashboards > Detail', function () {
 
   describe('custom dashboards', function () {
     let wrapper, initialData, widgets, mockVisit;
+    const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -286,6 +287,7 @@ describe('Dashboards > Detail', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      jest.clearAllMocks();
       if (wrapper) {
         wrapper.unmount();
       }
@@ -350,8 +352,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('opens edit modal for widgets', async function () {
-      const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
-
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -447,7 +447,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('shows add wiget option', async function () {
+    it('shows add widget option', async function () {
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -464,6 +464,64 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(true);
+    });
+
+    it('opens custom modal when add widget option is clicked', async function () {
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
+      wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+    });
+
+    it('opens widget library when add widget option is clicked', async function () {
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'widget-library',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
+      wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: types.DashboardWidgetSource.LIBRARY,
+        })
+      );
     });
 
     it('hides add widget option', async function () {
@@ -573,8 +631,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('can add library widgets', async function () {
-      const openLibraryModal = jest.spyOn(modals, 'openDashboardWidgetLibraryModal');
+    it('opens add widget to custom  modal', async function () {
       types.MAX_WIDGETS = 10;
 
       initialData = initializeOrg({
@@ -609,11 +666,16 @@ describe('Dashboards > Detail', function () {
         .find('Controls Button[data-test-id="add-widget-library"]')
         .simulate('click');
 
-      expect(openLibraryModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: types.DashboardWidgetSource.LIBRARY,
+        })
+      );
     });
 
     it('disables add library widgets when max widgets reached', async function () {
-      types.MAX_WIDGETS = 1;
+      types.MAX_WIDGETS = 4;
 
       initialData = initializeOrg({
         organization: TestStubs.Organization({
@@ -639,14 +701,80 @@ describe('Dashboards > Detail', function () {
       );
       await tick();
       wrapper.update();
-      types.MAX_WIDGETS = 30;
 
-      // Enter Add Widget mode
+      expect(wrapper.find('WidgetCard')).toHaveLength(3);
+      expect(
+        wrapper.find('Controls Button[data-test-id="add-widget-library"]').props()
+          .disabled
+      ).toEqual(false);
+      expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(true);
+
+      const card = wrapper.find('WidgetCard').first();
+      card.find('DropdownMenu MoreOptions svg').simulate('click');
+
+      card.update();
+      wrapper.update();
+
+      wrapper
+        .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
+        .simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('WidgetCard')).toHaveLength(4);
       expect(
         wrapper.find('Controls Button[data-test-id="add-widget-library"]').props()
           .disabled
       ).toEqual(true);
       expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
+
+      const card2 = wrapper.find('WidgetCard').first();
+      card2.find('DropdownMenu MoreOptions svg').simulate('click');
+
+      card2.update();
+      wrapper.update();
+
+      expect(
+        wrapper
+          .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
+          .props().disabled
+      ).toEqual(true);
+    });
+
+    it('duplicates widgets', async function () {
+      types.MAX_WIDGETS = 30;
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('WidgetCard')).toHaveLength(3);
+
+      const card = wrapper.find('WidgetCard').first();
+      card.find('DropdownMenu MoreOptions svg').simulate('click');
+
+      card.update();
+      wrapper.update();
+
+      wrapper
+        .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
+        .simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('WidgetCard')).toHaveLength(4);
+      const newCard = wrapper.find('WidgetCard').at(1);
+      expect(newCard.props().title).toEqual(card.props().title);
     });
   });
 });
