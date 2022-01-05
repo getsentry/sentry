@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import ReactDOM from 'react-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react'; // This is needed to set "speedy" = false (for percy)
@@ -29,7 +29,10 @@ function ThemeAndStyleProvider({children}: Props) {
       <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
       <CacheProvider value={cache}>{children}</CacheProvider>
       {ReactDOM.createPortal(
-        <meta name="color-scheme" content={config.theme} />,
+        <Fragment>
+          <meta name="color-scheme" content={config.theme} />
+          <meta name="theme-color" content={theme.sidebar.background} />
+        </Fragment>,
         document.head
       )}
     </ThemeProvider>

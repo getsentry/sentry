@@ -277,7 +277,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
     height: ${theme.sidebar.smallBadgeSize};
     border-radius: ${theme.sidebar.smallBadgeSize};
     line-height: ${theme.sidebar.smallBadgeSize};
-    box-shadow: 0 3px 3px ${theme.sidebar.background};
+    box-shadow: ${theme.sidebar.boxShadow};
   `;
 };
 
