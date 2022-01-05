@@ -104,8 +104,7 @@ class OrganizationMixin:
                 logger.info("User is not a member of any organizations")
 
         if active_organization and self._is_org_member(request.user, active_organization):
-            if active_organization.slug != request.session.get("activeorg"):
-                request.session["activeorg"] = active_organization.slug
+            auth.set_active_org(request, active_organization.slug)
 
         self._active_org = (active_organization, request.user)
 

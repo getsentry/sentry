@@ -345,7 +345,7 @@ class OrganizationEndpoint(Endpoint):
         # Never track any org (regardless of whether the user does or doesn't have
         # membership in that org) when the user is in active superuser mode
         if request.auth is None and request.user and not is_active_superuser(request):
-            request.session["activeorg"] = organization.slug
+            auth.set_active_org(request, organization.slug)
 
         kwargs["organization"] = organization
         return (args, kwargs)
