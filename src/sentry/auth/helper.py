@@ -106,7 +106,7 @@ class AuthIdentityHandler:
     def _initialize_user(self) -> Union[User, AnonymousUser]:
         email = self.identity.get("email")
         if email:
-            user = resolve_email_to_user(email)
+            user = resolve_email_to_user(email, self.organization)
             if user:
                 return user
         return self.request.user
