@@ -280,7 +280,7 @@ const HeaderRight = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 ProgressStatus.defaultProps = {

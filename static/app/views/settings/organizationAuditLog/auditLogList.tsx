@@ -156,7 +156,7 @@ const MonoDetail = styled('code')`
 const TimestampInfo = styled('div')`
   display: grid;
   grid-template-rows: auto auto;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

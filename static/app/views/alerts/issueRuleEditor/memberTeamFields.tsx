@@ -120,7 +120,7 @@ const PanelItemGrid = styled(PanelItem)`
   grid-template-columns: 200px 200px;
   padding: 0;
   align-items: center;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 export default MemberTeamFields;

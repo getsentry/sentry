@@ -294,7 +294,7 @@ const StyledPageHeader = styled('div')`
 const StyledActions = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -324,7 +324,7 @@ const TemplateContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: repeat(2, 1fr);
   }
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   padding-bottom: ${space(4)};
 `;
 

@@ -153,7 +153,7 @@ const StyledDropdownButton = styled(DropdownButton)`
 const DropdownTitle = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   white-space: nowrap;
 `;

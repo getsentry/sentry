@@ -251,7 +251,7 @@ const Actions = styled('div')`
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-gap: ${space(4)};
+  gap: ${space(4)};
   align-items: center;
   margin-top: ${space(4)};
   margin-bottom: ${space(1)};
@@ -265,7 +265,7 @@ const Filters = styled('div')`
   grid-template-columns: min-content minmax(200px, 400px);
   align-items: center;
   justify-content: flex-end;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: min-content 1fr;
   }

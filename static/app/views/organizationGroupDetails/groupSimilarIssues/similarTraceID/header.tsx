@@ -31,7 +31,7 @@ export default Header;
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.gray300};
@@ -46,7 +46,7 @@ const Wrapper = styled('div')`
 const ClipboardWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   &:hover {
     cursor: pointer;

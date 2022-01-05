@@ -388,7 +388,7 @@ const Header = styled('div')`
 const Title = styled('div')`
   padding-right: ${space(4)};
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: repeat(2, max-content);
   align-items: center;
   font-weight: 600;

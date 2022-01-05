@@ -152,7 +152,7 @@ const FormWrapper = styled('div')<{hasAuthProviders: boolean}>`
 const formFooterClass = `
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   justify-items: end;
   border-top: none;

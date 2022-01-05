@@ -375,7 +375,7 @@ const ProjectsFooterMessage = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: min-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 export {ReleaseContext, ReleasesDetailContainer};

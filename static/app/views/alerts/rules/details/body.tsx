@@ -502,7 +502,7 @@ const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   align-items: stretch;
-  grid-gap: 60px;
+  gap: 60px;
 `;
 
 const HeaderItem = styled('div')`
@@ -544,7 +544,7 @@ const Status = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto auto auto;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 

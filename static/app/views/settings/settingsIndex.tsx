@@ -374,7 +374,7 @@ const OrganizationName = styled('div')`
 const GridLayout = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  grid-gap: 16px;
+  gap: 16px;
 `;
 
 const GridPanel = styled(Panel)`

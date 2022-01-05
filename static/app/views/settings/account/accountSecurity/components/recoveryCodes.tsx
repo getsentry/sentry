@@ -101,7 +101,7 @@ const CodeContainer = styled(Panel)`
 const Actions = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const Code = styled(PanelItem)`

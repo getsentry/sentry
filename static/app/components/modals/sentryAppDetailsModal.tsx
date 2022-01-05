@@ -206,7 +206,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
 const Heading = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   margin-bottom: ${space(2)};
 `;

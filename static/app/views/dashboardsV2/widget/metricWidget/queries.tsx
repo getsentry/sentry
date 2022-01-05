@@ -102,19 +102,19 @@ const IconDeleteWrapper = styled('div')`
 
 const Fields = styled('div')<{displayDeleteButton: boolean}>`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: ${p =>
       p.displayDeleteButton ? '1fr 33% max-content' : '1fr 33%'};
-    grid-gap: ${space(1)};
+    gap: ${space(1)};
     align-items: center;
   }
 `;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     ${Fields} {
       :not(:first-child) {

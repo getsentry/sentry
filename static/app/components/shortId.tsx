@@ -36,7 +36,7 @@ const StyledShortId = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   display: grid;
   grid-auto-flow: column;
-  grid-gap: 0.5em;
+  gap: 0.5em;
   align-items: center;
   justify-content: flex-end;
 `;

@@ -197,7 +197,7 @@ const Header = styled('div')<{raw: boolean; nativePlatform: boolean}>`
   grid-template-columns: 1fr max-content;
   grid-template-rows: ${p =>
     p.raw && !p.nativePlatform ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'};
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   flex: 1;
   z-index: 3;
@@ -225,7 +225,7 @@ const RawToggler = styled(BooleanField)`
   padding: 0;
   display: grid;
   grid-template-columns: repeat(2, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   border-bottom: none;
   justify-content: flex-end;
 

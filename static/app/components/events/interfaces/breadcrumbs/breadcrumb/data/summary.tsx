@@ -38,7 +38,7 @@ const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   overflow: hidden;
 `;
 

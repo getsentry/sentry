@@ -42,7 +42,7 @@ export default DataSection;
 const TitleWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, max-content);
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   align-items: center;
   padding: ${space(0.75)} 0;
 `;

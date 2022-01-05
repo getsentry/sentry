@@ -296,7 +296,7 @@ const TextWithQuestionTooltip = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: max-content min-content;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
 `;
 
 const Hash = styled('span')`

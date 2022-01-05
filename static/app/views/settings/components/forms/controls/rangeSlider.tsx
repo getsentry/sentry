@@ -372,5 +372,5 @@ const SliderAndInputWrapper = styled('div')<{showCustomInput?: boolean}>`
   align-items: center;
   grid-auto-flow: column;
   grid-template-columns: 4fr ${p => p.showCustomInput && '1fr'};
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;

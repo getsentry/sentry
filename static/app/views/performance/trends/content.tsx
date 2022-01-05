@@ -351,7 +351,7 @@ const StyledSearchContainer = styled('div')`
 
 const TrendsLayoutContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -70,7 +70,7 @@ const Wrapper = styled('div')`
   grid-column: 1/-1;
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray400};
   padding-top: ${space(2)};

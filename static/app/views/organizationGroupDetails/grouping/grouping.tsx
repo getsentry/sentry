@@ -323,7 +323,7 @@ const Footer = styled('p')`
 
 const Body = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -362,7 +362,7 @@ const Content = styled('div')<{isReloading: boolean}>`
 
 const SliderWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   grid-template-columns: max-content max-content;
   justify-content: space-between;
   align-items: flex-start;

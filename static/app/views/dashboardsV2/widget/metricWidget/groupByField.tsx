@@ -106,7 +106,7 @@ const Field = styled('div')<{isOpen: boolean; hasSelected: boolean}>`
 const Item = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   word-break: break-all;
 `;
 

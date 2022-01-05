@@ -16,7 +16,7 @@ import {PerformanceDuration} from '../../utils';
 
 export const Actions = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: min-content 1fr min-content;
   align-items: center;
 `;
@@ -32,11 +32,11 @@ export const UpperPanel = styled(Panel)`
   display: grid;
 
   grid-template-columns: 1fr;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: auto repeat(3, max-content);
-    grid-gap: 48px;
+    gap: 48px;
   }
 `;
 

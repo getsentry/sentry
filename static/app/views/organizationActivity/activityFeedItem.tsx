@@ -386,7 +386,7 @@ class ActivityItem extends Component<Props, State> {
 
 export default styled(ActivityItem)`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: max-content auto;
   position: relative;
   margin: 0;

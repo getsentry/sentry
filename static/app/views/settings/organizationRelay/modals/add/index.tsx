@@ -60,5 +60,5 @@ export default Add;
 
 const StyledList = styled(List)`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;

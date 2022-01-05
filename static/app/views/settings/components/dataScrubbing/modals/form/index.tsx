@@ -191,7 +191,7 @@ const FieldGroup = styled('div')<{hasTwoColumns: boolean}>`
   display: grid;
   margin-bottom: ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-gap: ${space(2)};
+    gap: ${space(2)};
     ${p => p.hasTwoColumns && `grid-template-columns: 1fr 1fr;`}
     margin-bottom: ${p => (p.hasTwoColumns ? 0 : space(2))};
   }
@@ -231,7 +231,7 @@ const Toggle = styled(Button)`
   }
   > *:first-child {
     display: grid;
-    grid-gap: ${space(0.5)};
+    gap: ${space(0.5)};
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }

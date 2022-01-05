@@ -81,7 +81,7 @@ class CreateTeamAccessRequest extends Component<Props, State> {
 const ButtonGroup = styled('div')`
   display: grid;
   grid-template-columns: max-content max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 export default withApi(CreateTeamAccessRequest);

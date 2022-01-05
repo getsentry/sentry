@@ -258,7 +258,7 @@ function StackTraceContent({
 export default StackTraceContent;
 
 const StyledList = styled(List)`
-  grid-gap: 0;
+  gap: 0;
   position: relative;
   overflow: hidden;
   z-index: 1;

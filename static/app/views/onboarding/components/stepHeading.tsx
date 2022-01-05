@@ -9,7 +9,7 @@ const StepHeading = styled(motion.h2)<{step: number}>`
   position: relative;
   display: inline-grid;
   grid-template-columns: max-content max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 
   &:before {

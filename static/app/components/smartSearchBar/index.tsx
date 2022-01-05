@@ -1458,7 +1458,7 @@ const Container = styled('div')<{isOpen: boolean}>`
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: start;
 
   border-radius: ${p =>

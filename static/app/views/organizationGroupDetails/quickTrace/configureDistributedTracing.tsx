@@ -189,7 +189,7 @@ const ExampleQuickTracePanel = styled(Panel)`
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   grid-template-rows: auto max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   background: none;
   padding: ${space(2)};
   margin: ${space(2)} 0;

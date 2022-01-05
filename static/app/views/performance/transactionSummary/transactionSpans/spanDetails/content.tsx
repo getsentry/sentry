@@ -276,7 +276,7 @@ function getSpansEventView(eventView: EventView): EventView {
 const ContentHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  grid-gap: ${space(4)};
+  gap: ${space(4)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
@@ -308,5 +308,5 @@ const SectionSubtext = styled('div')`
 const PercentileHeaderBodyWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;

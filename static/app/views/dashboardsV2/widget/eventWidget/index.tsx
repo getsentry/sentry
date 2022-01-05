@@ -356,5 +356,5 @@ const StyledPageContent = styled(PageContent)`
 
 const VisualizationWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
 `;

@@ -325,7 +325,7 @@ export {CreateProject};
 const CreateProjectForm = styled('form')`
   display: grid;
   grid-template-columns: 300px minmax(250px, max-content) max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: end;
   padding: ${space(3)} 0;
   box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);

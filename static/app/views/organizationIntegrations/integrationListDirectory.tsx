@@ -555,7 +555,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 const ActionContainer = styled('div')`
   display: grid;
   grid-template-columns: 240px max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 const EmptyResultsContainer = styled('div')`

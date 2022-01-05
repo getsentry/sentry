@@ -33,14 +33,14 @@ export default SearchBarAction;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   width: 100%;
   margin-top: ${space(1)};
   position: relative;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     margin-top: 0;
-    grid-gap: 0;
+    gap: 0;
     grid-template-columns: ${p =>
       p.children && Children.toArray(p.children).length === 1
         ? '1fr'

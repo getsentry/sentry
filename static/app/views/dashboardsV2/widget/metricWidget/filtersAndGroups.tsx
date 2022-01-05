@@ -52,11 +52,11 @@ export default FiltersAndGroups;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: 1fr 33%;
-    grid-gap: ${space(1)};
+    gap: ${space(1)};
     align-items: center;
   }
 `;

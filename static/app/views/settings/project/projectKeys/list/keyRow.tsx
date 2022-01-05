@@ -125,7 +125,7 @@ const Title = styled('div')<{disabled: boolean}>`
 const Controls = styled('div')`
   display: grid;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-auto-flow: column;
 `;
 

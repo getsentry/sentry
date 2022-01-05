@@ -210,7 +210,7 @@ const AuthenticatorActions = styled('div')`
 
 const AuthenticatorDates = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: max-content auto;
 `;
 

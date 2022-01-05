@@ -141,5 +141,5 @@ Expandable.parameters = {
 
 const Grid = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;

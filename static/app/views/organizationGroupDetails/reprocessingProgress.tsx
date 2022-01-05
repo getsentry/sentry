@@ -54,7 +54,7 @@ const Content = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   justify-items: center;
   max-width: 402px;
   width: 100%;
@@ -62,13 +62,13 @@ const Content = styled('div')`
 
 const Inner = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   justify-items: center;
 `;
 
 const Header = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   color: ${p => p.theme.textColor};
   max-width: 557px;
 `;

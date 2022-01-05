@@ -73,7 +73,7 @@ const AlertBreadcrumbs = styled(Breadcrumbs)`
 const Controls = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const Details = styled(PageHeader)`
@@ -82,7 +82,7 @@ const Details = styled(PageHeader)`
 
   grid-template-columns: max-content auto;
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   grid-auto-flow: column;
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {

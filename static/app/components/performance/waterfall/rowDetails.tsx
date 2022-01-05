@@ -13,7 +13,7 @@ export const ErrorMessageContent = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: 16px 72px auto;
-  grid-gap: ${space(0.75)};
+  gap: ${space(0.75)};
   margin-top: ${space(0.75)};
 `;
 

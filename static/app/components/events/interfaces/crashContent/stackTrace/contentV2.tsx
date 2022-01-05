@@ -264,5 +264,5 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 `;
 
 const StyledList = styled(List)`
-  grid-gap: 0;
+  gap: 0;
 `;

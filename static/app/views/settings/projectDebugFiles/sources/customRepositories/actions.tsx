@@ -187,7 +187,7 @@ const StyledButtonBar = styled(ButtonBar)`
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
-    grid-gap: ${space(1)};
+    gap: ${space(1)};
     margin-top: ${space(0.5)};
   }
 `;

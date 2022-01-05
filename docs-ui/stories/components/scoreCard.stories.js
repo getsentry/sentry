@@ -38,6 +38,6 @@ Default.storyName = 'Default';
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: repeat(4, minmax(0, 1fr));
 `;

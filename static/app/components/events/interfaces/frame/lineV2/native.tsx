@@ -177,7 +177,7 @@ const PackageInfo = styled('span')`
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: auto 1fr;
   align-items: center;
   justify-content: flex-start;

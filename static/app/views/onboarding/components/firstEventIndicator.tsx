@@ -69,7 +69,7 @@ const Container = styled('div')`
 const StatusWrapper = styled(motion.div)`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   /* Keep the wrapper in the parent grids first cell for transitions */
