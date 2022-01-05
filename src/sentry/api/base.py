@@ -498,12 +498,26 @@ class VersionedEndpoint(Endpoint):
 
     _method_version_table = None
 
+    def __init_subclass__(cls) -> None:
+        cls._method_version_table = _MethodVersionTable(cls)
+        for method_name in cls.http_method_names:
+            cls._validate_method_override(method_name)
+
     @classmethod
-    def _get_method_versions(cls) -> _MethodVersionTable:
-        table = cls._method_version_table  # for thread safety
-        if table is None:
-            cls._method_version_table = table = _MethodVersionTable(cls)
-        return table
+    def _validate_method_override(cls, method_name):
+        """Check that a subclass doesn't improperly override a base method.
+
+        If a VersionedEndpoint subclass has one more versioned methods decorated
+        by `@method_version`, it must not override the base handler method for
+        the same HTTP method. For example, if the subclass has a method
+        decorated with `@method_version("get")`, then it must not also override
+        `get`.
+        """
+        if cls._method_version_table.supports_http_method(method_name):
+            base_method = getattr(VersionedEndpoint, method_name)
+            subclass_method = getattr(cls, method_name)
+            if subclass_method is not base_method:
+                raise Exception(f"{cls.__name__} must not override {method_name}")
 
     def _dispatch_to_version(self, http_method: str, request, *args, **kwargs):
         if http_method not in self.http_method_names:
@@ -512,11 +526,10 @@ class VersionedEndpoint(Endpoint):
                 "(don't call _dispatch_to_version from VersionedEndpoint subclasses)"
             )
 
-        method_table = _MethodVersionTable(type(self))
-        if not method_table.supports_http_method(http_method):
+        if not self._method_version_table.supports_http_method(http_method):
             return self.http_method_not_allowed(request)
         version = 0 if request.version is None else int(request.version)
-        method_version = method_table.get_method_version(http_method, version)
+        method_version = self._method_version_table.get_method_version(http_method, version)
         if method_version is None:
             raise Http404("Version does not exist")
         return method_version(self, request, *args, **kwargs)
