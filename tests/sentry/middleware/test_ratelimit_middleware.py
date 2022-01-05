@@ -1,10 +1,12 @@
 from unittest.mock import patch
 
 from django.conf import settings
+from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from exam import fixture
 from freezegun import freeze_time
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -16,7 +18,7 @@ from sentry.middleware.ratelimit import (
     get_rate_limit_value,
 )
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
-from sentry.testutils import TestCase
+from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -215,3 +217,46 @@ class TestGetRateLimitValue(TestCase):
             pass
 
         assert get_rate_limit_value("GET", TestEndpoint, "ip") is None
+
+
+class RateLimitHeaderTestEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    enforce_rate_limit = True
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(1, 100)}}
+
+    def get(self, request):
+        return Response({"ok": True})
+
+
+urlpatterns = [
+    url(r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint")
+]
+
+
+@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware")
+class TestRatelimitHeader(APITestCase):
+
+    endpoint = "ratelimit-header-endpoint"
+
+    def test_header_counts(self):
+        """Ensure that the header counts increase properly"""
+        with freeze_time("2000-01-01"):
+            response = self.get_success_response()
+            assert int(response["X-Sentry-Ratelimit-Count"]) == 1
+            assert int(response["X-Sentry-Ratelimit-Max"]) == 1
+            assert int(response["X-Sentry-Ratelimit-Window"]) == 100
+
+            response = self.get_error_response()
+            assert int(response["X-Sentry-Ratelimit-Count"]) == 2
+            assert int(response["X-Sentry-Ratelimit-Max"]) == 1
+            assert int(response["X-Sentry-Ratelimit-Window"]) == 100
+
+    @patch("sentry.ratelimits.utils.can_be_ratelimited")
+    def test_omit_header(self, can_be_ratelimited_patch):
+        """Ensure that functions that can't be rate limited don't have rate limit headers"""
+        can_be_ratelimited_patch.return_value = False
+        response = self.get_response()
+        assert "X-Sentry-Ratelimit-Count" not in response._headers
+        assert "X-Sentry-Ratelimit-Max" not in response._headers
+        assert "X-Sentry-Ratelimit-Window" not in response._headers

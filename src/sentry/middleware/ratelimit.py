@@ -22,6 +22,8 @@ DEFAULT_ERROR_MESSAGE = (
 class RatelimitMiddleware(MiddlewareMixin):
     """Middleware that applies a rate limit to every endpoint."""
 
+    rate_limit_check_dict: dict | None = None
+
     def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
         """Check if the endpoint call will violate."""
         request.will_be_rate_limited = False
@@ -44,17 +46,24 @@ class RatelimitMiddleware(MiddlewareMixin):
         if rate_limit is None:
             return
 
-        rate_limit_check_dict = above_rate_limit_check(key, rate_limit)
-        if rate_limit_check_dict["is_limited"]:
+        self.rate_limit_check_dict = above_rate_limit_check(key, rate_limit)
+        if self.rate_limit_check_dict["is_limited"]:
             request.will_be_rate_limited = True
             enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
             if enforce_rate_limit:
                 return HttpResponse(
                     {
                         "detail": DEFAULT_ERROR_MESSAGE.format(
-                            limit=rate_limit_check_dict["limit"],
-                            window=rate_limit_check_dict["window"],
+                            limit=self.rate_limit_check_dict["limit"],
+                            window=self.rate_limit_check_dict["window"],
                         )
                     },
                     status=429,
                 )
+
+    def process_response(self, request: Request, response: Response) -> Response:
+        if self.rate_limit_check_dict is not None:
+            response["X-Sentry-Ratelimit-Count"] = self.rate_limit_check_dict.get("current", 0)
+            response["X-Sentry-Ratelimit-Max"] = self.rate_limit_check_dict["limit"]
+            response["X-Sentry-Ratelimit-Window"] = self.rate_limit_check_dict["window"]
+        return response
