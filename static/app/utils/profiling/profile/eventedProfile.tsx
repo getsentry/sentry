@@ -59,7 +59,9 @@ export class EventedProfile extends Profile {
     }
 
     const top = lastOfArray(this.stack);
-    if (top) top.addToSelfWeight(weight);
+    if (top) {
+      top.addToSelfWeight(weight);
+    }
   }
 
   addWeightsToNodes(value: number) {
@@ -132,7 +134,9 @@ export class EventedProfile extends Profile {
     this.addWeightsToNodes(at);
 
     const leavingStackTop = this.appendOrderStack.pop();
-    if (!leavingStackTop) throw new Error('Unbalanced stack');
+    if (!leavingStackTop) {
+      throw new Error('Unbalanced stack');
+    }
 
     // Lock the stack node, so we make sure we dont mutate it in the future.
     // The samples should be ordered by timestamp when processed so we should never
