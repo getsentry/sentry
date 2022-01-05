@@ -27,6 +27,8 @@ class Map(Attribute):
         if isinstance(value, dict):
             # Ensure we don't mutate the original. We do not need to deepcopy;
             # if it recurses into another Map it will once again copy itself.
+            # TODO(mgaeta): If the dictionary has a list or some other complex
+            #  object in it, that object will not be copied.
             items = value.copy()
         else:
             new_value = {}
