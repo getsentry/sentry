@@ -236,7 +236,7 @@ const AdoptionWrapper = styled('span')`
   flex: 1;
   display: inline-grid;
   grid-template-columns: 30px 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 
   /* Chart tooltips need overflow */

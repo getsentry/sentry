@@ -151,7 +151,7 @@ const ProviderInfo = styled('div')`
   flex: 1;
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 const ProviderLogo = styled('div')`
