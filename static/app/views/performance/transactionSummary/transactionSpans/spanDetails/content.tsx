@@ -3,9 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading as _SectionHeading} from 'sentry/components/charts/styles';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tn} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -29,6 +27,8 @@ import SpanTable from '../spanTable';
 import {emptyValue, SpanLabelContainer} from '../styles';
 import {SpanSlug} from '../types';
 import {getTotalsView} from '../utils';
+
+import SpanChart from './chart';
 
 type Props = {
   location: Location;
@@ -81,30 +81,29 @@ export default function SpanDetailsContentWrapper(props: Props) {
                   spanGroups={[spanSlug.group]}
                   cursor="0:0:1"
                 >
-                  {suspectSpansResults => {
-                    return (
-                      <SpanExamplesQuery
-                        location={location}
-                        orgSlug={organization.slug}
-                        eventView={eventView}
-                        spanOp={spanSlug.op}
-                        spanGroup={spanSlug.group}
-                        limit={10}
-                      >
-                        {spanExamplesResults => (
-                          <SpanDetailsContent
-                            location={location}
-                            organization={organization}
-                            spanSlug={spanSlug}
-                            transactionName={transactionName}
-                            totalCount={totalCount}
-                            suspectSpansResults={suspectSpansResults}
-                            spanExamplesResults={spanExamplesResults}
-                          />
-                        )}
-                      </SpanExamplesQuery>
-                    );
-                  }}
+                  {suspectSpansResults => (
+                    <SpanExamplesQuery
+                      location={location}
+                      orgSlug={organization.slug}
+                      eventView={eventView}
+                      spanOp={spanSlug.op}
+                      spanGroup={spanSlug.group}
+                      limit={10}
+                    >
+                      {spanExamplesResults => (
+                        <SpanDetailsContent
+                          location={location}
+                          organization={organization}
+                          eventView={eventView}
+                          spanSlug={spanSlug}
+                          transactionName={transactionName}
+                          totalCount={totalCount}
+                          suspectSpansResults={suspectSpansResults}
+                          spanExamplesResults={spanExamplesResults}
+                        />
+                      )}
+                    </SpanExamplesQuery>
+                  )}
                 </SuspectSpansQuery>
               );
             }}
@@ -118,6 +117,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
 type ContentProps = {
   location: Location;
   organization: Organization;
+  eventView: EventView;
   spanSlug: SpanSlug;
   transactionName: string;
   totalCount: number;
@@ -129,6 +129,7 @@ function SpanDetailsContent(props: ContentProps) {
   const {
     location,
     organization,
+    eventView,
     spanSlug,
     transactionName,
     totalCount,
@@ -136,20 +137,8 @@ function SpanDetailsContent(props: ContentProps) {
     spanExamplesResults,
   } = props;
 
-  if (suspectSpansResults.isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (!suspectSpansResults.suspectSpans?.length) {
-    return (
-      <EmptyStateWarning>
-        <p>{t('No span data found')}</p>
-      </EmptyStateWarning>
-    );
-  }
-
   // There should always be exactly 1 result
-  const suspectSpan = suspectSpansResults.suspectSpans[0];
+  const suspectSpan = suspectSpansResults.suspectSpans?.[0];
   const examples = spanExamplesResults.examples?.[0]?.examples;
   const description = examples?.[0]?.description ?? null;
 
@@ -158,9 +147,10 @@ function SpanDetailsContent(props: ContentProps) {
       <SpanDetailsHeader
         spanSlug={spanSlug}
         description={description}
-        suspectSpan={suspectSpan}
         totalCount={totalCount}
+        suspectSpan={suspectSpan}
       />
+      <SpanChart organization={organization} eventView={eventView} spanSlug={spanSlug} />
       <SpanTable
         location={location}
         organization={organization}
@@ -177,8 +167,8 @@ function SpanDetailsContent(props: ContentProps) {
 type HeaderProps = {
   spanSlug: SpanSlug;
   description: string | null;
-  suspectSpan: SuspectSpan;
   totalCount: number | null;
+  suspectSpan?: SuspectSpan;
 };
 
 function SpanDetailsHeader(props: HeaderProps) {
@@ -190,7 +180,7 @@ function SpanDetailsHeader(props: HeaderProps) {
     p95ExclusiveTime,
     p99ExclusiveTime,
     sumExclusiveTime,
-  } = suspectSpan;
+  } = suspectSpan ?? {};
 
   return (
     <ContentHeader>

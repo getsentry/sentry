@@ -27,7 +27,7 @@ import {
 type Props = {
   location: Location;
   organization: Organization;
-  suspectSpan: SuspectSpan;
+  suspectSpan?: SuspectSpan;
   transactionName: string;
   isLoading: boolean;
   examples: ExampleTransaction[];
@@ -106,7 +106,7 @@ function renderBodyCellWithMeta(
   location: Location,
   organization: Organization,
   transactionName: string,
-  suspectSpan: SuspectSpan
+  suspectSpan?: SuspectSpan
 ) {
   return (
     column: SuspectSpanTableColumn,
@@ -116,7 +116,7 @@ function renderBodyCellWithMeta(
     if (column.key === 'spanDuration' && dataRow.transactionDuration) {
       return (
         <SpanDurationBar
-          spanOp={suspectSpan.op}
+          spanOp={suspectSpan?.op ?? ''}
           spanDuration={dataRow.spanDuration}
           transactionDuration={dataRow.transactionDuration}
         />
