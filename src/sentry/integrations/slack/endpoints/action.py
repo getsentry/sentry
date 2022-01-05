@@ -103,32 +103,6 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
         return None
 
 
-def get_member_approval_success_message_parts(
-    member: OrganizationMember,
-    action_option: str,
-    original_status: InviteStatus,
-) -> Mapping[str, str]:
-    manage_url = absolute_uri(
-        reverse("sentry-organization-members", args=[member.organization.slug])
-    )
-
-    kwargs = {"url": manage_url, "email": member.email}
-
-    if action_option == "approve_member":
-        kwargs["key"] = "integrations.slack.approve_member_invitation"
-        kwargs["verb"] = "approved"
-    else:
-        kwargs["key"] = "integrations.slack.reject_member_invitation"
-        kwargs["verb"] = "rejected"
-
-    if original_status == InviteStatus.REQUESTED_TO_BE_INVITED:
-        kwargs["invite_type"] = "Invite"
-    else:
-        kwargs["invite_type"] = "Join"
-
-    return kwargs
-
-
 def _is_message(data: Mapping[str, Any]) -> bool:
     """
     XXX(epurkhiser): Used in coordination with construct_reply.
@@ -460,18 +434,36 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
             return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
 
-        kwargs = get_member_approval_success_message_parts(
-            member=member,
-            action_option=action,
-            original_status=original_status,
-        )
+        if action == "approve_member":
+            key = "integrations.slack.approve_member_invitation"
+            verb = "approved"
+        else:
+            key = "integrations.slack.reject_member_invitation"
+            verb = "rejected"
+
+        if original_status == InviteStatus.REQUESTED_TO_BE_INVITED:
+            invite_type = "Invite"
+        else:
+            invite_type = "Join"
 
         analytics.record(
-            kwargs["key"],
+            key,
             actor_id=identity.user_id,
             organization_id=member.organization_id,
-            invitation_type=kwargs["invite_type"].lower(),
+            invitation_type=invite_type.lower(),
             invited_member_id=member.id,
         )
 
-        return self.respond({"text": SUCCESS_MESSAGE.format(**kwargs)})
+        manage_url = absolute_uri(
+            reverse("sentry-organization-members", args=[member.organization.slug])
+        )
+
+        message = SUCCESS_MESSAGE.format(
+            email=member.email,
+            invite_type=invite_type,
+            key=key,
+            url=manage_url,
+            verb=verb,
+        )
+
+        return self.respond({"text": message})
