@@ -1,7 +1,10 @@
 import {Fragment} from 'react';
 import {Location} from 'history';
 
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
@@ -15,14 +18,22 @@ import {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 
-import {generateTransactionLink} from '../utils';
+import {generateTransactionLink} from '../../utils';
 
 import {SpanDurationBar} from './styles';
-import {
-  SuspectSpanDataRow,
-  SuspectSpanTableColumn,
-  SuspectSpanTableColumnKeys,
-} from './types';
+
+type TableColumnKeys =
+  | 'id'
+  | 'timestamp'
+  | 'transactionDuration'
+  | 'spanDuration'
+  | 'occurrences'
+  | 'cumulativeDuration'
+  | 'spans';
+
+type TableColumn = GridColumnOrder<TableColumnKeys>;
+
+type TableDataRow = Record<TableColumnKeys, any>;
 
 type Props = {
   location: Location;
@@ -89,8 +100,8 @@ export default function SpanTable(props: Props) {
   );
 }
 
-function renderHeadCell(column: SuspectSpanTableColumn, _index: number): React.ReactNode {
-  const align = fieldAlignment(column.key, SPANS_TABLE_COLUMN_TYPE[column.key]);
+function renderHeadCell(column: TableColumn, _index: number): React.ReactNode {
+  const align = fieldAlignment(column.key, COLUMN_TYPE[column.key]);
   return (
     <SortLink
       title={column.name}
@@ -108,10 +119,7 @@ function renderBodyCellWithMeta(
   transactionName: string,
   suspectSpan: SuspectSpan
 ) {
-  return (
-    column: SuspectSpanTableColumn,
-    dataRow: SuspectSpanDataRow
-  ): React.ReactNode => {
+  return (column: TableColumn, dataRow: TableDataRow): React.ReactNode => {
     // if the transaction duration is falsey, then just render the span duration on its own
     if (column.key === 'spanDuration' && dataRow.transactionDuration) {
       return (
@@ -123,7 +131,7 @@ function renderBodyCellWithMeta(
       );
     }
 
-    const fieldRenderer = getFieldRenderer(column.key, SPANS_TABLE_COLUMN_TYPE);
+    const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
     let rendered = fieldRenderer(dataRow, {location, organization});
 
     if (column.key === 'id') {
@@ -146,8 +154,8 @@ function renderBodyCellWithMeta(
   };
 }
 
-const SPANS_TABLE_COLUMN_TYPE: Omit<
-  Record<SuspectSpanTableColumnKeys, ColumnType>,
+const COLUMN_TYPE: Omit<
+  Record<TableColumnKeys, ColumnType>,
   'spans' | 'transactionDuration'
 > = {
   id: 'string',
@@ -157,7 +165,7 @@ const SPANS_TABLE_COLUMN_TYPE: Omit<
   cumulativeDuration: 'duration',
 };
 
-const SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
+const SPANS_TABLE_COLUMN_ORDER: TableColumn[] = [
   {
     key: 'id',
     name: t('Example Transaction'),

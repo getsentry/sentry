@@ -25,10 +25,11 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {PerformanceDuration} from '../../../utils';
 import Tab from '../../tabs';
-import SpanTable from '../spanTable';
-import {emptyValue, SpanLabelContainer} from '../styles';
 import {SpanSlug} from '../types';
 import {getTotalsView} from '../utils';
+
+import SpanTable from './spanDetailsTable';
+import {emptyValue, SpanLabelContainer} from './styles';
 
 type Props = {
   location: Location;
