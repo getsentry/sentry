@@ -33,6 +33,11 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
         """
         if not features.has("organizations:team-insights", team.organization, actor=request.user):
             return Response({"detail": "You do not have the insights feature enabled"}, status=400)
+
+        # Team has no projects
+        if not Project.objects.get_for_team_ids(team_ids=[team.id]).exists():
+            return Response({})
+
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
