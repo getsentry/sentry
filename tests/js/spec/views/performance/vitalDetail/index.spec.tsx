@@ -232,11 +232,54 @@ describe('Performance > VitalDetail', () => {
   });
 
   it('Applies conditions when linking to transaction summary', async function () {
-    mountWithTheme(<TestComponent />, {
-      context: routerContext,
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          query: 'sometag:value',
+        },
+      },
+    };
+
+    const newRouterContext = TestStubs.routerContext([
+      {
+        organization,
+        project,
+        router: newRouter,
+        location: newRouter.location,
+      },
+    ]);
+
+    mountWithTheme(<TestComponent router={newRouter} />, {
+      context: newRouterContext,
     });
 
-    expect((await screen.findByText('something')).closest('a')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Largest Contentful Paint'})
+    ).toBeInTheDocument();
+
+    userEvent.click(
+      screen.getByLabelText('See transaction summary of the transaction something')
+    );
+
+    expect(newRouter.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/performance/summary/',
+      query: {
+        transaction: 'something',
+        project: undefined,
+        environment: [],
+        statsPeriod: '24h',
+        start: undefined,
+        end: undefined,
+        query: 'sometag:value has:measurements.lcp',
+        unselectedSeries: 'p100()',
+        showTransactions: 'recent',
+        display: 'vitals',
+        trendFunction: undefined,
+        trendColumn: undefined,
+      },
+    });
   });
 
   it('Check CLS', async function () {
@@ -266,8 +309,29 @@ describe('Performance > VitalDetail', () => {
 
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
 
-    expect(screen.getByText('something').closest('a')).toBeInTheDocument();
+    userEvent.click(
+      screen.getByLabelText('See transaction summary of the transaction something')
+    );
 
+    expect(newRouter.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/performance/summary/',
+      query: {
+        transaction: 'something',
+        project: undefined,
+        environment: [],
+        statsPeriod: '24h',
+        start: undefined,
+        end: undefined,
+        query: 'anothertag:value has:measurements.cls',
+        unselectedSeries: 'p100()',
+        showTransactions: 'recent',
+        display: 'vitals',
+        trendFunction: undefined,
+        trendColumn: undefined,
+      },
+    });
+
+    // Check cells are not in ms
     expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
   });
 
