@@ -85,6 +85,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
+        memberList={[]}
       />
     );
 
