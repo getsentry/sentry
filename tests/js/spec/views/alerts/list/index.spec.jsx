@@ -219,7 +219,7 @@ describe('IncidentsList', function () {
     };
 
     createWrapper({organization: noAccessOrg});
-    expect(screen.getByLabelText('Create Alert Rule')).toHaveAttribute(
+    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -229,7 +229,7 @@ describe('IncidentsList', function () {
     // Enabled with access
     createWrapper();
 
-    expect(screen.getByLabelText('Create Alert Rule')).toHaveAttribute(
+    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'false'
     );
