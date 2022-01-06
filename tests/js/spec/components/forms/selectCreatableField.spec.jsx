@@ -18,7 +18,7 @@ describe('SelectCreatableField', function () {
 
     // Click on create option
     openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option div').simulate('click');
+    wrapper.find('SelectControl Option Label').simulate('click');
 
     // Is active hidden input value
     expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
@@ -40,7 +40,7 @@ describe('SelectCreatableField', function () {
 
     // Click on create option
     openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option div').simulate('click');
+    wrapper.find('SelectControl Option Label').simulate('click');
 
     // Is active hidden input value
     expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
@@ -62,7 +62,7 @@ describe('SelectCreatableField', function () {
 
     // Click on create option
     openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option div').simulate('click');
+    wrapper.find('SelectControl Option Label').simulate('click');
 
     // Is active hidden input value
     expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
@@ -88,7 +88,7 @@ describe('SelectCreatableField', function () {
 
     // Click on create option
     openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option div').simulate('click');
+    wrapper.find('SelectControl Option Label').simulate('click');
 
     wrapper.find('Form').simulate('submit');
     expect(submitMock).toHaveBeenCalledWith(

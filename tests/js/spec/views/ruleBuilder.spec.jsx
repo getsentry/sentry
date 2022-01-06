@@ -77,13 +77,13 @@ describe('RuleBuilder', function () {
     await tick();
     wrapper.update();
 
-    const add = wrapper.find('Button');
+    const add = wrapper.find('AddButton');
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
 
     const text = wrapper.find('BuilderInput');
     text.simulate('change', {target: {value: 'some/path/*'}});
-    expect(wrapper.find('Button').prop('disabled')).toBe(true);
+    expect(wrapper.find('AddButton').prop('disabled')).toBe(true);
 
     add.simulate('click');
     expect(handleAdd).not.toHaveBeenCalled();
@@ -92,7 +92,7 @@ describe('RuleBuilder', function () {
     await selectByValueAsync(wrapper, 'user:1', {name: 'owners', control: true});
     await wrapper.update();
 
-    expect(wrapper.find('Button').prop('disabled')).toBe(false);
+    expect(wrapper.find('AddButton').prop('disabled')).toBe(false);
     add.simulate('click');
     expect(handleAdd).toHaveBeenCalled();
 
@@ -144,7 +144,7 @@ describe('RuleBuilder', function () {
     wrapper.update();
     expect(wrapper.find(RuleBuilder)).toSnapshot();
 
-    wrapper.find('Button').simulate('click');
+    wrapper.find('AddButton').simulate('click');
     expect(handleAdd).toHaveBeenCalled();
   });
 });
