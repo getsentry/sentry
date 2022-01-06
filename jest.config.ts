@@ -121,8 +121,9 @@ if (
       // to the current node's index
       ...Object.entries(Object.fromEntries(results))
         .filter(([, index]) => index === nodeIndex)
-        .map(([test]) => path.resolve(__dirname, test)),
+        .map(([test]) => `${path.join(__dirname, test)}`),
     ];
+    console.log(testMatch);
   } else {
     const length = tests.length;
     const size = Math.floor(length / nodeTotal);
