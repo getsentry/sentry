@@ -13,15 +13,15 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {
-  GlobalSelection,
   MetricMeta,
   MetricQuery,
   MetricTag,
   Organization,
+  PageFilters,
   Project,
 } from 'sentry/types';
 import {Theme} from 'sentry/utils/theme';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import AsyncView from 'sentry/views/asyncView';
 import SelectField from 'sentry/views/settings/components/forms/selectField';
@@ -45,7 +45,7 @@ type Props = AsyncView['props'] & {
   router: InjectedRouter;
   location: Location;
   loadingProjects: boolean;
-  selection: GlobalSelection;
+  selection: PageFilters;
   goBackLocation: LocationDescriptor;
   onChangeDataSet: (dataSet: DataSet) => void;
 };
@@ -376,7 +376,7 @@ class MetricWidget extends AsyncView<Props, State> {
   }
 }
 
-export default withTheme(withProjects(withGlobalSelection(MetricWidget)));
+export default withTheme(withProjects(withPageFilters(MetricWidget)));
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
@@ -388,5 +388,5 @@ const StyledSelectField = styled(SelectField)`
 
 const VisualizationWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
 `;

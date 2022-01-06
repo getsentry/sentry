@@ -44,7 +44,9 @@ stack top -> stack bottom`;
   const visit = (node: CallTreeNode, str: string[]) => {
     str.push(`${node.frame.name}`);
 
-    if (node.parent) visit(node.parent, str);
+    if (node.parent) {
+      visit(node.parent, str);
+    }
   };
 
   for (const stackTop of samples) {

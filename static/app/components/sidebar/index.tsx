@@ -10,7 +10,7 @@ import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {
   IconActivity,
   IconChevron,
@@ -444,7 +444,6 @@ const responsiveFlex = css`
 `;
 
 export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
-  background: ${p => p.theme.sidebar.background};
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
   line-height: 1;

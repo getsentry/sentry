@@ -31,6 +31,7 @@ describe('IntegrationListDirectory', function () {
         ],
         [`/organizations/${org.slug}/sentry-apps/`, TestStubs.OrgOwnedApps()],
         ['/sentry-apps/', TestStubs.PublishedApps()],
+        ['/doc-integrations/', [TestStubs.DocIntegration()]],
         [
           `/organizations/${org.slug}/sentry-app-installations/`,
           TestStubs.SentryAppInstalls(),

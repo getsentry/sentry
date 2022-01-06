@@ -262,7 +262,7 @@ const MenuItemContent = styled('div')`
 const RadioLabel = styled('label')`
   display: grid;
   cursor: pointer;
-  grid-gap: 0.25em 0.5em;
+  gap: 0.25em 0.5em;
   grid-template-columns: max-content auto;
   align-items: center;
   outline: none;

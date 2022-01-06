@@ -69,6 +69,10 @@ describe('ApiSource', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/doc-integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shortids/foo-t/',
       body: [],
     });

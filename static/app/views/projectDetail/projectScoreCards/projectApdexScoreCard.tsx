@@ -4,12 +4,12 @@ import round from 'lodash/round';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -20,7 +20,7 @@ import MissingPerformanceButtons from '../missingFeatureButtons/missingPerforman
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   isProjectStabilized: boolean;
   hasTransactions?: boolean;
   query?: string;

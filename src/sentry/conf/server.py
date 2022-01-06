@@ -996,6 +996,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Allow orgs to view document integrations from the DB
+    "organizations:integrations-docs-from-db": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
@@ -1071,8 +1073,6 @@ SENTRY_FEATURES = {
     "organizations:sso-scim": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
-    # Enable transaction comparison view for performance.
-    "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
     # Enable percent-based conditions on issue rules

@@ -34,6 +34,8 @@ type State = AsyncView['state'] & {
 };
 
 export default class IntegrationOrganizationLink extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
   }

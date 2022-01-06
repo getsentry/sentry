@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
@@ -9,7 +10,7 @@ import {DateTimeObject} from 'sentry/components/charts/utils';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -151,7 +152,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
           isEmpty={
             !alertsTriggered || !alertsTriggeredRules || alertsTriggeredRules.length === 0
           }
-          emptyMessage={t("No Alerts Triggered For This Team's Projects")}
+          emptyMessage={t('No alerts triggered for this team’s projects')}
           emptyAction={
             <ButtonsContainer>
               <Button
@@ -159,7 +160,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
                 size="small"
                 to={`/organizations/${organization.slug}/alerts/rules/`}
               >
-                {t('Create Alert Rule')}
+                {t('Create Alert')}
               </Button>
               <Button
                 size="small"
@@ -178,27 +179,26 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
             <AlignRight key="diff">{t('Difference')}</AlignRight>,
           ]}
         >
-          {alertsTriggeredRules &&
-            alertsTriggeredRules.map(rule => (
-              <Fragment key={rule.id}>
-                <div>
-                  <Link
-                    to={`/organizations/${organization.id}/alerts/rules/details/${rule.id}/`}
-                  >
-                    {rule.name}
-                  </Link>
-                </div>
-                <ProjectBadgeContainer>
-                  <ProjectBadge
-                    avatarSize={18}
-                    project={projects.find(p => p.slug === rule.projects[0])}
-                  />
-                </ProjectBadgeContainer>
-                <AlignRight>{rule.weeklyAvg}</AlignRight>
-                <AlignRight>{rule.totalThisWeek}</AlignRight>
-                <AlignRight>{this.renderTrend(rule)}</AlignRight>
-              </Fragment>
-            ))}
+          {alertsTriggeredRules?.map(rule => (
+            <Fragment key={rule.id}>
+              <div>
+                <Link
+                  to={`/organizations/${organization.id}/alerts/rules/details/${rule.id}/`}
+                >
+                  {rule.name}
+                </Link>
+              </div>
+              <ProjectBadgeContainer>
+                <ProjectBadge
+                  avatarSize={18}
+                  project={projects.find(p => p.slug === rule.projects[0])}
+                />
+              </ProjectBadgeContainer>
+              <AlignRight>{round(rule.weeklyAvg, 2)}</AlignRight>
+              <AlignRight>{rule.totalThisWeek}</AlignRight>
+              <AlignRight>{this.renderTrend(rule)}</AlignRight>
+            </Fragment>
+          ))}
         </StyledPanelTable>
       </Fragment>
     );

@@ -1,11 +1,11 @@
 import isEqual from 'lodash/isEqual';
 import Reflux from 'reflux';
 
-import GlobalSelectionActions from 'sentry/actions/globalSelectionActions';
-import {getDefaultSelection} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import PageFiltersActions from 'sentry/actions/pageFiltersActions';
+import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {LOCAL_STORAGE_KEY} from 'sentry/constants/pageFilters';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 import localStorage from 'sentry/utils/localStorage';
 
@@ -17,50 +17,46 @@ type UpdateData = {
 };
 
 type State = {
-  selection: GlobalSelection;
+  selection: PageFilters;
   isReady: boolean;
 };
 
-type GlobalSelectionStoreInterface = CommonStoreInterface<State> & {
-  state: GlobalSelection;
+type Internals = {
+  selection: PageFilters;
+  hasInitialState: boolean;
+  organization: Organization | null;
+};
 
-  reset(state?: GlobalSelection): void;
+type PageFiltersStoreInterface = CommonStoreInterface<State> & {
+  reset(selection?: PageFilters): void;
   onReset(): void;
-  isReady(): boolean;
   onSetOrganization(organization: Organization): void;
-  onInitializeUrlState(newSelection: GlobalSelection): void;
-  updateProjects(
-    projects: GlobalSelection['projects'],
-    environments: null | string[]
-  ): void;
-  updateDateTime(datetime: GlobalSelection['datetime']): void;
+  onInitializeUrlState(newSelection: PageFilters): void;
+  updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
+  updateDateTime(datetime: PageFilters['datetime']): void;
   updateEnvironments(environments: string[]): void;
   onSave(data: UpdateData): void;
 };
 
-const storeConfig: Reflux.StoreDefinition & GlobalSelectionStoreInterface = {
-  state: getDefaultSelection(),
+const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterface = {
+  selection: getDefaultSelection(),
+  hasInitialState: false,
+  organization: null,
 
   init() {
-    this.reset(this.state);
-    this.listenTo(GlobalSelectionActions.reset, this.onReset);
-    this.listenTo(GlobalSelectionActions.initializeUrlState, this.onInitializeUrlState);
-    this.listenTo(GlobalSelectionActions.setOrganization, this.onSetOrganization);
-    this.listenTo(GlobalSelectionActions.save, this.onSave);
-    this.listenTo(GlobalSelectionActions.updateProjects, this.updateProjects);
-    this.listenTo(GlobalSelectionActions.updateDateTime, this.updateDateTime);
-    this.listenTo(GlobalSelectionActions.updateEnvironments, this.updateEnvironments);
+    this.reset(this.selection);
+    this.listenTo(PageFiltersActions.reset, this.onReset);
+    this.listenTo(PageFiltersActions.initializeUrlState, this.onInitializeUrlState);
+    this.listenTo(PageFiltersActions.setOrganization, this.onSetOrganization);
+    this.listenTo(PageFiltersActions.save, this.onSave);
+    this.listenTo(PageFiltersActions.updateProjects, this.updateProjects);
+    this.listenTo(PageFiltersActions.updateDateTime, this.updateDateTime);
+    this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments);
   },
 
-  reset(state) {
-    // Has passed the enforcement state
-    this._hasEnforcedProject = false;
+  reset(selection) {
     this._hasInitialState = false;
-    this.state = state || getDefaultSelection();
-  },
-
-  isReady() {
-    return this._hasInitialState;
+    this.selection = selection || getDefaultSelection();
   },
 
   onSetOrganization(organization) {
@@ -68,19 +64,19 @@ const storeConfig: Reflux.StoreDefinition & GlobalSelectionStoreInterface = {
   },
 
   /**
-   * Initializes the global selection store data
+   * Initializes the page filters store data
    */
   onInitializeUrlState(newSelection) {
     this._hasInitialState = true;
-    this.state = newSelection;
+    this.selection = newSelection;
     this.trigger(this.getState());
   },
 
   getState() {
-    return {
-      selection: this.state,
-      isReady: this.isReady(),
-    };
+    const isReady = this._hasInitialState;
+    const {selection} = this;
+
+    return {selection, isReady};
   },
 
   onReset() {
@@ -89,37 +85,37 @@ const storeConfig: Reflux.StoreDefinition & GlobalSelectionStoreInterface = {
   },
 
   updateProjects(projects = [], environments = null) {
-    if (isEqual(this.state.projects, projects)) {
+    if (isEqual(this.selection.projects, projects)) {
       return;
     }
 
-    this.state = {
-      ...this.state,
+    this.selection = {
+      ...this.selection,
       projects,
-      environments: environments === null ? this.state.environments : environments,
+      environments: environments === null ? this.selection.environments : environments,
     };
     this.trigger(this.getState());
   },
 
   updateDateTime(datetime) {
-    if (isEqualWithDates(this.state.datetime, datetime)) {
+    if (isEqualWithDates(this.selection.datetime, datetime)) {
       return;
     }
 
-    this.state = {
-      ...this.state,
+    this.selection = {
+      ...this.selection,
       datetime,
     };
     this.trigger(this.getState());
   },
 
   updateEnvironments(environments) {
-    if (isEqual(this.state.environments, environments)) {
+    if (isEqual(this.selection.environments, environments)) {
       return;
     }
 
-    this.state = {
-      ...this.state,
+    this.selection = {
+      ...this.selection,
       environments: environments ?? [],
     };
     this.trigger(this.getState());
@@ -161,7 +157,7 @@ const storeConfig: Reflux.StoreDefinition & GlobalSelectionStoreInterface = {
   },
 };
 
-const GlobalSelectionStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  GlobalSelectionStoreInterface;
+const PageFiltersStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  PageFiltersStoreInterface;
 
-export default GlobalSelectionStore;
+export default PageFiltersStore;

@@ -12,7 +12,7 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -245,7 +245,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         </ChartWrapper>
         <StyledPanelTable
           isEmpty={projects.length === 0}
-          emptyMessage={t("No Releases Were Setup For This Team's Projects")}
+          emptyMessage={t('No releases were setup for this team’s projects')}
           emptyAction={
             <Button
               size="small"

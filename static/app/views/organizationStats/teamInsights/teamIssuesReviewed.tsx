@@ -7,7 +7,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import IdBadge from 'sentry/components/idBadge';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -140,11 +140,15 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                   seriesName: t('Reviewed'),
                   data: reviewedSeries,
                   silent: true,
+                  animationDuration: 500,
+                  animationDelay: 0,
                 },
                 {
                   seriesName: t('Not Reviewed'),
                   data: notReviewedSeries,
                   silent: true,
+                  animationDuration: 500,
+                  animationDelay: 500,
                 },
               ]}
             />
@@ -152,7 +156,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
         </ChartWrapper>
         <StyledPanelTable
           isEmpty={projects.length === 0}
-          emptyMessage={t('No Projects Assigned To This Team')}
+          emptyMessage={t('No projects assigned to this team')}
           headers={[
             t('Project'),
             <AlignRight key="forReview">{t('For Review')}</AlignRight>,

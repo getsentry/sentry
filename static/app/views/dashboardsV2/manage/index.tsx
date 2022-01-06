@@ -222,20 +222,23 @@ class ManageDashboards extends AsyncView<Props, State> {
     });
   }
 
-  onAdd(dashboard: DashboardDetails) {
+  async onAdd(dashboard: DashboardDetails) {
     const {organization, api} = this.props;
     trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
       organization,
       dashboard_id: dashboard.id,
     });
 
-    createDashboard(api, organization.slug, dashboard, true).then(() =>
-      this.onDashboardsChange()
-    );
+    await createDashboard(api, organization.slug, dashboard, true);
+    this.onDashboardsChange();
   }
 
   onPreview(dashboardId: string) {
     const {organization, location} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.preview', {
+      organization,
+      dashboard_id: dashboardId,
+    });
 
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}`,
@@ -322,7 +325,7 @@ const StyledPageHeader = styled('div')`
 const StyledActions = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -352,7 +355,7 @@ const TemplateContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: repeat(2, 1fr);
   }
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   padding-bottom: ${space(4)};
 `;
 
