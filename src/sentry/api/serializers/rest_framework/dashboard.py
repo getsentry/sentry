@@ -152,6 +152,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
+    detail = serializers.CharField(required=False, allow_null=True)
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -169,6 +170,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     def validate(self, data):
         query_errors = []
         has_query_error = False
+
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
@@ -199,6 +201,14 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                 raise serializers.ValidationError(
                     {"displayType": "displayType is required during creation."}
                 )
+
+        keys = ["interval", "display_type", "widget_type"]
+        detail = {}
+        for key in keys:
+            if data.get(key) is not None:
+                detail[key] = data[key]
+
+        data["detail"] = detail
         return data
 
 
@@ -289,6 +299,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             if "widget_type" in widget_data
             else DashboardWidgetTypes.DISCOVER,
             order=order,
+            detail=widget_data["detail"],
         )
         new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
@@ -310,6 +321,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
         widget.order = order
+        widget.detail = data.get("detail", widget.detail or {})
         widget.save()
 
         if "queries" in data:
