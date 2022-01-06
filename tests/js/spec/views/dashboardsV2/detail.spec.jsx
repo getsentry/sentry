@@ -400,6 +400,7 @@ describe('Dashboards > Detail', function () {
 
     it('does not update if api update fails', async function () {
       const fireEvent = createListeners('window');
+      window.confirm = jest.fn(() => true);
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
@@ -442,6 +443,7 @@ describe('Dashboards > Detail', function () {
         'Updated Name'
       );
       wrapper.find('Controls Button[data-test-id="dashboard-cancel"]').simulate('click');
+
       expect(wrapper.find('DashboardTitle EditableText').props().value).toEqual(
         'Custom Errors'
       );

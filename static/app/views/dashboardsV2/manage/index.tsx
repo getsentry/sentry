@@ -23,6 +23,7 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
+import {DASHBOARDS_TEMPLATES} from '../data';
 import {DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
@@ -140,10 +141,14 @@ class ManageDashboards extends AsyncView<Props, State> {
     return (
       <Feature organization={organization} features={['dashboards-template']}>
         <TemplateContainer>
-          <TemplateCard title="Default" widgetCount={10} />
-          <TemplateCard title="Frontend" widgetCount={9} />
-          <TemplateCard title="Backend" widgetCount={13} />
-          <TemplateCard title="Mobile" widgetCount={4} />
+          {DASHBOARDS_TEMPLATES.map(dashboard => (
+            <TemplateCard
+              title={dashboard.title}
+              widgetCount={dashboard.widgets.length}
+              onPreview={() => this.onPreview(dashboard.id)}
+              key={dashboard.title}
+            />
+          ))}
         </TemplateContainer>
       </Feature>
     );
@@ -211,6 +216,19 @@ class ManageDashboards extends AsyncView<Props, State> {
 
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
+      query: location.query,
+    });
+  }
+
+  onPreview(dashboardId: string) {
+    const {organization, location} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.preview', {
+      organization,
+      dashboard_id: dashboardId,
+    });
+
+    browserHistory.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}`,
       query: location.query,
     });
   }

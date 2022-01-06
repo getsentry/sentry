@@ -157,7 +157,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
         </ChartWrapper>
         <StyledPanelTable
           isEmpty={projects.length === 0}
-          emptyMessage={t('No Projects Assigned To This Team')}
+          emptyMessage={t('No projects assigned to this team')}
           headers={[
             t('Project'),
             <AlignRight key="forReview">{t('For Review')}</AlignRight>,

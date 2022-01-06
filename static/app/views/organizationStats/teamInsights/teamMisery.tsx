@@ -86,7 +86,7 @@ function TeamMisery({
     <Fragment>
       <StyledPanelTable
         isEmpty={projects.length === 0 || periodTableData?.data.length === 0}
-        emptyMessage={t('No Key Transactions Starred By This Team')}
+        emptyMessage={t('No key transactions starred by this team')}
         emptyAction={
           <Button
             size="small"
