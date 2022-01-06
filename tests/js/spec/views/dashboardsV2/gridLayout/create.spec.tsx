@@ -58,6 +58,7 @@ describe('Dashboards > Create', function () {
     });
 
     it('can create with new widget', async function () {
+      // why
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         method: 'POST',

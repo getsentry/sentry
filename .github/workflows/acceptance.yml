@@ -25,7 +25,6 @@ jobs:
 
     env:
       VISUAL_HTML_ENABLE: 1
-      DEBUG_PRINT_LIMIT: 100000
     steps:
       - uses: actions/checkout@v2
         name: Checkout sentry
@@ -63,7 +62,7 @@ jobs:
           CI_NODE_TOTAL: 2
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
-          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --testTimeout=10000 --detectOpenHandles
+          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --testTimeout=10000
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
@@ -158,7 +157,6 @@ jobs:
       MATRIX_INSTANCE_TOTAL: 4
       VISUAL_SNAPSHOT_ENABLE: 1
       TEST_GROUP_STRATEGY: roundrobin
-      DEBUG_PRINT_LIMIT: 100000
 
     steps:
       - name: Checkout sentry
