@@ -183,7 +183,6 @@ class TransactionsList extends React.Component<Props> {
                 isOpen={isOpen}
                 prefix={t('Filter')}
                 size="small"
-                data-test-id="filter-transactions"
               >
                 {selected.label}
               </StyledDropdownButton>
