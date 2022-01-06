@@ -1,6 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  mountWithTheme as rtlMountWithTheme,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -233,24 +238,6 @@ describe('getFieldRenderer', function () {
     expect(wrapper.find('TeamKeyTransaction')).toHaveLength(0);
   });
 
-  it('can render issue assignees', function () {
-    const renderer = getFieldRenderer('assignee');
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mountWithTheme(
-      renderer(
-        {
-          'assignee.type': 'user',
-          'assignee.id': '1',
-          'assignee.name': 'sentry user',
-          'assignee.email': 'user@sentry.io',
-        },
-        {location, organization}
-      )
-    );
-
-    expect(wrapper.find('Tooltip').props().title).toEqual('Assigned to sentry user');
-  });
-
   describe('ops breakdown', () => {
     const getWidth = (wrapper, index) =>
       wrapper.children().children().at(index).getDOMNode().style.width;
@@ -293,6 +280,42 @@ describe('getFieldRenderer', function () {
       expect(getWidth(value, 1)).toEqual('20.000%');
       expect(getWidth(value, 2)).toEqual('13.333%');
       expect(getWidth(value, 3)).toEqual('26.667%');
+    });
+  });
+
+  describe('Issue fields', () => {
+    it('can render assignee', async function () {
+      const renderer = getFieldRenderer('assignee', {
+        assignee: 'string',
+      });
+
+      rtlMountWithTheme(
+        renderer(data, {
+          location,
+          organization,
+          issueData: {
+            assignedTo: {
+              email: 'test@sentry.io',
+              type: 'user',
+              id: '1',
+              name: 'Test User',
+            },
+            suggestedAssignees: [
+              {
+                type: 'user',
+                id: '1',
+                name: 'Test User',
+                suggestedReason: 'suspectCommit',
+              },
+            ],
+          },
+        })
+      );
+      expect(screen.getByText('TU')).toBeInTheDocument();
+      userEvent.hover(screen.getByText('TU'));
+      expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
+      expect(await screen.findByText('Based on')).toBeInTheDocument();
+      expect(await screen.findByText('commit data')).toBeInTheDocument();
     });
   });
 });
