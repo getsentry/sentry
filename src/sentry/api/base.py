@@ -205,6 +205,7 @@ class Endpoint(APIView):
                 caller_ip=str(self.request.META.get("REMOTE_ADDR")),
                 user_agent=str(self.request.META.get("HTTP_USER_AGENT")),
                 rate_limited=str(getattr(self.request, "will_be_rate_limited", False)),
+                rate_limit_category=str(getattr(self.request, "rate_limit_category", None)),
                 request_duration_seconds=time.time() - request_start_time,
             )
             api_access_logger.info("api.access", extra=log_metrics)
@@ -231,7 +232,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).

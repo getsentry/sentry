@@ -980,6 +980,11 @@ function buildRoutes() {
           component={SafeLazyLoad}
         />
       </Route>
+      <Route
+        path="/organizations/:orgId/dashboards/new/:templateId"
+        componentPromise={() => import('sentry/views/dashboardsV2/create')}
+        component={SafeLazyLoad}
+      />
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
@@ -1277,11 +1282,6 @@ function buildRoutes() {
       <Route
         path=":eventSlug/"
         componentPromise={() => import('sentry/views/performance/transactionDetails')}
-        component={SafeLazyLoad}
-      />
-      <Route
-        path="compare/:baselineEventSlug/:regressionEventSlug/"
-        componentPromise={() => import('sentry/views/performance/compare')}
         component={SafeLazyLoad}
       />
     </Route>

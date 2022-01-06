@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from django.http.response import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.ratelimits import (
     above_rate_limit_check,
@@ -20,9 +22,10 @@ DEFAULT_ERROR_MESSAGE = (
 class RatelimitMiddleware(MiddlewareMixin):
     """Middleware that applies a rate limit to every endpoint."""
 
-    def process_view(self, request, view_func, view_args, view_kwargs):
+    def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
         """Check if the endpoint call will violate."""
         request.will_be_rate_limited = False
+        request.rate_limit_category = None
 
         if not can_be_ratelimited(request, view_func):
             return
@@ -30,11 +33,13 @@ class RatelimitMiddleware(MiddlewareMixin):
         key = get_rate_limit_key(view_func, request)
         if key is None:
             return
+        category_str = key.split(":", 1)[0]
+        request.rate_limit_category = category_str
 
         rate_limit = get_rate_limit_value(
             http_method=request.method,
             endpoint=view_func.view_class,
-            category=RateLimitCategory(key.split(":", 1)[0]),
+            category=RateLimitCategory(category_str),
         )
         if rate_limit is None:
             return

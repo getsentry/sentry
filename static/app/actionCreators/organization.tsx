@@ -1,9 +1,13 @@
+// XXX(epurkhiser): Ensure the LatestContextStore is initialized before we set
+// the active org. Otherwise we will trigger an action that does nothing
+import 'sentry/stores/latestContextStore';
+
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
-import GlobalSelectionActions from 'sentry/actions/globalSelectionActions';
 import OrganizationActions from 'sentry/actions/organizationActions';
+import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
 import {Client, ResponseMeta} from 'sentry/api';
@@ -115,7 +119,7 @@ export async function fetchOrganizationDetails(
   if (!silent) {
     OrganizationActions.reset();
     ProjectActions.reset();
-    GlobalSelectionActions.reset();
+    PageFiltersActions.reset();
   }
 
   const loadOrganization = async () => {

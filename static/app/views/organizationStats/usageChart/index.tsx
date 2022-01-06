@@ -34,8 +34,8 @@ const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
 const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
   .lighten(0.65)
   .string();
+
 const COLOR_DROPPED = commonTheme.red300;
-const COLOR_PROJECTED = commonTheme.gray100;
 const COLOR_FILTERED = commonTheme.pink100;
 
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
@@ -204,7 +204,8 @@ export class UsageChart extends React.Component<Props, State> {
   }
 
   get chartColors() {
-    const {dataCategory} = this.props;
+    const {dataCategory, theme} = this.props;
+    const COLOR_PROJECTED = theme.chartOther;
 
     if (dataCategory === DataCategory.ERRORS) {
       return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];

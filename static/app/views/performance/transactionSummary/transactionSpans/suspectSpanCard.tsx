@@ -4,7 +4,7 @@ import {Location} from 'history';
 import Button from 'sentry/components/button';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
@@ -37,6 +37,7 @@ type Props = {
   eventView: EventView;
   totals: SpansTotalValues | null;
   preview: number;
+  project?: Project;
 };
 
 export default function SuspectSpanEntry(props: Props) {
@@ -48,6 +49,7 @@ export default function SuspectSpanEntry(props: Props) {
     eventView,
     totals,
     preview,
+    project,
   } = props;
 
   const expandable = suspectSpan.examples.length > preview;
@@ -74,8 +76,10 @@ export default function SuspectSpanEntry(props: Props) {
       </UpperPanel>
       <LowerPanel expandable={expandable} data-test-id="suspect-card-lower">
         <SpanTable
+          isLoading={false}
           location={location}
           organization={organization}
+          project={project}
           suspectSpan={suspectSpan}
           transactionName={transactionName}
           examples={visibileExamples}
@@ -139,23 +143,27 @@ function SpanCount(props: HeaderItemProps) {
   }
 
   if (sort.field === SpanSortOthers.AVG_OCCURRENCE) {
+    const {avgOccurrences} = suspectSpan;
     return (
       <HeaderItem
         label={t('Average Count')}
-        value={formatFloat(suspectSpan.avgOccurrences, 2)}
+        value={defined(avgOccurrences) ? formatFloat(avgOccurrences, 2) : '\u2014'}
         align="right"
         isSortKey
       />
     );
   }
 
+  let {frequency} = suspectSpan;
+  if (!defined(frequency)) {
+    return <HeaderItem label={t('Frequency')} value={'\u2014'} align="right" />;
+  }
+
   // Because the frequency is computed using `count_unique(id)` internally,
   // it is an approximate value. This means that it has the potential to be
   // greater than `totals.count` when it shouldn't. So let's clip the
   // frequency value to make sure we don't see values over 100%.
-  const frequency = defined(totals?.count)
-    ? Math.min(suspectSpan.frequency, totals!.count)
-    : suspectSpan.frequency;
+  frequency = defined(totals?.count) ? Math.min(frequency, totals!.count) : frequency;
 
   const value = defined(totals?.count) ? (
     <Tooltip
@@ -176,16 +184,26 @@ function SpanCount(props: HeaderItemProps) {
 function TotalCumulativeDuration(props: HeaderItemProps) {
   const {sort, suspectSpan, totals} = props;
 
-  let value = (
-    <PerformanceDuration abbreviation milliseconds={suspectSpan.sumExclusiveTime} />
-  );
+  const {sumExclusiveTime} = suspectSpan;
+  if (!defined(sumExclusiveTime)) {
+    return (
+      <HeaderItem
+        label={t('Total Exclusive Time')}
+        value={'\u2014'}
+        align="right"
+        isSortKey={sort.field === SpanSortOthers.SUM_EXCLUSIVE_TIME}
+      />
+    );
+  }
+
+  let value = <PerformanceDuration abbreviation milliseconds={sumExclusiveTime} />;
 
   if (defined(totals?.sum_transaction_duration)) {
     value = (
       <Tooltip
         title={tct('[percentage] of the total transaction duration of [duration]', {
           percentage: formatPercentage(
-            suspectSpan.sumExclusiveTime / totals!.sum_transaction_duration
+            sumExclusiveTime / totals!.sum_transaction_duration
           ),
           duration: (
             <PerformanceDuration

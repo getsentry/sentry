@@ -192,7 +192,7 @@ const StyledFileSize = styled(FileSize)`
 
 const TimeWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
   flex: 2;
   align-items: center;

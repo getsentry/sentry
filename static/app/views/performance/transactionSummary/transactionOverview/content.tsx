@@ -11,7 +11,7 @@ import TransactionsList, {
 import SearchBar from 'sentry/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -149,15 +149,6 @@ class SummaryContent extends React.Component<Props> {
     trackAnalyticsEvent({
       eventKey: 'performance_views.summary.view_in_discover',
       eventName: 'Performance Views: View in Discover from Transaction Summary',
-      organization_id: parseInt(organization.id, 10),
-    });
-  };
-
-  handleViewDetailsClick = (_e: React.MouseEvent<Element>) => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.view_details',
-      eventName: 'Performance Views: View Details from Transaction Summary',
       organization_id: parseInt(organization.id, 10),
     });
   };
@@ -346,8 +337,6 @@ class SummaryContent extends React.Component<Props> {
               id: generateTransactionLink(transactionName),
               trace: generateTraceLink(eventView.normalizeDateSelection(location)),
             }}
-            baseline={transactionName}
-            handleBaselineClick={this.handleViewDetailsClick}
             handleCellAction={this.handleCellAction}
             {...getTransactionsListSort(location, {
               p95: totalValues?.p95 ?? 0,

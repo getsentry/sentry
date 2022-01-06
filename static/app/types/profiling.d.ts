@@ -5,11 +5,14 @@ namespace Profiling {
     name: string;
     unit: string;
     spans?: RawSpan[];
+    shared: {
+      frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
+    };
   }
 
   // Android traces follow this format
   interface EventedProfile extends RawProfileBase {
-    events: ReadonlyArray<{at: number; frame: number; type: 'O' | 'C'}>;
+    events: ReadonlyArray<Event>;
     type: 'evented';
   }
 
@@ -19,6 +22,8 @@ namespace Profiling {
     samples: number[][];
     type: 'sampled';
   }
+
+  type Event = {at: number; frame: number; type: 'O' | 'C'};
 
   type Span = {
     duration_ms: number;
@@ -46,7 +51,7 @@ namespace Profiling {
     name: string;
     traceID: string;
     activeProfileIndex: number;
-    profiles: Profile[];
+    profiles: ProfileTypes[];
   };
 
   // This extends speedscope's schema - we are keeping this as is, but we are likely to diverge as we add more

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -136,6 +137,7 @@ class TeamIssuesAge extends AsyncComponent<Props, State> {
         </ChartWrapper>
         <StyledPanelTable
           isEmpty={!oldestIssues || oldestIssues.length === 0}
+          emptyMessage={t('No unresolved issues for this team’s projects')}
           headers={[
             t('Oldest Issues'),
             <RightAligned key="events">{t('Events')}</RightAligned>,
@@ -204,6 +206,14 @@ const StyledPanelTable = styled(PanelTable)`
   > * {
     padding: ${space(1)} ${space(2)};
   }
+
+  ${p =>
+    p.isEmpty &&
+    css`
+      & > div:last-child {
+        padding: 48px ${space(2)};
+      }
+    `}
 `;
 
 const RightAligned = styled('span')`

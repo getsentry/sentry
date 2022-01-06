@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -7,7 +8,7 @@ from sentry.models import Group, GroupStatus
 
 
 class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
-    def get(self, request, team) -> Response:
+    def get(self, request: Request, team) -> Response:
         """
         Return the oldest issues owned by a team
         """

@@ -161,14 +161,10 @@ def unfurl_discover(
             params.setlist("interval", ["1d"])
 
         if "top5" in display_mode:
-            if features.has("organizations:discover-top-events", org):
-                params.setlist(
-                    "topEvents",
-                    params.getlist("topEvents")
-                    or to_list(saved_query.get("topEvents", f"{TOP_N}")),
-                )
-            else:
-                params.setlist("topEvents", [f"{TOP_N}"])
+            params.setlist(
+                "topEvents",
+                params.getlist("topEvents") or to_list(saved_query.get("topEvents", f"{TOP_N}")),
+            )
 
             y_axis = params.getlist("yAxis")[0]
             if display_mode != "dailytop5":

@@ -278,3 +278,10 @@ export function getDisplayAxes(options: AxisOption[], location: Location) {
     rightAxis,
   };
 }
+
+export function checkIsReactNative(eventView) {
+  // only react native should contain the stall percentage column
+  return Boolean(
+    eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
+  );
+}

@@ -7,7 +7,13 @@ import {isAggregateField} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {SpanSlug, SpanSortOption, SpanSortOthers, SpanSortPercentiles} from './types';
+import {
+  SpanSlug,
+  SpanSort,
+  SpanSortOption,
+  SpanSortOthers,
+  SpanSortPercentiles,
+} from './types';
 
 export function generateSpansRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/spans/`;
@@ -169,3 +175,43 @@ export function getTotalsView(eventView: EventView): EventView {
   totalsView.query = conditions.formatString();
   return totalsView;
 }
+
+export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
+  [SpanSortOthers.SUM_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortOthers.AVG_OCCURRENCE]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'count_unique(id)',
+    'equation|count()/count_unique(id)',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortOthers.COUNT]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.5)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.75)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.95)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+  [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.99)',
+    'count()',
+    'sumArray(spans_exclusive_time)',
+  ],
+};

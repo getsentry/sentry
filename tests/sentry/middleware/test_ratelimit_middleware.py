@@ -30,6 +30,29 @@ class RatelimitMiddlewareTest(TestCase):
 
     _test_endpoint = TestEndpoint.as_view()
 
+    def populate_sentry_app_request(self, request):
+        sentry_app = self.create_sentry_app(
+            name="Bubbly Webhook",
+            organization=self.organization,
+            webhook_url="https://example.com",
+            scopes=["event:write"],
+        )
+
+        internal_integration = self.create_internal_integration(
+            name="my_app",
+            organization=self.organization,
+            scopes=("project:read",),
+            webhook_url="http://example.com",
+        )
+        # there should only be one record created so just grab the first one
+        install = SentryAppInstallation.objects.get(
+            sentry_app=internal_integration.id, organization=self.organization
+        )
+        token = install.api_token
+
+        request.user = User.objects.get(id=sentry_app.proxy_user_id)
+        request.auth = token
+
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
         request = self.factory.get("/")
@@ -64,6 +87,25 @@ class RatelimitMiddlewareTest(TestCase):
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
 
+    def test_rate_limit_category(self):
+        request = self.factory.get("/")
+        request.META["REMOTE_ADDR"] = None
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert request.rate_limit_category is None
+
+        request = self.factory.get("/")
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert request.rate_limit_category == "ip"
+
+        request.session = {}
+        request.user = self.user
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert request.rate_limit_category == "user"
+
+        self.populate_sentry_app_request(request)
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert request.rate_limit_category == "org"
+
     def test_above_rate_limit_check(self):
 
         return_val = above_rate_limit_check("foo", RateLimit(10, 100))
@@ -76,7 +118,6 @@ class RatelimitMiddlewareTest(TestCase):
 
         # Test for default IP
         request = self.factory.get("/")
-        print(request)
         assert (
             get_rate_limit_key(view, request) == "ip:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
         )
@@ -109,27 +150,7 @@ class RatelimitMiddlewareTest(TestCase):
         )
 
         # Test for sentryapp auth tokens:
-        sentry_app = self.create_sentry_app(
-            name="Bubbly Webhook",
-            organization=self.organization,
-            webhook_url="https://example.com",
-            scopes=["event:write"],
-        )
-
-        internal_integration = self.create_internal_integration(
-            name="my_app",
-            organization=self.organization,
-            scopes=("project:read",),
-            webhook_url="http://example.com",
-        )
-        # there should only be one record created so just grab the first one
-        install = SentryAppInstallation.objects.get(
-            sentry_app=internal_integration.id, organization=self.organization
-        )
-        token = install.api_token
-
-        request.user = User.objects.get(id=sentry_app.proxy_user_id)
-        request.auth = token
+        self.populate_sentry_app_request(request)
         assert (
             get_rate_limit_key(view, request)
             == f"org:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"

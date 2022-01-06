@@ -6,7 +6,7 @@ import Button from 'sentry/components/button';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -113,7 +113,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledActions = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: auto max-content max-content;
   align-items: center;
   margin-bottom: ${space(3)};

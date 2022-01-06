@@ -15,7 +15,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
@@ -44,7 +44,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   projects: Project[];
-  selection: GlobalSelection;
+  selection: PageFilters;
   shouldShowOnboarding: boolean;
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
@@ -226,7 +226,7 @@ const StyledHeading = styled(PageHeading)`
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;
-  grid-gap: ${space(0)};
+  gap: ${space(0)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

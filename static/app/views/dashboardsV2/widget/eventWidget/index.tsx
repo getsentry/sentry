@@ -14,12 +14,12 @@ import {PanelAlert} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, TagCollection} from 'sentry/types';
+import {Organization, PageFilters, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {explodeField, generateFieldAsString} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import AsyncView from 'sentry/views/asyncView';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
@@ -50,7 +50,7 @@ const newQuery = {
 
 type Props = AsyncView['props'] & {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   dashboardTitle: DashboardDetails['title'];
   tags: TagCollection;
   isEditing: boolean;
@@ -348,7 +348,7 @@ class EventWidget extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(withGlobalSelection(withTags(EventWidget)));
+export default withOrganization(withPageFilters(withTags(EventWidget)));
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
@@ -356,5 +356,5 @@ const StyledPageContent = styled(PageContent)`
 
 const VisualizationWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
 `;

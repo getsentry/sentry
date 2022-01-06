@@ -1,6 +1,7 @@
 import logging
 
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
@@ -32,7 +33,6 @@ class EmailSerializer(serializers.Serializer):
 
 
 class UserEmailsConfirmEndpoint(UserEndpoint):
-
     rate_limits = {
         "POST": {
             RateLimitCategory.USER: RateLimit(10, 60),
@@ -40,7 +40,7 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
         }
     }
 
-    def post(self, request, user):
+    def post(self, request: Request, user) -> Response:
         """
         Sends a confirmation email to user
         ``````````````````````````````````

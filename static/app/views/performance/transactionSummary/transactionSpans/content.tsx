@@ -8,7 +8,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -18,14 +18,20 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useProjects from 'sentry/utils/useProjects';
 
 import {SetStateAction} from '../types';
 
 import OpsFilter from './opsFilter';
 import {Actions} from './styles';
 import SuspectSpanCard from './suspectSpanCard';
-import {SpansTotalValues} from './types';
-import {getSuspectSpanSortFromEventView, getTotalsView, SPAN_SORT_OPTIONS} from './utils';
+import {SpanSort, SpansTotalValues} from './types';
+import {
+  getSuspectSpanSortFromEventView,
+  getTotalsView,
+  SPAN_SORT_OPTIONS,
+  SPAN_SORT_TO_FIELDS,
+} from './utils';
 
 const ANALYTICS_VALUES = {
   spanOp: (organization: Organization, value: string | undefined) =>
@@ -44,12 +50,13 @@ type Props = {
   location: Location;
   organization: Organization;
   eventView: EventView;
+  projectId: string;
   setError: SetStateAction<string | undefined>;
   transactionName: string;
 };
 
 function SpansContent(props: Props) {
-  const {location, organization, eventView, setError, transactionName} = props;
+  const {location, organization, eventView, projectId, setError, transactionName} = props;
   const query = decodeScalar(location.query.query, '');
 
   function handleChange(key: string) {
@@ -78,7 +85,10 @@ function SpansContent(props: Props) {
   const spanOp = decodeScalar(location.query.spanOp);
   const spanGroup = decodeScalar(location.query.spanGroup);
   const sort = getSuspectSpanSortFromEventView(eventView);
+  const spansView = getSpansEventView(eventView, sort.field);
   const totalsView = getTotalsView(eventView);
+
+  const {projects} = useProjects();
 
   return (
     <Layout.Main fullWidth>
@@ -125,7 +135,7 @@ function SpansContent(props: Props) {
             <SuspectSpansQuery
               location={location}
               orgSlug={organization.slug}
-              eventView={eventView}
+              eventView={spansView}
               perSuspect={10}
               spanOps={defined(spanOp) ? [spanOp] : []}
               spanGroups={defined(spanGroup) ? [spanGroup] : []}
@@ -163,6 +173,7 @@ function SpansContent(props: Props) {
                         eventView={eventView}
                         totals={totals}
                         preview={2}
+                        project={projects.find(p => p.id === projectId)}
                       />
                     ))}
                     <Pagination pageLinks={pageLinks} />
@@ -175,6 +186,13 @@ function SpansContent(props: Props) {
       </DiscoverQuery>
     </Layout.Main>
   );
+}
+
+function getSpansEventView(eventView: EventView, sort: SpanSort): EventView {
+  eventView = eventView.clone();
+  const fields = SPAN_SORT_TO_FIELDS[sort];
+  eventView.fields = fields ? fields.map(field => ({field})) : [];
+  return eventView;
 }
 
 export default SpansContent;

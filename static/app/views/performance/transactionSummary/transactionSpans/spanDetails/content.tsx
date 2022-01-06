@@ -10,11 +10,16 @@ import {t, tn} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatPercentage} from 'sentry/utils/formatters';
-import SpanExamplesQuery from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
-import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
+import SpanExamplesQuery, {
+  ChildrenProps as SpanExamplesProps,
+} from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
+import SuspectSpansQuery, {
+  ChildrenProps as SuspectSpansProps,
+} from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
@@ -36,6 +41,7 @@ type Props = {
 
 export default function SpanDetailsContentWrapper(props: Props) {
   const {location, organization, eventView, projectId, transactionName, spanSlug} = props;
+
   return (
     <Fragment>
       <Layout.Header>
@@ -69,7 +75,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
                 <SuspectSpansQuery
                   location={location}
                   orgSlug={organization.slug}
-                  eventView={eventView}
+                  eventView={getSpansEventView(eventView)}
                   perSuspect={0}
                   spanOps={[spanSlug.op]}
                   spanGroups={[spanSlug.group]}
@@ -115,8 +121,8 @@ type ContentProps = {
   spanSlug: SpanSlug;
   transactionName: string;
   totalCount: number;
-  suspectSpansResults: any;
-  spanExamplesResults: any;
+  suspectSpansResults: SuspectSpansProps;
+  spanExamplesResults: SpanExamplesProps;
 };
 
 function SpanDetailsContent(props: ContentProps) {
@@ -160,7 +166,8 @@ function SpanDetailsContent(props: ContentProps) {
         organization={organization}
         suspectSpan={suspectSpan}
         transactionName={transactionName}
-        examples={examples ?? null}
+        isLoading={spanExamplesResults.isLoading}
+        examples={examples ?? []}
         pageLinks={spanExamplesResults.pageLinks}
       />
     </Fragment>
@@ -177,9 +184,13 @@ type HeaderProps = {
 function SpanDetailsHeader(props: HeaderProps) {
   const {spanSlug, description, suspectSpan, totalCount} = props;
 
-  const frequency = totalCount
-    ? Math.min(suspectSpan.frequency, totalCount)
-    : suspectSpan.frequency;
+  const {
+    frequency,
+    p75ExclusiveTime,
+    p95ExclusiveTime,
+    p99ExclusiveTime,
+    sumExclusiveTime,
+  } = suspectSpan;
 
   return (
     <ContentHeader>
@@ -195,28 +206,31 @@ function SpanDetailsHeader(props: HeaderProps) {
         <PercentileHeaderBodyWrapper>
           <div data-test-id="section-p75">
             <SectionBody>
-              <PerformanceDuration
-                abbreviation
-                milliseconds={suspectSpan.p75ExclusiveTime}
-              />
+              {defined(p75ExclusiveTime) ? (
+                <PerformanceDuration abbreviation milliseconds={p75ExclusiveTime} />
+              ) : (
+                '\u2014'
+              )}
             </SectionBody>
             <SectionSubtext>{t('p75')}</SectionSubtext>
           </div>
           <div data-test-id="section-p95">
             <SectionBody>
-              <PerformanceDuration
-                abbreviation
-                milliseconds={suspectSpan.p95ExclusiveTime}
-              />
+              {defined(p95ExclusiveTime) ? (
+                <PerformanceDuration abbreviation milliseconds={p95ExclusiveTime} />
+              ) : (
+                '\u2014'
+              )}
             </SectionBody>
             <SectionSubtext>{t('p95')}</SectionSubtext>
           </div>
           <div data-test-id="section-p99">
             <SectionBody>
-              <PerformanceDuration
-                abbreviation
-                milliseconds={suspectSpan.p99ExclusiveTime}
-              />
+              {defined(p99ExclusiveTime) ? (
+                <PerformanceDuration abbreviation milliseconds={p99ExclusiveTime} />
+              ) : (
+                '\u2014'
+              )}
             </SectionBody>
             <SectionSubtext>{t('p99')}</SectionSubtext>
           </div>
@@ -225,14 +239,20 @@ function SpanDetailsHeader(props: HeaderProps) {
       <HeaderInfo data-test-id="header-frequency">
         <SectionHeading>{t('Frequency')}</SectionHeading>
         <SectionBody>
-          {totalCount ? formatPercentage(frequency / totalCount) : '\u2014'}
+          {defined(frequency) && defined(totalCount)
+            ? formatPercentage(Math.min(frequency, totalCount) / totalCount)
+            : '\u2014'}
         </SectionBody>
         <SectionSubtext>{tn('%s event', '%s events', frequency)}</SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
         <SectionHeading>{t('Total Exclusive Time')}</SectionHeading>
         <SectionBody>
-          <PerformanceDuration abbreviation milliseconds={suspectSpan.sumExclusiveTime} />
+          {defined(sumExclusiveTime) ? (
+            <PerformanceDuration abbreviation milliseconds={sumExclusiveTime} />
+          ) : (
+            '\u2014'
+          )}
         </SectionBody>
         <SectionSubtext>TBD</SectionSubtext>
       </HeaderInfo>
@@ -240,10 +260,23 @@ function SpanDetailsHeader(props: HeaderProps) {
   );
 }
 
+function getSpansEventView(eventView: EventView): EventView {
+  eventView = eventView.clone();
+  eventView.fields = [
+    {field: 'count()'},
+    {field: 'count_unique(id)'},
+    {field: 'sumArray(spans_exclusive_time)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.75)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.95)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.99)'},
+  ];
+  return eventView;
+}
+
 const ContentHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  grid-gap: ${space(4)};
+  gap: ${space(4)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
@@ -275,5 +308,5 @@ const SectionSubtext = styled('div')`
 const PercentileHeaderBodyWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;

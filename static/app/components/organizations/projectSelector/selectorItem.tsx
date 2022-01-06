@@ -8,7 +8,7 @@ import Highlight from 'sentry/components/highlight';
 import Hovercard from 'sentry/components/hovercard';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import GlobalSelectionHeaderRow from 'sentry/components/organizations/globalSelectionHeaderRow';
+import PageFilterRow from 'sentry/components/organizations/pageFilterRow';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -103,7 +103,7 @@ class ProjectSelectorItem extends React.PureComponent<Props, State> {
         bookmarkHasChanged={bookmarkHasChanged}
         onAnimationEnd={this.clearAnimation}
       >
-        <GlobalSelectionHeaderRow
+        <PageFilterRow
           checked={isChecked}
           onCheckClick={this.handleClick}
           multi={multi}
@@ -145,7 +145,7 @@ class ProjectSelectorItem extends React.PureComponent<Props, State> {
           >
             <IconSettings />
           </StyledLink>
-        </GlobalSelectionHeaderRow>
+        </PageFilterRow>
       </BadgeAndActionsWrapper>
     );
   }

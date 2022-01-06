@@ -3,6 +3,7 @@ from hashlib import sha256
 from uuid import uuid1
 
 from django.urls import reverse
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
@@ -40,7 +41,7 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
         ProjectOption.objects.set_value(project, "sentry:release-token", token)
         return token
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         token = ProjectOption.objects.get_value(project, "sentry:release-token")
 
         if token is None:
@@ -48,7 +49,7 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
 
         return Response({"token": token, "webhookUrl": _get_webhook_url(project, "builtin", token)})
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         token = self._regenerate_token(project)
 
         return Response({"token": token, "webhookUrl": _get_webhook_url(project, "builtin", token)})

@@ -2,11 +2,16 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 describe('Dashboards > IssueWidgetCard', function () {
-  const initialData = initializeOrg();
+  const initialData = initializeOrg({
+    organization: TestStubs.Organization({
+      features: ['dashboards-edit'],
+    }),
+    router: {orgId: 'orgId'},
+  } as Parameters<typeof initializeOrg>[0]);
 
   const widget: Widget = {
     title: 'Issues',
@@ -60,7 +65,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('renders with title and issues chart', async function () {
     mountWithTheme(
-      <IssueWidgetCard
+      <WidgetCard
         api={api}
         organization={initialData.organization}
         widget={widget}
@@ -94,7 +99,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('opens in issues page', async function () {
     mountWithTheme(
-      <IssueWidgetCard
+      <WidgetCard
         api={api}
         organization={initialData.organization}
         widget={widget}
@@ -123,7 +128,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
     mountWithTheme(
-      <IssueWidgetCard
+      <WidgetCard
         api={api}
         organization={initialData.organization}
         widget={widget}
@@ -151,7 +156,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   it('disables the duplicate widget button if max widgets is reached', async function () {
     const mock = jest.fn();
     mountWithTheme(
-      <IssueWidgetCard
+      <WidgetCard
         api={api}
         organization={initialData.organization}
         widget={widget}

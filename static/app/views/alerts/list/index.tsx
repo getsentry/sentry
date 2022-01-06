@@ -11,7 +11,7 @@ import Button from 'sentry/components/button';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
@@ -215,7 +215,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           priority="primary"
           referrer="alert_stream"
         >
-          {t('Create Alert Rule')}
+          {t('Create Alert')}
         </CreateAlertButton>
       </Fragment>
     );
@@ -293,7 +293,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
-        <GlobalSelectionHeader organization={organization} showDateSelector={false}>
+        <PageFiltersContainer organization={organization} showDateSelector={false}>
           <AlertHeader organization={organization} router={router} activeTab="stream" />
           <StyledLayoutBody>
             <Layout.Main fullWidth>
@@ -308,7 +308,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
               {this.renderList()}
             </Layout.Main>
           </StyledLayoutBody>
-        </GlobalSelectionHeader>
+        </PageFiltersContainer>
       </SentryDocumentTitle>
     );
   }

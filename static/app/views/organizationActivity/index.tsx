@@ -48,13 +48,13 @@ class OrganizationActivity extends AsyncView<Props, State> {
     );
   }
 
-  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+  renderError(error?: Error, disableLog = false): React.ReactNode {
     const {errors} = this.state;
     const notFound = Object.values(errors).find(resp => resp && resp.status === 404);
     if (notFound) {
       return this.renderBody();
     }
-    return super.renderError(error, disableLog, disableReport);
+    return super.renderError(error, disableLog);
   }
 
   renderBody() {

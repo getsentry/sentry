@@ -1,5 +1,6 @@
 import logging
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features
@@ -14,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
-    def get(self, request, sentry_app):
+    def get(self, request: Request, sentry_app) -> Response:
         return Response(serialize(sentry_app, request.user, access=request.access))
 
     @catch_raised_errors
-    def put(self, request, sentry_app):
+    def put(self, request: Request, sentry_app) -> Response:
         if self._has_hook_events(request) and not features.has(
             "organizations:integrations-event-hooks", sentry_app.owner, actor=request.user
         ):
@@ -58,6 +59,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 sentry_app=sentry_app,
                 name=result.get("name"),
                 author=result.get("author"),
+                features=result.get("features"),
                 status=result.get("status"),
                 webhook_url=result.get("webhookUrl"),
                 redirect_url=result.get("redirectUrl"),
@@ -90,14 +92,14 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
         return Response(serializer.errors, status=400)
 
-    def delete(self, request, sentry_app):
+    def delete(self, request: Request, sentry_app) -> Response:
         if sentry_app.is_unpublished or sentry_app.is_internal:
             Destroyer.run(user=request.user, sentry_app=sentry_app, request=request)
             return Response(status=204)
 
         return Response({"detail": ["Published apps cannot be removed."]}, status=403)
 
-    def _has_hook_events(self, request):
+    def _has_hook_events(self, request: Request):
         if not request.json_body.get("events"):
             return False
 

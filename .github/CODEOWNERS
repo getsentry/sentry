@@ -25,8 +25,6 @@
 /src/sentry/web/api.py             @getsentry/owners-ingest
 /src/sentry/scripts/quotas/        @getsentry/owners-ingest
 /src/sentry/scripts/tsdb/          @getsentry/owners-ingest
-/src/sentry/tasks/reprocessing.py  @getsentry/owners-ingest
-/src/sentry/tasks/reprocessing2.py @getsentry/owners-ingest
 /src/sentry/tasks/store.py         @getsentry/owners-ingest
 /src/sentry/tasks/unmerge.py       @getsentry/owners-ingest
 
@@ -165,6 +163,7 @@ build-utils/        @getsentry/owners-js-build
 /tests/js/spec/views/discover/                                  @getsentry/discover-n-dashboards
 /static/app/views/dashboardsV2/                                 @getsentry/discover-n-dashboards
 /tests/js/spec/views/dashboardsV2/                              @getsentry/discover-n-dashboards
+/static/app/components/dashboards/                              @getsentry/discover-n-dashboards
 ### Endof Discover/Dashboards ###
 
 
@@ -279,10 +278,14 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/tasks/app_store_connect.py                              @getsentry/owners-native
 /src/sentry/tasks/assemble.py                                       @getsentry/owners-native
 /src/sentry/tasks/low_priority_symbolication.py                     @getsentry/owners-native
-/src/sentry/tasks/reprocessing.py                                   @getsentry/owners-native
-/src/sentry/tasks/reprocessing2.py                                  @getsentry/owners-native
 /src/sentry/tasks/symbolication.py                                  @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                     @getsentry/owners-native
 /tests/sentry/tasks/test_low_priority_symbolication.py              @getsentry/owners-native
+
+
+# Shared ownership of reprocessing as transitionary phase
+/src/sentry/tasks/reprocessing.py  @getsentry/owners-ingest @getsentry/owners-native
+/src/sentry/tasks/reprocessing2.py @getsentry/owners-ingest @getsentry/owners-native
+/src/sentry/reprocessing2.py       @getsentry/owners-ingest @getsentry/owners-native
 
 ## End of Native ##
