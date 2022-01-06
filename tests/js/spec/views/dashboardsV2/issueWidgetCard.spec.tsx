@@ -58,6 +58,11 @@ describe('Dashboards > IssueWidgetCard', function () {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   afterEach(function () {
