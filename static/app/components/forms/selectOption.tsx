@@ -8,43 +8,41 @@ type Props = React.ComponentProps<typeof selectComponents.Option>;
 
 function Option(props: Props) {
   return (
-    <Wrap>
-      <selectComponents.Option {...props}>
-        <InnerWrap isFocused={props.isFocused}>
-          <Indent>
-            <CheckWrap isMulti={props.isMulti} isSelected={props.isSelected}>
-              {props.isSelected && (
-                <IconCheckmark
-                  size={props.isMulti ? 'xs' : 'sm'}
-                  color={props.isMulti ? 'white' : undefined}
-                />
-              )}
-            </CheckWrap>
-            {props.data.leadingItems && (
-              <LeadingItems>{props.data.leadingItems}</LeadingItems>
+    <selectComponents.Option {...props} className="select-option">
+      <InnerWrap isFocused={props.isFocused}>
+        <Indent>
+          <CheckWrap isMulti={props.isMulti} isSelected={props.isSelected}>
+            {props.isSelected && (
+              <IconCheckmark
+                size={props.isMulti ? 'xs' : 'sm'}
+                color={props.isMulti ? 'white' : undefined}
+              />
             )}
-          </Indent>
-          <ContentWrap
-            isFocused={props.isFocused}
-            showDividers={props.selectProps.showDividers}
-          >
-            <div>
-              <Label>{props.label}</Label>
-              {props.data.details && <Details>{props.data.details}</Details>}
-            </div>
-            {props.data.leadingItems && (
-              <TrailingItems>{props.data.trailingItems}</TrailingItems>
-            )}
-          </ContentWrap>
-        </InnerWrap>
-      </selectComponents.Option>
-    </Wrap>
+          </CheckWrap>
+          {props.data.leadingItems && (
+            <LeadingItems>{props.data.leadingItems}</LeadingItems>
+          )}
+        </Indent>
+        <ContentWrap
+          isFocused={props.isFocused}
+          showDividers={props.selectProps.showDividers}
+        >
+          <div>
+            <Label as={typeof props.label === 'string' ? 'p' : 'div'}>
+              {props.label}
+            </Label>
+            {props.data.details && <Details>{props.data.details}</Details>}
+          </div>
+          {props.data.leadingItems && (
+            <TrailingItems>{props.data.trailingItems}</TrailingItems>
+          )}
+        </ContentWrap>
+      </InnerWrap>
+    </selectComponents.Option>
   );
 }
 
 export default Option;
-
-const Wrap = styled('div')``;
 
 const InnerWrap = styled('div')<{isFocused: boolean}>`
   display: flex;
@@ -109,7 +107,7 @@ const ContentWrap = styled('div')<{isFocused: boolean; showDividers?: boolean}>`
       z-index: -1;
       box-shadow: 0 1px 0 0 ${p.theme.innerBorder};
 
-      ${Wrap}:last-of-type & {
+      .select-option:last-of-type & {
         box-shadow: none;
       }
     `}
