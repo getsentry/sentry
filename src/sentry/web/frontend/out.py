@@ -9,7 +9,7 @@ from sentry import options
 
 class OutView(View):
     def get(self, request: Request) -> Response:
-        if not settings.SENTRY_ONPREMISE:
+        if not settings.SENTRY_SELF_HOSTED:
             raise Http404
 
         install_id = options.get("sentry:install-id")

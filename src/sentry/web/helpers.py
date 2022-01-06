@@ -20,7 +20,10 @@ def get_default_context(request, existing_context=None, team=None):
         "URL_PREFIX": options.get("system.url-prefix"),
         "SINGLE_ORGANIZATION": settings.SENTRY_SINGLE_ORGANIZATION,
         "PLUGINS": plugins,
-        "ONPREMISE": settings.SENTRY_ONPREMISE,
+        # Maintain ONPREMISE key for backcompat (plugins?). TBH context could
+        # probably be removed entirely: github.com/getsentry/sentry/pull/30970.
+        "ONPREMISE": settings.SENTRY_SELF_HOSTED,
+        "SELF_HOSTED": settings.SENTRY_SELF_HOSTED,
     }
 
     if existing_context:
