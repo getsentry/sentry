@@ -1,4 +1,5 @@
-import {screen, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+
 import ReturnButton from 'sentry/views/settings/components/forms/returnButton';
 
 describe('returnButton', function () {
