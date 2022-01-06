@@ -2,14 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -45,8 +38,9 @@ function initializeData({
       },
     },
   });
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
-  act(() => TeamStore.loadInitialData(teams, false, null));
+
+  ProjectsStore.loadInitialData(initialData.organization.projects);
+  TeamStore.loadInitialData(teams, false, null);
 
   return initialData;
 }
@@ -298,7 +292,6 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure open in discover button exists.
     expect(screen.getByTestId('discover-open')).toBeInTheDocument();
-    // Ensure navigation is correct.
 
     // Ensure open issues button exists.
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
@@ -436,6 +429,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     await screen.findByRole('button', {name: 'Star for Team'});
+
     // Click the key transaction button
     userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
 
@@ -485,6 +479,8 @@ describe('Performance > TransactionSummary', function () {
     );
 
     await screen.findByText('Transaction Summary');
+
+    expect(screen.getByLabelText('Previous')).toBeInTheDocument();
 
     // Click the 'next' button
     userEvent.click(screen.getByLabelText('Next'));
@@ -594,7 +590,7 @@ describe('Performance > TransactionSummary', function () {
     );
   });
 
-  it.only('appends tag value to existing query when clicked', async function () {
+  it('appends tag value to existing query when clicked', async function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
@@ -604,21 +600,29 @@ describe('Performance > TransactionSummary', function () {
       }
     );
 
-    await screen.findByText('Transaction Summary');
+    await screen.findByText('Tag Summary');
 
-    expect(screen.getByRole('textbox')).toHaveTextContent('');
+    userEvent.click(screen.getByLabelText('Add the dev segment tag to the search query'));
+    userEvent.click(screen.getByLabelText('Add the bar segment tag to the search query'));
 
-    userEvent.click(screen.getByTestId('tag-environment-segment-dev-link'));
+    expect(router.push).toHaveBeenCalledTimes(2);
 
-    // userEvent.click(screen.getByTestId('tag-foo-segment-bar-link'));
+    expect(router.push).toHaveBeenNthCalledWith(1, {
+      query: {
+        project: '2',
+        query: 'tags[environment]:dev',
+        transaction: '/performance',
+        transactionCursor: '1:0:0',
+      },
+    });
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: expect.stringContaining('transaction.status:ok'),
-        }),
-      })
-    );
+    expect(router.push).toHaveBeenNthCalledWith(2, {
+      query: {
+        project: '2',
+        query: 'foo:bar',
+        transaction: '/performance',
+        transactionCursor: '1:0:0',
+      },
+    });
   });
 });
