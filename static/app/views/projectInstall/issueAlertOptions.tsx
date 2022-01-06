@@ -307,7 +307,7 @@ export default withOrganization(IssueAlertOptions);
 const CustomizeAlertsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(5, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 const InlineInput = styled(Input)`

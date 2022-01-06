@@ -112,7 +112,7 @@ const RRWebReplayer = styled(BaseRRWebReplayer)`
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: max-content;
-    grid-gap: ${space(0.75)};
+    gap: ${space(0.75)};
     align-items: center;
     justify-content: center;
     font-size: ${p => p.theme.fontSizeSmall};

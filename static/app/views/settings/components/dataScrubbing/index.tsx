@@ -207,7 +207,7 @@ const PanelAction = styled('div')`
   padding: ${space(1)} ${space(2)};
   position: relative;
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: auto auto;
   justify-content: flex-end;
   border-top: 1px solid ${p => p.theme.border};

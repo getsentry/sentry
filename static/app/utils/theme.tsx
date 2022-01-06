@@ -117,6 +117,16 @@ const darkShadows = {
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
 };
 
+/**
+ * Background used in the theme-color meta tag
+ * The colors below are an approximation of the colors used in the sidebar (sidebarGradient).
+ * Unfortunately the exact colors cannot be used, as the theme-color tag does not support linear-gradient()
+ */
+const sidebarBackground = {
+  light: '#2f1937',
+  dark: '#181622',
+};
+
 type BaseColors = typeof lightColors;
 
 const generateAliases = (colors: BaseColors) => ({
@@ -607,6 +617,9 @@ const commonTheme = {
   borderRadius: '4px',
   borderRadiusBottom: '0 0 4px 4px',
   borderRadiusTop: '4px 4px 0 0',
+  borderRadiusLeft: '4px 0 0 4px',
+  borderRadiusRight: '0 4px 4px 0',
+
   headerSelectorRowHeight: 44,
   headerSelectorLabelHeight: 28,
 
@@ -631,7 +644,7 @@ const commonTheme = {
   },
 
   sidebar: {
-    background: '#2f2936',
+    boxShadow: '0 3px 3px #2f2936',
     color: '#9586a5',
     divider: '#493e54',
     badgeSize: '22px',
@@ -704,8 +717,11 @@ export const lightTheme = {
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
-  sidebarGradient:
-    'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+  sidebar: {
+    ...commonTheme.sidebar,
+    background: sidebarBackground.light,
+  },
+  sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,#452650 92.42%,#452650 92.42%)`,
   sidebarBorder: 'transparent',
 };
 
@@ -723,7 +739,11 @@ export const darkTheme: Theme = {
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
-  sidebarGradient: 'linear-gradient(180deg, #181622 0%, #1B1825 100%)',
+  sidebar: {
+    ...commonTheme.sidebar,
+    background: sidebarBackground.dark,
+  },
+  sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
   sidebarBorder: darkAliases.border,
 };
 

@@ -192,7 +192,7 @@ AnimatedTaskItem.defaultProps = {
 const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin: ${space(1)} ${space(4)} ${space(4)} ${space(4)};
 `;
 

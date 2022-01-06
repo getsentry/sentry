@@ -92,6 +92,7 @@ default_manager.add("organizations:integrations-alert-rule", OrganizationFeature
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature)
 default_manager.add("organizations:integrations-codeowners", OrganizationFeature, True)
 default_manager.add("organizations:integrations-custom-scm", OrganizationFeature, True)
+default_manager.add("organizations:integrations-docs-from-db", OrganizationFeature, True)
 default_manager.add("organizations:integrations-event-hooks", OrganizationFeature)
 default_manager.add("organizations:integrations-incident-management", OrganizationFeature)
 default_manager.add("organizations:integrations-issue-basic", OrganizationFeature)

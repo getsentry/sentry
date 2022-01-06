@@ -637,7 +637,7 @@ const Container = styled('div')<{
     p.tripleLayout
       ? `grid-template-columns: 1fr 2fr;`
       : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 
   flex-grow: 1;
