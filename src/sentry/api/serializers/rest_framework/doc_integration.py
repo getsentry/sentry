@@ -79,19 +79,12 @@ class DocIntegrationSerializer(Serializer):
     ) -> DocIntegration:
         if validated_data.get("features"):
             features = validated_data.pop("features")
-            # Delete any unused features
-            unused_features = IntegrationFeature.objects.filter(
-                target_id=doc_integration.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
-            ).exclude(feature__in=features)
-            for unused_feature in unused_features:
-                unused_feature.delete()
-            # Create any new features
-            for feature in features:
-                IntegrationFeature.objects.get_or_create(
-                    target_id=doc_integration.id,
-                    target_type=IntegrationTypes.DOC_INTEGRATION.value,
-                    feature=feature,
-                )
+
+            IntegrationFeature.objects.clean_update(
+                incoming_features=features,
+                target=doc_integration,
+                target_type=IntegrationTypes.DOC_INTEGRATION,
+            )
         # If we're publishing...
         if not validated_data.get("is_draft", True):
             if not doc_integration.avatar.exists():

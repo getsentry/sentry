@@ -59,6 +59,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 sentry_app=sentry_app,
                 name=result.get("name"),
                 author=result.get("author"),
+                features=result.get("features"),
                 status=result.get("status"),
                 webhook_url=result.get("webhookUrl"),
                 redirect_url=result.get("redirectUrl"),

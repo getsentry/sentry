@@ -7,6 +7,7 @@ from sentry.api.serializers.rest_framework import ListField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
 from sentry.models import ApiScopes
+from sentry.models.integrationfeature import Feature
 from sentry.models.sentryapp import (
     REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
@@ -74,6 +75,9 @@ class SentryAppSerializer(Serializer):
     scopes = ApiScopesField(allow_null=True)
     status = serializers.CharField(required=False, allow_null=True)
     events = EventListField(required=False, allow_null=True)
+    features = serializers.MultipleChoiceField(
+        choices=Feature.as_choices(), allow_blank=True, allow_null=True, required=False
+    )
     schema = SchemaField(required=False, allow_null=True)
     webhookUrl = URLField(required=False, allow_null=True, allow_blank=True)
     redirectUrl = URLField(required=False, allow_null=True, allow_blank=True)
