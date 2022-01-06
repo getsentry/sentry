@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Any, Dict, Mapping, Optional, Tuple, Union
 from uuid import uuid4
 
@@ -101,24 +102,18 @@ class AuthIdentityHandler:
     request: HttpRequest
     identity: Mapping[str, Any]
 
-    def __post_init__(self) -> None:
-        self._user = None
-
-    @property
+    @cached_property
     def user(self) -> Union[User, AnonymousUser]:
-        if self._user is not None:
-            return self._user
-
         email = self.identity.get("email")
         if email:
             try:
-                self._user = resolve_email_to_user(email)
+                user = resolve_email_to_user(email)
             except AmbiguousUserFromEmail as e:
-                self._user = e.users[0]
-                self.warn_about_ambiguous_email(email, e.users, self._user)
-        if self._user is None:
-            self._user = self.request.user
-        return self._user
+                user = e.users[0]
+                self.warn_about_ambiguous_email(email, e.users, user)
+            if user is not None:
+                return user
+        return self.request.user
 
     @staticmethod
     def warn_about_ambiguous_email(email: str, users: Tuple[User], chosen_user: User):
