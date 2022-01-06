@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import AdminBuffer from 'sentry/views/admin/adminBuffer';
 
 // TODO(dcramer): this doesnt really test anything as we need to
