@@ -319,19 +319,19 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     functions_acl=["array_join", "percentileArray", "sumArray"],
                 )
 
-                spans_op = builder.resolve_function("array_join(spans_op)")
-                spans_group = builder.resolve_function("array_join(spans_group)")
+                span_op_column = builder.resolve_function("array_join(spans_op)")
+                span_group_column = builder.resolve_function("array_join(spans_group)")
 
                 # Adding spans.op and spans.group to the group by because
                 # We need them in the query to help the array join optimizer
                 # in snuba take effect but the TimeseriesQueryBuilder
                 # removes all non aggregates from the select clause.
-                builder.groupby.extend([spans_op, spans_group])
+                builder.groupby.extend([span_op_column, span_group_column])
 
                 builder.add_conditions(
                     [
                         Condition(
-                            Function("tuple", [spans_op, spans_group]),
+                            Function("tuple", [span_op_column, span_group_column]),
                             Op.IN,
                             Function("tuple", [Function("tuple", [span.op, span.group])]),
                         ),
