@@ -1,16 +1,13 @@
 import {Fragment, useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import * as qs from 'query-string';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {
   IconActivity,
   IconChevron,
@@ -101,41 +98,6 @@ function Sidebar({location, organization}: Props) {
     }
   }, [location?.hash]);
 
-  /**
-   * Navigate to a path, but keep the global selection query strings.
-   */
-  const navigateWithGlobalSelection = (
-    pathname: string,
-    evt: React.MouseEvent<HTMLAnchorElement>
-  ) => {
-    const globalSelectionRoutes = [
-      'alerts',
-      'alerts/rules',
-      'dashboards',
-      'issues',
-      'releases',
-      'user-feedback',
-      'discover',
-      'discover/results', // Team plans do not have query landing page
-      'performance',
-    ].map(route => `/organizations/${organization?.slug}/${route}/`);
-
-    // Only keep the querystring if the current route matches one of the above
-    if (globalSelectionRoutes.includes(pathname)) {
-      const query = extractSelectionParameters(location?.query);
-
-      // Handle cmd-click (mac) and meta-click (linux)
-      if (evt.metaKey) {
-        const q = qs.stringify(query);
-        evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
-        return;
-      }
-
-      evt.preventDefault();
-      browserHistory.push({pathname, query});
-    }
-  };
-
   const hasPanel = !!activePanel;
   const hasOrganization = !!organization;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
@@ -160,9 +122,6 @@ function Sidebar({location, organization}: Props) {
   const issues = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      onClick={(_id, evt) =>
-        navigateWithGlobalSelection(`/organizations/${organization.slug}/issues/`, evt)
-      }
       icon={<IconIssues size="md" />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
       to={`/organizations/${organization.slug}/issues/`}
@@ -178,9 +137,6 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        onClick={(_id, evt) =>
-          navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
-        }
         icon={<IconTelescope size="md" />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
@@ -199,12 +155,6 @@ function Sidebar({location, organization}: Props) {
         {(overideProps: Partial<React.ComponentProps<typeof SidebarItem>>) => (
           <SidebarItem
             {...sidebarItemProps}
-            onClick={(_id, evt) =>
-              navigateWithGlobalSelection(
-                `/organizations/${organization.slug}/performance/`,
-                evt
-              )
-            }
             icon={<IconLightning size="md" />}
             label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
             to={`/organizations/${organization.slug}/performance/`}
@@ -219,9 +169,6 @@ function Sidebar({location, organization}: Props) {
   const releases = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      onClick={(_id, evt) =>
-        navigateWithGlobalSelection(`/organizations/${organization.slug}/releases/`, evt)
-      }
       icon={<IconReleases size="md" />}
       label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
       to={`/organizations/${organization.slug}/releases/`}
@@ -232,12 +179,6 @@ function Sidebar({location, organization}: Props) {
   const userFeedback = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      onClick={(_id, evt) =>
-        navigateWithGlobalSelection(
-          `/organizations/${organization.slug}/user-feedback/`,
-          evt
-        )
-      }
       icon={<IconSupport size="md" />}
       label={t('User Feedback')}
       to={`/organizations/${organization.slug}/user-feedback/`}
@@ -248,12 +189,6 @@ function Sidebar({location, organization}: Props) {
   const alerts = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      onClick={(_id, evt) =>
-        navigateWithGlobalSelection(
-          `/organizations/${organization.slug}/alerts/rules/`,
-          evt
-        )
-      }
       icon={<IconSiren size="md" />}
       label={t('Alerts')}
       to={`/organizations/${organization.slug}/alerts/rules/`}
@@ -265,12 +200,6 @@ function Sidebar({location, organization}: Props) {
     <Feature features={['monitors']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        onClick={(_id, evt) =>
-          navigateWithGlobalSelection(
-            `/organizations/${organization.slug}/monitors/`,
-            evt
-          )
-        }
         icon={<IconLab size="md" />}
         label={t('Monitors')}
         to={`/organizations/${organization.slug}/monitors/`}
@@ -289,12 +218,6 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         index
-        onClick={(_id, evt) =>
-          navigateWithGlobalSelection(
-            `/organizations/${organization.slug}/dashboards/`,
-            evt
-          )
-        }
         icon={<IconGraph size="md" />}
         label={t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
