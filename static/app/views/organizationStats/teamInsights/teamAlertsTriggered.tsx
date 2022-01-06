@@ -7,7 +7,6 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import BarChart from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
@@ -24,6 +23,8 @@ import {
   barAxisLabel,
   convertDaySeriesToWeeks,
   convertDayValueObjectToSeries,
+  ProjectBadge,
+  ProjectBadgeContainer,
 } from './utils';
 
 type AlertsTriggered = Record<string, number>;
@@ -231,14 +232,6 @@ const StyledPanelTable = styled(PanelTable)`
         padding: 48px ${space(2)};
       }
     `}
-`;
-
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
 `;
 
 const AlignRight = styled('div')`

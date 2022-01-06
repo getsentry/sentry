@@ -1,7 +1,9 @@
+import styled from '@emotion/styled';
 import chunk from 'lodash/chunk';
 import moment from 'moment';
 
 import BaseChart from 'sentry/components/charts/baseChart';
+import IdBadge from 'sentry/components/idBadge';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 
 /**
@@ -57,3 +59,12 @@ export const barAxisLabel = (
     },
   };
 };
+
+export const ProjectBadgeContainer = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+export const ProjectBadge = styled(IdBadge)`
+  flex-shrink: 0;
+`;
