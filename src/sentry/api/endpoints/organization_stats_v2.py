@@ -1,13 +1,15 @@
 from contextlib import contextmanager
 
 import sentry_sdk
+from django.shortcuts import redirect
+from django.urls import reverse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.models import Organization
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
     QueryDefinition,
@@ -20,7 +22,6 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
-
     rate_limits = {
         "GET": {
             RateLimitCategory.IP: RateLimit(20, 1),
@@ -29,8 +30,16 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         }
     }
 
-    @rate_limit_endpoint(limit=20, window=1)
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
+        # Redirect from legacy URL to versioned scheme
+        url = reverse(
+            "sentry-api-0-organization-stats", kwargs={"organization_slug": organization.slug}
+        )
+        return redirect(f"{url}?version=1", permanent=True)
+
+    def get_v1(self, request: Request, organization: Organization) -> Response:
+        # Method implementation, dispatched from OrganizationStatsEndpoint.get_v1
+
         with self.handle_query_errors():
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
                 query = self.build_outcomes_query(
