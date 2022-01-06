@@ -121,7 +121,7 @@ if (
       // to the current node's index
       ...Object.entries(Object.fromEntries(results))
         .filter(([, index]) => index === nodeIndex)
-        .map(([test]) => test),
+        .map(([test]) => path.resolve(__dirname, test)),
     ];
   } else {
     const length = tests.length;
