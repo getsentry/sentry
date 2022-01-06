@@ -1,11 +1,13 @@
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import identity from 'lodash/identity';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 
-import {DATE_TIME_KEYS, LOCAL_STORAGE_KEY, URL_PARAM} from 'sentry/constants/pageFilters';
-import {PageFilters} from 'sentry/types';
+import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {Environment, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import localStorage from 'sentry/utils/localStorage';
@@ -13,6 +15,8 @@ import localStorage from 'sentry/utils/localStorage';
 import {getParams} from './getParams';
 
 const DEFAULT_PARAMS = getParams({});
+
+const LOCAL_STORAGE_KEY = 'global-selection';
 
 // Parses URL query parameters for values relevant to page filters
 type GetStateFromQueryOptions = {
@@ -120,10 +124,85 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
   return true;
 }
 
+type ProjectId = string | number;
+type EnvironmentId = Environment['id'];
+
+type UpdateData = {
+  project?: ProjectId[] | null;
+  environment?: EnvironmentId[] | null;
+};
+
+/**
+ * Updates the localstorage page filters data
+ *
+ * e.g. if localstorage is empty, user loads issue details for project "foo"
+ * this should not consider "foo" as last used and should not save to local
+ * storage.
+ *
+ * However, if user then changes environment, it should...? Currently it will
+ * save the current project alongside environment to local storage. It's
+ * debatable if this is the desired behavior.
+ *
+ * This will be a no-op if a inaccessible organization slug is passed.
+ */
+export function setPageFiltersStorage(
+  orgSlug: string | null,
+  current: PageFilters,
+  update: UpdateData
+) {
+  const org = orgSlug && OrganizationsStore.get(orgSlug);
+
+  // Do nothing if no org is loaded or user is not an org member. Only
+  // organizations that a user has membership in will be available via the
+  // organizations store
+  if (!org) {
+    return;
+  }
+
+  const {project, environment} = update;
+  const validatedProject = project?.map(Number).filter(value => !isNaN(value));
+  const validatedEnvironment = environment;
+
+  const dataToSave = {
+    projects: validatedProject || current.projects,
+    environments: validatedEnvironment || current.environments,
+  };
+
+  const localStorageKey = `${LOCAL_STORAGE_KEY}:${org.slug}`;
+
+  try {
+    localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+  } catch (ex) {
+    // Do nothing
+  }
+}
+
+/**
+ * Retrives the page filters from local storage
+ */
+export function getPageFilterStorage(orgSlug: string) {
+  const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgSlug}`;
+  const value = localStorage.getItem(localStorageKey);
+
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value) as Omit<PageFilters, 'datetime'>;
+  } catch (err) {
+    // use default if invalid
+    Sentry.captureException(err);
+    console.error(err); // eslint-disable-line no-console
+  }
+
+  return null;
+}
+
 /**
  * Removes page filters from localstorage
  */
-export function removePageFiltersStorage(orgId: string) {
-  const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgId}`;
+export function removePageFiltersStorage(orgSlug: string) {
+  const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgSlug}`;
   localStorage.removeItem(localStorageKey);
 }
