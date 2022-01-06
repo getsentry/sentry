@@ -70,6 +70,7 @@ class AssigneeSelector extends React.Component<Props, State> {
     const memberList = MemberListStore.loaded ? MemberListStore.getAll() : undefined;
     const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
     const suggestedOwners = group?.owners;
+
     return {
       assignedTo: group?.assignedTo,
       memberList,
