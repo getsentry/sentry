@@ -12,8 +12,10 @@ import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new'
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
 import * as types from 'sentry/views/dashboardsV2/types';
+import * as WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openDashboardWidgetLibraryModal: jest.fn(),
@@ -1050,6 +1052,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   describe('Issue Widgets', function () {
+    const widgetCardMock = jest.spyOn(WidgetCard, 'default');
+    const user = {
+      id: '2',
+      name: 'test@sentry.io',
+      email: 'test@sentry.io',
+      avatar: {
+        avatarType: 'letter_avatar',
+        avatarUuid: null,
+      },
+    };
     function mountModalWithRtl({onAddWidget, onUpdateWidget, widget, source}) {
       return reactMountWithTheme(
         <AddDashboardWidgetModal
@@ -1121,6 +1133,23 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       userEvent.click(screen.getByText('Table'));
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
+      wrapper.unmount();
+    });
+
+    it('fetches memberList from MemberListStore', function () {
+      const memberList = [user];
+      expect(MemberListStore.loaded).not.toEqual(true);
+      MemberListStore.loadInitialData(memberList);
+      expect(MemberListStore.loaded).toEqual(true);
+      const wrapper = mountModalWithRtl({
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+      expect(widgetCardMock).toHaveBeenCalledWith(
+        expect.objectContaining({memberList}),
+        {}
+      );
       wrapper.unmount();
     });
   });

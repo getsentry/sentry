@@ -70,7 +70,7 @@ describe('Dashboards > Dashboard', () => {
       body: [
         {
           id: '1',
-          title: 'Error: Registration failed',
+          title: 'Error: Failed',
           project: {
             id: '3',
           },
