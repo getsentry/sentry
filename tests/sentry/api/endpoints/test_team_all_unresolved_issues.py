@@ -137,3 +137,10 @@ class TeamIssueBreakdownTest(APITestCase):
         compare_response(response, project1, [2, 2, 2, 3, 3, 3, 3])
         compare_response(response, project2, [0, 1, 0, 1, 0, 1, 0])
         compare_response(response, project3, [0, 1, 0, 0, 0, 0, 0])
+
+    def test_no_projects(self):
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, statsPeriod="7d"
+        )
+        assert response.status_code == 200, response.content
