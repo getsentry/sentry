@@ -54,3 +54,12 @@ class GroupEventsLatestEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["id"] == str(self.event_b.event_id)
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
+
+    def test_collapse_event_only(self):
+        url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
+        response = self.client.get(url, format="json", data={"collapse": ["stacktraceOnly"]})
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_c.event_id)
+        assert "previousEventID" not in response.data
+        assert "nextEventID" not in response.data
