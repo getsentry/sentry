@@ -149,6 +149,8 @@ const fixedStyle = css`
 `;
 
 const Pattern = styled('div')`
+  z-index: -1;
+
   &::before {
     ${fixedStyle}
     content: '';
