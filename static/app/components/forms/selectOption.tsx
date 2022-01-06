@@ -6,7 +6,7 @@ import space from 'sentry/styles/space';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
-function Option(props: Props) {
+function SelectOption(props: Props) {
   return (
     <selectComponents.Option {...props} className="select-option">
       <InnerWrap isFocused={props.isFocused}>
@@ -33,7 +33,7 @@ function Option(props: Props) {
             </Label>
             {props.data.details && <Details>{props.data.details}</Details>}
           </div>
-          {props.data.leadingItems && (
+          {props.data.trailingItems && (
             <TrailingItems>{props.data.trailingItems}</TrailingItems>
           )}
         </ContentWrap>
@@ -42,7 +42,7 @@ function Option(props: Props) {
   );
 }
 
-export default Option;
+export default SelectOption;
 
 const InnerWrap = styled('div')<{isFocused: boolean}>`
   display: flex;
