@@ -1,5 +1,4 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-
 import AdminBuffer from 'sentry/views/admin/adminBuffer';
 
 // TODO(dcramer): this doesnt really test anything as we need to
@@ -12,6 +11,8 @@ describe('AdminBuffer', function () {
           router: TestStubs.router(),
         },
       });
+
+      expect(wrapper.find('LoadingIndicator')).toHaveLength(2);
       expect(wrapper).toSnapshot();
     });
   });
