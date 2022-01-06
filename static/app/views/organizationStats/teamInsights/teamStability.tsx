@@ -239,7 +239,7 @@ class TeamStability extends AsyncComponent<Props, State> {
         {({response, loading}) => (
           <StyledPanelTable
             isEmpty={projects.length === 0}
-            emptyMessage={t('No Projects With Release Health Enabled')}
+            emptyMessage={t('No projects with release health enabled')}
             emptyAction={
               <Button
                 size="small"

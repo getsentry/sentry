@@ -245,7 +245,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         </ChartWrapper>
         <StyledPanelTable
           isEmpty={projects.length === 0}
-          emptyMessage={t("No Releases Were Setup For This Team's Projects")}
+          emptyMessage={t('No releases were setup for this team’s projects')}
           emptyAction={
             <Button
               size="small"

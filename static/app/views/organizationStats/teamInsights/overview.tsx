@@ -392,7 +392,7 @@ function TeamInsightsOverview({location, router}: Props) {
             </DescriptionCard>
             <DescriptionCard
               title={t('Number of Releases')}
-              description={t("The releases that were created in your team's projects.")}
+              description={t('The releases that were created in your team’s projects.')}
             >
               <TeamReleases
                 projects={projects}
