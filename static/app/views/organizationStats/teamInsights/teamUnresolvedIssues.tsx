@@ -15,13 +15,12 @@ import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import type {Color} from 'sentry/utils/theme';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
   barAxisLabel,
   convertDaySeriesToWeeks,
   convertDayValueObjectToSeries,
   groupByTrend,
-  ProjectBadge,
-  ProjectBadgeContainer,
 } from './utils';
 
 type Props = AsyncComponent['props'] & {

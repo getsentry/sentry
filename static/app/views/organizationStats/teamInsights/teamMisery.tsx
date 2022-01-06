@@ -23,7 +23,8 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Color} from 'sentry/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {groupByTrend, ProjectBadge, ProjectBadgeContainer} from './utils';
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {groupByTrend} from './utils';
 
 type TeamMiseryProps = {
   organization: Organization;

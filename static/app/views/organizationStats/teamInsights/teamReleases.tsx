@@ -20,13 +20,8 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Color, Theme} from 'sentry/utils/theme';
 
-import {
-  barAxisLabel,
-  convertDaySeriesToWeeks,
-  groupByTrend,
-  ProjectBadge,
-  ProjectBadgeContainer,
-} from './utils';
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
 
 type Props = AsyncComponent['props'] & {
   theme: Theme;

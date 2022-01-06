@@ -14,12 +14,11 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
   barAxisLabel,
   convertDaySeriesToWeeks,
   convertDayValueObjectToSeries,
-  ProjectBadge,
-  ProjectBadgeContainer,
 } from './utils';
 
 type StatusCounts = {

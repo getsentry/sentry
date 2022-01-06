@@ -19,12 +19,11 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {Color} from 'sentry/utils/theme';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
   barAxisLabel,
   convertDaySeriesToWeeks,
   convertDayValueObjectToSeries,
-  ProjectBadge,
-  ProjectBadgeContainer,
 } from './utils';
 
 type AlertsTriggered = Record<string, number>;

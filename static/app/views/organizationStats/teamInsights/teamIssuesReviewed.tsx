@@ -14,12 +14,11 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
   barAxisLabel,
   convertDaySeriesToWeeks,
   convertDayValueObjectToSeries,
-  ProjectBadge,
-  ProjectBadgeContainer,
 } from './utils';
 
 type IssuesBreakdown = Record<string, Record<string, {reviewed: number; total: number}>>;

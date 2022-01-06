@@ -27,7 +27,8 @@ import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessi
 import {Color} from 'sentry/utils/theme';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
-import {groupByTrend, ProjectBadge, ProjectBadgeContainer} from './utils';
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {groupByTrend} from './utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
