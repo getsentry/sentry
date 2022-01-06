@@ -1,6 +1,5 @@
 import logging
 
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
 from django.template import loader
@@ -13,15 +12,7 @@ logger = logging.getLogger("sentry")
 
 
 def get_default_context(request, existing_context=None, team=None):
-    from sentry import options
-    from sentry.plugins.base import plugins
-
-    context = {
-        "URL_PREFIX": options.get("system.url-prefix"),
-        "SINGLE_ORGANIZATION": settings.SENTRY_SINGLE_ORGANIZATION,
-        "PLUGINS": plugins,
-        "ONPREMISE": settings.SENTRY_ONPREMISE,
-    }
+    context = {}
 
     if existing_context:
         if team is None and "team" in existing_context:
