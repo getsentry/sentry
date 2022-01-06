@@ -260,7 +260,7 @@ const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 `;
 

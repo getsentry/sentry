@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
-  DocumentIntegration,
+  DocIntegration,
   Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
@@ -124,8 +124,8 @@ export const getCategoriesForIntegration = (
   if (isPlugin(integration)) {
     return getCategories(integration.featureDescriptions);
   }
-  if (isDocumentIntegration(integration)) {
-    return getCategories(integration.features);
+  if (isDocIntegration(integration)) {
+    return getCategories(integration.features ?? []);
   }
   return getCategories(integration.metadata.features);
 };
@@ -142,10 +142,10 @@ export function isPlugin(
   return integration.hasOwnProperty('shortName');
 }
 
-export function isDocumentIntegration(
+export function isDocIntegration(
   integration: AppOrProviderOrPlugin
-): integration is DocumentIntegration {
-  return integration.hasOwnProperty('docUrl');
+): integration is DocIntegration {
+  return integration.hasOwnProperty('isDraft');
 }
 
 export const getIntegrationType = (
@@ -157,21 +157,21 @@ export const getIntegrationType = (
   if (isPlugin(integration)) {
     return 'plugin';
   }
-  if (isDocumentIntegration(integration)) {
+  if (isDocIntegration(integration)) {
     return 'document';
   }
   return 'first_party';
 };
 
 export const convertIntegrationTypeToSnakeCase = (
-  type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration'
+  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration'
 ) => {
   switch (type) {
     case 'firstParty':
       return 'first_party';
     case 'sentryApp':
       return 'sentry_app';
-    case 'documentIntegration':
+    case 'docIntegration':
       return 'document';
     default:
       return type;

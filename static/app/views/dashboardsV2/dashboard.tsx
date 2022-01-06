@@ -29,7 +29,13 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, DisplayType, Widget} from './types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from './types';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const WIDGET_PREFIX = 'grid-item';
@@ -362,12 +368,12 @@ class Dashboard extends Component<Props, State> {
 
   renderGridDashboard() {
     const {layouts, isMobile} = this.state;
-    const {
-      isEditing,
-      dashboard: {widgets},
-      organization,
-      widgetLimitReached,
-    } = this.props;
+    const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
+    let {widgets} = dashboard;
+    // Filter out any issue widgets if the user does not have the feature flag
+    if (!organization.features.includes('issues-in-dashboards')) {
+      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
+    }
 
     const canModifyLayout = !isMobile && isEditing;
 
@@ -400,13 +406,12 @@ class Dashboard extends Component<Props, State> {
   }
 
   renderDndDashboard = () => {
-    const {
-      isEditing,
-      onUpdate,
-      dashboard: {widgets},
-      organization,
-      widgetLimitReached,
-    } = this.props;
+    const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
+    let {widgets} = dashboard;
+    // Filter out any issue widgets if the user does not have the feature flag
+    if (!organization.features.includes('issues-in-dashboards')) {
+      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
+    }
 
     const items = this.getWidgetIds();
 
@@ -459,7 +464,7 @@ const WidgetContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-flow: row dense;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -523,7 +528,13 @@ function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     return [];
   }
 
-  const layoutWidgetPairs = zip(desktopLayout, widgets) as [Layout, Widget][];
+  // If there's a layout but no matching widget, then the widget was deleted
+  // in a separate session and should be ignored
+  // TODO(nar): Can remove once layouts are stored in the DB
+  const widgetGridKeys = new Set(widgets.map(constructGridItemKey));
+  const filteredLayouts = desktopLayout.filter(({i}) => widgetGridKeys.has(i));
+
+  const layoutWidgetPairs = zip(filteredLayouts, widgets) as [Layout, Widget][];
 
   // Sort by y and then subsort by x
   const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);

@@ -132,7 +132,7 @@ const TimeAndDistWrapper = styled('div')`
 
 const TimeWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.fontSizeMedium};
   align-items: center;

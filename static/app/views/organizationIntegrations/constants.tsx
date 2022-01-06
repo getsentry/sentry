@@ -1,4 +1,4 @@
-import {DocumentIntegration} from 'sentry/types';
+import {DocIntegration, DocumentIntegration} from 'sentry/types';
 
 export const INSTALLED = 'Installed' as const;
 export const NOT_INSTALLED = 'Not Installed' as const;
@@ -315,8 +315,18 @@ export const documentIntegrationList: DocumentIntegration[] = [
   },
 ];
 
-export const documentIntegrations: {
-  [key: string]: DocumentIntegration;
+export const docIntegrationList: DocIntegration[] = documentIntegrationList.map(
+  ({resourceLinks, docUrl, ...doc}) => ({
+    ...doc,
+    url: docUrl,
+    resources: resourceLinks,
+    popularity: POPULARITY_WEIGHT[doc.slug],
+    isDraft: false,
+  })
+);
+
+export const docIntegrations: {
+  [key: string]: DocIntegration;
 } = Object.fromEntries(
-  documentIntegrationList.map(integration => [integration.slug, integration])
+  docIntegrationList.map(integration => [integration.slug, integration])
 );

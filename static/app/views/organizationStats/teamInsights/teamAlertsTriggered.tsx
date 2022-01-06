@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
@@ -159,7 +160,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
                 size="small"
                 to={`/organizations/${organization.slug}/alerts/rules/`}
               >
-                {t('Create Alert Rule')}
+                {t('Create Alert')}
               </Button>
               <Button
                 size="small"
@@ -178,27 +179,26 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
             <AlignRight key="diff">{t('Difference')}</AlignRight>,
           ]}
         >
-          {alertsTriggeredRules &&
-            alertsTriggeredRules.map(rule => (
-              <Fragment key={rule.id}>
-                <div>
-                  <Link
-                    to={`/organizations/${organization.id}/alerts/rules/details/${rule.id}/`}
-                  >
-                    {rule.name}
-                  </Link>
-                </div>
-                <ProjectBadgeContainer>
-                  <ProjectBadge
-                    avatarSize={18}
-                    project={projects.find(p => p.slug === rule.projects[0])}
-                  />
-                </ProjectBadgeContainer>
-                <AlignRight>{rule.weeklyAvg}</AlignRight>
-                <AlignRight>{rule.totalThisWeek}</AlignRight>
-                <AlignRight>{this.renderTrend(rule)}</AlignRight>
-              </Fragment>
-            ))}
+          {alertsTriggeredRules?.map(rule => (
+            <Fragment key={rule.id}>
+              <div>
+                <Link
+                  to={`/organizations/${organization.id}/alerts/rules/details/${rule.id}/`}
+                >
+                  {rule.name}
+                </Link>
+              </div>
+              <ProjectBadgeContainer>
+                <ProjectBadge
+                  avatarSize={18}
+                  project={projects.find(p => p.slug === rule.projects[0])}
+                />
+              </ProjectBadgeContainer>
+              <AlignRight>{round(rule.weeklyAvg, 2)}</AlignRight>
+              <AlignRight>{rule.totalThisWeek}</AlignRight>
+              <AlignRight>{this.renderTrend(rule)}</AlignRight>
+            </Fragment>
+          ))}
         </StyledPanelTable>
       </Fragment>
     );

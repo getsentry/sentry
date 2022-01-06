@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import BarChart from 'sentry/components/charts/barChart';
+import BarChart, {BarChartSeries} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import IdBadge from 'sentry/components/idBadge';
 import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
@@ -140,13 +140,17 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
       .map(([projectId, {total}]) => ({projectId, total}))
       .sort((a, b) => b.total - a.total);
 
-    const allSeries = Object.keys(allReviewedByDay).map(projectId => ({
-      seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
-      data: convertDaySeriesToWeeks(
-        convertDayValueObjectToSeries(allReviewedByDay[projectId])
-      ),
-      silent: true,
-    }));
+    const allSeries = Object.keys(allReviewedByDay).map(
+      (projectId, idx): BarChartSeries => ({
+        seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
+        data: convertDaySeriesToWeeks(
+          convertDayValueObjectToSeries(allReviewedByDay[projectId])
+        ),
+        animationDuration: 500,
+        animationDelay: idx * 500,
+        silent: true,
+      })
+    );
 
     return (
       <Fragment>

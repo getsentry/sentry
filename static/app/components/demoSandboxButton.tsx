@@ -49,11 +49,17 @@ function DemoSandboxButton({
   const organization: Organization = useOrganization();
   const url = new URL('https://try.sentry-demo.com/demo/start/');
 
-  if (scenario) url.searchParams.append('scenario', scenario);
+  if (scenario) {
+    url.searchParams.append('scenario', scenario);
+  }
 
-  if (projectSlug) url.searchParams.append('projectSlug', projectSlug);
+  if (projectSlug) {
+    url.searchParams.append('projectSlug', projectSlug);
+  }
 
-  if (errorType) url.searchParams.append('errorType', errorType);
+  if (errorType) {
+    url.searchParams.append('errorType', errorType);
+  }
   // always skip adding email when coming from in-product
   const clientOptions: SandboxData = {
     skipEmail: true,

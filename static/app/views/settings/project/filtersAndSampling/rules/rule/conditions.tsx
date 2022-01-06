@@ -63,7 +63,7 @@ export default Conditions;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
 `;
 
 const Label = styled('span')`

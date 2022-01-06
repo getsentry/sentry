@@ -321,9 +321,6 @@ class ExampleTransaction:
 
 @dataclasses.dataclass(frozen=True)
 class SuspectSpan:
-    project_id: int
-    project: str
-    transaction: str
     op: str
     group: str
     frequency: Optional[int]
@@ -337,9 +334,6 @@ class SuspectSpan:
 
     def serialize(self) -> Any:
         return {
-            "projectId": self.project_id,
-            "project": self.project,
-            "transaction": self.transaction,
             "op": self.op,
             "group": self.group.rjust(16, "0"),
             "frequency": self.frequency,
@@ -407,9 +401,6 @@ def query_suspect_span_groups(
         for column in suspect_span_columns.suspect_op_group_columns + fields
         if not is_equation(column)
     ] + [
-        "project.id",
-        "project",
-        "transaction",
         "array_join(spans_op)",
         "array_join(spans_group)",
         "count()",
@@ -477,9 +468,6 @@ def query_suspect_span_groups(
 
     return [
         SuspectSpan(
-            project_id=suspect["project.id"],
-            project=suspect["project"],
-            transaction=suspect["transaction"],
             op=suspect["array_join_spans_op"],
             group=suspect["array_join_spans_group"],
             frequency=suspect.get("count_unique_id"),

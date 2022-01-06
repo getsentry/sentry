@@ -17,7 +17,7 @@ export const Body = styled('div')`
     display: grid;
     grid-template-columns: 66% auto;
     align-content: start;
-    grid-gap: ${space(3)};
+    gap: ${space(3)};
     padding: ${space(3)} ${space(4)};
   }
 
