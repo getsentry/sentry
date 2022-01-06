@@ -415,7 +415,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
     def has_snql_feature(self, organization, request):
-        return features.has("organizations:performance-use-snql", organization, actor=request.user)
+        return features.has("organizations:trends-use-snql", organization, actor=request.user)
 
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
