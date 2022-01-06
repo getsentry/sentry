@@ -35,7 +35,8 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
             return Response({"detail": "You do not have the insights feature enabled"}, status=400)
 
         # Team has no projects
-        if not Project.objects.get_for_team_ids(team_ids=[team.id]).exists():
+        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
+        if len(project_list) == 0:
             return Response({})
 
         start, end = get_date_range_from_params(request.GET)
@@ -158,7 +159,6 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
             date_series_dict[current_day.isoformat()] = {"open": 0, "closed": 0}
             current_day += timedelta(days=1)
 
-        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         agg_project_precounts = {
             project.id: copy.deepcopy(date_series_dict) for project in project_list
         }
