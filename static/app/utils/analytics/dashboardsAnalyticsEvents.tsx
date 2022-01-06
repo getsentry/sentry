@@ -36,6 +36,9 @@ export type DashboardsEventParameters = {
   'dashboards_manage.templates.toggle': {
     show_templates: boolean;
   };
+  'dashboards_manage.templates.add': {
+    dashboard_id: string;
+  };
   'dashboards_manage.templates.preview': {
     dashboard_id: string;
   };
@@ -67,5 +70,6 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_manage.change_sort': 'Dashboards Manager: Sort By Changed',
   'dashboards_manage.create.start': 'Dashboards Manager: Dashboard Create Started',
   'dashboards_manage.templates.toggle': 'Dashboards Manager: Template Toggle Changed',
+  'dashboards_manage.templates.add': 'Dashboards Manager: Template Added',
   'dashboards_manage.templates.preview': 'Dashboards Manager: Template Previewed',
 };
