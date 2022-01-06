@@ -123,7 +123,6 @@ if (
         .filter(([, index]) => index === nodeIndex)
         .map(([test]) => `${path.join(__dirname, test)}`),
     ];
-    console.log(testMatch);
   } else {
     const length = tests.length;
     const size = Math.floor(length / nodeTotal);
