@@ -351,6 +351,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       blurInputOnSelect={!props.multiple && !props.multi}
       closeMenuOnSelect={!(props.multiple || props.multi)}
       hideSelectedOptions={false}
+      tabSelectsValue={false}
       {...rest}
     />
   );
