@@ -1,4 +1,5 @@
-import {screen, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+
 import Checkbox from 'sentry/components/checkbox';
 
 describe('Checkbox', function () {
