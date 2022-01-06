@@ -215,7 +215,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           priority="primary"
           referrer="alert_stream"
         >
-          {t('Create Alert Rule')}
+          {t('Create Alert')}
         </CreateAlertButton>
       </Fragment>
     );

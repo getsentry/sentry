@@ -160,7 +160,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
                 size="small"
                 to={`/organizations/${organization.slug}/alerts/rules/`}
               >
-                {t('Create Alert Rule')}
+                {t('Create Alert')}
               </Button>
               <Button
                 size="small"
