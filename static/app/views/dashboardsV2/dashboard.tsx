@@ -19,9 +19,8 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, User} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {uniqueId} from 'sentry/utils/guid';
 import theme from 'sentry/utils/theme';
@@ -85,7 +84,6 @@ type Props = {
 type State = {
   isMobile: boolean;
   layouts: Layouts;
-  memberList?: User[];
 };
 
 class Dashboard extends Component<Props, State> {
@@ -140,6 +138,9 @@ class Dashboard extends Component<Props, State> {
     if (newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
+    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+      this.fetchMemberList();
+    }
   }
 
   fetchMemberList() {
@@ -149,9 +150,7 @@ class Dashboard extends Component<Props, State> {
       api,
       this.props.organization.slug,
       selection.projects?.map(projectId => String(projectId))
-    ).then(_ => {
-      this.setState({memberList: MemberListStore.getAll()});
-    });
+    );
   }
 
   async addNewWidget() {
@@ -340,7 +339,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   renderWidget(widget: Widget, index: number) {
-    const {isMobile, memberList} = this.state;
+    const {isMobile} = this.state;
     const {isEditing, organization, widgetLimitReached} = this.props;
 
     const widgetProps = {
@@ -350,7 +349,6 @@ class Dashboard extends Component<Props, State> {
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
-      memberList,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {

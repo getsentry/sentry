@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
+import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -16,9 +15,9 @@ import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/u
 import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
-import {IconUser} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
-import {Organization, SuggestedOwnerReason} from 'sentry/types';
+import {t} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
+import {Organization} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -35,7 +34,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
-import {IssueTableData} from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -44,7 +42,6 @@ import {
 
 import ArrayValue from './arrayValue';
 import {
-  ActorContainer,
   BarContainer,
   Container,
   FieldDateTime,
@@ -64,7 +61,6 @@ type RenderFunctionBaggage = {
   organization: Organization;
   location: Location;
   eventView?: EventView;
-  issueData?: IssueTableData;
 };
 
 type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
@@ -436,92 +432,23 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   assignee: {
     sortField: 'assignee.name',
-    renderFunc: (_, {issueData}) => assigneeRenderer(issueData),
+    renderFunc: data => {
+      const memberList = MemberListStore.getAll();
+      return (
+        <ActorContainer>
+          <AssigneeSelector id={data.id} memberList={memberList} noDropdown />
+        </ActorContainer>
+      );
+    },
   },
 };
 
-const assigneeRenderer = (issueData?: IssueTableData) => {
-  const {assignedTo, suggestedAssignees} = issueData
-    ? issueData
-    : {assignedTo: undefined, suggestedAssignees: undefined};
-  const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
-    suspectCommit: tct('Based on [commit:commit data]', {
-      commit: (
-        <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
-      ),
-    }),
-    ownershipRule: t('Matching Issue Owners Rule'),
-  };
-  const assignedToSuggestion = suggestedAssignees?.find(
-    actor => actor.id === assignedTo?.id
-  );
-  return (
-    <ActorContainer>
-      {assignedTo ? (
-        <ActorAvatar
-          actor={assignedTo}
-          size={28}
-          tooltip={
-            <TooltipWrapper>
-              {t(
-                `Assigned to ${
-                  assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name
-                }`
-              )}
-              {assignedToSuggestion && (
-                <TooltipSubtext>
-                  {suggestedReasons[assignedToSuggestion.suggestedReason]}
-                </TooltipSubtext>
-              )}
-            </TooltipWrapper>
-          }
-        />
-      ) : suggestedAssignees && suggestedAssignees.length > 0 ? (
-        <SuggestedAvatarStack
-          size={24}
-          owners={suggestedAssignees}
-          tooltipOptions={{isHoverable: true}}
-          tooltip={
-            <TooltipWrapper>
-              <div>
-                {tct('Suggestion: [name]', {
-                  name:
-                    suggestedAssignees[0].type === 'team'
-                      ? `#${suggestedAssignees[0].name}`
-                      : suggestedAssignees[0].name,
-                })}
-                {suggestedAssignees.length > 1 &&
-                  tn(' + %s other', ' + %s others', suggestedAssignees.length - 1)}
-              </div>
-              <TooltipSubtext>
-                {suggestedReasons[suggestedAssignees[0].suggestedReason]}
-              </TooltipSubtext>
-            </TooltipWrapper>
-          }
-        />
-      ) : (
-        <Tooltip isHoverable skipWrapper title={<div>{t('Unassigned')}</div>}>
-          <IconUser size="20px" color="gray400" />
-        </Tooltip>
-      )}
-    </ActorContainer>
-  );
-};
-
-const TooltipWrapper = styled('div')`
-  text-align: left;
-`;
-
-const TooltipSubtext = styled('div')`
-  color: ${p => p.theme.subText};
-`;
-
-const TooltipSubExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
-  text-decoration: underline;
-
+const ActorContainer = styled('div')`
+  display: flex;
+  justify-content: left;
+  margin-left: 18px;
   :hover {
-    color: ${p => p.theme.subText};
+    cursor: default;
   }
 `;
 

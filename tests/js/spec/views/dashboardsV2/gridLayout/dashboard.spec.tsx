@@ -6,6 +6,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import MemberListStore from 'sentry/stores/memberListStore';
 import Dashboard from 'sentry/views/dashboardsV2/dashboard';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 
@@ -156,6 +157,10 @@ describe('Dashboards > Dashboard', () => {
   });
 
   describe('Issue Widgets', () => {
+    afterEach(() => {
+      // @ts-ignore
+      MemberListStore.init();
+    });
     const mount = (dashboard, mockedOrg = initialData.organization) => {
       rtlMountWithTheme(
         <Dashboard

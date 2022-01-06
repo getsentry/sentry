@@ -8,6 +8,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import GroupStore from 'sentry/stores/groupStore';
+import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
@@ -29,6 +31,7 @@ describe('getFieldRenderer', function () {
       query: {},
     };
     data = {
+      id: '1',
       team_key_transaction: 1,
       title: 'ValueError: something bad',
       transaction: 'api.do_things',
@@ -285,6 +288,31 @@ describe('getFieldRenderer', function () {
 
   describe('Issue fields', () => {
     it('can render assignee', async function () {
+      MemberListStore.loadInitialData([
+        {
+          id: '1',
+          name: 'Test User',
+          email: 'test@sentry.io',
+          avatar: {
+            avatarType: 'letter_avatar',
+            avatarUuid: null,
+          },
+        },
+      ]);
+
+      const group = TestStubs.Group({project});
+      GroupStore.add([
+        {
+          ...group,
+          owners: [{owner: 'user:1', type: 'suspectCommit'}],
+          assignedTo: {
+            email: 'test@sentry.io',
+            type: 'user',
+            id: '1',
+            name: 'Test User',
+          },
+        },
+      ]);
       const renderer = getFieldRenderer('assignee', {
         assignee: 'string',
       });
@@ -293,27 +321,12 @@ describe('getFieldRenderer', function () {
         renderer(data, {
           location,
           organization,
-          issueData: {
-            assignedTo: {
-              email: 'test@sentry.io',
-              type: 'user',
-              id: '1',
-              name: 'Test User',
-            },
-            suggestedAssignees: [
-              {
-                type: 'user',
-                id: '1',
-                name: 'Test User',
-                suggestedReason: 'suspectCommit',
-              },
-            ],
-          },
         })
       );
       expect(screen.getByText('TU')).toBeInTheDocument();
       userEvent.hover(screen.getByText('TU'));
-      expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
+      expect(await screen.findByText('Assigned to')).toBeInTheDocument();
+      expect(await screen.findByText('Test User')).toBeInTheDocument();
       expect(await screen.findByText('Based on')).toBeInTheDocument();
       expect(await screen.findByText('commit data')).toBeInTheDocument();
     });

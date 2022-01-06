@@ -9,7 +9,6 @@ import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import withOrganization from 'sentry/utils/withOrganization';
-import {IssueTableData} from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
 type Props = {
@@ -21,7 +20,6 @@ type Props = {
   metadata: TableData['meta'] | undefined;
   data: TableData['data'] | undefined;
   className?: string;
-  issueData?: IssueTableData[];
 };
 
 class SimpleTableChart extends Component<Props> {
@@ -29,8 +27,7 @@ class SimpleTableChart extends Component<Props> {
     index: number,
     row: TableDataRow,
     tableMeta: NonNullable<TableData['meta']>,
-    columns: ReturnType<typeof decodeColumnOrder>,
-    issueData?: IssueTableData
+    columns: ReturnType<typeof decodeColumnOrder>
   ) {
     const {location, organization} = this.props;
 
@@ -39,14 +36,13 @@ class SimpleTableChart extends Component<Props> {
       const rendered = fieldRenderer(row, {
         organization,
         location,
-        issueData,
       });
       return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
     });
   }
 
   render() {
-    const {className, loading, fields, metadata, data, title, issueData} = this.props;
+    const {className, loading, fields, metadata, data, title} = this.props;
     const meta = metadata ?? {};
     const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
@@ -66,9 +62,7 @@ class SimpleTableChart extends Component<Props> {
           isEmpty={!data?.length}
           disablePadding
         >
-          {data?.map((row, index) =>
-            this.renderRow(index, row, meta, columns, issueData?.[index])
-          )}
+          {data?.map((row, index) => this.renderRow(index, row, meta, columns))}
         </StyledPanelTable>
       </Fragment>
     );
