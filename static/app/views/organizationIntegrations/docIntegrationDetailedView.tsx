@@ -11,7 +11,6 @@ import {DocIntegration} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
-import {docIntegrations} from './constants';
 
 type Tab = AbstractIntegrationDetailedView['state']['tab'];
 
@@ -27,12 +26,9 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {
-      organization,
       params: {integrationSlug},
     } = this.props;
-    return organization.features.includes('integrations-docs-from-db')
-      ? [['doc', `/doc-integrations/${integrationSlug}/`]]
-      : [];
+    return [['doc', `/doc-integrations/${integrationSlug}/`]];
   }
 
   get integrationType() {
@@ -40,13 +36,7 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get integration(): DocIntegration {
-    const {
-      organization,
-      params: {integrationSlug},
-    } = this.props;
-    return organization.features.includes('integrations-docs-from-db')
-      ? this.state.doc
-      : docIntegrations[integrationSlug];
+    return this.state.doc;
   }
 
   get description() {

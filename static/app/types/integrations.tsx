@@ -233,20 +233,6 @@ type IntegrationDialog = {
   body: string;
 };
 
-/**
- * @deprecated This type is being removed in favor of DocIntegration
- * and is will actually coordinate with the backend
- */
-export type DocumentIntegration = {
-  slug: string;
-  name: string;
-  author: string;
-  docUrl: string;
-  description: string;
-  features: IntegrationFeature[];
-  resourceLinks: Array<{title: string; url: string}>;
-};
-
 export type DocIntegration = {
   name: string;
   slug: string;

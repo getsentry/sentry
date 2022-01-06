@@ -15,13 +15,11 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
         self.login_as(self.user)
 
     def load_page(self, slug):
-        with self.feature("organizations:integrations-docs-from-db"):
-            url = f"/settings/{self.organization.slug}/document-integrations/{slug}/"
-            self.browser.get(url)
-            self.browser.wait_until_not(".loading-indicator")
+        url = f"/settings/{self.organization.slug}/document-integrations/{slug}/"
+        self.browser.get(url)
+        self.browser.wait_until_not(".loading-indicator")
 
     def test_view_doc(self):
-        with self.feature("organizations:integrations-docs-from-db"):
-            self.load_page(self.doc.slug)
-            self.browser.snapshot("integrations - document-based detail overview")
-            assert self.browser.element_exists('[data-test-id="learn-more"]')
+        self.load_page(self.doc.slug)
+        self.browser.snapshot("integrations - document-based detail overview")
+        assert self.browser.element_exists('[data-test-id="learn-more"]')
