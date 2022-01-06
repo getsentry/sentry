@@ -51,7 +51,7 @@ function balancer(
   numberGroups: number
 ) {
   const results = new Map<string, number>();
-  const totalRunTimes = Array.from(Array(numberGroups)).map(() => 0);
+  const totalRunTimes = Array(numberGroups).fill(0);
 
   /**
    * Find the index of the smallest group (totalRunTimes)
