@@ -1091,6 +1091,9 @@ class QueryFilter(QueryFields):
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
         }
 
+    def add_conditions(self, conditions: List[Condition]) -> None:
+        self.where += conditions
+
     def parse_query(self, query: Optional[str]) -> ParsedTerms:
         """Given a user's query, string construct a list of filters that can be
         then used to construct the conditions of the Query"""

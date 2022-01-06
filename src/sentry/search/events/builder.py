@@ -127,9 +127,6 @@ class QueryBuilder(QueryFilter):  # type: ignore
                     )
                 )
 
-    def add_conditions(self, conditions: List[Condition]) -> None:
-        self.where += conditions
-
     def get_snql_query(self) -> Query:
         self.validate_having_clause()
 
@@ -160,13 +157,14 @@ class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
+        functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
     ):
         super().__init__(
             dataset,
             params,
             auto_fields=False,
-            functions_acl=[],
+            functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
         )
         self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
@@ -253,6 +251,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         selected_columns: Optional[List[str]] = None,
         timeseries_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
+        functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
@@ -266,6 +265,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
             query=query,
             selected_columns=list(set(selected_columns + timeseries_functions)),
             equations=list(set(equations + timeseries_equations)),
+            functions_acl=functions_acl,
             limit=limit,
         )
 
@@ -333,6 +333,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 else:
                     values.add(event.get(alias))
             values_list = list(values)
+
             if values_list:
                 if field == "timestamp" or field.startswith("timestamp.to_"):
                     if not other:
