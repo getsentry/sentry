@@ -453,6 +453,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     return (
       <IntegrationRow
         key={`doc-int-${doc.slug}`}
+        data-test-id="integration-row"
         organization={organization}
         type="docIntegration"
         slug={doc.slug}
@@ -511,6 +512,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                   onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
                   width="25em"
+                  data-test-id="search-bar"
                 />
               </ActionContainer>
             }
@@ -519,7 +521,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
         <PermissionAlert access={['org:integrations']} />
         <Panel>
-          <PanelBody>
+          <PanelBody data-test-id="integration-panel">
             {displayedList.length ? (
               displayedList.map(this.renderIntegration)
             ) : (

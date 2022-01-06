@@ -51,7 +51,14 @@ describe('IntegrationListDirectory', function () {
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
       expect(wrapper.find('IntegrationRow')).toHaveLength(7);
 
-      ['my-headband-washer-289499', 'la-croix-monitor'].map((name, index) =>
+      [
+        'bitbucket',
+        'pagerduty',
+        'my-headband-washer-289499',
+        'clickup',
+        'amazon-sqs',
+        'la-croix-monitor',
+      ].map((name, index) =>
         expect(wrapper.find('IntegrationRow').at(index).props().slug).toEqual(name)
       );
     });
