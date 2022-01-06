@@ -2,6 +2,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
@@ -23,7 +24,8 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import {DashboardListItem} from '../types';
+import {DASHBOARDS_TEMPLATES} from '../data';
+import {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
 import TemplateCard from './templateCard';
@@ -140,10 +142,15 @@ class ManageDashboards extends AsyncView<Props, State> {
     return (
       <Feature organization={organization} features={['dashboards-template']}>
         <TemplateContainer>
-          <TemplateCard title="Default" widgetCount={10} />
-          <TemplateCard title="Frontend" widgetCount={9} />
-          <TemplateCard title="Backend" widgetCount={13} />
-          <TemplateCard title="Mobile" widgetCount={4} />
+          {DASHBOARDS_TEMPLATES.map(dashboard => (
+            <TemplateCard
+              title={dashboard.title}
+              widgetCount={dashboard.widgets.length}
+              onPreview={() => this.onPreview(dashboard.id)}
+              onAdd={() => this.onAdd(dashboard)}
+              key={dashboard.title}
+            />
+          ))}
         </TemplateContainer>
       </Feature>
     );
@@ -211,6 +218,30 @@ class ManageDashboards extends AsyncView<Props, State> {
 
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
+      query: location.query,
+    });
+  }
+
+  async onAdd(dashboard: DashboardDetails) {
+    const {organization, api} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
+      organization,
+      dashboard_id: dashboard.id,
+    });
+
+    await createDashboard(api, organization.slug, dashboard, true);
+    this.onDashboardsChange();
+  }
+
+  onPreview(dashboardId: string) {
+    const {organization, location} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards_manage.templates.preview', {
+      organization,
+      dashboard_id: dashboardId,
+    });
+
+    browserHistory.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}`,
       query: location.query,
     });
   }
