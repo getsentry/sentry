@@ -152,7 +152,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
           isEmpty={
             !alertsTriggered || !alertsTriggeredRules || alertsTriggeredRules.length === 0
           }
-          emptyMessage={t("No alerts triggered for this team's projects")}
+          emptyMessage={t('No alerts triggered for this team’s projects')}
           emptyAction={
             <ButtonsContainer>
               <Button
