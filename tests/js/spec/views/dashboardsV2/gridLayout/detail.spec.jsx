@@ -1,11 +1,16 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  mountWithTheme as rtlMountWithTheme,
+  screen,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {constructGridItemKey} from 'sentry/views/dashboardsV2/dashboard';
+import * as gridUtils from 'sentry/views/dashboardsV2/gridLayout/utils';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -230,6 +235,7 @@ describe('Dashboards > Detail', function () {
       jest.clearAllMocks();
       if (wrapper) {
         wrapper.unmount();
+        wrapper = null;
       }
     });
 
@@ -417,6 +423,86 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(false);
+    });
+
+    it('renders successfully if more widgets than stored layouts', async function () {
+      // A case where someone has async added widgets to a dashboard
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+              }
+            ),
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'Second Widget',
+                interval: '1d',
+                id: '2',
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      jest
+        .spyOn(gridUtils, 'getDashboardLayout')
+        .mockReturnValueOnce([{i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6}]);
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      await screen.findByText('First Widget');
+      await screen.findByText('Second Widget');
+    });
+
+    it('renders successfully if more layouts than stored widgets', async function () {
+      // A case where someone has async removed widgets from a dashboard
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      jest.spyOn(gridUtils, 'getDashboardLayout').mockReturnValueOnce([
+        {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+        {i: 'grid-item-2', x: 2, y: 0, w: 2, h: 2},
+      ]);
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      await screen.findByText('First Widget');
     });
   });
 });
