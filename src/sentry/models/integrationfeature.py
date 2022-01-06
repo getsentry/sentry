@@ -150,6 +150,25 @@ class IntegrationFeatureManager(BaseManager):
             for feature in features
         }
 
+    def clean_update(
+        self,
+        incoming_features: List[int],
+        target: Union[SentryApp, DocIntegration],
+        target_type: IntegrationTypes,
+    ):
+        # Delete any unused features
+        IntegrationFeature.objects.filter(
+            target_id=target.id, target_type=target_type.value
+        ).exclude(feature__in=incoming_features).delete()
+
+        # Create any new features
+        for feature in incoming_features:
+            IntegrationFeature.objects.get_or_create(
+                target_id=target.id,
+                target_type=target_type.value,
+                feature=feature,
+            )
+
 
 class IntegrationFeature(Model):
     __include_in_export__ = False
