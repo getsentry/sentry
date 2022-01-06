@@ -99,6 +99,7 @@ const ContentWrap = styled('div')<{isFocused: boolean; showDividers?: boolean}>`
   gap: ${space(1)};
   justify-content: space-between;
   padding: ${space(1)} 0;
+  margin-right: ${space(1)};
 
   ${p =>
     p.showDividers &&
@@ -123,6 +124,7 @@ const LeadingItems = styled('div')`
 const Label = styled('p')`
   margin-bottom: 0;
   line-height: 1.4;
+  white-space: nowrap;
 `;
 
 const Details = styled('p')`

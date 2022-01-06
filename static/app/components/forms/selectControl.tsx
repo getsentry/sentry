@@ -169,6 +169,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       border: `1px solid ${theme.border}`,
       borderRadius: theme.borderRadius,
       boxShadow: theme.dropShadowHeavy,
+      width: 'auto',
+      minWidth: '100%',
     }),
     option: (provided: React.CSSProperties) => ({
       ...provided,
