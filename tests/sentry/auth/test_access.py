@@ -3,7 +3,14 @@ from unittest.mock import Mock
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth import access
-from sentry.models import AuthIdentity, AuthProvider, ObjectStatus, Organization, UserPermission
+from sentry.models import (
+    AuthIdentity,
+    AuthProvider,
+    ObjectStatus,
+    Organization,
+    UserPermission,
+    UserRole,
+)
 from sentry.testutils import TestCase
 
 
@@ -347,3 +354,16 @@ class DefaultAccessTest(TestCase):
         assert not result.has_project_scope(Mock(), "project:read")
         assert not result.has_project_membership(Mock())
         assert not result.permissions
+
+
+class GetPermissionsForUserTest(TestCase):
+    def test_combines_roles_and_perms(self):
+        user = self.user
+
+        UserPermission.objects.create(user=user, permission="test.permission")
+        role = UserRole.objects.create(name="test.role", permissions=["test.permission-role"])
+        role.users.add(user)
+
+        assert sorted(access.get_permissions_for_user(user.id)) == sorted(
+            ["test.permission", "test.permission-role"]
+        )

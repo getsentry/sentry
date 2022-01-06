@@ -1,6 +1,7 @@
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import warnings
+from typing import FrozenSet
 
 import sentry_sdk
 from django.conf import settings
@@ -18,6 +19,7 @@ from sentry.models import (
     SentryApp,
     Team,
     UserPermission,
+    UserRole,
 )
 from sentry.utils.request_cache import request_cache
 
@@ -25,6 +27,10 @@ from sentry.utils.request_cache import request_cache
 @request_cache
 def get_cached_organization_member(user_id, organization_id):
     return OrganizationMember.objects.get(user_id=user_id, organization_id=organization_id)
+
+
+def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
+    return UserRole.permissions_for_user(user_id) | UserPermission.for_user(user_id)
 
 
 def _sso_params(member):
@@ -308,7 +314,7 @@ def from_request(request, organization=None, scopes=None):
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
             has_global_access=True,
-            permissions=UserPermission.for_user(request.user.id),
+            permissions=get_permissions_for_user(request.user.id),
             role=role,
         )
 
@@ -353,14 +359,14 @@ def from_user(user, organization=None, scopes=None, is_superuser=False):
 
     if not organization:
         return OrganizationlessAccess(
-            permissions=UserPermission.for_user(user.id) if is_superuser else ()
+            permissions=get_permissions_for_user(user.id) if is_superuser else ()
         )
 
     try:
         om = get_cached_organization_member(user.id, organization.id)
     except OrganizationMember.DoesNotExist:
         return OrganizationlessAccess(
-            permissions=UserPermission.for_user(user.id) if is_superuser else ()
+            permissions=get_permissions_for_user(user.id) if is_superuser else ()
         )
 
     # ensure cached relation
@@ -397,7 +403,7 @@ def from_member(member, scopes=None, is_superuser=False):
         projects=project_list,
         has_global_access=bool(member.organization.flags.allow_joinleave)
         or roles.get(member.role).is_global,
-        permissions=UserPermission.for_user(member.user_id) if is_superuser else (),
+        permissions=get_permissions_for_user(member.user_id) if is_superuser else (),
         role=member.role,
     )
 

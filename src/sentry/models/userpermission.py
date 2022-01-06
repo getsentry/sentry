@@ -1,3 +1,5 @@
+from typing import FrozenSet
+
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
@@ -24,5 +26,8 @@ class UserPermission(Model):
     __repr__ = sane_repr("user_id", "permission")
 
     @classmethod
-    def for_user(cls, user_id):
+    def for_user(cls, user_id: int) -> FrozenSet[str]:
+        """
+        Return a set of permission for the given user ID.
+        """
         return frozenset(cls.objects.filter(user=user_id).values_list("permission", flat=True))
