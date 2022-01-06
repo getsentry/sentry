@@ -354,11 +354,7 @@ class AuthIdentityHandler:
         context: Mapping[str, Any] = None,
         status: int = 200,
     ) -> HttpResponse:
-        default_context = {"organization": self.organization}
-        if context:
-            default_context.update(context)
-
-        return render_to_response(template, default_context, self.request, status=status)
+        return render_to_response(template, context, self.request, status=status)
 
     def _post_login_redirect(self) -> HttpResponseRedirect:
         url = auth.get_login_redirect(self.request)

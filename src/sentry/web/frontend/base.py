@@ -15,7 +15,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api.serializers import serialize
 from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
@@ -227,7 +226,7 @@ class BaseView(View, OrganizationMixin):
                 return self.handle_not_2fa_compliant(request, *args, **kwargs)
 
         self.request = request
-        self.default_context = self.get_context_data(request, *args, **kwargs)
+        self.default_context = csrf(request)
 
         return self.handle(request, *args, **kwargs)
 
@@ -278,10 +277,6 @@ class BaseView(View, OrganizationMixin):
     def get_not_2fa_compliant_url(self, request: Request, *args, **kwargs):
         return reverse("sentry-account-settings-security")
 
-    def get_context_data(self, request: Request, **kwargs):
-        context = csrf(request)
-        return context
-
     def respond(self, template, context=None, status=200):
         default_context = self.default_context
         if context:
@@ -322,13 +317,6 @@ class OrganizationView(BaseView):
         if organization is None:
             return access.DEFAULT
         return access.from_request(request, organization)
-
-    def get_context_data(self, request: Request, organization, **kwargs):
-        context = super().get_context_data(request)
-        context["organization"] = organization
-        context["TEAM_LIST"] = self.get_team_list(request.user, organization)
-        context["ACCESS"] = request.access.to_django_context()
-        return context
 
     def has_permission(self, request: Request, organization, *args, **kwargs):
         if organization is None:
@@ -441,11 +429,6 @@ class TeamView(OrganizationView):
     - team
     """
 
-    def get_context_data(self, request: Request, organization, team, **kwargs):
-        context = super().get_context_data(request, organization)
-        context["team"] = team
-        return context
-
     def has_permission(self, request: Request, organization, team, *args, **kwargs):
         if team is None:
             return False
@@ -494,12 +477,6 @@ class ProjectView(OrganizationView):
     - organization
     - project
     """
-
-    def get_context_data(self, request: Request, organization, project, **kwargs):
-        context = super().get_context_data(request, organization)
-        context["project"] = project
-        context["processing_issues"] = serialize(project).get("processingIssues", 0)
-        return context
 
     def has_permission(self, request: Request, organization, project, *args, **kwargs):
         if project is None:

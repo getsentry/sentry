@@ -169,9 +169,6 @@ class BaseAccess:
         """
         return self.has_project_access(project) and self.has_scope(scope)
 
-    def to_django_context(self):
-        return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
-
 
 class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
