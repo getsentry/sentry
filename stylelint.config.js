@@ -20,5 +20,14 @@ module.exports = {
     'no-descending-specificity': null,
 
     'property-no-unknown': [true, {ignoreProperties: [/\$dummyValue/]}],
+
+    'property-disallowed-list': [
+      // Prefer `gap` over `grid-gap`, it does the same thing
+      'grid-gap',
+      // Can't set per-property custom messages.. so try and bring them here
+      {
+        message: 'Disallowed property. (See `stylelint.config.js` as to why)',
+      },
+    ],
   },
 };
