@@ -132,8 +132,6 @@ if (
 
     testMatch = tests.slice(offset, offset + chunk);
   }
-
-  throw new Error('lol');
 }
 
 const config: Config.InitialOptions = {
