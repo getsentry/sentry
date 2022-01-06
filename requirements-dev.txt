@@ -5,9 +5,10 @@ freezegun==1.1.0
 honcho>=1.0.0,<1.1.0
 mypy>=0.800,<0.900
 openapi-core==0.14.2
-pytest==6.1.0
+pytest==6.2.5
 pytest-cov==2.11.1
 pytest-django==3.10.0
 pytest-sentry==0.1.9
 pytest-rerunfailures==9.1.1
+pytest-xdist==2.5.0
 responses==0.10.12

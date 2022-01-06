@@ -1,78 +1,27 @@
-import zipfile
-from io import BytesIO
-from unittest.mock import patch
-
-import pytest
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.urls import reverse
-
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models import EventAttachment, File
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
-from tests.symbolicator import get_fixture_path
+from sentry.testutils.symbolicator import SymbolicatorTestCase
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
 # `~/.sentry/config.yml` and run `sentry devservices up`
 
 
-def get_unreal_crash_file():
-    return get_fixture_path("unreal_crash")
-
-
-def get_unreal_crash_apple_file():
-    return get_fixture_path("unreal_crash_apple")
-
-
-class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
+class SymbolicatorUnrealIntegrationTest(SymbolicatorTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
     # `~/.sentry/config.yml` and run `sentry devservices up`
     # Also running locally, it might be necessary to set the
     # `system.internal-url-prefix` option instead of `system.url-prefix`.
 
-    @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
-        self.project.update_option("sentry:builtin_symbol_sources", [])
-        new_prefix = live_server.url
+    def get_unreal_crash_file(self):
+        return self.get_fixture_path("unreal_crash")
 
-        with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
-            {"system.url-prefix": new_prefix}
-        ):
-
-            # Run test case:
-            yield
-
-    def upload_symbols(self):
-        url = reverse(
-            "sentry-api-0-dsym-files",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        self.login_as(user=self.user)
-
-        out = BytesIO()
-        f = zipfile.ZipFile(out, "w")
-        f.write(get_fixture_path("unreal_crash.sym"), "crash.sym")
-        f.close()
-
-        response = self.client.post(
-            url,
-            {
-                "file": SimpleUploadedFile(
-                    "symbols.zip", out.getvalue(), content_type="application/zip"
-                )
-            },
-            format="multipart",
-        )
-        assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+    def get_unreal_crash_apple_file(self):
+        return self.get_fixture_path("unreal_crash_apple")
 
     def unreal_crash_test_impl(self, filename):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
-        self.upload_symbols()
+        self.upload_symbols(self.get_fixture_path("unreal_crash.sym"))
 
         # attachments feature has to be on for the files extract stick around
         with self.feature("organizations:event-attachments"):
@@ -93,7 +42,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         return sorted(EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name)
 
     def test_unreal_crash_with_attachments(self):
-        attachments = self.unreal_crash_test_impl(get_unreal_crash_file())
+        attachments = self.unreal_crash_test_impl(self.get_unreal_crash_file())
         assert len(attachments) == 4
         context, config, minidump, log = attachments
 
@@ -118,7 +67,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert log_file.checksum == "24d1c5f75334cd0912cc2670168d593d5fe6c081"
 
     def test_unreal_apple_crash_with_attachments(self):
-        attachments = self.unreal_crash_test_impl(get_unreal_crash_apple_file())
+        attachments = self.unreal_crash_test_impl(self.get_unreal_crash_apple_file())
 
         assert len(attachments) == 6
         context, config, diagnostics, log, info, minidump = attachments

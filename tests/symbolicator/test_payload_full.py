@@ -1,17 +1,14 @@
 import re
 import zipfile
 from io import BytesIO
-from unittest.mock import patch
 
-import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry import eventstore
 from sentry.models import File, ProjectDebugFile
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
+from sentry.testutils.symbolicator import SymbolicatorTestCase
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -58,21 +55,9 @@ REAL_RESOLVING_EVENT_DATA = {
 }
 
 
-class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
+class SymbolicatorResolvingIntegrationTest(SymbolicatorTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
     # `~/.sentry/config.yml` and run `sentry devservices up`
-
-    @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
-        self.project.update_option("sentry:builtin_symbol_sources", [])
-        new_prefix = live_server.url
-
-        with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
-            {"system.url-prefix": new_prefix}
-        ):
-            # Run test case:
-            yield
-
     def get_event(self, event_id):
         return eventstore.get_event_by_id(self.project.id, event_id)
 
@@ -89,7 +74,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
 
         out = BytesIO()
         f = zipfile.ZipFile(out, "w")
-        f.write(get_fixture_path("hello.dsym"), "dSYM/hello")
+        f.write(self.get_fixture_path("hello.dsym"), "dSYM/hello")
         f.close()
 
         response = self.client.post(
@@ -108,14 +93,14 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
 
         assert event.data["culprit"] == "main"
-        insta_snapshot_stacktrace_data(self, event.data)
+        self.insta_snapshot_stacktrace_data(event.data)
 
     def test_debug_id_resolving(self):
         file = File.objects.create(
             name="crash.pdb", type="default", headers={"Content-Type": "text/x-breakpad"}
         )
 
-        path = get_fixture_path("windows.sym")
+        path = self.get_fixture_path("windows.sym")
         with open(path, "rb") as f:
             file.putfile(f)
 
@@ -167,7 +152,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         with self.feature({"organizations:images-loaded-v2": False}):
             event = self.post_and_retrieve_event(event_data)
         assert event.data["culprit"] == "main"
-        insta_snapshot_stacktrace_data(self, event.data)
+        self.insta_snapshot_stacktrace_data(event.data)
 
     def test_missing_dsym(self):
         self.login_as(user=self.user)
@@ -175,7 +160,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         with self.feature({"organizations:images-loaded-v2": False}):
             event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
         assert event.data["culprit"] == "unknown"
-        insta_snapshot_stacktrace_data(self, event.data)
+        self.insta_snapshot_stacktrace_data(event.data)
 
     def test_missing_debug_images(self):
         self.login_as(user=self.user)
@@ -186,7 +171,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         with self.feature({"organizations:images-loaded-v2": False}):
             event = self.post_and_retrieve_event(payload)
         assert event.data["culprit"] == "unknown"
-        insta_snapshot_stacktrace_data(self, event.data)
+        self.insta_snapshot_stacktrace_data(event.data)
 
     def test_resolving_with_candidates_sentry_source(self):
         # Checks the candidates with a sentry source URI for location
@@ -194,7 +179,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             name="crash.pdb", type="default", headers={"Content-Type": "text/x-breakpad"}
         )
 
-        path = get_fixture_path("windows.sym")
+        path = self.get_fixture_path("windows.sym")
         with open(path, "rb") as f:
             file.putfile(f)
 
