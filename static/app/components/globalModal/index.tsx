@@ -250,6 +250,8 @@ const Content = styled('div')`
   padding: ${space(4)};
   background: ${p => p.theme.background};
   border-radius: 8px;
+  border: ${p => p.theme.modalBorder};
+  box-shadow: ${p => p.theme.modalBoxShadow};
 `;
 
 type State = {

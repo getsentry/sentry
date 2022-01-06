@@ -182,6 +182,16 @@ const generateAliases = (colors: BaseColors) => ({
   translucentInnerBorder: colors.translucentGray100,
 
   /**
+   * Border around modals
+   */
+  modalBorder: 'none',
+
+  /**
+   * Box shadow on the modal
+   */
+  modalBoxShadow: 'none',
+
+  /**
    * A color that denotes a "success", or something good
    */
   success: colors.green300,
