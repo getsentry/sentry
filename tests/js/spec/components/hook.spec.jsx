@@ -1,4 +1,4 @@
-import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import Hook from 'sentry/components/hook';
 import HookStore from 'sentry/stores/hookStore';
@@ -47,7 +47,7 @@ describe('Hook', function () {
     expect(screen.getByTestId('invalid')).toBeInTheDocument();
   });
 
-  it('can re-render when hooks get after initial render', async function () {
+  it('can re-render when hooks get after initial render', function () {
     mountWithTheme(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
@@ -66,7 +66,7 @@ describe('Hook', function () {
     );
 
     expect(HookStore.hooks.footer).toHaveLength(2);
-    await waitFor(() => expect(screen.getAllByTestId('wrapper')).toHaveLength(2));
+    expect(screen.getAllByTestId('wrapper')).toHaveLength(2);
     expect(screen.getAllByTestId('wrapper')[1]).toHaveTextContent('New Hook');
   });
 
