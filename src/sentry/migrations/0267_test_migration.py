@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0264_use_booleanfield_docintegration"),
+        ("sentry", "0266_add_dashboard_widget_detail_field"),
     ]
 
     operations = [
