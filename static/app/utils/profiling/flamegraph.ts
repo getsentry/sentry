@@ -92,13 +92,17 @@ export class Flamegraph {
     const closeFrame = (_: CallTreeNode, value: number) => {
       const stackTop = stack.pop();
 
-      if (!stackTop) throw new Error('Unbalanced stack');
+      if (!stackTop) {
+        throw new Error('Unbalanced stack');
+      }
 
       stackTop.end = value;
       stackTop.depth = stack.length;
       frames.push(stackTop);
 
-      if (stackTop.end - stackTop.start === 0) return;
+      if (stackTop.end - stackTop.start === 0) {
+        return;
+      }
       this.depth = Math.max(stackTop.depth, this.depth);
     };
 
@@ -139,14 +143,18 @@ export class Flamegraph {
     const closeFrame = (_node: CallTreeNode, value: number) => {
       const stackTop = stack.pop();
 
-      if (!stackTop) throw new Error('Unbalanced stack');
+      if (!stackTop) {
+        throw new Error('Unbalanced stack');
+      }
 
       stackTop.end = value;
       stackTop.depth = stack.length;
 
       frames.push(stackTop);
       // Dont draw 0 width frames
-      if (stackTop.end - stackTop.start === 0) return;
+      if (stackTop.end - stackTop.start === 0) {
+        return;
+      }
 
       this.depth = Math.max(stackTop.depth, this.depth);
     };
