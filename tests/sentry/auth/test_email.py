@@ -1,4 +1,4 @@
-from sentry.auth.email import AmbiguousUserResolution, AuthHelperResolution, IdentityViewResolution
+from sentry.auth.email import AmbiguousUserFromEmail, AuthHelperResolution, IdentityViewResolution
 from sentry.models import OrganizationMember, UserEmail
 from sentry.testutils import TestCase
 
@@ -6,49 +6,42 @@ from sentry.testutils import TestCase
 class AuthHelperResolutionTest(TestCase):
     def setUp(self) -> None:
         self.org = self.create_organization()
+        self.user1 = self.create_user()
+        self.user2 = self.create_user()
 
     def test_no_match(self):
-        result = AuthHelperResolution("me@example.com", self.org).resolve()
+        result = AuthHelperResolution("no_one@example.com", self.org).resolve()
         assert result is None
 
     def test_single_match(self):
-        user = self.create_user()
-        result = AuthHelperResolution(user.email, self.org).resolve()
-        assert result == user
+        result = AuthHelperResolution(self.user1.email, self.org).resolve()
+        assert result == self.user1
 
     def test_ambiguous_match(self):
-        users = {self.create_user() for _ in range(2)}
-        for user in users:
+        for user in (self.user1, self.user2):
             UserEmail.objects.create(user=user, email="me@example.com")
 
-        try:
+        with self.assertRaises(AmbiguousUserFromEmail) as context:
             AuthHelperResolution("me@example.com", self.org).resolve()
-        except AmbiguousUserResolution as e:
-            assert set(e.users) == users
-        else:
-            self.fail()
+        assert set(context.exception.users) == {self.user1, self.user2}
 
     def test_prefers_verified_email(self):
-        user1 = self.create_user()
-        UserEmail.objects.create(user=user1, email="me@example.com", is_verified=True)
+        UserEmail.objects.create(user=self.user1, email="me@example.com", is_verified=True)
 
-        user2 = self.create_user()
-        UserEmail.objects.create(user=user2, email="me@example.com", is_verified=False)
-        OrganizationMember.objects.create(organization=self.org, user=user2)
+        UserEmail.objects.create(user=self.user2, email="me@example.com", is_verified=False)
+        OrganizationMember.objects.create(organization=self.org, user=self.user2)
 
         result = AuthHelperResolution("me@example.com", self.org).resolve()
-        assert result == user1
+        assert result == self.user1
 
     def test_prefers_org_member(self):
-        user1 = self.create_user()
-        UserEmail.objects.create(user=user1, email="me@example.com", is_verified=True)
+        UserEmail.objects.create(user=self.user1, email="me@example.com", is_verified=True)
 
-        user2 = self.create_user()
-        UserEmail.objects.create(user=user2, email="me@example.com", is_verified=True)
-        OrganizationMember.objects.create(organization=self.org, user=user2)
+        UserEmail.objects.create(user=self.user2, email="me@example.com", is_verified=True)
+        OrganizationMember.objects.create(organization=self.org, user=self.user2)
 
         result = AuthHelperResolution("me@example.com", self.org).resolve()
-        assert result == user2
+        assert result == self.user2
 
 
 class IdentityViewResolutionTest(TestCase):
@@ -90,9 +83,6 @@ class IdentityViewResolutionTest(TestCase):
             UserEmail.objects.create(user=user, email="me@example.com", is_verified=True)
 
         anonymous_user = self.create_user()
-        try:
+        with self.assertRaises(AmbiguousUserFromEmail) as context:
             IdentityViewResolution("me@example.com", anonymous_user).resolve()
-        except AmbiguousUserResolution as e:
-            assert set(e.users) == users
-        else:
-            self.fail()
+        assert set(context.exception.users) == users

@@ -301,7 +301,7 @@ export default RuleModal;
 
 const Fields = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 const StyledMenuItem = styled(MenuItem)`

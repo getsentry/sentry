@@ -38,7 +38,7 @@ export const TraceViewHeaderContainer = styled(SecondaryHeader)`
 export const TraceDetailHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

@@ -28,7 +28,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {getDashboardLayout, saveDashboardLayout} from './gridLayout/utils';
 import Controls from './controls';
 import Dashboard, {assignTempId, constructGridItemKey} from './dashboard';
-import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
+import {DEFAULT_STATS_PERIOD} from './data';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
@@ -125,7 +125,6 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboard} = this.props;
     switch (dashboardState) {
       case DashboardState.CREATE:
-        return cloneDashboard(EMPTY_DASHBOARD);
       case DashboardState.EDIT:
         return cloneDashboard(dashboard);
       default: {
@@ -189,10 +188,14 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onRouteLeave = () => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+
     if (
       ![DashboardState.VIEW, DashboardState.PENDING_DELETE].includes(
         this.state.dashboardState
-      )
+      ) &&
+      !isEqual(modifiedDashboard, dashboard)
     ) {
       return UNSAVED_MESSAGE;
     }
@@ -200,10 +203,14 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onUnload = (event: BeforeUnloadEvent) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+
     if (
       [DashboardState.VIEW, DashboardState.PENDING_DELETE].includes(
         this.state.dashboardState
-      )
+      ) ||
+      isEqual(modifiedDashboard, dashboard)
     ) {
       return;
     }
@@ -243,6 +250,14 @@ class DashboardDetail extends Component<Props, State> {
 
   onCancel = () => {
     const {organization, dashboard, location, params} = this.props;
+    const {modifiedDashboard} = this.state;
+    if (!isEqual(modifiedDashboard, dashboard)) {
+      // Ignore no-alert here, so that the confirm on cancel matches onUnload & onRouteLeave
+      /* eslint no-alert:0 */
+      if (!confirm(UNSAVED_MESSAGE)) {
+        return;
+      }
+    }
     if (params.dashboardId) {
       trackAnalyticsEvent({
         eventKey: 'dashboards2.edit.cancel',
@@ -302,11 +317,14 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleAddCustomWidget = (widget: Widget) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    const newModifiedDashboard = modifiedDashboard || dashboard;
     let newWidget = widget;
     if (this.props.organization.features.includes('dashboard-grid-layout')) {
       newWidget = assignTempId(widget);
     }
-    this.onUpdateWidget([...this.props.dashboard.widgets, newWidget]);
+    this.onUpdateWidget([...newModifiedDashboard.widgets, newWidget]);
   };
 
   onAddWidget = () => {

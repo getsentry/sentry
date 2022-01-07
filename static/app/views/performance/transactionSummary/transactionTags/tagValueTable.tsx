@@ -312,7 +312,7 @@ const AlignRight = styled('div')`
 const LinkContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   justify-content: flex-end;
   align-items: center;
 `;

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import dataclasses
+from datetime import datetime
 from itertools import chain
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -14,15 +16,16 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import LimitBy
 
 from sentry import eventstore, features
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import ListField
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.types import ParamsType
+from sentry.snuba import discover
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import Dataset, raw_snql_query
+from sentry.utils.snuba import Dataset, SnubaTSResult, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
 from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
@@ -78,7 +81,7 @@ SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
 }
 
 
-class OrganizationEventsSpansEndpointBase(OrganizationEventsEndpointBase):  # type: ignore
+class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
     def has_feature(self, request: Request, organization: Organization) -> bool:
         return bool(
             features.has(
@@ -194,7 +197,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
             )
 
 
-class SpansExamplesSerializer(serializers.Serializer):  # type: ignore
+class SpansSerializer(serializers.Serializer):  # type: ignore
     query = serializers.CharField(required=False, allow_null=True)
     span = ListField(child=serializers.CharField(), required=True, allow_null=False, max_length=10)
 
@@ -205,7 +208,7 @@ class SpansExamplesSerializer(serializers.Serializer):  # type: ignore
             raise serializers.ValidationError(str(e))
 
 
-class OrganizationEventsSpansEndpoint(OrganizationEventsSpansEndpointBase):
+class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(request, organization):
             return Response(status=404)
@@ -215,7 +218,7 @@ class OrganizationEventsSpansEndpoint(OrganizationEventsSpansEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        serializer = SpansExamplesSerializer(data=request.GET)
+        serializer = SpansSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
@@ -279,6 +282,91 @@ class SpanExamplesPaginator:
         )
 
 
+class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not self.has_feature(request, organization):
+            return Response(status=404)
+
+        serializer = SpansSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serialized = serializer.validated_data
+
+        # TODO: The serializer currently supports >1 span.
+        # This will no longer be the case once the examples query is split up.
+        spans = serialized["span"]
+        if len(spans) != 1:
+            raise ParseError(detail="Can only specify 1 span.")
+        span = spans[0]
+
+        def get_event_stats(
+            query_columns: Sequence[str],
+            query: str,
+            params: Dict[str, str],
+            rollup: int,
+            zerofill_results: bool,
+            comparison_delta: Optional[datetime] = None,
+        ) -> SnubaTSResult:
+            with sentry_sdk.start_span(
+                op="discover.discover", description="timeseries.filter_transform"
+            ):
+                builder = TimeseriesQueryBuilder(
+                    Dataset.Discover,
+                    params,
+                    rollup,
+                    query=query,
+                    selected_columns=query_columns,
+                    functions_acl=["array_join", "percentileArray", "sumArray"],
+                )
+
+                span_op_column = builder.resolve_function("array_join(spans_op)")
+                span_group_column = builder.resolve_function("array_join(spans_group)")
+
+                # Adding spans.op and spans.group to the group by because
+                # We need them in the query to help the array join optimizer
+                # in snuba take effect but the TimeseriesQueryBuilder
+                # removes all non aggregates from the select clause.
+                builder.groupby.extend([span_op_column, span_group_column])
+
+                builder.add_conditions(
+                    [
+                        Condition(
+                            Function("tuple", [span_op_column, span_group_column]),
+                            Op.IN,
+                            Function("tuple", [Function("tuple", [span.op, span.group])]),
+                        ),
+                    ]
+                )
+
+                snql_query = builder.get_snql_query()
+                results = raw_snql_query(
+                    snql_query, "api.organization-events-spans-performance-stats"
+                )
+
+            with sentry_sdk.start_span(
+                op="discover.discover", description="timeseries.transform_results"
+            ):
+                result = discover.zerofill(
+                    results["data"],
+                    params["start"],
+                    params["end"],
+                    rollup,
+                    "time",
+                )
+
+            return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
+
+        return Response(
+            self.get_event_stats_data(
+                request,
+                organization,
+                get_event_stats,
+                query_column="sumArray(spans_exclusive_time)",
+            ),
+            status=200,
+        )
+
+
 @dataclasses.dataclass(frozen=True)
 class ExampleSpan:
     id: str
@@ -321,9 +409,6 @@ class ExampleTransaction:
 
 @dataclasses.dataclass(frozen=True)
 class SuspectSpan:
-    project_id: int
-    project: str
-    transaction: str
     op: str
     group: str
     frequency: Optional[int]
@@ -337,9 +422,6 @@ class SuspectSpan:
 
     def serialize(self) -> Any:
         return {
-            "projectId": self.project_id,
-            "project": self.project,
-            "transaction": self.transaction,
             "op": self.op,
             "group": self.group.rjust(16, "0"),
             "frequency": self.frequency,
@@ -407,9 +489,6 @@ def query_suspect_span_groups(
         for column in suspect_span_columns.suspect_op_group_columns + fields
         if not is_equation(column)
     ] + [
-        "project.id",
-        "project",
-        "transaction",
         "array_join(spans_op)",
         "array_join(spans_group)",
         "count()",
@@ -477,9 +556,6 @@ def query_suspect_span_groups(
 
     return [
         SuspectSpan(
-            project_id=suspect["project.id"],
-            project=suspect["project"],
-            transaction=suspect["transaction"],
             op=suspect["array_join_spans_op"],
             group=suspect["array_join_spans_group"],
             frequency=suspect.get("count_unique_id"),

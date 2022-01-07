@@ -1,13 +1,15 @@
 import abc
 from dataclasses import dataclass
-from typing import Callable, Iterable, Optional, Sequence
+from typing import Callable, Iterable, Optional, Sequence, Tuple
 
 from sentry.models import Organization, OrganizationMember, User, UserEmail
 
 
-@dataclass
-class AmbiguousUserResolution(Exception):
-    users: Sequence[User]
+class AmbiguousUserFromEmail(Exception):
+    def __init__(self, email: str, users: Sequence[User]) -> None:
+        super().__init__(f"Resolved {email!r} to {[user.id for user in users]}")
+        self.email: str = email
+        self.users: Tuple[User] = tuple(users)
 
 
 @dataclass
@@ -49,7 +51,7 @@ class EmailResolutionStrategy(abc.ABC):
                 # If the step eliminated all, ignore it and go to the next step
                 candidates = last_candidates
 
-        raise AmbiguousUserResolution([ue.user for ue in candidates])
+        raise AmbiguousUserFromEmail(self.email, [ue.user for ue in candidates])
 
     @abc.abstractmethod
     def get_steps(self) -> Iterable[Callable]:
