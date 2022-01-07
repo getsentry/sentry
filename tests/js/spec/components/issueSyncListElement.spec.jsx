@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 
 describe('IssueSyncListElement', function () {
