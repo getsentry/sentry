@@ -90,7 +90,7 @@ describe('Dashboards > Create', function () {
       });
       screen.getByTestId('widget-add').click();
 
-      mountGlobalModal({context: initialData.routerContext});
+      mountGlobalModal(initialData.routerContext);
 
       await waitFor(() => {
         expect(screen.getByText('Custom Widget')).toBeInTheDocument();
