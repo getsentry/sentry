@@ -32,6 +32,7 @@ export type IssueEventParameters = {
     search_type: string;
     search_source: string;
   };
+  'tag.clicked': {};
   'organization_saved_search.selected': {
     search_type: string;
     id: number;

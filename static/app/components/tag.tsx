@@ -9,6 +9,7 @@ import {IconClose, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import theme, {Color, Theme} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
@@ -95,6 +96,15 @@ function Tag({
     onDismiss?.();
   }
 
+  const trackClickEvent = () => {
+    trackAnalyticsEvent({
+      eventKey: 'tag.clicked',
+      eventName: 'Tag: Clicked',
+      is_clickable: defined(onClick) || defined(to) || defined(href),
+      organization_id: null,
+    });
+  };
+
   function tagIcon() {
     if (React.isValidElement(icon)) {
       return <IconWrapper>{React.cloneElement(icon, {...iconsProps})}</IconWrapper>;
@@ -130,7 +140,11 @@ function Tag({
     return tag;
   }
 
-  return <TagWrapper {...props}>{tagWithParent()}</TagWrapper>;
+  return (
+    <TagWrapper {...props} onClick={trackClickEvent}>
+      {tagWithParent()}
+    </TagWrapper>
+  );
 }
 
 const TagWrapper = styled('span')`
