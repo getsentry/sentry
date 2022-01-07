@@ -52,12 +52,13 @@ describe('IntegrationListDirectory', function () {
       expect(wrapper.find('IntegrationRow')).toHaveLength(7);
 
       [
-        'bitbucket',
-        'pagerduty',
-        'my-headband-washer-289499',
-        'clickup',
-        'amazon-sqs',
-        'la-croix-monitor',
+        'bitbucket', // 10
+        'pagerduty', // 10
+        'my-headband-washer-289499', // 10
+        'sample-doc', // 10
+        'clickup', // 9
+        'amazon-sqs', // 8
+        'la-croix-monitor', // 8
       ].map((name, index) =>
         expect(wrapper.find('IntegrationRow').at(index).props().slug).toEqual(name)
       );
