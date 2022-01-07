@@ -7,7 +7,6 @@ const PageFiltersActions = Reflux.createActions([
   'updateProjects',
   'updateDateTime',
   'updateEnvironments',
-  'save',
 ]);
 
 export default PageFiltersActions;

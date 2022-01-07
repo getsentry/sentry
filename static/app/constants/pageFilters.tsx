@@ -23,6 +23,4 @@ export const DATE_TIME = {
 
 export const DATE_TIME_KEYS = [...Object.values(DATE_TIME), 'statsPeriod'];
 
-export const LOCAL_STORAGE_KEY = 'global-selection';
-
 export const ALL_ACCESS_PROJECTS = -1;
