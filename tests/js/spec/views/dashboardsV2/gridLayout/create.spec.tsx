@@ -25,6 +25,7 @@ describe('Dashboards > Create', function () {
 
     const projects = [TestStubs.Project()];
     beforeEach(function () {
+      act(() => ProjectsStore.reset());
       act(() => ProjectsStore.loadInitialData(projects));
       initialData = initializeOrg({
         organization,
