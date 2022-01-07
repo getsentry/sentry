@@ -217,7 +217,7 @@ export function initializeUrlState({
         : datetime.period,
     utc: !parsedWithNoDefaultPeriod.utc ? null : datetime.utc,
   };
-  updateParamsWithoutHistory({project, environment, ...newDatetime}, router, {
+  replaceParams({project, environment, ...newDatetime}, router, {
     keepCursor: true,
   });
 }
@@ -324,11 +324,7 @@ export function updateParams(obj: UrlParams, router?: Router, options?: Options)
  * @param [router] React router object
  * @param [options] Options object
  */
-export function updateParamsWithoutHistory(
-  obj: UrlParams,
-  router?: Router,
-  options?: Options
-) {
+export function replaceParams(obj: UrlParams, router?: Router, options?: Options) {
   // Allow another component to handle routing
   if (!router) {
     return;

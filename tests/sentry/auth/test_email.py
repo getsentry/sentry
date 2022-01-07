@@ -1,35 +1,30 @@
-from unittest import mock
-
-from sentry.auth.email import resolve_email_to_user
+from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.models import OrganizationMember, UserEmail
 from sentry.testutils import TestCase
 
 
 class EmailResolverTest(TestCase):
-    @mock.patch("sentry.auth.email.sentry_sdk")
-    def test_no_match(self, mock_sdk):
-        result = resolve_email_to_user("me@example.com")
+    def setUp(self) -> None:
+        self.user1 = self.create_user()
+        self.user2 = self.create_user()
+
+    def test_no_match(self):
+        result = resolve_email_to_user("no_one@example.com")
         assert result is None
-        assert not mock_sdk.capture_message.called
 
-    @mock.patch("sentry.auth.email.sentry_sdk")
-    def test_single_match(self, mock_sdk):
-        user = self.create_user()
-        result = resolve_email_to_user(user.email)
-        assert result == user
-        assert not mock_sdk.capture_message.called
+    def test_single_match(self):
+        result = resolve_email_to_user(self.user1.email)
+        assert result == self.user1
 
-    @mock.patch("sentry.auth.email.sentry_sdk")
-    def test_ambiguous_match(self, mock_sdk):
-        users = {self.create_user() for _ in range(2)}
-        for user in users:
+    def test_ambiguous_match(self):
+        for user in (self.user1, self.user2):
             UserEmail.objects.create(user=user, email="me@example.com")
-        result = resolve_email_to_user("me@example.com")
-        assert result in users
-        assert mock_sdk.capture_message.called
 
-    @mock.patch("sentry.auth.email.sentry_sdk")
-    def test_prefers_verified_email(self, mock_sdk):
+        with self.assertRaises(AmbiguousUserFromEmail) as context:
+            resolve_email_to_user("me@example.com")
+        assert set(context.exception.users) == {self.user1, self.user2}
+
+    def test_prefers_verified_email(self):
         org = self.create_organization()
 
         user1 = self.create_user()
@@ -41,10 +36,8 @@ class EmailResolverTest(TestCase):
 
         result = resolve_email_to_user("me@example.com", organization=org)
         assert result == user1
-        assert not mock_sdk.capture_message.called
 
-    @mock.patch("sentry.auth.email.sentry_sdk")
-    def test_prefers_org_member(self, mock_sdk):
+    def test_prefers_org_member(self):
         org = self.create_organization()
 
         user1 = self.create_user()
@@ -56,4 +49,3 @@ class EmailResolverTest(TestCase):
 
         result = resolve_email_to_user("me@example.com", organization=org)
         assert result == user2
-        assert not mock_sdk.capture_message.called

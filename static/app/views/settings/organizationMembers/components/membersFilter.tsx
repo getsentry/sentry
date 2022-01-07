@@ -154,7 +154,7 @@ const FilterHeader = styled('h2')`
 const FilterLists = styled('div')`
   display: grid;
   grid-template-columns: 100px max-content;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   margin: ${space(1.5)};
   margin-top: ${space(0.75)};
 `;
@@ -162,7 +162,7 @@ const FilterLists = styled('div')`
 const FilterList = styled('div')`
   display: grid;
   grid-template-rows: repeat(auto-fit, minmax(0, max-content));
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
 
   h3 {
@@ -175,7 +175,7 @@ const FilterList = styled('div')`
   label {
     display: grid;
     grid-template-columns: max-content 1fr max-content;
-    grid-gap: ${space(0.75)};
+    gap: ${space(0.75)};
     align-items: center;
     font-weight: normal;
     white-space: nowrap;

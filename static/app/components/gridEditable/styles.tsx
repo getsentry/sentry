@@ -34,7 +34,7 @@ export const HeaderTitle = styled('h4')`
 
 export const HeaderButtonContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-auto-flow: column;
   grid-auto-columns: auto;
   justify-items: end;

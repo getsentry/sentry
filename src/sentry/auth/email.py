@@ -1,9 +1,14 @@
 from dataclasses import dataclass
-from typing import Iterable, Optional, Sequence
-
-import sentry_sdk
+from typing import Iterable, Optional, Sequence, Tuple
 
 from sentry.models import Organization, OrganizationMember, User, UserEmail
+
+
+class AmbiguousUserFromEmail(Exception):
+    def __init__(self, email: str, users: Sequence[User]) -> None:
+        super().__init__(f"Resolved {email!r} to {[user.id for user in users]}")
+        self.email: str = email
+        self.users: Tuple[User] = tuple(users)
 
 
 def resolve_email_to_user(
@@ -36,16 +41,7 @@ class _EmailResolver:
                 # If the step eliminated all, ignore it and go to the next step
                 candidates = last_candidates
 
-        return self._resolve_arbitrarily(candidates)
-
-    def _resolve_arbitrarily(self, candidates: Sequence[UserEmail]):
-        """Pick a user arbitrarily after the resolution steps have failed."""
-        with sentry_sdk.push_scope() as scope:
-            scope.level = "warning"
-            scope.set_tag("email", self.email)
-            scope.set_extra("user_ids", sorted(candidate.user.id for candidate in candidates))
-            sentry_sdk.capture_message("Ambiguous email resolution")
-        return candidates[0].user
+        raise AmbiguousUserFromEmail(self.email, [ue.user for ue in candidates])
 
     # Step definitions below
 

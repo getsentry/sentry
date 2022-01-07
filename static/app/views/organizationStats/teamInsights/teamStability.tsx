@@ -9,7 +9,6 @@ import Button from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
 import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
@@ -28,6 +27,7 @@ import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessi
 import {Color} from 'sentry/utils/theme';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
 
 type Props = AsyncComponent['props'] & {
@@ -239,7 +239,7 @@ class TeamStability extends AsyncComponent<Props, State> {
         {({response, loading}) => (
           <StyledPanelTable
             isEmpty={projects.length === 0}
-            emptyMessage={t('No Projects With Release Health Enabled')}
+            emptyMessage={t('No projects with release health enabled')}
             emptyAction={
               <Button
                 size="small"
@@ -327,12 +327,4 @@ const PaddedIconArrow = styled(IconArrow)`
 
 const SubText = styled('div')<{color: Color}>`
   color: ${p => p.theme[p.color]};
-`;
-
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
 `;

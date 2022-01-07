@@ -445,7 +445,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
 const Heading = styled('h1')`
   display: inline-grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   grid-auto-flow: column;
   align-items: center;
   font-weight: 400;
@@ -461,7 +461,7 @@ const Subtext = styled('p')`
 
 const inviteRowGrid = css`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   grid-template-columns: 3fr 180px 2fr max-content;
 `;
 
@@ -487,13 +487,13 @@ const FooterContent = styled('div')`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr max-content max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   display: grid;
   grid-template-columns: max-content max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => (p.status === 'error' ? p.theme.red300 : p.theme.gray400)};

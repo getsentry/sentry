@@ -238,7 +238,7 @@ export default class GuideAnchorWrapper extends React.Component<WrapperProps> {
 const GuideContainer = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   text-align: center;
   line-height: 1.5;
   background-color: ${p => p.theme.purple300};
@@ -249,7 +249,7 @@ const GuideContainer = styled('div')`
 const GuideContent = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 
   a {
     color: ${p => p.theme.white};
@@ -269,7 +269,7 @@ const GuideDescription = styled('div')`
 const GuideAction = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const StyledButton = styled(Button)`
