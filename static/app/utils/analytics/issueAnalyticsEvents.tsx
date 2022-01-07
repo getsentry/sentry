@@ -27,7 +27,9 @@ export type IssueEventParameters = {
     search_source: string;
     error: string;
   };
-  'tag.clicked': {};
+  'tag.clicked': {
+    is_clickable: boolean;
+  };
   'issue.search_sidebar_clicked': {};
   'inbox_tab.issue_clicked': {
     group_id: string;

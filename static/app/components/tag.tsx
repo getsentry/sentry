@@ -9,7 +9,7 @@ import {IconClose, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme, {Color, Theme} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
@@ -97,11 +97,9 @@ function Tag({
   }
 
   const trackClickEvent = () => {
-    trackAnalyticsEvent({
-      eventKey: 'tag.clicked',
-      eventName: 'Tag: Clicked',
+    trackAdvancedAnalyticsEvent('tag.clicked', {
       is_clickable: defined(onClick) || defined(to) || defined(href),
-      organization_id: null,
+      organization: null,
     });
   };
 
