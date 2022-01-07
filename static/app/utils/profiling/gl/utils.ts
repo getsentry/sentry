@@ -377,7 +377,9 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
     context === 'webgl'
       ? canvas.getContext(context, {antialias: false})
       : canvas.getContext(context);
-  if (!ctx) throw new Error(`Could not get context ${context}`);
+  if (!ctx) {
+    throw new Error(`Could not get context ${context}`);
+  }
   return ctx;
 }
 
