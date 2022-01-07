@@ -1,6 +1,6 @@
 import {CanvasScheduler, FlamegraphEvents} from 'sentry/utils/profiling/canvasScheduler';
 
-const handlers: (keyof FlamegraphEvents<any>)[] = [
+const handlers: (keyof FlamegraphEvents)[] = [
   'setConfigView',
   'transformConfigView',
   'zoomIntoFrame',
@@ -12,24 +12,24 @@ describe('CanvasScheduler', () => {
   it.each([handlers])('registers and calls %s', key => {
     const handler = jest.fn();
     const scheduler = new CanvasScheduler();
-    scheduler.on(key, handler);
 
-    expect(scheduler.events[key].has(handler)).toBe(true);
+    scheduler.on(key, handler);
     scheduler.dispatch(key, undefined);
 
+    expect(scheduler.events[key].has(handler)).toBe(true);
     expect(handler).toHaveBeenCalledTimes(1);
   });
   it.each([handlers])(
     'does not register duplicate handler and calls %s only once',
-    key => {
+    (key: keyof FlamegraphEvents) => {
       const handler = jest.fn();
       const scheduler = new CanvasScheduler();
       scheduler.on(key, handler);
       scheduler.on(key, handler);
 
-      expect(scheduler.events[key].has(handler)).toBe(true);
       scheduler.dispatch(key, undefined);
 
+      expect(scheduler.events[key].has(handler)).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
     }
   );
@@ -39,9 +39,9 @@ describe('CanvasScheduler', () => {
     scheduler.on(key, handler);
     scheduler.off(key, handler);
 
-    expect(scheduler.events[key].has(handler)).toBe(false);
     scheduler.dispatch(key, undefined);
 
+    expect(scheduler.events[key].has(handler)).toBe(false);
     expect(handler).not.toHaveBeenCalled();
   });
   it('registerBeforeFrameCallback', () => {

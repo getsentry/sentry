@@ -3,60 +3,61 @@ import {mat3} from 'gl-matrix';
 import {Rect} from './gl/utils';
 
 type DrawFn = () => void;
-type ArgumentTypes<F> = F extends (args: infer A) => any ? A : never;
+type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
-export interface FlamegraphEvents<T> {
+export interface FlamegraphEvents {
   transformConfigView: (transform: mat3) => void;
   setConfigView: (configView: Rect) => void;
-  zoomIntoFrame: (frame: T) => void;
-  selectedNode: (frame: T | null) => void;
+  zoomIntoFrame: (frame: any) => void;
+  selectedNode: (frame: any | null) => void;
   resetZoom: () => void;
 }
 
-export class CanvasScheduler<T> {
+type EventStore = {[K in keyof FlamegraphEvents]: Set<FlamegraphEvents[K]>};
+
+export class CanvasScheduler {
   beforeFrameCallbacks: Set<DrawFn> = new Set();
   afterFrameCallbacks: Set<DrawFn> = new Set();
   requestAnimationFrame: number | null = null;
 
-  events: {
-    [K in keyof FlamegraphEvents<T>]: Set<FlamegraphEvents<T>[K]>;
-  } = {
-    setConfigView: new Set<FlamegraphEvents<T>['setConfigView']>(),
-    transformConfigView: new Set<FlamegraphEvents<T>['transformConfigView']>(),
-    zoomIntoFrame: new Set<FlamegraphEvents<T>['zoomIntoFrame']>(),
-    selectedNode: new Set<FlamegraphEvents<T>['selectedNode']>(),
-    resetZoom: new Set<FlamegraphEvents<T>['resetZoom']>(),
+  events: EventStore = {
+    setConfigView: new Set<FlamegraphEvents['setConfigView']>(),
+    transformConfigView: new Set<FlamegraphEvents['transformConfigView']>(),
+    zoomIntoFrame: new Set<FlamegraphEvents['zoomIntoFrame']>(),
+    selectedNode: new Set<FlamegraphEvents['selectedNode']>(),
+    resetZoom: new Set<FlamegraphEvents['resetZoom']>(),
   };
 
-  on<K extends keyof FlamegraphEvents<T>>(
-    eventName: K,
-    cb: FlamegraphEvents<T>[K]
-  ): void {
-    const set = this.events[eventName] as unknown as Set<FlamegraphEvents<T>[K]>;
-    if (set.has(cb)) return;
+  on<K extends keyof FlamegraphEvents>(eventName: K, cb: FlamegraphEvents[K]): void {
+    const set = this.events[eventName] as unknown as Set<FlamegraphEvents[K]>;
+    if (set.has(cb)) {
+      return;
+    }
     set.add(cb);
   }
 
-  off<K extends keyof FlamegraphEvents<T>>(
-    eventName: K,
-    cb: FlamegraphEvents<T>[K]
-  ): void {
-    const set = this.events[eventName] as unknown as Set<FlamegraphEvents<T>[K]>;
-    if (!set.has(cb)) return;
+  off<K extends keyof FlamegraphEvents>(eventName: K, cb: FlamegraphEvents[K]): void {
+    const set = this.events[eventName] as unknown as Set<FlamegraphEvents[K]>;
+    if (!set.has(cb)) {
+      return;
+    }
     set.delete(cb);
   }
 
-  dispatch<K extends keyof FlamegraphEvents<T>>(
+  dispatch<K extends keyof FlamegraphEvents>(
     event: K,
-    args: ArgumentTypes<FlamegraphEvents<T>[K]>
+    args?: ArgumentTypes<FlamegraphEvents[K]>
   ): void {
     for (const handler of this.events[event]) {
+      // @ts-ignore
       handler(args);
     }
   }
 
   private registerCallback(cb: DrawFn, pool: Set<DrawFn>) {
-    if (pool.has(cb)) return;
+    if (pool.has(cb)) {
+      return;
+    }
     pool.add(cb);
   }
 
@@ -113,24 +114,26 @@ export class CanvasScheduler<T> {
   }
 }
 
-export class CanvasPoolManager<T> {
-  schedulers: Set<CanvasScheduler<T>> = new Set();
+export class CanvasPoolManager {
+  schedulers: Set<CanvasScheduler> = new Set();
 
-  registerScheduler(scheduler: CanvasScheduler<T>): void {
-    if (this.schedulers.has(scheduler)) return;
+  registerScheduler(scheduler: CanvasScheduler): void {
+    if (this.schedulers.has(scheduler)) {
+      return;
+    }
     this.schedulers.add(scheduler);
   }
 
-  dispatch<K extends keyof FlamegraphEvents<T>>(
+  dispatch<K extends keyof FlamegraphEvents>(
     event: K,
-    args: ArgumentTypes<FlamegraphEvents<T>[K]>
+    args: ArgumentTypes<FlamegraphEvents[K]>
   ): void {
     for (const scheduler of this.schedulers) {
       scheduler.dispatch(event, args);
     }
   }
 
-  unregisterScheduler(scheduler: CanvasScheduler<T>): void {
+  unregisterScheduler(scheduler: CanvasScheduler): void {
     if (this.schedulers.has(scheduler)) {
       scheduler.dispose();
       this.schedulers.delete(scheduler);
