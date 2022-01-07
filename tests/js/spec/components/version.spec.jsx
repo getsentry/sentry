@@ -1,44 +1,51 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Version from 'sentry/components/version';
 
 const VERSION = 'foo.bar.Baz@1.0.0+20200101';
 
 describe('Version', () => {
-  const routerContext = TestStubs.routerContext();
+  let context;
+
+  beforeEach(() => {
+    context = TestStubs.routerContext();
+  });
 
   it('renders', () => {
-    const wrapper = mountWithTheme(<Version version={VERSION} />, routerContext);
-    expect(wrapper).toSnapshot();
+    const {container} = mountWithTheme(<Version version={VERSION} />, {context});
+    expect(container).toSnapshot();
   });
 
   it('shows correct parsed version', () => {
     // component uses @sentry/release-parser package for parsing versions
-    const wrapper = mountWithTheme(<Version version={VERSION} />, routerContext);
+    mountWithTheme(<Version version={VERSION} />, {context});
 
-    expect(wrapper.text()).toBe('1.0.0 (20200101)');
+    expect(screen.getByText('1.0.0 (20200101)')).toBeInTheDocument();
   });
 
   it('links to release page', () => {
-    const wrapper = mountWithTheme(
-      <Version version={VERSION} projectId="1" />,
-      routerContext
-    );
+    mountWithTheme(<Version version={VERSION} projectId="1" />, {
+      context,
+    });
 
-    expect(wrapper.find('Link').first().prop('to')).toEqual({
+    userEvent.click(screen.getByText('1.0.0 (20200101)'));
+    expect(context.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/releases/foo.bar.Baz%401.0.0%2B20200101/',
       query: {project: '1'},
     });
   });
 
   it('shows raw version in tooltip', () => {
-    const wrapper = mountWithTheme(
-      <Version version={VERSION} tooltipRawVersion />,
-      routerContext
-    );
+    jest.useFakeTimers();
+    mountWithTheme(<Version version={VERSION} tooltipRawVersion />, {
+      context,
+    });
+    expect(screen.queryByText(VERSION)).not.toBeInTheDocument();
 
-    const tooltipContent = mountWithTheme(wrapper.find('Tooltip').prop('title'));
+    // Activate tooltip
+    userEvent.hover(screen.getByText('1.0.0 (20200101)'));
+    jest.advanceTimersByTime(50);
 
-    expect(tooltipContent.text()).toBe(VERSION);
+    expect(screen.getByText(VERSION)).toBeInTheDocument();
   });
 });
