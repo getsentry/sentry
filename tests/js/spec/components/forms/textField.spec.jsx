@@ -1,21 +1,21 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import {Form, TextField} from 'sentry/components/forms';
 
 describe('TextField', function () {
   describe('render()', function () {
     it('renders without form context', function () {
-      const wrapper = mountWithTheme(<TextField name="fieldName" />);
-      expect(wrapper).toSnapshot();
+      const {container} = mountWithTheme(<TextField name="fieldName" />);
+      expect(container).toSnapshot();
     });
 
     it('renders with form context', function () {
-      const wrapper = mountWithTheme(
+      const {container} = mountWithTheme(
         <Form initialData={{fieldName: 'fieldValue'}}>
           <TextField name="fieldName" />
         </Form>
       );
-      expect(wrapper).toSnapshot();
+      expect(container).toSnapshot();
     });
   });
 });
