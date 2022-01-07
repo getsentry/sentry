@@ -7,11 +7,31 @@ class UserDetailsTest(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.user = self.create_user()
-        self.login_as(user=self.user)
+        self.user = self.create_user(is_superuser=True)
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "users.admin")
 
 
-class UserPermissionDetailsGetTest(UserDetailsTest):
+class PermissionTestMixin:
+    def test_fails_without_superuser(self):
+        self.user = self.create_user(is_superuser=False)
+        self.login_as(self.user)
+
+        resp = self.get_response("me", "broadcasts.admin")
+        assert resp.status_code == 403
+
+        self.user.update(is_superuser=True)
+        resp = self.get_response("me", "broadcasts.admin")
+        assert resp.status_code == 403
+
+    def test_fails_without_users_admin_permission(self):
+        self.user = self.create_user(is_superuser=True)
+        self.login_as(self.user, superuser=True)
+        resp = self.get_response("me", "broadcasts.admin")
+        assert resp.status_code == 403
+
+
+class UserPermissionDetailsGetTest(UserDetailsTest, PermissionTestMixin):
     def test_with_permission(self):
         UserPermission.objects.create(user=self.user, permission="broadcasts.admin")
         resp = self.get_response("me", "broadcasts.admin")
@@ -22,74 +42,34 @@ class UserPermissionDetailsGetTest(UserDetailsTest):
         assert resp.status_code == 404
 
 
-class UserPermissionDetailsPostTest(UserDetailsTest):
-    def test_required_access(self):
-        resp = self.get_response("me", "broadcasts.admin", method="POST")
-        assert resp.status_code == 403
-
-        self.user.update(is_superuser=True)
-        resp = self.get_response("me", "broadcasts.admin", method="POST")
-        assert resp.status_code == 403
-
-        self.login_as(user=self.user, superuser=True)
-        resp = self.get_response("me", "broadcasts.admin", method="POST")
-        assert resp.status_code == 403
-
-        UserPermission.objects.create(user=self.user, permission="users.admin")
-        resp = self.get_response("me", "broadcasts.admin", method="POST")
-        assert resp.status_code != 403
+class UserPermissionDetailsPostTest(UserDetailsTest, PermissionTestMixin):
+    method = "POST"
 
     def test_with_permission(self):
-        self.user.update(is_superuser=True)
-        self.login_as(user=self.user, superuser=True)
-        UserPermission.objects.create(user=self.user, permission="users.admin")
         UserPermission.objects.create(user=self.user, permission="broadcasts.admin")
-        resp = self.get_response("me", "broadcasts.admin", method="POST")
+        resp = self.get_response("me", "broadcasts.admin")
         assert resp.status_code == 410
         assert UserPermission.objects.filter(user=self.user, permission="broadcasts.admin").exists()
 
     def test_without_permission(self):
-        self.user.update(is_superuser=True)
-        self.login_as(user=self.user, superuser=True)
-        UserPermission.objects.create(user=self.user, permission="users.admin")
-        resp = self.get_response("me", "broadcasts.admin", method="POST")
+        resp = self.get_response("me", "broadcasts.admin")
         assert resp.status_code == 201
         assert UserPermission.objects.filter(user=self.user, permission="broadcasts.admin").exists()
 
 
-class UserPermissionDetailsDeleteTest(UserDetailsTest):
-    def test_required_access(self):
-        resp = self.get_response("me", "broadcasts.admin", method="DELETE")
-        assert resp.status_code == 403
-
-        self.user.update(is_superuser=True)
-        resp = self.get_response("me", "broadcasts.admin", method="DELETE")
-        assert resp.status_code == 403
-
-        self.login_as(user=self.user, superuser=True)
-        resp = self.get_response("me", "broadcasts.admin", method="DELETE")
-        assert resp.status_code == 403
-
-        UserPermission.objects.create(user=self.user, permission="users.admin")
-        resp = self.get_response("me", "broadcasts.admin", method="DELETE")
-        assert resp.status_code != 403
+class UserPermissionDetailsDeleteTest(UserDetailsTest, PermissionTestMixin):
+    method = "DELETE"
 
     def test_with_permission(self):
-        self.user.update(is_superuser=True)
-        self.login_as(user=self.user, superuser=True)
-        UserPermission.objects.create(user=self.user, permission="users.admin")
         UserPermission.objects.create(user=self.user, permission="broadcasts.admin")
-        resp = self.get_response("me", "broadcasts.admin", method="DELETE")
+        resp = self.get_response("me", "broadcasts.admin")
         assert resp.status_code == 204
         assert not UserPermission.objects.filter(
             user=self.user, permission="broadcasts.admin"
         ).exists()
 
     def test_without_permission(self):
-        self.user.update(is_superuser=True)
-        self.login_as(user=self.user, superuser=True)
-        UserPermission.objects.create(user=self.user, permission="users.admin")
-        resp = self.get_response("me", "broadcasts.admin", method="DELETE")
+        resp = self.get_response("me", "broadcasts.admin")
         assert resp.status_code == 404
         assert not UserPermission.objects.filter(
             user=self.user, permission="broadcasts.admin"
