@@ -240,18 +240,23 @@ class TestRatelimitHeader(APITestCase):
             expected_reset_time = int(time() + 100)
             response = self.get_success_response()
             assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 1
-            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 1
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
+            response = self.get_success_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
             assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
             response = self.get_error_response()
-            assert int(response["X-Sentry-Ratelimit-Remaining"]) == 0
-            assert int(response["X-Sentry-Ratelimit-Limit"]) == 1
-            assert int(response["X-Sentry-Ratelimit-Reset"]) == expected_reset_time
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
             response = self.get_error_response()
-            assert int(response["X-Sentry-Ratelimit-Remaining"]) == 0
-            assert int(response["X-Sentry-Ratelimit-Limit"]) == 1
-            assert int(response["X-Sentry-Ratelimit-Reset"]) == expected_reset_time
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
     @patch("sentry.ratelimits.utils.can_be_ratelimited")
     def test_omit_header(self, can_be_ratelimited_patch):
@@ -264,6 +269,6 @@ class TestRatelimitHeader(APITestCase):
         """
         can_be_ratelimited_patch.return_value = False
         response = self.get_response()
-        assert "X-Sentry-Ratelimit-Count" not in response._headers
-        assert "X-Sentry-Ratelimit-Max" not in response._headers
-        assert "X-Sentry-Ratelimit-Window" not in response._headers
+        assert "X-Sentry-Rate-Limit-Remaining" not in response._headers
+        assert "X-Sentry-Rate-Limit-Limit" not in response._headers
+        assert "X-Sentry-Rate-Limit-Reset" not in response._headers

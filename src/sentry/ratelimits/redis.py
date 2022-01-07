@@ -92,7 +92,10 @@ class RedisRateLimiter(RateLimiter):
     def is_limited_with_value(
         self, key: str, limit: int, project: Project | None = None, window: int | None = None
     ) -> tuple[bool, int, int]:
-        """Does a rate limit check as well as return the new rate limit value"""
+        """
+        Does a rate limit check as well as returning the new rate limit value and when the next
+        rate limit window will start
+        """
         request_time = time()
         if window is None or window == 0:
             window = self.window
