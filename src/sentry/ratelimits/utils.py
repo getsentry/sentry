@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta
 from sentry.utils.hashlib import md5_text
 
 from . import backend as ratelimiter
@@ -119,16 +119,17 @@ def get_rate_limit_value(
     return settings.SENTRY_RATELIMITER_DEFAULTS[category]
 
 
-def above_rate_limit_check(key: str, rate_limit: RateLimit) -> Mapping[str, bool | int]:
-    is_limited, current = ratelimiter.is_limited_with_value(
+def above_rate_limit_check(key: str, rate_limit: RateLimit) -> RateLimitMeta:
+    is_limited, current, reset_time = ratelimiter.is_limited_with_value(
         key, limit=rate_limit.limit, window=rate_limit.window
     )
-    return {
-        "is_limited": is_limited,
-        "current": current,
-        "limit": rate_limit.limit,
-        "window": rate_limit.window,
-    }
+    return RateLimitMeta(
+        is_limited=is_limited,
+        current=current,
+        limit=rate_limit.limit,
+        window=rate_limit.window,
+        reset_time=reset_time,
+    )
 
 
 def for_organization_member_invite(

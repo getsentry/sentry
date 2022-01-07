@@ -16,7 +16,7 @@ class RateLimiter(Service):  # type: ignore
     def is_limited(
         self, key: str, limit: int, project: Project | None = None, window: int | None = None
     ) -> bool:
-        is_limited, _ = self.is_limited_with_value(key, limit, project=project, window=window)
+        is_limited, _, _ = self.is_limited_with_value(key, limit, project=project, window=window)
         return is_limited
 
     def current_value(
@@ -26,8 +26,8 @@ class RateLimiter(Service):  # type: ignore
 
     def is_limited_with_value(
         self, key: str, limit: int, project: Project | None = None, window: int | None = None
-    ) -> tuple[bool, int]:
-        return False, 0
+    ) -> tuple[bool, int, int]:
+        return False, 0, 0
 
     def validate(self) -> None:
         raise NotImplementedError
