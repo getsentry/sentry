@@ -259,7 +259,8 @@ class TestRatelimitHeader(APITestCase):
         Ensure that functions that can't be rate limited don't have rate limit headers
 
         These functions include, but are not limited to:
-            - UI Statistics
+            - UI Statistics Endpoints
+            - Endpoints that don't inherit api.base.Endpoint
         """
         can_be_ratelimited_patch.return_value = False
         response = self.get_response()
