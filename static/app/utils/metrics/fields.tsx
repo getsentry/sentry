@@ -1,3 +1,5 @@
+import invert from 'lodash/invert';
+
 import {ColumnType} from '../discover/fields';
 
 export enum SessionMetric {
@@ -59,3 +61,21 @@ export const METRIC_TO_COLUMN_TYPE: Readonly<
   [TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_STALL_LONGEST_TIME]: 'duration',
   [TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_STALL_PERCENTAGE]: 'percentage',
 };
+
+export const DISCOVER_FIELD_TO_METRIC = {
+  'tpm()': `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`,
+  'apdex()': undefined, // TODO(metrics): not yet supported by API
+  'p50(transaction.duration)': `p50(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`,
+  'p75(transaction.duration)': `p75(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`,
+  'p95(transaction.duration)': `p95(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`,
+  'p99(transaction.duration)': `p99(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`,
+  'p75(measurements.lcp)': `p75(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP})`,
+  'failure_rate()': `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`, // TODO(metrics): failure_rate alias not yet supported by API, we can get rate like this, but it needs to be coupled with failed status filter
+  'user_misery()': undefined, // TODO(metrics): not yet supported by API
+  'p75(measurements.app_start_cold)': `p75(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_APP_START_COLD})`,
+  'p75(measurements.app_start_warm)': `p75(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_APP_START_WARM})`,
+  'p75(measurements.frames_slow_rate)': `p75(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FRAMES_SLOW_RATE})`,
+  'p75(measurements.frames_frozen_rate)': `p75(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FRAMES_FROZEN_RATE})`,
+};
+
+export const METRIC_TO_DISCOVER_FIELD = invert(DISCOVER_FIELD_TO_METRIC);

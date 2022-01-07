@@ -8,9 +8,11 @@ import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/u
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
 import {getMetricsDataSource} from './getMetricsDataSource';
+import {transformMetricsResponseToSeries} from './transformMetricsResponseToSeries';
 
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
@@ -22,6 +24,8 @@ export type MetricsRequestRenderProps = {
   errored: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
+  timeseriesData?: Series[];
+  previousTimeseriesData?: Series[];
 };
 
 type DefaultProps = {
@@ -47,6 +51,15 @@ type Props = DefaultProps & {
   limit?: number;
   interval?: string;
   isDisabled?: boolean;
+  /**
+   * Transform the response data to be something ingestible by charts
+   */
+  includeTransformedData?: boolean;
+  /**
+   * Name used for display current series data set tooltip
+   */
+  currentSeriesNames?: string[];
+  previousSeriesNames?: string[];
 };
 
 type State = {
@@ -183,7 +196,14 @@ class MetricsRequest extends React.Component<Props, State> {
 
   render() {
     const {reloading, errored, response, responsePrevious} = this.state;
-    const {children, isDisabled} = this.props;
+    const {
+      children,
+      isDisabled,
+      includeTransformedData,
+      field,
+      currentSeriesNames,
+      previousSeriesNames,
+    } = this.props;
 
     const loading = response === null && !isDisabled;
 
@@ -193,6 +213,21 @@ class MetricsRequest extends React.Component<Props, State> {
       errored,
       response,
       responsePrevious,
+      timeseriesData: includeTransformedData
+        ? transformMetricsResponseToSeries({
+            response,
+            fields: field,
+            seriesNames: currentSeriesNames,
+          })
+        : undefined,
+      previousTimeseriesData:
+        response && responsePrevious && includeTransformedData
+          ? transformMetricsResponseToSeries({
+              response: {...responsePrevious, intervals: response?.intervals},
+              fields: field,
+              seriesNames: previousSeriesNames,
+            })
+          : undefined,
     });
   }
 }

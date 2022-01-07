@@ -7,13 +7,14 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
-import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
+
+import EventsOrMetricsRequest from './EventsOrMetricsRequest';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -34,7 +35,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
       component: provided => (
         <QueryBatchNode batchProperty="yAxis">
           {({queryBatching}) => (
-            <EventsRequest
+            <EventsOrMetricsRequest
               {...pick(provided, eventsRequestQueryProps)}
               limit={1}
               queryBatching={queryBatching}
@@ -105,7 +106,6 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   );
 }
 
-const EventsRequest = withApi(_EventsRequest);
 export const DurationChart = withRouter(_DurationChart);
 export const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
