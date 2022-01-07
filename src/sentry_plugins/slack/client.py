@@ -26,6 +26,6 @@ class SlackApiClient(ApiClient):
                 path=self.webhook, method="post", data=data, json=False, allow_text=True
             )
         except ApiError as e:
-            # Ignore 4XX from slack webhooks
-            if 401 <= e.code <= 404 or e.text not in IGNORABLE_SLACK_ERRORS:
+            # Ignore 404 and ignorable errors from slack webhooks
+            if e.code != 404 or (e.text and e.text not in IGNORABLE_SLACK_ERRORS):
                 raise e
