@@ -1,6 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  mountGlobalModal,
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboardsV2/create';
@@ -84,7 +90,11 @@ describe('Dashboards > Create', function () {
       });
       screen.getByTestId('widget-add').click();
 
-      mountGlobalModal();
+      mountGlobalModal({context: initialData.routerContext});
+
+      await waitFor(() => {
+        expect(screen.getByText('Custom Widget')).toBeInTheDocument();
+      });
 
       // Add a custom widget to the dashboard
       (await screen.findByText('Custom Widget')).click();
