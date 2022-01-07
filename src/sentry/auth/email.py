@@ -14,11 +14,7 @@ class AmbiguousUserFromEmail(Exception):
 def resolve_email_to_user(
     email: str, organization: Optional[Organization] = None
 ) -> Optional[User]:
-    candidates = tuple(
-        user_email
-        for user_email in UserEmail.objects.filter(email__iexact=email)
-        if user_email.user.is_active
-    )
+    candidates = tuple(UserEmail.objects.filter(email__iexact=email, user__is_active=True))
     if not candidates:
         return None
     return _EmailResolver(email, organization).resolve(candidates)
@@ -56,7 +52,7 @@ class _EmailResolver:
     def _has_org_membership(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
         """Prefer users who belong to the organization."""
         if not self.organization:
-            return candidates
+            return ()
         query = OrganizationMember.objects.filter(
             organization=self.organization, user__in=[ue.user for ue in candidates]
         )
