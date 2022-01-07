@@ -27,16 +27,7 @@ export type IssueEventParameters = {
     search_source: string;
     error: string;
   };
-  'search.searched': {
-    query: string;
-    search_type: string;
-    search_source: string;
-  };
   'tag.clicked': {};
-  'organization_saved_search.selected': {
-    search_type: string;
-    id: number;
-  };
   'issue.search_sidebar_clicked': {};
   'inbox_tab.issue_clicked': {
     group_id: string;
@@ -61,9 +52,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issues_tab.viewed': 'Viewed Issues Tab', // high volume but send to our secondary event store anyways
   'issue_search.failed': 'Issue Search: Failed',
-  'search.searched': 'Search: Performed search',
-  'organization_saved_search.selected':
-    'Organization Saved Search: Selected saved search',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
   'inbox_tab.issue_clicked': 'Clicked Issue from Inbox Tab',
   'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',

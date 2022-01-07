@@ -1,6 +1,7 @@
 import functools
 from collections import defaultdict
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -11,7 +12,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, 
 class InternalWarningsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         groupings = {
             DeprecatedSettingWarning: "Deprecated Settings",
             UnsupportedBackend: "Unsupported Backends",

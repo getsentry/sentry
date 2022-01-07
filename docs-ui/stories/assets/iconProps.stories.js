@@ -133,7 +133,7 @@ const SwatchWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(5, auto);
-  grid-gap: 16px;
+  gap: 16px;
 `;
 
 const Swatches = styled('div')`

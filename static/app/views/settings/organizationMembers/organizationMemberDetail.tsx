@@ -401,7 +401,7 @@ const Details = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: 2fr 1fr 1fr;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -433,7 +433,7 @@ const CodeInput = styled('code')`
 
 const InviteActions = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-auto-flow: column;
   justify-content: flex-end;
   margin-top: ${space(2)};

@@ -2,6 +2,7 @@ import logging
 from copy import deepcopy
 from functools import partial
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -35,7 +36,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
         }
     }
 
-    def has_feature(self, request, organization):
+    def has_feature(self, request: Request, organization):
         return features.has(
             "organizations:discover", organization, actor=request.user
         ) or features.has("organizations:discover-basic", organization, actor=request.user)
@@ -115,7 +116,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
             )
 
     @rate_limit_endpoint(limit=4)
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         if not self.has_feature(request, organization):
             return Response(status=404)
         logger.info("discover1.request", extra={"organization_id": organization.id})

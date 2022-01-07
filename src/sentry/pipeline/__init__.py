@@ -49,25 +49,33 @@ class PipelineProvider:
         self.pipeline = pipeline
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class PipelineView(BaseView):
     """
     A class implementing the PipelineView may be used in a PipelineProviders
     get_pipeline_views list.
     """
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         """
         Called on request, the active pipeline is passed in which can and
         should be used to bind data and traverse the pipeline.
         """
         raise NotImplementedError
 
-    def render_react_view(self, request, pipelineName, props):
+    def render_react_view(self, request: Request, pipelineName, props):
         return render_to_response(
             template="sentry/bases/react_pipeline.html",
             request=request,
             context={"pipelineName": pipelineName, "props": json.dumps(props)},
         )
+
+
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 
 class NestedPipelineView(PipelineView):
@@ -96,7 +104,7 @@ class NestedPipelineView(PipelineView):
 
         self.pipeline_cls = NestedPipeline
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         nested_pipeline = self.pipeline_cls(
             organization=pipeline.organization,
             request=request,
@@ -209,7 +217,9 @@ class Pipeline:
     def get_provider(self, provider_key: str):
         return self.provider_manager.get(provider_key)
 
-    def __init__(self, request, provider_key, organization=None, provider_model=None, config=None):
+    def __init__(
+        self, request: Request, provider_key, organization=None, provider_model=None, config=None
+    ):
         self.request = request
         self.organization = organization
         self.state = self.session_store_cls(

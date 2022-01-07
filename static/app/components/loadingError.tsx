@@ -57,7 +57,7 @@ const StyledAlert = styled(Alert)`
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: min-content auto max-content;
   align-items: center;
 `;

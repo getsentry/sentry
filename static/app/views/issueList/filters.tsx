@@ -105,7 +105,7 @@ class IssueListFilters extends React.Component<Props> {
 
 const SearchContainer = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   display: inline-grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin-bottom: ${space(2)};
   width: 100%;
 
@@ -120,7 +120,7 @@ const SearchContainer = styled('div')<{hasIssuePercentDisplay?: boolean}>`
 
 const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: 1fr ${p => (p.hasIssuePercentDisplay ? '1fr' : '')};
   align-items: start;
 

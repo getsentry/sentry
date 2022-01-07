@@ -184,7 +184,6 @@ describe('Dashboards > Detail', function () {
 
   describe('custom dashboards', function () {
     let wrapper, initialData, widgets, mockVisit;
-    const openLibraryModal = jest.spyOn(modals, 'openDashboardWidgetLibraryModal');
     const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
 
     beforeEach(function () {
@@ -401,6 +400,7 @@ describe('Dashboards > Detail', function () {
 
     it('does not update if api update fails', async function () {
       const fireEvent = createListeners('window');
+      window.confirm = jest.fn(() => true);
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
@@ -443,6 +443,7 @@ describe('Dashboards > Detail', function () {
         'Updated Name'
       );
       wrapper.find('Controls Button[data-test-id="dashboard-cancel"]').simulate('click');
+
       expect(wrapper.find('DashboardTitle EditableText').props().value).toEqual(
         'Custom Errors'
       );
@@ -517,7 +518,12 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
-      expect(openLibraryModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: types.DashboardWidgetSource.LIBRARY,
+        })
+      );
     });
 
     it('hides add widget option', async function () {
@@ -627,7 +633,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('can add library widgets', async function () {
+    it('opens add widget to custom  modal', async function () {
       types.MAX_WIDGETS = 10;
 
       initialData = initializeOrg({
@@ -662,11 +668,16 @@ describe('Dashboards > Detail', function () {
         .find('Controls Button[data-test-id="add-widget-library"]')
         .simulate('click');
 
-      expect(openLibraryModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: types.DashboardWidgetSource.LIBRARY,
+        })
+      );
     });
 
     it('disables add library widgets when max widgets reached', async function () {
-      types.MAX_WIDGETS = 1;
+      types.MAX_WIDGETS = 4;
 
       initialData = initializeOrg({
         organization: TestStubs.Organization({
@@ -693,12 +704,44 @@ describe('Dashboards > Detail', function () {
       await tick();
       wrapper.update();
 
-      // Enter Add Widget mode
+      expect(wrapper.find('WidgetCard')).toHaveLength(3);
+      expect(
+        wrapper.find('Controls Button[data-test-id="add-widget-library"]').props()
+          .disabled
+      ).toEqual(false);
+      expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(true);
+
+      const card = wrapper.find('WidgetCard').first();
+      card.find('DropdownMenu MoreOptions svg').simulate('click');
+
+      card.update();
+      wrapper.update();
+
+      wrapper
+        .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
+        .simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('WidgetCard')).toHaveLength(4);
       expect(
         wrapper.find('Controls Button[data-test-id="add-widget-library"]').props()
           .disabled
       ).toEqual(true);
       expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
+
+      const card2 = wrapper.find('WidgetCard').first();
+      card2.find('DropdownMenu MoreOptions svg').simulate('click');
+
+      card2.update();
+      wrapper.update();
+
+      expect(
+        wrapper
+          .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
+          .props().disabled
+      ).toEqual(true);
     });
 
     it('duplicates widgets', async function () {

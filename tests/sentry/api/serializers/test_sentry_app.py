@@ -18,6 +18,7 @@ class SentryAppSerializerTest(TestCase):
         assert result["name"] == "Tesla App"
         assert result["featureData"] == [
             {
+                "featureId": 0,
                 "description": "Tesla App can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
                 "featureGate": "integrations-api",
             }

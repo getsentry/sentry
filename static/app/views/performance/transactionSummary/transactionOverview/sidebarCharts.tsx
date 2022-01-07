@@ -12,7 +12,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
@@ -26,6 +26,7 @@ import {
   formatFloat,
   formatPercentage,
 } from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
@@ -233,7 +234,7 @@ function SidebarCharts({
             {({results, errored, loading, reloading}) => {
               if (errored) {
                 return (
-                  <ErrorPanel height="580px">
+                  <ErrorPanel height="480px">
                     <IconWarning color="gray300" size="lg" />
                   </ErrorPanel>
                 );
@@ -247,9 +248,14 @@ function SidebarCharts({
                 : [];
 
               return (
-                <TransitionChart loading={loading} reloading={reloading} height="580px">
+                <TransitionChart loading={loading} reloading={reloading} height="480px">
                   <TransparentLoadingMask visible={reloading} />
-                  <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
+                  {getDynamicText({
+                    value: (
+                      <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
+                    ),
+                    fixed: <Placeholder height="480px" testId="skeleton-ui" />,
+                  })}
                 </TransitionChart>
               );
             }}

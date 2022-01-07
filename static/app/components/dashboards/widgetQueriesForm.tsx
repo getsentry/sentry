@@ -9,11 +9,13 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, SelectValue} from 'sentry/types';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
+  isEquation,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -24,17 +26,24 @@ import WidgetQueryFields from './widgetQueryFields';
 
 const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
   const options: SelectValue<string>[] = [];
+  let equations = 0;
   fields.forEach(field => {
-    const alias = getAggregateAlias(field);
-    options.push({label: t('%s asc', field), value: alias});
-    options.push({label: t('%s desc', field), value: `-${alias}`});
+    let alias = getAggregateAlias(field);
+    const label = stripEquationPrefix(field);
+    // Equations are referenced via a standard alias following this pattern
+    if (isEquation(field)) {
+      alias = `equation[${equations}]`;
+      equations += 1;
+    }
+    options.push({label: t('%s asc', label), value: alias});
+    options.push({label: t('%s desc', label), value: `-${alias}`});
   });
   return options;
 };
 
 type Props = {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   displayType: Widget['displayType'];
   queries: WidgetQuery[];
   errors?: Array<Record<string, any>>;
@@ -50,6 +59,8 @@ type Props = {
  * callback. This component's state should live in the parent.
  */
 class WidgetQueriesForm extends React.Component<Props> {
+  blurTimeout: number | null = null;
+
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
     const {queries, onChange} = this.props;
@@ -108,8 +119,23 @@ class WidgetQueriesForm extends React.Component<Props> {
                   projectIds={selection.projects}
                   query={widgetQuery.conditions}
                   fields={[]}
-                  onSearch={this.handleFieldChange(queryIndex, 'conditions')}
-                  onBlur={this.handleFieldChange(queryIndex, 'conditions')}
+                  onSearch={field => {
+                    // SearchBar will call handlers for both onSearch and onBlur
+                    // when selecting a value from the autocomplete dropdown. This can
+                    // cause state issues for the search bar in our use case. To prevent
+                    // this, we set a timer in our onSearch handler to block our onBlur
+                    // handler from firing if it is within 200ms, ie from clicking an
+                    // autocomplete value.
+                    this.blurTimeout = window.setTimeout(() => {
+                      this.blurTimeout = null;
+                    }, 200);
+                    return this.handleFieldChange(queryIndex, 'conditions')(field);
+                  }}
+                  onBlur={field => {
+                    if (!this.blurTimeout) {
+                      this.handleFieldChange(queryIndex, 'conditions')(field);
+                    }
+                  }}
                   useFormWrapper={false}
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />

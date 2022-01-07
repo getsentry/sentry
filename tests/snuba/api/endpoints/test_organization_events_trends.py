@@ -1027,7 +1027,7 @@ class OrganizationEventsTrendsEndpointTestWithSnql(OrganizationEventsTrendsEndpo
         super().setUp()
         self.features = {
             "organizations:performance-view": True,
-            "organizations:performance-use-snql": True,
+            "organizations:trends-use-snql": True,
         }
 
 
@@ -1036,7 +1036,7 @@ class OrganizationEventsTrendsStatsEndpointTestWithSnql(OrganizationEventsTrends
         super().setUp()
         self.features = {
             "organizations:performance-view": True,
-            "organizations:performance-use-snql": True,
+            "organizations:trends-use-snql": True,
         }
 
 
@@ -1045,5 +1045,5 @@ class OrganizationEventsTrendsPagingTestWithSnql(OrganizationEventsTrendsPagingT
         super().setUp()
         self.features = {
             "organizations:performance-view": True,
-            "organizations:performance-use-snql": True,
+            "organizations:trends-use-snql": True,
         }

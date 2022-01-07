@@ -95,10 +95,17 @@ class HandleSnubaQueryUpdateTest(TestCase):
         # calls the correct callback, which should result in an incident being created.
 
         message = {
-            "version": 1,
+            "version": 3,
             "payload": {
                 "subscription_id": self.subscription.subscription_id,
-                "values": {"data": [{"some_col": self.trigger.alert_threshold + 1}]},
+                "result": {"data": [{"some_col": 101}]},
+                "request": {
+                    "some": "data",
+                    "query": """MATCH (metrics_counters) SELECT sum(value) AS value BY
+                            tags[3] WHERE org_id = 1 AND project_id IN tuple(1) AND metric_id = 16
+                            AND tags[3] IN tuple(13, 4)""",
+                },
+                "entity": "metrics_counters",
                 "timestamp": "2020-01-01T01:23:45.1234",
             },
         }

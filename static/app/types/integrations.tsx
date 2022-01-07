@@ -219,6 +219,7 @@ export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_ap
 export type IntegrationFeature = {
   description: string;
   featureGate: string;
+  featureId: number;
 };
 
 export type IntegrationInstallationStatus =
@@ -232,14 +233,17 @@ type IntegrationDialog = {
   body: string;
 };
 
-export type DocumentIntegration = {
-  slug: string;
+export type DocIntegration = {
   name: string;
+  slug: string;
   author: string;
-  docUrl: string;
+  url: string;
+  popularity: number;
   description: string;
-  features: IntegrationFeature[];
-  resourceLinks: Array<{title: string; url: string}>;
+  isDraft: boolean;
+  avatar?: Avatar;
+  features?: IntegrationFeature[];
+  resources?: Array<{title: string; url: string}>;
 };
 
 type IntegrationAspects = {
@@ -427,7 +431,7 @@ export type AppOrProviderOrPlugin =
   | SentryApp
   | IntegrationProvider
   | PluginWithProjectList
-  | DocumentIntegration;
+  | DocIntegration;
 
 /**
  * Webhooks and servicehooks

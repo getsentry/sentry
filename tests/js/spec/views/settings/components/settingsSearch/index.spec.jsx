@@ -57,6 +57,10 @@ describe('SettingsSearch', function () {
       url: '/sentry-apps/?status=published',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/doc-integrations/',
+      body: [],
+    });
   });
 
   it('renders', async function () {

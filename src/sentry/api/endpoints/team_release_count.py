@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.db.models import Count
 from django.db.models.functions import TruncDay
 from django.utils.timezone import now
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -14,7 +15,7 @@ from sentry.models import Project, Release
 
 
 class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
-    def get(self, request, team):
+    def get(self, request: Request, team) -> Response:
         """
         Returns a dict of team projects, and a time-series list of release counts for each.
         """
