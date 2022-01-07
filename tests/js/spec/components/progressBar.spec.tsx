@@ -1,22 +1,23 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProgressBar from 'sentry/components/progressBar';
 
 describe('ProgressBar', function () {
   it('basic', function () {
     const progressBarValue = 50;
-    const wrapper = mountWithTheme(<ProgressBar value={progressBarValue} />);
+    const {container} = mountWithTheme(<ProgressBar value={progressBarValue} />);
+    expect(container).toSnapshot();
 
+    const elementProperties = screen.getByRole('progressbar');
     // element exists
-    expect(wrapper.length).toEqual(1);
-
-    const elementProperties = wrapper.find('div').props();
-
-    expect(elementProperties).toHaveProperty('role', 'progressbar');
+    expect(elementProperties).toBeInTheDocument();
 
     // check aria attributes
-    expect(elementProperties).toHaveProperty('aria-valuenow', progressBarValue);
-    expect(elementProperties).toHaveProperty('aria-valuemin', 0);
-    expect(elementProperties).toHaveProperty('aria-valuemax', 100);
+    expect(elementProperties).toHaveAttribute(
+      'aria-valuenow',
+      progressBarValue.toString()
+    );
+    expect(elementProperties).toHaveAttribute('aria-valuemin', '0');
+    expect(elementProperties).toHaveAttribute('aria-valuemax', '100');
   });
 });
