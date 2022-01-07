@@ -9,8 +9,11 @@ function countFrameOccurences(frames: FlamegraphFrame[]): Map<string, number> {
     const key = frame.frame.name + frame.frame.file;
 
     // @ts-ignore
-    if (counts.has(key)) counts.set(key, counts.get(key) + 1);
-    else counts.set(key, 1);
+    if (counts.has(key)) {
+      counts.set(key, counts.get(key) + 1);
+    } else {
+      counts.set(key, 1);
+    }
   }
 
   return counts;
