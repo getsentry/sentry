@@ -66,6 +66,7 @@ jobs:
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
+        if: always()
         with:
           retention-days: 14
           name: jest-html

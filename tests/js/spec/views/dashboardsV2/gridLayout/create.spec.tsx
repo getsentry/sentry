@@ -6,7 +6,6 @@ import {
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
-
 import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboardsV2/create';
 
@@ -89,6 +88,8 @@ describe('Dashboards > Create', function () {
       screen.getByTestId('widget-add').click();
 
       mountGlobalModal(initialData.routerContext);
+
+      expect(screen).toSnapshot();
 
       // Add a custom widget to the dashboard
       (await screen.findByText('Custom Widget')).click();
