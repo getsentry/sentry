@@ -66,7 +66,11 @@ describe('Dashboards > Create', function () {
         // @ts-ignore
         body: TestStubs.Dashboard([{}], {id: '1', title: 'Custom Errors'}),
       });
+
+      mountGlobalModal(initialData.routerContext);
+
       const widgetTitle = 'Widget Title';
+
       mountWithTheme(
         <CreateDashboard
           organization={initialData.organization}
@@ -81,9 +85,8 @@ describe('Dashboards > Create', function () {
         // Wrap with act because GlobalSelectionHeaderContainer triggers update
         await tick();
       });
-      screen.getByTestId('widget-add').click();
 
-      mountGlobalModal();
+      screen.getByTestId('widget-add').click();
 
       // Add a custom widget to the dashboard
       (await screen.findByText('Custom Widget')).click();
