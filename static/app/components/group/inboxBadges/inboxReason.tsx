@@ -189,7 +189,7 @@ const TooltipDescription = styled('div')`
 `;
 
 const Separator = styled('span')<{type: keyof Theme['tag']}>`
-  color: ${p => p.theme.tag[p.type].iconColor};
+  color: ${p => p.theme.tag[p.type].border};
   opacity: 80%;
 `;
 
