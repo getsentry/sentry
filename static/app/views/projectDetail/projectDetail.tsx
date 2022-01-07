@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
@@ -20,6 +21,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import TextOverflow from 'sentry/components/textOverflow';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -175,10 +177,12 @@ class ProjectDetail extends AsyncView<Props, State> {
     const project = this.project;
     const {query} = location.query;
     const hasPerformance = organization.features.includes('performance-view');
+    const hasDiscover = organization.features.includes('discover-basic');
     const hasTransactions = hasPerformance && project?.firstTransactionEvent;
     const isProjectStabilized = this.isProjectStabilized();
     const visibleCharts = ['chart1'];
     const hasSessions = project?.hasSessions ?? null;
+    const hasOnlyBasicChart = !hasPerformance && !hasDiscover && !hasSessions;
 
     if (hasTransactions || hasSessions) {
       visibleCharts.push('chart2');
@@ -197,6 +201,12 @@ class ProjectDetail extends AsyncView<Props, State> {
         disableMultipleProjectSelection
         skipLoadLastUsed
         onUpdateProjects={this.handleProjectChange}
+        relativeDateOptions={
+          hasOnlyBasicChart
+            ? pick(DEFAULT_RELATIVE_PERIODS, ['1h', '24h', '7d', '14d', '30d'])
+            : undefined
+        }
+        showAbsolute={!hasOnlyBasicChart}
       >
         <NoProjectMessage organization={organization}>
           <StyledPageContent>
