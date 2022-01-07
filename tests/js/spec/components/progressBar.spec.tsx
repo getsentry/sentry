@@ -6,11 +6,10 @@ describe('ProgressBar', function () {
   it('basic', function () {
     const progressBarValue = 50;
     const {container} = mountWithTheme(<ProgressBar value={progressBarValue} />);
-
-    // element exists
     expect(container).toSnapshot();
 
     const elementProperties = screen.getByRole('progressbar');
+    // element exists
     expect(elementProperties).toBeInTheDocument();
 
     // check aria attributes
