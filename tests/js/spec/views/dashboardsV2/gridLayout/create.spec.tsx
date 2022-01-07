@@ -90,7 +90,7 @@ describe('Dashboards > Create', function () {
 
       mountGlobalModal(initialData.routerContext);
 
-      expect(screen).toSnapshot();
+      screen.debug(undefined, Infinity);
 
       // Add a custom widget to the dashboard
       (await screen.findByText('Custom Widget')).click();
