@@ -3,6 +3,7 @@ import selectEvent from 'react-select-event';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form, SelectField} from 'sentry/components/forms';
+import FormModel from 'sentry/views/settings/components/forms/model';
 
 describe('SelectField', function () {
   it('renders without form context', function () {
@@ -21,41 +22,41 @@ describe('SelectField', function () {
 
   it('renders with flat choices', function () {
     const {container} = mountWithTheme(
-      <SelectField choices={['a', 'b', 'c']} name="fieldName" />,
-      {
-        context: {
-          form: {
-            data: {
+      <Form
+        value={
+          new FormModel({
+            initialData: {
               fieldName: 'fieldValue',
             },
-            errors: {},
-          },
-        },
-      }
+          })
+        }
+      >
+        <SelectField choices={['a', 'b', 'c']} name="fieldName" />
+      </Form>
     );
     expect(container).toSnapshot();
   });
 
   it('renders with paired choices', function () {
     const {container} = mountWithTheme(
-      <SelectField
-        choices={[
-          ['a', 'abc'],
-          ['b', 'bcd'],
-          ['c', 'cde'],
-        ]}
-        name="fieldName"
-      />,
-      {
-        context: {
-          form: {
-            data: {
+      <Form
+        value={
+          new FormModel({
+            initialData: {
               fieldName: 'fieldValue',
             },
-            errors: {},
-          },
-        },
-      }
+          })
+        }
+      >
+        <SelectField
+          choices={[
+            ['a', 'abc'],
+            ['b', 'bcd'],
+            ['c', 'cde'],
+          ]}
+          name="fieldName"
+        />
+      </Form>
     );
     expect(container).toSnapshot();
   });
