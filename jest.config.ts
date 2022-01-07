@@ -159,6 +159,7 @@ const config: Config.InitialOptions = {
   setupFilesAfterEnv: [
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
+    '<rootDir>/tests/js/autoUnmount.js',
     '@testing-library/jest-dom/extend-expect',
   ],
   testMatch: testMatch || ['<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)'],
