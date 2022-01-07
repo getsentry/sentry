@@ -5,7 +5,6 @@ import {
   mountWithTheme,
   screen,
   userEvent,
-  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -64,7 +63,6 @@ describe('Dashboards > Create', function () {
     });
 
     it('can create with new widget', async function () {
-      // why
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         method: 'POST',
@@ -91,10 +89,6 @@ describe('Dashboards > Create', function () {
       screen.getByTestId('widget-add').click();
 
       mountGlobalModal(initialData.routerContext);
-
-      await waitFor(() => {
-        expect(screen.getByText('Custom Widget')).toBeInTheDocument();
-      });
 
       // Add a custom widget to the dashboard
       (await screen.findByText('Custom Widget')).click();
