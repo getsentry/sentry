@@ -117,3 +117,38 @@ class RenameFieldTest(BaseSafeMigrationTest):
             UnsafeOperationException, match="Renaming column TestTable.field to new_field is unsafe"
         ):
             self.run_migration()
+
+
+class DeleteModelTest(BaseSafeMigrationTest):
+    app = "bad_flow_delete_model_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0002_delete_model"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Deleting the TestTable model is unsafe.",
+        ):
+            self.run_migration()
+
+
+class RemoveFieldTest(BaseSafeMigrationTest):
+    app = "bad_flow_remove_field_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0002_remove_field"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Removing the TestTable.field field is unsafe",
+        ):
+            self.run_migration()
+
+
+class DeleteModelCorrectTest(BaseSafeMigrationTest):
+    app = "good_flow_delete_model_state_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0003_delete_table"
+
+    def test(self):
+        self.run_migration()
