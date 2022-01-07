@@ -124,6 +124,7 @@ class DashboardDetail extends Component<Props, State> {
   updateModifiedDashboard(dashboardState: DashboardState) {
     const {dashboard} = this.props;
     switch (dashboardState) {
+      case DashboardState.PREVIEW:
       case DashboardState.CREATE:
       case DashboardState.EDIT:
         return cloneDashboard(dashboard);
@@ -293,7 +294,11 @@ class DashboardDetail extends Component<Props, State> {
       modifiedDashboard: newModifiedDashboard,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
     });
-    if ([DashboardState.CREATE, DashboardState.EDIT].includes(dashboardState)) {
+    if (
+      [DashboardState.CREATE, DashboardState.EDIT, DashboardState.PREVIEW].includes(
+        dashboardState
+      )
+    ) {
       return;
     }
     updateDashboard(api, organization.slug, newModifiedDashboard).then(
@@ -370,9 +375,16 @@ class DashboardDetail extends Component<Props, State> {
     const {layout, modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
+      case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
-          createDashboard(api, organization.slug, modifiedDashboard).then(
+          // Allow duplicate dashboard names when in preview mode
+          createDashboard(
+            api,
+            organization.slug,
+            modifiedDashboard,
+            dashboardState === DashboardState.PREVIEW
+          ).then(
             (newDashboard: DashboardDetails) => {
               if (organization.features.includes('dashboard-grid-layout')) {
                 this.saveLayoutWithNewWidgets(
@@ -566,6 +578,7 @@ class DashboardDetail extends Component<Props, State> {
               onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
               handleAddLibraryWidgets={this.handleAddLibraryWidgets}
               handleAddCustomWidget={this.handleAddCustomWidget}
+              isPreview={dashboardState === DashboardState.PREVIEW}
               router={router}
               location={location}
               layout={layout}
@@ -575,6 +588,24 @@ class DashboardDetail extends Component<Props, State> {
         </PageContent>
       </PageFiltersContainer>
     );
+  }
+
+  getBreadcrumbLabel() {
+    const {organization, dashboard} = this.props;
+    const {dashboardState} = this.state;
+
+    let label = this.dashboardTitle;
+    if (dashboardState === DashboardState.CREATE) {
+      label = t('Create Dashboard');
+    } else if (dashboardState === DashboardState.PREVIEW) {
+      label = t('Preview Dashboard');
+    } else if (
+      organization.features.includes('dashboards-edit') &&
+      dashboard.id === 'default-overview'
+    ) {
+      label = t('Default Dashboard');
+    }
+    return label;
   }
 
   renderDashboardDetail() {
@@ -606,13 +637,7 @@ class DashboardDetail extends Component<Props, State> {
                       to: `/organizations/${organization.slug}/dashboards/`,
                     },
                     {
-                      label:
-                        dashboardState === DashboardState.CREATE
-                          ? t('Create Dashboard')
-                          : organization.features.includes('dashboards-edit') &&
-                            dashboard.id === 'default-overview'
-                          ? 'Default Dashboard'
-                          : this.dashboardTitle,
+                      label: this.getBreadcrumbLabel(),
                     },
                   ]}
                 />
@@ -655,6 +680,7 @@ class DashboardDetail extends Component<Props, State> {
                   newWidget={newWidget}
                   layout={layout}
                   onLayoutChange={this.onLayoutChange}
+                  isPreview={dashboardState === DashboardState.PREVIEW}
                 />
               </Layout.Main>
             </Layout.Body>
