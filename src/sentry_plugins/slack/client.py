@@ -1,6 +1,13 @@
 from sentry.shared_integrations.exceptions import ApiError
 from sentry_plugins.client import ApiClient
 
+IGNORABLE_SLACK_ERRORS = [
+    "channel_is_archived",
+    "invalid_channel",
+    "invalid_token",
+    "action_prohibited",
+]
+
 
 class SlackApiClient(ApiClient):
     plugin_name = "slack"
@@ -19,6 +26,6 @@ class SlackApiClient(ApiClient):
                 path=self.webhook, method="post", data=data, json=False, allow_text=True
             )
         except ApiError as e:
-            # Ignore 404 from slack webhooks
-            if e.code != 404:
+            # Ignore 4XX from slack webhooks
+            if 401 <= e.code <= 404 or e.text not in IGNORABLE_SLACK_ERRORS:
                 raise e
