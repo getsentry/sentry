@@ -1,6 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {
+  createProgram,
   createShader,
   getContext,
   makeProjectionMatrix,
@@ -37,6 +38,66 @@ describe('getContext', () => {
       // @ts-ignore partial canvas mock
       getContext({getContext: jest.fn().mockImplementationOnce(() => ctx)}, 'webgl')
     ).toBe(ctx);
+  });
+});
+
+describe('createProgram', () => {
+  it('throws if it fails to create a program', () => {
+    const ctx: Partial<WebGLRenderingContext> = {
+      createProgram: jest.fn().mockImplementation(() => {
+        return null;
+      }),
+    };
+
+    // @ts-ignore this is a partial mock
+    expect(() => createProgram(ctx, {}, {})).toThrow('Could not create program');
+  });
+  it('attaches both shaders and links program', () => {
+    const program = {};
+    const ctx: Partial<WebGLRenderingContext> = {
+      createProgram: jest.fn().mockImplementation(() => {
+        return program;
+      }),
+      getProgramParameter: jest.fn().mockImplementation(() => program),
+      linkProgram: jest.fn(),
+      attachShader: jest.fn(),
+    };
+
+    const vertexShader = {};
+    const fragmentShader = {};
+
+    // @ts-ignore this is a partial mock
+    createProgram(ctx, vertexShader, fragmentShader);
+
+    expect(ctx.createProgram).toHaveBeenCalled();
+    expect(ctx.linkProgram).toHaveBeenCalled();
+    expect(ctx.attachShader).toHaveBeenCalledWith(program, vertexShader);
+    expect(ctx.attachShader).toHaveBeenCalledWith(program, fragmentShader);
+  });
+  it('deletes the program if compiling fails', () => {
+    const program = {};
+    const ctx: Partial<WebGLRenderingContext> = {
+      createProgram: jest.fn().mockImplementation(() => {
+        return program;
+      }),
+      deleteProgram: jest.fn(),
+      getProgramParameter: jest.fn().mockImplementation(() => 0),
+      linkProgram: jest.fn(),
+      attachShader: jest.fn(),
+    };
+
+    const vertexShader = {};
+    const fragmentShader = {};
+
+    // @ts-ignore this is a partial mock
+    expect(() => createProgram(ctx, vertexShader, fragmentShader)).toThrow();
+
+    expect(ctx.createProgram).toHaveBeenCalled();
+    expect(ctx.linkProgram).toHaveBeenCalled();
+    expect(ctx.attachShader).toHaveBeenCalledWith(program, vertexShader);
+    expect(ctx.attachShader).toHaveBeenCalledWith(program, fragmentShader);
+
+    expect(ctx.deleteProgram).toHaveBeenCalledWith(program);
   });
 });
 
@@ -163,6 +224,10 @@ describe('Rect', () => {
       expect(new Rect(0, 0, 1, 1).overlaps(new Rect(2, 1, 1, 1))).toBe(false);
       expect(new Rect(0, 0, 1, 1).overlaps(new Rect(-1, -1, 1, 1))).toBe(true);
     });
+    it('hasIntersectionWidth', () => {
+      expect(new Rect(0, 0, 1, 1).hasIntersectionWith(new Rect(1, 1, 2, 2))).toBe(false);
+      expect(new Rect(0, 0, 1, 1).hasIntersectionWith(new Rect(-1, -1, 2, 2))).toBe(true);
+    });
   });
 
   it('withHeight', () => {
@@ -222,6 +287,12 @@ describe('Rect', () => {
     });
     it('scale', () => {
       expect(new Rect(0, 0, 1, 1).scale(2, 2).size).toEqual(vec2.fromValues(2, 2));
+    });
+    it('equals', () => {
+      expect(new Rect(1, 0, 0, 0).equals(new Rect(0, 0, 0, 0))).toBe(false);
+      expect(new Rect(0, 1, 0, 0).equals(new Rect(0, 0, 0, 0))).toBe(false);
+      expect(new Rect(0, 0, 1, 0).equals(new Rect(0, 0, 0, 0))).toBe(false);
+      expect(new Rect(0, 0, 0, 1).equals(new Rect(0, 0, 0, 0))).toBe(false);
     });
     it('scaledBy', () => {
       expect(new Rect(0, 0, 1, 1).scale(3, 4).equals(new Rect(0, 0, 3, 4))).toBe(true);
