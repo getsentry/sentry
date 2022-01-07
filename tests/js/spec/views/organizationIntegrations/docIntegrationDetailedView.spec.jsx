@@ -3,7 +3,7 @@ import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 import DocIntegrationDetailedView from 'sentry/views/organizationIntegrations/docIntegrationDetailedView';
 
 describe('DocIntegrationDetailedView', function () {
-  const organization = TestStubs.Organization({features: ['integrations-docs-from-db']});
+  const organization = TestStubs.Organization();
   const doc = TestStubs.DocIntegration();
 
   beforeEach(function () {});

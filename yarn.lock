@@ -6758,16 +6758,16 @@ eslint-config-prettier@6.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@1.69.0:
-  version "1.69.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.69.0.tgz#9c07ebbd055d6715813784ee5dd84d73476ac44d"
-  integrity sha512-2Kx1hzY1c//2fRtAmo69yOH+r4ekGFxBUrfx+801vzt2ZnVZE8JTnNgga3FIwQ0XxHuiL+c6qNVh2BZAPFYkRw==
+eslint-config-sentry-app@1.70.0:
+  version "1.70.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.70.0.tgz#0aced05f5b48c75b4642c28ac6d844526fe01ba5"
+  integrity sha512-rmCLrx9rpXRKW5z8xAXmUkuwf7oDgpch8fhAX0g3xVTO35Ka6wOjwCkKRFoaqg6zd9qGvEkDeEO1hnyUup3jFA==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^4.31.0"
     "@typescript-eslint/parser" "^4.31.0"
     eslint-config-prettier "6.3.0"
-    eslint-config-sentry "^1.69.0"
-    eslint-config-sentry-react "^1.69.0"
+    eslint-config-sentry "^1.70.0"
+    eslint-config-sentry-react "^1.70.0"
     eslint-import-resolver-typescript "^2.4.0"
     eslint-import-resolver-webpack "^0.13.1"
     eslint-plugin-emotion "^10.0.27"
@@ -6775,22 +6775,22 @@ eslint-config-sentry-app@1.69.0:
     eslint-plugin-jest "22.17.0"
     eslint-plugin-prettier "3.1.1"
     eslint-plugin-react "7.15.1"
-    eslint-plugin-sentry "^1.69.0"
+    eslint-plugin-sentry "^1.70.0"
     eslint-plugin-simple-import-sort "^7.0.0"
 
-eslint-config-sentry-react@^1.69.0:
-  version "1.69.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.69.0.tgz#805f107c19c4108c78641e8bc0ea108062ff285b"
-  integrity sha512-R14XPoKqOPCwjP19AKZ5a6HF3gQrFZBXky1QBr85ebx3oNlGf+lXGE+nMpwv0oIrgOAFFKfjgHknn01boNcS5w==
+eslint-config-sentry-react@^1.70.0:
+  version "1.70.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.70.0.tgz#22dc7ced3efc77e0e705077b18a1cae7c44b868a"
+  integrity sha512-5CUHB541058pSqbSESPaNydQJVBd5oExmF7XYeRWmMCQ4Ou01KDdAtNcLpdbS/wAYQAsXSdYZbjS0XoNtj05rw==
   dependencies:
-    eslint-config-sentry "^1.69.0"
+    eslint-config-sentry "^1.70.0"
     eslint-plugin-jest-dom "^3.9.2"
     eslint-plugin-testing-library "^4.12.4"
 
-eslint-config-sentry@^1.69.0:
-  version "1.69.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.69.0.tgz#57ab856b01fb941d9edcdcfcfc215bdf389a4454"
-  integrity sha512-N9pWglTq/PBJ+j2t2UkqHVDz+TxnUTPZH/9z9k83164VNVlBL2AGZhUqB0dXNdJenmQ3yX4AXSuH8Mu0Ei4Mgg==
+eslint-config-sentry@^1.70.0:
+  version "1.70.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.70.0.tgz#b132f6b73183e32c8d0004ee2c19df71682fe15b"
+  integrity sha512-PqYNXFN+5cOnLeraoeRpHrSJ+0+85FXv9Sfmb7IMbPDjTrKz3tgGCT5a7nCQh+/Z8Y81lV8DxRCVYbyVwxUp4w==
 
 eslint-import-resolver-node@^0.3.4:
   version "0.3.4"
@@ -6900,10 +6900,10 @@ eslint-plugin-react@7.15.1:
     prop-types "^15.7.2"
     resolve "^1.12.0"
 
-eslint-plugin-sentry@^1.69.0:
-  version "1.69.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.69.0.tgz#6cd9d81e7a495d3b5a6da0e1e78fa109d8720cf5"
-  integrity sha512-rkPXNbEC/U+gxSRnoE/5x+6FgS+Xc08LDsOQ4ewVSXJ/rSajEIuvobiWdfRy/5GWKQabcWSjuy97WnvKqPlyNA==
+eslint-plugin-sentry@^1.70.0:
+  version "1.70.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.70.0.tgz#82c5a22684387d9b816004fe9629631000575941"
+  integrity sha512-lv7f/PXPEHK2un9DkM1tt/JfZVsp6EIhPAT9OmLMrII2DW/3LUpYg39/R7Y1pjHr69+4YD3M1ex5w4K6gAU9HA==
   dependencies:
     requireindex "~1.1.0"
 
@@ -7797,6 +7797,11 @@ github-slugger@^1.0.0:
   integrity sha512-SsZUjg/P03KPzQBt7OxJPasGw6NRO5uOgiZ5RGXVud5iSIZ0eNZeNp5rTwCxtavrRUa/A77j8mePVc5lEvk0KQ==
   dependencies:
     emoji-regex ">=6.0.0 <=6.1.1"
+
+gl-matrix@^3.4.3:
+  version "3.4.3"
+  resolved "https://registry.yarnpkg.com/gl-matrix/-/gl-matrix-3.4.3.tgz#fc1191e8320009fd4d20e9339595c6041ddc22c9"
+  integrity sha512-wcCp8vu8FT22BnvKVPjXa/ICBWRq/zjFfdofZy1WSpQZpphblv12/bOQLBC1rMM7SGOFS9ltVmKOHil5+Ml7gA==
 
 glob-base@^0.3.0:
   version "0.3.0"

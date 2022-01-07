@@ -152,7 +152,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
           isEmpty={
             !alertsTriggered || !alertsTriggeredRules || alertsTriggeredRules.length === 0
           }
-          emptyMessage={t("No Alerts Triggered For This Team's Projects")}
+          emptyMessage={t('No alerts triggered for this team’s projects')}
           emptyAction={
             <ButtonsContainer>
               <Button
@@ -179,26 +179,27 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
             <AlignRight key="diff">{t('Difference')}</AlignRight>,
           ]}
         >
-          {alertsTriggeredRules?.map(rule => (
-            <Fragment key={rule.id}>
-              <div>
-                <Link
-                  to={`/organizations/${organization.id}/alerts/rules/details/${rule.id}/`}
-                >
-                  {rule.name}
-                </Link>
-              </div>
-              <ProjectBadgeContainer>
-                <ProjectBadge
-                  avatarSize={18}
-                  project={projects.find(p => p.slug === rule.projects[0])}
-                />
-              </ProjectBadgeContainer>
-              <AlignRight>{round(rule.weeklyAvg, 2)}</AlignRight>
-              <AlignRight>{rule.totalThisWeek}</AlignRight>
-              <AlignRight>{this.renderTrend(rule)}</AlignRight>
-            </Fragment>
-          ))}
+          {alertsTriggeredRules?.map(rule => {
+            const project = projects.find(p => p.slug === rule.projects[0]);
+
+            return (
+              <Fragment key={rule.id}>
+                <div>
+                  <Link
+                    to={`/organizations/${organization.id}/alerts/rules/details/${rule.id}/`}
+                  >
+                    {rule.name}
+                  </Link>
+                </div>
+                <ProjectBadgeContainer>
+                  {project && <ProjectBadge avatarSize={18} project={project} />}
+                </ProjectBadgeContainer>
+                <AlignRight>{round(rule.weeklyAvg, 2)}</AlignRight>
+                <AlignRight>{rule.totalThisWeek}</AlignRight>
+                <AlignRight>{this.renderTrend(rule)}</AlignRight>
+              </Fragment>
+            );
+          })}
         </StyledPanelTable>
       </Fragment>
     );
