@@ -18,7 +18,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import ListField
 from sentry.discover.arithmetic import is_equation, strip_equation
-from sentry.eventstore.models import Event
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.types import ParamsType
@@ -515,8 +514,6 @@ def query_suspect_span_groups(
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-spans-performance-suspects")
 
-    cache: Dict[EventID, Event] = {}
-
     return [
         SuspectSpan(
             op=suspect["array_join_spans_op"],
@@ -525,7 +522,6 @@ def query_suspect_span_groups(
                 EventID(params["project_id"][0], suspect["any_id"]),
                 span_op=suspect["array_join_spans_op"],
                 span_group=suspect["array_join_spans_group"],
-                cache=cache,
             ),
             frequency=suspect.get("count_unique_id"),
             count=suspect.get("count"),
@@ -611,12 +607,8 @@ def get_span_description(
     event: EventID,
     span_op: str,
     span_group: str,
-    cache: Dict[EventID, Any],
 ) -> Optional[str]:
-    if event not in cache:
-        cache[event] = eventstore.get_event_by_id(event.project_id, event.event_id)
-
-    nodestore_event = cache[event]
+    nodestore_event = eventstore.get_event_by_id(event.project_id, event.event_id)
     data = nodestore_event.data
 
     # the transaction itself is a span as well, so make sure to check it
