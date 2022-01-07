@@ -39,6 +39,9 @@ export type IssueEventParameters = {
   };
   'issue.shared_publicly': {};
   resolve_issue: {release: string};
+  'tag.clicked': {
+    is_clickable: boolean;
+  };
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -57,4 +60,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
   resolve_issue: 'Resolve Issue',
+  'tag.clicked': 'Tag: Clicked',
 };
