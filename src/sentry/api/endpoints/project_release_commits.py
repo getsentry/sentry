@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -7,7 +10,7 @@ from sentry.models import Release, ReleaseCommit, Repository
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project, version):
+    def get(self, request: Request, project, version) -> Response:
         """
         List a Project Release's Commits
         ````````````````````````````````

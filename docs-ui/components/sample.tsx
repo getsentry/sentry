@@ -1,4 +1,4 @@
-import {createContext, ReactChild, useState} from 'react';
+import {createContext, useState} from 'react';
 import {ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,7 +9,7 @@ import {darkTheme, lightTheme, Theme} from 'sentry/utils/theme';
 type ThemeName = 'dark' | 'light';
 
 type Props = {
-  children?: ReactChild;
+  children?: React.ReactChild;
   /**
    * Show the theme switcher, which allows for
    * switching the local theme context between

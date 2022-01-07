@@ -1,12 +1,14 @@
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import options
 
 
 class OutView(View):
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         if not settings.SENTRY_ONPREMISE:
             raise Http404
 

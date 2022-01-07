@@ -1,4 +1,6 @@
 from django.db import transaction
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.serializers import serialize
@@ -7,7 +9,7 @@ from sentry.models import AuditLogEntryEvent, Monitor, MonitorStatus, ScheduledD
 
 
 class MonitorDetailsEndpoint(MonitorEndpoint):
-    def get(self, request, project, monitor):
+    def get(self, request: Request, project, monitor) -> Response:
         """
         Retrieve a monitor
         ``````````````````
@@ -17,7 +19,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         """
         return self.respond(serialize(monitor, request.user))
 
-    def put(self, request, project, monitor):
+    def put(self, request: Request, project, monitor) -> Response:
         """
         Update a monitor
         ````````````````
@@ -68,7 +70,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
 
         return self.respond(serialize(monitor, request.user))
 
-    def delete(self, request, project, monitor):
+    def delete(self, request: Request, project, monitor) -> Response:
         """
         Delete a monitor
         ````````````````

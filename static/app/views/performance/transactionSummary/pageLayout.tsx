@@ -1,4 +1,4 @@
-import {Dispatch, ReactNode, SetStateAction, useState} from 'react';
+import {useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -8,7 +8,7 @@ import Alert from 'sentry/components/alert';
 import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -32,7 +32,7 @@ export type ChildProps = {
   eventView: EventView;
   projectId: string;
   transactionName: string;
-  setError: Dispatch<SetStateAction<string | undefined>>;
+  setError: React.Dispatch<React.SetStateAction<string | undefined>>;
   // These are used to trigger a reload when the threshold/metric changes.
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
@@ -46,7 +46,7 @@ type Props = {
   getDocumentTitle: (name: string) => string;
   generateEventView: (location: Location, transactionName: string) => EventView;
   childComponent: (props: ChildProps) => JSX.Element;
-  relativeDateOptions?: Record<string, ReactNode>;
+  relativeDateOptions?: Record<string, React.ReactNode>;
   maxPickableDays?: number;
   features?: string[];
 };
@@ -83,7 +83,9 @@ function PageLayout(props: Props) {
 
   const [error, setError] = useState<string | undefined>();
 
-  const [incompatibleAlertNotice, setIncompatibleAlertNotice] = useState<ReactNode>(null);
+  const [incompatibleAlertNotice, setIncompatibleAlertNotice] =
+    useState<React.ReactNode>(null);
+
   const handleIncompatibleQuery = (incompatibleAlertNoticeFn, _errors) => {
     const notice = incompatibleAlertNoticeFn(() => setIncompatibleAlertNotice(null));
     setIncompatibleAlertNotice(notice);
@@ -108,7 +110,7 @@ function PageLayout(props: Props) {
         renderDisabled={NoAccess}
       >
         <PerformanceEventViewProvider value={{eventView}}>
-          <GlobalSelectionHeader
+          <PageFiltersContainer
             lockedMessageSubject={t('transaction')}
             shouldForceProject={defined(project)}
             forceProject={project}
@@ -159,14 +161,14 @@ function PageLayout(props: Props) {
                 </Layout.Body>
               </NoProjectMessage>
             </StyledPageContent>
-          </GlobalSelectionHeader>
+          </PageFiltersContainer>
         </PerformanceEventViewProvider>
       </Feature>
     </SentryDocumentTitle>
   );
 }
 
-function NoAccess() {
+export function NoAccess() {
   return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
 }
 

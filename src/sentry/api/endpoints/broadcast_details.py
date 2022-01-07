@@ -14,10 +14,14 @@ from sentry.models import Broadcast, BroadcastSeen
 logger = logging.getLogger("sentry")
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class BroadcastDetailsEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
-    def _get_broadcast(self, request, broadcast_id):
+    def _get_broadcast(self, request: Request, broadcast_id):
         if request.access.has_permission("broadcasts.admin"):
             queryset = Broadcast.objects.all()
         else:
@@ -29,25 +33,25 @@ class BroadcastDetailsEndpoint(Endpoint):
         except (Broadcast.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
-    def _get_validator(self, request):
+    def _get_validator(self, request: Request):
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastValidator
         return BroadcastValidator
 
-    def _get_serializer(self, request):
+    def _get_serializer(self, request: Request):
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastSerializer
         return BroadcastSerializer
 
-    def _serialize_response(self, request, broadcast):
+    def _serialize_response(self, request: Request, broadcast):
         serializer_cls = self._get_serializer(request)
         return self.respond(serialize(broadcast, request.user, serializer=serializer_cls()))
 
-    def get(self, request, broadcast_id):
+    def get(self, request: Request, broadcast_id) -> Response:
         broadcast = self._get_broadcast(request, broadcast_id)
         return self._serialize_response(request, broadcast)
 
-    def put(self, request, broadcast_id):
+    def put(self, request: Request, broadcast_id) -> Response:
         broadcast = self._get_broadcast(request, broadcast_id)
         validator = self._get_validator(request)(data=request.data, partial=True)
         if not validator.is_valid():

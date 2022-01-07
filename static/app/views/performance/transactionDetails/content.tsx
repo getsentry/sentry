@@ -257,7 +257,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       );
     }
 
-    return super.renderError(error, true, true);
+    return super.renderError(error, true);
   }
 
   renderComponent() {
@@ -268,7 +268,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         title={t('Performance - Event Details')}
         orgSlug={organization.slug}
       >
-        {super.renderComponent()}
+        {super.renderComponent() as React.ReactChild}
       </SentryDocumentTitle>
     );
   }

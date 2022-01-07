@@ -1,4 +1,3 @@
-import {ReactElement} from 'react';
 import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -128,7 +127,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
 
   getIssueAlertsChoices(
     hasProperlyLoadedConditions: boolean
-  ): [string, string | ReactElement][] {
+  ): [string, string | React.ReactElement][] {
     const options: [string, React.ReactNode][] = [
       [Actions.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
       [Actions.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
@@ -308,7 +307,7 @@ export default withOrganization(IssueAlertOptions);
 const CustomizeAlertsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(5, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 const InlineInput = styled(Input)`

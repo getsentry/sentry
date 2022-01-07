@@ -7,7 +7,6 @@ from exam import fixture
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SlackActivityNotificationTest
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.utils import json
 
@@ -142,7 +141,6 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         assert mail.outbox[0].subject == expected_subject
 
     @responses.activate
-    @with_feature("organizations:slack-requests")
     def test_request_to_join_slack(self):
         with self.tasks():
             self.get_success_response(self.organization.slug, email=self.email, status_code=204)
@@ -169,7 +167,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
             {
                 "text": "See Members & Requests",
                 "name": "See Members & Requests",
-                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=join_request-slack",
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=join_request-slack-user",
                 "type": "button",
             },
         ]

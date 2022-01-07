@@ -26,7 +26,7 @@ function ClipboardTooltip({title, onSuccess, ...props}: Props) {
           <TextOverflow>{title}</TextOverflow>
           <Clipboard value={title} onSuccess={onSuccess}>
             <TooltipClipboardIconWrapper>
-              <IconCopy size="xs" color="white" aria-label={t('Copy to clipboard')} />
+              <IconCopy size="xs" aria-label={t('Copy to clipboard')} />
             </TooltipClipboardIconWrapper>
           </Clipboard>
         </TooltipClipboardWrapper>
@@ -42,7 +42,7 @@ const TooltipClipboardWrapper = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
   align-items: center;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
 `;
 
 const TooltipClipboardIconWrapper = styled('div')`

@@ -2037,13 +2037,6 @@ FUNCTIONS = {
             result_type_fn=reflective_result_type(),
             redundant_grouping=True,
         ),
-        # Currently only being used by the baseline PoC
-        DiscoverFunction(
-            "absolute_delta",
-            required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
-            column=["abs", [["minus", [ArgValue("column"), ArgValue("target")]]], None],
-            default_result_type="duration",
-        ),
         # These range functions for performance trends, these aren't If functions
         # to avoid allowing arbitrary if statements
         # Not yet supported in Discover, and shouldn't be added to fields.tsx
@@ -2750,14 +2743,6 @@ class QueryFields(QueryBase):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "absolute_delta",
-                    required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
-                    snql_column=lambda args, alias: Function(
-                        "abs", [Function("minus", [args["column"], args["target"]])], alias
-                    ),
-                    default_result_type="duration",
-                ),
-                SnQLFunction(
                     "eps",
                     snql_aggregate=lambda args, alias: Function(
                         "divide", [Function("count", []), args["interval"]], alias
@@ -2819,9 +2804,57 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="number",
                 ),
-                # TODO: implement these
-                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "histogram",
+                    required_args=[
+                        NumericColumn("column", allow_array_value=True),
+                        # the bucket_size and start_offset should already be adjusted
+                        # using the multiplier before it is passed here
+                        NumberRange("bucket_size", 0, None),
+                        NumberRange("start_offset", 0, None),
+                        NumberRange("multiplier", 1, None),
+                    ],
+                    # floor((x * multiplier - start_offset) / bucket_size) * bucket_size + start_offset
+                    snql_column=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "floor",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function(
+                                                        "minus",
+                                                        [
+                                                            Function(
+                                                                "multiply",
+                                                                [
+                                                                    args["column"],
+                                                                    args["multiplier"],
+                                                                ],
+                                                            ),
+                                                            args["start_offset"],
+                                                        ],
+                                                    ),
+                                                    args["bucket_size"],
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    args["bucket_size"],
+                                ],
+                            ),
+                            args["start_offset"],
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                    private=True,
+                ),
             ]
         }
 
@@ -2839,7 +2872,7 @@ class QueryFields(QueryBase):
             return []
 
         resolved_columns = []
-        stripped_columns = [column.strip() for column in selected_columns]
+        stripped_columns = [column.strip() for column in set(selected_columns)]
 
         if equations:
             _, _, parsed_equations = resolve_equation_list(
@@ -2923,8 +2956,9 @@ class QueryFields(QueryBase):
         """Convert this tree of Operations to the equivalent snql functions"""
         lhs = self._resolve_equation_operand(equation.lhs)
         rhs = self._resolve_equation_operand(equation.rhs)
-        result = Function(equation.operator, [lhs, rhs], alias)
-        return result
+        if equation.operator == "divide":
+            rhs = Function("nullIf", [rhs, 0])
+        return Function(equation.operator, [lhs, rhs], alias)
 
     def _resolve_equation_operand(self, operand: OperandType) -> Union[SelectType, float]:
         if isinstance(operand, Operation):
@@ -3065,7 +3099,16 @@ class QueryFields(QueryBase):
 
         for arg in snql_function.args:
             if isinstance(arg, ColumnArg):
-                arguments[arg.name] = self.resolve_column(arguments[arg.name])
+                if (
+                    arguments[arg.name] in NumericColumn.numeric_array_columns
+                    and isinstance(arg, NumericColumn)
+                    and not isinstance(combinator, SnQLArrayCombinator)
+                ):
+                    arguments[arg.name] = Function(
+                        "arrayJoin", [self.resolve_column(arguments[arg.name])]
+                    )
+                else:
+                    arguments[arg.name] = self.resolve_column(arguments[arg.name])
             if combinator is not None and combinator.is_applicable(arg.name):
                 arguments[arg.name] = combinator.apply(arguments[arg.name])
                 combinator_applied = True
@@ -3408,7 +3451,7 @@ class QueryFields(QueryBase):
                         Function(
                             "plus",
                             [
-                                Function("uniq", [self.column("user")]),
+                                Function("nullIf", [Function("uniq", [self.column("user")]), 0]),
                                 args["parameter_sum"],
                             ],
                         ),

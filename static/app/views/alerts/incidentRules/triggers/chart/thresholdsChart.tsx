@@ -9,8 +9,9 @@ import Graphic from 'sentry/components/charts/components/graphic';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
 import space from 'sentry/styles/space';
-import {GlobalSelection} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
@@ -40,7 +41,7 @@ type Props = DefaultProps & {
   maxValue?: number;
   minValue?: number;
   comparisonSeriesName?: string;
-} & Partial<GlobalSelection['datetime']>;
+} & Partial<PageFilters['datetime']>;
 
 type State = {
   width: number;
@@ -440,6 +441,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ])
           ),
         })}
+        colors={CHART_PALETTE[0]}
         series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}
         additionalSeries={comparisonDataWithoutRecentBucket.map(
           ({data: _data, ...otherSeriesProps}) =>

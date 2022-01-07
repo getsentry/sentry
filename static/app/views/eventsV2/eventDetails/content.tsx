@@ -301,7 +301,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       );
     }
 
-    return super.renderError(error, true, true);
+    return super.renderError(error, true);
   }
 
   getEventSlug = (): string => {
@@ -328,7 +328,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         orgSlug={organization.slug}
         projectSlug={projectSlug}
       >
-        {super.renderComponent()}
+        {super.renderComponent() as React.ReactChild}
       </SentryDocumentTitle>
     );
   }

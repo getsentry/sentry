@@ -13,13 +13,14 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
+import {assignTempId} from './dashboard';
 import {DashboardDetails, DashboardListItem} from './types';
 
 type OrgDashboardsChildrenProps = {
   dashboard: DashboardDetails | null;
   dashboards: DashboardListItem[];
   error: boolean;
-  reloadData: () => void;
+  onDashboardUpdate: (updatedDashboard: DashboardDetails) => void;
 };
 
 type Props = {
@@ -75,6 +76,10 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
+  onDashboardUpdate(updatedDashboard: DashboardDetails) {
+    this.setState({selectedDashboard: updatedDashboard});
+  }
+
   getDashboards(): DashboardListItem[] {
     const {dashboards} = this.state;
 
@@ -83,7 +88,16 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
   onRequestSuccess({stateKey, data}) {
     const {params, organization, location} = this.props;
-    if (params.dashboardId || stateKey === 'selectedDashboard') {
+
+    if (stateKey === 'selectedDashboard') {
+      if (organization.features.includes('dashboard-grid-layout')) {
+        // Ensure unique IDs even on viewing default dashboard
+        this.setState({[stateKey]: {...data, widgets: data.widgets.map(assignTempId)}});
+      }
+      return;
+    }
+
+    if (params.dashboardId) {
       return;
     }
 
@@ -115,7 +129,8 @@ class OrgDashboards extends AsyncComponent<Props, State> {
       error,
       dashboard: selectedDashboard,
       dashboards: this.getDashboards(),
-      reloadData: this.reloadData.bind(this),
+      onDashboardUpdate: (updatedDashboard: DashboardDetails) =>
+        this.onDashboardUpdate(updatedDashboard),
     });
   }
 
@@ -128,7 +143,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
       return <NotFound />;
     }
 
-    return super.renderError(error, true, true);
+    return super.renderError(error, true);
   }
 
   renderComponent() {
@@ -147,7 +162,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     return (
       <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-        {super.renderComponent()}
+        {super.renderComponent() as React.ReactChild}
       </SentryDocumentTitle>
     );
   }

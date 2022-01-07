@@ -14,16 +14,13 @@ type Props = {
 };
 
 function SubscribeAction({disabled, group, onClick}: Props) {
-  const canChangeSubscriptionState = !(group.subscriptionDetails?.disabled ?? false);
-
-  if (!canChangeSubscriptionState) {
-    return null;
-  }
+  const disabledNotifications = group.subscriptionDetails?.disabled ?? false;
 
   return (
     <ActionButton
-      disabled={disabled}
+      disabled={disabled || disabledNotifications}
       title={getSubscriptionReason(group, true)}
+      tooltipProps={{delay: 300}}
       priority={group.isSubscribed ? 'primary' : 'default'}
       size="zero"
       label={t('Subscribe')}

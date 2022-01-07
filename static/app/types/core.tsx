@@ -12,7 +12,8 @@ import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
  */
 export type Avatar = {
   avatarUuid: string | null;
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background';
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
+  color?: boolean;
 };
 
 export type ObjectStatus =
@@ -79,10 +80,18 @@ export const DataCategoryName = {
 export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
-export type GlobalSelection = {
-  // Project Ids currently selected
+export type PageFilters = {
+  /**
+   * Currently selected Project IDs
+   */
   projects: number[];
+  /**
+   * Currently selected environment names
+   */
   environments: string[];
+  /**
+   * CUrrently selected time filter
+   */
   datetime: {
     start: DateString;
     end: DateString;

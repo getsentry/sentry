@@ -1,4 +1,4 @@
-import {Fragment, MouseEvent} from 'react';
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
@@ -35,6 +35,8 @@ type State = AsyncView['state'] & {
 };
 
 class AcceptOrganizationInvite extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {memberId, token} = this.props.params;
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
@@ -48,7 +50,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     return `${path}?${urlEncode({next: window.location.pathname})}`;
   }
 
-  handleLogout = async (e: MouseEvent) => {
+  handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     await logout(this.api);
     window.location.replace(this.makeNextUrl('/auth/login/'));

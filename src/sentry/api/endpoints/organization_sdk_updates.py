@@ -4,8 +4,10 @@ from itertools import chain, groupby
 
 import sentry_sdk
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
 from sentry.snuba import discover
@@ -61,7 +63,7 @@ def serialize(data, projects):
 
 
 class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
         len_projects = len(projects)
@@ -74,7 +76,13 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
         with self.handle_query_errors():
             result = discover.query(
                 query="has:sdk.version",
-                selected_columns=["project", "sdk.name", "sdk.version", "last_seen()"],
+                selected_columns=[
+                    "project",
+                    "project.id",
+                    "sdk.name",
+                    "sdk.version",
+                    "last_seen()",
+                ],
                 orderby="-project",
                 params={
                     "start": timezone.now() - timedelta(days=1),
@@ -83,6 +91,9 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
                     "project_id": [p.id for p in projects],
                 },
                 referrer="api.organization-sdk-updates",
+                use_snql=features.has(
+                    "organizations:performance-use-snql", organization, actor=request.user
+                ),
             )
 
         return Response(serialize(result["data"], projects))

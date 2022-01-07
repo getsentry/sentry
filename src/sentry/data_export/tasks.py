@@ -27,6 +27,7 @@ from sentry.utils.sdk import capture_exception
 from .base import (
     EXPORTED_ROWS_LIMIT,
     MAX_BATCH_SIZE,
+    MAX_FRAGMENTS_PER_BATCH,
     SNUBA_MAX_RESULTS,
     ExportError,
     ExportQueryType,
@@ -57,11 +58,7 @@ def assemble_download(
     countdown=60,
     **kwargs,
 ):
-    with sentry_sdk.start_transaction(
-        op="task.data_export.assemble",
-        name="DataExportAssemble",
-        sampled=True,
-    ):
+    with sentry_sdk.start_span(op="assemble"):
         first_page = offset == 0
 
         try:
@@ -127,7 +124,9 @@ def assemble_download(
                 # the absolute row offset from the beginning of the export
                 next_offset = offset + fragment_offset
 
-                while True:
+                rows = []
+
+                for _ in range(MAX_FRAGMENTS_PER_BATCH):
                     # the number of rows to export in the next batch fragment
                     fragment_row_count = min(batch_size, max(export_limit - next_offset, 1))
 
@@ -189,14 +188,17 @@ def assemble_download(
                 and new_bytes_written
                 and next_offset < export_limit
             ):
-                assemble_download.delay(
-                    data_export_id,
-                    export_limit=export_limit,
-                    batch_size=batch_size,
-                    offset=next_offset,
-                    bytes_written=bytes_written,
-                    environment_id=environment_id,
-                    export_retries=export_retries,
+                assemble_download.apply_async(
+                    args=[data_export_id],
+                    kwargs={
+                        "export_limit": export_limit,
+                        "batch_size": batch_size,
+                        "offset": next_offset,
+                        "bytes_written": bytes_written,
+                        "environment_id": environment_id,
+                        "export_retries": export_retries,
+                    },
+                    countdown=3,
                 )
             else:
                 metrics.timing("dataexport.row_count", next_offset, sample_rate=1.0)
@@ -296,11 +298,7 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
 
 @instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export", acks_late=True)
 def merge_export_blobs(data_export_id, **kwargs):
-    with sentry_sdk.start_transaction(
-        op="task.data_export.merge",
-        name="DataExportMerge",
-        sampled=True,
-    ):
+    with sentry_sdk.start_span(op="merge"):
         try:
             data_export = ExportedData.objects.get(id=data_export_id)
         except ExportedData.DoesNotExist as error:
@@ -327,7 +325,6 @@ def merge_export_blobs(data_export_id, **kwargs):
                 using=(
                     router.db_for_write(File),
                     router.db_for_write(FileBlobIndex),
-                    router.db_for_write(ExportedData),
                 )
             ):
                 file = File.objects.create(
@@ -356,7 +353,15 @@ def merge_export_blobs(data_export_id, **kwargs):
                 file.size = size
                 file.checksum = file_checksum.hexdigest()
                 file.save()
-                data_export.finalize_upload(file=file)
+
+                # This is in a separate atomic transaction because in prod, files exist
+                # outside of the primary database which means that the transaction to
+                # the primary database is idle the entire time the writes the the files
+                # database is happening. In the event the writes to the files database
+                # takes longer than the idle timeout, the connection to the primary
+                # database can timeout causing a failure.
+                with atomic_transaction(using=router.db_for_write(ExportedData)):
+                    data_export.finalize_upload(file=file)
 
                 time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
                 metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)

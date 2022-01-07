@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry.models import ApiToken
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.metrics import _METRICS
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -95,17 +96,21 @@ class OrganizationMetricDetailsTest(APITestCase):
     @with_feature(FEATURE_FLAG)
     def test_valid_response(self):
 
-        response = self.get_success_response(self.project.organization.slug, "session")
+        response = self.get_success_response(
+            self.project.organization.slug, SessionMetricKey.SESSION.value
+        )
 
-        assert response.data["name"] == "session"
+        assert response.data["name"] == SessionMetricKey.SESSION.value
         assert "tags" in response.data
         assert all(isinstance(item, str) for item in response.data["tags"])
 
 
 _EXTENDED_METRICS = deepcopy(_METRICS)
-_EXTENDED_METRICS["user"]["tags"] = dict(_EXTENDED_METRICS["user"]["tags"], custom_user_tag=[""])
-_EXTENDED_METRICS["session"]["tags"] = dict(
-    _EXTENDED_METRICS["session"]["tags"], custom_session_tag=["foo", "bar"]
+_EXTENDED_METRICS[SessionMetricKey.USER.value]["tags"] = dict(
+    _EXTENDED_METRICS[SessionMetricKey.USER.value]["tags"], custom_user_tag=[""]
+)
+_EXTENDED_METRICS[SessionMetricKey.SESSION.value]["tags"] = dict(
+    _EXTENDED_METRICS[SessionMetricKey.SESSION.value]["tags"], custom_session_tag=["foo", "bar"]
 )
 
 
@@ -137,7 +142,9 @@ class OrganizationMetricTagsTest(APITestCase):
     @mock.patch("sentry.snuba.metrics._METRICS", _EXTENDED_METRICS)
     def test_filtered_response(self):
 
-        response = self.get_success_response(self.project.organization.slug, metric="session")
+        response = self.get_success_response(
+            self.project.organization.slug, metric=SessionMetricKey.SESSION.value
+        )
 
         # Check that only tags from this metrics appear:
         tags = {tag["key"] for tag in response.data}
@@ -149,7 +156,8 @@ class OrganizationMetricTagsTest(APITestCase):
     def test_two_filters(self):
 
         response = self.get_success_response(
-            self.project.organization.slug, metric=["user", "session"]
+            self.project.organization.slug,
+            metric=[SessionMetricKey.USER.value, SessionMetricKey.SESSION.value],
         )
 
         # Check that only tags from this metrics appear:
@@ -199,7 +207,7 @@ class OrganizationMetricTagDetailsTest(APITestCase):
         response = self.get_success_response(
             self.project.organization.slug,
             "custom_session_tag",
-            metric="session",
+            metric=SessionMetricKey.SESSION.value,
         )
 
         # Check that only tags from this metrics appear:
@@ -211,7 +219,7 @@ class OrganizationMetricTagDetailsTest(APITestCase):
         response = self.get_success_response(
             self.project.organization.slug,
             "environment",
-            metric=["user", "session"],
+            metric=[SessionMetricKey.USER.value, SessionMetricKey.SESSION.value],
         )
 
         assert {tag["value"] for tag in response.data} == {"production", "staging"}
@@ -249,7 +257,9 @@ class OrganizationMetricDataTest(APITestCase):
 
     @with_feature(FEATURE_FLAG)
     def test_valid_operation(self):
-        response = self.get_response(self.project.organization.slug, field="sum(session)")
+        response = self.get_response(
+            self.project.organization.slug, field="sum(sentry.sessions.session)"
+        )
 
         assert response.status_code == 200
 
@@ -261,7 +271,7 @@ class OrganizationMetricDataTest(APITestCase):
     def test_groupby_single(self):
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(session)",
+            field="sum(sentry.sessions.session)",
             groupBy="environment",
         )
 
@@ -271,7 +281,7 @@ class OrganizationMetricDataTest(APITestCase):
     def test_groupby_multiple(self):
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(session)",
+            field="sum(sentry.sessions.session)",
             groupBy=["environment", "session.status"],
         )
 
@@ -285,13 +295,12 @@ class OrganizationMetricDataTest(APITestCase):
     @with_feature(FEATURE_FLAG)
     def test_invalid_filter(self):
         for query in [
-            "%w45698u",
             "release:foo or ",
         ]:
 
             response = self.get_response(
                 self.project.organization.slug,
-                field="sum(session)",
+                field="sum(sentry.sessions.session)",
                 groupBy="environment",
                 query=query,
             )
@@ -300,26 +309,19 @@ class OrganizationMetricDataTest(APITestCase):
 
     @with_feature(FEATURE_FLAG)
     def test_valid_filter(self):
-
-        for query in [
-            "release:",  # Empty string is OK
-            "release:myapp@2.0.0",
-            "release:myapp@2.0.0 and environment:production",
-            "release:myapp@2.0.0 and environment:production or session.status:healthy",
-        ]:
-
-            response = self.get_success_response(
-                self.project.organization.slug,
-                field="sum(session)",
-                groupBy="environment",
-                query=query,
-            )
-            assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
+        query = "release:myapp@2.0.0"
+        response = self.get_success_response(
+            self.project.organization.slug,
+            field="sum(sentry.sessions.session)",
+            groupBy="environment",
+            query=query,
+        )
+        assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
 
     @with_feature(FEATURE_FLAG)
     def test_orderby_unknown(self):
         response = self.get_response(
-            self.project.organization.slug, field="sum(session)", orderBy="foo"
+            self.project.organization.slug, field="sum(sentry.sessions.session)", orderBy="foo"
         )
         assert response.status_code == 400
 
@@ -328,7 +330,7 @@ class OrganizationMetricDataTest(APITestCase):
         """Order by tag is not supported (yet)"""
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(session)",
+            field="sum(sentry.sessions.session)",
             groupBy="environment",
             orderBy="environment",
         )
@@ -339,8 +341,8 @@ class OrganizationMetricDataTest(APITestCase):
         """Only one field is supported with order by"""
         response = self.get_response(
             self.project.organization.slug,
-            field=["sum(session)", "count_unique(user)"],
-            orderBy=["sum(session)"],
+            field=["sum(sentry.sessions.session)", "count_unique(sentry.sessions.user)"],
+            orderBy=["sum(sentry.sessions.session)"],
         )
         assert response.status_code == 400
 
@@ -356,7 +358,7 @@ class OrganizationMetricDataTest(APITestCase):
     def test_limit_without_orderby(self):
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(session)",
+            field="sum(sentry.sessions.session)",
             limit=3,
         )
         assert response.status_code == 400
@@ -366,10 +368,19 @@ class OrganizationMetricDataTest(APITestCase):
         for limit in (-1, 0, "foo"):
             response = self.get_response(
                 self.project.organization.slug,
-                field="sum(session)",
+                field="sum(sentry.sessions.session)",
                 limit=limit,
             )
             assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_statsperiod_invalid(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="",
+        )
+        assert response.status_code == 400
 
 
 class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
@@ -388,7 +399,7 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
 
         def count_sessions(project_id: Optional[int]) -> int:
             kwargs = dict(
-                field="sum(session)",
+                field="sum(sentry.sessions.session)",
                 statsPeriod="1h",
                 interval="1h",
                 datasource="snuba",
@@ -400,7 +411,7 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             groups = response.data["groups"]
             assert len(groups) == 1
 
-            return groups[0]["totals"]["sum(session)"]
+            return groups[0]["totals"]["sum(sentry.sessions.session)"]
 
         # Request for entire org gives a counter of two:
         assert count_sessions(project_id=None) == 2
@@ -411,7 +422,7 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
     @with_feature(FEATURE_FLAG)
     def test_orderby(self):
         # Record some strings
-        metric_id = indexer.record("measurements.lcp")
+        metric_id = indexer.record("sentry.transactions.measurements.lcp")
         k_transaction = indexer.record("transaction")
         v_foo = indexer.record("/foo")
         v_bar = indexer.record("/bar")
@@ -445,13 +456,13 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="count(measurements.lcp)",
+            field="count(sentry.transactions.measurements.lcp)",
             query="measurement_rating:poor",
             statsPeriod="1h",
             interval="1h",
             datasource="snuba",
             groupBy="transaction",
-            orderBy="-count(measurements.lcp)",
+            orderBy="-count(sentry.transactions.measurements.lcp)",
             limit=2,
         )
         groups = response.data["groups"]
@@ -466,7 +477,68 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             assert "series" not in group
             assert group["by"] == {"transaction": expected_transaction}
             totals = group["totals"]
-            assert totals == {"count(measurements.lcp)": expected_count}
+            assert totals == {"count(sentry.transactions.measurements.lcp)": expected_count}
+
+    @with_feature(FEATURE_FLAG)
+    def test_unknown_groupby(self):
+        """Use a tag name in groupby that does not exist in the indexer"""
+        # Insert session metrics:
+        self.store_session(self.build_session(project_id=self.project.id))
+
+        # "foo" is known by indexer, "bar" is not
+        indexer.record("foo")
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["session.status", "foo"],
+        )
+
+        groups = response.data["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {"session.status": "init", "foo": None}
+
+        response = self.get_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["session.status", "bar"],
+        )
+        assert response.status_code == 400
+
+    @with_feature(FEATURE_FLAG)
+    def test_unknown_filter(self):
+        """Use a tag key/value in filter that does not exist in the indexer"""
+        # Insert session metrics:
+        self.store_session(self.build_session(project_id=self.project.id))
+
+        response = self.get_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            query="foo:123",  # Unknown tag key
+        )
+        print(response.data)
+        assert response.status_code == 400
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            query="release:123",  # Unknown tag value is fine.
+        )
+
+        groups = response.data["groups"]
+        assert len(groups) == 0
 
 
 class OrganizationMetricMetaIntegrationTest(SessionMetricsTestCase, APITestCase):

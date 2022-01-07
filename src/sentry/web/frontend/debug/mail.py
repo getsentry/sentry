@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import logging
 import time
@@ -5,6 +7,7 @@ import traceback
 import uuid
 from datetime import datetime, timedelta
 from random import Random
+from typing import Any, MutableMapping
 
 import pytz
 from django.template.defaultfilters import slugify
@@ -21,6 +24,7 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
+from sentry.mail.notifications import get_builder_args
 from sentry.models import (
     Activity,
     Group,
@@ -31,8 +35,10 @@ from sentry.models import (
     Release,
     Rule,
     Team,
+    User,
 )
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -137,7 +143,7 @@ class MailPreview:
             traceback.print_exc()
             raise
 
-    def render(self, request):
+    def render(self, request: Request):
         return render_to_response(
             "sentry/debug/mail/preview.html",
             context={"preview": self, "format": request.GET.get("format")},
@@ -187,11 +193,15 @@ class ActivityMailPreview:
             raise
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class ActivityMailDebugView(View):
-    def get_activity(self, request, event):
+    def get_activity(self, request: Request, event):
         raise NotImplementedError
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 
@@ -661,3 +671,22 @@ def org_delete_confirm(request):
             "url": absolute_uri(reverse("sentry-restore-organization", args=[org.slug])),
         },
     ).render(request)
+
+
+# Used to generate debug email views from a notification
+def render_preview_email_for_notification(
+    notification: BaseNotification, recipient: User | Team
+) -> MutableMapping[str, Any]:
+    # remove unneeded fields
+    basic_args = get_builder_args(notification, recipient)
+    args = {
+        k: v
+        for k, v in basic_args.items()
+        if k not in ["headers", "reference", "reply_reference", "subject"]
+    }
+    # convert subject back to a string
+    args["subject"] = basic_args["subject"].decode("utf-8")
+
+    preview = MailPreviewAdapter(**args)
+
+    return render_to_response("sentry/debug/mail/preview.html", {"preview": preview})

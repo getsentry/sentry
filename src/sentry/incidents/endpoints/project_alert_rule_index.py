@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -22,7 +23,7 @@ from sentry.snuba.dataset import Dataset
 
 
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Fetches alert rules and legacy rules for a project
         """
@@ -52,7 +53,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Fetches alert rules for a project
         """
@@ -73,7 +74,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
             default_per_page=25,
         )
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         """
         Create an alert rule
         """

@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, integrations
@@ -7,7 +8,7 @@ from sentry.utils.compat import filter
 
 
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         def is_provider_enabled(provider):
             if not provider.requires_feature_flag:
                 return True

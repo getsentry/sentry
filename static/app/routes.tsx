@@ -843,7 +843,7 @@ function buildRoutes() {
           component={SafeLazyLoad}
         />
         <Route
-          name={t('New Public Integration')}
+          name={t('Create Integration')}
           path="new-public/"
           componentPromise={() =>
             import(
@@ -853,7 +853,7 @@ function buildRoutes() {
           component={SafeLazyLoad}
         />
         <Route
-          name={t('New Internal Integration')}
+          name={t('Create Integration')}
           path="new-internal/"
           componentPromise={() =>
             import(
@@ -980,6 +980,11 @@ function buildRoutes() {
           component={SafeLazyLoad}
         />
       </Route>
+      <Route
+        path="/organizations/:orgId/dashboards/new/:templateId"
+        componentPromise={() => import('sentry/views/dashboardsV2/create')}
+        component={SafeLazyLoad}
+      />
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
@@ -1109,11 +1114,7 @@ function buildRoutes() {
   );
 
   const releasesRoutes = (
-    <Route
-      path="/organizations/:orgId/releases/"
-      componentPromise={() => import('sentry/views/releases')}
-      component={SafeLazyLoad}
-    >
+    <Route path="/organizations/:orgId/releases/">
       <IndexRoute
         componentPromise={() => import('sentry/views/releases/list')}
         component={SafeLazyLoad}
@@ -1250,13 +1251,23 @@ function buildRoutes() {
           }
           component={SafeLazyLoad}
         />
-        <Route
-          path="spans/"
-          componentPromise={() =>
-            import('sentry/views/performance/transactionSummary/transactionSpans')
-          }
-          component={SafeLazyLoad}
-        />
+        <Route path="spans/">
+          <IndexRoute
+            componentPromise={() =>
+              import('sentry/views/performance/transactionSummary/transactionSpans')
+            }
+            component={SafeLazyLoad}
+          />
+          <Route
+            path=":spanSlug/"
+            componentPromise={() =>
+              import(
+                'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
+              )
+            }
+            component={SafeLazyLoad}
+          />
+        </Route>
       </Route>
       <Route
         path="vitaldetail/"
@@ -1271,11 +1282,6 @@ function buildRoutes() {
       <Route
         path=":eventSlug/"
         componentPromise={() => import('sentry/views/performance/transactionDetails')}
-        component={SafeLazyLoad}
-      />
-      <Route
-        path="compare/:baselineEventSlug/:regressionEventSlug/"
-        componentPromise={() => import('sentry/views/performance/compare')}
         component={SafeLazyLoad}
       />
     </Route>

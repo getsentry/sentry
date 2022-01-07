@@ -116,18 +116,27 @@ const IgnoreActions = ({
 
   return (
     <ButtonBar merged>
-      <ActionLink
-        {...actionLinkProps}
-        type="button"
-        title={t('Ignore')}
-        onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
-        icon={<IconMute size="xs" />}
+      <Tooltip
+        disabled={actionLinkProps.disabled}
+        title={t(
+          'Silences alerts for this issue and removes it from the issue stream by default.'
+        )}
+        delay={300}
       >
-        {t('Ignore')}
-      </ActionLink>
+        <ActionLink
+          {...actionLinkProps}
+          type="button"
+          title={t('Ignore')}
+          onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
+          icon={<IconMute size="xs" />}
+          hasDropdown
+        >
+          {t('Ignore')}
+        </ActionLink>
+      </Tooltip>
       <StyledDropdownLink
         customTitle={
-          <ActionButton
+          <StyledActionButton
             disabled={disabled}
             icon={<IconChevron direction="down" size="xs" />}
           />
@@ -254,7 +263,9 @@ const IgnoreActions = ({
                 <DropdownLink
                   title={
                     <ActionSubMenu>
-                      {tn('one user\u2026', '%s users\u2026', count)}
+                      {count === 1
+                        ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
+                        : tn('%s user\u2026', '%s users\u2026', count)}
                       <SubMenuChevron>
                         <IconChevron direction="right" size="xs" />
                       </SubMenuChevron>
@@ -322,6 +333,10 @@ const StyledForActionLink = styled(ActionLink)`
   ${actionLinkCss};
 `;
 
+const StyledActionButton = styled(ActionButton)`
+  box-shadow: none;
+`;
+
 const StyledDropdownLink = styled(DropdownLink)`
   transition: none;
   border-top-left-radius: 0 !important;
@@ -347,7 +362,7 @@ const DropdownMenuItem = styled('li')`
     }
   }
   &:hover > span {
-    background: ${p => p.theme.focus};
+    background: ${p => p.theme.hover};
   }
 `;
 

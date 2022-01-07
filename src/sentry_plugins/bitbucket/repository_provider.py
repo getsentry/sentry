@@ -39,7 +39,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, RepositoryProvider):
             try:
                 repo = client.get_repo(config["name"])
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                raise self.raise_error(e, identity=client.auth)
             else:
                 config["external_id"] = str(repo["uuid"])
         return config
@@ -75,7 +75,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, RepositoryProvider):
                 },
             )
         except Exception as e:
-            self.raise_error(e, identity=client.auth)
+            raise self.raise_error(e, identity=client.auth)
         else:
             return {
                 "name": data["name"],
@@ -120,13 +120,13 @@ class BitbucketRepositoryProvider(BitbucketMixin, RepositoryProvider):
             try:
                 res = client.get_last_commits(name, end_sha)
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                raise self.raise_error(e, identity=client.auth)
             else:
                 return self._format_commits(repo, res[:10])
         else:
             try:
                 res = client.compare_commits(name, start_sha, end_sha)
             except Exception as e:
-                self.raise_error(e, identity=client.auth)
+                raise self.raise_error(e, identity=client.auth)
             else:
                 return self._format_commits(repo, res)

@@ -328,7 +328,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
         <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
-          {getIntegrationIcon(config.provider.key)}
+          <StyledIconWrapper>{getIntegrationIcon(config.provider.key)}</StyledIconWrapper>
           <OpenInName>{config.provider.name}</OpenInName>
         </OpenInLink>
       </OpenInContainer>
@@ -359,6 +359,11 @@ export {StacktraceLink};
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
+`;
+
+const StyledIconWrapper = styled('span')`
+  color: inherit;
+  line-height: 0;
 `;
 
 const StyledIconClose = styled(IconClose)`

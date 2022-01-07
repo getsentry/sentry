@@ -1,4 +1,4 @@
-import {Component, ComponentClass, ReactPortal} from 'react';
+import {Component} from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import {browserHistory} from 'react-router';
@@ -16,7 +16,7 @@ import EventView from 'sentry/utils/discover/eventView';
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
 type Props = {
-  title: ComponentClass<TitleProps>;
+  title: React.ComponentClass<TitleProps>;
   eventView: EventView;
   tableMeta: TableData['meta'];
   location: Location;
@@ -162,7 +162,7 @@ class OperationSort extends Component<Props, State> {
   render() {
     const {title: Title} = this.props;
     const {isOpen} = this.state;
-    const menu: ReactPortal | null = isOpen ? this.renderMenu() : null;
+    const menu: React.ReactPortal | null = isOpen ? this.renderMenu() : null;
 
     return (
       <Manager>
@@ -262,7 +262,7 @@ const MenuItemContent = styled('div')`
 const RadioLabel = styled('label')`
   display: grid;
   cursor: pointer;
-  grid-gap: 0.25em 0.5em;
+  gap: 0.25em 0.5em;
   grid-template-columns: max-content auto;
   align-items: center;
   outline: none;

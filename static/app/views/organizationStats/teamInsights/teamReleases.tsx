@@ -1,17 +1,17 @@
 import {ComponentType, Fragment} from 'react';
-import {withTheme} from '@emotion/react';
+import {css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 import moment from 'moment';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
 import BarChart from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -20,6 +20,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Color, Theme} from 'sentry/utils/theme';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
 
 type Props = AsyncComponent['props'] & {
@@ -244,8 +245,18 @@ class TeamReleases extends AsyncComponent<Props, State> {
         </ChartWrapper>
         <StyledPanelTable
           isEmpty={projects.length === 0}
+          emptyMessage={t('No releases were setup for this team’s projects')}
+          emptyAction={
+            <Button
+              size="small"
+              external
+              href="https://docs.sentry.io/product/releases/setup/"
+            >
+              {t('Learn More')}
+            </Button>
+          }
           headers={[
-            t('Project'),
+            t('Releases Per Project'),
             <RightAligned key="last">
               {tct('Last [period] Average', {period})}
             </RightAligned>,
@@ -256,7 +267,14 @@ class TeamReleases extends AsyncComponent<Props, State> {
           {groupedProjects.map(({project}) => (
             <Fragment key={project.id}>
               <ProjectBadgeContainer>
-                <ProjectBadge avatarSize={18} project={project} />
+                <ProjectBadge
+                  avatarSize={18}
+                  project={project}
+                  to={{
+                    pathname: `/organizations/${organization.slug}/releases/`,
+                    query: {project: project.id},
+                  }}
+                />
               </ProjectBadgeContainer>
 
               <ScoreWrapper>{this.renderReleaseCount(project.id, 'period')}</ScoreWrapper>
@@ -286,7 +304,7 @@ const ChartWrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
   white-space: nowrap;
   margin-bottom: 0;
@@ -297,6 +315,14 @@ const StyledPanelTable = styled(PanelTable)`
   & > div {
     padding: ${space(1)} ${space(2)};
   }
+
+  ${p =>
+    p.isEmpty &&
+    css`
+      & > div:last-child {
+        padding: 48px ${space(2)};
+      }
+    `}
 `;
 
 const RightAligned = styled('span')`
@@ -316,12 +342,4 @@ const PaddedIconArrow = styled(IconArrow)`
 
 const SubText = styled('div')<{color: Color}>`
   color: ${p => p.theme[p.color]};
-`;
-
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
 `;

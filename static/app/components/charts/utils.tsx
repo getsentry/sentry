@@ -3,7 +3,7 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'sentry/types';
+import {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
 import {defined, escape} from 'sentry/utils';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -25,7 +25,7 @@ export const ONE_HOUR = 60;
  */
 export const RELEASE_LINES_THRESHOLD = 50;
 
-export type DateTimeObject = Partial<GlobalSelection['datetime']>;
+export type DateTimeObject = Partial<PageFilters['datetime']>;
 
 export function truncationFormatter(
   value: string,
@@ -168,6 +168,17 @@ export function canIncludePreviousPeriod(
 
   // otherwise true
   return !!includePrevious;
+}
+
+export function shouldFetchPreviousPeriod({
+  includePrevious = true,
+  period,
+  start,
+  end,
+}: {
+  includePrevious?: boolean;
+} & Pick<DateTimeObject, 'start' | 'end' | 'period'>) {
+  return !start && !end && canIncludePreviousPeriod(includePrevious, period);
 }
 
 /**

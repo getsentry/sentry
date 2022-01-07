@@ -2,6 +2,11 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {
+  mountWithTheme as reactMountWithTheme,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
@@ -84,7 +89,7 @@ async function setSearchConditions(el, query) {
 describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'discover-query'],
+      features: ['performance-view', 'discover-query', 'issues-in-dashboards'],
       apdexThreshold: 400,
     },
   });
@@ -127,6 +132,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [dashboard],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [],
     });
   });
 
@@ -1011,7 +1020,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
-  it('renders the back button from library', async function () {
+  it('renders the tab button bar from widget library', async function () {
     const onAddLibraryWidgetMock = jest.fn();
     const wrapper = mountModal({
       initialData,
@@ -1020,13 +1029,14 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       source: types.DashboardWidgetSource.LIBRARY,
     });
 
-    expect(wrapper.find('Button[data-test-id="back-to-library"]')).toHaveLength(1);
-    wrapper.find('Button[data-test-id="back-to-library"] button').simulate('click');
+    expect(wrapper.find('LibraryButton')).toHaveLength(1);
+    expect(wrapper.find('CustomButton')).toHaveLength(1);
+    wrapper.find('LibraryButton button').simulate('click');
     expect(openDashboardWidgetLibraryModal).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
 
-  it('sets widgetType to dashboard', async function () {
+  it('sets widgetType to discover', async function () {
     const onAdd = jest.fn();
     const wrapper = mountModal({
       initialData,
@@ -1037,5 +1047,81 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({widgetType: 'discover'}));
     wrapper.unmount();
+  });
+
+  describe('Issue Widgets', function () {
+    function mountModalWithRtl({onAddWidget, onUpdateWidget, widget, source}) {
+      return reactMountWithTheme(
+        <AddDashboardWidgetModal
+          Header={stubEl}
+          Body={stubEl}
+          Footer={stubEl}
+          CloseButton={stubEl}
+          organization={initialData.organization}
+          onAddWidget={onAddWidget}
+          onUpdateWidget={onUpdateWidget}
+          widget={widget}
+          closeModal={() => void 0}
+          source={source || types.DashboardWidgetSource.DASHBOARDS}
+        />
+      );
+    }
+
+    it('sets widgetType to issues', async function () {
+      const onAdd = jest.fn(() => {});
+      const wrapper = mountModalWithRtl({
+        onAddWidget: onAdd,
+        onUpdateWidget: () => undefined,
+      });
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
+      userEvent.click(screen.getByTestId('add-widget'));
+
+      await tick();
+      expect(onAdd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          displayType: 'table',
+          interval: '5m',
+          queries: [
+            {
+              conditions: '',
+              fields: ['issue', 'assignee', 'title'],
+              name: '',
+              orderby: '',
+            },
+          ],
+          title: '',
+          widgetType: 'issue',
+        })
+      );
+      wrapper.unmount();
+    });
+
+    it('does not render the dataset selector', async function () {
+      const wrapper = mountModalWithRtl({
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DISCOVERV2,
+      });
+      await tick();
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Table'));
+      expect(screen.queryByText('Data Set')).not.toBeInTheDocument();
+      wrapper.unmount();
+    });
+
+    it('renders the dataset selector', function () {
+      const wrapper = mountModalWithRtl({
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Table'));
+
+      expect(screen.getByText('Data Set')).toBeInTheDocument();
+      wrapper.unmount();
+    });
   });
 });

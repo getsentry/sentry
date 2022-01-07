@@ -1,4 +1,3 @@
-import {MouseEvent} from 'react';
 import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
@@ -6,8 +5,8 @@ import classNames from 'classnames';
 import {Location, Query} from 'history';
 import moment from 'moment';
 
-import {resetGlobalSelection} from 'sentry/actionCreators/globalSelection';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import DropdownMenu from 'sentry/components/dropdownMenu';
@@ -54,7 +53,7 @@ class QueryList extends React.Component<Props> {
      * We need to reset global selection here because the saved queries can define their own projects
      * in the query. This can lead to mismatched queries for the project
      */
-    resetGlobalSelection();
+    resetPageFilters();
   }
 
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
@@ -365,7 +364,7 @@ const PaginationRow = styled(Pagination)`
 const QueryGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
@@ -392,7 +391,7 @@ const ContextMenu = ({children}) => (
         >
           <DropdownTarget
             {...getActorProps<HTMLDivElement>({
-              onClick: (event: MouseEvent) => {
+              onClick: (event: React.MouseEvent) => {
                 event.stopPropagation();
                 event.preventDefault();
               },

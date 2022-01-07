@@ -1,7 +1,7 @@
 import {Location} from 'history';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -675,6 +675,7 @@ function generateFrontendPageloadPerformanceEventView(
 
 function generateFrontendOtherPerformanceEventView(
   location: Location,
+  organization: Organization,
   isMetricsData: boolean
 ): EventView {
   const {query} = location;
@@ -734,14 +735,18 @@ function generateFrontendOtherPerformanceEventView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions
-    .addFilterValues('event.type', ['transaction'])
-    .addFilterValues('!transaction.op', ['pageload']);
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+
+  if (!organization.features.includes('organizations:performance-landing-widgets')) {
+    // Original landing page still should use Frontend (other) with pageload excluded.
+    eventView.additionalConditions.addFilterValues('!transaction.op', ['pageload']);
+  }
   return eventView;
 }
 
 export function generatePerformanceEventView(
   location: Location,
+  organization: Organization,
   projects: Project[],
   {isTrends = false, isMetricsData = false} = {}
 ) {
@@ -756,7 +761,11 @@ export function generatePerformanceEventView(
     case LandingDisplayField.FRONTEND_PAGELOAD:
       return generateFrontendPageloadPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(location, isMetricsData);
+      return generateFrontendOtherPerformanceEventView(
+        location,
+        organization, // TODO(k-fish): Remove with tag change
+        isMetricsData
+      );
     case LandingDisplayField.BACKEND:
       return generateBackendPerformanceEventView(location, isMetricsData);
     case LandingDisplayField.MOBILE:

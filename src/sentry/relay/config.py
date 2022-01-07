@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
-from typing import List
+from typing import Any, List, Mapping, Optional
 
 from pytz import utc
-from sentry_sdk import Hub
+from sentry_sdk import Hub, capture_exception
 
 from sentry import features, quotas, utils
 from sentry.constants import ObjectStatus
@@ -168,6 +168,10 @@ def get_project_config(project, full_config=True, project_keys=None):
 
     if features.has("organizations:performance-ops-breakdown", project.organization):
         cfg["config"]["breakdownsV2"] = project.get_option("sentry:breakdowns")
+    if features.has("organizations:transaction-metrics-extraction", project.organization):
+        cfg["config"]["transactionMetrics"] = get_transaction_metrics_settings(
+            project, cfg["config"].get("breakdownsV2")
+        )
     if features.has("projects:performance-suspect-spans-ingestion", project=project):
         cfg["config"]["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
@@ -345,3 +349,69 @@ def _filter_option_to_config_setting(flt, setting):
                 # ret_val['options'] = setting.split(' ')
                 ret_val["options"] = list(setting)
     return ret_val
+
+
+ALL_MEASUREMENT_METRICS = frozenset(
+    [
+        "sentry.transactions.measurements.fp",
+        "sentry.transactions.measurements.fcp",
+        "sentry.transactions.measurements.lcp",
+        "sentry.transactions.measurements.fid",
+        "sentry.transactions.measurements.cls",
+        "sentry.transactions.measurements.ttfb",
+        "sentry.transactions.measurements.ttfb.requesttime",
+        "sentry.transactions.measurements.app_start_cold",
+        "sentry.transactions.measurements.app_start_warm",
+        "sentry.transactions.measurements.frames_total",
+        "sentry.transactions.measurements.frames_slow",
+        "sentry.transactions.measurements.frames_frozen",
+        "sentry.transactions.measurements.frames_slow_rate",
+        "sentry.transactions.measurements.frames_frozen_rate",
+        "sentry.transactions.measurements.stall_count",
+        "sentry.transactions.measurements.stall_total_time",
+        "sentry.transactions.measurements.stall_longest_time",
+        "sentry.transactions.measurements.stall_percentage",
+    ]
+)
+
+
+def get_transaction_metrics_settings(
+    project: Project, breakdowns_config: Optional[Mapping[str, Any]]
+):
+    metrics = []
+    custom_tags = []
+
+    if features.has("organizations:transaction-metrics-extraction", project.organization):
+        metrics.append("sentry.transactions.transaction.duration")
+        # TODO: for now let's extract all known measurements. we might want to
+        # be more fine-grained in the future once we know which measurements we
+        # really need (or how that can be dynamically determined)
+        metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
+
+        if breakdowns_config is not None:
+            # we already have a breakdown configuration that tells relay which
+            # breakdowns to compute for an event. metrics extraction should
+            # probably be in sync with that, or at least not extract more metrics
+            # than there are breakdowns configured.
+            try:
+                for breakdown_name, breakdown_config in breakdowns_config.items():
+                    assert breakdown_config["type"] == "spanOperations"
+
+                    for op_name in breakdown_config["matches"]:
+                        metrics.append(f"sentry.transactions.breakdowns.{breakdown_name}.{op_name}")
+            except Exception:
+                capture_exception()
+
+        # Tells relay which user-defined tags to add to each extracted
+        # transaction metric.  This cannot include things such as `os.name`
+        # which are computed on the server, they have to come from the SDK as
+        # event tags.
+        try:
+            custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
+        except Exception:
+            capture_exception()
+
+    return {
+        "extractMetrics": metrics,
+        "extractCustomTags": custom_tags,
+    }

@@ -58,7 +58,7 @@ describe('useTeams', function () {
   it('provides only the users teams', async function () {
     const userTeams = [TestStubs.Team({isMember: true})];
     const nonUserTeams = [TestStubs.Team({isMember: false})];
-    TeamStore.loadInitialData([...userTeams, ...nonUserTeams]);
+    TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
 
     const {result} = renderHook(props => useTeams(props), {
       initialProps: {provideUserTeams: true},
@@ -136,5 +136,19 @@ describe('useTeams', function () {
     const {teams, initiallyLoaded} = result.current;
     expect(initiallyLoaded).toBe(true);
     expect(teams).toEqual(expect.arrayContaining(mockTeams));
+  });
+
+  it('correctly returns hasMore before and after store update', async function () {
+    TeamStore.reset();
+    const {result, waitFor} = renderHook(() => useTeams());
+
+    const {teams, hasMore} = result.current;
+    expect(hasMore).toBe(null);
+    expect(teams).toEqual(expect.arrayContaining([]));
+
+    act(() => TeamStore.loadInitialData(mockTeams, false, null));
+    await waitFor(() => expect(result.current.teams.length).toBe(1));
+
+    expect(result.current.hasMore).toBe(false);
   });
 });

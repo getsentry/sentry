@@ -9,11 +9,11 @@ import moment from 'moment';
 
 import {EventQuery} from 'sentry/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/globalSelectionHeader';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'sentry/types';
+import {NewQuery, PageFilters, SavedQuery, SelectValue, User} from 'sentry/types';
 import {
   aggregateOutputType,
   Column,
@@ -499,21 +499,23 @@ class EventView {
   }
 
   isEqualTo(other: EventView): boolean {
-    const keys = [
-      'id',
-      'name',
-      'query',
-      'statsPeriod',
-      'fields',
-      'sorts',
-      'project',
-      'environment',
-      'topEvents',
-    ];
-
+    const defaults = {
+      id: undefined,
+      name: undefined,
+      query: undefined,
+      statsPeriod: undefined,
+      fields: undefined,
+      sorts: undefined,
+      project: undefined,
+      environment: undefined,
+      yAxis: 'count()',
+      display: DisplayModes.DEFAULT,
+      topEvents: '5',
+    };
+    const keys = Object.keys(defaults);
     for (const key of keys) {
-      const currentValue = this[key];
-      const otherValue = other[key];
+      const currentValue = this[key] ?? defaults[key];
+      const otherValue = other[key] ?? defaults[key];
 
       if (!isEqual(currentValue, otherValue)) {
         return false;
@@ -538,21 +540,6 @@ class EventView {
       }
     }
 
-    // compare yAxis selections
-    // undefined yAxis values default to count()
-    const currentYAxisValue = this.yAxis ?? 'count()';
-    const otherYAxisValue = other.yAxis ?? 'count()';
-    if (!isEqual(currentYAxisValue, otherYAxisValue)) {
-      return false;
-    }
-
-    // compare Display Mode selections
-    // undefined Display Mode values default to "default"
-    const currentDisplayMode = this.display ?? DisplayModes.DEFAULT;
-    const otherDisplayMode = other.display ?? DisplayModes.DEFAULT;
-    if (!isEqual(currentDisplayMode, otherDisplayMode)) {
-      return false;
-    }
     return true;
   }
 
@@ -586,7 +573,7 @@ class EventView {
     return newQuery;
   }
 
-  getGlobalSelection(): GlobalSelection {
+  getPageFilters(): PageFilters {
     return {
       projects: this.project as number[],
       environments: this.environment as string[],
@@ -602,12 +589,12 @@ class EventView {
     };
   }
 
-  getGlobalSelectionQuery(): Query {
+  getPageFiltersQuery(): Query {
     const {
       environments: environment,
       projects,
       datetime: {start, end, period, utc},
-    } = this.getGlobalSelection();
+    } = this.getPageFilters();
     return {
       project: projects.map(proj => proj.toString()),
       environment,

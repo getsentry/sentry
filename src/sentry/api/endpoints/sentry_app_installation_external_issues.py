@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import (
@@ -17,7 +18,7 @@ class PlatformExternalIssueSerializer(serializers.Serializer):
 
 
 class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
-    def post(self, request, installation):
+    def post(self, request: Request, installation) -> Response:
         data = request.data
 
         try:

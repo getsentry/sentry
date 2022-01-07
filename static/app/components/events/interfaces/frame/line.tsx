@@ -430,7 +430,7 @@ const RepeatedContent = styled(VertCenterWrapper)`
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: ${p =>
     `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  1fr`};
   align-items: center;

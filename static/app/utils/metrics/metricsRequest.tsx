@@ -4,9 +4,13 @@ import omitBy from 'lodash/omitBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {getInterval} from 'sentry/components/charts/utils';
+import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
+import {getPeriod} from 'sentry/utils/getPeriod';
+
+import {getMetricsDataSource} from './getMetricsDataSource';
 
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
@@ -17,9 +21,17 @@ export type MetricsRequestRenderProps = {
   reloading: boolean;
   errored: boolean;
   response: MetricsApiResponse | null;
+  responsePrevious: MetricsApiResponse | null;
 };
 
-type Props = {
+type DefaultProps = {
+  /**
+   * Include data for previous period
+   */
+  includePrevious: boolean;
+};
+
+type Props = DefaultProps & {
   api: Client;
   organization: Organization;
   field: string[];
@@ -41,13 +53,19 @@ type State = {
   reloading: boolean;
   errored: boolean;
   response: MetricsApiResponse | null;
+  responsePrevious: MetricsApiResponse | null;
 };
 
 class MetricsRequest extends React.Component<Props, State> {
+  static defaultProps: DefaultProps = {
+    includePrevious: false,
+  };
+
   state: State = {
     reloading: false,
     errored: false,
     response: null,
+    responsePrevious: null,
   };
 
   componentDidMount() {
@@ -74,38 +92,51 @@ class MetricsRequest extends React.Component<Props, State> {
     return `/organizations/${organization.slug}/metrics/data/`;
   }
 
-  get baseQueryParams() {
-    const {
+  baseQueryParams({previousPeriod = false} = {}) {
+    const {project, environment, field, query, groupBy, orderBy, limit, interval} =
+      this.props;
+
+    const {start, end, statsPeriod} = getPeriod({
+      period: this.props.statsPeriod,
+      start: this.props.start,
+      end: this.props.end,
+    });
+
+    const commonQuery = {
       project,
       environment,
       field,
-      statsPeriod,
-      start,
-      end,
-      query,
+      query: query || undefined,
       groupBy,
       orderBy,
       limit,
-      interval,
-    } = this.props;
+      interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
+      datasource: getMetricsDataSource(),
+    };
+
+    if (!previousPeriod) {
+      return {
+        ...commonQuery,
+        statsPeriod,
+        start,
+        end,
+      };
+    }
+
+    const doubledStatsPeriod = getPeriod(
+      {period: statsPeriod, start: undefined, end: undefined},
+      {shouldDoublePeriod: true}
+    ).statsPeriod;
 
     return {
-      project,
-      environment,
-      field,
-      statsPeriod,
-      query,
-      groupBy,
-      orderBy,
-      limit,
-      start,
-      end,
-      interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
+      ...commonQuery,
+      statsPeriodStart: doubledStatsPeriod,
+      statsPeriodEnd: statsPeriod ?? DEFAULT_STATS_PERIOD,
     };
   }
 
   fetchData = async () => {
-    const {api, isDisabled} = this.props;
+    const {api, isDisabled, start, end, statsPeriod, includePrevious} = this.props;
 
     if (isDisabled) {
       return;
@@ -116,10 +147,21 @@ class MetricsRequest extends React.Component<Props, State> {
       errored: false,
     }));
 
+    const promises = [api.requestPromise(this.path, {query: this.baseQueryParams()})];
+
+    if (shouldFetchPreviousPeriod({start, end, period: statsPeriod, includePrevious})) {
+      promises.push(
+        api.requestPromise(this.path, {
+          query: this.baseQueryParams({previousPeriod: true}),
+        })
+      );
+    }
+
     try {
-      const response: MetricsApiResponse = await api.requestPromise(this.path, {
-        query: this.baseQueryParams,
-      });
+      const [response, responsePrevious] = (await Promise.all(promises)) as [
+        MetricsApiResponse,
+        MetricsApiResponse | undefined
+      ];
 
       if (this.unmounting) {
         return;
@@ -128,6 +170,7 @@ class MetricsRequest extends React.Component<Props, State> {
       this.setState({
         reloading: false,
         response,
+        responsePrevious: responsePrevious ?? null,
       });
     } catch (error) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading metrics data'));
@@ -139,16 +182,17 @@ class MetricsRequest extends React.Component<Props, State> {
   };
 
   render() {
-    const {reloading, errored, response} = this.state;
-    const {children} = this.props;
+    const {reloading, errored, response, responsePrevious} = this.state;
+    const {children, isDisabled} = this.props;
 
-    const loading = response === null;
+    const loading = response === null && !isDisabled;
 
     return children?.({
       loading,
       reloading,
       errored,
       response,
+      responsePrevious,
     });
   }
 }

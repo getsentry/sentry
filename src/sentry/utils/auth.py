@@ -8,6 +8,7 @@ from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
+from rest_framework.request import Request
 
 from sentry.models import Authenticator, User
 from sentry.utils import metrics
@@ -296,9 +297,10 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, 
     # reasonable place.
     if not hasattr(user, "backend"):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
-    _login(request, user)
     if organization_id:
         mark_sso_complete(request, organization_id)
+    _login(request, user)
+
     log_auth_success(request, user.username, organization_id, source)
     return True
 
@@ -337,6 +339,13 @@ def is_user_signed_request(request):
         return False
 
 
+def set_active_org(request: Request, org_slug: str) -> None:
+    # even if the value being set is the same this will trigger a session
+    # modification and reset the users expiry, so check if they are different first.
+    if request.session.get("activeorg") != org_slug:
+        request.session["activeorg"] = org_slug
+
+
 class EmailAuthBackend(ModelBackend):
     """
     Authenticate against django.contrib.auth.models.User.
@@ -344,7 +353,7 @@ class EmailAuthBackend(ModelBackend):
     Supports authenticating via an email address or a username.
     """
 
-    def authenticate(self, request, username=None, password=None):
+    def authenticate(self, request: Request, username=None, password=None):
         users = find_users(username)
         if users:
             for user in users:
