@@ -240,7 +240,7 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.ERROR,
   },
   users_experiencing_errors: {
-    aggregate: 'count_unique(tags[sentry:user])',
+    aggregate: 'count_unique(user)',
     dataset: Dataset.ERRORS,
     eventTypes: EventTypes.ERROR,
   },

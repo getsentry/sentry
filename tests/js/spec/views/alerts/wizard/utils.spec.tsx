@@ -56,7 +56,7 @@ describe('Wizard utils', function () {
   it('extracts user error alert', function () {
     expect(
       getAlertTypeFromAggregateDataset({
-        aggregate: 'count_unique(tags[sentry:user])',
+        aggregate: 'count_unique(user)',
         dataset: Dataset.ERRORS,
       })
     ).toEqual('users_experiencing_errors');
