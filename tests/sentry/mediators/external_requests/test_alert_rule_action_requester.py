@@ -61,7 +61,7 @@ class TestAlertRuleActionRequester(TestCase):
         assert payload == data
 
         assert request.headers["Sentry-App-Signature"] == self.sentry_app.build_signature(
-            json.dumps(data)
+            json.dumps(payload)
         )
 
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
