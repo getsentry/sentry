@@ -71,6 +71,7 @@ describe('Dashboards > Create', function () {
         // @ts-ignore
         body: TestStubs.Dashboard([{}], {id: '1', title: 'Custom Errors'}),
       });
+      mountGlobalModal(initialData.routerContext);
       const widgetTitle = 'Widget Title';
       mountWithTheme(
         <CreateDashboard
@@ -87,8 +88,6 @@ describe('Dashboards > Create', function () {
         await tick();
       });
       screen.getByTestId('widget-add').click();
-
-      mountGlobalModal(initialData.routerContext);
 
       screen.debug(undefined, Infinity);
 
