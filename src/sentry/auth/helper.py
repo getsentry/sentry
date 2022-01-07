@@ -1,8 +1,10 @@
 import logging
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Any, Dict, Mapping, Optional, Tuple, Union
 from uuid import uuid4
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
@@ -19,7 +21,7 @@ from django.views import View
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
-from sentry.auth.email import resolve_email_to_user
+from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
     get_verification_value_from_key,
@@ -100,16 +102,27 @@ class AuthIdentityHandler:
     request: HttpRequest
     identity: Mapping[str, Any]
 
-    def __post_init__(self) -> None:
-        self.user: Union[User, AnonymousUser] = self._initialize_user()
-
-    def _initialize_user(self) -> Union[User, AnonymousUser]:
+    @cached_property
+    def user(self) -> Union[User, AnonymousUser]:
         email = self.identity.get("email")
         if email:
-            user = resolve_email_to_user(email)
-            if user:
+            try:
+                user = resolve_email_to_user(email)
+            except AmbiguousUserFromEmail as e:
+                user = e.users[0]
+                self.warn_about_ambiguous_email(email, e.users, user)
+            if user is not None:
                 return user
         return self.request.user
+
+    @staticmethod
+    def warn_about_ambiguous_email(email: str, users: Tuple[User], chosen_user: User):
+        with sentry_sdk.push_scope() as scope:
+            scope.level = "warning"
+            scope.set_tag("email", email)
+            scope.set_extra("user_ids", [user.id for user in users])
+            scope.set_extra("chosen_user", chosen_user.id)
+            sentry_sdk.capture_message("Handling identity from ambiguous email address")
 
     class _NotCompletedSecurityChecks(Exception):
         pass
@@ -171,7 +184,7 @@ class AuthIdentityHandler:
             tags={
                 "provider": self.provider.key,
                 "organization_id": self.organization.id,
-                "user_id": self.user.id,
+                "user_id": user.id,
             },
             skip_internal=False,
             sample_rate=1.0,
