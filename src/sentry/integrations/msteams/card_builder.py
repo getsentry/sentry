@@ -109,7 +109,7 @@ def build_installation_confirmation_message(organization):
         "text": "Now that setup is complete, you can continue by configuring alerts.",
         "wrap": True,
     }
-    alert_rule_url = absolute_uri(f"organizations/{organization.slug}/rules/")
+    alert_rule_url = absolute_uri(f"organizations/{organization.slug}/alerts/rules/")
     alert_rule_button = {
         "type": "Action.OpenUrl",
         "title": "Add Alert Rules",
