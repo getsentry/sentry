@@ -2486,3 +2486,12 @@ SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
+
+# Zero Downtime Migrations settings as defined at
+# https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
+ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+# Note: The docs have this backwards. We set this to False here so that we always add check
+# constraints instead of setting the column to not null.
+ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
