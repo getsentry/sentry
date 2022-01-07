@@ -3,7 +3,7 @@ import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import EventsOrMetricsRequest from 'sentry/components/charts/EventsOrMetricsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
@@ -13,8 +13,6 @@ import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
-
-import EventsOrMetricsRequest from './EventsOrMetricsRequest';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
