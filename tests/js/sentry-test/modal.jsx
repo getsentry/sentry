@@ -16,7 +16,7 @@ export async function mountGlobalModal(context) {
 afterEach(() => {
   while (mountedModals.length) {
     const modal = mountedModals.pop();
-    if (modal.length === 1) {
+    if (modal.exists()) {
       // modal is still mounted
       modal.unmount();
     }
