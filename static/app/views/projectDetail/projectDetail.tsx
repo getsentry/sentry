@@ -33,6 +33,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import AsyncView from 'sentry/views/asyncView';
 
+import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import ProjectScoreCards from './projectScoreCards/projectScoreCards';
 import ProjectCharts from './projectCharts';
 import ProjectFilters from './projectFilters';
@@ -203,7 +204,7 @@ class ProjectDetail extends AsyncView<Props, State> {
         onUpdateProjects={this.handleProjectChange}
         relativeDateOptions={
           hasOnlyBasicChart
-            ? pick(DEFAULT_RELATIVE_PERIODS, ['1h', '24h', '7d', '14d', '30d'])
+            ? pick(DEFAULT_RELATIVE_PERIODS, ERRORS_BASIC_CHART_PERIODS)
             : undefined
         }
         showAbsolute={!hasOnlyBasicChart}
