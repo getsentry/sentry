@@ -25,6 +25,7 @@ jobs:
 
     env:
       VISUAL_HTML_ENABLE: 1
+      DEBUG_PRINT_LIMIT: 100000
     steps:
       - uses: actions/checkout@v2
         name: Checkout sentry
