@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import LetterAvatar from 'sentry/components/letterAvatar';
 
@@ -42,65 +42,65 @@ describe('LetterAvatar', function () {
 
   describe('display name', function () {
     it('should get initials based on name', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_1} />);
-      expect(letterAvatar.text()).toEqual('JB');
+      mountWithTheme(<LetterAvatar {...USER_1} />);
+      expect(screen.getByText('JB')).toBeInTheDocument();
     });
 
     it('should get initials based on email', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_2} />);
-      expect(letterAvatar.text()).toEqual('J');
+      mountWithTheme(<LetterAvatar {...USER_2} />);
+      expect(screen.getByText('J')).toBeInTheDocument();
     });
 
     it('should get initials based on username', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_3} />);
-      expect(letterAvatar.text()).toEqual('F');
+      mountWithTheme(<LetterAvatar {...USER_3} />);
+      expect(screen.getByText('F')).toBeInTheDocument();
     });
 
     it('should show question mark if user has no display name', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_4} />);
-      expect(letterAvatar.text()).toEqual('?');
+      mountWithTheme(<LetterAvatar {...USER_4} />);
+      expect(screen.getByText('?')).toBeInTheDocument();
     });
 
     it('should show question mark even if display name is a space', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_7} />);
-      expect(letterAvatar.text()).toEqual('?');
+      mountWithTheme(<LetterAvatar {...USER_7} />);
+      expect(screen.getByText('?')).toBeInTheDocument();
     });
 
     it('should get initials based on name even if there are trailing spaces', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_6} />);
-      expect(letterAvatar.text()).toEqual('JB');
+      mountWithTheme(<LetterAvatar {...USER_6} />);
+      expect(screen.getByText('JB')).toBeInTheDocument();
     });
 
     it('should not slice multibyte characters in half', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_8} />);
-      expect(letterAvatar.text()).toEqual('\u2603\u2603');
+      mountWithTheme(<LetterAvatar {...USER_8} />);
+      expect(screen.getByText('\u2603\u2603')).toBeInTheDocument();
     });
 
     it('should pick most last name', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_9} />);
-      expect(letterAvatar.text()).toEqual('JB');
+      mountWithTheme(<LetterAvatar {...USER_9} />);
+      expect(screen.getByText('JB')).toBeInTheDocument();
     });
   });
 
   describe('color', function () {
     it('should return a color based on email', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_1} />);
-      expect(letterAvatar.find('rect').props().fill).toEqual('#4e3fb4');
+      const {container} = mountWithTheme(<LetterAvatar {...USER_1} />);
+      expect(container).toSnapshot();
     });
 
     it('should return a color based on username', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_3} />);
-      expect(letterAvatar.find('rect').props().fill).toEqual('#315cac');
+      const {container} = mountWithTheme(<LetterAvatar {...USER_3} />);
+      expect(container).toSnapshot();
     });
 
     it('should return a color based on id', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_4} />);
-      expect(letterAvatar.find('rect').props().fill).toEqual('#57be8c');
+      const {container} = mountWithTheme(<LetterAvatar {...USER_4} />);
+      expect(container).toSnapshot();
     });
 
     it('should return a color based on ip address', function () {
-      const letterAvatar = mountWithTheme(<LetterAvatar {...USER_5} />);
-      expect(letterAvatar.find('rect').props().fill).toEqual('#ec5e44');
+      const {container} = mountWithTheme(<LetterAvatar {...USER_5} />);
+      expect(container).toSnapshot();
     });
   });
 });
