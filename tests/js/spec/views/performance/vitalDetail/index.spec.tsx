@@ -51,7 +51,7 @@ function TestComponent(props: {router?: InjectedRouter; orgFeatures?: string[]} 
   );
 }
 
-describe('Performance > VitalDetail', () => {
+describe('Performance > VitalDetail', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
