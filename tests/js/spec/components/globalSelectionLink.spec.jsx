@@ -1,41 +1,50 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 
 const path = 'http://some.url/';
 
 describe('GlobalSelectionLink', function () {
+  const getContext = query =>
+    TestStubs.routerContext([
+      {
+        router: TestStubs.router({
+          location: {query},
+        }),
+      },
+    ]);
+
   it('has global selection values in query', function () {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',
     };
+    const context = getContext(query);
 
     const wrapper = mountWithTheme(
-      <GlobalSelectionLink location={{query}} to={path}>
-        Go somewhere!
-      </GlobalSelectionLink>
+      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
+      {context}
+    );
+    expect(wrapper.container).toSnapshot();
+    expect(screen.getByText('Go somewhere!')).toHaveAttribute(
+      'href',
+      'http://some.url/?environment=staging&project=foo&project=bar'
     );
 
-    const updatedToProp = wrapper.find('Link').at(0).prop('to');
-
-    expect(updatedToProp).toEqual({pathname: path, query});
-
-    expect(wrapper).toSnapshot();
+    userEvent.click(screen.getByText('Go somewhere!'));
+    expect(context.context.router.push).toHaveBeenCalledWith({pathname: path, query});
   });
 
   it('does not have global selection values in query', function () {
+    const context = TestStubs.routerContext();
     const wrapper = mountWithTheme(
-      <GlobalSelectionLink location={{}} to={path}>
-        Go somewhere!
-      </GlobalSelectionLink>
+      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
+      {context}
     );
 
-    const updatedToProp = wrapper.find('Link').at(0).prop('to');
+    expect(screen.getByText('Go somewhere!')).toHaveAttribute('href', path);
 
-    expect(updatedToProp).toEqual(path);
-
-    expect(wrapper).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('combines query parameters with custom query', function () {
@@ -43,16 +52,17 @@ describe('GlobalSelectionLink', function () {
       project: ['foo', 'bar'],
       environment: 'staging',
     };
+    const context = getContext(query);
     const customQuery = {query: 'something'};
-    const wrapper = mountWithTheme(
-      <GlobalSelectionLink location={{query}} to={{pathname: path, query: customQuery}}>
+    mountWithTheme(
+      <GlobalSelectionLink to={{pathname: path, query: customQuery}}>
         Go somewhere!
-      </GlobalSelectionLink>
+      </GlobalSelectionLink>,
+      {context}
     );
 
-    const updatedToProp = wrapper.find('Link').at(0).prop('to');
-
-    expect(updatedToProp).toEqual({
+    userEvent.click(screen.getByText('Go somewhere!'));
+    expect(context.context.router.push).toHaveBeenCalledWith({
       pathname: path,
       query: {project: ['foo', 'bar'], environment: 'staging', query: 'something'},
     });
@@ -63,14 +73,15 @@ describe('GlobalSelectionLink', function () {
       project: ['foo', 'bar'],
       environment: 'staging',
     };
-    const wrapper = mountWithTheme(
-      <GlobalSelectionLink location={{query}} to={{pathname: path}}>
-        Go somewhere!
-      </GlobalSelectionLink>
+    const context = getContext(query);
+    mountWithTheme(
+      <GlobalSelectionLink to={{pathname: path}}>Go somewhere!</GlobalSelectionLink>,
+      {context}
     );
 
-    const updatedToProp = wrapper.find('Link').at(0).prop('to');
+    userEvent.click(screen.getByText('Go somewhere!'));
 
-    expect(updatedToProp).toEqual({pathname: path, query});
+    userEvent.click(screen.getByText('Go somewhere!'));
+    expect(context.context.router.push).toHaveBeenCalledWith({pathname: path, query});
   });
 });
