@@ -549,7 +549,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           <ChartFilters>
             <StyledCircleIndicator size={8} />
             <Filters>{rule.aggregate}</Filters>
-            <Truncate value={`${queryFilter}`} maxLength={75} />
+            <Truncate value={queryFilter ?? ''} maxLength={75} />
           </ChartFilters>
           {getDynamicText({
             value: (
