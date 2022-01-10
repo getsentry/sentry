@@ -119,7 +119,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+      '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 
@@ -152,7 +152,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/display=worldmap&environment=prod&field=geo.country_code&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?display=worldmap&environment=prod&field=geo.country_code&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 

@@ -79,7 +79,7 @@ function WidgetCardContextMenu({
             break;
         }
       }
-      const discoverPath = `${discoverLocation.pathname}${qs.stringify({
+      const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
         ...discoverLocation.query,
       })}`;
       if (widget.queries.length === 1) {
