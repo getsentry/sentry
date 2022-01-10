@@ -77,7 +77,6 @@ describe('HelpSearch', function () {
       />
     );
 
-    // wrapper.find('input').simulate('change', {target: {value: 'dummy'}});
 
     userEvent.type(screen.getByTestId('search'), 'dummy');
 
