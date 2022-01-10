@@ -44,8 +44,7 @@ export default function SuspectSpansTable(props: Props) {
   const data: TableDataRowWithExtras[] = suspectSpans.map(suspectSpan => ({
     operation: suspectSpan.op,
     group: suspectSpan.group,
-    // TODO: currently the descriptions are only retrieved with examples
-    description: suspectSpan.group,
+    description: suspectSpan.description,
     totalCount: suspectSpan.count,
     frequency:
       defined(suspectSpan.frequency) && defined(totals?.count)

@@ -51,6 +51,7 @@ export const SAMPLE_SPANS = [
   {
     op: 'op1',
     group: 'aaaaaaaaaaaaaaaa',
+    description: 'span-1',
     examples: [
       {
         id: 'abababababababab',
@@ -72,6 +73,7 @@ export const SAMPLE_SPANS = [
   {
     op: 'op2',
     group: 'bbbbbbbbbbbbbbbb',
+    description: 'span-4',
     examples: [
       {
         id: 'bcbcbcbcbcbcbcbc',
@@ -105,6 +107,7 @@ type ExampleOpt = {
 type SuspectOpt = {
   op: string;
   group: string;
+  description: string;
   examples: ExampleOpt[];
 };
 
@@ -131,10 +134,11 @@ function makeExample(opt: ExampleOpt): ExampleTransaction {
 }
 
 function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
-  const {op, group, examples} = opt;
+  const {op, group, description, examples} = opt;
   return {
     op,
     group,
+    description,
     frequency: 1,
     count: 1,
     avgOccurrences: 1,

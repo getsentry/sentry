@@ -60,6 +60,7 @@ export default function SuspectSpans(props: Props) {
       location={location}
       orgSlug={organization.slug}
       eventView={sortedEventView}
+      limit={4}
       perSuspect={0}
       cursor={cursor}
     >
