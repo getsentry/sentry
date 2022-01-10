@@ -155,7 +155,12 @@ function SidebarCharts({
           return (
             <TransitionChart loading={loading} reloading={reloading} height="580px">
               <TransparentLoadingMask visible={reloading} />
-              <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
+              {getDynamicText({
+                value: (
+                  <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
+                ),
+                fixed: <Placeholder height="480px" testId="skeleton-ui" />,
+              })}
             </TransitionChart>
           );
         }}
