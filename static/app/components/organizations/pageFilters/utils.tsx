@@ -71,14 +71,14 @@ export function getStateFromQuery(
  * Useful for extracting page filter properties from the current URL
  * when building another URL.
  */
-export function extractSelectionParameters(query) {
+export function extractSelectionParameters(query: Location['query']) {
   return pickBy(pick(query, Object.values(URL_PARAM)), identity);
 }
 
 /**
  * Extract the page filter datetime parameters from an object.
  */
-export function extractDatetimeSelectionParameters(query) {
+export function extractDatetimeSelectionParameters(query: Location['query']) {
   return pickBy(pick(query, Object.values(DATE_TIME_KEYS)), identity);
 }
 
