@@ -1637,6 +1637,8 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
 class MetricsCrashRateAlertProcessUpdateTest(
     CrashRateAlertProcessUpdateTest, SessionMetricsTestCase
 ):
+    entity_subscription_metrics = patcher("sentry.snuba.entity_subscription.metrics")
+
     def setUp(self):
         super().setUp()
         for status in ["exited", "crashed"]:
@@ -1715,9 +1717,14 @@ class MetricsCrashRateAlertProcessUpdateTest(
             }
         )
         self.assert_no_active_incident(rule)
+        self.entity_subscription_metrics.incr.assert_has_calls(
+            [
+                call("incidents.entity_subscription.metric_index_not_found"),
+            ]
+        )
         self.metrics.incr.assert_has_calls(
             [
-                call("incidents.alert_rules.ignore_update.metric_index_not_found"),
+                call("incidents.alert_rules.ignore_update_no_session_data"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
