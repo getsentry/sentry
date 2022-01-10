@@ -160,7 +160,11 @@ export function setPageFiltersStorage(
   }
 
   const {project, environment} = update;
-  const validatedProject = project?.map(Number).filter(value => !isNaN(value));
+  const validatedProject = project
+    ? (Array.isArray(project) ? project : [project])
+        .map(Number)
+        .filter(value => !isNaN(value))
+    : undefined;
   const validatedEnvironment = environment;
 
   const dataToSave = {
