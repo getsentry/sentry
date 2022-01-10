@@ -105,7 +105,7 @@ class Controls extends React.Component<Props> {
     if (dashboardState === DashboardState.PREVIEW) {
       return (
         <StyledButtonBar gap={1} key="preview-controls">
-          {this.renderCancelButton('Go Back')}
+          {this.renderCancelButton(t('Go Back'))}
           <Button
             data-test-id="dashboard-commit"
             onClick={e => {
