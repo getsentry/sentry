@@ -31,7 +31,6 @@ import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
 import {
   DashboardDetails,
-  DashboardState,
   DashboardWidgetSource,
   DisplayType,
   Widget,
@@ -62,7 +61,6 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
-  dashboardState: DashboardState;
   selection: PageFilters;
   isEditing: boolean;
   router: InjectedRouter;
@@ -213,12 +211,12 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {dashboardState, handleAddLibraryWidgets} = this.props;
+    const {isEditing, handleAddLibraryWidgets} = this.props;
     const nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
     nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
-    if (dashboardState === DashboardState.VIEW) {
+    if (!!!isEditing) {
       handleAddLibraryWidgets(nextList);
     }
   };
@@ -230,7 +228,7 @@ class Dashboard extends Component<Props, State> {
       onUpdate,
       onLayoutChange,
       organization,
-      dashboardState,
+      isEditing,
       handleAddLibraryWidgets,
     } = this.props;
 
@@ -243,13 +241,13 @@ class Dashboard extends Component<Props, State> {
       );
       onLayoutChange(newLayout);
     }
-    if (dashboardState === DashboardState.VIEW) {
+    if (!!!isEditing) {
       handleAddLibraryWidgets(nextList);
     }
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, handleAddLibraryWidgets} = this.props;
+    const {dashboard, isEditing, handleAddLibraryWidgets} = this.props;
 
     const widgetCopy = cloneDeep(widget);
     widgetCopy.id = undefined;
@@ -258,7 +256,9 @@ class Dashboard extends Component<Props, State> {
     const nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
 
-    handleAddLibraryWidgets(nextList);
+    if (!!!isEditing) {
+      handleAddLibraryWidgets(nextList);
+    }
   };
 
   handleEditWidget = (widget: Widget, index: number) => () => {
