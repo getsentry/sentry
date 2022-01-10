@@ -225,6 +225,7 @@ def _query_tsdb_groups_chunked(func, issue_ids, start, stop, rollup):
 
 def build_project_series(start__stop, project):
     start, stop = start__stop
+    end = stop + timedelta(days=1)
     rollup = ONE_DAY
 
     resolution, series = tsdb.get_optimal_rollup_series(start, stop, rollup)
@@ -235,6 +236,7 @@ def build_project_series(start__stop, project):
     def zerofill_clean(data):
         return clean(zerofill(data, start, stop, rollup, fill_default=0))
 
+    # Note: this section can be removed
     issue_ids = project.group_set.filter(
         status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
     ).values_list("id", flat=True)
@@ -246,6 +248,7 @@ def build_project_series(start__stop, project):
         map(clean, tsdb_range_resolved.values()),
         clean([(timestamp, 0) for timestamp in series]),
     )
+    # end
 
     # Use outcomes to compute total errors and transactions
     outcomes_query = Query(
@@ -258,7 +261,7 @@ def build_project_series(start__stop, project):
         ],
         where=[
             Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, stop),
+            Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("project_id"), Op.EQ, project.id),
             Condition(Column("org_id"), Op.EQ, project.organization_id),
             Condition(Column("outcome"), Op.IN, [Outcome.ACCEPTED]),
@@ -272,29 +275,26 @@ def build_project_series(start__stop, project):
         granularity=Granularity(rollup),
     )
     outcome_series = raw_snql_query(outcomes_query, referrer="reports.series")
-
     total_error_series = [
-        (int(to_timestamp(parse_snuba_datetime(v["time"]))), v["total"])
+        (int(to_timestamp(parse_snuba_datetime(v["time"]))) - 60 * 60 * 24, v["total"])
         for v in outcome_series["data"]
         if v["category"] in DataCategory.error_categories()
     ]
     total_error_series = zerofill_clean(total_error_series)
-
     transaction_series = [
-        (int(to_timestamp(parse_snuba_datetime(v["time"]))), v["total"])
+        (int(to_timestamp(parse_snuba_datetime(v["time"]))) - 60 * 60 * 24, v["total"])
         for v in outcome_series["data"]
         if v["category"] == DataCategory.TRANSACTION
     ]
     transaction_series = zerofill_clean(transaction_series)
 
-    # Format of error_series: [(resolve, unresolved)]
     error_series = merge_series(
         resolved_error_series,
         total_error_series,
-        lambda resolved, total: (resolved, total - resolved),
+        lambda resolved, total: (resolved, total - resolved),  # Resolved, Unresolved
     )
 
-    # Format of this seroe: [(resolved , unresolved, transactions)]
+    # Format of this series: [(resolved , unresolved, transactions)]
     return merge_series(
         error_series,
         transaction_series,
@@ -861,6 +861,8 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         message.send()
 
 
+# Series: An array of (timestamp, value) tuples
+# Apply `function` on `value` of each tuple element in array.
 def series_map(function, series):
     return [(timestamp, function(value)) for timestamp, value in series]
 
@@ -905,7 +907,8 @@ def build_project_breakdown_series(reports):
         for v in sorted(
             reports.items(),
             key=lambda project__report: sum(
-                sum(resolved__unresolved) for _, resolved__unresolved in project__report[1].series
+                resolved + unresolved
+                for _, (resolved, unresolved, transaction) in project__report[1].series
             ),
             reverse=True,
         )
@@ -942,21 +945,38 @@ def build_project_breakdown_series(reports):
             0, (Key("Other", None, "#f2f0fa", get_legend_data(overflow_report)), overflow_report)
         )
 
-    def summarize(key, points):
-        total = sum(points)
+    def summarize_errors(key, points):
+        [resolved_errors, unresolved_errors, transactions] = points
+        total = resolved_errors + unresolved_errors
         return [(key, total)] if total else []
+
+    def summarize_transaction(key, points):
+        [resolved_errors, unresolved_errors, transactions] = points
+        return [(key, transactions)] if transactions else []
 
     # Collect all of the independent series into a single series to make it
     # easier to render, resulting in a series where each value is a sequence of
     # (key, count) pairs.
     series = reduce(
         merge_series,
-        [series_map(partial(summarize, key), report[0]) for key, report in selections],
+        [series_map(partial(summarize_errors, key), report.series) for key, report in selections],
+    )
+    transaction_series = reduce(
+        merge_series,
+        [
+            series_map(partial(summarize_transaction, key), report.series)
+            for key, report in selections
+        ],
     )
 
     legend = [key for key, value in reversed(selections)]
     return {
-        "points": [(to_datetime(timestamp), value) for timestamp, value in series],
+        "points": [
+            (to_datetime(timestamp), value) for timestamp, value in series
+        ],  # array of (timestamp, [(key, count)])
+        "transaction_points": [
+            (to_datetime(timestamp), value) for timestamp, value in transaction_series
+        ],  # array of (timestamp, [(key, count)])
         "maximum": max(sum(count for key, count in value) for timestamp, value in series),
         "legend": {
             "rows": legend,
@@ -975,6 +995,7 @@ def to_context(organization, interval, reports):
         for timestamp, values in report.series
     ]
     return {
+        # This "error_series" can be removed
         "error_series": {
             "points": error_series,
             "maximum": max(sum(point) for timestamp, point in error_series),
