@@ -395,8 +395,6 @@ def ignore_unpublished_app_errors(func):
         except Exception:
             if sentry_app.is_published:
                 raise
-            else:
-                raise IgnorableSentryAppError("unpublished or internal app")
 
     return wrapper
 
