@@ -124,6 +124,10 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
   return true;
 }
 
+function makeLocalStorageKey(orgSlug: string) {
+  return `${LOCAL_STORAGE_KEY}:${orgSlug}`;
+}
+
 type ProjectId = string | number;
 type EnvironmentId = Environment['id'];
 
@@ -172,7 +176,7 @@ export function setPageFiltersStorage(
     environments: validatedEnvironment || current.environments,
   };
 
-  const localStorageKey = `${LOCAL_STORAGE_KEY}:${org.slug}`;
+  const localStorageKey = makeLocalStorageKey(org.slug);
 
   try {
     localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
@@ -185,7 +189,7 @@ export function setPageFiltersStorage(
  * Retrives the page filters from local storage
  */
 export function getPageFilterStorage(orgSlug: string) {
-  const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgSlug}`;
+  const localStorageKey = makeLocalStorageKey(orgSlug);
   const value = localStorage.getItem(localStorageKey);
 
   if (!value) {
@@ -207,6 +211,5 @@ export function getPageFilterStorage(orgSlug: string) {
  * Removes page filters from localstorage
  */
 export function removePageFiltersStorage(orgSlug: string) {
-  const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgSlug}`;
-  localStorage.removeItem(localStorageKey);
+  localStorage.removeItem(makeLocalStorageKey(orgSlug));
 }
