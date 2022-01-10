@@ -1,4 +1,4 @@
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import Hook from 'sentry/components/hook';
 import HookStore from 'sentry/stores/hookStore';
@@ -39,12 +39,13 @@ describe('Hook', function () {
     mountWithTheme(
       <div data-test-id="invalid">
         <Hook name="invalid-hook" organization={TestStubs.Organization()} />
+        invalid
       </div>,
       {context}
     );
 
-    expect(screen.queryByTestId('wrapper')).not.toBeInTheDocument();
-    expect(screen.getByTestId('invalid')).toBeInTheDocument();
+    expect(screen.queryByText('org-slug')).not.toBeInTheDocument();
+    expect(screen.getByText('invalid')).toBeInTheDocument();
   });
 
   it('can re-render when hooks get after initial render', function () {
@@ -57,13 +58,11 @@ describe('Hook', function () {
 
     expect(screen.getByTestId('wrapper')).toBeInTheDocument();
 
-    act(() =>
-      HookStore.add('footer', () => (
-        <Wrapper key="new" organization={null}>
-          New Hook
-        </Wrapper>
-      ))
-    );
+    HookStore.add('footer', () => (
+      <Wrapper key="new" organization={null}>
+        New Hook
+      </Wrapper>
+    ));
 
     expect(HookStore.hooks.footer).toHaveLength(2);
     expect(screen.getAllByTestId('wrapper')).toHaveLength(2);
@@ -80,13 +79,11 @@ describe('Hook', function () {
       {context}
     );
 
-    act(() =>
-      HookStore.add('footer', () => (
-        <Wrapper key="new" organization={null}>
-          New Hook
-        </Wrapper>
-      ))
-    );
+    HookStore.add('footer', () => (
+      <Wrapper key="new" organization={null}>
+        New Hook
+      </Wrapper>
+    ));
 
     // Has 2 Wrappers from store, and each is wrapped by another Wrapper
     expect(screen.getAllByTestId('wrapper')).toHaveLength(4);
