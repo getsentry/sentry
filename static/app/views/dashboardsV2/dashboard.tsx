@@ -71,7 +71,7 @@ type Props = {
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
-  handleAddLibraryWidgets: (widgets: Widget[]) => void;
+  handleUpdateWidgetList: (widgets: Widget[]) => void;
   handleAddCustomWidget: (widget: Widget) => void;
   layout: Layout[];
   onLayoutChange: (layout: Layout[]) => void;
@@ -159,7 +159,7 @@ class Dashboard extends Component<Props, State> {
       organization,
       dashboard,
       selection,
-      handleAddLibraryWidgets,
+      handleUpdateWidgetList,
       handleAddCustomWidget,
     } = this.props;
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
@@ -175,7 +175,7 @@ class Dashboard extends Component<Props, State> {
         dashboard,
         selection,
         onAddWidget: handleAddCustomWidget,
-        onAddLibraryWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+        onAddLibraryWidget: (widgets: Widget[]) => handleUpdateWidgetList(widgets),
         source: DashboardWidgetSource.LIBRARY,
       });
       return;
@@ -211,13 +211,13 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {isEditing, handleAddLibraryWidgets} = this.props;
+    const {isEditing, handleUpdateWidgetList} = this.props;
     const nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
     nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
     if (!!!isEditing) {
-      handleAddLibraryWidgets(nextList);
+      handleUpdateWidgetList(nextList);
     }
   };
 
@@ -229,7 +229,7 @@ class Dashboard extends Component<Props, State> {
       onLayoutChange,
       organization,
       isEditing,
-      handleAddLibraryWidgets,
+      handleUpdateWidgetList,
     } = this.props;
 
     const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
@@ -242,12 +242,12 @@ class Dashboard extends Component<Props, State> {
       onLayoutChange(newLayout);
     }
     if (!!!isEditing) {
-      handleAddLibraryWidgets(nextList);
+      handleUpdateWidgetList(nextList);
     }
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, isEditing, handleAddLibraryWidgets} = this.props;
+    const {dashboard, isEditing, handleUpdateWidgetList} = this.props;
 
     const widgetCopy = cloneDeep(widget);
     widgetCopy.id = undefined;
@@ -257,7 +257,7 @@ class Dashboard extends Component<Props, State> {
     nextList.splice(index, 0, widgetCopy);
 
     if (!!!isEditing) {
-      handleAddLibraryWidgets(nextList);
+      handleUpdateWidgetList(nextList);
     }
   };
 

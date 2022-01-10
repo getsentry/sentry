@@ -282,7 +282,7 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  handleAddLibraryWidgets = (widgets: Widget[]) => {
+  handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {dashboardState, modifiedDashboard} = this.state;
     const newModifiedDashboard = {
@@ -336,7 +336,7 @@ class DashboardDetail extends Component<Props, State> {
       organization,
       dashboard,
       onAddWidget: (widget: Widget) => this.handleAddCustomWidget(widget),
-      onAddLibraryWidget: (widgets: Widget[]) => this.handleAddLibraryWidgets(widgets),
+      onAddLibraryWidget: (widgets: Widget[]) => this.handleUpdateWidgetList(widgets),
       source: DashboardWidgetSource.LIBRARY,
     });
   };
@@ -564,7 +564,7 @@ class DashboardDetail extends Component<Props, State> {
               widgetLimitReached={widgetLimitReached}
               onUpdate={this.onUpdateWidget}
               onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-              handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+              handleUpdateWidgetList={this.handleUpdateWidgetList}
               handleAddCustomWidget={this.handleAddCustomWidget}
               router={router}
               location={location}
@@ -647,7 +647,7 @@ class DashboardDetail extends Component<Props, State> {
                   isEditing={this.isEditing}
                   widgetLimitReached={widgetLimitReached}
                   onUpdate={this.onUpdateWidget}
-                  handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+                  handleUpdateWidgetList={this.handleUpdateWidgetList}
                   handleAddCustomWidget={this.handleAddCustomWidget}
                   onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
                   router={router}
