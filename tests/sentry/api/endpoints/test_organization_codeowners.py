@@ -16,10 +16,9 @@ class OrganizationCodeOwnersEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-codeowners"
 
     def setUp(self):
-        self.owner = self.create_user("motto@life.com")
         self.user_1 = self.create_user("walter.mitty@life.com")
         self.user_2 = self.create_user("exec@life.com")
-        self.organization = self.create_organization(name="Life", owner=self.owner)
+        self.organization = self.create_organization(name="Life")
         self.team_1 = self.create_team(
             organization=self.organization,
             slug="negative-assets",
@@ -77,7 +76,7 @@ class OrganizationCodeOwnersEndpointTest(APITestCase):
                 in response.data
             )
 
-    def test_errors(self):
+    def test_errors_in_codeowners_are_serialized(self):
         """
         Tests that the ProjectCodeOwners are serialized with their respective errors in tact
         """
@@ -105,7 +104,7 @@ class OrganizationCodeOwnersEndpointTest(APITestCase):
                 assert "@sean" in code_owner["errors"]["missing_external_users"]
                 assert "#executives" in code_owner["errors"]["teams_without_access"]
 
-    def test_no_access_to_project(self):
+    def test_varied_access_to_project(self):
         """
         Tests that projects the requesting user does not have access to are not in the response
         """
@@ -140,8 +139,3 @@ class OrganizationCodeOwnersEndpointTest(APITestCase):
             )
             in response.data
         )
-        # Check that a user with higher perms (but not explicitly on the teams) can see all as well
-        self.create_member
-        self.login_as(self.owner)
-        response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
-        assert len(response.data) == 3
