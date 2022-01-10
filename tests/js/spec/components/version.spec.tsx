@@ -5,10 +5,9 @@ import Version from 'sentry/components/version';
 const VERSION = 'foo.bar.Baz@1.0.0+20200101';
 
 describe('Version', () => {
-  let context;
-
-  beforeEach(() => {
-    context = TestStubs.routerContext();
+  const context = TestStubs.routerContext();
+  afterEach(() => {
+    jest.resetAllMocks();
   });
 
   it('renders', () => {
