@@ -322,7 +322,7 @@ describe('Performance > TransactionSummary', function () {
     expect(screen.queryByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
   });
 
-  it('fetches transaction threshdold', function () {
+  it('fetches transaction threshold', function () {
     const {organization, router, routerContext} = initializeData();
 
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
