@@ -1,8 +1,11 @@
+import {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IntervalPeriod} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 
@@ -117,35 +120,101 @@ function getUtcValue(maybe: boolean | ParamValue) {
   return parseUtcValue(result);
 }
 
-type ParsedParams = {
-  start?: string;
-  end?: string;
-  period?: string;
-  utc?: string;
-  [others: string]: string | null | undefined;
-};
+/**
+ * Normalizes a string or string[] into the project list parameter
+ */
+function getProject(maybe: ParamValue) {
+  if (!defined(maybe)) {
+    return undefined;
+  }
+
+  if (Array.isArray(maybe)) {
+    return maybe.map(p => parseInt(p, 10));
+  }
+
+  const projectFromQueryIdInt = parseInt(maybe, 10);
+  return isNaN(projectFromQueryIdInt) ? [] : [projectFromQueryIdInt];
+}
+
+/*
+ * Normalizes a string or string[] into the environment list parameter
+ */
+function getEnvironment(maybe: ParamValue) {
+  if (!defined(maybe)) {
+    return undefined;
+  }
+
+  if (Array.isArray(maybe)) {
+    return maybe;
+  }
+
+  return [maybe];
+}
 
 type InputParams = {
   pageStatsPeriod?: ParamValue;
-  pageStart?: Date | ParamValue;
-  pageEnd?: Date | ParamValue;
-  pageUtc?: boolean | ParamValue;
-  start?: Date | ParamValue;
-  end?: Date | ParamValue;
+  pageStart?: ParamValue | Date;
+  pageEnd?: ParamValue | Date;
+  pageUtc?: ParamValue | boolean;
+
+  start?: ParamValue | Date;
+  end?: ParamValue | Date;
   period?: ParamValue;
   statsPeriod?: ParamValue;
-  utc?: boolean | ParamValue;
+  utc?: ParamValue | boolean;
+
   [others: string]: any;
 };
 
-type Options = {
-  allowEmptyPeriod?: boolean;
-  allowAbsoluteDatetime?: boolean;
-  allowAbsolutePageDatetime?: boolean;
-  defaultStatsPeriod?: string;
+type ParsedParams = {
+  start?: string;
+  end?: string;
+  statsPeriod?: string;
+  utc?: string;
+  [others: string]: Location['query'][string];
 };
 
-export function getParams(params: InputParams, options: Options = {}): ParsedParams {
+type DateTimeNormalizeOptions = {
+  /**
+   * When set to true allows the statsPeriod to result as `null`.
+   *
+   * @default false
+   */
+  allowEmptyPeriod?: boolean;
+  /**
+   * Include this default statsPeriod in the resulting parsed parameters when
+   * no stats period is provided (or if it is an invalid stats period)
+   */
+  defaultStatsPeriod?: string;
+  /**
+   * Parse absolute date time (`start` / `end`) from the input parameters. When
+   * set to false the start and end will always be `null`.
+   *
+   * @default true
+   */
+  allowAbsoluteDatetime?: boolean;
+  /**
+   * The page specific version of allowAbsolutePageDatetime
+   *
+   * @default false
+   */
+  allowAbsolutePageDatetime?: boolean;
+};
+
+/**
+ * Normalizes the DateTime components of the page filters.
+ *
+ * NOTE: This has some additional functionality for handling `page*` filters
+ *       that will override the standard `start`/`end`/`statsPeriod` filters.
+ *
+ * NOTE: This does *NOT* noramlize the `project` or `environment` components of
+ *       the page filter parameters. See `getStateFromQuery` for normalization
+ *       of the project and environment parameters.
+ */
+export function normalizeDateTimeParams(
+  params: InputParams,
+  options: DateTimeNormalizeOptions = {}
+): ParsedParams {
   const {
     allowEmptyPeriod = false,
     allowAbsoluteDatetime = true,
@@ -166,7 +235,7 @@ export function getParams(params: InputParams, options: Options = {}): ParsedPar
     ...otherParams
   } = params;
 
-  // `statsPeriod` takes precedence for now
+  // `statsPeriod` takes precedence for now. `period` is legacy.
   let coercedPeriod =
     getStatsPeriodValue(pageStatsPeriod) ||
     getStatsPeriodValue(statsPeriod) ||
@@ -201,4 +270,43 @@ export function getParams(params: InputParams, options: Options = {}): ParsedPar
   const paramEntries = Object.entries(object).filter(([_, value]) => defined(value));
 
   return Object.fromEntries(paramEntries);
+}
+
+/**
+ * Parses and normalizes all page filter relevant parameters from a location
+ * query.
+ *
+ * This includes the following operations
+ *
+ *  - Normalizes `project` and `environment` into a consistent list object.
+ *  - Normalizes date time filter parameters (using normalizeDateTimeParams).
+ *  - Parses `start` and `end` into Date objects.
+ */
+export function getStateFromQuery(
+  query: Location['query'],
+  normalizeOptions: DateTimeNormalizeOptions = {}
+) {
+  const {allowAbsoluteDatetime} = normalizeOptions;
+
+  const project = getProject(query[URL_PARAM.PROJECT]);
+  const environment = getEnvironment(query[URL_PARAM.ENVIRONMENT]);
+
+  const dateTimeParams = normalizeDateTimeParams(query, normalizeOptions);
+
+  const hasAbsolute =
+    allowAbsoluteDatetime && !!dateTimeParams.start && !!dateTimeParams.end;
+
+  const start = hasAbsolute ? getUtcToLocalDateObject(dateTimeParams.start) : null;
+  const end = hasAbsolute ? getUtcToLocalDateObject(dateTimeParams.end) : null;
+  const period = dateTimeParams.statsPeriod;
+  const utc = dateTimeParams.utc;
+
+  return {
+    project,
+    environment,
+    period: period || null,
+    start: start || null,
+    end: end || null,
+    utc: typeof utc !== 'undefined' ? utc === 'true' : null,
+  };
 }
