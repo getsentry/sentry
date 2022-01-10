@@ -559,6 +559,7 @@ class DashboardDetail extends Component<Props, State> {
             <Dashboard
               paramDashboardId={dashboardId}
               dashboard={modifiedDashboard ?? dashboard}
+              dashboardState={dashboardState}
               organization={organization}
               isEditing={this.isEditing}
               widgetLimitReached={widgetLimitReached}
@@ -643,6 +644,7 @@ class DashboardDetail extends Component<Props, State> {
                 <Dashboard
                   paramDashboardId={dashboardId}
                   dashboard={modifiedDashboard ?? dashboard}
+                  dashboardState={dashboardState}
                   organization={organization}
                   isEditing={this.isEditing}
                   widgetLimitReached={widgetLimitReached}

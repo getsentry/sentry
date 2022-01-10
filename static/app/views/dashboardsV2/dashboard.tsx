@@ -31,6 +31,7 @@ import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
 import {
   DashboardDetails,
+  DashboardState,
   DashboardWidgetSource,
   DisplayType,
   Widget,
@@ -61,6 +62,7 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
+  dashboardState: DashboardState;
   selection: PageFilters;
   isEditing: boolean;
   router: InjectedRouter;
@@ -211,15 +213,26 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
+    const {dashboardState, handleAddLibraryWidgets} = this.props;
     const nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
     nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
+    if (dashboardState === DashboardState.VIEW) {
+      handleAddLibraryWidgets(nextList);
+    }
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
     const {layouts} = this.state;
-    const {dashboard, onUpdate, onLayoutChange, organization} = this.props;
+    const {
+      dashboard,
+      onUpdate,
+      onLayoutChange,
+      organization,
+      dashboardState,
+      handleAddLibraryWidgets,
+    } = this.props;
 
     const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     onUpdate(nextList);
@@ -229,6 +242,9 @@ class Dashboard extends Component<Props, State> {
         ({i}) => i !== constructGridItemKey(widgetToDelete)
       );
       onLayoutChange(newLayout);
+    }
+    if (dashboardState === DashboardState.VIEW) {
+      handleAddLibraryWidgets(nextList);
     }
   };
 
