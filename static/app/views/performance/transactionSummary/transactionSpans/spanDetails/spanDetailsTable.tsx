@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import GridEditable, {
@@ -8,19 +9,23 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
+import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
+import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {
   ExampleTransaction,
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 
+import {PerformanceDuration} from '../../../utils';
 import {generateTransactionLink} from '../../utils';
-
-import {SpanDurationBar} from './styles';
 
 type TableColumnKeys =
   | 'id'
@@ -192,3 +197,49 @@ const SPANS_TABLE_COLUMN_ORDER: TableColumn[] = [
     width: COL_WIDTH_UNDEFINED,
   },
 ];
+
+const DurationBar = styled('div')`
+  position: relative;
+  display: flex;
+  top: ${space(0.5)};
+  background-color: ${p => p.theme.gray100};
+`;
+
+const DurationBarSection = styled(RowRectangle)`
+  position: relative;
+  width: 100%;
+  top: 0;
+`;
+
+type SpanDurationBarProps = {
+  spanOp: string;
+  spanDuration: number;
+  transactionDuration: number;
+};
+
+function SpanDurationBar(props: SpanDurationBarProps) {
+  const {spanOp, spanDuration, transactionDuration} = props;
+  const widthPercentage = spanDuration / transactionDuration;
+  const position = widthPercentage < 0.7 ? 'right' : 'inset';
+
+  return (
+    <DurationBar>
+      <div style={{width: toPercent(widthPercentage)}}>
+        <Tooltip title={formatPercentage(widthPercentage)} containerDisplayMode="block">
+          <DurationBarSection
+            spanBarHatch={false}
+            style={{backgroundColor: pickBarColor(spanOp)}}
+          >
+            <DurationPill
+              durationDisplay={position}
+              showDetail={false}
+              spanBarHatch={false}
+            >
+              <PerformanceDuration abbreviation milliseconds={spanDuration} />
+            </DurationPill>
+          </DurationBarSection>
+        </Tooltip>
+      </div>
+    </DurationBar>
+  );
+}

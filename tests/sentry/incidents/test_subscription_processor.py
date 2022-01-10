@@ -1633,10 +1633,185 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_actions_fired_for_incident(incident, [action_critical])
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
+    def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(self):
+        rule = self.crash_rate_alert_rule
+        rule.update(threshold_period=2)
+
+        trigger = self.crash_rate_alert_critical_trigger
+        update_value = (1 - trigger.alert_threshold / 100) + 0.05
+        subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
+
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-2),
+            subscription=subscription,
+        )
+
+        self.assert_trigger_counts(processor, trigger, 1, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=None,
+            time_delta=timedelta(minutes=-1),
+            subscription=subscription,
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.ignore_update_no_session_data"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+
+    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    def test_multiple_threshold_trigger_is_reset_when_count_is_lower_than_min_threshold(self):
+        rule = self.crash_rate_alert_rule
+        rule.update(threshold_period=2)
+
+        trigger = self.crash_rate_alert_critical_trigger
+        update_value = (1 - trigger.alert_threshold / 100) + 0.05
+        subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
+
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-2),
+            subscription=subscription,
+        )
+
+        self.assert_trigger_counts(processor, trigger, 1, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            count=1,
+            time_delta=timedelta(minutes=-1),
+            subscription=subscription,
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+
+    def test_multiple_threshold_resolve_is_reset_when_no_sessions_data(self):
+        rule = self.crash_rate_alert_rule
+        trigger = self.crash_rate_alert_critical_trigger
+        action_critical = self.crash_rate_alert_critical_action
+        subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
+
+        # Send critical update to get an incident fired
+        update_value = (1 - trigger.alert_threshold / 100) + 0.05
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-2),
+            subscription=subscription,
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [action_critical])
+
+        # Send a resolve update to increment the resolve count to 1
+        rule.update(threshold_period=2)
+        resolve_update_value = (1 - trigger.alert_threshold / 100) - 0.05
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=resolve_update_value,
+            time_delta=timedelta(minutes=-1),
+            subscription=subscription,
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 1)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_action_handler_called_with_actions(incident, [])
+
+        # Send an empty update which should reset the resolve count to 0
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=None,
+            subscription=subscription,
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.ignore_update_no_session_data"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_action_handler_called_with_actions(incident, [])
+
+    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    def test_multiple_threshold_resolve_is_reset_when_count_is_lower_than_min_threshold(self):
+        rule = self.crash_rate_alert_rule
+        trigger = self.crash_rate_alert_critical_trigger
+        action_critical = self.crash_rate_alert_critical_action
+        subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
+
+        # Send critical update to get an incident fired
+        update_value = (1 - trigger.alert_threshold / 100) + 0.05
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            count=31,
+            time_delta=timedelta(minutes=-2),
+            subscription=subscription,
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [action_critical])
+
+        # Send a resolve update to increment the resolve count to 1
+        rule.update(threshold_period=2)
+        resolve_update_value = (1 - trigger.alert_threshold / 100) - 0.05
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=resolve_update_value,
+            time_delta=timedelta(minutes=-1),
+            subscription=subscription,
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 1)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_action_handler_called_with_actions(incident, [])
+
+        # Send an empty update which should reset the resolve count to 0
+        processor = self.send_crash_rate_alert_update(
+            rule=rule,
+            value=resolve_update_value,
+            count=10,
+            subscription=subscription,
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_action_handler_called_with_actions(incident, [])
+
 
 class MetricsCrashRateAlertProcessUpdateTest(
     CrashRateAlertProcessUpdateTest, SessionMetricsTestCase
 ):
+    entity_subscription_metrics = patcher("sentry.snuba.entity_subscription.metrics")
+
     def setUp(self):
         super().setUp()
         for status in ["exited", "crashed"]:
@@ -1715,9 +1890,14 @@ class MetricsCrashRateAlertProcessUpdateTest(
             }
         )
         self.assert_no_active_incident(rule)
+        self.entity_subscription_metrics.incr.assert_has_calls(
+            [
+                call("incidents.entity_subscription.metric_index_not_found"),
+            ]
+        )
         self.metrics.incr.assert_has_calls(
             [
-                call("incidents.alert_rules.ignore_update.metric_index_not_found"),
+                call("incidents.alert_rules.ignore_update_no_session_data"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
