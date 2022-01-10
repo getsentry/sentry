@@ -132,6 +132,7 @@ function SpansContent(props: Props) {
               location={location}
               orgSlug={organization.slug}
               eventView={spansView}
+              limit={10}
               perSuspect={0}
               spanOps={defined(spanOp) ? [spanOp] : []}
               spanGroups={defined(spanGroup) ? [spanGroup] : []}

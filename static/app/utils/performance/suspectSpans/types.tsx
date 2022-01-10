@@ -17,6 +17,7 @@ export type ExampleTransaction = {
 export type SpanExample = {
   op: string;
   group: string;
+  description: string | null;
   examples: ExampleTransaction[];
 };
 

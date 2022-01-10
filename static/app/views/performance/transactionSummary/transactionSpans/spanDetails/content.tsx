@@ -139,13 +139,11 @@ function SpanDetailsContent(props: ContentProps) {
   // There should always be exactly 1 result
   const suspectSpan = suspectSpansResults.suspectSpans?.[0];
   const examples = spanExamplesResults.examples?.[0]?.examples;
-  const description = examples?.[0]?.description ?? null;
 
   return (
     <Fragment>
       <SpanDetailsHeader
         spanSlug={spanSlug}
-        description={description}
         totalCount={totalCount}
         suspectSpan={suspectSpan}
       />
@@ -165,15 +163,15 @@ function SpanDetailsContent(props: ContentProps) {
 
 type HeaderProps = {
   spanSlug: SpanSlug;
-  description: string | null;
   totalCount: number | null;
   suspectSpan?: SuspectSpan;
 };
 
 function SpanDetailsHeader(props: HeaderProps) {
-  const {spanSlug, description, suspectSpan, totalCount} = props;
+  const {spanSlug, suspectSpan, totalCount} = props;
 
   const {
+    description,
     frequency,
     p75ExclusiveTime,
     p95ExclusiveTime,

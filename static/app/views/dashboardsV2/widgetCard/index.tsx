@@ -122,7 +122,9 @@ class WidgetCard extends React.Component<Props> {
       organization,
       showContextMenu,
       widgetLimitReached,
+      onEdit,
       onDuplicate,
+      onDelete,
     } = this.props;
 
     return (
@@ -133,6 +135,8 @@ class WidgetCard extends React.Component<Props> {
         showContextMenu={showContextMenu}
         widgetLimitReached={widgetLimitReached}
         onDuplicate={onDuplicate}
+        onEdit={onEdit}
+        onDelete={onDelete}
       />
     );
   }
