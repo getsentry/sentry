@@ -114,7 +114,6 @@ class AuthVerifyEndpointTest(APITestCase):
         assert validate_response.call_count == 1
         assert {"challenge": "challenge"} in validate_response.call_args[0]
         assert {"response": "response"} in validate_response.call_args[0]
-        assert True in validate_response.call_args[0]
 
 
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
