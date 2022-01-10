@@ -80,9 +80,9 @@ export type QueryDefinition<
   transform: (
     props: GenericPerformanceWidgetProps<T>,
     results: any,
-    queryDefinition: QueryDefinitionWithKey<T>,
-    enabled?: (data: T) => boolean
+    queryDefinition: QueryDefinitionWithKey<T>
   ) => S; // TODO(k-fish): Fix any type.
+  enabled?: (data: T) => boolean;
 };
 export type Queries<T extends WidgetDataConstraint> = Record<
   string,
