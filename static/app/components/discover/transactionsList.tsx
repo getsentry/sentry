@@ -15,7 +15,6 @@ import {Organization} from 'sentry/types';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
-import BaselineQuery from 'sentry/utils/performance/baseline/baselineQuery';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -101,14 +100,6 @@ type Props = {
     ) => LocationDescriptor
   >;
   /**
-   * The name of the transaction to find a baseline for.
-   */
-  baseline?: string;
-  /**
-   * The callback for when a baseline cell is clicked.
-   */
-  handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
-  /**
    * The callback for when Open in Discover is clicked.
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
@@ -186,7 +177,6 @@ class TransactionsList extends React.Component<Props> {
       <React.Fragment>
         <div>
           <DropdownControl
-            data-test-id="filter-transactions"
             button={({isOpen, getActorProps}) => (
               <StyledDropdownButton
                 {...getActorProps()}
@@ -256,7 +246,6 @@ class TransactionsList extends React.Component<Props> {
       limit,
       titles,
       generateLink,
-      baseline,
       forceLoading,
     } = this.props;
 
@@ -264,13 +253,7 @@ class TransactionsList extends React.Component<Props> {
     const columnOrder = eventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
 
-    const baselineTransactionName = organization.features.includes(
-      'transaction-comparison'
-    )
-      ? baseline ?? null
-      : null;
-
-    let tableRenderer = ({isLoading, pageLinks, tableData, baselineData}) => (
+    const tableRenderer = ({isLoading, pageLinks, tableData}) => (
       <React.Fragment>
         <Header>
           {this.renderHeader()}
@@ -286,11 +269,9 @@ class TransactionsList extends React.Component<Props> {
           location={location}
           isLoading={isLoading}
           tableData={tableData}
-          baselineData={baselineData ?? null}
           columnOrder={columnOrder}
           titles={titles}
           generateLink={generateLink}
-          baselineTransactionName={baselineTransactionName}
           handleCellAction={handleCellAction}
         />
       </React.Fragment>
@@ -301,24 +282,7 @@ class TransactionsList extends React.Component<Props> {
         isLoading: true,
         pageLinks: null,
         tableData: null,
-        baselineData: null,
       });
-    }
-
-    if (baselineTransactionName) {
-      const orgTableRenderer = tableRenderer;
-      tableRenderer = ({isLoading, pageLinks, tableData}) => (
-        <BaselineQuery eventView={eventView} orgSlug={organization.slug}>
-          {baselineQueryProps => {
-            return orgTableRenderer({
-              isLoading: isLoading || baselineQueryProps.isLoading,
-              pageLinks,
-              tableData,
-              baselineData: baselineQueryProps.results,
-            });
-          }}
-        </BaselineQuery>
-      );
     }
 
     return (
@@ -373,7 +337,6 @@ class TransactionsList extends React.Component<Props> {
               location={location}
               isLoading={isLoading}
               tableData={trendsData}
-              baselineData={null}
               titles={['transaction', 'percentage', 'difference']}
               columnOrder={decodeColumnOrder([
                 {field: 'transaction'},
@@ -381,7 +344,6 @@ class TransactionsList extends React.Component<Props> {
                 {field: 'trend_difference()'},
               ])}
               generateLink={generateLink}
-              baselineTransactionName={null}
             />
           </React.Fragment>
         )}

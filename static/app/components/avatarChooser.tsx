@@ -12,6 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
@@ -23,7 +24,8 @@ type AvatarChooserType =
   | 'team'
   | 'organization'
   | 'sentryAppColor'
-  | 'sentryAppSimple';
+  | 'sentryAppSimple'
+  | 'docIntegration';
 type DefaultChoice = {
   preview?: React.ReactNode;
   allowDefault?: boolean;
@@ -46,10 +48,8 @@ type Props = {
   disabled?: boolean;
   savedDataUrl?: string;
   isUser?: boolean;
-  /**
-   * Title in the PanelHeader component (default: 'Avatar')
-   */
   title?: string;
+  help?: React.ReactNode;
 } & DefaultProps;
 
 type State = {
@@ -114,22 +114,23 @@ class AvatarChooser extends React.Component<Props, State> {
   handleSaveSettings = (ev: React.MouseEvent) => {
     const {endpoint, api, type} = this.props;
     const {model, dataUrl} = this.state;
-    const isSentryApp = type?.startsWith('sentryApp');
 
     ev.preventDefault();
-    const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
-    const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : undefined;
+    const avatarType = model?.avatar?.avatarType;
+    const avatarPhoto = dataUrl?.split(',')[1];
 
     const data: {
-      avatar_photo: string | undefined;
-      avatar_type: string | undefined;
+      avatar_photo?: string;
+      avatar_type?: string;
       color?: boolean;
-    } = {
-      avatar_photo: avatarPhoto,
-      avatar_type: avatarType,
-    };
+    } = {avatar_type: avatarType};
 
-    if (isSentryApp) {
+    // If an image has been uploaded, then another option is selected, we should not submit the uploaded image
+    if (avatarType === 'upload') {
+      data.avatar_photo = avatarPhoto;
+    }
+
+    if (type?.startsWith('sentryApp')) {
       data.color = type === 'sentryAppColor';
     }
 
@@ -140,7 +141,12 @@ class AvatarChooser extends React.Component<Props, State> {
         this.setState({savedDataUrl: this.state.dataUrl});
         this.handleSuccess(this.getModelFromResponse(resp));
       },
-      error: this.handleError.bind(this, 'There was an error saving your preferences.'),
+      error: resp => {
+        const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
+        avatarPhotoErrors.length
+          ? avatarPhotoErrors.map(this.handleError)
+          : this.handleError.bind(this, t('There was an error saving your preferences.'));
+      },
     });
   };
 
@@ -160,6 +166,7 @@ class AvatarChooser extends React.Component<Props, State> {
       isUser,
       disabled,
       title,
+      help,
       defaultChoice,
     } = this.props;
     const {hasError, model} = this.state;
@@ -237,6 +244,7 @@ class AvatarChooser extends React.Component<Props, State> {
                 />
               )}
               <AvatarSubmit className="form-actions">
+                {help && <AvatarHelp>{help}</AvatarHelp>}
                 <Button
                   type="button"
                   priority="primary"
@@ -254,25 +262,33 @@ class AvatarChooser extends React.Component<Props, State> {
   }
 }
 
+const AvatarHelp = styled('p')`
+  margin-right: auto;
+  color: ${p => p.theme.gray300};
+  font-size: 14px;
+  width: 50%;
+`;
+
 const AvatarGroup = styled('div')<{inline: boolean}>`
   display: flex;
   flex-direction: ${p => (p.inline ? 'row' : 'column')};
 `;
 
 const AvatarForm = styled('div')`
-  line-height: 1.5em;
-  padding: 1em 1.25em;
-  margin: 1em 0.5em 0;
+  line-height: ${space(3)};
+  padding: ${space(1.5)} ${space(2)};
+  margin: ${space(1.5)} ${space(1)} ${space(0.5)};
 `;
 
 const AvatarSubmit = styled('fieldset')`
   display: flex;
-  justify-content: flex-end;
-  margin-top: 1.25em;
+  align-items: center;
+  margin-top: ${space(4)};
+  padding-top: ${space(1.5)};
 `;
 
 const AvatarUploadSection = styled('div')`
-  margin-top: 1em;
+  margin-top: ${space(1.5)};
 `;
 
 export default withApi(AvatarChooser);

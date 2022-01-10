@@ -7,12 +7,14 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import Hovercard from 'sentry/components/hovercard';
+import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-import {DashboardListItem, DashboardState} from './types';
+import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
   organization: Organization;
@@ -22,7 +24,7 @@ type Props = {
   onCommit: () => void;
   onDelete: () => void;
   onAddWidget: () => void;
-  onAddIssueWidget: () => void;
+  widgetLimitReached: boolean;
   dashboardState: DashboardState;
 };
 
@@ -32,12 +34,12 @@ class Controls extends React.Component<Props> {
       organization,
       dashboardState,
       dashboards,
+      widgetLimitReached,
       onEdit,
       onCancel,
       onCommit,
       onDelete,
       onAddWidget,
-      onAddIssueWidget,
     } = this.props;
 
     const cancelButton = (
@@ -117,32 +119,31 @@ class Controls extends React.Component<Props> {
               >
                 {t('Edit Dashboard')}
               </Button>
-              {organization.features.includes('widget-library') ? (
-                <Button
-                  data-test-id="add-widget-library"
-                  priority="primary"
-                  icon={<IconAdd isCircled />}
-                  onClick={e => {
-                    e.preventDefault();
-                    onAddWidget();
-                  }}
+              {organization.features.includes('widget-library') && hasFeature ? (
+                <Tooltip
+                  title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  })}
+                  disabled={!!!widgetLimitReached}
                 >
-                  {t('Add Widget')}
-                </Button>
-              ) : null}
-              {organization.features.includes('issues-in-dashboards') ? (
-                <Button
-                  data-test-id="dashboard-add-issues-widget"
-                  priority="primary"
-                  icon={<IconAdd isCircled />}
-                  onClick={e => {
-                    e.preventDefault();
-                    onAddIssueWidget();
-                  }}
-                  disabled={!hasFeature}
-                >
-                  {t('Add Issue Widget')}
-                </Button>
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    disabled={widgetLimitReached}
+                    icon={<IconAdd isCircled />}
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'dashboards_views.widget_library.opened',
+                        {
+                          organization,
+                        }
+                      );
+                      onAddWidget();
+                    }}
+                  >
+                    {t('Add Widget')}
+                  </Button>
+                </Tooltip>
               ) : null}
             </React.Fragment>
           )}

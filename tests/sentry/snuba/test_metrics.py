@@ -29,6 +29,7 @@ from sentry.snuba.metrics import (
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
+    _resolve_tags,
     get_date_range,
     get_intervals,
     parse_query,
@@ -47,14 +48,14 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
 @pytest.mark.parametrize(
     "query_string,expected",
     [
-        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[14])]),
-        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[15])]),
+        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[15])]),
+        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
         (
             "release:myapp@2.0.0 and environment:production",
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[15]),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
                         Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 )
@@ -63,7 +64,7 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
         (
             "release:myapp@2.0.0 environment:production",
             [
-                Condition(Column(name="tags[6]"), Op.IN, rhs=[15]),
+                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
                 Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
             ],
         ),
@@ -74,12 +75,12 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
                     [
                         And(
                             [
-                                Condition(Column(name="tags[6]"), Op.IN, rhs=[15]),
+                                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
                                 Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                             ]
                         ),
                         Condition(
-                            Function(function="ifNull", parameters=[Column(name="tags[8]"), 14]),
+                            Column(name="tags[8]"),
                             Op.EQ,
                             rhs=4,
                         ),
@@ -87,7 +88,7 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
                 ),
             ],
         ),
-        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[16]"), Op.EQ, rhs=17)]),
+        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[17]"), Op.EQ, rhs=18)]),
     ],
 )
 @mock.patch("sentry.snuba.metrics.indexer")
@@ -96,7 +97,7 @@ def test_parse_query(mock_indexer, query_string, expected):
     for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
         local_indexer.record(s)
     mock_indexer.resolve = local_indexer.resolve
-    parsed = parse_query(query_string)
+    parsed = _resolve_tags(parse_query(query_string))
     assert parsed == expected
 
 
@@ -179,9 +180,9 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
             ],  # weird release but we need a string exising in mock indexer
             "groupBy": ["session.status", "environment"],
             "field": [
-                "sum(session)",
-                "count_unique(user)",
-                "p95(session.duration)",
+                "sum(sentry.sessions.session)",
+                "count_unique(sentry.sessions.user)",
+                "p95(sentry.sessions.session.duration)",
             ],
         }
     )
@@ -209,21 +210,21 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
         )
 
     assert snuba_queries["metrics_counters"]["totals"] == expected_query(
-        "metrics_counters", ("sum", "value", "value"), []
+        "metrics_counters", ("sum", "value", "sum"), []
     )
 
-    expected_percentile_select = ("quantiles(0.5,0.75,0.9,0.95,0.99)", "value", "percentiles")
+    expected_percentile_select = ("quantiles(0.95)", "value", "p95")
     assert snuba_queries == {
         "metrics_counters": {
-            "totals": expected_query("metrics_counters", ("sum", "value", "value"), []),
+            "totals": expected_query("metrics_counters", ("sum", "value", "sum"), []),
             "series": expected_query(
-                "metrics_counters", ("sum", "value", "value"), [Column("bucketed_time")]
+                "metrics_counters", ("sum", "value", "sum"), [Column("bucketed_time")]
             ),
         },
         "metrics_sets": {
-            "totals": expected_query("metrics_sets", ("uniq", "value", "value"), []),
+            "totals": expected_query("metrics_sets", ("uniq", "value", "count_unique"), []),
             "series": expected_query(
-                "metrics_sets", ("uniq", "value", "value"), [Column("bucketed_time")]
+                "metrics_sets", ("uniq", "value", "count_unique"), [Column("bucketed_time")]
             ),
         },
         "metrics_distributions": {
@@ -250,9 +251,9 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
             ],  # weird release but we need a string exising in mock indexer
             "groupBy": ["session.status", "environment"],
             "field": [
-                "sum(session)",
+                "sum(sentry.sessions.session)",
             ],
-            "orderBy": ["-sum(session)"],
+            "orderBy": ["-sum(sentry.sessions.session)"],
             "limit": [3],
         }
     )
@@ -266,7 +267,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
     assert counter_queries["totals"] == Query(
         dataset="metrics",
         match=Entity("metrics_counters"),
-        select=[Function("sum", [Column("value")], "value")],
+        select=[Function("sum", [Column("value")], "sum")],
         groupby=[
             Column("metric_id"),
             Column("tags[8]"),
@@ -280,7 +281,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(Column("tags[6]", entity=None), Op.IN, [10]),
         ],
-        orderby=[OrderBy(Column("value"), Direction.DESC)],
+        orderby=[OrderBy(Column("sum"), Direction.DESC)],
         limit=Limit(3),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
@@ -297,10 +298,10 @@ def test_translate_results(_1, _2, mock_indexer):
         {
             "groupBy": ["session.status"],
             "field": [
-                "sum(session)",
-                "max(session.duration)",
-                "p50(session.duration)",
-                "p95(session.duration)",
+                "sum(sentry.sessions.session)",
+                "max(sentry.sessions.session.duration)",
+                "p50(sentry.sessions.session.duration)",
+                "p95(sentry.sessions.session.duration)",
             ],
             "interval": ["1d"],
             "statsPeriod": ["2d"],
@@ -316,12 +317,12 @@ def test_translate_results(_1, _2, mock_indexer):
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,  # session.status:healthy
-                        "value": 300,
+                        "sum": 300,
                     },
                     {
                         "metric_id": 9,  # session
-                        "tags[8]": 0,  # session.status:abnormal
-                        "value": 330,
+                        "tags[8]": 14,  # session.status:abnormal
+                        "sum": 330,
                     },
                 ],
             },
@@ -331,25 +332,25 @@ def test_translate_results(_1, _2, mock_indexer):
                         "metric_id": 9,  # session
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "value": 100,
+                        "sum": 100,
                     },
                     {
                         "metric_id": 9,  # session
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "value": 110,
+                        "sum": 110,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "value": 200,
+                        "sum": 200,
                     },
                     {
                         "metric_id": 9,  # session
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "value": 220,
+                        "sum": 220,
                     },
                 ],
             },
@@ -361,13 +362,15 @@ def test_translate_results(_1, _2, mock_indexer):
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
                         "max": 123.4,
-                        "percentiles": [1, 2, 3, 4, 5],
+                        "p50": [1],
+                        "p95": [4],
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "max": 456.7,
-                        "percentiles": [1.5, 2.5, 3.5, 4.5, 5.5],
+                        "p50": [1.5],
+                        "p95": [4.5],
                     },
                 ],
             },
@@ -378,28 +381,32 @@ def test_translate_results(_1, _2, mock_indexer):
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-24T00:00Z",
                         "max": 10.1,
-                        "percentiles": [1.1, 2.1, 3.1, 4.1, 5.1],
+                        "p50": [1.1],
+                        "p95": [4.1],
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
                         "max": 20.2,
-                        "percentiles": [1.2, 2.2, 3.2, 4.2, 5.2],
+                        "p50": [1.2],
+                        "p95": [4.2],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-25T00:00Z",
                         "max": 30.3,
-                        "percentiles": [1.3, 2.3, 3.3, 4.3, 5.3],
+                        "p50": [1.3],
+                        "p95": [4.3],
                     },
                     {
                         "metric_id": 7,  # session.duration
-                        "tags[8]": 0,
+                        "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
                         "max": 40.4,
-                        "percentiles": [1.4, 2.4, 3.4, 4.4, 5.4],
+                        "p50": [1.4],
+                        "p95": [4.4],
                     },
                 ],
             },
@@ -410,31 +417,31 @@ def test_translate_results(_1, _2, mock_indexer):
         {
             "by": {"session.status": "healthy"},
             "totals": {
-                "sum(session)": 300,
-                "max(session.duration)": 123.4,
-                "p50(session.duration)": 1,
-                "p95(session.duration)": 4,
+                "sum(sentry.sessions.session)": 300,
+                "max(sentry.sessions.session.duration)": 123.4,
+                "p50(sentry.sessions.session.duration)": 1,
+                "p95(sentry.sessions.session.duration)": 4,
             },
             "series": {
-                "sum(session)": [100, 200],
-                "max(session.duration)": [10.1, 30.3],
-                "p50(session.duration)": [1.1, 1.3],
-                "p95(session.duration)": [4.1, 4.3],
+                "sum(sentry.sessions.session)": [100, 200],
+                "max(sentry.sessions.session.duration)": [10.1, 30.3],
+                "p50(sentry.sessions.session.duration)": [1.1, 1.3],
+                "p95(sentry.sessions.session.duration)": [4.1, 4.3],
             },
         },
         {
             "by": {"session.status": "abnormal"},
             "totals": {
-                "sum(session)": 330,
-                "max(session.duration)": 456.7,
-                "p50(session.duration)": 1.5,
-                "p95(session.duration)": 4.5,
+                "sum(sentry.sessions.session)": 330,
+                "max(sentry.sessions.session.duration)": 456.7,
+                "p50(sentry.sessions.session.duration)": 1.5,
+                "p95(sentry.sessions.session.duration)": 4.5,
             },
             "series": {
-                "sum(session)": [110, 220],
-                "max(session.duration)": [20.2, 40.4],
-                "p50(session.duration)": [1.2, 1.4],
-                "p95(session.duration)": [4.2, 4.4],
+                "sum(sentry.sessions.session)": [110, 220],
+                "max(sentry.sessions.session.duration)": [20.2, 40.4],
+                "p50(sentry.sessions.session.duration)": [1.2, 1.4],
+                "p95(sentry.sessions.session.duration)": [4.2, 4.4],
             },
         },
     ]
@@ -448,7 +455,7 @@ def test_translate_results_missing_slots(_1, _2, mock_indexer):
     query_params = MultiValueDict(
         {
             "field": [
-                "sum(session)",
+                "sum(sentry.sessions.session)",
             ],
             "interval": ["1d"],
             "statsPeriod": ["3d"],
@@ -462,7 +469,7 @@ def test_translate_results_missing_slots(_1, _2, mock_indexer):
                 "data": [
                     {
                         "metric_id": 9,  # session
-                        "value": 400,
+                        "sum": 400,
                     },
                 ],
             },
@@ -471,13 +478,13 @@ def test_translate_results_missing_slots(_1, _2, mock_indexer):
                     {
                         "metric_id": 9,  # session
                         "bucketed_time": "2021-08-23T00:00Z",
-                        "value": 100,
+                        "sum": 100,
                     },
                     # no data for 2021-08-24
                     {
                         "metric_id": 9,  # session
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "value": 300,
+                        "sum": 300,
                     },
                 ],
             },
@@ -489,11 +496,11 @@ def test_translate_results_missing_slots(_1, _2, mock_indexer):
         {
             "by": {},
             "totals": {
-                "sum(session)": 400,
+                "sum(sentry.sessions.session)": 400,
             },
             "series": {
                 # No data for 2021-08-24
-                "sum(session)": [100, 0, 300],
+                "sum(sentry.sessions.session)": [100, 0, 300],
             },
         },
     ]

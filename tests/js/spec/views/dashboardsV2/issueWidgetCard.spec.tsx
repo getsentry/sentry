@@ -2,11 +2,17 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import IssueWidgetCard from 'sentry/views/dashboardsV2/issueWidgetCard';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('Dashboards > IssueWidgetCard', function () {
-  const initialData = initializeOrg();
+  const initialData = initializeOrg({
+    organization: TestStubs.Organization({
+      features: ['dashboards-edit'],
+    }),
+    router: {orgId: 'orgId'},
+  } as Parameters<typeof initializeOrg>[0]);
 
   const widget: Widget = {
     title: 'Issues',
@@ -16,9 +22,9 @@ describe('Dashboards > IssueWidgetCard', function () {
     queries: [
       {
         conditions: 'event.type:default',
-        fields: [],
+        fields: ['issue', 'assignee', 'title'],
         name: '',
-        orderby: '',
+        orderby: IssueSortOptions.FREQ,
       },
     ],
   };
@@ -60,7 +66,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('renders with title and issues chart', async function () {
     mountWithTheme(
-      <IssueWidgetCard
+      <WidgetCard
         api={api}
         organization={initialData.organization}
         widget={widget}
@@ -68,10 +74,12 @@ describe('Dashboards > IssueWidgetCard', function () {
         isEditing={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
         isSorting={false}
         currentWidgetDragging={false}
         showContextMenu
+        widgetLimitReached={false}
       />
     );
 
@@ -92,7 +100,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('opens in issues page', async function () {
     mountWithTheme(
-      <IssueWidgetCard
+      <WidgetCard
         api={api}
         organization={initialData.organization}
         widget={widget}
@@ -100,10 +108,12 @@ describe('Dashboards > IssueWidgetCard', function () {
         isEditing={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
+        onDuplicate={() => undefined}
         renderErrorMessage={() => undefined}
         isSorting={false}
         currentWidgetDragging={false}
         showContextMenu
+        widgetLimitReached={false}
       />
     );
 
@@ -111,7 +121,64 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Open in Issues').closest('a')?.href).toContain(
-      '/organizations/org-slug/issues/?query=event.type%3Adefault&statsPeriod=14d'
+      '/organizations/org-slug/issues/?query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );
+    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
+  });
+
+  it('calls onDuplicate when Duplicate Widget is clicked', async function () {
+    const mock = jest.fn();
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={mock}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+
+    await tick();
+
+    userEvent.click(screen.getByTestId('context-menu'));
+    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Duplicate Widget'));
+    expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the duplicate widget button if max widgets is reached', async function () {
+    const mock = jest.fn();
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={mock}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached
+      />
+    );
+
+    await tick();
+
+    userEvent.click(screen.getByTestId('context-menu'));
+    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Duplicate Widget'));
+    expect(mock).toHaveBeenCalledTimes(0);
   });
 });

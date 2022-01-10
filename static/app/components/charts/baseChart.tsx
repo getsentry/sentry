@@ -23,6 +23,7 @@ import type {
 import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
+import MarkLine from 'sentry/components/charts/components/markLine';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import space from 'sentry/styles/space';
 import {
@@ -270,9 +271,19 @@ type Props = {
    */
   transformSinglePointToBar?: boolean;
   /**
+   * If true and there's only one datapoint in series.data, we show a horizontal line to increase the visibility
+   * Similarly to single point bar in area charts a flat line for line charts makes it easy to spot the single data point.
+   */
+  transformSinglePointToLine?: boolean;
+  /**
    * Inline styles
    */
   style?: React.CSSProperties;
+
+  /**
+   * If true, ignores height value and auto-scales chart to fit container height.
+   */
+  autoHeightResize?: boolean;
 };
 
 function BaseChartUnwrapped({
@@ -316,6 +327,7 @@ function BaseChartUnwrapped({
   yAxis = {},
   xAxis = {},
 
+  autoHeightResize = false,
   height = 200,
   width = 'auto',
   renderer = 'svg',
@@ -323,6 +335,7 @@ function BaseChartUnwrapped({
   lazyUpdate = false,
   isGroupedByDate = false,
   transformSinglePointToBar = false,
+  transformSinglePointToLine = false,
   onChartReady = () => {},
 }: Props) {
   const theme = useTheme();
@@ -347,6 +360,26 @@ function BaseChartUnwrapped({
           barWidth: 40,
           barGap: 0,
           itemStyle: {...(s.areaStyle ?? {})},
+        }))
+      : hasSinglePoints && transformSinglePointToLine
+      ? (series as LineSeriesOption[] | undefined)?.map(s => ({
+          ...s,
+          type: 'line',
+          itemStyle: {...(s.lineStyle ?? {})},
+          markLine:
+            s?.data?.[0]?.[1] !== undefined
+              ? MarkLine({
+                  silent: true,
+                  lineStyle: {
+                    type: 'solid',
+                    width: 1.5,
+                  },
+                  data: [{yAxis: s?.data?.[0]?.[1]}],
+                  label: {
+                    show: false,
+                  },
+                })
+              : undefined,
         }))
       : series) ?? [];
 
@@ -457,7 +490,7 @@ function BaseChartUnwrapped({
   };
 
   const chartStyles = {
-    height: getDimensionValue(height),
+    height: autoHeightResize ? '100%' : getDimensionValue(height),
     width: getDimensionValue(width),
     ...style,
   };
@@ -488,7 +521,7 @@ function BaseChartUnwrapped({
   );
 
   return (
-    <ChartContainer>
+    <ChartContainer autoHeightResize={autoHeightResize}>
       <ReactEchartsCore
         ref={forwardedRef}
         echarts={echarts}
@@ -498,7 +531,12 @@ function BaseChartUnwrapped({
         onChartReady={onChartReady}
         onEvents={eventsMap}
         style={chartStyles}
-        opts={{height, width, renderer, devicePixelRatio}}
+        opts={{
+          height: autoHeightResize ? 'auto' : height,
+          width,
+          renderer,
+          devicePixelRatio,
+        }}
         option={chartOption}
       />
     </ChartContainer>
@@ -507,19 +545,16 @@ function BaseChartUnwrapped({
 
 // Contains styling for chart elements as we can't easily style those
 // elements directly
-const ChartContainer = styled('div')`
+const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
+  ${p => p.autoHeightResize && 'height: 100%;'}
+
   /* Tooltip styling */
-  .tooltip-container {
-    box-shadow: ${p => p.theme.dropShadowHeavy};
-  }
   .tooltip-series,
   .tooltip-date {
     color: ${p => p.theme.subText};
     font-family: ${p => p.theme.text.family};
     font-variant-numeric: tabular-nums;
-    background: ${p => p.theme.backgroundElevated};
     padding: ${space(1)} ${space(2)};
-    border: solid 1px ${p => p.theme.border};
     border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   }
   .tooltip-series {
@@ -551,7 +586,7 @@ const ChartContainer = styled('div')`
     border-radius: ${p => p.theme.borderRadiusBottom};
   }
   .tooltip-arrow {
-    top: calc(100% - 1px);
+    top: 100%;
     left: 50%;
     position: absolute;
     pointer-events: none;

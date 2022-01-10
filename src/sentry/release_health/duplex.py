@@ -2,11 +2,23 @@ import collections.abc
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 import pytz
 from dateutil import parser
-from sentry_sdk import capture_exception, capture_message, push_scope
+from sentry_sdk import capture_exception, capture_message, push_scope, set_context, set_tag
 from typing_extensions import Literal
 
 from sentry import features
@@ -457,36 +469,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     def _org_from_id(org_id: OrganizationId) -> Organization:
         return Organization.objects.get_from_cache(id=org_id)
 
-    def log_exception(
-        self, ex: Exception, fn_name: str, sessions: ReleaseHealthResult = None
-    ) -> None:
-        with push_scope() as scope:
-            scope.set_tag("func-name", fn_name)
-            scope.fingerprint = ["release-health-exception", fn_name]
-            scope.set_context(
-                "release-health",
-                {
-                    "sessions": sessions,
-                },
-            )
-            capture_exception(ex)
-
-    def log_errors(
-        self,
-        errors: List[str],
-        fn_name: str,
-        sessions: ReleaseHealthResult,
-        metrics: ReleaseHealthResult,
-    ) -> None:
-        with push_scope() as scope:
-            scope.set_tag("func-name", fn_name)
-            scope.fingerprint = ["release-health-errors", fn_name]
-            scope.set_context(
-                "release-health", {"errors": errors, "sessions": sessions, "metrics": metrics}
-            )
-            capture_message(f"{fn_name} - Release health metrics missmatch")
-
-    def _dispatch_call(
+    def _dispatch_call_inner(
         self,
         fn_name: str,
         should_compare: Union[bool, Callable[[Any], bool]],
@@ -499,7 +482,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             rollup = 0  # force exact date comparison if not specified
 
         sessions_fn = getattr(self.sessions, fn_name)
-        tags = {"method": fn_name}
+        set_tag("releasehealth.duplex.rollup", str(rollup))
+        set_tag("releasehealth.duplex.method", fn_name)
+        set_tag("releasehealth.duplex.organization", str(getattr(organization, "id")))
+
+        tags = {"method": fn_name, "rollup": str(rollup)}
         with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
             ret_val = sessions_fn(*args)
 
@@ -508,50 +495,72 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         ):
             return ret_val  # cannot check feature without organization
 
+        set_context(
+            "release-health-duplex-sessions",
+            {
+                "sessions": ret_val,
+            },
+        )
+
         try:
             if not isinstance(should_compare, bool):
                 # should compare depends on the session result
                 # evaluate it now
                 should_compare = should_compare(ret_val)
-        except Exception as ex:
-            should_compare = False
-            self.log_exception(ex, fn_name)
-            incr(
-                "releasehealth.metrics.check_should_compare",
-                tags={"should_compare": "crashed", **tags},
-                sample_rate=1.0,
-            )
-        else:
+
             incr(
                 "releasehealth.metrics.check_should_compare",
                 tags={"should_compare": str(should_compare), **tags},
                 sample_rate=1.0,
             )
 
-        if should_compare:
+            if not should_compare:
+                return ret_val
+
             copy = deepcopy(ret_val)
-            try:
-                metrics_fn = getattr(self.metrics, fn_name)
-                with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
-                    metrics_val = metrics_fn(*args)
-                with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
-                    errors = compare_results(copy, metrics_val, rollup, None, schema)
 
-                incr(
-                    "releasehealth.metrics.compare",
-                    tags={"has_errors": str(bool(errors)), **tags},
-                    sample_rate=1.0,
-                )
+            metrics_fn = getattr(self.metrics, fn_name)
+            with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
+                metrics_val = metrics_fn(*args)
 
-                self.log_errors(errors, fn_name, copy, metrics_val)
-            except Exception as ex:
-                incr(
-                    "releasehealth.metrics.compare",
-                    tags={"has_errors": "crashed", **tags},
-                    sample_rate=1.0,
-                )
-                self.log_exception(ex, fn_name, copy)
+            set_context("release-health-duplex-metrics", {"metrics": metrics_val})
+
+            with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
+                errors = compare_results(copy, metrics_val, rollup, None, schema)
+
+            set_context("release-health-duplex-errors", {"errors": errors})
+
+            incr(
+                "releasehealth.metrics.compare",
+                tags={"has_errors": str(bool(errors)), **tags},
+                sample_rate=1.0,
+            )
+
+            if errors:
+                # We heavily rely on Sentry's message sanitization to properly deduplicate this
+                capture_message(f"{fn_name} - Release health metrics mismatch: {errors[0]}")
+        except Exception:
+            capture_exception()
+            should_compare = False
+            incr(
+                "releasehealth.metrics.crashed",
+                tags=tags,
+                sample_rate=1.0,
+            )
+
         return ret_val
+
+    if TYPE_CHECKING:
+        # Mypy is not smart enough to figure out _dispatch_call is a wrapper
+        # around _dispatch_call_inner with the same exact signature, and I am
+        # pretty sure there is no sensible way to tell it something like that
+        # without duplicating the entire signature.
+        _dispatch_call = _dispatch_call_inner
+    else:
+
+        def _dispatch_call(self, *args, **kwargs):
+            with push_scope():
+                return self._dispatch_call_inner(*args, **kwargs)
 
     def get_current_and_previous_crash_free_rates(
         self,

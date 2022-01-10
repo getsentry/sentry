@@ -21,9 +21,10 @@ import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
@@ -33,13 +34,12 @@ import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
 import {
   BaseGroup,
-  GlobalSelection,
   Group,
   Member,
   Organization,
+  PageFilters,
   SavedSearch,
   TagCollection,
 } from 'sentry/types';
@@ -54,9 +54,9 @@ import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 
 import IssueListActions from './actions';
@@ -92,7 +92,7 @@ type Props = {
   location: Location;
   organization: Organization;
   params: Params;
-  selection: GlobalSelection;
+  selection: PageFilters;
   savedSearch: SavedSearch;
   savedSearches: SavedSearch[];
   savedSearchLoading: boolean;
@@ -116,7 +116,6 @@ type State = {
   itemsRemoved: number;
   error: string | null;
   isSidebarVisible: boolean;
-  renderSidebar: boolean;
   issuesLoading: boolean;
   tagsLoading: boolean;
   memberList: ReturnType<typeof indexMembersByProject>;
@@ -124,7 +123,7 @@ type State = {
   query?: string;
 };
 
-type EndpointParams = Partial<GlobalSelection['datetime']> & {
+type EndpointParams = Partial<PageFilters['datetime']> & {
   project: number[];
   environment: string[];
   query?: string;
@@ -166,7 +165,6 @@ class IssueListOverview extends React.Component<Props, State> {
       queryMaxCount: 0,
       error: null,
       isSidebarVisible: false,
-      renderSidebar: false,
       issuesLoading: true,
       tagsLoading: true,
       memberList: {},
@@ -661,8 +659,12 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onSelectStatsPeriod = (period: string) => {
+    const {location} = this.props;
     if (period !== this.getGroupStatsPeriod()) {
-      this.transitionTo({groupStatsPeriod: period});
+      const cursor = location.query.cursor;
+      const queryPageInt = parseInt(location.query.page, 10);
+      const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
+      this.transitionTo({cursor, page, groupStatsPeriod: period});
     }
   };
 
@@ -731,7 +733,6 @@ class IssueListOverview extends React.Component<Props, State> {
     const {organization} = this.props;
     this.setState({
       isSidebarVisible: !this.state.isSidebarVisible,
-      renderSidebar: true,
     });
     trackAdvancedAnalyticsEvent('issue.search_sidebar_clicked', {
       organization,
@@ -851,9 +852,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
   renderLoading(): React.ReactNode {
     return (
-      <StyledPageContent>
+      <PageContent>
         <LoadingIndicator />
-      </StyledPageContent>
+      </PageContent>
     );
   }
 
@@ -964,7 +965,6 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     const {
-      renderSidebar,
       isSidebarVisible,
       tagsLoading,
       pageLinks,
@@ -1023,87 +1023,92 @@ class IssueListOverview extends React.Component<Props, State> {
       query
     );
 
+    const layoutProps = {
+      fullWidth: !isSidebarVisible,
+    };
+
     return (
       <React.Fragment>
-        <IssueListHeader
-          organization={organization}
-          query={query}
-          sort={this.getSort()}
-          queryCount={queryCount}
-          queryCounts={queryCounts}
-          realtimeActive={realtimeActive}
-          onRealtimeChange={this.onRealtimeChange}
-          router={router}
-          savedSearchList={savedSearches}
-          onSavedSearchSelect={this.onSavedSearchSelect}
-          onSavedSearchDelete={this.onSavedSearchDelete}
-          displayReprocessingTab={showReprocessingTab}
-          selectedProjectIds={selection.projects}
-        />
-
         <StyledPageContent>
-          <StreamContent showSidebar={isSidebarVisible}>
-            <IssueListFilters
-              organization={organization}
-              query={query}
-              savedSearch={savedSearch}
-              sort={this.getSort()}
-              display={this.getDisplay()}
-              onDisplayChange={this.onDisplayChange}
-              onSortChange={this.onSortChange}
-              onSearch={this.onSearch}
-              onSidebarToggle={this.onSidebarToggle}
-              isSearchDisabled={isSidebarVisible}
-              tagValueLoader={this.tagValueLoader}
-              tags={tags}
-              selectedProjects={selection.projects}
-            />
-
-            <Panel>
-              <IssueListActions
+          <IssueListHeader
+            organization={organization}
+            query={query}
+            sort={this.getSort()}
+            queryCount={queryCount}
+            queryCounts={queryCounts}
+            realtimeActive={realtimeActive}
+            onRealtimeChange={this.onRealtimeChange}
+            router={router}
+            savedSearchList={savedSearches}
+            onSavedSearchSelect={this.onSavedSearchSelect}
+            onSavedSearchDelete={this.onSavedSearchDelete}
+            displayReprocessingTab={showReprocessingTab}
+            selectedProjectIds={selection.projects}
+          />
+          <Layout.Body {...layoutProps}>
+            <Layout.Main {...layoutProps}>
+              <IssueListFilters
                 organization={organization}
-                selection={selection}
                 query={query}
-                queryCount={modifiedQueryCount}
-                displayCount={displayCount}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onMarkReviewed={this.onMarkReviewed}
-                onDelete={this.onDelete}
-                statsPeriod={this.getGroupStatsPeriod()}
-                groupIds={groupIds}
-                allResultsVisible={this.allResultsVisible()}
-                displayReprocessingActions={displayReprocessingActions}
-              />
-              <PanelBody>
-                <ProcessingIssueList
-                  organization={organization}
-                  projectIds={projectIds}
-                  showProject
-                />
-                {this.renderStreamBody()}
-              </PanelBody>
-            </Panel>
-            <StyledPagination
-              caption={tct('Showing [displayCount] issues', {
-                displayCount,
-              })}
-              pageLinks={pageLinks}
-              onCursor={this.onCursorChange}
-            />
-          </StreamContent>
-
-          <SidebarContainer showSidebar={isSidebarVisible}>
-            {/* Avoid rendering sidebar until first accessed */}
-            {renderSidebar && (
-              <IssueListSidebar
-                loading={tagsLoading}
-                tags={tags}
-                query={query}
-                onQueryChange={this.onIssueListSidebarSearch}
+                savedSearch={savedSearch}
+                sort={this.getSort()}
+                display={this.getDisplay()}
+                onDisplayChange={this.onDisplayChange}
+                onSortChange={this.onSortChange}
+                onSearch={this.onSearch}
+                onSidebarToggle={this.onSidebarToggle}
+                isSearchDisabled={isSidebarVisible}
                 tagValueLoader={this.tagValueLoader}
+                tags={tags}
+                selectedProjects={selection.projects}
               />
+
+              <Panel>
+                <IssueListActions
+                  organization={organization}
+                  selection={selection}
+                  query={query}
+                  queryCount={modifiedQueryCount}
+                  displayCount={displayCount}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onMarkReviewed={this.onMarkReviewed}
+                  onDelete={this.onDelete}
+                  statsPeriod={this.getGroupStatsPeriod()}
+                  groupIds={groupIds}
+                  allResultsVisible={this.allResultsVisible()}
+                  displayReprocessingActions={displayReprocessingActions}
+                />
+                <PanelBody>
+                  <ProcessingIssueList
+                    organization={organization}
+                    projectIds={projectIds}
+                    showProject
+                  />
+                  {this.renderStreamBody()}
+                </PanelBody>
+              </Panel>
+              <StyledPagination
+                caption={tct('Showing [displayCount] issues', {
+                  displayCount,
+                })}
+                pageLinks={pageLinks}
+                onCursor={this.onCursorChange}
+              />
+            </Layout.Main>
+
+            {/* Avoid rendering sidebar until first accessed */}
+            {isSidebarVisible && (
+              <Layout.Side>
+                <IssueListSidebar
+                  loading={tagsLoading}
+                  tags={tags}
+                  query={query}
+                  onQueryChange={this.onIssueListSidebarSearch}
+                  tagValueLoader={this.tagValueLoader}
+                />
+              </Layout.Side>
             )}
-          </SidebarContainer>
+          </Layout.Body>
         </StyledPageContent>
 
         {query === Query.FOR_REVIEW && <GuideAnchor target="is_inbox_tab" />}
@@ -1113,46 +1118,12 @@ class IssueListOverview extends React.Component<Props, State> {
 }
 
 export default withApi(
-  withGlobalSelection(
+  withPageFilters(
     withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
   )
 );
 
 export {IssueListOverview};
-
-// TODO(workflow): Replace PageContent with thirds body
-const StyledPageContent = styled(PageContent)`
-  display: flex;
-  flex-direction: row;
-  background-color: ${p => p.theme.background};
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    /* Matches thirds layout */
-    padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  }
-`;
-
-const StreamContent = styled('div')<{showSidebar: boolean}>`
-  width: ${p => (p.showSidebar ? '75%' : '100%')};
-  transition: width 0.2s ease-in-out;
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    width: 100%;
-  }
-`;
-
-const SidebarContainer = styled('div')<{showSidebar: boolean}>`
-  display: ${p => (p.showSidebar ? 'block' : 'none')};
-  overflow: ${p => (p.showSidebar ? 'visible' : 'hidden')};
-  height: ${p => (p.showSidebar ? 'auto' : 0)};
-  width: ${p => (p.showSidebar ? '25%' : 0)};
-  transition: width 0.2s ease-in-out;
-  margin-left: 20px;
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
-  }
-`;
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
@@ -1160,4 +1131,8 @@ const StyledPagination = styled(Pagination)`
 
 const StyledQueryCount = styled(QueryCount)`
   margin-left: 0;
+`;
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
 `;

@@ -1,10 +1,10 @@
-import DocumentTitle from 'react-document-title';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
 import Alert from 'sentry/components/alert';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -89,7 +89,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
   render() {
     const version = ConfigStore.get('version');
     return (
-      <DocumentTitle title={this.getTitle()}>
+      <SentryDocumentTitle noSuffix title={this.getTitle()}>
         <Wrapper>
           <Pattern />
           <SetupWizard>
@@ -104,7 +104,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
               : this.renderBody()}
           </SetupWizard>
         </Wrapper>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 
@@ -171,7 +171,7 @@ const Pattern = styled('div')`
 
 const Heading = styled('h1')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-content: space-between;
   grid-auto-flow: column;
   line-height: 36px;

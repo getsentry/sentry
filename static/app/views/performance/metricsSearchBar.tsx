@@ -7,6 +7,7 @@ import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {MetricTag, MetricTagValue, Organization, Tag} from 'sentry/types';
+import {getMetricsDataSource} from 'sentry/utils/metrics/getMetricsDataSource';
 import useApi from 'sentry/utils/useApi';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
@@ -20,6 +21,7 @@ type Props = Pick<
 > & {
   orgSlug: Organization['slug'];
   projectIds: number[] | readonly number[];
+  className?: string;
 };
 
 function MetricsSearchBar({
@@ -29,6 +31,8 @@ function MetricsSearchBar({
   maxQueryLength,
   searchSource,
   projectIds,
+  className,
+  ...props
 }: Props) {
   const api = useApi();
   const [tags, setTags] = useState<MetricTag[]>([]);
@@ -44,6 +48,7 @@ function MetricsSearchBar({
         {
           query: {
             project: !projectIds.length ? undefined : projectIds,
+            datasource: getMetricsDataSource(),
           },
         }
       );
@@ -63,7 +68,7 @@ function MetricsSearchBar({
 
   function fetchTagValues(tagKey: string) {
     return api.requestPromise(`/organizations/${orgSlug}/metrics/tags/${tagKey}/`, {
-      query: {project: projectIds},
+      query: {project: projectIds, datasource: getMetricsDataSource()},
     });
   }
 
@@ -97,6 +102,8 @@ function MetricsSearchBar({
           onBlur={onBlur}
           maxQueryLength={maxQueryLength}
           searchSource={searchSource}
+          className={className}
+          query={props.query}
           hasRecentSearches
         />
       )}

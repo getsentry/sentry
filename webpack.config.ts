@@ -101,7 +101,7 @@ if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
     'module:babel-gettext-extractor',
     {
       fileName: 'build/javascript.po',
-      baseDirectory: path.join(__dirname, 'src/sentry'),
+      baseDirectory: path.join(__dirname),
       functionNames: {
         gettext: ['msgid'],
         ngettext: ['msgid', 'msgid_plural', 'count'],
@@ -253,7 +253,7 @@ let appConfig: Configuration = {
         use: {
           loader: 'po-catalog-loader',
           options: {
-            referenceExtensions: ['.js', '.jsx'],
+            referenceExtensions: ['.js', '.jsx', '.tsx'],
             domain: 'sentry',
           },
         },
@@ -378,6 +378,8 @@ let appConfig: Configuration = {
 
   resolve: {
     alias: {
+      'react-dom$': 'react-dom/profiling',
+      'scheduler/tracing': 'scheduler/tracing-profiling',
       sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),

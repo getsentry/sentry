@@ -11,12 +11,12 @@ import TransactionsList, {
 import SearchBar from 'sentry/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {generateQueryWithTag} from 'sentry/utils';
+import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -132,6 +132,7 @@ class SummaryContent extends React.Component<Props> {
       pathname: location.pathname,
       query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
+
     browserHistory.push(target);
   };
 
@@ -149,15 +150,6 @@ class SummaryContent extends React.Component<Props> {
     trackAnalyticsEvent({
       eventKey: 'performance_views.summary.view_in_discover',
       eventName: 'Performance Views: View in Discover from Transaction Summary',
-      organization_id: parseInt(organization.id, 10),
-    });
-  };
-
-  handleViewDetailsClick = (_e: React.MouseEvent<Element>) => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.view_details',
-      eventName: 'Performance Views: View Details from Transaction Summary',
       organization_id: parseInt(organization.id, 10),
     });
   };
@@ -346,8 +338,6 @@ class SummaryContent extends React.Component<Props> {
               id: generateTransactionLink(transactionName),
               trace: generateTraceLink(eventView.normalizeDateSelection(location)),
             }}
-            baseline={transactionName}
-            handleBaselineClick={this.handleViewDetailsClick}
             handleCellAction={this.handleCellAction}
             {...getTransactionsListSort(location, {
               p95: totalValues?.p95 ?? 0,
@@ -363,6 +353,7 @@ class SummaryContent extends React.Component<Props> {
               location={location}
               organization={organization}
               eventView={eventView}
+              totals={defined(totalValues?.count) ? {count: totalValues!.count} : null}
               projectId={projectId}
               transactionName={transactionName}
             />

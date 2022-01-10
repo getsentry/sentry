@@ -38,11 +38,11 @@ export const TraceViewHeaderContainer = styled(SecondaryHeader)`
 export const TraceDetailHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  grid-gap: ${space(2)};
+  gap: ${space(3)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: minmax(250px, 1fr) minmax(160px, 1fr) 6fr;
+    grid-template-columns: max-content max-content;
     grid-row-gap: 0;
   }
 `;

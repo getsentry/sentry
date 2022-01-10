@@ -21,7 +21,7 @@ type DataType = {
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const {ContainerActions} = props;
-  const globalSelection = props.eventView.getGlobalSelection();
+  const globalSelection = props.eventView.getPageFilters();
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -94,6 +94,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               {...provided}
               disableMultiAxis
               disableXAxis
+              definedAxisTicks={4}
               chartColors={props.chartColor ? [props.chartColor] : undefined}
             />
           ),
@@ -105,13 +106,13 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
-const DurationChart = withRouter(_DurationChart);
-const Subtitle = styled('span')`
+export const DurationChart = withRouter(_DurationChart);
+export const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const HighlightNumber = styled('div')<{color?: string}>`
+export const HighlightNumber = styled('div')<{color?: string}>`
   color: ${p => p.color};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

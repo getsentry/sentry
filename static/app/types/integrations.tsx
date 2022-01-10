@@ -1,6 +1,7 @@
 import Alert from 'sentry/components/alert';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {
+  DISABLED as DISABLED_STATUS,
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
@@ -164,6 +165,14 @@ export type SentryApp = {
   avatars?: Avatar[];
 };
 
+// Minimal Sentry App representation for use with avatars
+export type AvatarSentryApp = {
+  name: string;
+  slug: string;
+  uuid: string;
+  avatars?: Avatar[];
+};
+
 export type SentryAppInstallation = {
   app: {
     uuid: string;
@@ -183,17 +192,9 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug:
-      | 'calixa'
-      | 'clickup'
-      | 'komodor'
-      | 'linear'
-      | 'rookout'
-      | 'shortcut'
-      | 'spikesh'
-      | 'taskcall'
-      | 'teamwork';
+    slug: string;
     name: string;
+    avatars: Avatar[];
   };
 };
 
@@ -218,26 +219,31 @@ export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_ap
 export type IntegrationFeature = {
   description: string;
   featureGate: string;
+  featureId: number;
 };
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
-  | typeof PENDING;
+  | typeof PENDING
+  | typeof DISABLED_STATUS;
 
 type IntegrationDialog = {
   actionText: string;
   body: string;
 };
 
-export type DocumentIntegration = {
-  slug: string;
+export type DocIntegration = {
   name: string;
+  slug: string;
   author: string;
-  docUrl: string;
+  url: string;
+  popularity: number;
   description: string;
-  features: IntegrationFeature[];
-  resourceLinks: Array<{title: string; url: string}>;
+  isDraft: boolean;
+  avatar?: Avatar;
+  features?: IntegrationFeature[];
+  resources?: Array<{title: string; url: string}>;
 };
 
 type IntegrationAspects = {
@@ -276,6 +282,10 @@ export type IntegrationProvider = BaseIntegrationProvider & {
   };
 };
 
+type OrganizationIntegrationProvider = BaseIntegrationProvider & {
+  aspects: IntegrationAspects;
+};
+
 export type Integration = {
   id: string;
   name: string;
@@ -284,7 +294,9 @@ export type Integration = {
   accountType: string;
   scopes?: string[];
   status: ObjectStatus;
-  provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
+  organizationIntegrationStatus: ObjectStatus;
+  gracePeriodEnd: string;
+  provider: OrganizationIntegrationProvider;
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -295,10 +307,30 @@ export type Integration = {
   };
 };
 
+type ConfigData = {
+  installationType?: string;
+};
+
+export type OrganizationIntegration = {
+  id: string;
+  name: string;
+  status: ObjectStatus;
+  organizationIntegrationStatus: ObjectStatus;
+  gracePeriodEnd: string;
+  provider: OrganizationIntegrationProvider;
+  configOrganization: Field[];
+  configData: ConfigData | null;
+  organizationId: string;
+  externalId: string;
+  icon: string | null;
+  domainName: string | null;
+  accountType: string | null;
+};
+
 // we include the configOrganization when we need it
 export type IntegrationWithConfig = Integration & {
   configOrganization: Field[];
-  configData: object | null;
+  configData: ConfigData;
 };
 
 /**
@@ -368,6 +400,7 @@ export type PluginNoProject = {
   features: string[];
   featureDescriptions: IntegrationFeature[];
   isHidden: boolean;
+  isDeprecated: boolean;
   version?: string;
   author?: {name: string; url: string};
   description?: string;
@@ -398,7 +431,7 @@ export type AppOrProviderOrPlugin =
   | SentryApp
   | IntegrationProvider
   | PluginWithProjectList
-  | DocumentIntegration;
+  | DocIntegration;
 
 /**
  * Webhooks and servicehooks

@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
@@ -7,7 +8,7 @@ from sentry.models import Group, Project
 
 
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
-    def post(self, request, installation):
+    def post(self, request: Request, installation) -> Response:
         data = request.data.copy()
 
         if not {"groupId", "action", "uri"}.issubset(data.keys()):

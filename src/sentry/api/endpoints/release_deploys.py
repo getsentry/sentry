@@ -1,6 +1,7 @@
 from django.db.models import F
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -25,7 +26,7 @@ class DeploySerializer(serializers.Serializer):
 
 
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request, organization, version):
+    def get(self, request: Request, organization, version) -> Response:
         """
         List a Release's Deploys
         ````````````````````````
@@ -53,7 +54,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request, organization, version):
+    def post(self, request: Request, organization, version) -> Response:
         """
         Create a Deploy
         ```````````````

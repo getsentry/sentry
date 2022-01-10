@@ -25,8 +25,6 @@ const StyledBaseAvatar = styled('span')<{
   flex-shrink: 0;
   border-radius: ${p => (p.round ? '50%' : '3px')};
   border: ${p => (p.suggested ? `1px dashed ${p.theme.gray400}` : 'none')};
-  background-color: ${p =>
-    p.loaded ? p.theme.background : 'background-color: rgba(200, 200, 200, 0.1);'};
 `;
 
 const defaultProps: DefaultProps = {
@@ -74,7 +72,8 @@ type DefaultProps = {
     | 'team-avatar'
     | 'organization-avatar'
     | 'project-avatar'
-    | 'sentry-app-avatar';
+    | 'sentry-app-avatar'
+    | 'doc-integration-avatar';
 };
 
 type BaseProps = DefaultProps & {
@@ -91,6 +90,7 @@ type BaseProps = DefaultProps & {
   gravatarId?: string;
   letterId?: string;
   title?: string;
+  backupAvatar?: React.ReactNode;
   /**
    * The content for the tooltip. Requires hasTooltip to display
    */
@@ -215,6 +215,11 @@ class BaseAvatar extends React.Component<Props, State> {
     return <BackgroundAvatar round={round} suggested={suggested} />;
   }
 
+  renderBackupAvatar() {
+    const {backupAvatar} = this.props;
+    return backupAvatar ?? this.renderLetterAvatar();
+  }
+
   render() {
     const {
       className,
@@ -253,7 +258,7 @@ class BaseAvatar extends React.Component<Props, State> {
           }}
           {...props}
         >
-          {this.state.showBackupAvatar && this.renderLetterAvatar()}
+          {this.state.showBackupAvatar && this.renderBackupAvatar()}
           {this.renderImg()}
         </StyledBaseAvatar>
       </Tooltip>

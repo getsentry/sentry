@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import EnvironmentMixin
@@ -19,7 +21,7 @@ class UserReportSerializer(serializers.ModelSerializer):
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a Project's User Feedback
         ``````````````````````````````
@@ -65,7 +67,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             **paginate_kwargs,
         )
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         """
         Submit User Feedback
         ````````````````````

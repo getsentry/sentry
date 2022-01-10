@@ -35,7 +35,7 @@ def requires_feature(
 
     Example:
         >>> @requires_feature('organizations:performance-view')
-        >>> def get(self, request, organization):
+        >>> def get(self, request: Request, organization) -> Response:
         >>>     return Response()
     """
 

@@ -1,4 +1,5 @@
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
 
 import sentry
 from sentry.exceptions import PluginError
@@ -63,13 +64,13 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
     def get_new_issue_title(self, **kwargs):
         return "Create Redmine Task"
 
-    def get_initial_form_data(self, request, group, event, **kwargs):
+    def get_initial_form_data(self, request: Request, group, event, **kwargs):
         return {
             "description": self._get_group_description(request, group, event),
             "title": self._get_group_title(request, group, event),
         }
 
-    def _get_group_description(self, request, group, event):
+    def _get_group_description(self, request: Request, group, event):
         output = [absolute_uri(group.get_absolute_url())]
         body = self._get_group_body(request, group, event)
         if body:
@@ -186,6 +187,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         initial = self.build_initial(initial_args, project)
 
         has_credentials = all(initial.get(k) for k in ("host", "key"))
+        client = None
         if has_credentials:
             client = RedmineClient(initial["host"], initial["key"])
             try:
@@ -202,7 +204,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
                 ]
                 self.add_choices("project_id", project_choices, choices_value)
 
-        if has_credentials:
+        if client is not None and has_credentials:
             try:
                 trackers = client.get_trackers()
             except Exception:

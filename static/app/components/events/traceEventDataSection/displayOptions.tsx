@@ -265,7 +265,7 @@ const OptionsButton = styled(DropdownButton)`
 `;
 
 const OptionList = styled(List)`
-  grid-gap: 0;
+  gap: 0;
 `;
 
 const ItemContent = styled('div')<{isChecked: boolean; isDisabled: boolean}>`

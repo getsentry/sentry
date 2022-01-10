@@ -89,6 +89,9 @@ class AvatarBase(Model):
                 # if it's not wrapped in BytesIO.
                 if isinstance(avatar, str):
                     avatar = BytesIO(force_bytes(avatar))
+
+                # XXX: Avatar processing may adjust file position; reset before saving.
+                avatar.seek(0)
                 photo.putfile(avatar)
         else:
             photo = None

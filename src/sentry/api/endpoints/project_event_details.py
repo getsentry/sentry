@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import datetime
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -9,7 +10,7 @@ from sentry.api.serializers import DetailedEventSerializer, serialize
 
 
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
-    def get(self, request, project, event_id):
+    def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve an Event for a Project
         ```````````````````````````````
@@ -70,8 +71,12 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class EventJsonEndpoint(ProjectEndpoint):
-    def get(self, request, project, event_id):
+    def get(self, request: Request, project, event_id) -> Response:
         event = eventstore.get_event_by_id(project.id, event_id)
 
         if not event:

@@ -135,7 +135,7 @@ const Introduction = styled('p')`
 `;
 
 const StyledList = styled(List)`
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin-bottom: ${space(4)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

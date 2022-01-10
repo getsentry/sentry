@@ -313,7 +313,13 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 <StyledSearchBar
                   searchSource="alert_builder"
                   defaultQuery={initialData?.query ?? ''}
-                  omitTags={['event.type']}
+                  omitTags={[
+                    'event.type',
+                    'release.version',
+                    'release.stage',
+                    'release.package',
+                    'release.build',
+                  ]}
                   disabled={disabled}
                   useFormWrapper={false}
                   organization={organization}
@@ -354,6 +360,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             <FormRow>
               <RadioGroup
                 style={{flex: 1}}
+                disabled={disabled}
                 choices={[
                   [AlertRuleComparisonType.COUNT, 'Count'],
                   [AlertRuleComparisonType.CHANGE, 'Percent Change'],

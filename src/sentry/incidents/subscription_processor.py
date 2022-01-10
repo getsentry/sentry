@@ -30,8 +30,9 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.entity_subscription import BaseMetricsEntitySubscription
 from sentry.snuba.models import QueryDatasets
-from sentry.snuba.tasks import build_snuba_filter
+from sentry.snuba.tasks import build_snuba_filter, get_entity_subscription_for_dataset
 from sentry.utils import metrics, redis
 from sentry.utils.compat import zip
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -120,6 +121,16 @@ class SubscriptionProcessor:
         incident_trigger = self.incident_triggers.get(trigger.id)
         return incident_trigger is not None and incident_trigger.status == status.value
 
+    def __reset_trigger_counts(self):
+        """
+        Helper method that clears both the trigger alert and the trigger resolve counts
+        """
+        for trigger_id in self.trigger_alert_counts:
+            self.trigger_alert_counts[trigger_id] = 0
+        for trigger_id in self.trigger_resolve_counts:
+            self.trigger_resolve_counts[trigger_id] = 0
+        self.update_alert_rule_stats()
+
     def calculate_resolve_threshold(self, trigger):
         """
         Determine the resolve threshold for a trigger. First checks whether an
@@ -175,13 +186,20 @@ class SubscriptionProcessor:
         snuba_query = self.subscription.snuba_query
         start = end - timedelta(seconds=snuba_query.time_window)
 
+        entity_subscription = get_entity_subscription_for_dataset(
+            dataset=QueryDatasets(snuba_query.dataset),
+            aggregate=snuba_query.aggregate,
+            time_window=snuba_query.time_window,
+            extra_fields={
+                "org_id": self.subscription.project.organization,
+                "event_types": snuba_query.event_types,
+            },
+        )
         try:
             snuba_filter = build_snuba_filter(
-                QueryDatasets(snuba_query.dataset),
+                entity_subscription,
                 snuba_query.query,
-                snuba_query.aggregate,
                 snuba_query.environment,
-                snuba_query.event_types,
                 params={
                     "project_id": [self.subscription.project_id],
                     "start": start,
@@ -210,8 +228,7 @@ class SubscriptionProcessor:
 
         return (aggregation_value / comparison_aggregate) * 100
 
-    @staticmethod
-    def get_crash_rate_alert_aggregation_value(subscription_update):
+    def get_crash_rate_alert_aggregation_value(self, subscription_update):
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values.
         The subscription update looks like
@@ -231,6 +248,7 @@ class SubscriptionProcessor:
             CRASH_RATE_ALERT_AGGREGATE_ALIAS
         ]
         if aggregation_value is None:
+            self.__reset_trigger_counts()
             metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
             return
 
@@ -241,6 +259,7 @@ class SubscriptionProcessor:
             if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
                 min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
                 if total_count < min_threshold:
+                    self.__reset_trigger_counts()
                     metrics.incr(
                         "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
                     )
@@ -259,10 +278,60 @@ class SubscriptionProcessor:
         aggregation_value = round((1 - aggregation_value) * 100, 3)
         return aggregation_value
 
+    def get_crash_rate_alert_metrics_aggregation_value(self, subscription_update):
+        """
+        Handles validation and extraction of Crash Rate Alerts subscription updates values over
+        metrics dataset.
+        The subscription update looks like
+        [
+            {'project_id': 8, 'tags[5]': 6, 'value': 2.0},
+            {'project_id': 8, 'tags[5]': 13,'value': 1.0}
+        ]
+        where each entry represents a session status and the count of that specific session status.
+        As an example, `tags[5]` represents string `session.status`, while `tags[5]: 6` could
+        mean something like there are 2 sessions of status `crashed`. Likewise the other entry
+        represents the number of sessions started. In this method, we need to reverse match these
+        strings to end up with something that looks like
+        {"init": 2, "crashed": 4}
+        - `init` represents sessions or users sessions that were started, hence to get the crash
+        free percentage, we would need to divide number of crashed sessions by that number,
+        and subtract that value from 1. This is also used when CRASH_RATE_ALERT_MINIMUM_THRESHOLD is
+        set in the sense that if the minimum threshold is greater than the session count,
+        then the update is dropped. If the minimum threshold is not set then the total sessions
+        count is just ignored
+        - `crashed` represents the total sessions or user counts that crashed.
+        """
+        (
+            total_session_count,
+            crash_count,
+        ) = BaseMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
+            data=subscription_update["values"]["data"],
+            org_id=self.subscription.project.organization.id,
+        )
+
+        if total_session_count == 0:
+            self.__reset_trigger_counts()
+            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
+            return
+
+        if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
+            min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
+            if total_session_count < min_threshold:
+                self.__reset_trigger_counts()
+                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
+                return
+
+        aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
+
+        return aggregation_value
+
     def get_aggregation_value(self, subscription_update):
-        is_sessions_dataset = Dataset(self.subscription.snuba_query.dataset) == Dataset.Sessions
-        if is_sessions_dataset:
+        if self.subscription.snuba_query.dataset == QueryDatasets.SESSIONS.value:
             aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
+        elif self.subscription.snuba_query.dataset == QueryDatasets.METRICS.value:
+            aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
+                subscription_update
+            )
         else:
             aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
             # In some cases Snuba can return a None value for an aggregation. This means
@@ -314,7 +383,10 @@ class SubscriptionProcessor:
 
         self.last_update = subscription_update["timestamp"]
 
-        if len(subscription_update["values"]["data"]) > 1:
+        if (
+            len(subscription_update["values"]["data"]) > 1
+            and self.subscription.snuba_query.dataset != QueryDatasets.METRICS.value
+        ):
             logger.warning(
                 "Subscription returned more than 1 row of data",
                 extra={

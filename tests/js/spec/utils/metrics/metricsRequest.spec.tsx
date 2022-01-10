@@ -37,6 +37,7 @@ describe('MetricsRequest', () => {
       loading: true,
       reloading: false,
       response: null,
+      responsePrevious: null,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
@@ -65,6 +66,7 @@ describe('MetricsRequest', () => {
         loading: false,
         reloading: false,
         response: {groups: [], intervals: []},
+        responsePrevious: null,
       })
     );
   });
@@ -84,6 +86,7 @@ describe('MetricsRequest', () => {
       loading: false,
       reloading: false,
       response: null,
+      responsePrevious: null,
     });
   });
 
@@ -118,5 +121,115 @@ describe('MetricsRequest', () => {
     rerender(<MetricsRequest {...props}>{differentChildrenMock}</MetricsRequest>);
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('make two requests if includePrevious is enabled', async () => {
+    mountWithTheme(
+      <MetricsRequest {...props} includePrevious>
+        {childrenMock}
+      </MetricsRequest>
+    );
+
+    expect(childrenMock).toHaveBeenNthCalledWith(1, {
+      errored: false,
+      loading: true,
+      reloading: false,
+      response: null,
+      responsePrevious: null,
+    });
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+
+    expect(metricsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          end: undefined,
+          environment: ['prod'],
+          field: ['fieldA'],
+          groupBy: ['status'],
+          interval: '1h',
+          limit: 3,
+          orderBy: 'fieldA',
+          project: ['2'],
+          query: 'abc',
+          start: undefined,
+          statsPeriod: '14d',
+        },
+      })
+    );
+
+    expect(metricsMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          project: ['2'],
+          environment: ['prod'],
+          field: ['fieldA'],
+          query: 'abc',
+          groupBy: ['status'],
+          orderBy: 'fieldA',
+          limit: 3,
+          interval: '1h',
+          statsPeriodStart: '28d',
+          statsPeriodEnd: '14d',
+        },
+      })
+    );
+
+    await waitFor(() =>
+      expect(childrenMock).toHaveBeenLastCalledWith({
+        errored: false,
+        loading: false,
+        reloading: false,
+        response: {groups: [], intervals: []},
+        responsePrevious: {groups: [], intervals: []},
+      })
+    );
+  });
+
+  it('make one request with absolute date', () => {
+    mountWithTheme(
+      <MetricsRequest
+        {...props}
+        statsPeriod=""
+        start="Wed Dec 01 2021 01:00:00 GMT+0100 (Central European Standard Time)"
+        end="Fri Dec 17 2021 00:59:59 GMT+0100 (Central European Standard Time)"
+        includePrevious
+      >
+        {childrenMock}
+      </MetricsRequest>
+    );
+
+    expect(childrenMock).toHaveBeenNthCalledWith(1, {
+      errored: false,
+      loading: true,
+      reloading: false,
+      response: null,
+      responsePrevious: null,
+    });
+
+    // if start and end are provided, it will not perform a request to fetch previous data
+    expect(metricsMock).toHaveBeenCalledTimes(1);
+
+    expect(metricsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          end: '2021-12-17T00:59:59',
+          environment: ['prod'],
+          field: ['fieldA'],
+          groupBy: ['status'],
+          interval: '1h',
+          limit: 3,
+          orderBy: 'fieldA',
+          project: ['2'],
+          query: 'abc',
+          start: '2021-12-01T01:00:00',
+          statsPeriod: undefined,
+        },
+      })
+    );
   });
 });

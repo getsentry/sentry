@@ -1,4 +1,5 @@
 from django.http import Http404
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
@@ -13,7 +14,7 @@ class CustomSCMRepositoryProvider(IntegrationRepositoryProvider):
     def repository_external_slug(self, repo):
         return repo.name
 
-    def dispatch(self, request, organization, **kwargs):
+    def dispatch(self, request: Request, organization, **kwargs):
         """
         Adding a repository to the Custom SCM integration is
         just two steps:

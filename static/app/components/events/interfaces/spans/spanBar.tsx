@@ -4,7 +4,6 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
@@ -323,7 +322,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       if (hasToggler) {
         return (
           <ConnectorBar
-            style={{right: '16px', height: '10px', bottom: '-5px', top: 'auto'}}
+            style={{right: '15px', height: '10px', bottom: '-5px', top: 'auto'}}
             key={`${spanID}-last`}
             orphanBranch={false}
           />
@@ -342,7 +341,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         // which does not exist.
         return null;
       }
-      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 2) * -1;
 
       return (
         <ConnectorBar
@@ -359,9 +358,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       connectorBars.push(
         <ConnectorBar
           style={{
-            right: '16px',
+            right: '15px',
             height: `${ROW_HEIGHT / 2}px`,
-            bottom: isLast ? `-${ROW_HEIGHT / 2}px` : '0',
+            bottom: isLast ? `-${ROW_HEIGHT / 2 + 2}px` : '0',
             top: 'auto',
           }}
           key={`${spanID}-last-bottom`}
@@ -749,7 +748,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               {showEmbeddedChildren
                 ? t('This span is showing a direct child. Remove transaction to hide')
                 : t('This span has a direct child. Add transaction to view')}
-              <FeatureBadge type="new" noTooltip />
             </span>
           }
           position="top"

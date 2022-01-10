@@ -8,11 +8,11 @@ import {Client} from 'sentry/api';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {MenuFooterChildProps} from 'sentry/components/dropdownAutoComplete/menu';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
-import GlobalSelectionHeaderRow from 'sentry/components/globalSelectionHeaderRow';
 import Highlight from 'sentry/components/highlight';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import PageFilterRow from 'sentry/components/organizations/pageFilterRow';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -335,13 +335,13 @@ class EnvironmentSelectorItem extends React.PureComponent<EnvironmentSelectorIte
   render() {
     const {environment, inputValue, isChecked} = this.props;
     return (
-      <GlobalSelectionHeaderRow
+      <PageFilterRow
         data-test-id={`environment-${environment}`}
         checked={isChecked}
         onCheckClick={this.handleClick}
       >
         <Highlight text={inputValue}>{environment}</Highlight>
-      </GlobalSelectionHeaderRow>
+      </PageFilterRow>
     );
   }
 }

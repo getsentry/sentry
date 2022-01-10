@@ -5,21 +5,21 @@ import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  GlobalSelection,
   Organization,
+  PageFilters,
   ProjectSdkUpdates,
   SDKUpdatesSuggestion,
 } from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withSdkUpdates from 'sentry/utils/withSdkUpdates';
 
 import {SidebarPanelKey} from './sidebar/types';
@@ -29,7 +29,7 @@ type Props = React.ComponentProps<typeof Alert> & {
   api: Client;
   organization: Organization;
   sdkUpdates?: ProjectSdkUpdates[] | null;
-  selection?: GlobalSelection;
+  selection?: PageFilters;
   Wrapper?: React.ComponentType;
 };
 
@@ -42,25 +42,13 @@ type AnalyticsOpts = {
 };
 
 const recordAnalyticsSeen = ({organization}: AnalyticsOpts) =>
-  trackAnalyticsEvent({
-    eventKey: 'sdk_updates.seen',
-    eventName: 'SDK Updates: Seen',
-    organization_id: organization.id,
-  });
+  trackAdvancedAnalyticsEvent('sdk_updates.seen', {organization});
 
 const recordAnalyticsSnoozed = ({organization}: AnalyticsOpts) =>
-  trackAnalyticsEvent({
-    eventKey: 'sdk_updates.snoozed',
-    eventName: 'SDK Updates: Snoozed',
-    organization_id: organization.id,
-  });
+  trackAdvancedAnalyticsEvent('sdk_updates.snoozed', {organization});
 
 const recordAnalyticsClicked = ({organization}: AnalyticsOpts) =>
-  trackAnalyticsEvent({
-    eventKey: 'sdk_updates.clicked',
-    eventName: 'SDK Updates: Clicked',
-    organization_id: organization.id,
-  });
+  trackAdvancedAnalyticsEvent('sdk_updates.clicked', {organization});
 
 const flattenSuggestions = (list: ProjectSdkUpdates[]) =>
   list.reduce<SDKUpdatesSuggestion[]>(
@@ -182,11 +170,11 @@ const Content = styled('div')`
 const Actions = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const GlobalSdkSuggestions = withOrganization(
-  withSdkUpdates(withGlobalSelection(withApi(InnerGlobalSdkSuggestions)))
+  withSdkUpdates(withPageFilters(withApi(InnerGlobalSdkSuggestions)))
 );
 
 export default GlobalSdkSuggestions;

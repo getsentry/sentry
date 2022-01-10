@@ -268,7 +268,7 @@ const Details = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -277,7 +277,7 @@ const TimeSinceWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   font-variant-numeric: tabular-nums;
 `;
 
@@ -290,5 +290,5 @@ const StyledProcessingList = styled(ProcessingList)`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;

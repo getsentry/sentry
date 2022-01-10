@@ -20,11 +20,14 @@ import {
 import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
+import {WidgetType} from 'sentry/views/dashboardsV2/types';
 
 import {generateFieldOptions} from '../utils';
 
 import {QueryField} from './queryField';
 import {FieldValueKind} from './types';
+
+type Sources = WidgetType;
 
 type Props = {
   // Input columns
@@ -34,6 +37,7 @@ type Props = {
   onChange: (columns: Column[]) => void;
   organization: Organization;
   className?: string;
+  source?: Sources;
 };
 
 type State = {
@@ -421,9 +425,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
             error={this.state.error.get(i)}
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
+            shouldRenderTag
           />
           {canDelete || col.kind === 'equation' ? (
             <Button
+              data-test-id={`remove-column-${i}`}
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
               icon={<IconDelete />}
@@ -439,7 +445,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, columns} = this.props;
+    const {className, columns, source} = this.props;
     const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
     const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
@@ -449,23 +455,29 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     // Get the longest number of columns so we can layout the rows.
     // We always want at least 2 columns.
-    const gridColumns = Math.max(
-      ...columns.map(col =>
-        col.kind === 'function' && AGGREGATIONS[col.function[0]].parameters.length === 2
-          ? 3
-          : 2
-      )
-    );
+    const gridColumns =
+      source === WidgetType.ISSUE
+        ? 1
+        : Math.max(
+            ...columns.map(col =>
+              col.kind === 'function' &&
+              AGGREGATIONS[col.function[0]].parameters.length === 2
+                ? 3
+                : 2
+            )
+          );
 
     return (
       <div className={className}>
         {this.renderGhost(gridColumns)}
-        <RowContainer>
-          <Heading gridColumns={gridColumns}>
-            <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
-            <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
-          </Heading>
-        </RowContainer>
+        {source !== WidgetType.ISSUE && (
+          <RowContainer>
+            <Heading gridColumns={gridColumns}>
+              <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
+              <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
+            </Heading>
+          </RowContainer>
+        )}
         {columns.map((col: Column, i: number) =>
           this.renderItem(col, i, {canDelete, canDrag, gridColumns})
         )}
@@ -481,16 +493,18 @@ class ColumnEditCollection extends React.Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            <Button
-              size="small"
-              label={t('Add an Equation')}
-              onClick={this.handleAddEquation}
-              title={title}
-              disabled={!canAdd}
-              icon={<IconAdd isCircled size="xs" />}
-            >
-              {t('Add an Equation')}
-            </Button>
+            {source !== WidgetType.ISSUE && (
+              <Button
+                size="small"
+                label={t('Add an Equation')}
+                onClick={this.handleAddEquation}
+                title={title}
+                disabled={!canAdd}
+                icon={<IconAdd isCircled size="xs" />}
+              >
+                {t('Add an Equation')}
+              </Button>
+            )}
           </Actions>
         </RowContainer>
       </div>

@@ -14,11 +14,8 @@ import Duration from 'sentry/components/duration';
 import IdBadge from 'sentry/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {IconInfo, IconRectangle} from 'sentry/icons';
@@ -115,17 +112,9 @@ export default class DetailsBody extends React.Component<Props> {
 
     const eventType =
       dataset === Dataset.SESSIONS ? null : extractEventTypeFilterFromRule(rule);
-    const parsedQuery = parseSearch([eventType, query].join(' ').trim());
+    const queryWithEventType = [eventType, query].join(' ').split(' ');
 
-    return (
-      <Filters>
-        {query || eventType ? (
-          <HighlightQuery parsedQuery={parsedQuery ?? []} />
-        ) : (
-          <NotAvailable />
-        )}
-      </Filters>
-    );
+    return queryWithEventType;
   }
 
   renderTrigger(label: string, threshold: number, actions: Action[]): React.ReactNode {
@@ -143,11 +132,11 @@ export default class DetailsBody extends React.Component<Props> {
         : t('Resolved');
     const statusIcon =
       label === 'critical' ? (
-        <StyledIconRectangle color="red300" size="sm" />
+        <StyledIconRectangle color="red300" size="md" />
       ) : label === 'warning' ? (
-        <StyledIconRectangle color="yellow300" size="sm" />
+        <StyledIconRectangle color="yellow300" size="md" />
       ) : (
-        <StyledIconRectangle color="green300" size="sm" />
+        <StyledIconRectangle color="green300" size="md" />
       );
 
     const thresholdTypeText = (
@@ -219,11 +208,6 @@ export default class DetailsBody extends React.Component<Props> {
         <SidebarGroup>
           <Heading>{t('Environment')}</Heading>
           <RuleText>{rule.environment ?? 'All'}</RuleText>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <Heading>{t('Filters')}</Heading>
-          {this.getFilter()}
         </SidebarGroup>
 
         <SidebarGroup>
@@ -417,8 +401,8 @@ export default class DetailsBody extends React.Component<Props> {
                     organization={organization}
                     projects={projects}
                     interval={this.getInterval()}
-                    filter={this.getFilter()}
                     query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
+                    filter={this.getFilter()}
                     orgId={orgId}
                     handleZoom={handleZoom}
                   />
@@ -502,7 +486,7 @@ const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   align-items: stretch;
-  grid-gap: 60px;
+  gap: 60px;
 `;
 
 const HeaderItem = styled('div')`
@@ -544,7 +528,7 @@ const Status = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto auto auto;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
@@ -578,16 +562,6 @@ const RuleText = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-const Filters = styled('span')`
-  overflow-wrap: break-word;
-  word-break: break-word;
-  white-space: pre-wrap;
-  font-size: ${p => p.theme.fontSizeSmall};
-
-  line-height: 25px;
-  font-family: ${p => p.theme.text.familyMono};
-`;
-
 const TriggerConditionContainer = styled('div')`
   display: flex;
   flex-direction: row;
@@ -597,10 +571,14 @@ const TriggerCondition = styled('div')`
   display: flex;
   flex-direction: column;
   margin-left: ${space(0.75)};
+  line-height: 1.4;
+  position: relative;
+  top: 2px;
 `;
 
 const TriggerText = styled('div')`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const CreatedBy = styled('div')`
@@ -608,5 +586,5 @@ const CreatedBy = styled('div')`
 `;
 
 const StyledIconRectangle = styled(IconRectangle)`
-  margin-top: ${space(0.75)};
+  margin-top: ${space(0.5)};
 `;

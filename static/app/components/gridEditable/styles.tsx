@@ -34,7 +34,7 @@ export const HeaderTitle = styled('h4')`
 
 export const HeaderButtonContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-auto-flow: column;
   grid-auto-columns: auto;
   justify-items: end;
@@ -196,6 +196,10 @@ export const GridBodyCell = styled('td')`
 
   background-color: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.innerBorder};
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 
   font-size: ${p => p.theme.fontSizeMedium};
 

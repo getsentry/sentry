@@ -11,7 +11,7 @@ class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITest
     feature_list = (
         "organizations:discover-basic",
         "organizations:global-views",
-        "organizations:performance-tag-explorer",
+        "organizations:performance-view",
     )
 
     def setUp(self):
@@ -194,16 +194,9 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
             "query": "(color:red or color:blue)",
             "allTagKeys": True,
         }
-        # No feature access
-        response = self.do_request(request, {"organizations:performance-tag-page": False})
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["count"] == 5
-        assert data[0]["tags_key"] == "color"
-        assert data[0]["tags_value"] == "blue"
 
         # With feature access
-        response = self.do_request(request, {"organizations:performance-tag-page": True})
+        response = self.do_request(request)
         data = response.data["data"]
         assert len(data) == 5
         assert data[0]["count"] == 19
@@ -223,7 +216,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
             "allTagKeys": True,
         }
 
-        response = self.do_request(request, {"organizations:performance-tag-page": True})
+        response = self.do_request(request)
 
         data = response.data["data"]
         assert len(data) == 5
@@ -242,16 +235,8 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
             "statsPeriod": "14d",
             "tagKey": "color",
         }
-        # No feature access
-        response = self.do_request(request, {"organizations:performance-tag-page": False})
-        data = response.data["data"]
-        assert len(data) == 2
-        assert data[0]["count"] == 5
-        assert data[0]["tags_key"] == "color"
-        assert data[0]["tags_value"] == "blue"
-
         # With feature access
-        response = self.do_request(request, {"organizations:performance-tag-page": True})
+        response = self.do_request(request)
         data = response.data["data"]
         assert len(data) == 3
         assert data[0]["count"] == 14
@@ -271,10 +256,21 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
             "query": "(color:purple)",
         }
 
-        response = self.do_request(request, {"organizations:performance-tag-page": True})
+        response = self.do_request(request)
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["count"] == 1
         assert data[0]["comparison"] == 0
         assert data[0]["tags_key"] == "color"
         assert data[0]["tags_value"] == "purple"
+
+
+class OrganizationEventsFacetsPerformanceEndpointTestWithSnql(
+    OrganizationEventsFacetsPerformanceEndpointTest
+):
+    feature_list = (
+        "organizations:discover-basic",
+        "organizations:global-views",
+        "organizations:performance-view",
+        "organizations:performance-use-snql",
+    )

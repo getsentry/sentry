@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Set, Tuple, cast
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -12,7 +12,7 @@ from snuba_sdk.query import Query
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.fields import InvalidSearchQuery
 from sentry.search.events.filter import QueryFilter
-from sentry.search.events.types import ParamsType, SelectType, WhereType
+from sentry.search.events.types import HistogramParams, ParamsType, SelectType, WhereType
 from sentry.utils.snuba import Dataset
 
 
@@ -127,9 +127,6 @@ class QueryBuilder(QueryFilter):  # type: ignore
                     )
                 )
 
-    def add_conditions(self, conditions: List[Condition]) -> None:
-        self.where += conditions
-
     def get_snql_query(self) -> Query:
         self.validate_having_clause()
 
@@ -160,13 +157,14 @@ class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
+        functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
     ):
         super().__init__(
             dataset,
             params,
             auto_fields=False,
-            functions_acl=[],
+            functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
         )
         self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
@@ -253,6 +251,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         selected_columns: Optional[List[str]] = None,
         timeseries_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
+        functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
@@ -266,6 +265,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
             query=query,
             selected_columns=list(set(selected_columns + timeseries_functions)),
             equations=list(set(equations + timeseries_equations)),
+            functions_acl=functions_acl,
             limit=limit,
         )
 
@@ -333,6 +333,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 else:
                     values.add(event.get(alias))
             values_list = list(values)
+
             if values_list:
                 if field == "timestamp" or field.startswith("timestamp.to_"):
                     if not other:
@@ -380,3 +381,57 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         else:
             final_condition = None
         return final_condition
+
+
+class HistogramQueryBuilder(QueryBuilder):
+    base_function_acl = ["array_join", "histogram"]
+
+    def __init__(
+        self,
+        num_buckets: int,
+        histogram_column: str,
+        histogram_rows: Optional[int],
+        histogram_params: HistogramParams,
+        key_column: Optional[str],
+        field_names: Optional[List[Union[str, Any, None]]],
+        groupby: Optional[List[str]],
+        *args: Any,
+        **kwargs: Any,
+    ):
+        kwargs["functions_acl"] = kwargs.get("functions_acl", []) + self.base_function_acl
+        super().__init__(*args, **kwargs)
+        self.additional_groupby = groupby
+        selected_columns = kwargs["selected_columns"]
+
+        resolved_histogram = self.resolve_column(histogram_column)
+
+        # Reset&Ignore the columns from the QueryBuilder
+        self.aggregates: List[CurriedFunction] = []
+        self.columns = [self.resolve_column("count()"), resolved_histogram]
+
+        if key_column is not None and field_names is not None:
+            key_values: List[str] = [field for field in field_names if isinstance(field, str)]
+            self.where.append(Condition(self.resolve_column(key_column), Op.IN, key_values))
+
+        # make sure to bound the bins to get the desired range of results
+        min_bin = histogram_params.start_offset
+        self.where.append(Condition(resolved_histogram, Op.GTE, min_bin))
+        max_bin = histogram_params.start_offset + histogram_params.bucket_size * num_buckets
+        self.where.append(Condition(resolved_histogram, Op.LTE, max_bin))
+
+        if key_column is not None:
+            self.columns.append(self.resolve_column(key_column))
+
+        groups = len(selected_columns) if histogram_rows is None else histogram_rows
+        self.limit = Limit(groups * num_buckets)
+        self.orderby = (self.orderby if self.orderby else []) + [
+            OrderBy(resolved_histogram, Direction.ASC)
+        ]
+
+    @property
+    def groupby(self) -> Optional[List[SelectType]]:
+        base_groupby = super().groupby
+        if base_groupby is not None and self.additional_groupby is not None:
+            base_groupby += [self.resolve_column(field) for field in self.additional_groupby]
+
+        return base_groupby

@@ -51,8 +51,12 @@ def add_email(email, user):
     return new_email
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class UserEmailsEndpoint(UserEndpoint):
-    def get(self, request, user):
+    def get(self, request: Request, user) -> Response:
         """
         Get list of emails
         ``````````````````
@@ -67,7 +71,7 @@ class UserEmailsEndpoint(UserEndpoint):
         return self.respond(serialize(list(emails), user=user))
 
     @sudo_required
-    def post(self, request, user):
+    def post(self, request: Request, user) -> Response:
         """
         Adds a secondary email address
         ``````````````````````````````
@@ -102,7 +106,7 @@ class UserEmailsEndpoint(UserEndpoint):
             return self.respond(serialize(new_useremail, user=request.user), status=201)
 
     @sudo_required
-    def put(self, request, user):
+    def put(self, request: Request, user) -> Response:
         """
         Updates primary email
         `````````````````````
@@ -196,7 +200,7 @@ class UserEmailsEndpoint(UserEndpoint):
         return self.respond(serialize(new_useremail, user=request.user))
 
     @sudo_required
-    def delete(self, request, user):
+    def delete(self, request: Request, user) -> Response:
         """
         Removes an email from account
         `````````````````````````````

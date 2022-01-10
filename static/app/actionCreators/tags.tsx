@@ -3,10 +3,10 @@ import {Query} from 'history';
 import AlertActions from 'sentry/actions/alertActions';
 import TagActions from 'sentry/actions/tagActions';
 import {Client} from 'sentry/api';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {t} from 'sentry/locale';
 import TagStore from 'sentry/stores/tagStore';
-import {GlobalSelection, Tag} from 'sentry/types';
+import {PageFilters, Tag} from 'sentry/types';
 
 const MAX_TAGS = 1000;
 
@@ -27,11 +27,7 @@ function tagFetchSuccess(tags: Tag[] | undefined) {
 /**
  * Load an organization's tags based on a global selection value.
  */
-export function loadOrganizationTags(
-  api: Client,
-  orgId: string,
-  selection: GlobalSelection
-) {
+export function loadOrganizationTags(api: Client, orgId: string, selection: PageFilters) {
   TagStore.reset();
 
   const url = `/organizations/${orgId}/tags/`;

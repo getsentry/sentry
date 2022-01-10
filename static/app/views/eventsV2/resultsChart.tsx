@@ -10,7 +10,7 @@ import BarChart from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import WorldMapChart from 'sentry/components/charts/worldMapChart';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -61,9 +61,8 @@ class ResultsChart extends Component<ResultsChartProps> {
     const hasConnectDiscoverAndDashboards = organization.features.includes(
       'connect-discover-and-dashboards'
     );
-    const hasTopEvents = organization.features.includes('discover-top-events');
 
-    const globalSelection = eventView.getGlobalSelection();
+    const globalSelection = eventView.getPageFilters();
     const start = globalSelection.datetime.start
       ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : null;
@@ -81,8 +80,7 @@ class ResultsChart extends Component<ResultsChartProps> {
     const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
     const isPrevious = display === DisplayModes.PREVIOUS;
     const referrer = `api.discover.${display}-chart`;
-    const topEvents =
-      hasTopEvents && eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
     const chartComponent =
       display === DisplayModes.WORLDMAP
         ? WorldMapChart
@@ -192,7 +190,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
     const hasConnectDiscoverAndDashboards = organization.features.includes(
       'connect-discover-and-dashboards'
     );
-    const hasTopEvents = organization.features.includes('discover-top-events');
     const displayOptions = eventView
       .getDisplayOptions()
       .filter(opt => {
@@ -215,7 +212,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
       .map(opt => {
         // Can only use default display or total daily with multi y axis
         if (
-          hasTopEvents &&
           [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes)
         ) {
           opt.label = DisplayModes.TOP5 === opt.value ? 'Top Period' : 'Top Daily';

@@ -7,11 +7,11 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {GlobalSelection, Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
 import {generatePerformanceEventView} from '../data';
@@ -20,7 +20,7 @@ import TrendsContent from './content';
 
 type Props = RouteComponentProps<{}, {}> & {
   api: Client;
-  selection: GlobalSelection;
+  selection: PageFilters;
   organization: Organization;
   projects: Project[];
 };
@@ -34,16 +34,26 @@ class TrendsSummary extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceEventView(nextProps.location, nextProps.projects, {
-        isTrends: true,
-      }),
+      eventView: generatePerformanceEventView(
+        nextProps.location,
+        nextProps.organization,
+        nextProps.projects,
+        {
+          isTrends: true,
+        }
+      ),
     };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(this.props.location, this.props.projects, {
-      isTrends: true,
-    }),
+    eventView: generatePerformanceEventView(
+      this.props.location,
+      this.props.organization,
+      this.props.projects,
+      {
+        isTrends: true,
+      }
+    ),
     error: undefined,
   };
 
@@ -82,9 +92,7 @@ class TrendsSummary extends Component<Props, State> {
   }
 }
 
-export default withOrganization(
-  withProjects(withGlobalSelection(withApi(TrendsSummary)))
-);
+export default withOrganization(withProjects(withPageFilters(withApi(TrendsSummary))));
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;

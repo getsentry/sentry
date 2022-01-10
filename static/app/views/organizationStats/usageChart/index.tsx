@@ -6,7 +6,6 @@ import type {SeriesOption, TooltipComponentOption} from 'echarts';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
-import Tooltip from 'sentry/components/charts/components/tooltip';
 import xAxis from 'sentry/components/charts/components/xAxis';
 import barSeries from 'sentry/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -19,11 +18,14 @@ import space from 'sentry/styles/space';
 import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import commonTheme, {Theme} from 'sentry/utils/theme';
 
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
+
+type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 const COLOR_ERRORS = Color(commonTheme.dataCategory.errors).lighten(0.25).string();
 const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
@@ -32,8 +34,8 @@ const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
 const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
   .lighten(0.65)
   .string();
+
 const COLOR_DROPPED = commonTheme.red300;
-const COLOR_PROJECTED = commonTheme.gray100;
 const COLOR_FILTERED = commonTheme.pink100;
 
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
@@ -202,7 +204,8 @@ export class UsageChart extends React.Component<Props, State> {
   }
 
   get chartColors() {
-    const {dataCategory} = this.props;
+    const {dataCategory, theme} = this.props;
+    const COLOR_PROJECTED = theme.chartOther;
 
     if (dataCategory === DataCategory.ERRORS) {
       return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
@@ -373,7 +376,7 @@ export class UsageChart extends React.Component<Props, State> {
     return legend;
   }
 
-  get chartTooltip(): TooltipComponentOption {
+  get chartTooltip(): ChartProps['tooltip'] {
     const {chartTooltip} = this.props;
 
     if (chartTooltip) {
@@ -382,12 +385,12 @@ export class UsageChart extends React.Component<Props, State> {
 
     const {tooltipValueFormatter} = this.chartMetadata;
 
-    return Tooltip({
+    return {
       // Trigger to axis prevents tooltip from redrawing when hovering
       // over individual bars
       trigger: 'axis',
       valueFormatter: tooltipValueFormatter,
-    });
+    };
   }
 
   renderChart() {
@@ -423,43 +426,48 @@ export class UsageChart extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
-        <BaseChart
-          colors={this.chartColors}
-          grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
-          xAxis={xAxis({
-            show: true,
-            type: 'category',
-            name: 'Date',
-            boundaryGap: true,
-            data: xAxisData,
-            axisTick: {
-              interval: xAxisTickInterval,
-              alignWithLabel: true,
-            },
-            axisLabel: {
-              interval: xAxisLabelInterval,
-              formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
-            },
-            theme,
-          })}
-          yAxis={{
-            min: 0,
-            minInterval: yAxisMinInterval,
-            axisLabel: {
-              formatter: yAxisFormatter,
-              color: theme.chartLabel,
-            },
-          }}
-          series={this.chartSeries}
-          tooltip={this.chartTooltip}
-          onLegendSelectChanged={() => {}}
-          legend={Legend({
-            right: 10,
-            top: 5,
-            data: this.chartLegend,
-            theme,
-          })}
-        />
+        {getDynamicText({
+          value: (
+            <BaseChart
+              colors={this.chartColors}
+              grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
+              xAxis={xAxis({
+                show: true,
+                type: 'category',
+                name: 'Date',
+                boundaryGap: true,
+                data: xAxisData,
+                axisTick: {
+                  interval: xAxisTickInterval,
+                  alignWithLabel: true,
+                },
+                axisLabel: {
+                  interval: xAxisLabelInterval,
+                  formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
+                },
+                theme,
+              })}
+              yAxis={{
+                min: 0,
+                minInterval: yAxisMinInterval,
+                axisLabel: {
+                  formatter: yAxisFormatter,
+                  color: theme.chartLabel,
+                },
+              }}
+              series={this.chartSeries}
+              tooltip={this.chartTooltip}
+              onLegendSelectChanged={() => {}}
+              legend={Legend({
+                right: 10,
+                top: 5,
+                data: this.chartLegend,
+                theme,
+              })}
+            />
+          ),
+          fixed: <Placeholder height="200px" />,
+        })}
       </React.Fragment>
     );
   }
