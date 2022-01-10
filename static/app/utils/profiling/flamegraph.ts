@@ -31,6 +31,8 @@ export class Flamegraph {
   ) {
     this.inverted = inverted;
     this.leftHeavy = leftHeavy;
+
+    // @TODO check if we can not keep a reference to the profile
     this.profile = profile;
 
     this.duration = profile.duration;
@@ -54,7 +56,7 @@ export class Flamegraph {
 
   static Empty(): Flamegraph {
     return new Flamegraph(
-      new Profile(1_000_000, 0, 1_000_000, 'Profile', 'milliseconds'),
+      new Profile(0, 0, 1_000_000, 'Profile', 'microseconds'),
       0,
       false,
       false
@@ -93,16 +95,18 @@ export class Flamegraph {
       const stackTop = stack.pop();
 
       if (!stackTop) {
+        // This is unreachable because the profile importing logic already checks this
         throw new Error('Unbalanced stack');
       }
 
       stackTop.end = value;
       stackTop.depth = stack.length;
-      frames.push(stackTop);
 
       if (stackTop.end - stackTop.start === 0) {
         return;
       }
+
+      frames.unshift(stackTop);
       this.depth = Math.max(stackTop.depth, this.depth);
     };
 
@@ -150,12 +154,11 @@ export class Flamegraph {
       stackTop.end = value;
       stackTop.depth = stack.length;
 
-      frames.push(stackTop);
       // Dont draw 0 width frames
       if (stackTop.end - stackTop.start === 0) {
         return;
       }
-
+      frames.unshift(stackTop);
       this.depth = Math.max(stackTop.depth, this.depth);
     };
 
