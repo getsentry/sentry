@@ -996,8 +996,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
-    # Allow orgs to view document integrations from the DB
-    "organizations:integrations-docs-from-db": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
@@ -2488,3 +2486,12 @@ SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
+
+# Zero Downtime Migrations settings as defined at
+# https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
+ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+# Note: The docs have this backwards. We set this to False here so that we always add check
+# constraints instead of setting the column to not null.
+ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False

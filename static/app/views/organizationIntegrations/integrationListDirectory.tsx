@@ -43,7 +43,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
-import {docIntegrations, POPULARITY_WEIGHT} from './constants';
+import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
 
 const FirstPartyIntegrationAlert = HookOrDefault({
@@ -70,7 +70,7 @@ type State = {
   appInstalls: SentryAppInstallation[] | null;
   orgOwnedApps: SentryApp[] | null;
   publishedApps: SentryApp[] | null;
-  publishedDocs: DocIntegration[] | null;
+  docIntegrations: DocIntegration[] | null;
   config: {providers: IntegrationProvider[]} | null;
   extraApp?: SentryApp;
   searchInput: string;
@@ -102,8 +102,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   onLoadAllEndpointsSuccess() {
-    const {organization} = this.props;
-    const {publishedApps, orgOwnedApps, extraApp, plugins, publishedDocs} = this.state;
+    const {publishedApps, orgOwnedApps, extraApp, plugins, docIntegrations} = this.state;
     const published = publishedApps || [];
     // If we have an extra app in state from query parameter, add it as org owned app
     if (orgOwnedApps !== null && extraApp) {
@@ -123,15 +122,12 @@ export class IntegrationListDirectory extends AsyncComponent<
      * 3. Internal apps available to that org
      */
 
-    const docs = organization.features.includes('integrations-docs-from-db')
-      ? publishedDocs ?? []
-      : Object.values(docIntegrations);
     const combined = ([] as AppOrProviderOrPlugin[])
       .concat(published)
       .concat(orgOwned ?? [])
       .concat(this.providers)
       .concat(plugins ?? [])
-      .concat(docs);
+      .concat(docIntegrations ?? []);
 
     const list = this.sortIntegrations(combined);
 
@@ -186,7 +182,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
       ['plugins', `/organizations/${orgId}/plugins/configs/`],
-      ['publishedDocs', '/doc-integrations/'],
+      ['docIntegrations', '/doc-integrations/'],
     ];
     /**
      * optional app to load for super users
@@ -239,11 +235,10 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
-    return (
-      this.state.publishedApps?.find(i => i === integration)?.popularity ??
-      POPULARITY_WEIGHT[integration.slug] ??
-      1
-    );
+    if (isSentryApp(integration) || isDocIntegration(integration)) {
+      return integration?.popularity ?? 1;
+    }
+    return POPULARITY_WEIGHT[integration.slug] ?? 1;
   };
 
   sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
@@ -457,6 +452,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     return (
       <IntegrationRow
         key={`doc-int-${doc.slug}`}
+        data-test-id="integration-row"
         organization={organization}
         type="docIntegration"
         slug={doc.slug}
@@ -515,6 +511,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                   onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
                   width="25em"
+                  data-test-id="search-bar"
                 />
               </ActionContainer>
             }
@@ -523,7 +520,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
         <PermissionAlert access={['org:integrations']} />
         <Panel>
-          <PanelBody>
+          <PanelBody data-test-id="integration-panel">
             {displayedList.length ? (
               displayedList.map(this.renderIntegration)
             ) : (

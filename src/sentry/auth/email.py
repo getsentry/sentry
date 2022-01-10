@@ -1,12 +1,17 @@
-from typing import Optional
-
-import sentry_sdk
+from typing import Optional, Sequence, Tuple
 
 from sentry.models import User, UserEmail
 
 
+class AmbiguousUserFromEmail(Exception):
+    def __init__(self, email: str, users: Sequence[User]) -> None:
+        super().__init__(f"Resolved {email!r} to {[user.id for user in users]}")
+        self.email: str = email
+        self.users: Tuple[User] = tuple(users)
+
+
 def resolve_email_to_user(email: str) -> Optional[User]:
-    candidate_users = list(
+    candidate_users = tuple(
         User.objects.filter(
             id__in=UserEmail.objects.filter(email__iexact=email).values("user"), is_active=True
         )
@@ -16,12 +21,4 @@ def resolve_email_to_user(email: str) -> Optional[User]:
         return None
     if len(candidate_users) == 1:
         return candidate_users[0]
-
-    arbitrary_choice = candidate_users[0]
-    with sentry_sdk.push_scope() as scope:
-        scope.level = "warning"
-        scope.set_tag("email", email)
-        scope.set_extra("user_ids", sorted(user.id for user in candidate_users))
-        scope.set_extra("chosen_user", arbitrary_choice.id)
-        sentry_sdk.capture_message("Ambiguous email resolution")
-    return arbitrary_choice
+    raise AmbiguousUserFromEmail(email, candidate_users)

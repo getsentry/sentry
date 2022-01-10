@@ -980,6 +980,11 @@ function buildRoutes() {
           component={SafeLazyLoad}
         />
       </Route>
+      <Route
+        path="/organizations/:orgId/dashboards/new/:templateId"
+        componentPromise={() => import('sentry/views/dashboardsV2/create')}
+        component={SafeLazyLoad}
+      />
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"

@@ -263,6 +263,7 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
+      organization,
       isReady: true,
       selection: {
         datetime: {
@@ -290,6 +291,7 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
+      organization,
       isReady: true,
       selection: {
         datetime: {
@@ -316,6 +318,7 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
+      organization,
       isReady: true,
       selection: {
         datetime: {
@@ -361,6 +364,7 @@ describe('GlobalSelectionHeader', function () {
     expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
 
     expect(PageFiltersStore.getState()).toEqual({
+      organization,
       isReady: true,
       selection: {
         datetime: {

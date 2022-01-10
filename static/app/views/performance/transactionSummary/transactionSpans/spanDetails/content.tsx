@@ -23,12 +23,11 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {PerformanceDuration} from '../../../utils';
 import Tab from '../../tabs';
-import SpanTable from '../spanTable';
-import {emptyValue, SpanLabelContainer} from '../styles';
 import {SpanSlug} from '../types';
 import {getTotalsView} from '../utils';
 
 import SpanChart from './chart';
+import SpanTable from './spanDetailsTable';
 
 type Props = {
   location: Location;
@@ -300,3 +299,13 @@ const PercentileHeaderBodyWrapper = styled('div')`
   grid-template-columns: repeat(3, max-content);
   gap: ${space(3)};
 `;
+
+export const SpanLabelContainer = styled('div')`
+  ${overflowEllipsis};
+`;
+
+const EmptyValueContainer = styled('span')`
+  color: ${p => p.theme.gray300};
+`;
+
+export const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
