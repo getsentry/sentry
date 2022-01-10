@@ -149,7 +149,7 @@ class CreateSampleEventButton extends React.Component<Props, State> {
         scope.setTag('retries', retries.toString());
         scope.setTag('duration', duration.toString());
 
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         Sentry.captureMessage('Failed to load sample event');
       });
       return;

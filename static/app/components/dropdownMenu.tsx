@@ -157,7 +157,7 @@ class DropdownMenu extends React.Component<Props, State> {
     if (!this.dropdownActor) {
       // Log an error, should be lower priority
       Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         Sentry.captureException(new Error('DropdownMenu does not have "Actor" attached'));
       });
     }
