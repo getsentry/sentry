@@ -56,6 +56,7 @@ describe('SuspectSpans', function () {
           eventView={initialData.eventView}
           projectId="1"
           transactionName="Test Transaction"
+          totals={{count: 1}}
         />,
         {context: initialData.routerContext}
       );
@@ -64,10 +65,10 @@ describe('SuspectSpans', function () {
       expect(await screen.findByText('View All Spans')).toBeInTheDocument();
       expect(await screen.findByText('Operation')).toBeInTheDocument();
       expect(await screen.findByText('Description')).toBeInTheDocument();
-      expect(await screen.findByText('P75 Exclusive Time')).toBeInTheDocument();
       expect(await screen.findByText('Total Count')).toBeInTheDocument();
+      expect(await screen.findByText('Frequency')).toBeInTheDocument();
+      expect(await screen.findByText('P75 Exclusive Time')).toBeInTheDocument();
       expect(await screen.findByText('Total Exclusive Time')).toBeInTheDocument();
-      expect(await screen.findByText('Example Transaction')).toBeInTheDocument();
     });
 
     // Due to the createHref being stubbed out (see link below),

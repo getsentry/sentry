@@ -1,5 +1,3 @@
-import {GridColumnOrder} from 'sentry/components/gridEditable';
-
 export enum SpanSortPercentiles {
   P50_EXCLUSIVE_TIME = 'p50ExclusiveTime',
   P75_EXCLUSIVE_TIME = 'p75ExclusiveTime',
@@ -21,22 +19,8 @@ export type SpanSortOption = {
   field: SpanSort;
 };
 
-export type SuspectSpanTableColumnKeys =
-  | 'id'
-  | 'timestamp'
-  | 'transactionDuration'
-  | 'spanDuration'
-  | 'occurrences'
-  | 'cumulativeDuration'
-  | 'spans';
-
-export type SuspectSpanTableColumn = GridColumnOrder<SuspectSpanTableColumnKeys>;
-
-export type SuspectSpanDataRow = Record<SuspectSpanTableColumnKeys, any>;
-
 export type SpansTotalValues = {
   count: number;
-  sum_transaction_duration: number;
 };
 
 export type SpanSlug = {
