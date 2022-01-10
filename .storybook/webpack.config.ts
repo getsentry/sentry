@@ -102,6 +102,7 @@ const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
         //
         // [0]: https://gist.github.com/shilman/8856ea1786dcd247139b47b270912324#gistcomment-3681971
         assert: false,
+        path: false,
       },
     },
   };
