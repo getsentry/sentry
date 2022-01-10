@@ -13,7 +13,9 @@ class OrganizationCodeOwnersEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization):
         return self.paginate(
             request=request,
-            queryset=ProjectCodeOwners.objects.filter_by_organization(organization=organization),
+            queryset=ProjectCodeOwners.objects.filter_by_organization(
+                user=request.user, organization=organization
+            ),
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
                 x,

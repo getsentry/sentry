@@ -16,13 +16,18 @@ class OrganizationCodeOwnersEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-codeowners"
 
     def setUp(self):
-        self.user = self.create_user("walter.mitty@life.com")
-        self.organization = self.create_organization(name="Life", owner=self.user)
-        self.login_as(user=self.user)
+        self.owner = self.create_user("motto@life.com")
+        self.user_1 = self.create_user("walter.mitty@life.com")
+        self.user_2 = self.create_user("exec@life.com")
+        self.organization = self.create_organization(name="Life", owner=self.owner)
         self.team_1 = self.create_team(
-            organization=self.organization, slug="negative-assets", members=[self.user]
+            organization=self.organization,
+            slug="negative-assets",
+            members=[self.user_1, self.user_2],
         )
-        self.team_2 = self.create_team(organization=self.organization, slug="executives")
+        self.team_2 = self.create_team(
+            organization=self.organization, slug="executives", members=[self.user_2]
+        )
         self.project_1 = self.create_project(
             organization=self.organization, teams=[self.team_1, self.team_2], slug="final-cover"
         )
@@ -45,6 +50,7 @@ class OrganizationCodeOwnersEndpointTest(APITestCase):
             "raw": "negatives/*  @life/exec @walter @hernando\nquintessence/* @walter @sean\n",
             "codeMappingId": self.code_mapping_2.id,
         }
+        self.login_as(user=self.user_1)
 
     def test_no_codeowners(self):
         response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
@@ -65,7 +71,7 @@ class OrganizationCodeOwnersEndpointTest(APITestCase):
             assert (
                 serialize(
                     code_owner,
-                    self.user,
+                    self.user_1,
                     serializer=ProjectCodeOwnersSerializer(expand=["errors"]),
                 )
                 in response.data
@@ -78,6 +84,7 @@ class OrganizationCodeOwnersEndpointTest(APITestCase):
         self.create_codeowners(self.project_1, self.code_mapping_1, raw=self.data_1["raw"])
         self.create_codeowners(self.project_2, self.code_mapping_2, raw=self.data_2["raw"])
         response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
+        assert len(response.data) == 2
         for code_owner in response.data:
             # Check error object shape
             assert "codeMappingId" in code_owner.keys()
@@ -102,4 +109,39 @@ class OrganizationCodeOwnersEndpointTest(APITestCase):
         """
         Tests that projects the requesting user does not have access to are not in the response
         """
-        pass
+        self.create_codeowners(self.project_1, self.code_mapping_1, raw=self.data_1["raw"])
+        self.create_codeowners(self.project_2, self.code_mapping_2, raw=self.data_2["raw"])
+        # Create a project/code owners that user_1 doesn't have access to
+        project_3 = self.create_project(
+            organization=self.organization, teams=[self.team_2], slug="fire-everyone"
+        )
+        code_mapping_3 = self.create_code_mapping(project=project_3)
+        code_owners = self.create_codeowners(project_3, code_mapping_3, raw="all/*  @life/exec\n")
+        response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
+        # Check the original two code owners are still visible
+        assert len(response.data) == 2
+        assert (
+            serialize(
+                code_owners,
+                self.user,
+                serializer=ProjectCodeOwnersSerializer(expand=["errors"]),
+            )
+            not in response.data
+        )
+        # Check that a user who can see all the projects receives them all
+        self.login_as(self.user_2)
+        response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
+        assert len(response.data) == 3
+        assert (
+            serialize(
+                code_owners,
+                self.user,
+                serializer=ProjectCodeOwnersSerializer(expand=["errors"]),
+            )
+            in response.data
+        )
+        # Check that a user with higher perms (but not explicitly on the teams) can see all as well
+        self.create_member
+        self.login_as(self.owner)
+        response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
+        assert len(response.data) == 3
