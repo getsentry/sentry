@@ -5,7 +5,11 @@ from django.db.models import Subquery
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, JSONField, sane_repr
+from sentry.db.models.manager import BaseManager
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils.cache import cache
 
@@ -13,7 +17,18 @@ logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
+class ProjectCodeOwnersManager(BaseManager):
+    def filter_by_organization(self, organization: Organization):
+        """
+        Return all ProjectCodeOwners for an organization
+        """
+        projects = Project.objects.filter(organization=organization, status=ObjectStatus.VISIBLE)
+        return self.filter(project__in=projects)
+
+
 class ProjectCodeOwners(DefaultFieldsModel):
+    objects = ProjectCodeOwnersManager()
+
     __include_in_export__ = False
     # no db constraint to prevent locks on the Project table
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)

@@ -1,6 +1,7 @@
 from django.conf.urls import include, url
 
 from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
+from sentry.api.endpoints.organization_codeowners import OrganizationCodeOwnersEndpoint
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -877,10 +878,16 @@ urlpatterns = [
                     OrganizationCodeMappingDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-code-mapping-details",
                 ),
+                # Codeowners
                 url(
                     r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/codeowners/$",
                     OrganizationCodeMappingCodeOwnersEndpoint.as_view(),
                     name="sentry-api-0-organization-code-mapping-codeowners",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/codeowners/$",
+                    OrganizationCodeOwnersEndpoint.as_view(),
+                    name="sentry-api-0-organization-codeowners",
                 ),
                 # Discover
                 url(
