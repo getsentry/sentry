@@ -50,12 +50,12 @@ type Props = WithRouterProps &
     organization: OrganizationSummary;
     trendChangeType: TrendChangeType;
     trendFunctionField?: TrendFunctionField;
-    transaction?: NormalizedTrendsTransaction;
     isLoading: boolean;
     statsData: TrendsStats;
     projects: Project[];
+    transaction?: NormalizedTrendsTransaction;
     height?: number;
-    grid?: LineChart['props']['grid'];
+    grid?: React.ComponentProps<typeof LineChart>['grid'];
     disableXAxis?: boolean;
     disableLegend?: boolean;
   };
