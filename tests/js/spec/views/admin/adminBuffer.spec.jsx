@@ -12,6 +12,8 @@ describe('AdminBuffer', function () {
           router: TestStubs.router(),
         },
       });
+
+      expect(wrapper.find('LoadingIndicator')).toHaveLength(2);
       expect(wrapper).toSnapshot();
     });
   });
