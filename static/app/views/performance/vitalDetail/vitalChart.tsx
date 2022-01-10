@@ -281,13 +281,13 @@ function VitalChart({
 export default withRouter(VitalChart);
 
 export type _VitalChartProps = Props & {
-  data?: Series[];
   loading: boolean;
   reloading: boolean;
   field: string;
+  grid: React.ComponentProps<typeof LineChart>['grid'];
+  data?: Series[];
   height?: number;
   utc?: boolean;
-  grid: LineChart['props']['grid'];
   vitalFields?: {
     poorCountField: string;
     mehCountField: string;
