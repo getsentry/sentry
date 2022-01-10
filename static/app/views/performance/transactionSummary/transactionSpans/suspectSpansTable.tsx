@@ -110,7 +110,7 @@ function renderBodyCellWithMeta(
       });
       return (
         <TableCellContainer>
-          <Link to={target}>{dataRow[column.key] ?? <i>{t('(unnamed span)')}</i>}</Link>
+          <Link to={target}>{dataRow[column.key] ?? t('(unnamed span)')}</Link>
         </TableCellContainer>
       );
     }
