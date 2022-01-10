@@ -188,6 +188,7 @@ describe('Dashboards > Detail', function () {
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
+      types.MAX_WIDGETS = 30;
       widgets = [
         TestStubs.Widget(
           [{name: '', conditions: 'event.type:error', fields: ['count()']}],
@@ -745,8 +746,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('duplicates widgets', async function () {
-      types.MAX_WIDGETS = 30;
-
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -780,7 +779,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('opens edit modal when editing widget from context menu', async function () {
-      types.MAX_WIDGETS = 30;
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -826,7 +824,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('deletes widget', async function () {
-      types.MAX_WIDGETS = 30;
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
