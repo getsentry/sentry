@@ -128,7 +128,7 @@ type ProjectId = string | number;
 type EnvironmentId = Environment['id'];
 
 type UpdateData = {
-  project?: ProjectId[] | null;
+  project?: ProjectId | ProjectId[] | null;
   environment?: EnvironmentId[] | null;
 };
 
