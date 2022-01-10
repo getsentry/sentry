@@ -69,7 +69,7 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={() => undefined}
-        handleAddLibraryWidgets={() => undefined}
+        handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
@@ -95,7 +95,7 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={() => undefined}
-        handleAddLibraryWidgets={() => undefined}
+        handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
@@ -126,7 +126,7 @@ describe('Dashboards > Dashboard', () => {
         organization={initialData.organization}
         isEditing={false}
         onUpdate={() => undefined}
-        handleAddLibraryWidgets={() => undefined}
+        handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
@@ -161,7 +161,7 @@ describe('Dashboards > Dashboard', () => {
         organization={organizationWithFlag}
         isEditing={false}
         onUpdate={() => undefined}
-        handleAddLibraryWidgets={() => undefined}
+        handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
         onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
