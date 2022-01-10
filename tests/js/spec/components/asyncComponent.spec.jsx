@@ -48,7 +48,7 @@ describe('AsyncComponent', function () {
     expect(screen.getByText('oops there was a problem')).toBeInTheDocument();
   });
 
-  it('renders only unique error message', async function () {
+  it('renders only unique error message', function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/first/path/',
