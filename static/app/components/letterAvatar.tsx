@@ -1,8 +1,8 @@
 import * as React from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {imageStyle} from 'sentry/components/avatar/styles';
-import theme from 'sentry/utils/theme';
 
 const COLORS = [
   '#4674ca', // blue
@@ -75,29 +75,33 @@ const LetterAvatar = styled(
     forwardedRef,
     suggested,
     ...props
-  }: LetterAvatarProps) => (
-    <svg ref={forwardedRef} viewBox="0 0 120 120" {...props}>
-      <rect
-        x="0"
-        y="0"
-        width="120"
-        height="120"
-        rx="15"
-        ry="15"
-        fill={suggested ? '#FFFFFF' : getColor(identifier)}
-      />
-      <text
-        x="50%"
-        y="50%"
-        fontSize="65"
-        style={{dominantBaseline: 'central'}}
-        textAnchor="middle"
-        fill={suggested ? theme.gray400 : '#FFFFFF'}
-      >
-        {getInitials(displayName)}
-      </text>
-    </svg>
-  )
+  }: LetterAvatarProps) => {
+    const theme = useTheme();
+
+    return (
+      <svg ref={forwardedRef} viewBox="0 0 120 120" {...props}>
+        <rect
+          x="0"
+          y="0"
+          width="120"
+          height="120"
+          rx="15"
+          ry="15"
+          fill={suggested ? theme.white : getColor(identifier)}
+        />
+        <text
+          x="50%"
+          y="50%"
+          fontSize="65"
+          style={{dominantBaseline: 'central'}}
+          textAnchor="middle"
+          fill={suggested ? theme.gray400 : theme.white}
+        >
+          {getInitials(displayName)}
+        </text>
+      </svg>
+    );
+  }
 )<Props>`
   ${imageStyle};
 `;
