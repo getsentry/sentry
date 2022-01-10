@@ -43,7 +43,7 @@ type TableDataRow = Record<TableColumnKeys, any>;
 type Props = {
   location: Location;
   organization: Organization;
-  suspectSpan: SuspectSpan;
+  suspectSpan?: SuspectSpan;
   transactionName: string;
   isLoading: boolean;
   examples: ExampleTransaction[];
@@ -122,14 +122,14 @@ function renderBodyCellWithMeta(
   location: Location,
   organization: Organization,
   transactionName: string,
-  suspectSpan: SuspectSpan
+  suspectSpan?: SuspectSpan
 ) {
   return (column: TableColumn, dataRow: TableDataRow): React.ReactNode => {
     // if the transaction duration is falsey, then just render the span duration on its own
     if (column.key === 'spanDuration' && dataRow.transactionDuration) {
       return (
         <SpanDurationBar
-          spanOp={suspectSpan.op}
+          spanOp={suspectSpan?.op ?? ''}
           spanDuration={dataRow.spanDuration}
           transactionDuration={dataRow.transactionDuration}
         />
