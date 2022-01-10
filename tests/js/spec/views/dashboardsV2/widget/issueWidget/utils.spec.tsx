@@ -5,7 +5,6 @@ describe('generateIssueWidgetFieldOptions', function () {
     const issueFields = generateIssueWidgetFieldOptions();
     expect(Object.keys(issueFields)).toEqual([
       'field:assignee',
-      'field:culprit',
       'field:isBookmarked',
       'field:isHandled',
       'field:isSubscribed',
