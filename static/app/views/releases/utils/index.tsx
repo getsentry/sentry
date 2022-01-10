@@ -5,7 +5,7 @@ import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile, PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';

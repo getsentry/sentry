@@ -19,6 +19,7 @@ type TestStubFixtures = {
   AuthProviders: OverridableStubList;
   Authenticators: SimpleStub;
   AllAuthenticators: SimpleStub;
+  BuiltInSymbolSources: OverridableStubList;
   BitbucketIntegrationConfig: SimpleStub;
   Broadcast: OverridableStub;
   Commit: OverridableStub;
@@ -29,6 +30,7 @@ type TestStubFixtures = {
   DebugSymbols: OverridableStub;
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
+  DocIntegration: OverridableStub;
   Entries: SimpleStub;
   Event: OverridableStub;
   EventEntry: OverridableStub;
@@ -108,6 +110,7 @@ type TestStubFixtures = {
   Tags: OverridableStubList;
   Team: OverridableStub;
   TeamAlertsTriggered: SimpleStub;
+  TeamIssuesReviewed: SimpleStub;
   TeamIssuesBreakdown: SimpleStub;
   TeamResolutionTime: SimpleStub;
   Tombstones: OverridableStubList;

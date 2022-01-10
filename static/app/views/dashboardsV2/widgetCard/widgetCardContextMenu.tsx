@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import Confirm from 'sentry/components/confirm';
 import Link from 'sentry/components/links/link';
 import MenuItem from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DisplayModes} from 'sentry/utils/discover/types';
@@ -20,8 +21,10 @@ import {Widget, WidgetType} from '../types';
 type Props = {
   organization: Organization;
   widget: Widget;
-  selection: GlobalSelection;
+  selection: PageFilters;
+  onDelete: () => void;
   onDuplicate: () => void;
+  onEdit: () => void;
   widgetLimitReached: boolean;
   showContextMenu?: boolean;
 };
@@ -31,7 +34,9 @@ function WidgetCardContextMenu({
   selection,
   widget,
   widgetLimitReached,
+  onDelete,
   onDuplicate,
+  onEdit,
   showContextMenu,
 }: Props) {
   function isAllowWidgetsToDiscover() {
@@ -74,11 +79,14 @@ function WidgetCardContextMenu({
             break;
         }
       }
+      const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
+        ...discoverLocation.query,
+      })}`;
       if (widget.queries.length === 1) {
         menuOptions.push(
           <Link
             key="open-discover-link"
-            to={discoverLocation}
+            to={discoverPath}
             onClick={() => {
               trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
                 organization,
@@ -117,6 +125,7 @@ function WidgetCardContextMenu({
         : {statsPeriod: period};
     const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
       query: widget.queries?.[0]?.conditions,
+      sort: widget.queries?.[0]?.orderby,
       ...datetime,
     })}`;
 
@@ -138,6 +147,24 @@ function WidgetCardContextMenu({
         {t('Duplicate Widget')}
       </StyledMenuItem>
     );
+
+    menuOptions.push(
+      <StyledMenuItem key="edit-widget" data-test-id="edit-widget" onSelect={onEdit}>
+        {t('Edit Widget')}
+      </StyledMenuItem>
+    );
+
+    menuOptions.push(
+      <Confirm
+        key="delete-widget"
+        data-test-id="delete-widget"
+        priority="danger"
+        message={t('Are you sure you want to delete this widget?')}
+        onConfirm={onDelete}
+      >
+        <StyledMenuItem danger>{t('Delete Widget')}</StyledMenuItem>
+      </Confirm>
+    );
   }
 
   if (!menuOptions.length) {
@@ -157,10 +184,10 @@ const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
 
-const StyledMenuItem = styled(MenuItem)`
+const StyledMenuItem = styled(MenuItem)<{danger?: boolean}>`
   white-space: nowrap;
-  color: ${p => p.theme.textColor};
+  color: ${p => (p.danger ? p.theme.red300 : p.theme.textColor)};
   :hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => (p.danger ? p.theme.red300 : p.theme.textColor)};
   }
 `;

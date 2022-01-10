@@ -181,14 +181,14 @@ from .endpoints.organization_events_has_measurements import (
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
-    OrganizationEventBaseline,
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_performance import (
-    OrganizationEventsSpansEndpoint,
+    OrganizationEventsSpansExamplesEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
+    OrganizationEventsSpansStatsEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_trace import (
@@ -1045,13 +1045,18 @@ urlpatterns = [
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-spans/$",
-                    OrganizationEventsSpansEndpoint.as_view(),
+                    OrganizationEventsSpansExamplesEndpoint.as_view(),
                     name="sentry-api-0-organization-events-spans",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-spans-performance/$",
                     OrganizationEventsSpansPerformanceEndpoint.as_view(),
                     name="sentry-api-0-organization-events-spans-performance",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-spans-stats/$",
+                    OrganizationEventsSpansStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
@@ -1082,11 +1087,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-trends-stats/$",
                     OrganizationEventsTrendsStatsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trends-stats",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/event-baseline/$",
-                    OrganizationEventBaseline.as_view(),
-                    name="sentry-api-0-organization-event-baseline",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

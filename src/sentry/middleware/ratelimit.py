@@ -11,7 +11,7 @@ from sentry.ratelimits import (
     get_rate_limit_key,
     get_rate_limit_value,
 )
-from sentry.types.ratelimit import RateLimitCategory
+from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
@@ -21,6 +21,8 @@ DEFAULT_ERROR_MESSAGE = (
 
 class RatelimitMiddleware(MiddlewareMixin):
     """Middleware that applies a rate limit to every endpoint."""
+
+    rate_limit_metadata: RateLimitMeta | None = None
 
     def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
         """Check if the endpoint call will violate."""
@@ -44,17 +46,29 @@ class RatelimitMiddleware(MiddlewareMixin):
         if rate_limit is None:
             return
 
-        rate_limit_check_dict = above_rate_limit_check(key, rate_limit)
-        if rate_limit_check_dict["is_limited"]:
+        self.rate_limit_metadata = above_rate_limit_check(key, rate_limit)
+        if self.rate_limit_metadata.is_limited:
             request.will_be_rate_limited = True
             enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
             if enforce_rate_limit:
                 return HttpResponse(
                     {
                         "detail": DEFAULT_ERROR_MESSAGE.format(
-                            limit=rate_limit_check_dict["limit"],
-                            window=rate_limit_check_dict["window"],
+                            limit=self.rate_limit_metadata.limit,
+                            window=self.rate_limit_metadata.window,
                         )
                     },
                     status=429,
                 )
+
+    def process_response(self, request: Request, response: Response) -> Response:
+        if self.rate_limit_metadata is not None:
+            remaining_count = (
+                self.rate_limit_metadata.limit - self.rate_limit_metadata.current
+                if not self.rate_limit_metadata.is_limited
+                else 0
+            )
+            response["X-Sentry-Rate-Limit-Remaining"] = remaining_count
+            response["X-Sentry-Rate-Limit-Limit"] = self.rate_limit_metadata.limit
+            response["X-Sentry-Rate-Limit-Reset"] = self.rate_limit_metadata.reset_time
+        return response

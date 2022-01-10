@@ -6,8 +6,7 @@ import isEqual from 'lodash/isEqual';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -15,6 +14,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
   barAxisLabel,
   convertDaySeriesToWeeks,
@@ -124,7 +124,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        <IssuesChartWrapper>
+        <ChartWrapper>
           {loading && <Placeholder height="200px" />}
           {!loading && (
             <BarChart
@@ -140,19 +140,23 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                   seriesName: t('Reviewed'),
                   data: reviewedSeries,
                   silent: true,
+                  animationDuration: 500,
+                  animationDelay: 0,
                 },
                 {
                   seriesName: t('Not Reviewed'),
                   data: notReviewedSeries,
                   silent: true,
+                  animationDuration: 500,
+                  animationDelay: 500,
                 },
               ]}
             />
           )}
-        </IssuesChartWrapper>
+        </ChartWrapper>
         <StyledPanelTable
           isEmpty={projects.length === 0}
-          emptyMessage={t('No Projects Assigned To This Team')}
+          emptyMessage={t('No projects assigned to this team')}
           headers={[
             t('Project'),
             <AlignRight key="forReview">{t('For Review')}</AlignRight>,
@@ -186,9 +190,6 @@ export default TeamIssuesReviewed;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-`;
-
-const IssuesChartWrapper = styled(ChartWrapper)`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
@@ -211,14 +212,6 @@ const StyledPanelTable = styled(PanelTable)`
         padding: 48px ${space(2)};
       }
     `}
-`;
-
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
 `;
 
 const AlignRight = styled('div')`

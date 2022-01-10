@@ -13,18 +13,18 @@ import {HeaderTitle} from 'sentry/components/charts/styles';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {Widget, WidgetType} from '../types';
@@ -47,7 +47,7 @@ type Props = WithRouterProps & {
   location: Location;
   isEditing: boolean;
   widget: Widget;
-  selection: GlobalSelection;
+  selection: PageFilters;
   onDelete: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
@@ -122,7 +122,9 @@ class WidgetCard extends React.Component<Props> {
       organization,
       showContextMenu,
       widgetLimitReached,
+      onEdit,
       onDuplicate,
+      onDelete,
     } = this.props;
 
     return (
@@ -133,6 +135,8 @@ class WidgetCard extends React.Component<Props> {
         showContextMenu={showContextMenu}
         widgetLimitReached={widgetLimitReached}
         onDuplicate={onDuplicate}
+        onEdit={onEdit}
+        onDelete={onDelete}
       />
     );
   }
@@ -261,7 +265,7 @@ class WidgetCard extends React.Component<Props> {
   }
 }
 
-export default withApi(withOrganization(withGlobalSelection(withRouter(WidgetCard))));
+export default withApi(withOrganization(withPageFilters(withRouter(WidgetCard))));
 
 const ErrorCard = styled(Placeholder)`
   display: flex;

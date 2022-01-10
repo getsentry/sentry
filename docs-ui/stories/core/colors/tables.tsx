@@ -16,7 +16,7 @@ type ColorGroup = {
 const Wrap = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   & > * {
     grid-column-end: span 1;

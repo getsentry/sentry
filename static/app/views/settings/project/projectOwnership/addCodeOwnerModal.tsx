@@ -288,7 +288,7 @@ const SourceFileBody = styled(PanelBody)`
 
 const IntegrationsList = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-items: center;
   margin-top: ${space(2)};
 `;
