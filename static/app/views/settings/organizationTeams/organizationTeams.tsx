@@ -146,7 +146,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const LoadMoreWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
   justify-content: end;
   grid-auto-flow: column;

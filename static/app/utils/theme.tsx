@@ -117,6 +117,16 @@ const darkShadows = {
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
 };
 
+/**
+ * Background used in the theme-color meta tag
+ * The colors below are an approximation of the colors used in the sidebar (sidebarGradient).
+ * Unfortunately the exact colors cannot be used, as the theme-color tag does not support linear-gradient()
+ */
+const sidebarBackground = {
+  light: '#2f1937',
+  dark: '#181622',
+};
+
 type BaseColors = typeof lightColors;
 
 const generateAliases = (colors: BaseColors) => ({
@@ -390,39 +400,48 @@ const generateBadgeTheme = (colors: BaseColors) => ({
 
 const generateTagTheme = (colors: BaseColors) => ({
   default: {
-    background: colors.gray200,
-    iconColor: colors.purple300,
+    background: colors.surface400,
+    border: colors.gray200,
+    iconColor: colors.gray300,
   },
   promotion: {
-    background: colors.pink200,
+    background: colors.pink100,
+    border: colors.pink200,
     iconColor: colors.pink300,
   },
   highlight: {
-    background: colors.purple200,
+    background: colors.purple100,
+    border: colors.purple200,
     iconColor: colors.purple300,
   },
   warning: {
-    background: colors.yellow200,
+    background: colors.yellow100,
+    border: colors.yellow200,
     iconColor: colors.yellow300,
   },
   success: {
-    background: colors.green200,
+    background: colors.green100,
+    border: colors.green200,
     iconColor: colors.green300,
   },
   error: {
-    background: colors.red200,
+    background: colors.red100,
+    border: colors.red200,
     iconColor: colors.red300,
   },
   info: {
-    background: colors.blue200,
-    iconColor: colors.blue300,
+    background: colors.purple100,
+    border: colors.purple200,
+    iconColor: colors.purple300,
   },
   white: {
-    background: colors.surface200,
-    iconColor: colors.gray500,
+    background: colors.white,
+    border: colors.white,
+    iconColor: colors.black,
   },
   black: {
-    background: colors.gray500,
+    background: colors.black,
+    border: colors.black,
     iconColor: colors.white,
   },
 });
@@ -607,6 +626,9 @@ const commonTheme = {
   borderRadius: '4px',
   borderRadiusBottom: '0 0 4px 4px',
   borderRadiusTop: '4px 4px 0 0',
+  borderRadiusLeft: '4px 0 0 4px',
+  borderRadiusRight: '0 4px 4px 0',
+
   headerSelectorRowHeight: 44,
   headerSelectorLabelHeight: 28,
 
@@ -631,7 +653,7 @@ const commonTheme = {
   },
 
   sidebar: {
-    background: '#2f2936',
+    boxShadow: '0 3px 3px #2f2936',
     color: '#9586a5',
     divider: '#493e54',
     badgeSize: '22px',
@@ -704,8 +726,11 @@ export const lightTheme = {
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
-  sidebarGradient:
-    'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+  sidebar: {
+    ...commonTheme.sidebar,
+    background: sidebarBackground.light,
+  },
+  sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,#452650 92.42%,#452650 92.42%)`,
   sidebarBorder: 'transparent',
 };
 
@@ -723,7 +748,11 @@ export const darkTheme: Theme = {
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
-  sidebarGradient: 'linear-gradient(180deg, #181622 0%, #1B1825 100%)',
+  sidebar: {
+    ...commonTheme.sidebar,
+    background: sidebarBackground.dark,
+  },
+  sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
   sidebarBorder: darkAliases.border,
 };
 

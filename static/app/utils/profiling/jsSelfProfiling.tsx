@@ -31,7 +31,9 @@ export function resolveJSSelfProfilingStack(
     callStack.unshift(createMarkerFrame(marker));
   }
 
-  if (stackId === undefined) return callStack;
+  if (stackId === undefined) {
+    return callStack;
+  }
 
   let stack: JSSelfProfiling.Stack | undefined = trace.stacks[stackId];
 

@@ -121,7 +121,7 @@ const DsnInfo = styled('div')`
 const DsnContainer = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1.5)} ${space(2)};
+  gap: ${space(1.5)} ${space(2)};
   align-items: center;
   margin-bottom: ${space(2)};
 `;

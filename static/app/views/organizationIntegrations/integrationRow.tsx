@@ -27,7 +27,7 @@ import PluginDeprecationAlert from './pluginDeprecationAlert';
 
 type Props = {
   organization: Organization;
-  type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration';
+  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration';
   slug: string;
   displayName: string;
   publishStatus: 'unpublished' | 'published' | 'internal';
@@ -52,7 +52,7 @@ const urlMap = {
   plugin: 'plugins',
   firstParty: 'integrations',
   sentryApp: 'sentry-apps',
-  documentIntegration: 'document-integrations',
+  docIntegration: 'document-integrations',
 };
 
 const IntegrationRow = (props: Props) => {

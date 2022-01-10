@@ -249,7 +249,7 @@ const RadioLabel = styled('label')`
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const SidebarTagValue = styled('span')`
@@ -270,7 +270,7 @@ const ReversedLayoutBody = styled('div')`
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
-    grid-gap: ${space(3)};
+    gap: ${space(3)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {

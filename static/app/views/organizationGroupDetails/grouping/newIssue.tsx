@@ -55,13 +55,13 @@ const EventDetails = styled('div')`
 const ExtraInfo = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   justify-content: flex-start;
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: max-content 1fr;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};

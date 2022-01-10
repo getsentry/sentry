@@ -17,8 +17,9 @@ import EventsRequest from 'sentry/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import {SectionHeading} from 'sentry/components/charts/styles';
+import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
 import {getTooltipArrow} from 'sentry/components/charts/utils';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
   StatsPeriodType,
@@ -67,8 +68,8 @@ type Props = WithRouterProps & {
   organization: Organization;
   projects: Project[] | AvatarProject[];
   interval: string;
-  filter: React.ReactNode;
   query: string;
+  filter: string[] | null;
   orgId: string;
   handleZoom: (start: DateString, end: DateString) => void;
 };
@@ -334,7 +335,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       interval,
       handleZoom,
       filter,
-      query,
       incidents,
       rule,
       organization,
@@ -535,15 +535,21 @@ class MetricChart extends React.PureComponent<Props, State> {
         ''
     );
 
+    const queryFilter = filter?.map((f, idx) => <Filters key={idx}>{f}</Filters>);
+
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
           <ChartHeader>
-            <ChartTitle>
+            <HeaderTitleLegend>
               {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
-            </ChartTitle>
-            {query ? filter : null}
+            </HeaderTitleLegend>
           </ChartHeader>
+          <ChartFilters>
+            <StyledCircleIndicator size={8} />
+            <Filters>{rule.aggregate}</Filters>
+            {queryFilter}
+          </ChartFilters>
           {getDynamicText({
             value: (
               <ChartZoom
@@ -562,7 +568,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                     grid={{
                       left: space(0.25),
                       right: space(2),
-                      top: space(2),
+                      top: space(3),
                       bottom: 0,
                     }}
                     yAxis={{
@@ -806,9 +812,20 @@ const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const ChartTitle = styled('header')`
-  display: flex;
-  flex-direction: row;
+const StyledCircleIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.formText};
+  height: ${space(1)};
+  margin-right: ${space(0.5)};
+`;
+
+const ChartFilters = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.textColor};
+`;
+
+const Filters = styled('span')`
+  margin-right: ${space(1)};
 `;
 
 const ChartActions = styled(PanelFooter)`

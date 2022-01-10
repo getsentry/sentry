@@ -170,7 +170,7 @@ const Content = styled('div')`
 const Actions = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const GlobalSdkSuggestions = withOrganization(
