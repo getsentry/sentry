@@ -77,7 +77,6 @@ describe('HelpSearch', function () {
       />
     );
 
-
     userEvent.type(screen.getByTestId('search'), 'dummy');
 
     await screen.findByText('From Documentation');
