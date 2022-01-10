@@ -90,7 +90,7 @@ export type PageFilters = {
    */
   environments: string[];
   /**
-   * CUrrently selected time filter
+   * Currently selected time filter
    */
   datetime: {
     start: DateString;
