@@ -149,7 +149,6 @@ class TeamIssueBreakdownTest(APITestCase):
         project1 = self.create_project(teams=[self.team])
         group1_1 = self.create_group(project=project1, first_seen=before_now(days=40))
         GroupAssignee.objects.assign(group1_1, self.user)
-        GroupAssignee.objects.assign(group1_1, self.user)
         GroupHistory.objects.all().delete()
 
         self.login_as(user=self.user)
