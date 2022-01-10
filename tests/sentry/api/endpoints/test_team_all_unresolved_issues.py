@@ -140,10 +140,7 @@ class TeamIssueBreakdownTest(APITestCase):
 
     def test_no_projects(self):
         self.login_as(user=self.user)
-        response = self.get_success_response(
-            self.team.organization.slug, self.team.slug, statsPeriod="7d"
-        )
-        assert response.status_code == 200, response.content
+        self.get_success_response(self.team.organization.slug, self.team.slug, statsPeriod="7d")
 
     def test_no_group_history(self):
         project1 = self.create_project(teams=[self.team])
@@ -152,7 +149,4 @@ class TeamIssueBreakdownTest(APITestCase):
         GroupHistory.objects.all().delete()
 
         self.login_as(user=self.user)
-        response = self.get_success_response(
-            self.team.organization.slug, self.team.slug, statsPeriod="7d"
-        )
-        assert response.status_code == 200, response.content
+        self.get_success_response(self.team.organization.slug, self.team.slug, statsPeriod="7d")
