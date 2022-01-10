@@ -11,7 +11,7 @@ import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageHeading from 'sentry/components/pageHeading';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
@@ -334,7 +334,7 @@ export default withOrganization(OrganizationStats);
 const PageGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: repeat(2, 1fr);

@@ -15,24 +15,27 @@ import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {
-  openAddDashboardWidgetModal,
-  openDashboardWidgetLibraryModal,
-} from 'sentry/actionCreators/modal';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {uniqueId} from 'sentry/utils/guid';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, DisplayType, Widget} from './types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from './types';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const WIDGET_PREFIX = 'grid-item';
@@ -58,7 +61,7 @@ type Props = {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
-  selection: GlobalSelection;
+  selection: PageFilters;
   isEditing: boolean;
   router: InjectedRouter;
   location: Location;
@@ -69,9 +72,11 @@ type Props = {
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   handleAddLibraryWidgets: (widgets: Widget[]) => void;
+  handleAddCustomWidget: (widget: Widget) => void;
   layout: Layout[];
   onLayoutChange: (layout: Layout[]) => void;
   paramDashboardId?: string;
+  paramTemplateId?: string;
   newWidget?: Widget;
 };
 
@@ -132,11 +137,11 @@ class Dashboard extends Component<Props, State> {
   }
 
   async addNewWidget() {
-    const {api, organization, newWidget} = this.props;
+    const {api, organization, newWidget, handleAddCustomWidget} = this.props;
     if (newWidget) {
       try {
         await validateWidget(api, organization.slug, newWidget);
-        this.handleAddComplete(newWidget);
+        handleAddCustomWidget(newWidget);
       } catch (error) {
         // Don't do anything, widget isn't valid
         addErrorMessage(error);
@@ -150,7 +155,13 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard, selection, handleAddLibraryWidgets} = this.props;
+    const {
+      organization,
+      dashboard,
+      selection,
+      handleAddLibraryWidgets,
+      handleAddCustomWidget,
+    } = this.props;
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
@@ -159,10 +170,13 @@ class Dashboard extends Component<Props, State> {
       trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
         organization,
       });
-      openDashboardWidgetLibraryModal({
+      openAddDashboardWidgetModal({
         organization,
         dashboard,
-        onAddWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+        selection,
+        onAddWidget: handleAddCustomWidget,
+        onAddLibraryWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+        source: DashboardWidgetSource.LIBRARY,
       });
       return;
     }
@@ -170,7 +184,7 @@ class Dashboard extends Component<Props, State> {
       organization,
       dashboard,
       selection,
-      onAddWidget: this.handleAddComplete,
+      onAddWidget: handleAddCustomWidget,
       source: DashboardWidgetSource.DASHBOARDS,
     });
   };
@@ -194,14 +208,6 @@ class Dashboard extends Component<Props, State> {
         dataSet: DataSet.EVENTS,
       },
     });
-  };
-
-  handleAddComplete = (widget: Widget) => {
-    let newWidget = widget;
-    if (this.props.organization.features.includes('dashboard-grid-layout')) {
-      newWidget = assignTempId(widget);
-    }
-    this.props.onUpdate([...this.props.dashboard.widgets, newWidget]);
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
@@ -248,6 +254,7 @@ class Dashboard extends Component<Props, State> {
       location,
       paramDashboardId,
       onSetWidgetToBeUpdated,
+      handleAddCustomWidget,
     } = this.props;
 
     if (organization.features.includes('metrics')) {
@@ -279,7 +286,7 @@ class Dashboard extends Component<Props, State> {
       organization,
       widget,
       selection,
-      onAddWidget: this.handleAddComplete,
+      onAddWidget: handleAddCustomWidget,
       onUpdateWidget: this.handleUpdateComplete(widget),
     };
     openAddDashboardWidgetModal({
@@ -362,12 +369,12 @@ class Dashboard extends Component<Props, State> {
 
   renderGridDashboard() {
     const {layouts, isMobile} = this.state;
-    const {
-      isEditing,
-      dashboard: {widgets},
-      organization,
-      widgetLimitReached,
-    } = this.props;
+    const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
+    let {widgets} = dashboard;
+    // Filter out any issue widgets if the user does not have the feature flag
+    if (!organization.features.includes('issues-in-dashboards')) {
+      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
+    }
 
     const canModifyLayout = !isMobile && isEditing;
 
@@ -400,13 +407,12 @@ class Dashboard extends Component<Props, State> {
   }
 
   renderDndDashboard = () => {
-    const {
-      isEditing,
-      onUpdate,
-      dashboard: {widgets},
-      organization,
-      widgetLimitReached,
-    } = this.props;
+    const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
+    let {widgets} = dashboard;
+    // Filter out any issue widgets if the user does not have the feature flag
+    if (!organization.features.includes('issues-in-dashboards')) {
+      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
+    }
 
     const items = this.getWidgetIds();
 
@@ -453,13 +459,13 @@ class Dashboard extends Component<Props, State> {
   }
 }
 
-export default withApi(withGlobalSelection(Dashboard));
+export default withApi(withPageFilters(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-flow: row dense;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -523,7 +529,13 @@ function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     return [];
   }
 
-  const layoutWidgetPairs = zip(desktopLayout, widgets) as [Layout, Widget][];
+  // If there's a layout but no matching widget, then the widget was deleted
+  // in a separate session and should be ignored
+  // TODO(nar): Can remove once layouts are stored in the DB
+  const widgetGridKeys = new Set(widgets.map(constructGridItemKey));
+  const filteredLayouts = desktopLayout.filter(({i}) => widgetGridKeys.has(i));
+
+  const layoutWidgetPairs = zip(filteredLayouts, widgets) as [Layout, Widget][];
 
   // Sort by y and then subsort by x
   const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);

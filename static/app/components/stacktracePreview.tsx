@@ -86,7 +86,7 @@ class StacktracePreview extends React.Component<Props, State> {
       const event = await api.requestPromise(
         eventId && projectSlug
           ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
-          : `/issues/${issueId}/events/latest/`
+          : `/issues/${issueId}/events/latest/?collapse=stacktraceOnly`
       );
       clearTimeout(this.loaderTimeout);
       this.setState({event, loading: false, loadingVisible: false});

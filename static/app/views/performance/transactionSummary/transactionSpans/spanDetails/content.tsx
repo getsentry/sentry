@@ -41,6 +41,7 @@ type Props = {
 
 export default function SpanDetailsContentWrapper(props: Props) {
   const {location, organization, eventView, projectId, transactionName, spanSlug} = props;
+
   return (
     <Fragment>
       <Layout.Header>
@@ -74,7 +75,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
                 <SuspectSpansQuery
                   location={location}
                   orgSlug={organization.slug}
-                  eventView={eventView}
+                  eventView={getSpansEventView(eventView)}
                   perSuspect={0}
                   spanOps={[spanSlug.op]}
                   spanGroups={[spanSlug.group]}
@@ -259,10 +260,23 @@ function SpanDetailsHeader(props: HeaderProps) {
   );
 }
 
+function getSpansEventView(eventView: EventView): EventView {
+  eventView = eventView.clone();
+  eventView.fields = [
+    {field: 'count()'},
+    {field: 'count_unique(id)'},
+    {field: 'sumArray(spans_exclusive_time)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.75)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.95)'},
+    {field: 'percentileArray(spans_exclusive_time, 0.99)'},
+  ];
+  return eventView;
+}
+
 const ContentHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  grid-gap: ${space(4)};
+  gap: ${space(4)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
@@ -294,5 +308,5 @@ const SectionSubtext = styled('div')`
 const PercentileHeaderBodyWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;

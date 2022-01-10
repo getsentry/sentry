@@ -606,7 +606,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
 const TitleWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   align-items: center;
   padding: ${space(0.75)} 0;
 `;

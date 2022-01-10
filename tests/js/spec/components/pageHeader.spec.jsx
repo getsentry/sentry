@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import PageHeading from 'sentry/components/pageHeading';
 
 describe('PageHeading', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(<PageHeading>New Header</PageHeading>);
-    expect(wrapper).toSnapshot();
+    const {container} = mountWithTheme(<PageHeading>New Header</PageHeading>);
+    expect(container).toSnapshot();
   });
 });

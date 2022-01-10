@@ -133,9 +133,6 @@ function makeExample(opt: ExampleOpt): ExampleTransaction {
 function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
   const {op, group, examples} = opt;
   return {
-    projectId: 1,
-    project: 'bar',
-    transaction: 'transaction-1',
     op,
     group,
     frequency: 1,

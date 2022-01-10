@@ -179,7 +179,7 @@ export default TransactionRuleModal;
 const TracingWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   cursor: ${p => (p.onClick ? 'pointer' : 'not-allowed')};
 `;
 

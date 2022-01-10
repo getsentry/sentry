@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {logExperiment} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
@@ -43,11 +44,10 @@ class ErrorRobot extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
-    // Enable experiment exposure after sandbox update
-    // logExperiment({
-    //   key: 'ViewSampleSandboxExperiment',
-    //   organization: this.props.org,
-    // });
+    logExperiment({
+      key: 'ViewSampleSandboxExperiment',
+      organization: this.props.org,
+    });
   }
 
   async fetchData() {

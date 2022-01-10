@@ -60,12 +60,12 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     expect(screen.queryByText('LCP by Country')).toBeInTheDocument();
     expect(screen.queryByText('Miserable Users')).toBeInTheDocument();
     expect(screen.queryByText('Slow vs Fast Transactions')).toBeInTheDocument();
-    expect(screen.queryByText('Top Issues')).toBeInTheDocument();
+    expect(screen.queryByText('Latest Unresolved Issues')).toBeInTheDocument();
     expect(screen.queryByText('Top Unhandled Error Types')).toBeInTheDocument();
     expect(screen.queryByText('Users Affected by Errors')).toBeInTheDocument();
 
     expect(
-      screen.getByRole('button', {name: 'Widget Library', current: true})
+      screen.getByRole('button', {name: 'Widget Library beta', current: true})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Custom Widget', current: false})
