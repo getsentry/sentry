@@ -4,6 +4,7 @@ import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary
 import {Client} from 'sentry/api';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('Dashboards > IssueWidgetCard', function () {
   const initialData = initializeOrg({
@@ -23,7 +24,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         conditions: 'event.type:default',
         fields: ['issue', 'assignee', 'title'],
         name: '',
-        orderby: '',
+        orderby: IssueSortOptions.FREQ,
       },
     ],
   };
@@ -120,7 +121,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Open in Issues').closest('a')?.href).toContain(
-      '/organizations/org-slug/issues/?query=event.type%3Adefault&statsPeriod=14d'
+      '/organizations/org-slug/issues/?query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
   });

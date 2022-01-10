@@ -117,6 +117,7 @@ function WidgetCardContextMenu({
         : {statsPeriod: period};
     const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
       query: widget.queries?.[0]?.conditions,
+      sort: widget.queries?.[0]?.orderby,
       ...datetime,
     })}`;
 
