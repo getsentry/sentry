@@ -132,6 +132,7 @@ class SummaryContent extends React.Component<Props> {
       pathname: location.pathname,
       query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
+
     browserHistory.push(target);
   };
 

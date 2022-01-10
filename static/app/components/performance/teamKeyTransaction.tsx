@@ -371,6 +371,7 @@ const DropdownWrapper = styled('div')`
 
 const DropdownContent = styled('div')`
   max-height: 250px;
+  pointer-events: auto;
   overflow-y: auto;
 `;
 

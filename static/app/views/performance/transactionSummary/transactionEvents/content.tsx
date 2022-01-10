@@ -36,6 +36,15 @@ type Props = {
   setError: SetStateAction<string | undefined>;
 };
 
+const transactionsListTitles = [
+  t('event id'),
+  t('user'),
+  t('operation duration'),
+  t('total duration'),
+  t('trace id'),
+  t('timestamp'),
+];
+
 function EventsContent(props: Props) {
   const {
     location,
@@ -48,15 +57,6 @@ function EventsContent(props: Props) {
   } = props;
 
   const eventView = originalEventView.clone();
-
-  const transactionsListTitles = [
-    t('event id'),
-    t('user'),
-    t('operation duration'),
-    t('total duration'),
-    t('trace id'),
-    t('timestamp'),
-  ];
 
   if (webVital) {
     transactionsListTitles.splice(3, 0, t(webVital));

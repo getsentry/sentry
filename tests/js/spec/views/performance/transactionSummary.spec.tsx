@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -13,7 +13,10 @@ const teams = [
   TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
 ];
 
-function initializeData({features: additionalFeatures = [], query = {}} = {}) {
+function initializeData({
+  features: additionalFeatures = [],
+  query = {},
+}: {features?: string[]; query?: Record<string, any>} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const project = TestStubs.Project({teams});
   const organization = TestStubs.Organization({
@@ -22,6 +25,7 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
     apdexThreshold: 400,
   });
   const initialData = initializeOrg({
+    ...initializeOrg(),
     organization,
     router: {
       location: {
@@ -34,8 +38,9 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
       },
     },
   });
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
-  act(() => TeamStore.loadInitialData(teams, false, null));
+
+  ProjectsStore.loadInitialData(initialData.organization.projects);
+  TeamStore.loadInitialData(teams, false, null);
 
   return initialData;
 }
@@ -258,72 +263,68 @@ describe('Performance > TransactionSummary', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    act(() => ProjectsStore.reset());
+    ProjectsStore.reset();
     jest.clearAllMocks();
   });
 
   it('renders basic UI elements', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
+    const {organization, router, routerContext} = initializeData();
 
-    // It shows the header
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
+    );
+
+    //  It shows the header
+    await screen.findByText('Transaction Summary');
+    expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
 
     // It shows a chart
-    expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
+    expect(screen.getByRole('button', {name: 'Duration Breakdown'})).toBeInTheDocument();
 
     // It shows a searchbar
-    expect(wrapper.find('SearchBar')).toHaveLength(1);
+    expect(screen.getByLabelText('Search events')).toBeInTheDocument();
 
     // It shows a table
-    expect(wrapper.find('PanelTable')).toHaveLength(1);
+    expect(screen.getByTestId('transactions-table')).toBeInTheDocument();
 
     // Ensure open in discover button exists.
-    expect(wrapper.find('a[data-test-id="discover-open"]')).toHaveLength(1);
-    // Ensure navigation is correct.
+    expect(screen.getByTestId('discover-open')).toBeInTheDocument();
 
     // Ensure open issues button exists.
-    expect(wrapper.find('a[data-test-id="issues-open"]')).toHaveLength(1);
+    expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
 
     // Ensure transaction filter button exists
-    expect(wrapper.find('[data-test-id="filter-transactions"]')).toHaveLength(1);
+    expect(screen.getByText('Filter').closest('button')).toBeInTheDocument();
 
     // Ensure create alert from discover is hidden without metric alert
-    expect(wrapper.find('CreateAlertFromViewButton')).toHaveLength(0);
+    expect(screen.queryByRole('button', {name: 'Create Alert'})).not.toBeInTheDocument();
 
     // Ensure status breakdown exists
-    expect(wrapper.find('StatusBreakdown')).toHaveLength(1);
-    wrapper.unmount();
+    expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
   });
 
-  it('renders feature flagged UI elements', async function () {
-    const initialData = initializeData();
-    initialData.organization.features.push('incidents');
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+  it('renders feature flagged UI elements', function () {
+    const {organization, router, routerContext} = initializeData({
+      features: ['incidents'],
+    });
+
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
 
     // Ensure create alert from discover is shown with metric alerts
-    expect(wrapper.find('CreateAlertFromViewButton')).toHaveLength(1);
-    wrapper.unmount();
+    expect(screen.queryByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
   });
 
-  it('fetches transaction threshdold', async function () {
-    const initialData = initializeData();
+  it('fetches transaction threshold', function () {
+    const {organization, router, routerContext} = initializeData();
+
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
@@ -342,23 +343,20 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
 
     expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
     expect(getProjectThresholdMock).not.toHaveBeenCalled();
-    wrapper.unmount();
   });
 
   it('fetches project transaction threshdold', async function () {
-    const initialData = initializeData();
+    const {organization, router, routerContext} = initializeData();
+
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
@@ -374,39 +372,32 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
+
+    await screen.findByText('Transaction Summary');
 
     expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
     expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
-
-    wrapper.unmount();
   });
 
   it('triggers a navigation on search', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+    const {organization, router, routerContext} = initializeData();
+
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
 
     // Fill out the search box, and submit it.
-    const searchBar = wrapper.find('SearchBar textarea');
-    searchBar
-      .simulate('change', {target: {value: 'user.email:uhoh*'}})
-      .simulate('submit', {preventDefault() {}});
+    userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
+
     // Check the navigation.
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -422,16 +413,14 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('can mark a transaction as key', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+    const {organization, router, routerContext} = initializeData();
+
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
 
     const mockUpdate = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/key-transactions/`,
@@ -439,42 +428,33 @@ describe('Performance > TransactionSummary', function () {
       body: {},
     });
 
+    await screen.findByRole('button', {name: 'Star for Team'});
+
     // Click the key transaction button
-    wrapper.find('TitleButton').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
 
-    await tick();
-    wrapper.update();
-
-    wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
+    userEvent.click(screen.getByText('team1'));
 
     // Ensure request was made.
     expect(mockUpdate).toHaveBeenCalled();
-
-    await tick();
-    wrapper.update();
-    wrapper.unmount();
   });
 
   it('triggers a navigation on transaction filter', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+    const {organization, router, routerContext} = initializeData();
+
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
+
+    await screen.findByText('Transaction Summary');
 
     // Open the transaction filter dropdown
-    wrapper.find('[data-test-id="filter-transactions"] button').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'}));
 
-    // Click the second item (fastest transactions)
-    wrapper
-      .find('[data-test-id="filter-transactions"] DropdownItem span')
-      .at(1)
-      .simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Slow Transactions (p95)'}));
 
     // Check the navigation.
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -486,26 +466,24 @@ describe('Performance > TransactionSummary', function () {
         transactionCursor: undefined,
       },
     });
-    wrapper.unmount();
   });
 
   it('renders pagination buttons', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+    const {organization, router, routerContext} = initializeData();
+
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
 
-    const pagination = wrapper.find('Pagination');
-    expect(pagination).toHaveLength(2);
+    await screen.findByText('Transaction Summary');
 
-    // Click the 'next' button'
-    pagination.find('button[aria-label="Next"]').simulate('click');
+    expect(screen.getByLabelText('Previous')).toBeInTheDocument();
+
+    // Click the 'next' button
+    userEvent.click(screen.getByLabelText('Next'));
 
     // Check the navigation.
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -516,7 +494,6 @@ describe('Performance > TransactionSummary', function () {
         transactionCursor: '2:0:0',
       },
     });
-    wrapper.unmount();
   });
 
   it('forwards conditions to related issues', async function () {
@@ -525,19 +502,20 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
 
-    const initialData = initializeData({query: {query: 'tag:value'}});
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+    const {organization, router, routerContext} = initializeData({
+      query: {query: 'tag:value'},
+    });
+
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
+
+    await screen.findByText('Transaction Summary');
 
     expect(issueGet).toHaveBeenCalled();
-    wrapper.unmount();
   });
 
   it('does not forward event type to related issues', async function () {
@@ -552,21 +530,20 @@ describe('Performance > TransactionSummary', function () {
       ],
     });
 
-    const initialData = initializeData({
+    const {organization, router, routerContext} = initializeData({
       query: {query: 'tag:value event.type:transaction'},
     });
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
+
+    await screen.findByText('Transaction Summary');
 
     expect(issueGet).toHaveBeenCalled();
-    wrapper.unmount();
   });
 
   it('renders the suspect spans table if the feature is enabled', async function () {
@@ -575,38 +552,33 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
 
-    const initialData = initializeData({
+    const {organization, router, routerContext} = initializeData({
       features: ['performance-suspect-spans-view'],
     });
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('SuspectSpans')).toHaveLength(1);
-    wrapper.unmount();
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
+    );
+
+    expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();
   });
 
   it('adds search condition on transaction status when clicking on status breakdown', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
+    const {organization, router, routerContext} = initializeData();
 
-    wrapper.find('BarContainer[data-test-id="status-ok"]').at(0).simulate('click');
-    await tick();
-    wrapper.update();
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
+    );
+
+    await screen.findByTestId('status-ok');
+
+    userEvent.click(screen.getByTestId('status-ok'));
 
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -616,31 +588,41 @@ describe('Performance > TransactionSummary', function () {
         }),
       })
     );
-    wrapper.unmount();
   });
 
   it('appends tag value to existing query when clicked', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <TransactionSummary
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
+    const {organization, router, routerContext} = initializeData();
 
-    // since environment collides with the environment field, it is wrapped with `tags[...]`
-    const envSegment = wrapper.find(
-      '[data-test-id="tag-environment-segment-dev"] Segment'
+    mountWithTheme(
+      <TransactionSummary organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
     );
-    const envTarget = envSegment.props().to;
-    expect(envTarget.query.query).toEqual('tags[environment]:dev');
 
-    const fooSegment = wrapper.find('[data-test-id="tag-foo-segment-bar"] Segment');
-    const fooTarget = fooSegment.props().to;
-    expect(fooTarget.query.query).toEqual('foo:bar');
-    wrapper.unmount();
+    await screen.findByText('Tag Summary');
+
+    userEvent.click(screen.getByLabelText('Add the dev segment tag to the search query'));
+    userEvent.click(screen.getByLabelText('Add the bar segment tag to the search query'));
+
+    expect(router.push).toHaveBeenCalledTimes(2);
+
+    expect(router.push).toHaveBeenNthCalledWith(1, {
+      query: {
+        project: '2',
+        query: 'tags[environment]:dev',
+        transaction: '/performance',
+        transactionCursor: '1:0:0',
+      },
+    });
+
+    expect(router.push).toHaveBeenNthCalledWith(2, {
+      query: {
+        project: '2',
+        query: 'foo:bar',
+        transaction: '/performance',
+        transactionCursor: '1:0:0',
+      },
+    });
   });
 });

@@ -177,7 +177,6 @@ class TransactionsList extends React.Component<Props> {
       <React.Fragment>
         <div>
           <DropdownControl
-            data-test-id="filter-transactions"
             button={({isOpen, getActorProps}) => (
               <StyledDropdownButton
                 {...getActorProps()}
