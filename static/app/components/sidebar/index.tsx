@@ -122,7 +122,7 @@ function Sidebar({location, organization}: Props) {
 
     // Only keep the querystring if the current route matches one of the above
     if (globalSelectionRoutes.includes(pathname)) {
-      const query = extractSelectionParameters(location?.query);
+      const query = extractSelectionParameters(location?.query ?? {});
 
       // Handle cmd-click (mac) and meta-click (linux)
       if (evt.metaKey) {
