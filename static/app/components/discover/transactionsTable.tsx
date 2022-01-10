@@ -202,6 +202,7 @@ class TransactionsTable extends React.PureComponent<Props> {
 
     return (
       <PanelTable
+        data-test-id="transactions-table"
         isEmpty={!hasResults}
         emptyMessage={t('No transactions found')}
         headers={this.renderHeader()}
