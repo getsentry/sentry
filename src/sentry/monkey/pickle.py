@@ -117,11 +117,13 @@ def patch_pickle_loaders():
 
     class CompatPickler:
         def __init__(self, *args, **kwargs):
+            # If we don't explicitly pass in a protocol, use DEFAULT_PROTOCOL
             # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
             # DEFAULT_PROTOCOL above to understand why we must pass the kwarg due
             # to _pickle.
             if len(args) == 1:
-                kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
+                if not kwargs.get("protocol"):
+                    kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
             else:
                 largs = list(args)
                 largs[1] = pickle.DEFAULT_PROTOCOL
@@ -167,11 +169,13 @@ def patch_pickle_loaders():
     # Patched dump and dumps
 
     def py3_compat_pickle_dump(*args, **kwargs):
+        # If we don't explicitly pass in a protocol, use DEFAULT_PROTOCOL
         # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
         # DEFAULT_PROTOCOL above to understand why we must pass the kwarg due
         # to _pickle.
         if len(args) == 1:
-            kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
+            if not kwargs.get("protocol"):
+                kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
         else:
             largs = list(args)
             largs[1] = pickle.DEFAULT_PROTOCOL
@@ -180,11 +184,13 @@ def patch_pickle_loaders():
         return original_pickle_dump(*args, **kwargs)
 
     def py3_compat_pickle_dumps(*args, **kwargs):
+        # If we don't explicitly pass in a protocol, use DEFAULT_PROTOCOL
         # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
         # DEFAULT_PROTOCOL above to understand why we must pass the kwarg due
         # to _pickle.
         if len(args) == 1:
-            kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
+            if not kwargs.get("protocol"):
+                kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
         else:
             largs = list(args)
             largs[1] = pickle.DEFAULT_PROTOCOL
