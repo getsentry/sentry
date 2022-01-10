@@ -81,15 +81,21 @@ describe('Dashboards > Create', function () {
         />,
         {context: initialData.routerContext}
       );
+
       await act(async () => {
         // Wrap with act because GlobalSelectionHeaderContainer triggers update
         await tick();
       });
 
-      screen.getByTestId('widget-add').click();
+      userEvent.click(screen.getByTestId('widget-add'));
+
+      await act(async () => {
+        // Flakeyness with global modal
+        await tick();
+      });
 
       // Add a custom widget to the dashboard
-      (await screen.findByText('Custom Widget')).click();
+      userEvent.click(await screen.findByText('Custom Widget'));
       userEvent.type(await screen.findByTestId('widget-title-input'), widgetTitle);
       screen.getByText('Save').click();
 
