@@ -261,8 +261,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 2
 
-        assert "layout" in widgets[0]
-        assert "layout" in widgets[1]
+        assert "layout" in data["widgets"][0]
+        assert "layout" in data["widgets"][1]
         for expected_widget, actual_widget in zip(data["widgets"], widgets):
             self.assert_serialized_widget(expected_widget, actual_widget)
 

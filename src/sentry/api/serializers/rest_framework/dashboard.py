@@ -152,6 +152,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
+    layout = serializers.JSONField()
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -289,6 +290,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             if "widget_type" in widget_data
             else DashboardWidgetTypes.DISCOVER,
             order=order,
+            detail={"layout": widget_data["layout"]},
         )
         new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
