@@ -1,40 +1,19 @@
 import logging
-from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import Subquery
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, JSONField, sane_repr
-from sentry.db.models.manager import BaseManager
-from sentry.models import Organization, Project
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
-if TYPE_CHECKING:
-    from sentry.models import User
-
-
-class ProjectCodeOwnersManager(BaseManager):
-    def filter_by_organization(self, user: "User", organization: Organization):
-        """
-        Return all ProjectCodeOwners visible by the given user for an organization
-        """
-        projects = Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.VISIBLE,
-            teams__organizationmember__user_id__in={user.id},
-        )
-        return self.filter(project__in=projects)
-
 
 class ProjectCodeOwners(DefaultFieldsModel):
-    objects = ProjectCodeOwnersManager()
 
     __include_in_export__ = False
     # no db constraint to prevent locks on the Project table
