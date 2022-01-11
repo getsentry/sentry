@@ -1028,15 +1028,15 @@ SENTRY_FEATURES = {
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
-    "organizations:performance-ops-breakdown": False,
+    "organizations:performance-ops-breakdown": True,
     # Enable landing improvements for performance
-    "organizations:performance-landing-widgets": False,
+    "organizations:performance-landing-widgets": True,
     # Enable views for transaction events page in performance
-    "organizations:performance-events-page": False,
+    "organizations:performance-events-page": True,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
-    "organizations:performance-chart-interpolation": False,
+    "organizations:performance-chart-interpolation": True,
     # Enable mobile vitals
-    "organizations:performance-mobile-vitals": False,
+    "organizations:performance-mobile-vitals": True,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
