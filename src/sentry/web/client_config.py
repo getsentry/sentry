@@ -14,6 +14,7 @@ from sentry.models import ProjectKey
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
+from sentry.utils.settings import is_self_hosted
 from sentry.utils.support import get_support_mail
 
 
@@ -154,8 +155,8 @@ def get_client_config(request=None):
         "messages": [{"message": msg.message, "level": msg.tags} for msg in messages],
         "apmSampling": float(settings.SENTRY_FRONTEND_APM_SAMPLING or 0),
         # Maintain isOnPremise key for backcompat (plugins?).
-        "isOnPremise": settings.SENTRY_SELF_HOSTED,
-        "isSelfHosted": settings.SENTRY_SELF_HOSTED,
+        "isOnPremise": is_self_hosted(),
+        "isSelfHosted": is_self_hosted(),
         "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
         "gravatarBaseUrl": settings.SENTRY_GRAVATAR_BASE_URL,
         "termsUrl": settings.TERMS_URL,

@@ -8,6 +8,7 @@ from django.template import loader
 from sentry.auth import access
 from sentry.models import Team
 from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
+from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry")
 
@@ -22,8 +23,8 @@ def get_default_context(request, existing_context=None, team=None):
         "PLUGINS": plugins,
         # Maintain ONPREMISE key for backcompat (plugins?). TBH context could
         # probably be removed entirely: github.com/getsentry/sentry/pull/30970.
-        "ONPREMISE": settings.SENTRY_SELF_HOSTED,
-        "SELF_HOSTED": settings.SENTRY_SELF_HOSTED,
+        "ONPREMISE": is_self_hosted(),
+        "SELF_HOSTED": is_self_hosted(),
     }
 
     if existing_context:
