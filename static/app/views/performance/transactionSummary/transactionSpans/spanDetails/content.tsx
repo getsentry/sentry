@@ -317,4 +317,4 @@ const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-export const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
+const emptyValue = <EmptyValueContainer>{t('(unnamed span)')}</EmptyValueContainer>;
