@@ -51,6 +51,11 @@ describe('Dashboards > Create', function () {
         method: 'POST',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {

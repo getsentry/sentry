@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
+import MemberListStore from 'sentry/stores/memberListStore';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -58,6 +59,11 @@ describe('Dashboards > IssueWidgetCard', function () {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -65,6 +71,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('renders with title and issues chart', async function () {
+    MemberListStore.loadInitialData([]);
     mountWithTheme(
       <WidgetCard
         api={api}
@@ -95,7 +102,8 @@ describe('Dashboards > IssueWidgetCard', function () {
       screen.getByText('ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.')
     ).toBeInTheDocument();
     userEvent.hover(screen.getByTitle('dashboard user'));
-    expect(await screen.findByText('Assigned to dashboard user')).toBeInTheDocument();
+    expect(await screen.findByText('Assigned to')).toBeInTheDocument();
+    expect(await screen.findByText('dashboard user')).toBeInTheDocument();
   });
 
   it('opens in issues page', async function () {

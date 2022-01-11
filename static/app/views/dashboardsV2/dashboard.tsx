@@ -15,6 +15,7 @@ import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -122,6 +123,9 @@ class Dashboard extends Component<Props, State> {
       this.fetchTags();
     }
     this.addNewWidget();
+
+    // Get member list data for issue widgets
+    this.fetchMemberList();
   }
 
   async componentDidUpdate(prevProps: Props) {
@@ -135,6 +139,19 @@ class Dashboard extends Component<Props, State> {
     if (newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
+    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+      this.fetchMemberList();
+    }
+  }
+
+  fetchMemberList() {
+    const {api, selection} = this.props;
+    // Stores MemberList in MemberListStore for use in modals and sets state for use is child components
+    fetchOrgMembers(
+      api,
+      this.props.organization.slug,
+      selection.projects?.map(projectId => String(projectId))
+    );
   }
 
   async addNewWidget() {
