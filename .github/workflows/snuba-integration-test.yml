@@ -57,6 +57,8 @@ jobs:
 
       - name: Run snuba test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         if: steps.changes.outputs.backend == 'true'
+        env:
+          TEST_GROUP_STRATEGY: rr
         run: |
           make test-snuba
 
