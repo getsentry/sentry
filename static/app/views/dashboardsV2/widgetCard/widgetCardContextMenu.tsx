@@ -50,7 +50,7 @@ function WidgetCardContextMenu({
       <ContextWrapper>
         <ContextMenu>
           <PreviewMessage>
-            This is a preview only. To edit, you must add this dashboard
+            {t('This is a preview only. To edit, you must add this dashboard.')}
           </PreviewMessage>
         </ContextMenu>
       </ContextWrapper>
