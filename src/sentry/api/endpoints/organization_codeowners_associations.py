@@ -6,12 +6,12 @@ from sentry.constants import ObjectStatus
 from sentry.models import Organization, Project, ProjectCodeOwners
 
 
-class OrganizationCodeOwnersPermission(OrganizationPermission):
+class OrganizationCodeOwnersAssociationsPermission(OrganizationPermission):
     scope_map = {"GET": ["org:integrations"]}
 
 
-class OrganizationCodeOwnersEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationCodeOwnersPermission,)
+class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationCodeOwnersAssociationsPermission,)
 
     def get(self, request: Request, organization: Organization):
         """

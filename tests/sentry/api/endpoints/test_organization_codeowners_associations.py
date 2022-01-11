@@ -4,9 +4,9 @@ from sentry.models import ProjectCodeOwners
 from sentry.testutils import APITestCase
 
 
-class OrganizationCodeOwnersEndpointTest(APITestCase):
+class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
     method = "GET"
-    endpoint = "sentry-api-0-organization-codeowners"
+    endpoint = "sentry-api-0-organization-codeowners-associations"
 
     def setUp(self):
         self.user_1 = self.create_user("walter.mitty@life.com")
