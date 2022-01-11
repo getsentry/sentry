@@ -60,5 +60,10 @@ jobs:
         run: |
           make test-snuba
 
+      - name: Save junit report
+        uses: ./.github/actions/pytest-report
+        with:
+          action: 'upload'
+
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
