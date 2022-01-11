@@ -68,39 +68,74 @@ TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
 
 
+class MetricIndexNotFound(InvalidParams):
+    pass
+
+
 def reverse_resolve(index: int) -> str:
+    assert index != 0
     resolved = indexer.reverse_resolve(index)
     # The indexer should never return None for integers > 0:
-    assert resolved is not None
+    if resolved is None:
+        raise MetricIndexNotFound()
 
     return resolved
 
 
-def reverse_resolve_groupby(index: int) -> Optional[str]:
+def reverse_resolve_weak(index: int) -> Optional[str]:
+    """
+    Resolve an index value back to a string, special-casing 0 to return None.
+
+    This is useful in situations where a `GROUP BY tags[123]` clause produces a
+    tuple for metric buckets that are missing that tag, i.e. `tags[123] == 0`.
+    """
+
     if index == 0:
-        # When a groupBy is requested with a tag that does not exist for the given
-        # metric, tags[i] == 0. In this case, return None
         return None
 
     return reverse_resolve(index)
 
 
-def resolve_tag_key(string: str) -> str:
+def resolve(string: str) -> int:
     resolved = indexer.resolve(string)
     if resolved is None:
-        raise InvalidParams(f"Unknown tag key: '{string}'")
+        raise MetricIndexNotFound(f"Unknown tag key: '{string}'")
 
+    return resolved
+
+
+def resolve_tag_key(string: str) -> str:
+    resolved = resolve(string)
     return f"tags[{resolved}]"
 
 
-def resolve_tag_value(string: str) -> int:
+def resolve_weak(string: str) -> int:
+    """
+    A version of `resolve` that returns 0 for missing values.
+
+    When using `resolve_weak` to produce a WHERE-clause, it is quite
+    useful to make the WHERE-clause "impossible" with `WHERE x = 0` instead of
+    explicitly handling that exception.
+    """
     resolved = indexer.resolve(string)
     if resolved is None:
-        # This delegates the problem of dealing with missing tag values to
-        # snuba
         return 0
 
     return resolved
+
+
+def resolve_many_weak(strings: Sequence[str]) -> Sequence[int]:
+    """
+    Resolve multiple values at once, omitting missing ones. This is useful in
+    the same way as `resolve_weak` is, except for `WHERE x in values`.
+    """
+    rv = []
+    for string in strings:
+        resolved = resolve_weak(string)
+        if resolved != 0:
+            rv.append(resolved)
+
+    return rv
 
 
 def parse_field(field: str) -> Tuple[str, str]:
@@ -151,7 +186,7 @@ def _resolve_tags(input_: Any) -> Any:
             name = input_.name
         return Column(name=resolve_tag_key(name))
     if isinstance(input_, str):
-        return resolve_tag_value(input_)
+        return resolve_weak(input_)
 
     return input_
 
@@ -704,7 +739,7 @@ class SnubaQueryBuilder:
             Condition(
                 Column("metric_id"),
                 Op.IN,
-                [resolve_tag_value(name) for _, name in query_definition.fields.values()],
+                [resolve_weak(name) for _, name in query_definition.fields.values()],
             ),
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
@@ -887,7 +922,7 @@ class SnubaResultConverter:
         groups = [
             dict(
                 by=dict(
-                    (self._parse_tag(key), reverse_resolve_groupby(value))
+                    (self._parse_tag(key), reverse_resolve_weak(value))
                     if key not in _ALLOWED_GROUPBY_COLUMNS
                     else (key, value)
                     for key, value in tags
