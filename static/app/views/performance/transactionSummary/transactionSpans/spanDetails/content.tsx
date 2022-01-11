@@ -18,12 +18,11 @@ import SpanExamplesQuery, {
 import SuspectSpansQuery, {
   ChildrenProps as SuspectSpansProps,
 } from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
-import {SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
+import {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {PerformanceDuration} from '../../../utils';
 import Tab from '../../tabs';
-import {SpanSlug} from '../types';
 import {getTotalsView} from '../utils';
 
 import SpanChart from './chart';
@@ -53,6 +52,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
               name: transactionName,
             }}
             tab={Tab.Spans}
+            spanSlug={spanSlug}
           />
           <Layout.Title>{transactionName}</Layout.Title>
         </Layout.HeaderContent>
