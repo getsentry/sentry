@@ -85,6 +85,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
 
             # List View
             self.browser.click('[aria-label="Save Changes"]')
+            self.browser.wait_until_not('[aria-label="Save Changes"]')
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.snapshot("integrations - one external user mapping")
 
@@ -119,7 +120,9 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
 
             # List View
             self.browser.click('[aria-label="Save Changes"]')
+            self.browser.wait_until_not('[aria-label="Save Changes"]')
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.wait_until_not(".loading-indicator")
             self.browser.snapshot("integrations - one external team mapping")
 
     def test_settings_tab(self):
