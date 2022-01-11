@@ -39,3 +39,8 @@ export type SpanOp = {
 };
 
 export type SpanOps = SpanOp[];
+
+export type SpanSlug = {
+  op: string;
+  group: string;
+};
