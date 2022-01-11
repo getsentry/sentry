@@ -19,6 +19,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
+from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
 from sentry import features
@@ -225,7 +226,6 @@ def _query_tsdb_groups_chunked(func, issue_ids, start, stop, rollup):
 
 def build_project_series(start__stop, project):
     start, stop = start__stop
-    end = stop + timedelta(days=1)
     rollup = ONE_DAY
 
     resolution, series = tsdb.get_optimal_rollup_series(start, stop, rollup)
@@ -261,7 +261,7 @@ def build_project_series(start__stop, project):
         ],
         where=[
             Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column("timestamp"), Op.LT, stop + timedelta(days=1)),
             Condition(Column("project_id"), Op.EQ, project.id),
             Condition(Column("org_id"), Op.EQ, project.organization_id),
             Condition(Column("outcome"), Op.IN, [Outcome.ACCEPTED]),
@@ -273,6 +273,7 @@ def build_project_series(start__stop, project):
         ],
         groupby=[Column("time"), Column("category")],
         granularity=Granularity(rollup),
+        orderby=[OrderBy(Column("time"), Direction.ASC)],
     )
     outcome_series = raw_snql_query(outcomes_query, referrer="reports.series")
     total_error_series = [
