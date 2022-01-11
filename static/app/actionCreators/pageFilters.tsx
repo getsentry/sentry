@@ -6,10 +6,10 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
+import {getStateFromQuery} from 'sentry/components/organizations/pageFilters/parse';
 import {
   getDefaultSelection,
   getPageFilterStorage,
-  getStateFromQuery,
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME, URL_PARAM} from 'sentry/constants/pageFilters';

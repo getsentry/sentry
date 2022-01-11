@@ -1,7 +1,7 @@
 import mean from 'lodash/mean';
 
 import {RenderProps} from 'sentry/components/charts/eventsRequest';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
@@ -13,7 +13,9 @@ export function transformEventsRequestToArea<T extends WidgetDataConstraint>(
   results: RenderProps,
   _: QueryDefinitionWithKey<T>
 ) {
-  const {start, end, utc, interval, statsPeriod} = getParams(widgetProps.location.query);
+  const {start, end, utc, interval, statsPeriod} = normalizeDateTimeParams(
+    widgetProps.location.query
+  );
 
   const data = results.timeseriesData ?? [];
 

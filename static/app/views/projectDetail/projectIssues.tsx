@@ -9,7 +9,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -64,7 +64,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         sort: ['-count'],
         query: ['event.type:error error.unhandled:true', query].join(' ').trim(),
         display: 'top5',
-        ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
+        ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
       },
     };
   }
@@ -73,7 +73,9 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const issueQuery = ['is:unresolved error.unhandled:true ', query].join(' ').trim();
   const queryParams = {
     limit: 5,
-    ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor'])),
+    ...normalizeDateTimeParams(
+      pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
+    ),
     query: issueQuery,
     sort: 'freq',
   };

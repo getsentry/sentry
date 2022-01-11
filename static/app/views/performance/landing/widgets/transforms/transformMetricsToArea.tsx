@@ -1,7 +1,7 @@
 import mean from 'lodash/mean';
 import moment from 'moment';
 
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
@@ -20,7 +20,9 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   results: MetricsRequestRenderProps,
   _: QueryDefinitionWithKey<T>
 ) {
-  const {start, end, utc, interval, statsPeriod} = getParams(widgetProps.location.query);
+  const {start, end, utc, interval, statsPeriod} = normalizeDateTimeParams(
+    widgetProps.location.query
+  );
 
   const {errored, loading, reloading, response, responsePrevious} = results;
 

@@ -3,7 +3,7 @@ import * as React from 'react';
 import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';
 import {IconArrow} from 'sentry/icons';
@@ -66,7 +66,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
           method: 'GET',
           query: {
             ...commonQuery,
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],

@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -60,7 +60,7 @@ function SpansContent(props: Props) {
     return function (value: string | undefined) {
       ANALYTICS_VALUES[key]?.(organization, value);
 
-      const queryParams = getParams({
+      const queryParams = normalizeDateTimeParams({
         ...(location.query || {}),
         [key]: value,
       });

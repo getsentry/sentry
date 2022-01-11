@@ -18,7 +18,7 @@ import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
-import {getStateFromQuery} from './utils';
+import {getStateFromQuery} from './parse';
 
 const getDateObjectFromQuery = (query: Record<string, any>) =>
   Object.fromEntries(
