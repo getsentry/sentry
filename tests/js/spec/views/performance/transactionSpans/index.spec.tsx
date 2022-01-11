@@ -115,8 +115,8 @@ describe('Performance > Transaction Spans', function () {
 
       // default visible columns
       const grid = await screen.findByTestId('grid-editable');
-      expect(await within(grid).findByText('Operation')).toBeInTheDocument();
-      expect(await within(grid).findByText('Description')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
       expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
       expect(await within(grid).findByText('P75 Exclusive Time')).toBeInTheDocument();
@@ -148,8 +148,8 @@ describe('Performance > Transaction Spans', function () {
         );
 
         const grid = await screen.findByTestId('grid-editable');
-        expect(await within(grid).findByText('Operation')).toBeInTheDocument();
-        expect(await within(grid).findByText('Description')).toBeInTheDocument();
+        expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
+        expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
         expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
         expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
         expect(await within(grid).findByText(label)).toBeInTheDocument();
@@ -168,8 +168,8 @@ describe('Performance > Transaction Spans', function () {
       );
 
       const grid = await screen.findByTestId('grid-editable');
-      expect(await within(grid).findByText('Operation')).toBeInTheDocument();
-      expect(await within(grid).findByText('Description')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
       expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
       expect(await within(grid).findByText('P75 Exclusive Time')).toBeInTheDocument();
@@ -187,8 +187,8 @@ describe('Performance > Transaction Spans', function () {
       );
 
       const grid = await screen.findByTestId('grid-editable');
-      expect(await within(grid).findByText('Operation')).toBeInTheDocument();
-      expect(await within(grid).findByText('Description')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
       expect(await within(grid).findByText('Average Occurrences')).toBeInTheDocument();
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
       expect(await within(grid).findByText('P75 Exclusive Time')).toBeInTheDocument();
