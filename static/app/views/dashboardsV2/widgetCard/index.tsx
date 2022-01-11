@@ -188,11 +188,7 @@ class WidgetCard extends React.Component<Props> {
                 ? renderErrorMessage(errorMessage)
                 : null}
               <LoadingScreen loading={loading} />
-              {this.tableResultComponent({
-                transformedResults,
-                loading,
-                errorMessage,
-              })}
+              {this.tableResultComponent({transformedResults, loading, errorMessage})}
               {this.renderToolbar()}
             </React.Fragment>
           );
