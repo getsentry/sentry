@@ -35,6 +35,9 @@ class ContextType:
         self.alias = alias
         ctx_data = {}
         for key, value in data.items():
+            # we use a simple check here, rather than ' in set()' to avoid
+            # issues with maps/lists.
+
             # Even if the value is an empty string,
             # we still want to display the info the UI
             if value is not None:
