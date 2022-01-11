@@ -642,6 +642,17 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         for widget in widgets:
             assert widget["layout"] == layouts[int(widget["id"])]
 
+    def test_update_with_invalid_data_fails(self):
+        pass
+
+    def test_update_without_specifying_layout_does_not_change_saved_layout(self):
+        pass
+
+    def test_ignores_i_key_in_layout(self):
+        # We might want to strip the i key in the frontend before the request
+        # but it might be easier to just ignore it
+        pass
+
     def test_update_prebuilt_dashboard(self):
         data = {
             "title": "First dashboard",

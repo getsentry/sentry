@@ -167,6 +167,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
             raise serializers.ValidationError("Invalid interval")
         return interval
 
+    def validate_layout(self, layout):
+        VALID_KEYS = {"x", "y", "w", "h", "minW", "maxW", "minH", "maxH"}
+        invalid_keys = set(layout.keys()) - VALID_KEYS
+        if invalid_keys:
+            raise serializers.ValidationError({"layout": "has invalid keys"})
+
     def validate(self, data):
         query_errors = []
         has_query_error = False
@@ -189,6 +195,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                     query_errors.append({})
         if has_query_error:
             raise serializers.ValidationError({"queries": query_errors})
+        if data.get("layout"):
+            self.validate_layout(data.get("layout"))
         if not data.get("id"):
             if not data.get("queries"):
                 raise serializers.ValidationError(
