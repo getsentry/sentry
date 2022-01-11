@@ -68,7 +68,7 @@ export default function SpanDetails(props: Props) {
                 location={location}
                 organization={organization}
                 eventView={eventView}
-                projectId={projectId}
+                project={project}
                 transactionName={transactionName}
                 spanSlug={spanSlug}
               />

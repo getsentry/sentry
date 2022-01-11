@@ -7,7 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tn} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -33,13 +33,13 @@ type Props = {
   location: Location;
   organization: Organization;
   eventView: EventView;
-  projectId: string;
+  project: Project | undefined;
   transactionName: string;
   spanSlug: SpanSlug;
 };
 
 export default function SpanDetailsContentWrapper(props: Props) {
-  const {location, organization, eventView, projectId, transactionName, spanSlug} = props;
+  const {location, organization, eventView, project, transactionName, spanSlug} = props;
 
   return (
     <Fragment>
@@ -49,7 +49,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
             organization={organization}
             location={location}
             transaction={{
-              project: projectId,
+              project: project?.id ?? '',
               name: transactionName,
             }}
             tab={Tab.Spans}
@@ -93,6 +93,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
                         <SpanDetailsContent
                           location={location}
                           organization={organization}
+                          project={project}
                           eventView={eventView}
                           spanSlug={spanSlug}
                           transactionName={transactionName}
@@ -116,6 +117,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
 type ContentProps = {
   location: Location;
   organization: Organization;
+  project: Project | undefined;
   eventView: EventView;
   spanSlug: SpanSlug;
   transactionName: string;
@@ -128,6 +130,7 @@ function SpanDetailsContent(props: ContentProps) {
   const {
     location,
     organization,
+    project,
     eventView,
     spanSlug,
     transactionName,
@@ -151,6 +154,7 @@ function SpanDetailsContent(props: ContentProps) {
       <SpanTable
         location={location}
         organization={organization}
+        project={project}
         suspectSpan={suspectSpan}
         transactionName={transactionName}
         isLoading={spanExamplesResults.isLoading}
