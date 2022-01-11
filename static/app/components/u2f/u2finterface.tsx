@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as Sentry from '@sentry/react';
 import * as cbor from 'cbor-web';
+import u2f from 'u2f-api';
 
 import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
 import {t, tct} from 'sentry/locale';
@@ -16,6 +17,7 @@ type TapParams = {
 type Props = {
   organization: Organization;
   challengeData: ChallengeData;
+  isWebauthnSigninFFEnabled: boolean;
   flowMode: string;
   silentIfUnsupported: boolean;
   onTap: ({response, challenge}: TapParams) => Promise<void>;
@@ -42,7 +44,9 @@ class U2fInterface extends React.Component<Props, State> {
   };
 
   async componentDidMount() {
-    const supported = !!window.PublicKeyCredential;
+    const supported = this.props.isWebauthnSigninFFEnabled
+      ? !!window.PublicKeyCredential
+      : await u2f.isSupported();
 
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
@@ -159,41 +163,54 @@ class U2fInterface extends React.Component<Props, State> {
   }
 
   invokeU2fFlow() {
+    let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
     if (this.props.flowMode === 'sign') {
-      const challengeArray = base64urlToBuffer(
-        this.props.challengeData.webAuthnAuthenticationData
-      );
-      const challenge = cbor.decodeFirst(challengeArray);
-      challenge
-        .then(data => {
-          this.webAuthnSignIn(data);
-        })
-        .catch(err => {
-          const failure = 'DEVICE_ERROR';
-          Sentry.captureException(err);
-          this.setState({
-            deviceFailure: failure,
-            hasBeenTapped: false,
+      if (this.props.isWebauthnSigninFFEnabled) {
+        const challengeArray = base64urlToBuffer(
+          this.props.challengeData.webAuthnAuthenticationData
+        );
+        const challenge = cbor.decodeFirst(challengeArray);
+        challenge
+          .then(data => {
+            this.webAuthnSignIn(data);
+          })
+          .catch(err => {
+            const failure = 'DEVICE_ERROR';
+            Sentry.captureException(err);
+            this.setState({
+              deviceFailure: failure,
+              hasBeenTapped: false,
+            });
           });
-        });
+      } else {
+        promise = u2f.sign(this.props.challengeData.authenticateRequests);
+        this.submitU2fResponse(promise);
+      }
     } else if (this.props.flowMode === 'enroll') {
-      const challengeArray = base64urlToBuffer(
-        this.props.challengeData.webAuthnRegisterData
-      );
-      const challenge = cbor.decodeFirst(challengeArray);
-      // challenge contains a PublicKeyCredentialRequestOptions object for webauthn registration
-      challenge
-        .then(data => {
-          this.webAuthnRegister(data.publicKey);
-        })
-        .catch(err => {
-          const failure = 'DEVICE_ERROR';
-          Sentry.captureException(err);
-          this.setState({
-            deviceFailure: failure,
-            hasBeenTapped: false,
+      const {organization} = this.props;
+      if (organization.features.includes('webauthn-register')) {
+        const challengeArray = base64urlToBuffer(
+          this.props.challengeData.webAuthnRegisterData
+        );
+        const challenge = cbor.decodeFirst(challengeArray);
+        // challenge contains a PublicKeyCredentialRequestOptions object for webauthn registration
+        challenge
+          .then(data => {
+            this.webAuthnRegister(data.publicKey);
+          })
+          .catch(err => {
+            const failure = 'DEVICE_ERROR';
+            Sentry.captureException(err);
+            this.setState({
+              deviceFailure: failure,
+              hasBeenTapped: false,
+            });
           });
-        });
+      } else {
+        const {registerRequests, registeredKeys} = this.props.challengeData;
+        promise = u2f.register(registerRequests as any, registeredKeys as any);
+        this.submitU2fResponse(promise);
+      }
     } else {
       throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
     }

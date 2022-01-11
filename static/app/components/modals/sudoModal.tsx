@@ -133,7 +133,11 @@ class SudoModal extends React.Component<Props, State> {
             autoFocus
             flexibleControlStateSize
           />
-          <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+          <U2fContainer
+            displayMode="sudo"
+            onTap={this.handleU2fTap}
+            isWebauthnSigninFFEnabled
+          />
         </Form>
       </React.Fragment>
     );
