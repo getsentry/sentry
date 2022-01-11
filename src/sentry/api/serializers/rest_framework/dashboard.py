@@ -152,7 +152,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
-    layout = serializers.JSONField()
+    layout = serializers.JSONField(required=False)
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -298,7 +298,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             if "widget_type" in widget_data
             else DashboardWidgetTypes.DISCOVER,
             order=order,
-            detail={"layout": widget_data["layout"]},
+            detail={"layout": widget_data.get("layout", None)},
         )
         new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
@@ -315,12 +315,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
     def update_widget(self, widget, data, order):
+        prev_layout = widget.detail.get("layout", None) if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
         widget.order = order
-        widget.detail = {"layout": data.get("layout", None)}
+        widget.detail = {"layout": data.get("layout", prev_layout)}
         widget.save()
 
         if "queries" in data:

@@ -655,7 +655,26 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
 
     def test_update_without_specifying_layout_does_not_change_saved_layout(self):
-        pass
+        expected_layouts = {
+            self.widget_1.id: {"x": 0, "y": 0, "w": 1, "h": 1},
+            self.widget_2.id: {"x": 1, "y": 0, "w": 1, "h": 1},
+            self.widget_3.id: None,
+            self.widget_4.id: None,
+        }
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {"id": widget.id}  # Not specifying layout for any widget
+                    for widget in [self.widget_1, self.widget_2, self.widget_3, self.widget_4]
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        for widget in widgets:
+            assert widget["layout"] == expected_layouts[int(widget["id"])]
 
     def test_ignores_i_key_in_layout(self):
         # We might want to strip the i key in the frontend before the request
