@@ -172,6 +172,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         invalid_keys = set(layout.keys()) - VALID_KEYS
         if invalid_keys:
             raise serializers.ValidationError({"layout": "has invalid keys"})
+        return layout
 
     def validate(self, data):
         query_errors = []
@@ -195,8 +196,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                     query_errors.append({})
         if has_query_error:
             raise serializers.ValidationError({"queries": query_errors})
-        if data.get("layout"):
-            self.validate_layout(data.get("layout"))
         if not data.get("id"):
             if not data.get("queries"):
                 raise serializers.ValidationError(
