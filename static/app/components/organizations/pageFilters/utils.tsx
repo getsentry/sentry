@@ -8,63 +8,13 @@ import pickBy from 'lodash/pickBy';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {Environment, PageFilters} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import localStorage from 'sentry/utils/localStorage';
 
-import {getParams} from './getParams';
+import {normalizeDateTimeParams} from './parse';
 
-const DEFAULT_PARAMS = getParams({});
+const DEFAULT_PARAMS = normalizeDateTimeParams({});
 
 const LOCAL_STORAGE_KEY = 'global-selection';
-
-// Parses URL query parameters for values relevant to page filters
-type GetStateFromQueryOptions = {
-  allowEmptyPeriod?: boolean;
-  allowAbsoluteDatetime?: boolean;
-};
-
-export function getStateFromQuery(
-  query: Location['query'],
-  {allowEmptyPeriod = false, allowAbsoluteDatetime = true}: GetStateFromQueryOptions = {}
-) {
-  const parsedParams = getParams(query, {allowEmptyPeriod, allowAbsoluteDatetime});
-
-  const projectFromQuery = query[URL_PARAM.PROJECT];
-  const environmentFromQuery = query[URL_PARAM.ENVIRONMENT];
-  const period = parsedParams.statsPeriod;
-  const utc = parsedParams.utc;
-
-  const hasAbsolute = allowAbsoluteDatetime && !!parsedParams.start && !!parsedParams.end;
-
-  let project: number[] | null | undefined;
-  if (defined(projectFromQuery) && Array.isArray(projectFromQuery)) {
-    project = projectFromQuery.map(p => parseInt(p, 10));
-  } else if (defined(projectFromQuery)) {
-    const projectFromQueryIdInt = parseInt(projectFromQuery, 10);
-    project = isNaN(projectFromQueryIdInt) ? [] : [projectFromQueryIdInt];
-  } else {
-    project = projectFromQuery;
-  }
-
-  const environment =
-    defined(environmentFromQuery) && !Array.isArray(environmentFromQuery)
-      ? [environmentFromQuery]
-      : environmentFromQuery;
-
-  const start = hasAbsolute ? getUtcToLocalDateObject(parsedParams.start) : null;
-  const end = hasAbsolute ? getUtcToLocalDateObject(parsedParams.end) : null;
-
-  return {
-    project,
-    environment,
-    period: period || null,
-    start: start || null,
-    end: end || null,
-    // params from URL will be a string
-    utc: typeof utc !== 'undefined' ? utc === 'true' : null,
-  };
-}
 
 /**
  * Extract the page filter parameters from an object

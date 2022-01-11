@@ -11,7 +11,7 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
@@ -41,7 +41,7 @@ export default function ExclusiveTimeChart(props: Props) {
   const period = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : null;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : null;
-  const {utc} = getParams(location.query);
+  const {utc} = normalizeDateTimeParams(location.query);
 
   const datetimeSelection = {
     start,
