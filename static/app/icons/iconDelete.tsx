@@ -1,10 +1,8 @@
 import * as React from 'react';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon>;
-
-const IconDelete = React.forwardRef<SVGSVGElement, Props>(function IconDelete(
+const IconDelete = React.forwardRef<SVGSVGElement, SVGIconProps>(function IconDelete(
   props,
   ref
 ) {

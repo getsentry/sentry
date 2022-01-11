@@ -1,11 +1,9 @@
 import * as React from 'react';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon>;
-
-const IconUpgrade = React.forwardRef(function IconUpgrade(
-  props: Props,
+const IconUpgrade = React.forwardRef<SVGSVGElement, SVGIconProps>(function IconUpgrade(
+  props: SVGIconProps,
   ref: React.Ref<SVGSVGElement>
 ) {
   return (

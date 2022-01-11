@@ -1,11 +1,9 @@
 import * as React from 'react';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon>;
-
-const IconSentry = React.forwardRef(function IconSentry(
-  props: Props,
+const IconSentry = React.forwardRef<SVGSVGElement, SVGIconProps>(function IconSentry(
+  props: SVGIconProps,
   ref: React.Ref<SVGSVGElement>
 ) {
   return (

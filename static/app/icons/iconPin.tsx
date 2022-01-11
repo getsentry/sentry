@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon> & {
+interface Props extends SVGIconProps {
   isSolid?: boolean;
-};
+}
 
-const IconPin = React.forwardRef(function IconPin(
+const IconPin = React.forwardRef<SVGSVGElement, SVGIconProps>(function IconPin(
   {isSolid = false, ...props}: Props,
   ref: React.Ref<SVGSVGElement>
 ) {
