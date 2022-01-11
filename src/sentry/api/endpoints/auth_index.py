@@ -6,6 +6,7 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import SsoRequired
@@ -30,6 +31,12 @@ class AuthIndexEndpoint(Endpoint):
     authentication_classes = [QuietBasicAuthentication, SessionAuthentication]
 
     permission_classes = ()
+
+    def check_can_webauthn_signin(self, user, request_user):
+        orgs = user.get_orgs()
+        return any(
+            features.has("organizations:webauthn-login", org, actor=request_user) for org in orgs
+        )
 
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
@@ -108,7 +115,10 @@ class AuthIndexEndpoint(Endpoint):
                     raise LookupError()
                 challenge = json.loads(validator.validated_data["challenge"])
                 response = json.loads(validator.validated_data["response"])
-                authenticated = interface.validate_response(request, challenge, response)
+                can_webauthn_signin = self.check_can_webauthn_signin(request.user, request.user)
+                authenticated = interface.validate_response(
+                    request, challenge, response, can_webauthn_signin
+                )
             except ValueError:
                 pass
             except LookupError:
