@@ -531,11 +531,9 @@ class DebugMeta extends React.PureComponent<Props, State> {
     const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
 
     const actions = (
-      <div>
-        <ToggleButton onClick={this.toggleImagesLoaded} priority="link">
-          {isOpen ? t('Hide Details') : t('Show Details')}
-        </ToggleButton>
-      </div>
+      <ToggleButton onClick={this.toggleImagesLoaded} priority="link">
+        {isOpen ? t('Hide Details') : t('Show Details')}
+      </ToggleButton>
     );
 
     return (
@@ -560,7 +558,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         isCentered
       >
         {isOpen && (
-          <div>
+          <React.Fragment>
             <StyledSearchBarAction
               placeholder={t('Search images loaded')}
               onChange={value => this.handleChangeSearchTerm(value)}
@@ -582,7 +580,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
             >
               <div ref={this.panelTableRef}>{this.renderList()}</div>
             </StyledPanelTable>
-          </div>
+          </React.Fragment>
         )}
       </EventDataSection>
     );
