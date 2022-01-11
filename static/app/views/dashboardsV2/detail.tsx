@@ -73,7 +73,7 @@ class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
-    layout: getDashboardLayout(this.props.organization.id, this.props.dashboard.id),
+    layout: getDashboardLayout(this.props.dashboard.widgets) as RGLLayout[],
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
   };
 
@@ -273,7 +273,7 @@ class DashboardDetail extends Component<Props, State> {
       this.setState({
         dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
-        layout: getDashboardLayout(organization.id, dashboard.id),
+        layout: getDashboardLayout(this.props.dashboard.widgets),
       });
       return;
     }

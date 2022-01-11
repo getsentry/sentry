@@ -2,19 +2,19 @@ import {Layout} from 'react-grid-layout';
 
 import localStorage from 'sentry/utils/localStorage';
 
+import {constructGridItemKey} from '../dashboard';
+import {Widget} from '../types';
+
 const getLocalStorageKey = (organizationId: string, dashboardId: string) =>
   `grid-layout-${organizationId}-${dashboardId}`;
 
-export const getDashboardLayout = (organizationId, dashboardId): Layout[] => {
-  const savedLayoutString = localStorage.getItem(
-    getLocalStorageKey(organizationId, dashboardId)
-  );
-
-  if (savedLayoutString) {
-    return JSON.parse(savedLayoutString);
-  }
-
-  return [];
+export const getDashboardLayout = (widgets: Widget[]): Layout[] => {
+  return widgets
+    .filter(({layout}) => !!layout)
+    .map(({layout, ...widget}) => ({
+      ...(layout as Layout),
+      i: constructGridItemKey(widget),
+    }));
 };
 
 export const saveDashboardLayout = (
