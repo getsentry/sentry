@@ -25,7 +25,7 @@ describe('SettingsIndex', function () {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('has different links for on premise users', function () {
+  it('has different links for self-hosted users', function () {
     ConfigStore.set('isSelfHosted', true);
 
     wrapper = mountWithTheme(
