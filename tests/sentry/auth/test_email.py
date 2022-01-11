@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.models import OrganizationMember, UserEmail
 from sentry.testutils import TestCase
@@ -16,15 +18,18 @@ class EmailResolverTest(TestCase):
         result = resolve_email_to_user(self.user1.email)
         assert result == self.user1
 
-    def test_ambiguous_match(self):
+    @mock.patch("sentry.auth.email.metrics")
+    def test_ambiguous_match(self, mock_metrics):
         for user in (self.user1, self.user2):
             UserEmail.objects.create(user=user, email="me@example.com")
 
         with self.assertRaises(AmbiguousUserFromEmail) as context:
             resolve_email_to_user("me@example.com")
         assert set(context.exception.users) == {self.user1, self.user2}
+        assert mock_metrics.incr.call_args.args == ("auth.email_resolution.no_resolution",)
 
-    def test_prefers_verified_email(self):
+    @mock.patch("sentry.auth.email.metrics")
+    def test_prefers_verified_email(self, mock_metrics):
         org = self.create_organization()
 
         user1 = self.create_user()
@@ -37,7 +42,10 @@ class EmailResolverTest(TestCase):
         result = resolve_email_to_user("me@example.com", organization=org)
         assert result == user1
 
-    def test_prefers_org_member(self):
+        assert mock_metrics.incr.call_args.args == ("auth.email_resolution.by_verification",)
+
+    @mock.patch("sentry.auth.email.metrics")
+    def test_prefers_org_member(self, mock_metrics):
         org = self.create_organization()
 
         user1 = self.create_user()
@@ -49,3 +57,5 @@ class EmailResolverTest(TestCase):
 
         result = resolve_email_to_user("me@example.com", organization=org)
         assert result == user2
+
+        assert mock_metrics.incr.call_args.args == ("auth.email_resolution.by_org_membership",)

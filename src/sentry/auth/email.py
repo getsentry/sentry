@@ -1,7 +1,9 @@
+import abc
 from dataclasses import dataclass
 from typing import Iterable, Optional, Sequence, Tuple
 
 from sentry.models import Organization, OrganizationMember, User, UserEmail
+from sentry.utils import metrics
 
 
 class AmbiguousUserFromEmail(Exception):
@@ -27,40 +29,73 @@ class _EmailResolver:
 
     def resolve(self, candidates: Sequence[UserEmail]) -> User:
         """Pick the user best matching the email address."""
-        for step in self._STEPS:
+
+        if not candidates:
+            raise ValueError
+        if len(candidates) == 1:
+            (unique_email,) = candidates
+            return unique_email.user
+
+        for step in self.get_steps():
             last_candidates = candidates
-            candidates = tuple(step(self, candidates))
+            candidates = tuple(step.apply(candidates))
             if len(candidates) == 1:
                 # Success: We've narrowed down to only one candidate
-                return candidates[0].user
+                (choice,) = candidates
+                step.if_conclusive(last_candidates, choice)
+                return choice.user
             if len(candidates) == 0:
                 # If the step eliminated all, ignore it and go to the next step
                 candidates = last_candidates
+            step.if_inconclusive(candidates)
 
         raise AmbiguousUserFromEmail(self.email, [ue.user for ue in candidates])
 
-    # Step definitions below
+    class ResolutionStep(abc.ABC):
+        @abc.abstractmethod
+        def apply(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
+            raise NotImplementedError
 
-    def _first_pass(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
-        """Null step, in case there is only one candidate to start."""
-        return candidates
+        def if_conclusive(self, candidates: Sequence[UserEmail], choice: UserEmail) -> None:
+            """Hook to call if this step resolves to a single user."""
+            pass
 
-    def _is_verified(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
+        def if_inconclusive(self, remaining_candidates: Sequence[UserEmail]) -> None:
+            """Hook to call if this step doesn't resolve to a single user."""
+            pass
+
+    class IsVerified(ResolutionStep):
         """Prefer verified email addresses."""
-        return (ue for ue in candidates if ue.is_verified)
 
-    def _has_org_membership(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
+        def apply(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
+            return (ue for ue in candidates if ue.is_verified)
+
+        def if_conclusive(self, candidates: Sequence[UserEmail], choice: UserEmail) -> None:
+            metrics.incr("auth.email_resolution.by_verification", sample_rate=1.0)
+
+    @dataclass
+    class HasOrgMembership(ResolutionStep):
         """Prefer users who belong to the organization."""
-        if not self.organization:
-            return ()
-        query = OrganizationMember.objects.filter(
-            organization=self.organization, user__in=[ue.user for ue in candidates]
-        )
-        users_in_org = {user_id for (user_id,) in query.values_list("user")}
-        return (ue for ue in candidates if ue.user.id in users_in_org)
 
-    _STEPS = (
-        _first_pass,
-        _is_verified,
-        _has_org_membership,
-    )
+        organization: Optional[Organization]
+
+        def apply(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
+            if not self.organization:
+                return ()
+            query = OrganizationMember.objects.filter(
+                organization=self.organization, user__in=[ue.user for ue in candidates]
+            )
+            users_in_org = {user_id for (user_id,) in query.values_list("user")}
+            return (ue for ue in candidates if ue.user.id in users_in_org)
+
+        def if_conclusive(self, candidates: Sequence[UserEmail], choice: UserEmail) -> None:
+            metrics.incr("auth.email_resolution.by_org_membership", sample_rate=1.0)
+
+        def if_inconclusive(self, remaining_candidates: Sequence[UserEmail]) -> None:
+            metrics.incr("auth.email_resolution.no_resolution", sample_rate=1.0)
+
+    def get_steps(self) -> Iterable[ResolutionStep]:
+        return (
+            self.IsVerified(),
+            self.HasOrgMembership(self.organization),
+        )
