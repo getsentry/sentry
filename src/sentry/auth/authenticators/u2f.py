@@ -92,6 +92,9 @@ class U2fInterface(AuthenticatorInterface):
 
     def start_enrollment(self, user):
         credentials = []
+        # there are 2 types of registered keys from the registered devices, those with type
+        # AuthenticatorData are those from WebAuthn registered devices that we don't have to modify
+        # the other is those registered with u2f-api and it a dict with the keys keyHandle and publicKey
         for registeredKey in self.get_u2f_devices():
             if type(registeredKey) == AuthenticatorData:
                 credentials.append(registeredKey.credential_data)
