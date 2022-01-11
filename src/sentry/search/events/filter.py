@@ -1425,7 +1425,7 @@ class QueryFilter(QueryFields):
                 sentry_sdk.set_tag("query.lhs", lhs)
                 sentry_sdk.set_tag("query.rhs", value)
                 sentry_sdk.capture_message("Tag value was not a string", level="error")
-                print('-' * 80)
+                print("-" * 80)
                 value = str(value)
             lhs = Function("ifNull", [lhs, ""])
 
