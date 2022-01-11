@@ -205,9 +205,10 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             org_client.exceptions.AccessDeniedException,
             org_client.exceptions.AWSOrganizationsNotInUseException,
         ):
-            # if the customer won't let us access the org name, use the account number instead
-            # we can also get a different error for on-prem users setting up the integration
-            # on an account that doesn't have an organization
+            # if the customer won't let us access the org name, use the account
+            # number instead we can also get a different error for self-hosted
+            # users setting up the integration on an account that doesn't have
+            # an organization
             integration_name = f"{account_number} {region}"
 
         external_id = f"{account_number}-{region}"

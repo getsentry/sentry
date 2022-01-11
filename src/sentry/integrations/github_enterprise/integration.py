@@ -29,7 +29,7 @@ from .client import GitHubEnterpriseAppsClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 DESCRIPTION = """
-Connect your Sentry organization into your on-premise GitHub Enterprise
+Connect your Sentry organization into your on-premises GitHub Enterprise
 instances. Take a step towards augmenting your sentry issues with commits from
 your repositories ([using releases](https://docs.sentry.io/learn/releases/))
 and linking up your GitHub issues and pull requests directly to issues in
