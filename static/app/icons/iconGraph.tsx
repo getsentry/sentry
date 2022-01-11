@@ -10,21 +10,20 @@ interface Props extends SVGIconProps {
   type?: 'line' | 'circle' | 'bar' | 'area';
 }
 
-const IconGraph = React.forwardRef<SVGSVGElement, Props>(function IconGraph(
-  {type = 'line', ...props}: Props,
-  ref: React.Ref<SVGSVGElement>
-) {
-  switch (type) {
-    case 'circle':
-      return <IconGraphCircle {...props} ref={ref} />;
-    case 'bar':
-      return <IconGraphBar {...props} ref={ref} />;
-    case 'area':
-      return <IconGraphArea {...props} ref={ref} />;
-    default:
-      return <IconGraphLine {...props} ref={ref} />;
+const IconGraph = React.forwardRef<SVGSVGElement, Props>(
+  ({type = 'line', ...props}, ref) => {
+    switch (type) {
+      case 'circle':
+        return <IconGraphCircle {...props} ref={ref} />;
+      case 'bar':
+        return <IconGraphBar {...props} ref={ref} />;
+      case 'area':
+        return <IconGraphArea {...props} ref={ref} />;
+      default:
+        return <IconGraphLine {...props} ref={ref} />;
+    }
   }
-});
+);
 
 IconGraph.displayName = 'IconGraph';
 

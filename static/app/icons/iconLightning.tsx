@@ -6,11 +6,8 @@ interface Props extends SVGIconProps {
   isSolid?: boolean;
 }
 
-const IconLightning = React.forwardRef<SVGSVGElement, SVGIconProps>(
-  function IconLightning(
-    {isSolid = false, ...props}: Props,
-    ref: React.Ref<SVGSVGElement>
-  ) {
+const IconLightning = React.forwardRef<SVGSVGElement, Props>(
+  ({isSolid = false, ...props}, ref) => {
     return (
       <SvgIcon {...props} ref={ref}>
         {isSolid ? (

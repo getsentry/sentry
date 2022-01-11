@@ -68,11 +68,9 @@ interface Props extends SVGIconProps {
   withShine?: boolean;
 }
 
-const IconBusiness = React.forwardRef<SVGSVGElement, SVGIconProps>(
-  (props: SVGIconProps, ref: React.Ref<SVGSVGElement>) => (
-    <IconBusinessComponent {...props} forwardRef={ref} />
-  )
-);
+const IconBusiness = React.forwardRef<SVGSVGElement, Props>((props, ref) => (
+  <IconBusinessComponent {...props} forwardRef={ref} />
+));
 
 IconBusiness.displayName = 'IconBusiness';
 
