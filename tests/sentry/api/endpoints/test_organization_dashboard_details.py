@@ -642,8 +642,17 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         for widget in widgets:
             assert widget["layout"] == layouts[int(widget["id"])]
 
-    def test_update_with_invalid_data_fails(self):
-        pass
+    def test_update_layout_with_invalid_data_fails(self):
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {"id": self.widget_1.id, "layout": {"invalidKey": 0, "y": 0, "w": 2, "h": 5}}
+                ]
+            },
+        )
+        assert response.status_code == 400, response.data
 
     def test_update_without_specifying_layout_does_not_change_saved_layout(self):
         pass
