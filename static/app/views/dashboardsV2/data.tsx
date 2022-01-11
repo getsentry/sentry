@@ -322,85 +322,211 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
     createdBy: undefined,
     widgets: [
       {
-        title: 'Overall Cold Start',
+        title: 'Total Crashes',
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
           {
             name: '',
-            conditions: 'event.type:transaction',
-            fields: ['p75(measurements.app_start_cold)'],
-            orderby: 'p75(measurements.app_start_cold)',
+            fields: ['count()'],
+            conditions: 'error.handled:false event.type:error',
+            orderby: '',
           },
         ],
         tempId: uniqueId(),
       },
       {
-        title: 'Overall Warm Start',
+        title: 'Unique users who crashed',
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
           {
             name: '',
-            conditions: 'event.type:transaction',
+            fields: ['count_unique(user)'],
+            conditions: 'error.handled:false event.type:error',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: 'Total Errors',
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['count()'],
+            conditions: 'event.type:error',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: 'Crashes over time',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['count()'],
+            conditions: 'error.handled:false',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: 'Issues causing crashes',
+        displayType: DisplayType.TABLE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['issue', 'count()', 'count_unique(user)'],
+            conditions: 'error.handled:false',
+            orderby: '-count_unique_user',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: 'Issues causing Crashes',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        queries: [
+          {
+            name: 'Crashes',
+            fields: ['count()', 'count_unique(user)'],
+            conditions: 'error.handled:false',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: 'Crashes by OS',
+        displayType: DisplayType.TABLE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['os', 'count()'],
+            conditions: 'has:os error.handled:false',
+            orderby: '-count',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: 'Warm Startup Time',
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
             fields: ['p75(measurements.app_start_warm)'],
-            orderby: 'p75(measurements.app_start_warm)',
+            conditions: 'has:measurements.app_start_warm',
+            orderby: '',
           },
         ],
         tempId: uniqueId(),
       },
       {
-        title: 'Transactions Per Minute',
+        title: 'Cold Startup Time',
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
           {
             name: '',
-            conditions: 'event.type:transaction',
-            fields: ['tpm()'],
-            orderby: 'tpm',
-          },
-        ],
-        tempId: uniqueId(),
-      },
-      {
-        title: 'Cold Start over time',
-        displayType: DisplayType.LINE,
-        interval: '5m',
-        queries: [
-          {
-            name: 'Cold Start',
-            conditions: 'event.type:transaction',
             fields: ['p75(measurements.app_start_cold)'],
-            orderby: 'p75(measurements.app_start_cold)',
+            conditions: 'has:measurements.app_start_cold',
+            orderby: '',
           },
         ],
         tempId: uniqueId(),
       },
       {
-        title: 'Warm Start over time',
-        displayType: DisplayType.LINE,
+        title: 'Warm Startup Times',
+        displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
           {
-            name: 'Warm Start',
-            conditions: 'event.type:transaction',
-            fields: ['p75(measurements.app_start_warm)'],
-            orderby: 'p75(measurements.app_start_warm)',
+            name: '',
+            fields: ['transaction', 'p75(measurements.app_start_warm)'],
+            conditions: 'has:measurements.app_start_warm',
+            orderby: '',
           },
         ],
         tempId: uniqueId(),
       },
       {
-        title: 'TPM over time',
+        title: 'Cold Startup Times',
+        displayType: DisplayType.TABLE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['transaction', 'p75(measurements.app_start_cold)'],
+            conditions: 'has:measurements.app_start_cold',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: 'Overall Throughput',
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: 'Throughput',
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'TPM',
-            conditions: 'event.type:transaction',
-            fields: ['tpm()'],
-            orderby: 'tpm',
+            name: '',
+            fields: ['epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: 'Frames frozen rate',
+        displayType: DisplayType.TABLE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['transaction', 'p75(measurements.frames_frozen_rate)'],
+            conditions: 'has:measurements.frames_frozen_rate',
+            orderby: '-p75_measurements_frames_frozen_rate',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: 'Frozen Frames',
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['p75(measurements.frames_frozen_rate)'],
+            conditions: '',
+            orderby: '',
           },
         ],
         tempId: uniqueId(),
