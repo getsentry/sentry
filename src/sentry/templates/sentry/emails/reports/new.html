@@ -10,7 +10,7 @@
   <style type="text/css">
 
     .container {
-      padding-top: 10px;
+      padding-top: 18px;
       padding-bottom: 10px;
     }
 
@@ -113,9 +113,34 @@
     .project-breakdown {
       margin-bottom: 20px;
     }
+    .project-breakdown table.project-breakdown-graph-deck {
+      table-layout: fixed;
+      border-collapse: collapse;
+      border-spacing: 3px;
+      border-style: hidden;
+      width: 100%;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell {
+      border: 1px solid #C4C4C4;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.errors {
+      padding-right: 10px;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions {
+      padding-left: 10px;
+    }
+    .project-breakdown .total-count-title {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    .project-breakdown .total-count {
+      margin-top: 5px;
+      margin-bottom: 18px;
+    }
 
     .project-breakdown .graph {
       table-layout: fixed;
+      margin: 0;
     }
 
     .project-breakdown .graph td {
@@ -362,8 +387,11 @@
   <div class="project-breakdown">
 
     {% with series=report.projects.series height=110 %}
+    <table class="project-breakdown-graph-deck"><tbody><tr>
 
-    <h4>Events by Project</h4>
+    <td class="project-breakdown-graph-cell errors">
+    <h4 class="total-count-title">Total Project Errors</h4>
+    <h1 class="total-count">{{ series.legend.total.data.accepted_errors|small_count:1 }}</h1>
 
     <table class="graph">
       <tr>
@@ -391,6 +419,42 @@
         {% endfor %}
       </tr>
     </table>
+    </td>
+
+
+    <td class="project-breakdown-graph-cell transactions">
+      <h4 class="total-count-title">Total Project Errors</h4>
+      <h1 class="total-count">{{ series.legend.total.data.accepted_transactions|small_count:1 }}</h1>
+
+      <table class="graph">
+        <tr>
+          {% for timestamp, values in series.transaction_points %}
+          <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
+              <table class="bar">
+                {% for key, count in values %}
+                  <tr>
+                    <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td height="1" style="background-color: #ebe9f7;"></td>
+                  </tr>
+                {% endfor %}
+              </table>
+            </td>
+          {% endfor %}
+        </tr>
+        <tr>
+          {% for timestamp, values in series.transaction_points %}
+            <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
+              {{ timestamp|date:duration.date_format }}
+            </td>
+          {% endfor %}
+        </tr>
+      </table>
+      </td>
+
+    </tr></tbody></table>
 
     <table class="summary">
       <thead>
