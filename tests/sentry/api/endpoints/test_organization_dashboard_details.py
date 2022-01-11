@@ -21,6 +21,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1}},
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -29,6 +30,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
+            detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1}},
         )
         self.widget_1_data_1 = DashboardWidgetQuery.objects.create(
             widget=self.widget_1,
@@ -72,6 +74,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_dashboard(response.data, self.dashboard)
         assert len(response.data["widgets"]) == 2
         widgets = response.data["widgets"]
+        assert "layout" in widgets[0]
+        assert "layout" in widgets[1]
         self.assert_serialized_widget(widgets[0], self.widget_1)
         self.assert_serialized_widget(widgets[1], self.widget_2)
 

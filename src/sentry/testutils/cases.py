@@ -1315,6 +1315,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
                 expected_widget.display_type
             )
+        if "layout" in data:
+            assert data["layout"] == expected_widget.detail["layout"]
 
     def create_user_member_role(self):
         self.user = self.create_user(is_superuser=False)
