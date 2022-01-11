@@ -66,6 +66,7 @@ type Props = {
   router: InjectedRouter;
   location: Location;
   widgetLimitReached: boolean;
+  isPreview?: boolean;
   /**
    * Fired when widgets are added/removed/sorted.
    */
@@ -323,7 +324,7 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile} = this.state;
-    const {isEditing, organization, widgetLimitReached} = this.props;
+    const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
     const widgetProps = {
       widget,
@@ -332,6 +333,7 @@ class Dashboard extends Component<Props, State> {
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      isPreview,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {
