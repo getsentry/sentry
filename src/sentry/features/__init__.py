@@ -156,6 +156,8 @@ default_manager.add("organizations:transaction-events", OrganizationFeature, Tru
 default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, True)
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
+default_manager.add("organizations:webauthn-login", OrganizationFeature, True)
+default_manager.add("organizations:webauthn-register", OrganizationFeature, True)
 default_manager.add("organizations:weekly-report-debugging", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 

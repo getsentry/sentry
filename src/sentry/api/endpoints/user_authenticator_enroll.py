@@ -8,6 +8,7 @@ from rest_framework.fields import SkipField
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
@@ -97,6 +98,10 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
+    def _check_can_webauthn_register(self, user):
+        orgs = user.get_orgs()
+        return any(features.has("organizations:webauthn-register", org, actor=user) for org in orgs)
+
     @sudo_required
     def get(self, request: Request, user, interface_id) -> Response:
         """
@@ -140,10 +145,19 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             response["qrcode"] = interface.get_provision_url(user.email)
 
         if interface_id == "u2f":
-            publicKeyCredentialCreate, state = interface.start_enrollment(user)
-            response["challenge"] = {}
-            response["challenge"]["webAuthnRegisterData"] = b64encode(publicKeyCredentialCreate)
-            request.session["webauthn_register_state"] = state
+            if self._check_can_webauthn_register(user):
+                publicKeyCredentialCreate, state = interface.start_enrollment(user, True)
+                response["challenge"] = {}
+                response["challenge"]["webAuthnRegisterData"] = b64encode(publicKeyCredentialCreate)
+                request.session["webauthn_register_state"] = state
+            else:
+                response["challenge"] = interface.start_enrollment(user, False)
+                # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
+                # format. Our current js u2f library expects the old format, so
+                # massaging the data to include appId here
+                app_id = response["challenge"]["appId"]
+                for register_request in response["challenge"]["registerRequests"]:
+                    register_request["appId"] = app_id
         return Response(response)
 
     @sudo_required
@@ -222,10 +236,12 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         # Try u2f enrollment
         if interface_id == "u2f":
             # What happens when this fails?
-            state = request.session["webauthn_register_state"]
+            has_webauthn_register = self._check_can_webauthn_register(user)
+            state = request.session["webauthn_register_state"] if has_webauthn_register else None
             interface.try_enroll(
                 serializer.data["challenge"],
                 serializer.data["response"],
+                has_webauthn_register,
                 serializer.data["deviceName"],
                 state,
             )
