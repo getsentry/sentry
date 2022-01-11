@@ -10,7 +10,7 @@ def _get_redis_key(public_key, project_id, organization_id):
     elif project_id:
         return f"relayconfig-debounce:p:{project_id}"
     elif public_key:
-        return f"relayconfig-debounce:k:{project_id}"
+        return f"relayconfig-debounce:k:{public_key}"
     else:
         raise ValueError()
 
