@@ -34,6 +34,7 @@ function CreateDashboard(props: Props) {
     ? DASHBOARDS_TEMPLATES.find(dashboardTemplate => dashboardTemplate.id === templateId)
     : undefined;
   const dashboard = template ? cloneDashboard(template) : cloneDashboard(EMPTY_DASHBOARD);
+  const initialState = template ? DashboardState.PREVIEW : DashboardState.CREATE;
   useEffect(() => {
     const constructedWidget = constructWidgetFromQuery(location.query);
     setNewWidget(constructedWidget);
@@ -49,7 +50,7 @@ function CreateDashboard(props: Props) {
     >
       <DashboardDetail
         {...props}
-        initialState={DashboardState.CREATE}
+        initialState={initialState}
         dashboard={dashboard}
         dashboards={[]}
         newWidget={newWidget}

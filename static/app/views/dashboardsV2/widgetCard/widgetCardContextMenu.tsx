@@ -27,6 +27,7 @@ type Props = {
   onEdit: () => void;
   widgetLimitReached: boolean;
   showContextMenu?: boolean;
+  isPreview?: boolean;
 };
 
 function WidgetCardContextMenu({
@@ -38,6 +39,7 @@ function WidgetCardContextMenu({
   onDuplicate,
   onEdit,
   showContextMenu,
+  isPreview,
 }: Props) {
   function isAllowWidgetsToDiscover() {
     return organization.features.includes('connect-discover-and-dashboards');
@@ -47,6 +49,18 @@ function WidgetCardContextMenu({
   }
 
   const menuOptions: React.ReactNode[] = [];
+
+  if (isPreview) {
+    return (
+      <ContextWrapper>
+        <ContextMenu>
+          <PreviewMessage>
+            {t('This is a preview only. To edit, you must add this dashboard.')}
+          </PreviewMessage>
+        </ContextMenu>
+      </ContextWrapper>
+    );
+  }
 
   if (
     (widget.displayType === 'table' || isAllowWidgetsToDiscover()) &&
@@ -190,4 +204,9 @@ const StyledMenuItem = styled(MenuItem)<{danger?: boolean}>`
   :hover {
     color: ${p => (p.danger ? p.theme.red300 : p.theme.textColor)};
   }
+`;
+
+const PreviewMessage = styled('span')`
+  padding: ${space(1)};
+  display: block;
 `;
