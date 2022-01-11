@@ -238,6 +238,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1},
                 },
                 {
                     "displayType": "bar",
@@ -246,6 +247,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "queries": [
                         {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
                     ],
+                    "layout": {"x": 1, "y": 0, "w": 1, "h": 1},
                 },
             ],
         }
@@ -259,6 +261,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 2
 
+        assert "layout" in widgets[0]
+        assert "layout" in widgets[1]
         for expected_widget, actual_widget in zip(data["widgets"], widgets):
             self.assert_serialized_widget(expected_widget, actual_widget)
 
