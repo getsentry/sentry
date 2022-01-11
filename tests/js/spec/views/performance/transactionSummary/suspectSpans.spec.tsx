@@ -63,8 +63,8 @@ describe('SuspectSpans', function () {
 
       expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();
       expect(await screen.findByText('View All Spans')).toBeInTheDocument();
-      expect(await screen.findByText('Operation')).toBeInTheDocument();
-      expect(await screen.findByText('Description')).toBeInTheDocument();
+      expect(await screen.findByText('Span Operation')).toBeInTheDocument();
+      expect(await screen.findByText('Span Name')).toBeInTheDocument();
       expect(await screen.findByText('Total Count')).toBeInTheDocument();
       expect(await screen.findByText('Frequency')).toBeInTheDocument();
       expect(await screen.findByText('P75 Exclusive Time')).toBeInTheDocument();
