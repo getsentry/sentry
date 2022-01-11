@@ -5,8 +5,7 @@ import {ChartContainer} from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-
-import {SpanSlug} from '../types';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 
 import ExclusiveTimeChart from './exclusiveTimeChart';
 
