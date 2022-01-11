@@ -607,7 +607,6 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             datasource="snuba",
             query="foo:123",  # Unknown tag key
         )
-        print(response.data)
         assert response.status_code == 400
 
         response = self.get_success_response(
