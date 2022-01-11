@@ -132,8 +132,6 @@ default_manager.add("organizations:project-event-date-limit", OrganizationFeatur
 default_manager.add("organizations:prompt-dashboards", OrganizationFeature)
 default_manager.add("organizations:related-events", OrganizationFeature)
 default_manager.add("organizations:relay", OrganizationFeature)
-default_manager.add("organizations:release-adoption-chart", OrganizationFeature, True)
-default_manager.add("organizations:release-adoption-stage", OrganizationFeature, True)
 default_manager.add("organizations:release-archives", OrganizationFeature)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, True)
 default_manager.add("organizations:release-health-check-metrics", OrganizationFeature, True)

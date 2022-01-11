@@ -1079,10 +1079,6 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
-    # Enable the adoption chart in the releases page
-    "organizations:release-adoption-chart": True,
-    # Enable the release adoption stage labels and sorting+filtering by them
-    "organizations:release-adoption-stage": True,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
     # Enable the release details performance section

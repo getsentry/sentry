@@ -44,8 +44,6 @@ class OrganizationSerializerTest(TestCase):
             "minute-resolution-sessions",
             "open-membership",
             "relay",
-            "release-adoption-chart",
-            "release-adoption-stage",
             "semver",
             "shared-issues",
             "sso-basic",
