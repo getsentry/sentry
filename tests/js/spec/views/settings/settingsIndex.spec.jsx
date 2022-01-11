@@ -26,7 +26,7 @@ describe('SettingsIndex', function () {
   });
 
   it('has different links for on premise users', function () {
-    ConfigStore.set('isOnPremise', true);
+    ConfigStore.set('isSelfHosted', true);
 
     wrapper = mountWithTheme(
       <SettingsIndex
@@ -62,7 +62,7 @@ describe('SettingsIndex', function () {
       api = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/`,
       });
-      ConfigStore.config.isOnPremise = false;
+      ConfigStore.config.isSelfHosted = false;
       wrapper = mountWithTheme(
         <SettingsIndex router={TestStubs.router()} params={{}} />,
         TestStubs.routerContext()

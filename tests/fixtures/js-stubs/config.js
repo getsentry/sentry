@@ -15,7 +15,9 @@ export function Config(params = {}) {
     invitesEnabled: false,
     privacyUrl: null,
     termsUrl: null,
+    // Maintain isOnPremise key for backcompat (plugins?).
     isOnPremise: false,
+    isSelfHosted: false,
     lastOrganization: null,
     gravatarBaseUrl: 'https://gravatar.com',
     dsn: 'test-dsn',

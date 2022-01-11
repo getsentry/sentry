@@ -123,6 +123,8 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
         ]
 
         if is_self_hosted():
+            # We only support connecting to an on-premises SessionStack from a
+            # self-hosted Sentry: https://docs.sessionstack.com/docs/sentry.
             configurations.extend(
                 [
                     {

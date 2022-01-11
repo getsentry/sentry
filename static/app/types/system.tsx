@@ -121,7 +121,9 @@ export interface Config {
   invitesEnabled: boolean;
   privacyUrl: string | null;
   termsUrl: string | null;
+  // Maintain isOnPremise key for backcompat (plugins?).
   isOnPremise: boolean;
+  isSelfHosted: boolean;
   lastOrganization: string | null;
   gravatarBaseUrl: string;
 
