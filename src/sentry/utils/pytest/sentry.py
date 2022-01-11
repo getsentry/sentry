@@ -168,6 +168,9 @@ def pytest_configure(config):
 
     # This is so tests can assume this feature is off by default
     settings.SENTRY_FEATURES["organizations:performance-view"] = False
+    settings.SENTRY_FEATURES["organizations:performance-landing-widgets"] = False
+    settings.SENTRY_FEATURES["organizations:performance-events-page"] = False
+    settings.SENTRY_FEATURES["organizations:performance-mobile-vitals"] = False
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
