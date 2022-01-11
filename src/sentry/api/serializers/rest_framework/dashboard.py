@@ -312,6 +312,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
         widget.order = order
+        widget.detail = {"layout": data.get("layout", None)}
         widget.save()
 
         if "queries" in data:

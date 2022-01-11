@@ -620,6 +620,28 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             [self.widget_3.id, self.widget_2.id, self.widget_1.id, self.widget_4.id]
         )
 
+    def test_update_widget_layouts(self):
+        layouts = {
+            self.widget_1.id: {"x": 0, "y": 0, "w": 2, "h": 5},
+            self.widget_2.id: {"x": 2, "y": 0, "w": 1, "h": 1},
+            self.widget_3.id: {"x": 3, "y": 0, "w": 2, "h": 2},
+            self.widget_4.id: {"x": 0, "y": 5, "w": 2, "h": 5},
+        }
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {"id": widget.id, "layout": layouts[widget.id]}
+                    for widget in [self.widget_1, self.widget_2, self.widget_3, self.widget_4]
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        for widget in widgets:
+            assert widget["layout"] == layouts[int(widget["id"])]
+
     def test_update_prebuilt_dashboard(self):
         data = {
             "title": "First dashboard",
