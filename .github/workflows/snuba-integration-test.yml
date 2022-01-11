@@ -66,6 +66,8 @@ jobs:
         uses: ./.github/actions/pytest-report
         with:
           action: 'upload'
+          src: .artifacts/snuba.junit.xml
+          dest: report-${{ matrix.instance }}.yml
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts

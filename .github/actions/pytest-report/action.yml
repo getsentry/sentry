@@ -5,10 +5,12 @@ inputs:
     description: "The action to take with the report (download / upload)"
     default: download
     required: true
-  path:
-    description: "Path to use when uploading, supports the same values as https://github.com/actions/upload-artifact"
-    required: false
-    default: .artifacts/*.junit.xml
+  src:
+    description: "The report to upload. This will need to be renamed"
+    required: true
+  dest:
+    description: "The report name that will be saved to GHA Artifacts. This is different due to test runners with multiple instances where we do not want it to overwrite."
+    required: true
 
 runs:
   using: "composite"
@@ -23,9 +25,15 @@ runs:
         name: pytest-report
         path: .pytest_report
 
+    # Need to rename so if we have multiple test instances, the reports do not overwrite each other
+    - name: Rename report
+      if: inputs.action == 'upload'
+      shell: bash
+      run: mv ${{ inputs.src }} ${{ inputs.dest }}
+
     - name: Upload report
       if: inputs.action == 'upload'
       uses: actions/upload-artifact@v2
       with:
         name: pytest-report
-        path: ${{ inputs.path }}
+        path: ${{ inputs.dest }}
