@@ -1924,7 +1924,7 @@ SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
-SENTRY_ONPREMISE = True
+SENTRY_SELF_HOSTED = True
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
