@@ -6,11 +6,10 @@ function countFrameOccurences(frames: FlamegraphFrame[]): Map<string, number> {
   const counts = new Map<string, number>();
 
   for (const frame of frames) {
-    const key = frame.frame.name + frame.frame.file;
+    const key = frame.frame.name + (frame.frame.file ? frame.frame.file : '');
 
-    // @ts-ignore
     if (counts.has(key)) {
-      counts.set(key, counts.get(key) + 1);
+      counts.set(key, counts.get(key)! + 1);
     } else {
       counts.set(key, 1);
     }
@@ -20,58 +19,58 @@ function countFrameOccurences(frames: FlamegraphFrame[]): Map<string, number> {
 }
 
 export class DifferentialFlamegraph extends Flamegraph {
-  countDiff: Map<string, number> = new Map();
-  count: Map<string, number> = new Map();
-  referenceCount: Map<string, number> = new Map();
+  fromToDiff: Map<string, number> = new Map();
+  toCount: Map<string, number> = new Map();
+  fromCount: Map<string, number> = new Map();
 
-  static FromFlamegraphs(
-    reference: Flamegraph, // Reference chart is the one we compare the new flamegraph with
-    flamegraph: Flamegraph,
+  static Diff(
+    from: Flamegraph, // Reference chart is the one we compare the new flamegraph with
+    to: Flamegraph,
     theme: FlamegraphTheme
   ): DifferentialFlamegraph {
     const differentialFlamegraph = new DifferentialFlamegraph(
-      flamegraph.profile,
-      flamegraph.profileIndex,
-      reference.inverted,
-      reference.leftHeavy
+      to.profile,
+      to.profileIndex,
+      from.inverted,
+      from.leftHeavy
     );
 
-    const referenceCounts = countFrameOccurences(reference.frames);
-    const counts = countFrameOccurences(flamegraph.frames);
+    const fromCounts = countFrameOccurences(from.frames);
+    const toCounts = countFrameOccurences(to.frames);
 
     const countDiff: Map<string, number> = new Map();
     const colorMap: Map<string | number, number[]> =
       differentialFlamegraph.colors ?? new Map();
 
-    for (const frame of flamegraph.frames) {
-      const key = frame.frame.name + frame.frame.file;
+    for (const frame of to.frames) {
+      const key = frame.frame.name + (frame.frame.file ? frame.frame.file : '');
 
-      const count = counts.get(key);
-      const referenceCount = referenceCounts.get(key);
+      // If we already diffed this frame, skip it
+      if (countDiff.has(key)) {
+        continue;
+      }
+
+      const fromCount = fromCounts.get(key);
+      const toCount = toCounts.get(key);
 
       let diff = 0;
       let color: number[] = [];
 
-      if (count === undefined) {
-        diff = -1;
-        color = [...theme.COLORS.DIFFERENTIAL_DECREASE, 1];
-      } else if (referenceCount === undefined) {
+      if (toCount === undefined) {
+        throw new Error(`Missing count for frame ${key}, this should never happen`);
+      }
+
+      if (fromCount === undefined) {
         diff = 1;
         color = [...theme.COLORS.DIFFERENTIAL_INCREASE, 1];
-      } else if (count > referenceCount) {
-        diff = relativeChange(referenceCount, count);
-        color = [
-          ...theme.COLORS.DIFFERENTIAL_INCREASE,
-          Math.abs((count - referenceCount) / count),
-        ];
-      } else if (referenceCount > count) {
-        diff = relativeChange(referenceCount, count);
-        color = [
-          ...theme.COLORS.DIFFERENTIAL_DECREASE,
-          Math.abs((count - referenceCount) / referenceCount),
-        ];
+      } else if (toCount > fromCount) {
+        diff = relativeChange(toCount, fromCount);
+        color = [...theme.COLORS.DIFFERENTIAL_INCREASE, diff];
+      } else if (fromCount > toCount) {
+        diff = relativeChange(toCount, fromCount);
+        color = [...theme.COLORS.DIFFERENTIAL_DECREASE, Math.abs(diff)];
       } else {
-        countDiff.set(key, 0);
+        countDiff.set(key, diff);
         continue;
       }
 
@@ -79,9 +78,9 @@ export class DifferentialFlamegraph extends Flamegraph {
       colorMap.set(key, color);
     }
 
-    differentialFlamegraph.countDiff = countDiff;
-    differentialFlamegraph.count = counts;
-    differentialFlamegraph.referenceCount = referenceCounts;
+    differentialFlamegraph.fromToDiff = countDiff;
+    differentialFlamegraph.toCount = toCounts;
+    differentialFlamegraph.fromCount = fromCounts;
 
     differentialFlamegraph.setColors(colorMap);
 
