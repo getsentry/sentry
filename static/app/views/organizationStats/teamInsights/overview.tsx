@@ -11,7 +11,7 @@ import TeamSelector from 'sentry/components/forms/teamSelector';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {t} from 'sentry/locale';
@@ -34,6 +34,7 @@ import TeamMisery from './teamMisery';
 import TeamReleases from './teamReleases';
 import TeamResolutionTime from './teamResolutionTime';
 import TeamStability from './teamStability';
+import TeamUnresolvedIssues from './teamUnresolvedIssues';
 
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
 
@@ -133,7 +134,7 @@ function TeamInsightsOverview({location, router}: Props) {
       end,
       statsPeriod,
       utc: utcString,
-    } = getParams(query, {
+    } = normalizeDateTimeParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -356,6 +357,24 @@ function TeamInsightsOverview({location, router}: Props) {
                 <TeamIssuesAge organization={organization} teamSlug={currentTeam!.slug} />
               </DescriptionCard>
             )}
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('All Unresolved Issues')}
+                description={t(
+                  'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or ignored in the past.'
+                )}
+              >
+                <TeamUnresolvedIssues
+                  projects={projects}
+                  organization={organization}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start}
+                  end={end}
+                  utc={utc}
+                />
+              </DescriptionCard>
+            )}
             <DescriptionCard
               title={t('Time to Resolution')}
               description={t(
@@ -373,7 +392,7 @@ function TeamInsightsOverview({location, router}: Props) {
             </DescriptionCard>
             <DescriptionCard
               title={t('Number of Releases')}
-              description={t("The releases that were created in your team's projects.")}
+              description={t('The releases that were created in your team’s projects.')}
             >
               <TeamReleases
                 projects={projects}

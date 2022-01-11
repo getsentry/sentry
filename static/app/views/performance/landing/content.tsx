@@ -326,7 +326,7 @@ class LandingContent extends Component<Props, State> {
 
 const SearchContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

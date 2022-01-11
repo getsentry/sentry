@@ -51,7 +51,7 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
             referrer="alert_stream"
             showPermissionGuide
           >
-            {t('Create Alert Rule')}
+            {t('Create Alert')}
           </CreateAlertButton>
           <Button
             onClick={handleNavigateToSettings}

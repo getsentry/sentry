@@ -1,4 +1,5 @@
 import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {DocIntegration} from 'sentry/types';
 
 type Props = {
@@ -7,7 +8,7 @@ type Props = {
 
 const DocIntegrationAvatar = ({docIntegration, ...props}: Props) => {
   if (!docIntegration?.avatar) {
-    return null;
+    return <PluginIcon {...props} pluginId={docIntegration?.slug} />;
   }
   return (
     <BaseAvatar

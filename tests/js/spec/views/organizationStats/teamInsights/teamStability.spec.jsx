@@ -42,7 +42,7 @@ describe('TeamStability', () => {
     );
 
     expect(
-      screen.getByText('No Projects With Release Health Enabled')
+      screen.getByText('No projects with release health enabled')
     ).toBeInTheDocument();
   });
 });

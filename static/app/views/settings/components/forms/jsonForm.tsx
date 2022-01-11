@@ -44,7 +44,7 @@ class JsonForm extends React.Component<Props, State> {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (this.props.location.hash !== nextProps.location.hash) {
+    if (nextProps.location && this.props.location.hash !== nextProps.location.hash) {
       const hash = nextProps.location.hash;
       this.scrollToHash(hash);
       this.setState({highlighted: hash});

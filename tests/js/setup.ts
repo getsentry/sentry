@@ -9,6 +9,7 @@ import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import {Location} from 'history';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
+import * as qs from 'query-string';
 
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
@@ -167,7 +168,21 @@ const routerFixtures = {
     goForward: jest.fn(),
     setRouteLeaveHook: jest.fn(),
     isActive: jest.fn(),
-    createHref: jest.fn(),
+    createHref: jest.fn().mockImplementation(to => {
+      if (typeof to === 'string') {
+        return to;
+      }
+
+      if (typeof to === 'object') {
+        if (!to.query) {
+          return to.pathname;
+        }
+
+        return `${to.pathname}?${qs.stringify(to.query)}`;
+      }
+
+      return '';
+    }),
     location: TestStubs.location(),
     createPath: jest.fn(),
     routes: [],

@@ -210,21 +210,21 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
         )
 
     assert snuba_queries["metrics_counters"]["totals"] == expected_query(
-        "metrics_counters", ("sum", "value", "value"), []
+        "metrics_counters", ("sum", "value", "sum"), []
     )
 
-    expected_percentile_select = ("quantiles(0.5,0.75,0.9,0.95,0.99)", "value", "percentiles")
+    expected_percentile_select = ("quantiles(0.95)", "value", "p95")
     assert snuba_queries == {
         "metrics_counters": {
-            "totals": expected_query("metrics_counters", ("sum", "value", "value"), []),
+            "totals": expected_query("metrics_counters", ("sum", "value", "sum"), []),
             "series": expected_query(
-                "metrics_counters", ("sum", "value", "value"), [Column("bucketed_time")]
+                "metrics_counters", ("sum", "value", "sum"), [Column("bucketed_time")]
             ),
         },
         "metrics_sets": {
-            "totals": expected_query("metrics_sets", ("uniq", "value", "value"), []),
+            "totals": expected_query("metrics_sets", ("uniq", "value", "count_unique"), []),
             "series": expected_query(
-                "metrics_sets", ("uniq", "value", "value"), [Column("bucketed_time")]
+                "metrics_sets", ("uniq", "value", "count_unique"), [Column("bucketed_time")]
             ),
         },
         "metrics_distributions": {
@@ -267,7 +267,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
     assert counter_queries["totals"] == Query(
         dataset="metrics",
         match=Entity("metrics_counters"),
-        select=[Function("sum", [Column("value")], "value")],
+        select=[Function("sum", [Column("value")], "sum")],
         groupby=[
             Column("metric_id"),
             Column("tags[8]"),
@@ -281,7 +281,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(Column("tags[6]", entity=None), Op.IN, [10]),
         ],
-        orderby=[OrderBy(Column("value"), Direction.DESC)],
+        orderby=[OrderBy(Column("sum"), Direction.DESC)],
         limit=Limit(3),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
@@ -317,12 +317,12 @@ def test_translate_results(_1, _2, mock_indexer):
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,  # session.status:healthy
-                        "value": 300,
+                        "sum": 300,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 14,  # session.status:abnormal
-                        "value": 330,
+                        "sum": 330,
                     },
                 ],
             },
@@ -332,25 +332,25 @@ def test_translate_results(_1, _2, mock_indexer):
                         "metric_id": 9,  # session
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "value": 100,
+                        "sum": 100,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "value": 110,
+                        "sum": 110,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "value": 200,
+                        "sum": 200,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "value": 220,
+                        "sum": 220,
                     },
                 ],
             },
@@ -362,13 +362,15 @@ def test_translate_results(_1, _2, mock_indexer):
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
                         "max": 123.4,
-                        "percentiles": [1, 2, 3, 4, 5],
+                        "p50": [1],
+                        "p95": [4],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 14,
                         "max": 456.7,
-                        "percentiles": [1.5, 2.5, 3.5, 4.5, 5.5],
+                        "p50": [1.5],
+                        "p95": [4.5],
                     },
                 ],
             },
@@ -379,28 +381,32 @@ def test_translate_results(_1, _2, mock_indexer):
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-24T00:00Z",
                         "max": 10.1,
-                        "percentiles": [1.1, 2.1, 3.1, 4.1, 5.1],
+                        "p50": [1.1],
+                        "p95": [4.1],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
                         "max": 20.2,
-                        "percentiles": [1.2, 2.2, 3.2, 4.2, 5.2],
+                        "p50": [1.2],
+                        "p95": [4.2],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-25T00:00Z",
                         "max": 30.3,
-                        "percentiles": [1.3, 2.3, 3.3, 4.3, 5.3],
+                        "p50": [1.3],
+                        "p95": [4.3],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
                         "max": 40.4,
-                        "percentiles": [1.4, 2.4, 3.4, 4.4, 5.4],
+                        "p50": [1.4],
+                        "p95": [4.4],
                     },
                 ],
             },
@@ -463,7 +469,7 @@ def test_translate_results_missing_slots(_1, _2, mock_indexer):
                 "data": [
                     {
                         "metric_id": 9,  # session
-                        "value": 400,
+                        "sum": 400,
                     },
                 ],
             },
@@ -472,13 +478,13 @@ def test_translate_results_missing_slots(_1, _2, mock_indexer):
                     {
                         "metric_id": 9,  # session
                         "bucketed_time": "2021-08-23T00:00Z",
-                        "value": 100,
+                        "sum": 100,
                     },
                     # no data for 2021-08-24
                     {
                         "metric_id": 9,  # session
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "value": 300,
+                        "sum": 300,
                     },
                 ],
             },

@@ -7,7 +7,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
@@ -102,7 +102,7 @@ const InnerContent = (
   const [tagSelected, _changeTagSelected] = useState(initialTag);
 
   const changeTagSelected = (tagKey: string) => {
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       tagKey,
     });
@@ -121,7 +121,7 @@ const InnerContent = (
   }, [initialTag]);
 
   const handleSearch = (query: string) => {
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });
@@ -249,7 +249,7 @@ const RadioLabel = styled('label')`
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const SidebarTagValue = styled('span')`
@@ -270,7 +270,7 @@ const ReversedLayoutBody = styled('div')`
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
-    grid-gap: ${space(3)};
+    gap: ${space(3)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {

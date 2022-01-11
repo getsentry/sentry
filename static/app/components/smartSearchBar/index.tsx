@@ -11,7 +11,7 @@ import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/saved
 import {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownLink from 'sentry/components/dropdownLink';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {
   FilterType,
   ParseResult,
@@ -779,7 +779,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       }
 
       const {location} = this.props;
-      const endpointParams = getParams(location.query);
+      const endpointParams = normalizeDateTimeParams(location.query);
 
       this.setState({loading: true});
       let values: string[] = [];
@@ -1458,7 +1458,7 @@ const Container = styled('div')<{isOpen: boolean}>`
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: start;
 
   border-radius: ${p =>
