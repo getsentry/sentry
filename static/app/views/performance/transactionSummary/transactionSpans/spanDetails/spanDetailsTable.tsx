@@ -12,7 +12,7 @@ import Pagination from 'sentry/components/pagination';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
 import Tooltip from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -225,7 +225,12 @@ function SpanDurationBar(props: SpanDurationBarProps) {
   return (
     <DurationBar>
       <div style={{width: toPercent(widthPercentage)}}>
-        <Tooltip title={formatPercentage(widthPercentage)} containerDisplayMode="block">
+        <Tooltip
+          title={tct('[percentage] of the transaction', {
+            percentage: formatPercentage(widthPercentage),
+          })}
+          containerDisplayMode="block"
+        >
           <DurationBarSection
             spanBarHatch={false}
             style={{backgroundColor: pickBarColor(spanOp)}}
