@@ -1968,6 +1968,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             entity = Entity(EntityKey.MetricsSets.value)
             having_clause = [Condition(users_column, Op.GT, 0)]
 
+        # Partial tiebreaker to make comparisons in the release-health duplex
+        # backend more likely to succeed. A perfectly stable sorting would need to
+        # additionally sort by `release`, however in the metrics backend we can't
+        # sort by that the same way as in the sessions backend.
+        order_by_clause.append(OrderBy(Column("project_id"), Direction.DESC))
+
         query = Query(
             dataset=Dataset.Metrics.value,
             match=entity,
