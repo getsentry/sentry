@@ -4,6 +4,7 @@ from itertools import chain
 
 from django.db.models import Count, ExpressionWrapper, F, IntegerField, Min, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce, TruncDay
+from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -48,6 +49,9 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
         oldest_history_date = GroupHistory.objects.filter_to_team(team).aggregate(
             Min("date_added"),
         )["date_added__min"]
+
+        if oldest_history_date is None:
+            oldest_history_date = timezone.now()
 
         project_unresolved = {
             r["project"]: r["unresolved"]
