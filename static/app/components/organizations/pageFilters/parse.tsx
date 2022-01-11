@@ -207,7 +207,7 @@ type DateTimeNormalizeOptions = {
  * NOTE: This has some additional functionality for handling `page*` filters
  *       that will override the standard `start`/`end`/`statsPeriod` filters.
  *
- * NOTE: This does *NOT* noramlize the `project` or `environment` components of
+ * NOTE: This does *NOT* normalize the `project` or `environment` components of
  *       the page filter parameters. See `getStateFromQuery` for normalization
  *       of the project and environment parameters.
  */
