@@ -201,12 +201,12 @@ const COLUMN_ORDER: Record<SpanSort, TableColumnKey[]> = {
 const COLUMNS: Record<TableColumnKey, TableColumn> = {
   operation: {
     key: 'operation',
-    name: t('Operation'),
+    name: t('Span Operation'),
     width: COL_WIDTH_UNDEFINED,
   },
   description: {
     key: 'description',
-    name: t('Description'),
+    name: t('Span Name'),
     width: COL_WIDTH_UNDEFINED,
   },
   totalCount: {
