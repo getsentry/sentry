@@ -833,7 +833,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         project_ids: Sequence[ProjectId],
     ) -> Sequence[ProjectRelease]:
         rollup = self.DEFAULT_ROLLUP  # not used
-        schema = [ComparatorType.Exact]
+        schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
+
         should_compare = (
             lambda _: datetime.now(timezone.utc) - timedelta(days=3) > self.metrics_start
         )
@@ -989,7 +990,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[str]] = None,
     ) -> Sequence[ProjectRelease]:
-        schema = [ComparatorType.Exact]
+        schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
+
+        set_tag("get_project_releases_by_stability.limit", str(limit))
+        set_tag("get_project_releases_by_stability.offset", str(offset))
+        set_tag("get_project_releases_by_stability.scope", str(scope))
 
         if stats_period is None:
             stats_period = "24h"
