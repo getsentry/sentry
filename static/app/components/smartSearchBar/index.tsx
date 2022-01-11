@@ -1078,6 +1078,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       }
 
       // show operator autocomplete group
+      debugger();
       const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
       this.updateAutoCompleteStateMultiHeader([opGroup]);
       return;
