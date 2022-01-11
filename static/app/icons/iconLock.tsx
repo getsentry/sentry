@@ -2,10 +2,7 @@ import * as React from 'react';
 
 import SvgIcon, {SVGIconProps} from './svgIcon';
 
-const IconLock = React.forwardRef<SVGSVGElement, SVGIconProps>(function IconLock(
-  props: SVGIconProps,
-  ref: React.Ref<SVGSVGElement>
-) {
+const IconLock = React.forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M12.42,7.19h-1.5V4.34a2.84,2.84,0,1,0-5.67,0V7.19H3.75V4.34a4.34,4.34,0,1,1,8.67,0Z" />

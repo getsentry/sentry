@@ -2,10 +2,7 @@ import * as React from 'react';
 
 import SvgIcon, {SVGIconProps} from './svgIcon';
 
-const IconToggle = React.forwardRef<SVGSVGElement, SVGIconProps>(function IconToggle(
-  props: SVGIconProps,
-  ref: React.Ref<SVGSVGElement>
-) {
+const IconToggle = React.forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
     <SvgIcon {...props} ref={ref}>
       <circle cx="5.36" cy="8" r="3.08" />

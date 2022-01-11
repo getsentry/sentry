@@ -2,10 +2,7 @@ import * as React from 'react';
 
 import SvgIcon, {SVGIconProps} from './svgIcon';
 
-const IconEllipsis = React.forwardRef<SVGSVGElement, SVGIconProps>(function IconEllipsis(
-  props: SVGIconProps,
-  ref: React.Ref<SVGSVGElement>
-) {
+const IconEllipsis = React.forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
     <SvgIcon {...props} ref={ref}>
       <circle cx="8" cy="8" r="1.31" />
