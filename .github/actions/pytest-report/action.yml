@@ -1,0 +1,31 @@
+name: 'pytest report handler'
+description: 'Save pytest report (junit) to GHA Artifacts'
+inputs:
+  action:
+    description: "The action to take with the report (download / upload)"
+    default: download
+    required: true
+  path:
+    description: "Path to use when uploading, supports the same values as https://github.com/actions/upload-artifact"
+    required: false
+    default: .artifacts/*.junit.xml
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: mkdir .pytest_report
+
+    - name: Download report
+      if: inputs.action != 'upload'
+      uses: actions/download-artifact@v2
+      with:
+        name: pytest-report
+        path: .pytest_report
+
+    - name: Upload report
+      if: inputs.action == 'upload'
+      uses: actions/upload-artifact@v2
+      with:
+        name: pytest-report
+        path: ${{ inputs.path }}
