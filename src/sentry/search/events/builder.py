@@ -108,19 +108,18 @@ class QueryBuilder(QueryFilter):  # type: ignore
                     f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): {function_msg}"
                 )
 
-    def validate_having_clause(self) -> None:
-        """Validate that the functions in having are selected columns
-
-        Skipped if auto_aggregations are enabled, and at least one other aggregate is selected
-        This is so we don't change grouping suddenly
+    @property
+    def flattened_having(self) -> List[Condition]:
+        """Return self.having as a flattened list ignoring boolean operators
+        This is because self.having can have a mix of BooleanConditions and Conditions. And each BooleanCondition can in
+        turn be a mix of either type.
         """
-        # construct the list of each condition, this is so many steps cause self.having can be a mix of
-        # BooleanConditions and Conditions.
-        to_check: List[Condition] = []
+        flattened: List[Condition] = []
         boolean_conditions: List[BooleanCondition] = []
+
         for condition in self.having:
             if isinstance(condition, Condition):
-                to_check.append(condition)
+                flattened.append(condition)
             elif isinstance(condition, BooleanCondition):
                 boolean_conditions.append(condition)
 
@@ -128,12 +127,22 @@ class QueryBuilder(QueryFilter):  # type: ignore
             boolean_condition = boolean_conditions.pop()
             for condition in boolean_condition.conditions:
                 if isinstance(condition, Condition):
-                    to_check.append(condition)
+                    flattened.append(condition)
                 elif isinstance(condition, BooleanCondition):
                     boolean_conditions.append(condition)
 
+        return flattened
+
+    def validate_having_clause(self) -> None:
+        """Validate that the functions in having are selected columns
+
+        Skipped if auto_aggregations are enabled, and at least one other aggregate is selected
+        This is so we don't change grouping suddenly
+        """
+
+        conditions = self.flattened_having
         if self.auto_aggregations and self.aggregates:
-            for condition in to_check:
+            for condition in conditions:
                 lhs = condition.lhs
                 if isinstance(lhs, CurriedFunction) and lhs not in self.columns:
                     self.columns.append(lhs)
@@ -142,9 +151,9 @@ class QueryBuilder(QueryFilter):  # type: ignore
         # If auto aggregations is disabled or aggregations aren't present in the first place we throw an error
         else:
             error_extra = ", and could not be automatically added" if self.auto_aggregations else ""
-            for condition in to_check:
+            for condition in conditions:
                 lhs = condition.lhs
-                if lhs not in self.columns:
+                if isinstance(lhs, CurriedFunction) and lhs not in self.columns:
                     raise InvalidSearchQuery(
                         "Aggregate {} used in a condition but is not a selected column{}.".format(
                             lhs.alias,
