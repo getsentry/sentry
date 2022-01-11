@@ -1,8 +1,7 @@
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
-from rest_framework import serializers
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -92,24 +91,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
         request=None,
         responses={
-            200: inline_serializer(
-                "SCIMMember",
-                fields={
-                    "schemas": serializers.CharField(),
-                    "id": serializers.CharField(),
-                    "userName": serializers.CharField(),
-                    "emails": inline_serializer(
-                        "SCIMMemberEmails",
-                        fields={
-                            "primary": serializers.BooleanField(),
-                            "value": serializers.CharField(),
-                            "type": serializers.CharField(),
-                        },
-                        many=True,
-                    ),
-                },
-                many=True,
-            ),
+            200: OrganizationMemberSCIMSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
