@@ -168,10 +168,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         return interval
 
     def validate_layout(self, layout):
-        VALID_KEYS = {"x", "y", "w", "h", "minW", "maxW", "minH", "maxH"}
+        VALID_KEYS = {"i", "x", "y", "w", "h", "minW", "maxW", "minH", "maxH"}
         invalid_keys = set(layout.keys()) - VALID_KEYS
         if invalid_keys:
             raise serializers.ValidationError({"layout": "has invalid keys"})
+        if "i" in layout.keys():
+            # Ignore "i" because the key can be derived from the widget id
+            del layout["i"]
         return layout
 
     def validate(self, data):
