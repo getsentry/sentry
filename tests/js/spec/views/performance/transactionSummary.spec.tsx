@@ -50,7 +50,7 @@ function initializeData({
   return initialData;
 }
 
-const WrappedComponent = ({
+const TestComponent = ({
   organization,
   isMetricsData = false,
   ...props
@@ -293,7 +293,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -334,7 +334,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -354,7 +354,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -399,7 +399,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <WrappedComponent
+      <TestComponent
         organization={organization}
         location={router.location}
         isMetricsData
@@ -467,7 +467,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -496,7 +496,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -512,7 +512,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -539,7 +539,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -566,7 +566,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -595,7 +595,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -630,7 +630,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -658,7 +658,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -680,7 +680,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -693,7 +693,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -717,7 +717,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }

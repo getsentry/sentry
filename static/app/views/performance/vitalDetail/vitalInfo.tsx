@@ -28,6 +28,7 @@ type Props = ViewProps & {
   hideStates?: boolean;
   hideVitalPercentNames?: boolean;
   hideDurationDetail?: boolean;
+  p75AllTransactions?: number;
   isMetricsData?: boolean;
 };
 
@@ -44,6 +45,7 @@ function VitalInfo({
   hideStates,
   hideVitalPercentNames,
   hideDurationDetail,
+  p75AllTransactions,
   isMetricsData,
 }: Props) {
   const api = useApi();
@@ -82,6 +84,11 @@ function VitalInfo({
             });
             return acc;
           }, {});
+
+          if (!Array.isArray(vital)) {
+            data[vital].p75 = p75AllTransactions ?? 0;
+          }
+
           return <VitalBar {...contentCommonProps} isLoading={isLoading} data={data} />;
         }}
       </MetricsRequest>

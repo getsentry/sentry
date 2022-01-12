@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -25,6 +25,7 @@ import {generateQueryWithTag} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
+import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -36,8 +37,9 @@ import {MetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
 import Table from './table';
-import {vitalDescription, vitalMap} from './utils';
+import {vitalDescription, vitalMap, vitalToMetricsField} from './utils';
 import VitalChart from './vitalChart';
+import VitalChartMetrics from './vitalChartMetrics';
 import VitalInfo from './vitalInfo';
 
 const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
@@ -65,7 +67,7 @@ function getSummaryConditions(query: string) {
   return parsed.formatString();
 }
 
-class VitalDetailContent extends React.Component<Props, State> {
+class VitalDetailContent extends Component<Props, State> {
   state: State = {
     incompatibleAlertNotice: null,
     error: undefined,
@@ -182,15 +184,11 @@ class VitalDetailContent extends React.Component<Props, State> {
     );
   }
 
-  render() {
-    const {isMetricsData, location, organization, eventView, vitalName, projects} =
-      this.props;
-    const {incompatibleAlertNotice} = this.state;
-
-    const {start, end, statsPeriod, environment, project: projectIds} = eventView;
-
+  renderContent(vital: WebVital) {
+    const {isMetricsData, location, organization, eventView, api, projects} = this.props;
     const query = decodeScalar(location.query.query, '');
     const orgSlug = organization.slug;
+    const {start, end, statsPeriod, environment, project: projectIds} = eventView;
     const localDateStart = start ? getUtcToLocalDateObject(start) : null;
     const localDateEnd = end ? getUtcToLocalDateObject(end) : null;
     const interval = getInterval(
@@ -198,11 +196,145 @@ class VitalDetailContent extends React.Component<Props, State> {
       'high'
     );
 
-    const vital = vitalName || WebVital.LCP;
+    if (isMetricsData) {
+      const field = `p75(${vitalToMetricsField[vital]})`;
+
+      return (
+        <Fragment>
+          <StyledMetricsSearchBar
+            searchSource="performance_vitals_metrics"
+            orgSlug={orgSlug}
+            projectIds={projectIds}
+            query={query}
+            onSearch={this.handleSearch}
+          />
+          <MetricsRequest
+            api={api}
+            orgSlug={orgSlug}
+            start={start}
+            end={end}
+            statsPeriod={statsPeriod}
+            project={projectIds}
+            environment={environment}
+            field={[field]}
+            query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
+            interval={interval}
+          >
+            {({loading: isLoading, response, reloading, errored}) => {
+              const p75AllTransactions = response?.groups.reduce(
+                (acc, group) => acc + (group.totals[field] ?? 0),
+                0
+              );
+              return (
+                <Fragment>
+                  <VitalChartMetrics
+                    start={localDateStart}
+                    end={localDateEnd}
+                    statsPeriod={statsPeriod}
+                    project={projectIds}
+                    environment={environment}
+                    loading={isLoading}
+                    response={response}
+                    errored={errored}
+                    reloading={reloading}
+                    field={field}
+                    vital={vital}
+                  />
+                  <StyledVitalInfo>
+                    <VitalInfo
+                      orgSlug={orgSlug}
+                      location={location}
+                      vital={vital}
+                      project={eventView.project}
+                      environment={eventView.environment}
+                      start={eventView.start}
+                      end={eventView.end}
+                      statsPeriod={eventView.statsPeriod}
+                      isMetricsData={isMetricsData}
+                      p75AllTransactions={p75AllTransactions}
+                    />
+                  </StyledVitalInfo>
+                  <div>TODO</div>
+                </Fragment>
+              );
+            }}
+          </MetricsRequest>
+        </Fragment>
+      );
+    }
+
     const filterString = getTransactionSearchQuery(location);
+    const summaryConditions = getSummaryConditions(filterString);
 
     return (
-      <React.Fragment>
+      <Fragment>
+        <StyledSearchBar
+          searchSource="performance_vitals"
+          organization={organization}
+          projectIds={eventView.project}
+          query={query}
+          fields={eventView.fields}
+          onSearch={this.handleSearch}
+        />
+        <VitalChart
+          organization={organization}
+          query={query}
+          project={projectIds}
+          environment={environment}
+          start={localDateStart}
+          end={localDateEnd}
+          statsPeriod={statsPeriod}
+          interval={interval}
+        />
+        <StyledVitalInfo>
+          <VitalInfo
+            orgSlug={orgSlug}
+            location={location}
+            vital={vital}
+            project={eventView.project}
+            environment={eventView.environment}
+            start={eventView.start}
+            end={eventView.end}
+            statsPeriod={eventView.statsPeriod}
+            isMetricsData={isMetricsData}
+          />
+        </StyledVitalInfo>
+
+        <Teams provideUserTeams>
+          {({teams, initiallyLoaded}) =>
+            initiallyLoaded ? (
+              <TeamKeyTransactionManager.Provider
+                organization={organization}
+                teams={teams}
+                selectedTeams={['myteams']}
+                selectedProjects={eventView.project.map(String)}
+              >
+                <Table
+                  eventView={eventView}
+                  projects={projects}
+                  organization={organization}
+                  location={location}
+                  setError={this.setError}
+                  summaryConditions={summaryConditions}
+                />
+              </TeamKeyTransactionManager.Provider>
+            ) : (
+              <LoadingIndicator />
+            )
+          }
+        </Teams>
+      </Fragment>
+    );
+  }
+
+  render() {
+    const {location, organization, vitalName} = this.props;
+    const {incompatibleAlertNotice} = this.state;
+
+    const vital = vitalName || WebVital.LCP;
+
+    return (
+      <Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumb
@@ -229,74 +361,10 @@ class VitalDetailContent extends React.Component<Props, State> {
           )}
           <Layout.Main fullWidth>
             <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
-            {isMetricsData ? (
-              <StyledMetricsSearchBar
-                searchSource="performance_vitals_metrics"
-                orgSlug={orgSlug}
-                projectIds={eventView.project}
-                query={query}
-                onSearch={this.handleSearch}
-              />
-            ) : (
-              <StyledSearchBar
-                searchSource="performance_vitals"
-                organization={organization}
-                projectIds={eventView.project}
-                query={query}
-                fields={eventView.fields}
-                onSearch={this.handleSearch}
-              />
-            )}
-            <VitalChart
-              organization={organization}
-              query={query}
-              project={projectIds}
-              environment={environment}
-              start={localDateStart}
-              end={localDateEnd}
-              statsPeriod={statsPeriod}
-              interval={interval}
-            />
-            <StyledVitalInfo>
-              <VitalInfo
-                orgSlug={orgSlug}
-                location={location}
-                vital={vital}
-                project={eventView.project}
-                environment={eventView.environment}
-                start={eventView.start}
-                end={eventView.end}
-                statsPeriod={eventView.statsPeriod}
-                isMetricsData={isMetricsData}
-              />
-            </StyledVitalInfo>
-
-            <Teams provideUserTeams>
-              {({teams, initiallyLoaded}) =>
-                initiallyLoaded ? (
-                  <TeamKeyTransactionManager.Provider
-                    organization={organization}
-                    teams={teams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <Table
-                      eventView={eventView}
-                      projects={projects}
-                      organization={organization}
-                      location={location}
-                      setError={this.setError}
-                      summaryConditions={getSummaryConditions(filterString)}
-                    />
-                  </TeamKeyTransactionManager.Provider>
-                ) : (
-                  <LoadingIndicator />
-                )
-              }
-            </Teams>
+            {this.renderContent(vital)}
           </Layout.Main>
         </Layout.Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
