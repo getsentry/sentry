@@ -10,6 +10,7 @@ from sentry.models import (
 )
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from tests.acceptance.page_objects.dashboard_detail import DashboardDetailPage
 
 FEATURE_NAMES = [
     "organizations:discover-basic",
@@ -28,60 +29,42 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         min_ago = iso_format(before_now(minutes=1))
-        self.default_path = f"/organizations/{self.organization.slug}/dashboard/default-overview/"
         self.store_event(
             data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
             project_id=self.project.id,
         )
+        self.page = DashboardDetailPage(self.browser, self.client, self.organization)
         self.login_as(self.user)
-
-    def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
-        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def test_view_dashboard(self):
         with self.feature(FEATURE_NAMES):
-            self.browser.get(self.default_path)
-            self.wait_until_loaded()
+            self.page.visit_default_overview()
             self.browser.snapshot("dashboards - default overview")
 
     def test_view_dashboard_with_manager(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.browser.get(self.default_path)
-            self.wait_until_loaded()
+            self.page.visit_default_overview()
             self.browser.snapshot("dashboards - default overview manager")
 
     def test_edit_dashboard(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.browser.get(self.default_path)
-            self.wait_until_loaded()
-
-            button = self.browser.element('[data-test-id="dashboard-edit"]')
-            button.click()
+            self.page.visit_default_overview()
+            self.page.enter_edit_state()
             self.browser.snapshot("dashboards - edit state")
 
     def test_add_widget(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.browser.get(self.default_path)
-            self.wait_until_loaded()
-
-            # Go to edit mode.
-            button = self.browser.element('[data-test-id="dashboard-edit"]')
-            button.click()
+            self.page.visit_default_overview()
+            self.page.enter_edit_state()
 
             # Add a widget
-            button = self.browser.element('[data-test-id="widget-add"]')
-            button.click()
+            self.page.click_dashboard_add_widget_button()
             self.browser.snapshot("dashboards - add widget")
 
     def test_edit_widget(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.browser.get(self.default_path)
-            self.wait_until_loaded()
-
-            # Go to edit mode.
-            button = self.browser.element('[data-test-id="dashboard-edit"]')
-            button.click()
+            self.page.visit_default_overview()
+            self.page.enter_edit_state()
 
             # Edit the first widget.
             button = self.browser.element('[data-test-id="widget-edit"]')
@@ -90,16 +73,14 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
     def test_widget_library(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
-            self.browser.get(self.default_path)
-            self.wait_until_loaded()
+            self.page.visit_default_overview()
 
-            # Go to edit mode.
-            button = self.browser.element('[data-test-id="add-widget-library"]')
-            button.click()
+            # Open widget library
+            self.page.click_dashboard_header_add_widget_button()
 
             self.browser.element('[data-test-id="library-tab"]').click()
 
-            # Edit the first widget.
+            # Select/deselect widget library cards
             self.browser.element('[data-test-id="widget-library-card-0"]').click()
             self.browser.element('[data-test-id="widget-library-card-2"]').click()
             self.browser.element('[data-test-id="widget-library-card-3"]').click()
