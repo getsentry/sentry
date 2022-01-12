@@ -286,7 +286,6 @@ describe('Performance > TransactionSummary', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
-    TeamStore.reset();
     jest.clearAllMocks();
   });
 
@@ -383,7 +382,7 @@ describe('Performance > TransactionSummary', function () {
     const metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByMeasurementRating({fields}),
+      body: TestStubs.MetricsFieldsByMeasurementRating({fields}),
     });
 
     MockApiClient.addMockResponse({
