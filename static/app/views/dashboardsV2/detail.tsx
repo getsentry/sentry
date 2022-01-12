@@ -435,15 +435,13 @@ class DashboardDetail extends Component<Props, State> {
                 onDashboardUpdate(newDashboard);
               }
 
+              let newLayout;
               if (organization.features.includes('dashboard-grid-layout')) {
-                const newLayout = this.saveLayoutWithNewWidgets(
+                newLayout = this.saveLayoutWithNewWidgets(
                   organization.id,
                   newDashboard.id,
                   newDashboard.widgets
                 );
-                // Unset modifiedDashboard and set newLayout at the same time
-                // to render newLayout with updated dashboard prop
-                this.setState({layout: newLayout, modifiedDashboard: null});
               }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalyticsEvent({
@@ -454,6 +452,7 @@ class DashboardDetail extends Component<Props, State> {
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
+                layout: newLayout ?? layout,
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
