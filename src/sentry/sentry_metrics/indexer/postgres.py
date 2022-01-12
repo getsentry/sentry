@@ -4,6 +4,10 @@ from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.utils import metrics
 from sentry.utils.services import Service
 
+_INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
+_INDEXER_CACHE_HIT_METRIC = "sentry_metrics.indexer.memcache.hit"
+_INDEXER_CACHE_MISS_METRIC = "sentry_metrics.indexer.memcache.miss"
+
 
 class PGStringIndexer(Service):  # type: ignore
     """
@@ -35,18 +39,18 @@ class PGStringIndexer(Service):  # type: ignore
 
         mapped_result: MutableMapping[str, int] = {r.string: r.id for r in cache_results}
 
-        metrics.incr("sentry_metrics.indexer.memcache.fetch", amount=len(strings))
+        metrics.incr(_INDEXER_CACHE_FETCH_METRIC, amount=len(strings))
         unmapped = set(strings).difference(mapped_result.keys())
         if not unmapped:
             # This will probably be very rare in practice since for each batch of strings
             # it's almost certain there would be a value we haven't seen before
-            metrics.incr("sentry_metrics.indexer.memcache.hit", amount=len(strings))
-            metrics.incr("sentry_metrics.indexer.memcache.miss", amount=0)
+            metrics.incr(_INDEXER_CACHE_HIT_METRIC, amount=len(strings))
+            metrics.incr(_INDEXER_CACHE_MISS_METRIC, amount=0)
             return mapped_result
-        else:
-            mapped = len(strings) - len(unmapped)
-            metrics.incr("sentry_metrics.indexer.memcache.hit", amount=mapped)
-            metrics.incr("sentry_metrics.indexer.memcache.miss", amount=len(unmapped))
+
+        mapped = len(strings) - len(unmapped)
+        metrics.incr(_INDEXER_CACHE_HIT_METRIC, amount=mapped)
+        metrics.incr(_INDEXER_CACHE_MISS_METRIC, amount=len(unmapped))
 
         with metrics.timer("sentry_metrics.indexer._bulk_record"):
             new_mapped = self._bulk_record(unmapped)
