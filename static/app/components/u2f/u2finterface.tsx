@@ -31,6 +31,7 @@ type State = {
   isSupported: boolean | null;
   hasBeenTapped: boolean;
   deviceFailure: string | null;
+  failCount: number; // ask for permission if fail <= 1
 };
 
 class U2fInterface extends React.Component<Props, State> {
@@ -41,6 +42,7 @@ class U2fInterface extends React.Component<Props, State> {
     hasBeenTapped: false,
     deviceFailure: null,
     responseElement: null,
+    failCount: 0,
   };
 
   async componentDidMount() {
@@ -144,6 +146,7 @@ class U2fInterface extends React.Component<Props, State> {
         this.setState({
           deviceFailure: failure,
           hasBeenTapped: false,
+          failCount: this.state.failCount + 1,
         });
       });
   }
@@ -258,6 +261,21 @@ class U2fInterface extends React.Component<Props, State> {
     return this.state.deviceFailure !== 'BAD_APPID';
   }
 
+  get buttonMessage() {
+    if (this.props.flowMode === 'enroll') {
+      return t('Enroll with WebAuthn');
+    }
+    return t('Sign in with WebAuthn');
+  }
+
+  renderSafariWebAuthn = () => {
+    return (
+      <a onClick={this.onTryAgain} className="btn btn-primary">
+        {this.buttonMessage}
+      </a>
+    );
+  };
+
   renderFailure = () => {
     const {deviceFailure} = this.state;
     const supportMail = ConfigStore.get('supportEmail');
@@ -266,6 +284,13 @@ class U2fInterface extends React.Component<Props, State> {
     ) : (
       <span>{t('Support')}</span>
     );
+    if (
+      this.state.failCount === 1 &&
+      navigator.userAgent.indexOf('Safari') !== -1 &&
+      navigator.userAgent.indexOf('Chrome') === -1
+    ) {
+      return this.renderSafariWebAuthn();
+    }
     return (
       <div className="failure-message">
         <div>
@@ -315,7 +340,13 @@ class U2fInterface extends React.Component<Props, State> {
         className={
           'u2f-box' +
           (this.state.hasBeenTapped ? ' tapped' : '') +
-          (this.state.deviceFailure ? ' device-failure' : '')
+          (this.state.deviceFailure
+            ? this.state.failCount === 1 &&
+              navigator.userAgent.indexOf('Safari') !== -1 &&
+              navigator.userAgent.indexOf('Chrome') === -1
+              ? ' loading-dots'
+              : ' device-failure'
+            : '')
         }
       >
         <div className="device-animation-frame">
