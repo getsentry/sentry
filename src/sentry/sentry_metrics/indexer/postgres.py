@@ -35,7 +35,7 @@ class PGStringIndexer(Service):  # type: ignore
 
         mapped_result: MutableMapping[str, int] = {r.string: r.id for r in cache_results}
 
-        metrics.incr("sentry_metrics.indexer.memcache.fetched", amount=len(strings))
+        metrics.incr("sentry_metrics.indexer.memcache.fetch", amount=len(strings))
         unmapped = set(strings).difference(mapped_result.keys())
         if not unmapped:
             # This will probably be very rare in practice since for each batch of strings
