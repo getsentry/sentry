@@ -1,13 +1,8 @@
 import * as React from 'react';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon>;
-
-const IconClock = React.forwardRef(function IconClock(
-  props: Props,
-  ref: React.Ref<SVGSVGElement>
-) {
+const IconClock = React.forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.52A6.48,6.48,0,1,0,14.48,8,6.49,6.49,0,0,0,8,1.52Z" />
