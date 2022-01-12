@@ -31,7 +31,8 @@ type State = {
   isSupported: boolean | null;
   hasBeenTapped: boolean;
   deviceFailure: string | null;
-  failCount: number; // ask for permission if fail <= 1
+  isSafari: boolean;
+  failCount: number;
 };
 
 class U2fInterface extends React.Component<Props, State> {
@@ -42,6 +43,7 @@ class U2fInterface extends React.Component<Props, State> {
     hasBeenTapped: false,
     deviceFailure: null,
     responseElement: null,
+    isSafari: false,
     failCount: 0,
   };
 
@@ -49,11 +51,22 @@ class U2fInterface extends React.Component<Props, State> {
     const supported = this.props.isWebauthnSigninFFEnabled
       ? !!window.PublicKeyCredential
       : await u2f.isSupported();
-
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
 
-    if (supported) {
+    const isSafari =
+      navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
+
+    if (isSafari) {
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({
+        deviceFailure: 'safari error',
+        isSafari,
+        hasBeenTapped: false,
+      });
+    }
+
+    if (supported && !isSafari) {
       this.invokeU2fFlow();
     }
   }
@@ -284,11 +297,7 @@ class U2fInterface extends React.Component<Props, State> {
     ) : (
       <span>{t('Support')}</span>
     );
-    if (
-      this.state.failCount === 1 &&
-      navigator.userAgent.includes('Safari') &&
-      !navigator.userAgent.includes('Chrome')
-    ) {
+    if (this.state.isSafari && this.state.failCount === 0) {
       return this.renderSafariWebAuthn();
     }
     return (
@@ -341,9 +350,7 @@ class U2fInterface extends React.Component<Props, State> {
           'u2f-box' +
           (this.state.hasBeenTapped ? ' tapped' : '') +
           (this.state.deviceFailure
-            ? this.state.failCount === 1 &&
-              navigator.userAgent.includes('Safari') &&
-              !navigator.userAgent.includes('Chrome')
+            ? this.state.failCount === 0 && this.state.isSafari
               ? ' loading-dots'
               : ' device-failure'
             : '')
