@@ -480,6 +480,88 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             assert totals == {"count(sentry.transactions.measurements.lcp)": expected_count}
 
     @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile(self):
+        # Record some strings
+        metric_id = indexer.record("sentry.transactions.measurements.lcp")
+        tag1 = indexer.record("tag1")
+        value1 = indexer.record("value1")
+        value2 = indexer.record("value2")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (tag1, value1, [4, 5, 6]),
+                    (tag1, value2, [1, 2, 3]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="p50(sentry.transactions.measurements.lcp)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy="tag1",
+            orderBy="p50(sentry.transactions.measurements.lcp)",
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("value2", 2),  # value2 comes first because it has the smaller median
+            ("value1", 5),
+        ]
+        for (expected_tag_value, expected_count), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert "series" not in group
+            assert group["by"] == {"tag1": expected_tag_value}
+            totals = group["totals"]
+            assert totals == {"p50(sentry.transactions.measurements.lcp)": expected_count}
+
+    @with_feature(FEATURE_FLAG)
+    def test_groupby_project(self):
+        self.store_session(self.build_session(project_id=self.project2.id))
+        for _ in range(2):
+            self.store_session(self.build_session(project_id=self.project.id))
+
+        response = self.get_response(
+            self.organization.slug,
+            statsPeriod="1h",
+            interval="1h",
+            field="sum(sentry.sessions.session)",
+            groupBy=["project_id", "session.status"],
+            datasource="snuba",
+        )
+
+        assert response.status_code == 200
+
+        groups = response.data["groups"]
+        assert len(groups) >= 2 and all(
+            group["by"].keys() == {"project_id", "session.status"} for group in groups
+        )
+
+        expected = [
+            ({"project_id": self.project2.id, "session.status": "init"}, 1),
+            ({"project_id": self.project.id, "session.status": "init"}, 2),
+        ]
+        for (expected_groupby, expected_count), group in zip(expected, groups):
+            assert group["by"] == expected_groupby
+            totals = group["totals"]
+            assert totals == {"sum(sentry.sessions.session)": expected_count}
+
+    @with_feature(FEATURE_FLAG)
     def test_unknown_groupby(self):
         """Use a tag name in groupby that does not exist in the indexer"""
         # Insert session metrics:
@@ -525,7 +607,6 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             datasource="snuba",
             query="foo:123",  # Unknown tag key
         )
-        print(response.data)
         assert response.status_code == 400
 
         response = self.get_success_response(

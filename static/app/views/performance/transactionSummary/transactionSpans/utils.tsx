@@ -1,19 +1,16 @@
 import {Location, Query} from 'history';
+import pick from 'lodash/pick';
 
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {
-  SpanSlug,
-  SpanSort,
-  SpanSortOption,
-  SpanSortOthers,
-  SpanSortPercentiles,
-} from './types';
+import {SpanSort, SpanSortOption, SpanSortOthers, SpanSortPercentiles} from './types';
 
 export function generateSpansRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/spans/`;
@@ -47,6 +44,16 @@ export function spansRouteWithQuery({
     },
   };
 }
+
+export const SPAN_RETENTION_DAYS = 30;
+
+export const SPAN_RELATIVE_PERIODS = pick(DEFAULT_RELATIVE_PERIODS, [
+  '1h',
+  '24h',
+  '7d',
+  '14d',
+  '30d',
+]);
 
 export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   {
@@ -170,7 +177,6 @@ export function generateSpansEventView({
 export function getTotalsView(eventView: EventView): EventView {
   const totalsView = eventView.withColumns([
     {kind: 'function', function: ['count', '', undefined, undefined]},
-    {kind: 'function', function: ['sum', 'transaction.duration', undefined, undefined]},
   ]);
 
   const conditions = new MutableSearch(eventView.query);

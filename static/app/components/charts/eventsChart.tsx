@@ -46,7 +46,7 @@ import EventsRequest from './eventsRequest';
 type ChartComponent =
   | React.ComponentType<BarChart['props']>
   | React.ComponentType<AreaChart['props']>
-  | React.ComponentType<LineChart['props']>
+  | React.ComponentType<React.ComponentProps<typeof LineChart>>
   | React.ComponentType<React.ComponentProps<typeof WorldMapChart>>;
 
 type ChartProps = {

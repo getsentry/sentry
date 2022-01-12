@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
@@ -12,7 +13,7 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {IconChevron} from 'sentry/icons';
 import {IconFlag} from 'sentry/icons/iconFlag';
@@ -40,6 +41,7 @@ import VitalInfo from './vitalInfo';
 const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
 type Props = {
+  api: Client;
   location: Location;
   eventView: EventView;
   organization: Organization;
@@ -70,7 +72,7 @@ class VitalDetailContent extends React.Component<Props, State> {
   handleSearch = (query: string) => {
     const {location} = this.props;
 
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });
@@ -239,8 +241,9 @@ class VitalDetailContent extends React.Component<Props, State> {
               query={eventView.query}
               project={eventView.project}
               environment={eventView.environment}
-              start={eventView.start}
-              end={eventView.end}
+              start={eventView.start ?? null}
+              end={eventView.end ?? null}
+              interval={eventView.interval ?? ''}
               statsPeriod={eventView.statsPeriod}
             />
             <StyledVitalInfo>

@@ -7,7 +7,7 @@ import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getTooltipArrow} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {EventsStatsData, OrganizationSummary, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -50,12 +50,12 @@ type Props = WithRouterProps &
     organization: OrganizationSummary;
     trendChangeType: TrendChangeType;
     trendFunctionField?: TrendFunctionField;
-    transaction?: NormalizedTrendsTransaction;
     isLoading: boolean;
     statsData: TrendsStats;
     projects: Project[];
+    transaction?: NormalizedTrendsTransaction;
     height?: number;
-    grid?: LineChart['props']['grid'];
+    grid?: React.ComponentProps<typeof LineChart>['grid'];
     disableXAxis?: boolean;
     disableLegend?: boolean;
   };
@@ -287,7 +287,7 @@ export function Chart({
 
   const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
   const end = propsEnd ? getUtcToLocalDateObject(propsEnd) : null;
-  const {utc} = getParams(location.query);
+  const {utc} = normalizeDateTimeParams(location.query);
 
   const seriesSelection = decodeList(
     location.query[getUnselectedSeries(trendChangeType)]

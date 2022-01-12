@@ -81,7 +81,7 @@ class VitalDetail extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router} = this.props;
+    const {organization, location, router, api} = this.props;
     const {eventView} = this.state;
     if (!eventView) {
       browserHistory.replace({
@@ -114,6 +114,7 @@ class VitalDetail extends Component<Props, State> {
                       router={router}
                       vitalName={vitalName || WebVital.LCP}
                       isMetricsData={isMetricsData}
+                      api={api}
                     />
                   )}
                 </MetricsSwitchContext.Consumer>

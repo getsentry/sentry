@@ -1,20 +1,14 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  generateSuspectSpansResponse,
-  SAMPLE_SPANS,
-} from 'sentry-test/performance/initializePerformanceData';
-import {
-  act,
-  fireEvent,
-  mountWithTheme,
-  screen,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
+import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+<<<<<<< HEAD
 import {Organization} from 'sentry/types';
 import {getShortEventId} from 'sentry/utils/events';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+=======
+>>>>>>> master
 import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
 import {
   SpanSortOthers,
@@ -113,7 +107,9 @@ describe('Performance > Transaction Spans', function () {
         {context: initialData.routerContext}
       );
 
-      expect(await screen.findByText('No span data found')).toBeInTheDocument();
+      expect(
+        await screen.findByText('No results found for your query')
+      ).toBeInTheDocument();
     });
   });
 
@@ -121,7 +117,7 @@ describe('Performance > Transaction Spans', function () {
     beforeEach(function () {
       eventsSpansPerformanceMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
-        body: generateSuspectSpansResponse(),
+        body: generateSuspectSpansResponse({examples: 0}),
       });
     });
 
@@ -137,28 +133,18 @@ describe('Performance > Transaction Spans', function () {
         {context: initialData.routerContext}
       );
 
-      const cards = await screen.findAllByTestId('suspect-card');
-      expect(cards).toHaveLength(2);
-      for (let i = 0; i < cards.length; i++) {
-        const card = cards[i];
-        // need to narrow the search to the upper half of the card
-        const upper = await within(card).findByTestId('suspect-card-upper');
+      // default visible columns
+      const grid = await screen.findByTestId('grid-editable');
+      expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
+      expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
+      expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
+      expect(await within(grid).findByText('P75 Exclusive Time')).toBeInTheDocument();
+      expect(await within(grid).findByText('Total Exclusive Time')).toBeInTheDocument();
 
-        // these headers should be present by default
-        expect(await within(upper).findByText('Span Operation')).toBeInTheDocument();
-        expect(await within(upper).findByText('p75 Exclusive Time')).toBeInTheDocument();
-        expect(await within(upper).findByText('Frequency')).toBeInTheDocument();
-        expect(
-          await within(upper).findByText('Total Exclusive Time')
-        ).toBeInTheDocument();
-
-        // only 2 examples show by default
-        for (const example of SAMPLE_SPANS[i].examples.slice(0, 2)) {
-          expect(
-            await within(card).findByText(getShortEventId(example.id))
-          ).toBeInTheDocument();
-        }
-      }
+      // there should be a row for each of the spans
+      expect(await within(grid).findByText('op1')).toBeInTheDocument();
+      expect(await within(grid).findByText('op2')).toBeInTheDocument();
 
       expect(eventsV2Mock).toHaveBeenCalledTimes(1);
       expect(eventsSpanOpsMock).toHaveBeenCalledTimes(1);
@@ -166,10 +152,10 @@ describe('Performance > Transaction Spans', function () {
     });
 
     [
-      {sort: SpanSortPercentiles.P50_EXCLUSIVE_TIME, label: 'p50 Exclusive Time'},
-      {sort: SpanSortPercentiles.P75_EXCLUSIVE_TIME, label: 'p75 Exclusive Time'},
-      {sort: SpanSortPercentiles.P95_EXCLUSIVE_TIME, label: 'p95 Exclusive Time'},
-      {sort: SpanSortPercentiles.P99_EXCLUSIVE_TIME, label: 'p99 Exclusive Time'},
+      {sort: SpanSortPercentiles.P50_EXCLUSIVE_TIME, label: 'P50 Exclusive Time'},
+      {sort: SpanSortPercentiles.P75_EXCLUSIVE_TIME, label: 'P75 Exclusive Time'},
+      {sort: SpanSortPercentiles.P95_EXCLUSIVE_TIME, label: 'P95 Exclusive Time'},
+      {sort: SpanSortPercentiles.P99_EXCLUSIVE_TIME, label: 'P99 Exclusive Time'},
     ].forEach(({sort, label}) => {
       it('renders the right percentile header', async function () {
         const initialData = initializeData({query: {sort}});
@@ -181,27 +167,13 @@ describe('Performance > Transaction Spans', function () {
           {context: initialData.routerContext}
         );
 
-        const cards = await screen.findAllByTestId('suspect-card');
-        expect(cards).toHaveLength(2);
-        for (let i = 0; i < cards.length; i++) {
-          const card = cards[i];
-          // need to narrow the search to the upper half of the card
-          const upper = await within(card).findByTestId('suspect-card-upper');
-
-          // these headers should be present by default
-          expect(await within(upper).findByText('Span Operation')).toBeInTheDocument();
-          expect(await within(upper).findByText(label)).toBeInTheDocument();
-          expect(await within(upper).findByText('Frequency')).toBeInTheDocument();
-          expect(
-            await within(upper).findByText('Total Exclusive Time')
-          ).toBeInTheDocument();
-
-          const arrow = await within(upper).findByTestId('span-sort-arrow');
-          expect(arrow).toBeInTheDocument();
-          expect(
-            await within(arrow.closest('div')!).findByText(label)
-          ).toBeInTheDocument();
-        }
+        const grid = await screen.findByTestId('grid-editable');
+        expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
+        expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
+        expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
+        expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
+        expect(await within(grid).findByText(label)).toBeInTheDocument();
+        expect(await within(grid).findByText('Total Exclusive Time')).toBeInTheDocument();
       });
     });
 
@@ -215,27 +187,13 @@ describe('Performance > Transaction Spans', function () {
         {context: initialData.routerContext}
       );
 
-      const cards = await screen.findAllByTestId('suspect-card');
-      expect(cards).toHaveLength(2);
-      for (let i = 0; i < cards.length; i++) {
-        const card = cards[i];
-        // need to narrow the search to the upper half of the card
-        const upper = await within(card).findByTestId('suspect-card-upper');
-
-        // these headers should be present by default
-        expect(await within(upper).findByText('Span Operation')).toBeInTheDocument();
-        expect(await within(upper).findByText('p75 Exclusive Time')).toBeInTheDocument();
-        expect(await within(upper).findByText('Total Count')).toBeInTheDocument();
-        expect(
-          await within(upper).findByText('Total Exclusive Time')
-        ).toBeInTheDocument();
-
-        const arrow = await within(upper).findByTestId('span-sort-arrow');
-        expect(arrow).toBeInTheDocument();
-        expect(
-          await within(arrow.closest('div')!).findByText('Total Count')
-        ).toBeInTheDocument();
-      }
+      const grid = await screen.findByTestId('grid-editable');
+      expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
+      expect(await within(grid).findByText('Total Count')).toBeInTheDocument();
+      expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
+      expect(await within(grid).findByText('P75 Exclusive Time')).toBeInTheDocument();
+      expect(await within(grid).findByText('Total Exclusive Time')).toBeInTheDocument();
     });
 
     it('renders the right avg occurrence header', async function () {
@@ -248,6 +206,7 @@ describe('Performance > Transaction Spans', function () {
         {context: initialData.routerContext}
       );
 
+<<<<<<< HEAD
       const cards = await screen.findAllByTestId('suspect-card');
       expect(cards).toHaveLength(2);
       for (let i = 0; i < cards.length; i++) {
@@ -341,6 +300,15 @@ describe('Performance > Transaction Spans', function () {
           ).toBeInTheDocument();
         }
       }
+=======
+      const grid = await screen.findByTestId('grid-editable');
+      expect(await within(grid).findByText('Span Operation')).toBeInTheDocument();
+      expect(await within(grid).findByText('Span Name')).toBeInTheDocument();
+      expect(await within(grid).findByText('Average Occurrences')).toBeInTheDocument();
+      expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
+      expect(await within(grid).findByText('P75 Exclusive Time')).toBeInTheDocument();
+      expect(await within(grid).findByText('Total Exclusive Time')).toBeInTheDocument();
+>>>>>>> master
     });
   });
 });

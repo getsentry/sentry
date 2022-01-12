@@ -207,10 +207,6 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                   mehCountField: 'meh',
                   goodCountField: 'good',
                 }}
-                organization={organization}
-                query={eventView.query}
-                project={eventView.project}
-                environment={eventView.environment}
                 grid={{
                   left: space(0),
                   right: space(0),
