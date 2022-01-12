@@ -15,6 +15,7 @@ transactionMetrics:
   extractCustomTags: []
   extractMetrics:
   - sentry.transactions.transaction.duration
+  - sentry.transactions.user
   - sentry.transactions.measurements.app_start_cold
   - sentry.transactions.measurements.app_start_warm
   - sentry.transactions.measurements.cls

@@ -351,6 +351,15 @@ def _filter_option_to_config_setting(flt, setting):
     return ret_val
 
 
+#: Top-level metrics for transactions
+TRANSACTION_METRICS = frozenset(
+    [
+        "sentry.transactions.user",
+        "sentry.transactions.transaction.duration",
+    ]
+)
+
+
 ALL_MEASUREMENT_METRICS = frozenset(
     [
         "sentry.transactions.measurements.fp",
@@ -382,7 +391,7 @@ def get_transaction_metrics_settings(
     custom_tags = []
 
     if features.has("organizations:transaction-metrics-extraction", project.organization):
-        metrics.append("sentry.transactions.transaction.duration")
+        metrics.extend(sorted(TRANSACTION_METRICS))
         # TODO: for now let's extract all known measurements. we might want to
         # be more fine-grained in the future once we know which measurements we
         # really need (or how that can be dynamically determined)
