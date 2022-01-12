@@ -127,7 +127,7 @@ def resolve_weak(string: str) -> int:
 def resolve_many_weak(strings: Sequence[str]) -> Sequence[int]:
     """
     Resolve multiple values at once, omitting missing ones. This is useful in
-    the same way as `resolve_weak` is, except for `WHERE x in values`.
+    the same way as `resolve_weak` is, e.g. `WHERE x in values`.
     """
     rv = []
     for string in strings:
