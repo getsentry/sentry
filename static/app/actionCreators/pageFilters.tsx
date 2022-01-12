@@ -50,7 +50,7 @@ type Options = {
 };
 
 /**
- * Represents the datetime portion of page filters staate
+ * Represents the datetime portion of page filters state
  */
 type DateTimeObject = {
   start?: Date | string | null;
