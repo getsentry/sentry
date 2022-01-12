@@ -7,7 +7,6 @@ from typing import (
     Any,
     Callable,
     Deque,
-    Dict,
     List,
     Mapping,
     MutableMapping,
@@ -64,14 +63,14 @@ def get_metrics():
     return metrics
 
 
-def get_config(topic: str, **options) -> MutableMapping[str, Any]:
+def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapping[str, Any]:
     consumer_config = kafka_config.get_kafka_consumer_cluster_options(
         "default",
         override_params={
             "enable.auto.commit": False,
             "enable.auto.offset.store": False,
-            "group.id": "ingest-metrics-consumer",
-            "default.topic.config": {"auto.offset.reset": "latest"},
+            "group.id": group_id,
+            "default.topic.config": {"auto.offset.reset": auto_offset_reset},
             # overridden to reduce memory usage when there's a large backlog
             "queued.max.messages.kbytes": DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
             "queued.min.messages": DEFAULT_QUEUED_MIN_MESSAGES,
@@ -389,7 +388,9 @@ def get_streaming_metrics_consumer(
     processes: int,
     input_block_size: int,
     output_block_size: int,
-    **options: Dict[str, Union[str, int]],
+    group_id: str,
+    auto_offset_reset: str,
+    **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
 
     processing_factory = MetricsConsumerStrategyFactory(
@@ -400,7 +401,7 @@ def get_streaming_metrics_consumer(
         output_block_size=output_block_size,
     )
     return StreamProcessor(
-        KafkaConsumer(get_config(topic, **options)),
+        KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
         Topic(topic),
         processing_factory,
     )
