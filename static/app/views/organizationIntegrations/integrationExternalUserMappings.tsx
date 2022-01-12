@@ -111,12 +111,13 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {integration} = this.props;
+    const {integration, organization} = this.props;
     const {membersPageLinks} = this.state;
     return (
       <Fragment>
         <IntegrationExternalMappings
           integration={integration}
+          organization={organization}
           type="user"
           mappings={this.mappings}
           onCreateOrEdit={this.openModal}

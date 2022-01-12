@@ -150,11 +150,12 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {integration} = this.props;
+    const {integration, organization} = this.props;
     const {teamsPageLinks} = this.state;
     return (
       <IntegrationExternalMappings
         integration={integration}
+        organization={organization}
         type="team"
         mappings={this.mappings}
         onCreateOrEdit={this.openModal}
