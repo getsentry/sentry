@@ -286,8 +286,8 @@ class U2fInterface extends React.Component<Props, State> {
     );
     if (
       this.state.failCount === 1 &&
-      navigator.userAgent.indexOf('Safari') !== -1 &&
-      navigator.userAgent.indexOf('Chrome') === -1
+      navigator.userAgent.includes('Safari') &&
+      !navigator.userAgent.includes('Chrome')
     ) {
       return this.renderSafariWebAuthn();
     }
@@ -342,8 +342,8 @@ class U2fInterface extends React.Component<Props, State> {
           (this.state.hasBeenTapped ? ' tapped' : '') +
           (this.state.deviceFailure
             ? this.state.failCount === 1 &&
-              navigator.userAgent.indexOf('Safari') !== -1 &&
-              navigator.userAgent.indexOf('Chrome') === -1
+              navigator.userAgent.includes('Safari') &&
+              !navigator.userAgent.includes('Chrome')
               ? ' loading-dots'
               : ' device-failure'
             : '')
