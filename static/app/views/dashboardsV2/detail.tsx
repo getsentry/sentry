@@ -378,6 +378,7 @@ class DashboardDetail extends Component<Props, State> {
     switch (dashboardState) {
       case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
+<<<<<<< HEAD
         if (modifiedDashboard) {
           // Allow duplicate dashboard names when in preview mode
           createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
@@ -390,6 +391,24 @@ class DashboardDetail extends Component<Props, State> {
                   newDashboard.widgets
                 );
               }
+=======
+        if (
+          modifiedDashboard ||
+          (modifiedDashboard && !isEqual(layout, getDashboardLayout(dashboard.widgets)))
+        ) {
+          const newModifiedDashboard = {
+            ...modifiedDashboard,
+            widgets: modifiedDashboard?.widgets.map(widget => {
+              const matchingLayout = layout.find(
+                ({i}) => i === constructGridItemKey(widget)
+              );
+
+              return {...widget, layout: matchingLayout};
+            }),
+          };
+          createDashboard(api, organization.slug, newModifiedDashboard).then(
+            (newDashboard: DashboardDetails) => {
+>>>>>>> bd4c997db5 (wip)
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.create.complete',
@@ -414,34 +433,32 @@ class DashboardDetail extends Component<Props, State> {
         break;
       }
       case DashboardState.EDIT: {
-        // TODO(nar): This should only fire when there are changes to the layout
-        // and the dashboard can be successfully saved
-        if (organization.features.includes('dashboard-grid-layout')) {
-          saveDashboardLayout(organization.id, dashboard.id, layout);
-        }
-
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
-          if (isEqual(dashboard, modifiedDashboard)) {
+          if (
+            isEqual(dashboard, modifiedDashboard) &&
+            isEqual(layout, getDashboardLayout(dashboard.widgets))
+          ) {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
             });
             return;
           }
-          updateDashboard(api, organization.slug, modifiedDashboard).then(
+          const newModifiedDashboard = {
+            ...modifiedDashboard,
+            widgets: modifiedDashboard?.widgets.map(widget => {
+              const matchingLayout = layout.find(
+                ({i}) => i === constructGridItemKey(widget)
+              );
+
+              return {...widget, layout: matchingLayout};
+            }),
+          };
+          updateDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
-              }
-
-              let newLayout;
-              if (organization.features.includes('dashboard-grid-layout')) {
-                newLayout = this.saveLayoutWithNewWidgets(
-                  organization.id,
-                  newDashboard.id,
-                  newDashboard.widgets
-                );
               }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalyticsEvent({
@@ -452,7 +469,6 @@ class DashboardDetail extends Component<Props, State> {
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
-                layout: newLayout ?? layout,
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
