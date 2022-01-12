@@ -38,7 +38,7 @@ describe('EventedProfile', () => {
         {type: 'C', at: 4, frame: 0},
       ],
       shared: {
-        frames: [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}],
+        frames: [{name: 'f0'}, {name: 'f1'}],
       },
     };
 
