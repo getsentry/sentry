@@ -274,17 +274,12 @@ class U2fInterface extends React.Component<Props, State> {
     return this.state.deviceFailure !== 'BAD_APPID';
   }
 
-  get buttonMessage() {
-    if (this.props.flowMode === 'enroll') {
-      return t('Enroll with WebAuthn');
-    }
-    return t('Sign in with WebAuthn');
-  }
-
   renderSafariWebAuthn = () => {
     return (
       <a onClick={this.onTryAgain} className="btn btn-primary">
-        {this.buttonMessage}
+        {this.props.flowMode === 'enroll'
+          ? t('Enroll with WebAuthn')
+          : t('Sign in with WebAuthn')}
       </a>
     );
   };
