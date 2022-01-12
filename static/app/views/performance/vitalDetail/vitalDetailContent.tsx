@@ -298,7 +298,6 @@ class VitalDetailContent extends Component<Props, State> {
             start={start}
             end={end}
             statsPeriod={statsPeriod}
-            isMetricsData={isMetricsData}
           />
         </StyledVitalInfo>
 
