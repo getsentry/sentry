@@ -9,32 +9,50 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsSwitchContext} from 'sentry/views/performance/metricsSwitch';
-import VitalDetail from 'sentry/views/performance/vitalDetail/';
+import VitalDetail from 'sentry/views/performance/vitalDetail';
 
-function initializeData({query, orgFeatures = []} = {query: {}}) {
-  const features = ['discover-basic', 'performance-view', ...orgFeatures];
-  const organization = TestStubs.Organization({
-    features,
-    projects: [TestStubs.Project()],
-  });
-  const initialData = initializeOrg({
-    organization,
-    router: {
-      location: {
-        query: {
-          project: 1,
-          ...query,
-        },
+const api = new MockApiClient();
+const organization = TestStubs.Organization({
+  features: ['discover-basic', 'performance-view'],
+  projects: [TestStubs.Project()],
+});
+
+const {
+  routerContext,
+  organization: org,
+  router,
+  project,
+} = initializeOrg({
+  ...initializeOrg(),
+  organization,
+  router: {
+    location: {
+      query: {
+        project: 1,
       },
     },
   },
 });
 
-const WrappedComponent = ({organization, isMetricsData = false, ...rest}) => {
+function TestComponent(
+  props: {router?: InjectedRouter; orgFeatures?: string[]; isMetricsData?: boolean} = {}
+) {
   return (
-    <OrganizationContext.Provider value={organization}>
-      <MetricsSwitchContext.Provider value={{isMetricsData}}>
-        <VitalDetail {...rest} />
+    <OrganizationContext.Provider
+      value={{...org, features: [...org.features, ...(props.orgFeatures ?? [])]}}
+    >
+      <MetricsSwitchContext.Provider
+        value={{isMetricsData: props.isMetricsData ?? false, setIsMetricsData: jest.fn()}}
+      >
+        <VitalDetail
+          api={api}
+          location={props.router?.location ?? router.location}
+          router={props.router ?? router}
+          params={{}}
+          route={{}}
+          routes={[]}
+          routeParams={{}}
+        />
       </MetricsSwitchContext.Provider>
     </OrganizationContext.Provider>
   );
@@ -190,7 +208,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByMeasurements({
+      body: TestStubs.MetricsFieldByMeasurementRating({
         field: 'count(sentry.transactions.measurements.lcp)',
       }),
       match: [
@@ -217,7 +235,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByMeasurements({
+      body: TestStubs.MetricsFieldByMeasurementRating({
         field: 'count(sentry.transactions.measurements.cls)',
       }),
       match: [
@@ -235,18 +253,14 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('MetricsSwitch is visible if feature flag enabled', async () => {
-    const initialData = initializeData({orgFeatures: ['metrics-performance-ui']});
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+    mountWithTheme(
+      <TestComponent orgFeatures={['metrics-performance-ui']} isMetricsData />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('MetricsSwitch Label')).toHaveLength(1);
+    expect(await screen.findByText('Metrics Data')).toBeInTheDocument();
   });
 
   it('renders basic UI elements', async function () {
@@ -274,29 +288,30 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('renders basic UI elements - metrics based', async function () {
-    const initialData = initializeData({orgFeatures: ['metrics-performance-ui']});
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-        isMetricsData
-      />,
-      initialData.routerContext
+    mountWithTheme(
+      <TestComponent orgFeatures={['metrics-performance-ui']} isMetricsData />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
 
     // It shows a search bar
-    expect(wrapper.find('StyledMetricsSearchBar')).toHaveLength(1);
+    expect(await screen.findByLabelText('Search events')).toBeInTheDocument();
 
     // It shows the vital card
-    expect(wrapper.find('VitalInfoMetrics')).toHaveLength(1);
+    expect(
+      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 51293ms'))
+    ).toBeInTheDocument();
+
+    expect(screen.getByText('Good 28%')).toBeInTheDocument();
+    expect(screen.getByText('Meh 40%')).toBeInTheDocument();
+    expect(screen.getByText('Poor 32%')).toBeInTheDocument();
 
     // It shows a chart
-    expect(wrapper.find('VitalChartMetrics')).toHaveLength(1);
+    expect(screen.getByText('Duration p75')).toBeInTheDocument();
 
     // The table is still a TODO
-    expect(wrapper.find('Table')).toHaveLength(0);
+    expect(screen.getByText('TODO')).toBeInTheDocument();
   });
 
   it('triggers a navigation on search', async function () {
@@ -323,23 +338,18 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('triggers a navigation on search - metrics based', async function () {
-    const initialData = initializeData({orgFeatures: ['metrics-performance-ui']});
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-        isMetricsData
-      />,
-      initialData.routerContext
+    mountWithTheme(
+      <TestComponent orgFeatures={['metrics-performance-ui']} isMetricsData />,
+      {
+        context: routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
 
     // Fill out the search box, and submit it.
-    const searchBar = wrapper.find('StyledMetricsSearchBar textarea');
-    searchBar
-      .simulate('change', {target: {value: 'user.email:uhoh*'}})
-      .simulate('submit', {preventDefault() {}});
+    userEvent.type(
+      await screen.findByLabelText('Search events'),
+      'user.email:uhoh*{enter}'
+    );
 
     // Check the navigation.
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
@@ -364,7 +374,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const newRouterContext = TestStubs.routerContext([
+    const context = TestStubs.routerContext([
       {
         organization,
         project,
@@ -374,7 +384,7 @@ describe('Performance > VitalDetail', function () {
     ]);
 
     mountWithTheme(<TestComponent router={newRouter} />, {
-      context: newRouterContext,
+      context,
     });
 
     expect(
@@ -416,7 +426,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const newRouterContext = TestStubs.routerContext([
+    const context = TestStubs.routerContext([
       {
         organization,
         project,
@@ -426,7 +436,7 @@ describe('Performance > VitalDetail', function () {
     ]);
 
     mountWithTheme(<TestComponent router={newRouter} />, {
-      context: newRouterContext,
+      context,
     });
 
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
@@ -458,33 +468,46 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('Check CLS - metrics based', async function () {
-    const initialData = initializeData({
-      orgFeatures: ['metrics-performance-ui'],
-      query: {
-        query: 'anothertag:value',
-        vitalName: 'measurements.cls',
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          project: 1,
+          query: 'anothertag:value',
+          vitalName: 'measurements.cls',
+        },
       },
-    });
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
+    };
+
+    const context = TestStubs.routerContext([
+      {
+        organization,
+        project,
+        router: newRouter,
+        location: newRouter.location,
+      },
+    ]);
+
+    mountWithTheme(
+      <TestComponent
+        router={newRouter}
+        orgFeatures={['metrics-performance-ui']}
         isMetricsData
       />,
-      initialData.routerContext
+      {
+        context,
+      }
     );
 
-    await tick();
-    wrapper.update();
+    expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
 
-    expect(wrapper.find('Title').text()).toEqual('Cumulative Layout Shift');
-
-    expect(wrapper.find('[data-test-id="vital-bar-p75"]').text()).toEqual(
-      'The p75 for all transactions is 51292.95'
-    );
+    expect(
+      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 51292.95'))
+    ).toBeInTheDocument();
 
     // The table is still a TODO
-    expect(wrapper.find('Table')).toHaveLength(0);
+    expect(screen.getByText('TODO')).toBeInTheDocument();
   });
 
   it('Pagination links exist to switch between vitals', async function () {
@@ -499,7 +522,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const newRouterContext = TestStubs.routerContext([
+    const context = TestStubs.routerContext([
       {
         organization,
         project,
@@ -509,7 +532,7 @@ describe('Performance > VitalDetail', function () {
     ]);
 
     mountWithTheme(<TestComponent router={newRouter} />, {
-      context: newRouterContext,
+      context,
     });
 
     expect(await screen.findByLabelText('Previous')).toBeInTheDocument();
@@ -542,29 +565,44 @@ describe('Performance > VitalDetail', function () {
   });
 
   it('Check LCP vital renders correctly - Metrics based', async function () {
-    const initialData = initializeData({
-      orgFeatures: ['metrics-performance-ui'],
-      query: {query: 'tag:value'},
-    });
+    const newRouter = {
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          project: 1,
+          query: 'tag:value',
+        },
+      },
+    };
 
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
+    const context = TestStubs.routerContext([
+      {
+        organization,
+        project,
+        router: newRouter,
+        location: newRouter.location,
+      },
+    ]);
+
+    mountWithTheme(
+      <TestComponent
+        router={newRouter}
+        orgFeatures={['metrics-performance-ui']}
         isMetricsData
       />,
-      initialData.routerContext
+      {
+        context,
+      }
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('Title').text()).toEqual('Largest Contentful Paint');
+    expect(await screen.findByText('Largest Contentful Paint')).toBeInTheDocument();
 
-    expect(wrapper.find('[data-test-id="vital-bar-p75"]').text()).toEqual(
-      'The p75 for all transactions is 51293ms'
-    );
+    expect(
+      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 51293ms'))
+    ).toBeInTheDocument();
 
     // The table is still a TODO
-    expect(wrapper.find('Table')).toHaveLength(0);
+    expect(screen.getByText('TODO')).toBeInTheDocument();
   });
 });
