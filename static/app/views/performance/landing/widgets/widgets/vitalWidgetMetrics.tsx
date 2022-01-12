@@ -58,7 +58,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         component: ({start, end, period, project, environment, children, fields}) => (
           <MetricsRequest
             api={api}
-            organization={organization}
+            orgSlug={organization.slug}
             start={start}
             end={end}
             statsPeriod={period}
@@ -97,7 +97,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         }) => (
           <MetricsRequest
             api={api}
-            organization={organization}
+            orgSlug={organization.slug}
             start={start}
             end={end}
             statsPeriod={period}
@@ -140,7 +140,11 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         }
 
         const data = {
-          [vital]: getVitalData(selectedTransaction, field, widgetData.chart.response),
+          [vital]: getVitalData({
+            field,
+            transaction: selectedTransaction,
+            response: widgetData.chart.response,
+          }),
         };
 
         return (
@@ -245,7 +249,11 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                   });
 
                   const data = {
-                    [vital]: getVitalData(transaction, field, widgetData.chart.response),
+                    [vital]: getVitalData({
+                      field,
+                      transaction,
+                      response: widgetData.chart.response,
+                    }),
                   };
 
                   return (
@@ -285,13 +293,19 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   );
 }
 
-function getVitalData(
-  transaction: string,
-  field: string,
-  response: MetricsApiResponse | null
-) {
+export function getVitalData({
+  transaction,
+  field,
+  response,
+}: {
+  field: string;
+  response: MetricsApiResponse | null;
+  transaction?: string;
+}) {
   const groups =
-    response?.groups.filter(group => group.by.transaction === transaction) ?? [];
+    (transaction
+      ? response?.groups.filter(group => group.by.transaction === transaction)
+      : response?.groups) ?? [];
 
   const vitalData: VitalData = {
     poor: 0,
