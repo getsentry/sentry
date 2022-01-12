@@ -22,6 +22,23 @@ export const IconSet = () => {
   );
 };
 
+// Not all icons are visually compatible with circle, this is added so that we can easily see which ones would need to be visually updated
+export const CircledIconSet = () => {
+  return (
+    <SwatchWrapper>
+      <Header>Circled Icon Set</Header>
+      <Swatches>
+        {Object.entries(newIconset).map(([key, Icon]) => (
+          <Swatch key={key}>
+            <Icon isCircled />
+            <LabelWrapper>{key}</LabelWrapper>
+          </Swatch>
+        ))}
+      </Swatches>
+    </SwatchWrapper>
+  );
+};
+
 const Header = styled('h5')`
   margin-bottom: 16px;
 `;
