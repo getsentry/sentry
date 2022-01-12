@@ -7,6 +7,7 @@ export const f = (name: string, key: number) =>
   new Frame({name, key, is_application: false});
 export const c = (fr: Frame) => new CallTreeNode(fr, null);
 export const firstCallee = (node: CallTreeNode) => node.children[0];
+export const nthCallee = (node: CallTreeNode, n: number) => node.children[n];
 
 export const makeTestingBoilerplate = () => {
   const timings: [Frame['name'], string][] = [];
