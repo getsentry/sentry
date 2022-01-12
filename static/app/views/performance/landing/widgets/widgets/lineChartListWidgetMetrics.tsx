@@ -68,7 +68,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
       component: ({start, end, period, project, environment, children, eventView}) => (
         <MetricsRequest
           api={api}
-          organization={organization}
+          orgSlug={organization.slug}
           start={start}
           end={end}
           statsPeriod={period}
@@ -110,7 +110,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
         return (
           <MetricsRequest
             api={api}
-            organization={organization}
+            orgSlug={organization.slug}
             start={start}
             end={end}
             statsPeriod={period}
