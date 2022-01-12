@@ -9,6 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -21,6 +22,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
@@ -37,6 +39,7 @@ import {getTransactionSearchQuery} from '../utils';
 import Table from './table';
 import {vitalDescription, vitalMap, vitalToMetricsField} from './utils';
 import VitalChart from './vitalChart';
+import VitalChartMetrics from './vitalChartMetrics';
 import VitalInfo from './vitalInfo';
 import VitalInfoMetrics from './vitalInfoMetrics';
 
@@ -183,19 +186,26 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 
   renderContent(vital: WebVital) {
-    const {isMetricsData, location, organization, eventView, api} = this.props;
+    const {isMetricsData, location, organization, eventView, api, projects} = this.props;
     const query = decodeScalar(location.query.query, '');
     const orgSlug = organization.slug;
     const {fields, start, end, statsPeriod, environment, project: projectIds} = eventView;
+    const localDateStart = start ? getUtcToLocalDateObject(start) : null;
+    const localDateEnd = end ? getUtcToLocalDateObject(end) : null;
+    const interval = getInterval(
+      {start: localDateStart, end: localDateEnd, period: statsPeriod},
+      'high'
+    );
 
     if (isMetricsData) {
       const field = `p75(${vitalToMetricsField[vital]})`;
+
       return (
         <React.Fragment>
           <StyledMetricsSearchBar
             searchSource="performance_vitals_metrics"
             orgSlug={orgSlug}
-            projectIds={eventView.project}
+            projectIds={projectIds}
             query={query}
             onSearch={this.handleSearch}
           />
@@ -209,15 +219,28 @@ class VitalDetailContent extends React.Component<Props, State> {
             environment={environment}
             field={[field]}
             query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
+            interval={interval}
           >
-            {({loading: isLoading, response}) => {
+            {({loading: isLoading, response, reloading, errored}) => {
               const p75AllTransactions = response?.groups.reduce(
                 (acc, group) => acc + (group.totals[field] ?? 0),
                 0
               );
               return (
                 <React.Fragment>
-                  <div>{'TODO'}</div>
+                  <VitalChartMetrics
+                    start={localDateStart}
+                    end={localDateEnd}
+                    statsPeriod={statsPeriod}
+                    project={projectIds}
+                    environment={environment}
+                    loading={isLoading}
+                    response={response}
+                    errored={errored}
+                    reloading={reloading}
+                    field={field}
+                    vital={vital}
+                  />
                   <StyledVitalInfo>
                     <VitalInfoMetrics
                       api={api}
@@ -233,6 +256,7 @@ class VitalDetailContent extends React.Component<Props, State> {
                       isLoading={isLoading}
                     />
                   </StyledVitalInfo>
+                  <div>TODO</div>
                 </React.Fragment>
               );
             }}
@@ -240,6 +264,9 @@ class VitalDetailContent extends React.Component<Props, State> {
         </React.Fragment>
       );
     }
+
+    const filterString = getTransactionSearchQuery(location);
+    const summaryConditions = getSummaryConditions(filterString);
 
     return (
       <React.Fragment>
@@ -256,25 +283,46 @@ class VitalDetailContent extends React.Component<Props, State> {
           query={query}
           project={projectIds}
           environment={environment}
-          start={start}
-          end={end}
+          start={localDateStart}
+          end={localDateEnd}
           statsPeriod={statsPeriod}
+          interval={interval}
         />
         <StyledVitalInfo>
           <VitalInfo location={location} vital={vital} />
         </StyledVitalInfo>
+        <Teams provideUserTeams>
+          {({teams, initiallyLoaded}) =>
+            initiallyLoaded ? (
+              <TeamKeyTransactionManager.Provider
+                organization={organization}
+                teams={teams}
+                selectedTeams={['myteams']}
+                selectedProjects={eventView.project.map(String)}
+              >
+                <Table
+                  eventView={eventView}
+                  projects={projects}
+                  organization={organization}
+                  location={location}
+                  setError={this.setError}
+                  summaryConditions={summaryConditions}
+                />
+              </TeamKeyTransactionManager.Provider>
+            ) : (
+              <LoadingIndicator />
+            )
+          }
+        </Teams>
       </React.Fragment>
     );
   }
 
   render() {
-    const {location, eventView, organization, vitalName, projects} = this.props;
+    const {location, organization, vitalName} = this.props;
     const {incompatibleAlertNotice} = this.state;
 
     const vital = vitalName || WebVital.LCP;
-
-    const filterString = getTransactionSearchQuery(location);
-    const summaryConditions = getSummaryConditions(filterString);
     const description = vitalDescription[vitalName];
 
     return (
@@ -306,29 +354,6 @@ class VitalDetailContent extends React.Component<Props, State> {
           <Layout.Main fullWidth>
             <StyledDescription>{description}</StyledDescription>
             {this.renderContent(vital)}
-            <Teams provideUserTeams>
-              {({teams, initiallyLoaded}) =>
-                initiallyLoaded ? (
-                  <TeamKeyTransactionManager.Provider
-                    organization={organization}
-                    teams={teams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <Table
-                      eventView={eventView}
-                      projects={projects}
-                      organization={organization}
-                      location={location}
-                      setError={this.setError}
-                      summaryConditions={summaryConditions}
-                    />
-                  </TeamKeyTransactionManager.Provider>
-                ) : (
-                  <LoadingIndicator />
-                )
-              }
-            </Teams>
           </Layout.Main>
         </Layout.Body>
       </React.Fragment>
