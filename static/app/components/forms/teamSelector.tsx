@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 import {StylesConfig} from 'react-select';
+
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -101,8 +102,8 @@ type TeamActor = {
 type TeamOption = {
   value: string | null;
   label: React.ReactNode;
-  trailingItems: React.ReactNode;
-  trailingItemsSpanFullHeight: boolean;
+  trailingItems?: React.ReactNode;
+  trailingItemsSpanFullHeight?: boolean;
   searchKey: string;
   actor: TeamActor | null;
   disabled?: boolean;
