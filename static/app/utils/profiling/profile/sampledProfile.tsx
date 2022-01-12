@@ -30,7 +30,13 @@ export class SampledProfile extends Profile {
       const weight = weights[i];
 
       sampledProfile.appendSampleWithWeight(
-        stack.map(n => frameIndex[n]),
+        stack.map(n => {
+          if (!frameIndex[n]) {
+            throw new Error(`Could not resolve frame ${n} in frame index`);
+          }
+
+          return frameIndex[n];
+        }),
         weight
       );
     }
@@ -40,8 +46,9 @@ export class SampledProfile extends Profile {
 
   appendSampleWithWeight(stack: Frame[], weight: number): void {
     // Ignore samples with 0 weight
-    if (weight === 0) return;
-    if (isNaN(weight)) throw new Error('invalid weight');
+    if (weight === 0) {
+      return;
+    }
 
     let node = this.appendOrderTree;
     const framesInStack: CallTreeNode[] = [];
