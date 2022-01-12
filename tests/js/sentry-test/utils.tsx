@@ -1,8 +1,5 @@
 // Taken from https://stackoverflow.com/a/56859650/1015027
-export function findTextWithMarkup(
-  contentNode: null | Element,
-  textMatch: string | RegExp
-) {
+function findTextWithMarkup(contentNode: null | Element, textMatch: string | RegExp) {
   const hasText = (node: Element) => node.textContent === textMatch;
   const nodeHasText = hasText(contentNode as Element);
   const childrenDontHaveText = Array.from(contentNode?.children || []).every(
