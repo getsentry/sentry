@@ -238,7 +238,7 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
-  handleDeleteWidget = (widgetToDelete: Widget) => () => {
+  handleDeleteWidget = (widgetToDelete: Widget, index: number) => () => {
     const {layouts} = this.state;
     const {
       dashboard,
@@ -249,7 +249,8 @@ class Dashboard extends Component<Props, State> {
       handleUpdateWidgetList,
     } = this.props;
 
-    const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
+    const nextList = [...dashboard.widgets];
+    nextList.splice(index, 1);
     onUpdate(nextList);
 
     if (organization.features.includes('dashboard-grid-layout')) {
@@ -346,7 +347,7 @@ class Dashboard extends Component<Props, State> {
       widget,
       isEditing,
       widgetLimitReached,
-      onDelete: this.handleDeleteWidget(widget),
+      onDelete: this.handleDeleteWidget(widget, index),
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
