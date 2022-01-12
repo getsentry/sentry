@@ -234,3 +234,26 @@ export function getTimeFormat({displaySeconds = false}: {displaySeconds?: boolea
 
   return displaySeconds ? 'LTS' : 'LT';
 }
+
+export function getInternalDate(date: string | Date, utc?: boolean | null) {
+  if (utc) {
+    return getUtcToSystem(date);
+  }
+  return new Date(
+    moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
+  );
+}
+
+/**
+ * Strips timezone from local date, creates a new moment date object with timezone
+ * returns the moment as a Date object
+ */
+export function getDateWithTimezoneInUtc(date?: Date, utc?: boolean | null) {
+  return moment
+    .tz(
+      moment(date).local().format('YYYY-MM-DD HH:mm:ss'),
+      utc ? 'UTC' : getUserTimezone()
+    )
+    .utc()
+    .toDate();
+}
