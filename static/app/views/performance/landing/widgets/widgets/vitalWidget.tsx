@@ -243,10 +243,6 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               {...provided}
               field={field}
               vitalFields={vitalFields}
-              organization={organization}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
               grid={provided.grid}
             />
           ),
