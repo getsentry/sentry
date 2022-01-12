@@ -99,7 +99,7 @@ def reverse_resolve_weak(index: int) -> Optional[str]:
 def resolve(string: str) -> int:
     resolved = indexer.resolve(string)
     if resolved is None:
-        raise MetricIndexNotFound(f"Unknown tag key: '{string}'")
+        raise MetricIndexNotFound(f"Unknown string: {string!r}")
 
     return resolved
 
