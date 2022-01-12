@@ -290,7 +290,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     ) -> Filter:
         snuba_filter = get_filter(query, params=params)
         conditions = copy(snuba_filter.conditions)
-        session_status_tag_values = resolve_many_weak(self.org_id, ["crashed", "init"])
+        session_status_tag_values = resolve_many_weak(["crashed", "init"])
         snuba_filter.update_with(
             {
                 "aggregations": [[f"{self.aggregation_func}(value)", None, "value"]],
