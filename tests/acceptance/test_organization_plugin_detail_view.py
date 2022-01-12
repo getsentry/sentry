@@ -24,7 +24,7 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_opsgenie_add_to_project(self):
         self.load_page("opsgenie")
@@ -35,7 +35,7 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
 
         self.browser.click('[role="dialog"] [id$="option-0-0"]')
         # check if we got to the configuration page with the form
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("plugin-config")
         self.browser.snapshot("integrations - plugin config form")
 

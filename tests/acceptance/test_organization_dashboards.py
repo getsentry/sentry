@@ -28,7 +28,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def test_view_dashboard(self):
@@ -131,7 +131,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         self.default_path = f"/organizations/{self.organization.slug}/dashboards/"
 
     def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def test_dashboard_manager(self):

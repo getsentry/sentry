@@ -18,7 +18,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
     def load_page(self, url):
         self.browser.get(url)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_create_new_public_integration(self):
         self.load_page(self.org_developer_settings_path)
@@ -69,7 +69,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
     def load_page(self, url):
         self.browser.get(url)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_edit_integration_schema(self):
         self.load_page(self.org_developer_settings_path)
@@ -85,7 +85,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         link = self.browser.find_element_by_link_text("Tesla App")
         link.click()
 
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         schema = self.browser.element('textarea[name="schema"]')
         assert schema.text == ""

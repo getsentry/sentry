@@ -193,6 +193,6 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.elements('[data-test-id="transaction-row-title"]')[1].click()
             self.browser.snapshot("performance trace view - with data")

@@ -25,7 +25,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_example_installation(self):
         self.provider = mock.Mock()

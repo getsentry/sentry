@@ -22,7 +22,7 @@ class ListOrganizationMembersTest(AcceptanceTestCase):
 
     def test_list(self):
         self.browser.get(f"/organizations/{self.org.slug}/members/")
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.snapshot(name="list organization members")
         assert self.browser.element_exists_by_test_id("email-invite")
         assert self.browser.element_exists_by_aria_label("Resend invite")
