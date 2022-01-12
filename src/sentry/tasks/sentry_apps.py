@@ -20,12 +20,7 @@ from sentry.models import (
     User,
 )
 from sentry.models.sentryapp import VALID_EVENTS, track_response_code
-from sentry.shared_integrations.exceptions import (
-    ApiHostError,
-    ApiTimeoutError,
-    ClientError,
-    IgnorableSentryAppError,
-)
+from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.compat import filter
@@ -42,7 +37,7 @@ TASK_OPTIONS = {
 
 RETRY_OPTIONS = {
     "on": (RequestException, ApiHostError, ApiTimeoutError),
-    "ignore": (IgnorableSentryAppError, ClientError),
+    "ignore": (ClientError),
 }
 
 # We call some models by a different name, publicly, than their class name.
