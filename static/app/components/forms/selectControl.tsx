@@ -82,6 +82,12 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    */
   showDividers?: boolean;
   /**
+   * If false (default), checkmarks/checkboxes will be vertically centered
+   * wrt the first line of the label text. If true, they will be centered
+   * wrt the entire height of the option wrap.
+   */
+  verticallyCenterCheckWrap?: boolean;
+  /**
    * Handler for changes. Narrower than the types in react-select.
    */
   onChange?: (value?: OptionType | null) => void;

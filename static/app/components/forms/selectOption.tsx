@@ -3,14 +3,20 @@ import styled from '@emotion/styled';
 
 import {IconCheckmark} from 'sentry/icons';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
 function SelectOption(props: Props) {
+  const {data} = props;
+
   return (
     <selectComponents.Option {...props} className="select-option">
       <InnerWrap isFocused={props.isFocused}>
-        <Indent>
+        <Indent
+          isMulti={props.isMulti}
+          centerCheckWrap={props.selectProps.verticallyCenterCheckWrap}
+        >
           <CheckWrap isMulti={props.isMulti} isSelected={props.isSelected}>
             {props.isSelected && (
               <IconCheckmark
@@ -19,22 +25,27 @@ function SelectOption(props: Props) {
               />
             )}
           </CheckWrap>
-          {props.data.leadingItems && (
-            <LeadingItems>{props.data.leadingItems}</LeadingItems>
+          {data.leadingItems && (
+            <LeadingItems spanFullHeight={data.leadingItemsSpanFullHeight}>
+              {data.leadingItems}
+            </LeadingItems>
           )}
         </Indent>
         <ContentWrap
           isFocused={props.isFocused}
           showDividers={props.selectProps.showDividers}
+          addRightMargin={!defined(data.trailingItems)}
         >
           <div>
             <Label as={typeof props.label === 'string' ? 'p' : 'div'}>
               {props.label}
             </Label>
-            {props.data.details && <Details>{props.data.details}</Details>}
+            {data.details && <Details>{data.details}</Details>}
           </div>
-          {props.data.trailingItems && (
-            <TrailingItems>{props.data.trailingItems}</TrailingItems>
+          {data.trailingItems && (
+            <TrailingItems spanFullHeight={data.trailingItemsSpanFullHeight}>
+              {data.trailingItems}
+            </TrailingItems>
           )}
         </ContentWrap>
       </InnerWrap>
@@ -53,12 +64,15 @@ const InnerWrap = styled('div')<{isFocused: boolean}>`
   ${p => p.isFocused && `background: ${p.theme.hover};`}
 `;
 
-const Indent = styled('div')`
+const Indent = styled('div')<{isMulti?: boolean; centerCheckWrap?: boolean}>`
   display: flex;
   justify-content: center;
   gap: ${space(1)};
   padding: ${space(1)};
   padding-left: ${space(0.5)};
+
+  ${p => p.isMulti && !p.centerCheckWrap && `margin-top: 0.2em;`}
+  ${p => p.centerCheckWrap && 'align-items: center;'}
 `;
 
 const CheckWrap = styled('div')<{isMulti: boolean; isSelected: boolean}>`
@@ -69,7 +83,6 @@ const CheckWrap = styled('div')<{isMulti: boolean; isSelected: boolean}>`
   ${p =>
     p.isMulti
       ? `
-      margin-top: 0.2em;
       width: 1em;
       height: 1em;
       padding: 1px;
@@ -92,14 +105,19 @@ const CheckWrap = styled('div')<{isMulti: boolean; isSelected: boolean}>`
     `}
 `;
 
-const ContentWrap = styled('div')<{isFocused: boolean; showDividers?: boolean}>`
+const ContentWrap = styled('div')<{
+  isFocused: boolean;
+  showDividers?: boolean;
+  addRightMargin: boolean;
+}>`
   position: relative;
   width: 100%;
   display: flex;
   gap: ${space(1)};
   justify-content: space-between;
   padding: ${space(1)} 0;
-  margin-right: ${space(1)};
+
+  ${p => p.addRightMargin && `margin-right: ${space(1)};`}
 
   ${p =>
     p.showDividers &&
@@ -114,10 +132,10 @@ const ContentWrap = styled('div')<{isFocused: boolean; showDividers?: boolean}>`
     `}
 `;
 
-const LeadingItems = styled('div')`
+const LeadingItems = styled('div')<{spanFullHeight?: boolean}>`
   display: flex;
   align-items: center;
-  height: 1.4em;
+  height: ${p => (p.spanFullHeight ? '100%' : '1.4em')};
   gap: ${space(1)};
 `;
 
@@ -134,10 +152,10 @@ const Details = styled('p')`
   margin-bottom: 0;
 `;
 
-const TrailingItems = styled('div')`
+const TrailingItems = styled('div')<{spanFullHeight?: boolean}>`
   display: flex;
   align-items: center;
-  height: 1.4em;
+  height: ${p => (p.spanFullHeight ? '100%' : '1.4em')};
   gap: ${space(1)};
   margin-right: ${space(0.5)};
 `;
