@@ -1,6 +1,5 @@
 import {
   initializeUrlState,
-  replaceParams,
   updateDateTime,
   updateEnvironments,
   updateParams,
@@ -333,12 +332,7 @@ describe('PageFilters ActionCreators', function () {
       });
       // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
       // however react-router will treat it as a string if there is only one param
-      updateParams(
-        {project: [1]},
-
-        // Mock router
-        router
-      );
+      updateParams({project: [1]}, router);
 
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/test/',
@@ -354,17 +348,13 @@ describe('PageFilters ActionCreators', function () {
       });
       // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
       // however react-router will treat it as a string if there is only one param
-      updateParams(
-        {project: [1]},
-        // Mock router
-        router
-      );
+      updateParams({project: [1]}, router);
 
       expect(router.push).not.toHaveBeenCalled();
     });
   });
 
-  describe('replaceParams()', function () {
+  describe('updateParams(..., {replace: true})', function () {
     it('updates history when queries are different', function () {
       const router = TestStubs.router({
         location: {
@@ -374,12 +364,7 @@ describe('PageFilters ActionCreators', function () {
       });
       // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
       // however react-router will treat it as a string if there is only one param
-      replaceParams(
-        {project: [1]},
-
-        // Mock router
-        router
-      );
+      updateParams({project: [1]}, router, {replace: true});
 
       expect(router.replace).toHaveBeenCalledWith({
         pathname: '/test/',
@@ -395,11 +380,7 @@ describe('PageFilters ActionCreators', function () {
       });
       // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
       // however react-router will treat it as a string if there is only one param
-      replaceParams(
-        {project: [1]},
-        // Mock router
-        router
-      );
+      updateParams({project: [1]}, router, {replace: true});
 
       expect(router.replace).not.toHaveBeenCalled();
     });
