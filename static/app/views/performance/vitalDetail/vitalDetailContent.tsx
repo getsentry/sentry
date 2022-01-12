@@ -186,9 +186,11 @@ class VitalDetailContent extends Component<Props, State> {
 
   renderContent(vital: WebVital) {
     const {isMetricsData, location, organization, eventView, api, projects} = this.props;
+
+    const {fields, start, end, statsPeriod, environment, project} = eventView;
+
     const query = decodeScalar(location.query.query, '');
     const orgSlug = organization.slug;
-    const {start, end, statsPeriod, environment, project: projectIds} = eventView;
     const localDateStart = start ? getUtcToLocalDateObject(start) : null;
     const localDateEnd = end ? getUtcToLocalDateObject(end) : null;
     const interval = getInterval(
@@ -204,7 +206,7 @@ class VitalDetailContent extends Component<Props, State> {
           <StyledMetricsSearchBar
             searchSource="performance_vitals_metrics"
             orgSlug={orgSlug}
-            projectIds={projectIds}
+            projectIds={project}
             query={query}
             onSearch={this.handleSearch}
           />
@@ -214,7 +216,7 @@ class VitalDetailContent extends Component<Props, State> {
             start={start}
             end={end}
             statsPeriod={statsPeriod}
-            project={projectIds}
+            project={project}
             environment={environment}
             field={[field]}
             query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
@@ -231,7 +233,7 @@ class VitalDetailContent extends Component<Props, State> {
                     start={localDateStart}
                     end={localDateEnd}
                     statsPeriod={statsPeriod}
-                    project={projectIds}
+                    project={project}
                     environment={environment}
                     loading={isLoading}
                     response={response}
@@ -245,11 +247,11 @@ class VitalDetailContent extends Component<Props, State> {
                       orgSlug={orgSlug}
                       location={location}
                       vital={vital}
-                      project={eventView.project}
-                      environment={eventView.environment}
-                      start={eventView.start}
-                      end={eventView.end}
-                      statsPeriod={eventView.statsPeriod}
+                      project={project}
+                      environment={environment}
+                      start={start}
+                      end={end}
+                      statsPeriod={statsPeriod}
                       isMetricsData={isMetricsData}
                       p75AllTransactions={p75AllTransactions}
                     />
@@ -271,15 +273,15 @@ class VitalDetailContent extends Component<Props, State> {
         <StyledSearchBar
           searchSource="performance_vitals"
           organization={organization}
-          projectIds={eventView.project}
+          projectIds={project}
           query={query}
-          fields={eventView.fields}
+          fields={fields}
           onSearch={this.handleSearch}
         />
         <VitalChart
           organization={organization}
           query={query}
-          project={projectIds}
+          project={project}
           environment={environment}
           start={localDateStart}
           end={localDateEnd}
@@ -291,11 +293,11 @@ class VitalDetailContent extends Component<Props, State> {
             orgSlug={orgSlug}
             location={location}
             vital={vital}
-            project={eventView.project}
-            environment={eventView.environment}
-            start={eventView.start}
-            end={eventView.end}
-            statsPeriod={eventView.statsPeriod}
+            project={project}
+            environment={environment}
+            start={start}
+            end={end}
+            statsPeriod={statsPeriod}
             isMetricsData={isMetricsData}
           />
         </StyledVitalInfo>
@@ -307,7 +309,7 @@ class VitalDetailContent extends Component<Props, State> {
                 organization={organization}
                 teams={teams}
                 selectedTeams={['myteams']}
-                selectedProjects={eventView.project.map(String)}
+                selectedProjects={project.map(String)}
               >
                 <Table
                   eventView={eventView}
