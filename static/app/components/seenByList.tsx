@@ -8,7 +8,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
 import {AvatarUser, User} from 'sentry/types';
 import {userDisplayName} from 'sentry/utils/formatters';
 
@@ -63,7 +62,7 @@ const SeenByList = ({
         )}
       />
       <IconWrapper iconPosition={iconPosition}>
-        <Tooltip title={iconTooltip}>
+        <Tooltip title={iconTooltip} skipWrapper>
           <IconShow size="sm" color="subText" />
         </Tooltip>
       </IconWrapper>
@@ -86,7 +85,6 @@ const IconWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
   height: 28px;
   width: 24px;
   text-align: center;
-  padding-top: ${space(0.5)};
   ${p => (p.iconPosition === 'left' ? 'margin-right: 10px' : '')};
 `;
 

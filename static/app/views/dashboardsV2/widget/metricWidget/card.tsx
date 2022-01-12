@@ -10,7 +10,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {GlobalSelection, MetricQuery, Organization, Project} from 'sentry/types';
+import {MetricQuery, Organization, PageFilters, Project} from 'sentry/types';
 
 import {DisplayType} from '../utils';
 
@@ -29,7 +29,7 @@ type Props = {
   api: Client;
   location: Location;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   router: InjectedRouter;
   project: Project;
 };

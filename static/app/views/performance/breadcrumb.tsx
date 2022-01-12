@@ -4,6 +4,7 @@ import {Location, LocationDescriptor} from 'history';
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import Tab from './transactionSummary/tabs';
@@ -23,9 +24,9 @@ type Props = {
     name: string;
   };
   vitalName?: string;
+  spanSlug?: SpanSlug;
   eventSlug?: string;
   traceSlug?: string;
-  transactionComparison?: boolean;
   tab?: Tab;
 };
 
@@ -37,9 +38,9 @@ class Breadcrumb extends Component<Props> {
       location,
       transaction,
       vitalName,
+      spanSlug,
       eventSlug,
       traceSlug,
-      transactionComparison,
       tab,
     } = this.props;
 
@@ -55,7 +56,7 @@ class Breadcrumb extends Component<Props> {
     crumbs.push({
       to: performanceTarget,
       label: t('Performance'),
-      preserveGlobalSelection: true,
+      preservePageFilters: true,
     });
 
     if (vitalName) {
@@ -68,7 +69,7 @@ class Breadcrumb extends Component<Props> {
       crumbs.push({
         to: webVitalsTarget,
         label: t('Vital Detail'),
-        preserveGlobalSelection: true,
+        preservePageFilters: true,
       });
     } else if (transaction) {
       const routeQuery = {
@@ -84,7 +85,7 @@ class Breadcrumb extends Component<Props> {
           crumbs.push({
             to: tagsTarget,
             label: t('Tags'),
-            preserveGlobalSelection: true,
+            preservePageFilters: true,
           });
           break;
         }
@@ -93,7 +94,7 @@ class Breadcrumb extends Component<Props> {
           crumbs.push({
             to: eventsTarget,
             label: t('All Events'),
-            preserveGlobalSelection: true,
+            preservePageFilters: true,
           });
           break;
         }
@@ -102,7 +103,7 @@ class Breadcrumb extends Component<Props> {
           crumbs.push({
             to: webVitalsTarget,
             label: t('Web Vitals'),
-            preserveGlobalSelection: true,
+            preservePageFilters: true,
           });
           break;
         }
@@ -111,7 +112,7 @@ class Breadcrumb extends Component<Props> {
           crumbs.push({
             to: spansTarget,
             label: t('Spans'),
-            preserveGlobalSelection: true,
+            preservePageFilters: true,
           });
           break;
         }
@@ -121,21 +122,21 @@ class Breadcrumb extends Component<Props> {
           crumbs.push({
             to: summaryTarget,
             label: t('Transaction Summary'),
-            preserveGlobalSelection: true,
+            preservePageFilters: true,
           });
         }
       }
     }
 
-    if (transaction && eventSlug) {
+    if (transaction && spanSlug) {
+      crumbs.push({
+        to: '',
+        label: t('Span Details'),
+      });
+    } else if (transaction && eventSlug) {
       crumbs.push({
         to: '',
         label: t('Event Details'),
-      });
-    } else if (transactionComparison) {
-      crumbs.push({
-        to: '',
-        label: t('Compare to Baseline'),
       });
     } else if (traceSlug) {
       crumbs.push({

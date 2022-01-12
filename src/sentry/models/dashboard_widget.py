@@ -8,6 +8,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.db.models.fields import JSONField
 
 
 class TypesClass:
@@ -105,6 +106,7 @@ class DashboardWidget(Model):
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
     widget_type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices(), null=True)
+    detail = JSONField(null=True)
 
     class Meta:
         app_label = "sentry"

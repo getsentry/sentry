@@ -12,6 +12,7 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
@@ -23,25 +24,14 @@ type Props = {
   onCommit: () => void;
   onDelete: () => void;
   onAddWidget: () => void;
+  widgetLimitReached: boolean;
   dashboardState: DashboardState;
-  widgetCount: number;
 };
 
 class Controls extends React.Component<Props> {
-  render() {
-    const {
-      organization,
-      dashboardState,
-      dashboards,
-      widgetCount,
-      onEdit,
-      onCancel,
-      onCommit,
-      onDelete,
-      onAddWidget,
-    } = this.props;
-
-    const cancelButton = (
+  renderCancelButton(label = t('Cancel')) {
+    const {onCancel} = this.props;
+    return (
       <Button
         data-test-id="dashboard-cancel"
         onClick={e => {
@@ -49,14 +39,27 @@ class Controls extends React.Component<Props> {
           onCancel();
         }}
       >
-        {t('Cancel')}
+        {label}
       </Button>
     );
+  }
+
+  render() {
+    const {
+      organization,
+      dashboardState,
+      dashboards,
+      widgetLimitReached,
+      onEdit,
+      onCommit,
+      onDelete,
+      onAddWidget,
+    } = this.props;
 
     if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
       return (
         <StyledButtonBar gap={1} key="edit-controls">
-          {cancelButton}
+          {this.renderCancelButton()}
           <Confirm
             priority="danger"
             message={t('Are you sure you want to delete this dashboard?')}
@@ -81,10 +84,10 @@ class Controls extends React.Component<Props> {
       );
     }
 
-    if (dashboardState === 'create') {
+    if (dashboardState === DashboardState.CREATE) {
       return (
         <StyledButtonBar gap={1} key="create-controls">
-          {cancelButton}
+          {this.renderCancelButton()}
           <Button
             data-test-id="dashboard-commit"
             onClick={e => {
@@ -94,6 +97,24 @@ class Controls extends React.Component<Props> {
             priority="primary"
           >
             {t('Save and Finish')}
+          </Button>
+        </StyledButtonBar>
+      );
+    }
+
+    if (dashboardState === DashboardState.PREVIEW) {
+      return (
+        <StyledButtonBar gap={1} key="preview-controls">
+          {this.renderCancelButton(t('Go Back'))}
+          <Button
+            data-test-id="dashboard-commit"
+            onClick={e => {
+              e.preventDefault();
+              onCommit();
+            }}
+            priority="primary"
+          >
+            {t('Add Dashboard')}
           </Button>
         </StyledButtonBar>
       );
@@ -118,19 +139,27 @@ class Controls extends React.Component<Props> {
               >
                 {t('Edit Dashboard')}
               </Button>
-              {organization.features.includes('widget-library') ? (
+              {organization.features.includes('widget-library') && hasFeature ? (
                 <Tooltip
                   title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
                     maxWidgets: MAX_WIDGETS,
                   })}
-                  disabled={!!!(widgetCount >= MAX_WIDGETS)}
+                  disabled={!!!widgetLimitReached}
                 >
                   <Button
                     data-test-id="add-widget-library"
                     priority="primary"
-                    disabled={widgetCount >= MAX_WIDGETS}
+                    disabled={widgetLimitReached}
                     icon={<IconAdd isCircled />}
-                    onClick={onAddWidget}
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'dashboards_views.widget_library.opened',
+                        {
+                          organization,
+                        }
+                      );
+                      onAddWidget();
+                    }}
                   >
                     {t('Add Widget')}
                   </Button>

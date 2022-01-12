@@ -34,7 +34,7 @@ const FileItem = styled(ListGroupItem)`
 const Filename = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin-right: ${space(3)};
   align-items: center;
   grid-template-columns: max-content 1fr;

@@ -170,8 +170,9 @@ class LinkSharedEventTest(BaseEventTest):
         assert data["token"] == "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
     def test_user_access_token(self):
-        # this test is needed to make sure that classic bots installed by on-prem users
-        # still work since they needed to use a user_access_token for unfurl
+        # this test is needed to make sure that classic bots installed by
+        # self-hosted users still work since they needed to use a
+        # user_access_token for unfurl
         self.integration.metadata.update(
             {
                 "user_access_token": "xoxt-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
@@ -219,7 +220,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
 
     def test_share_discover_links_unlinked_user(self):
         IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
-        with self.feature("organizations:chart-unfurls"):
+        with self.feature("organizations:discover-basic"):
             data = self.share_discover_links()
 
         blocks = json.loads(data["blocks"])

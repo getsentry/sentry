@@ -301,7 +301,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       );
     }
 
-    return super.renderError(error, true, true);
+    return super.renderError(error, true);
   }
 
   getEventSlug = (): string => {

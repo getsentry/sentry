@@ -20,14 +20,10 @@ import {
   fieldAlignment,
   getAggregateAlias,
 } from 'sentry/utils/discover/fields';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {getDuration} from 'sentry/utils/formatters';
-import {BaselineQueryResults} from 'sentry/utils/performance/baseline/baselineQuery';
 import CellAction, {Actions} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import {TrendsDataEvents} from 'sentry/views/performance/trends/types';
-import {getTransactionComparisonUrl} from 'sentry/views/performance/utils';
 
 type Props = {
   eventView: EventView;
@@ -37,9 +33,6 @@ type Props = {
   tableData: TableData | TrendsDataEvents | null;
   columnOrder: TableColumn<React.ReactText>[];
   titles?: string[];
-  baselineTransactionName: string | null;
-  baselineData: BaselineQueryResults | null;
-  handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
   generateLink?: Record<
     string,
     (
@@ -60,7 +53,7 @@ class TransactionsTable extends React.PureComponent<Props> {
   }
 
   renderHeader() {
-    const {tableData, columnOrder, baselineTransactionName} = this.props;
+    const {tableData, columnOrder} = this.props;
 
     const tableMeta = tableData?.meta;
     const generateSortLink = () => undefined;
@@ -114,20 +107,6 @@ class TransactionsTable extends React.PureComponent<Props> {
       );
     });
 
-    if (baselineTransactionName) {
-      headers.push(
-        <HeadCellContainer key="baseline">
-          <SortLink
-            align="right"
-            title={t('Compared to Baseline')}
-            direction={undefined}
-            canSort={false}
-            generateSortLink={generateSortLink}
-          />
-        </HeadCellContainer>
-      );
-    }
-
     return headers;
   }
 
@@ -137,17 +116,8 @@ class TransactionsTable extends React.PureComponent<Props> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ): React.ReactNode[] {
-    const {
-      eventView,
-      organization,
-      location,
-      generateLink,
-      baselineTransactionName,
-      baselineData,
-      handleBaselineClick,
-      handleCellAction,
-      titles,
-    } = this.props;
+    const {eventView, organization, location, generateLink, handleCellAction, titles} =
+      this.props;
     const fields = eventView.getFields();
 
     if (titles && titles.length) {
@@ -197,51 +167,6 @@ class TransactionsTable extends React.PureComponent<Props> {
       return <BodyCellContainer key={key}>{rendered}</BodyCellContainer>;
     });
 
-    if (baselineTransactionName) {
-      if (baselineData) {
-        const currentTransactionDuration: number =
-          Number(row['transaction.duration']) || 0;
-        const duration = baselineData['transaction.duration'];
-
-        const delta = Math.abs(currentTransactionDuration - duration);
-
-        const relativeSpeed =
-          currentTransactionDuration < duration
-            ? t('faster')
-            : currentTransactionDuration > duration
-            ? t('slower')
-            : '';
-
-        const target = getTransactionComparisonUrl({
-          organization,
-          baselineEventSlug: generateEventSlug(baselineData),
-          regressionEventSlug: generateEventSlug(row),
-          transaction: baselineTransactionName,
-          query: location.query,
-        });
-
-        resultsRow.push(
-          <BodyCellContainer
-            data-test-id="baseline-cell"
-            key={`${rowIndex}-baseline`}
-            style={{textAlign: 'right'}}
-          >
-            <GridCell>
-              <Link to={target} onClick={handleBaselineClick}>
-                {`${getDuration(delta / 1000, delta < 1000 ? 0 : 2)} ${relativeSpeed}`}
-              </Link>
-            </GridCell>
-          </BodyCellContainer>
-        );
-      } else {
-        resultsRow.push(
-          <BodyCellContainer data-test-id="baseline-cell" key={`${rowIndex}-baseline`}>
-            {'\u2014'}
-          </BodyCellContainer>
-        );
-      }
-    }
-
     return resultsRow;
   }
 
@@ -277,6 +202,7 @@ class TransactionsTable extends React.PureComponent<Props> {
 
     return (
       <PanelTable
+        data-test-id="transactions-table"
         isEmpty={!hasResults}
         emptyMessage={t('No transactions found')}
         headers={this.renderHeader()}

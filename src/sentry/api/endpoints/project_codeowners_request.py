@@ -1,6 +1,8 @@
 import logging
 
 from django.utils.translation import ugettext as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.bases.project_request_change import ProjectRequestChangeEndpoint
@@ -30,7 +32,7 @@ def get_codeowners_request_builder_args(project, recipient, requester_name):
 
 
 class ProjectCodeOwnersRequestEndpoint(ProjectRequestChangeEndpoint):
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         """
         Request to Add CODEOWNERS to a Project
         ````````````````````````````````````

@@ -129,13 +129,14 @@ const IgnoreActions = ({
           title={t('Ignore')}
           onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
           icon={<IconMute size="xs" />}
+          hasDropdown
         >
           {t('Ignore')}
         </ActionLink>
       </Tooltip>
       <StyledDropdownLink
         customTitle={
-          <ActionButton
+          <StyledActionButton
             disabled={disabled}
             icon={<IconChevron direction="down" size="xs" />}
           />
@@ -262,7 +263,9 @@ const IgnoreActions = ({
                 <DropdownLink
                   title={
                     <ActionSubMenu>
-                      {tn('one user\u2026', '%s users\u2026', count)}
+                      {count === 1
+                        ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
+                        : tn('%s user\u2026', '%s users\u2026', count)}
                       <SubMenuChevron>
                         <IconChevron direction="right" size="xs" />
                       </SubMenuChevron>
@@ -328,6 +331,10 @@ const StyledActionLink = styled(ActionLink)`
 const StyledForActionLink = styled(ActionLink)`
   padding: ${space(0.5)} 0;
   ${actionLinkCss};
+`;
+
+const StyledActionButton = styled(ActionButton)`
+  box-shadow: none;
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`

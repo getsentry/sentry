@@ -449,7 +449,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 Condition(Column("org_id"), Op.EQ, org_id),
                 Condition(Column("project_id"), Op.EQ, project_id),
                 Condition(Column(tag_key(org_id, "release")), Op.EQ, tag_value(org_id, release)),
-                Condition(Column("timestamp"), Op.GTE, datetime.min),
+                Condition(
+                    Column("timestamp"), Op.GTE, datetime(2008, 5, 8)
+                ),  # Date of sentry's first commit
                 Condition(Column("timestamp"), Op.LT, datetime.now(pytz.utc)),
             ]
 
@@ -1231,7 +1233,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_cols,
             where=where_clause,
             groupby=query_cols,
-            orderby=[OrderBy(col, Direction.DESC) for col in query_cols],
         )
         result = raw_snql_query(
             query,
@@ -1969,8 +1970,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             entity = Entity(EntityKey.MetricsSets.value)
             having_clause = [Condition(users_column, Op.GT, 0)]
 
-        # Tiebreaker
-        order_by_clause.extend([OrderBy(col, Direction.DESC) for col in query_cols])
+        # Partial tiebreaker to make comparisons in the release-health duplex
+        # backend more likely to succeed. A perfectly stable sorting would need to
+        # additionally sort by `release`, however in the metrics backend we can't
+        # sort by that the same way as in the sessions backend.
+        order_by_clause.append(OrderBy(Column("project_id"), Direction.DESC))
 
         query = Query(
             dataset=Dataset.Metrics.value,

@@ -181,9 +181,11 @@ class Table extends React.Component<Props, State> {
       conditions.addFilterValues('has', [`${vitalName}`]);
       summaryView.query = conditions.formatString();
 
+      const transaction = String(dataRow.transaction) || '';
+
       const target = transactionSummaryRouteWithQuery({
         orgSlug: organization.slug,
-        transaction: String(dataRow.transaction) || '',
+        transaction,
         query: summaryView.generateQueryStringObject(),
         projectID,
         showTransactions: TransactionFilterOptions.RECENT,
@@ -197,7 +199,11 @@ class Table extends React.Component<Props, State> {
           handleCellAction={this.handleCellAction(column)}
           allowActions={allowActions}
         >
-          <Link to={target} onClick={this.handleSummaryClick}>
+          <Link
+            to={target}
+            aria-label={t('See transaction summary of the transaction %s', transaction)}
+            onClick={this.handleSummaryClick}
+          >
             {rendered}
           </Link>
         </CellAction>

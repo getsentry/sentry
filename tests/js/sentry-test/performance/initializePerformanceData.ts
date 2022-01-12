@@ -51,6 +51,7 @@ export const SAMPLE_SPANS = [
   {
     op: 'op1',
     group: 'aaaaaaaaaaaaaaaa',
+    description: 'span-1',
     examples: [
       {
         id: 'abababababababab',
@@ -72,6 +73,7 @@ export const SAMPLE_SPANS = [
   {
     op: 'op2',
     group: 'bbbbbbbbbbbbbbbb',
+    description: 'span-4',
     examples: [
       {
         id: 'bcbcbcbcbcbcbcbc',
@@ -105,6 +107,7 @@ type ExampleOpt = {
 type SuspectOpt = {
   op: string;
   group: string;
+  description: string;
   examples: ExampleOpt[];
 };
 
@@ -131,13 +134,11 @@ function makeExample(opt: ExampleOpt): ExampleTransaction {
 }
 
 function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
-  const {op, group, examples} = opt;
+  const {op, group, description, examples} = opt;
   return {
-    projectId: 1,
-    project: 'bar',
-    transaction: 'transaction-1',
     op,
     group,
+    description,
     frequency: 1,
     count: 1,
     avgOccurrences: 1,
@@ -150,13 +151,24 @@ function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
   };
 }
 
-export function generateSuspectSpansResponse(opts?: {examples?: number}) {
-  const {examples} = opts ?? {};
+export function generateSuspectSpansResponse(opts?: {
+  examples?: number;
+  examplesOnly?: boolean;
+}) {
+  const {examples, examplesOnly} = opts ?? {};
   return SAMPLE_SPANS.map(sampleSpan => {
     const span = {...sampleSpan};
     if (defined(examples)) {
       span.examples = span.examples.slice(0, examples);
     }
-    return makeSuspectSpan(span);
+    const suspectSpans = makeSuspectSpan(span);
+    if (examplesOnly) {
+      return {
+        op: suspectSpans.op,
+        group: suspectSpans.group,
+        examples: suspectSpans.examples,
+      };
+    }
+    return suspectSpans;
   });
 }

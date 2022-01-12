@@ -14,7 +14,7 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {IconChevron} from 'sentry/icons';
 import {IconFlag} from 'sentry/icons/iconFlag';
@@ -77,7 +77,7 @@ class VitalDetailContent extends React.Component<Props, State> {
   handleSearch = (query: string) => {
     const {location} = this.props;
 
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });

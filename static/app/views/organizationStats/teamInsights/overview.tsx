@@ -11,7 +11,7 @@ import TeamSelector from 'sentry/components/forms/teamSelector';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {t} from 'sentry/locale';
@@ -28,11 +28,13 @@ import Header from '../header';
 import DescriptionCard from './descriptionCard';
 import TeamAlertsTriggered from './teamAlertsTriggered';
 import TeamIssuesAge from './teamIssuesAge';
+import TeamIssuesBreakdown from './teamIssuesBreakdown';
 import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
 import TeamReleases from './teamReleases';
 import TeamResolutionTime from './teamResolutionTime';
 import TeamStability from './teamStability';
+import TeamUnresolvedIssues from './teamUnresolvedIssues';
 
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
 
@@ -132,7 +134,7 @@ function TeamInsightsOverview({location, router}: Props) {
       end,
       statsPeriod,
       utc: utcString,
-    } = getParams(query, {
+    } = normalizeDateTimeParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -279,6 +281,7 @@ function TeamInsightsOverview({location, router}: Props) {
             >
               <TeamAlertsTriggered
                 organization={organization}
+                projects={projects}
                 teamSlug={currentTeam!.slug}
                 period={period}
                 start={start?.toString()}
@@ -288,22 +291,62 @@ function TeamInsightsOverview({location, router}: Props) {
             </DescriptionCard>
 
             <SectionTitle>{t('Team Activity')}</SectionTitle>
-            <DescriptionCard
-              title={t('Issues Reviewed')}
-              description={t(
-                'Issues triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
-              )}
-            >
-              <TeamIssuesReviewed
-                organization={organization}
-                projects={projects}
-                teamSlug={currentTeam!.slug}
-                period={period}
-                start={start?.toString()}
-                end={end?.toString()}
-                location={location}
-              />
-            </DescriptionCard>
+            {!isInsightsV2 && (
+              <DescriptionCard
+                title={t('Issues Reviewed')}
+                description={t(
+                  'Issues triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
+                )}
+              >
+                <TeamIssuesReviewed
+                  organization={organization}
+                  projects={projects}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start?.toString()}
+                  end={end?.toString()}
+                  location={location}
+                />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('New and Returning Issues')}
+                description={t(
+                  'The new, regressed, and unignored issues that were assigned to your team.'
+                )}
+              >
+                <TeamIssuesBreakdown
+                  organization={organization}
+                  projects={projects}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start?.toString()}
+                  end={end?.toString()}
+                  location={location}
+                  statuses={['new', 'regressed', 'unignored']}
+                />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('Issues Triaged')}
+                description={t(
+                  'How many new and returning issues were reviewed by your team each week. Reviewing an issue includes marking as reviewed, resolving, assigning to another team, or deleting.'
+                )}
+              >
+                <TeamIssuesBreakdown
+                  organization={organization}
+                  projects={projects}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start?.toString()}
+                  end={end?.toString()}
+                  location={location}
+                  statuses={['resolved', 'ignored', 'deleted']}
+                />
+              </DescriptionCard>
+            )}
             {isInsightsV2 && (
               <DescriptionCard
                 title={t('Age of Unresolved Issues')}
@@ -312,6 +355,24 @@ function TeamInsightsOverview({location, router}: Props) {
                 )}
               >
                 <TeamIssuesAge organization={organization} teamSlug={currentTeam!.slug} />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('All Unresolved Issues')}
+                description={t(
+                  'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or ignored in the past.'
+                )}
+              >
+                <TeamUnresolvedIssues
+                  projects={projects}
+                  organization={organization}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start}
+                  end={end}
+                  utc={utc}
+                />
               </DescriptionCard>
             )}
             <DescriptionCard
@@ -331,7 +392,7 @@ function TeamInsightsOverview({location, router}: Props) {
             </DescriptionCard>
             <DescriptionCard
               title={t('Number of Releases')}
-              description={t("The releases that were created in your team's projects.")}
+              description={t('The releases that were created in your team’s projects.')}
             >
               <TeamReleases
                 projects={projects}

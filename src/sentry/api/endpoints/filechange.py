@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -6,7 +9,7 @@ from sentry.models import CommitFileChange, Release, ReleaseCommit, Repository
 
 
 class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
-    def get(self, request, organization, version):
+    def get(self, request: Request, organization, version) -> Response:
         """
         Retrieve Files Changed in a Release's Commits
         `````````````````````````````````````````````

@@ -1,6 +1,7 @@
 from unittest import mock
 
 from sentry.eventstore.base import Filter
+from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -122,6 +123,31 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert event.event_id == "d" * 32
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
+
+    def test_get_event_by_id_cached(self):
+        # Simulate getting an event that exists in eventstore but has not yet been written to snuba.
+        with mock.patch("sentry.eventstore.snuba.backend.Event") as mock_event:
+            dummy_event = Event(
+                project_id=self.project2.id,
+                event_id="f" * 32,
+                data={"something": "hi", "timestamp": self.min_ago},
+            )
+            mock_event.return_value = dummy_event
+            event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
+            # Result of query should be None
+            assert event is None
+
+        # Now we store the event properly, so it will exist in Snuba.
+        self.store_event(
+            data={"event_id": "f" * 32, "timestamp": self.min_ago},
+            project_id=self.project2.id,
+        )
+
+        # Make sure that the negative cache isn't causing the event to not show up
+        event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
+        assert event.event_id == "f" * 32
+        assert event.project_id == self.project2.id
+        assert event.group_id == event.group.id
 
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)

@@ -1,22 +1,24 @@
+from time import time
 from unittest.mock import patch
 
 from django.conf import settings
+from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from exam import fixture
 from freezegun import freeze_time
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import (
     RatelimitMiddleware,
-    above_rate_limit_check,
     get_rate_limit_key,
     get_rate_limit_value,
 )
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
-from sentry.testutils import TestCase
+from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -29,6 +31,29 @@ class RatelimitMiddlewareTest(TestCase):
             return Response({"ok": True})
 
     _test_endpoint = TestEndpoint.as_view()
+
+    def populate_sentry_app_request(self, request):
+        sentry_app = self.create_sentry_app(
+            name="Bubbly Webhook",
+            organization=self.organization,
+            webhook_url="https://example.com",
+            scopes=["event:write"],
+        )
+
+        internal_integration = self.create_internal_integration(
+            name="my_app",
+            organization=self.organization,
+            scopes=("project:read",),
+            webhook_url="http://example.com",
+        )
+        # there should only be one record created so just grab the first one
+        install = SentryAppInstallation.objects.get(
+            sentry_app=internal_integration.id, organization=self.organization
+        )
+        token = install.api_token
+
+        request.user = User.objects.get(id=sentry_app.proxy_user_id)
+        request.auth = token
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
@@ -64,10 +89,24 @@ class RatelimitMiddlewareTest(TestCase):
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
 
-    def test_above_rate_limit_check(self):
+    def test_rate_limit_category(self):
+        request = self.factory.get("/")
+        request.META["REMOTE_ADDR"] = None
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert request.rate_limit_category is None
 
-        return_val = above_rate_limit_check("foo", RateLimit(10, 100))
-        assert return_val == dict(is_limited=False, current=1, limit=10, window=100)
+        request = self.factory.get("/")
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert request.rate_limit_category == "ip"
+
+        request.session = {}
+        request.user = self.user
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert request.rate_limit_category == "user"
+
+        self.populate_sentry_app_request(request)
+        self.middleware.process_view(request, self._test_endpoint, [], {})
+        assert request.rate_limit_category == "org"
 
     def test_get_rate_limit_key(self):
         # Import an endpoint
@@ -76,7 +115,6 @@ class RatelimitMiddlewareTest(TestCase):
 
         # Test for default IP
         request = self.factory.get("/")
-        print(request)
         assert (
             get_rate_limit_key(view, request) == "ip:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
         )
@@ -109,27 +147,7 @@ class RatelimitMiddlewareTest(TestCase):
         )
 
         # Test for sentryapp auth tokens:
-        sentry_app = self.create_sentry_app(
-            name="Bubbly Webhook",
-            organization=self.organization,
-            webhook_url="https://example.com",
-            scopes=["event:write"],
-        )
-
-        internal_integration = self.create_internal_integration(
-            name="my_app",
-            organization=self.organization,
-            scopes=("project:read",),
-            webhook_url="http://example.com",
-        )
-        # there should only be one record created so just grab the first one
-        install = SentryAppInstallation.objects.get(
-            sentry_app=internal_integration.id, organization=self.organization
-        )
-        token = install.api_token
-
-        request.user = User.objects.get(id=sentry_app.proxy_user_id)
-        request.auth = token
+        self.populate_sentry_app_request(request)
         assert (
             get_rate_limit_key(view, request)
             == f"org:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
@@ -194,3 +212,63 @@ class TestGetRateLimitValue(TestCase):
             pass
 
         assert get_rate_limit_value("GET", TestEndpoint, "ip") is None
+
+
+class RateLimitHeaderTestEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    enforce_rate_limit = True
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(2, 100)}}
+
+    def get(self, request):
+        return Response({"ok": True})
+
+
+urlpatterns = [
+    url(r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint")
+]
+
+
+@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware")
+class TestRatelimitHeader(APITestCase):
+
+    endpoint = "ratelimit-header-endpoint"
+
+    def test_header_counts(self):
+        """Ensure that the header remainder counts decrease properly"""
+        with freeze_time("2000-01-01"):
+            expected_reset_time = int(time() + 100)
+            response = self.get_success_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 1
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
+            response = self.get_success_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
+            response = self.get_error_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
+            response = self.get_error_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
+    @patch("sentry.ratelimits.utils.can_be_ratelimited")
+    def test_omit_header(self, can_be_ratelimited_patch):
+        """
+        Ensure that functions that can't be rate limited don't have rate limit headers
+
+        These functions include, but are not limited to:
+            - UI Statistics Endpoints
+            - Endpoints that don't inherit api.base.Endpoint
+        """
+        can_be_ratelimited_patch.return_value = False
+        response = self.get_response()
+        assert "X-Sentry-Rate-Limit-Remaining" not in response._headers
+        assert "X-Sentry-Rate-Limit-Limit" not in response._headers
+        assert "X-Sentry-Rate-Limit-Reset" not in response._headers

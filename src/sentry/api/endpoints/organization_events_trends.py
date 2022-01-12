@@ -4,6 +4,7 @@ from typing import Dict, Match, Optional, TypedDict
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.expressions import Limit, Offset
@@ -414,9 +415,9 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
     def has_snql_feature(self, organization, request):
-        return features.has("organizations:performance-use-snql", organization, actor=request.user)
+        return features.has("organizations:trends-use-snql", organization, actor=request.user)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
         use_snql = self.has_snql_feature(organization, request)
@@ -464,25 +465,28 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         query = request.GET.get("query")
 
         if use_snql:
-            trend_query = TrendQueryBuilder(
-                dataset=Dataset.Discover,
-                params=params,
-                selected_columns=selected_columns,
-                auto_fields=False,
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
-            )
-            snql_trend_columns = self.resolve_trend_columns(trend_query, function, column, middle)
-            trend_query.columns.extend(snql_trend_columns.values())
-            trend_query.aggregates.extend(snql_trend_columns.values())
-            trend_query.params["aliases"] = self.get_snql_function_aliases(
-                snql_trend_columns, trend_type
-            )
-            # Both orderby and conditions need to be resolved after the columns because of aliasing
-            trend_query.orderby = trend_query.resolve_orderby(orderby)
-            where, having = trend_query.resolve_conditions(query, use_aggregate_conditions=True)
-            trend_query.where += where
-            trend_query.having += having
+            with self.handle_query_errors():
+                trend_query = TrendQueryBuilder(
+                    dataset=Dataset.Discover,
+                    params=params,
+                    selected_columns=selected_columns,
+                    auto_fields=False,
+                    auto_aggregations=True,
+                    use_aggregate_conditions=True,
+                )
+                snql_trend_columns = self.resolve_trend_columns(
+                    trend_query, function, column, middle
+                )
+                trend_query.columns.extend(snql_trend_columns.values())
+                trend_query.aggregates.extend(snql_trend_columns.values())
+                trend_query.params["aliases"] = self.get_snql_function_aliases(
+                    snql_trend_columns, trend_type
+                )
+                # Both orderby and conditions need to be resolved after the columns because of aliasing
+                trend_query.orderby = trend_query.resolve_orderby(orderby)
+                where, having = trend_query.resolve_conditions(query, use_aggregate_conditions=True)
+                trend_query.where += where
+                trend_query.having += having
         else:
             params["aliases"] = self.get_function_aliases(trend_type)
             trend_columns = self.get_trend_columns(function, column, middle)

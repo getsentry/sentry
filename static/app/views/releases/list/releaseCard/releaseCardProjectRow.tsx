@@ -11,7 +11,7 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
-import {extractSelectionParameters} from 'sentry/components/organizations/globalSelectionHeader/utils';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {PanelItem} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tag from 'sentry/components/tag';
@@ -102,19 +102,19 @@ function ReleaseCardProjectRow({
         {showReleaseAdoptionStages && (
           <AdoptionStageColumn>
             {adoptionStageLabel ? (
-              <Link
-                to={{
-                  pathname: `/organizations/${organization.slug}/releases/`,
-                  query: {
-                    ...location.query,
-                    query: `release.stage:${adoptionStage}`,
-                  },
-                }}
-              >
-                <Tooltip title={adoptionStageLabel.tooltipTitle}>
+              <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+                <Link
+                  to={{
+                    pathname: `/organizations/${organization.slug}/releases/`,
+                    query: {
+                      ...location.query,
+                      query: `release.stage:${adoptionStage}`,
+                    },
+                  }}
+                >
                   <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
-                </Tooltip>
-              </Link>
+                </Link>
+              </Tooltip>
             ) : (
               <NotAvailable />
             )}
@@ -236,7 +236,7 @@ const AdoptionWrapper = styled('span')`
   flex: 1;
   display: inline-grid;
   grid-template-columns: 30px 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 
   /* Chart tooltips need overflow */

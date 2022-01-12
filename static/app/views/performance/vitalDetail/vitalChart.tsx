@@ -181,11 +181,11 @@ function VitalChart({
 
 export default withRouter(VitalChart);
 
-type _VitalChartProps = {
+export type _VitalChartProps = Props & {
   loading: boolean;
   reloading: boolean;
   field: string;
-  grid: LineChart['props']['grid'];
+  grid: React.ComponentProps<typeof LineChart>['grid'];
   data?: Series[];
   height?: number;
   utc?: boolean;

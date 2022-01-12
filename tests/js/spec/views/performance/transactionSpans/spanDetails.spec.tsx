@@ -37,9 +37,47 @@ describe('Performance > Transaction Spans > Span Details', function () {
         url: '/organizations/org-slug/events-spans-performance/',
         body: [],
       });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans/',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans-stats/',
+        body: {
+          'percentileArray(spans_exclusive_time, 0.75)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
+          'percentileArray(spans_exclusive_time, 0.95)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
+          'percentileArray(spans_exclusive_time, 0.99)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
+        },
+      });
     });
 
-    it(`renders empty when missing project`, async function () {
+    it('renders empty when missing project param', async function () {
       const data = initializeData({query: {transaction: 'transaction'}});
 
       const {container} = mountWithTheme(
@@ -50,7 +88,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it(`renders empty when missing transaction`, async function () {
+    it('renders empty when missing transaction param', async function () {
       const data = initializeData({query: {project: '1'}});
 
       const {container} = mountWithTheme(
@@ -61,7 +99,7 @@ describe('Performance > Transaction Spans > Span Details', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it(`renders no data when empty response`, async function () {
+    it('renders no data when empty response', async function () {
       const data = initializeData({
         features: ['performance-view', 'performance-suspect-spans-view'],
         query: {project: '1', transaction: 'transaction'},
@@ -72,7 +110,11 @@ describe('Performance > Transaction Spans > Span Details', function () {
         organization: data.organization,
       });
 
-      expect(await screen.findByText('No span data found')).toBeInTheDocument();
+      expect(
+        await screen.findByText('No results found for your query')
+      ).toBeInTheDocument();
+
+      expect(await screen.findByText('Exclusive Time Breakdown')).toBeInTheDocument();
     });
   });
 
@@ -81,6 +123,44 @@ describe('Performance > Transaction Spans > Span Details', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: generateSuspectSpansResponse(),
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans/',
+        body: generateSuspectSpansResponse({examplesOnly: true}),
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans-stats/',
+        body: {
+          'percentileArray(spans_exclusive_time, 0.75)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
+          'percentileArray(spans_exclusive_time, 0.95)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
+          'percentileArray(spans_exclusive_time, 0.99)': {
+            data: [
+              [0, [{count: 0}]],
+              [10, [{count: 0}]],
+            ],
+            order: 2,
+            start: 0,
+            end: 10,
+          },
+        },
       });
     });
 
@@ -129,6 +209,38 @@ describe('Performance > Transaction Spans > Span Details', function () {
         await within(totalExclusiveTimeHeader).findByText('5.00ms')
       ).toBeInTheDocument();
       // TODO: add an expect for the TBD
+    });
+
+    it('renders chart', async function () {
+      const data = initializeData({
+        features: ['performance-view', 'performance-suspect-spans-view'],
+        query: {project: '1', transaction: 'transaction'},
+      });
+
+      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+        context: data.routerContext,
+        organization: data.organization,
+      });
+
+      expect(await screen.findByText('Exclusive Time Breakdown')).toBeInTheDocument();
+    });
+
+    it('renders table headers', async function () {
+      const data = initializeData({
+        features: ['performance-view', 'performance-suspect-spans-view'],
+        query: {project: '1', transaction: 'transaction'},
+      });
+
+      mountWithTheme(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+        context: data.routerContext,
+        organization: data.organization,
+      });
+
+      expect(await screen.findByText('Example Transaction')).toBeInTheDocument();
+      expect(await screen.findByText('Timestamp')).toBeInTheDocument();
+      expect(await screen.findByText('Span Duration')).toBeInTheDocument();
+      expect(await screen.findByText('Count')).toBeInTheDocument();
+      expect(await screen.findByText('Cumulative Duration')).toBeInTheDocument();
     });
   });
 });

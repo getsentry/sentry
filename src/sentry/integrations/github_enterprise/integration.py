@@ -2,6 +2,8 @@ from urllib.parse import urlparse
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import http
 from sentry.identity.github_enterprise import get_user_info
@@ -27,7 +29,7 @@ from .client import GitHubEnterpriseAppsClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 DESCRIPTION = """
-Connect your Sentry organization into your on-premise GitHub Enterprise
+Connect your Sentry organization into your on-premises GitHub Enterprise
 instances. Take a step towards augmenting your sentry issues with commits from
 your repositories ([using releases](https://docs.sentry.io/learn/releases/))
 and linking up your GitHub issues and pull requests directly to issues in
@@ -216,7 +218,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -388,7 +390,7 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
         name = installation_data.get("name")
         return f"https://{url}/github-apps/{name}"
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         installation_data = pipeline.fetch_state(key="installation_data")
         if "reinstall_id" in request.GET:
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])

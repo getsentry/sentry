@@ -1,4 +1,5 @@
 import * as React from 'react';
+import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import ActionLink from 'sentry/components/actions/actionLink';
@@ -143,7 +144,7 @@ class ResolveActions extends React.Component<Props> {
     return (
       <DropdownLink
         customTitle={
-          <ActionButton
+          <StyledActionButton
             label={t('More resolve options')}
             disabled={!projectSlug ? disabled : disableDropdown}
             icon={<IconChevron direction="down" size="xs" />}
@@ -244,6 +245,7 @@ class ResolveActions extends React.Component<Props> {
               title={t('Resolve')}
               icon={<IconCheckmark size="xs" />}
               onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
+              hasDropdown
             >
               {t('Resolve')}
             </ActionLink>
@@ -256,3 +258,7 @@ class ResolveActions extends React.Component<Props> {
 }
 
 export default withOrganization(ResolveActions);
+
+const StyledActionButton = styled(ActionButton)`
+  box-shadow: none;
+`;

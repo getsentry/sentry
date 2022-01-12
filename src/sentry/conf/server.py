@@ -920,7 +920,7 @@ SENTRY_FEATURES = {
     "organizations:filters-and-sampling": False,
     # Enable Dynamic Sampling errors in the org settings
     "organizations:filters-and-sampling-error-rules": False,
-    # Allow organizations to configure built-in symbol sources.
+    # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
@@ -1071,8 +1071,6 @@ SENTRY_FEATURES = {
     "organizations:sso-scim": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
-    # Enable transaction comparison view for performance.
-    "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
     # Enable percent-based conditions on issue rules
@@ -1081,14 +1079,8 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
-    # Enable the adoption chart in the releases page
-    "organizations:release-adoption-chart": True,
-    # Enable the release adoption stage labels and sorting+filtering by them
-    "organizations:release-adoption-stage": True,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
-    # Enable the new release details experience
-    "organizations:release-comparison": True,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
@@ -1932,7 +1924,7 @@ SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
-SENTRY_ONPREMISE = True
+SENTRY_SELF_HOSTED = True
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2192,8 +2184,8 @@ JS_SDK_LOADER_SDK_VERSION = ""
 # This should be the url pointing to the JS SDK
 JS_SDK_LOADER_DEFAULT_SDK_URL = ""
 
-# block domains which are generally used by spammers -- keep this configurable in case an onpremise
-# install wants to allow it
+# block domains which are generally used by spammers -- keep this configurable
+# in case a self-hosted install wants to allow it
 INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive
@@ -2490,3 +2482,12 @@ SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
+
+# Zero Downtime Migrations settings as defined at
+# https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
+ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+# Note: The docs have this backwards. We set this to False here so that we always add check
+# constraints instead of setting the column to not null.
+ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False

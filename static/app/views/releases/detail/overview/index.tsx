@@ -15,16 +15,16 @@ import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
 import {Body, Main, Side} from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  GlobalSelection,
   NewQuery,
   Organization,
+  PageFilters,
   ReleaseProject,
   SessionField,
 } from 'sentry/types';
@@ -36,8 +36,8 @@ import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -79,7 +79,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   api: Client;
 };
 
@@ -293,7 +293,7 @@ class ReleaseOverview extends AsyncView<Props> {
   get pageDateTime(): DateTimeObject {
     const query = this.props.location.query;
 
-    const {start, end, statsPeriod} = getParams(query, {
+    const {start, end, statsPeriod} = normalizeDateTimeParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -315,6 +315,7 @@ class ReleaseOverview extends AsyncView<Props> {
 
   handleTransactionsListSortChange = (value: string) => {
     const {location} = this.props;
+
     const target = {
       pathname: location.pathname,
       query: {...location.query, showTransactions: value, transactionCursor: undefined},
@@ -612,7 +613,7 @@ class ReleaseOverview extends AsyncView<Props> {
 function generateTransactionLink(
   version: string,
   projectId: number,
-  selection: GlobalSelection,
+  selection: PageFilters,
   value: string
 ) {
   return (
@@ -697,4 +698,4 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(1.5)};
 `;
 
-export default withApi(withGlobalSelection(withOrganization(ReleaseOverview)));
+export default withApi(withPageFilters(withOrganization(ReleaseOverview)));

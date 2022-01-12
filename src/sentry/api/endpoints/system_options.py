@@ -1,4 +1,5 @@
 from django.conf import settings
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 import sentry
@@ -11,7 +12,7 @@ from sentry.utils.email import is_smtp_enabled
 class SystemOptionsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         query = request.GET.get("query")
         if query == "is:required":
             option_list = options.filter(flag=options.FLAG_REQUIRED)
@@ -49,7 +50,7 @@ class SystemOptionsEndpoint(Endpoint):
 
         return Response(results)
 
-    def put(self, request):
+    def put(self, request: Request):
         # TODO(dcramer): this should validate options before saving them
         for k, v in request.data.items():
             if v and isinstance(v, str):

@@ -1,5 +1,6 @@
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -12,13 +13,13 @@ class AcceptOrganizationInvite(Endpoint):
     # Disable authentication and permission requirements.
     permission_classes = []
 
-    def respond_invalid(self, request):
+    def respond_invalid(self, request: Request) -> Response:
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})
 
-    def get_helper(self, request, member_id, token):
+    def get_helper(self, request: Request, member_id, token):
         return ApiInviteHelper(request=request, member_id=member_id, instance=self, token=token)
 
-    def get(self, request, member_id, token):
+    def get(self, request: Request, member_id, token) -> Response:
         try:
             helper = self.get_helper(request, member_id, token)
         except OrganizationMember.DoesNotExist:
@@ -83,7 +84,7 @@ class AcceptOrganizationInvite(Endpoint):
 
         return response
 
-    def post(self, request, member_id, token):
+    def post(self, request: Request, member_id, token) -> Response:
         try:
             helper = self.get_helper(request, member_id, token)
         except OrganizationMember.DoesNotExist:

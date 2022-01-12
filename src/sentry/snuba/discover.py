@@ -485,6 +485,7 @@ def timeseries_query(
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
+    functions_acl: Optional[Sequence[str]] = None,
     use_snql: Optional[bool] = False,
 ):
     """
@@ -526,6 +527,7 @@ def timeseries_query(
                 query=query,
                 selected_columns=columns,
                 equations=equations,
+                functions_acl=functions_acl,
             )
             query_list = [base_builder]
             if comparison_delta:
@@ -683,6 +685,7 @@ def top_events_timeseries(
     allow_empty=True,
     zerofill_results=True,
     include_other=False,
+    functions_acl=None,
     use_snql=False,
 ):
     """
@@ -737,6 +740,7 @@ def top_events_timeseries(
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
             equations=equations,
+            functions_acl=functions_acl,
         )
         if len(top_events["data"]) == limit and include_other:
             other_events_builder = TopEventsQueryBuilder(
@@ -1408,6 +1412,8 @@ def histogram_query(
         )
 
     if use_snql:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
         builder = HistogramQueryBuilder(
             num_buckets,
             histogram_column,
