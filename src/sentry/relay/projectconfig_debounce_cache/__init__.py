@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 
 from sentry.utils.services import LazyServiceWrapper
@@ -11,3 +13,7 @@ backend = LazyServiceWrapper(
 )
 
 backend.expose(locals())
+
+if TYPE_CHECKING:
+    check_is_debounced = backend.check_is_debounced
+    mark_task_done = backend.mark_task_done
