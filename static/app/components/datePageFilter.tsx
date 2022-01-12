@@ -61,8 +61,7 @@ type Props = {
    */
   relativeOptions?: Record<string, React.ReactNode>;
   /**
-   * Reset these URL params when we fire actions
-   * (custom routing only)
+   * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
   /**
