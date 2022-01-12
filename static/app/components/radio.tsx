@@ -38,8 +38,8 @@ const Radio = styled('input')<Props>`
   /* TODO(bootstrap): Our bootstrap CSS adds this, we can remove when we remove that */
   margin: 0 !important;
 
-  &&:focus,
-  &&.focus-visible {
+  &:focus,
+  &.focus-visible {
     outline: none;
     border-color: ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
