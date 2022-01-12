@@ -2,8 +2,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -25,7 +25,7 @@ describe('EnvironmentPageFilter', function () {
   });
   OrganizationStore.onUpdate(organization, {replace: true});
   ProjectsStore.loadInitialData(organization.projects);
-  GlobalSelectionStore.onInitializeUrlState({
+  PageFiltersStore.onInitializeUrlState({
     projects: [2],
     environments: [],
     datetime: {start: null, end: null, period: '14d', utc: null},

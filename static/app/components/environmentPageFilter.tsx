@@ -2,12 +2,12 @@ import {useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {updateEnvironments} from 'sentry/actionCreators/globalSelection';
+import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import DropdownButton from 'sentry/components/dropdownButton';
 import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GlobalSelectionStore from 'sentry/stores/globalSelectionStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,8 +16,7 @@ import useProjects from 'sentry/utils/useProjects';
 type Props = {
   router: WithRouterProps['router'];
   /**
-   * Reset these URL params when we fire actions
-   * (custom routing only)
+   * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
 };
@@ -25,7 +24,7 @@ type Props = {
 function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, isReady} = useLegacyStore(GlobalSelectionStore);
+  const {selection, isReady} = useLegacyStore(PageFiltersStore);
 
   const [selectedEnvironments, setSelectedEnvironments] = useState<string[] | null>(null);
 
@@ -84,7 +83,7 @@ const StyledDropdownButton = styled(DropdownButton)`
 const DropdownTitle = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   white-space: nowrap;
 `;
