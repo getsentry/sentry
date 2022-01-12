@@ -142,7 +142,6 @@ default_manager.add("organizations:required-email-verification", OrganizationFea
 default_manager.add("organizations:rule-page", OrganizationFeature)
 default_manager.add("organizations:selection-filters-v2", OrganizationFeature, True)
 default_manager.add("organizations:semver", OrganizationFeature, True)
-default_manager.add("organizations:sentry-app-debugging", OrganizationFeature, True)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)
 default_manager.add("organizations:sso-basic", OrganizationFeature)
 default_manager.add("organizations:sso-migration", OrganizationFeature)
