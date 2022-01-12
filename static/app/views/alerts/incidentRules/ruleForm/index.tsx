@@ -389,6 +389,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
+    const {aggregate} = this.state;
     if (
       [
         'dataset',
@@ -399,7 +400,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         'comparisonDelta',
       ].includes(name)
     ) {
-      this.setState({[name]: value});
+      this.setState({aggregate, [name]: value});
     }
   };
 
@@ -447,9 +448,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
     const {ruleId} = this.props.params;
-    const {resolveThreshold, triggers, thresholdType, comparisonDelta, uuid, timeWindow} =
-      this.state;
-
+    const {
+      aggregate,
+      resolveThreshold,
+      triggers,
+      thresholdType,
+      comparisonDelta,
+      uuid,
+      timeWindow,
+    } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
       trigger => trigger.label !== 'warning' || !isEmpty(trigger.alertThreshold)
@@ -487,6 +494,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           thresholdType,
           comparisonDelta,
           timeWindow,
+          aggregate,
         },
         {
           referrer: location?.query?.referrer,

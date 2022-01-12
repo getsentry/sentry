@@ -30,7 +30,7 @@ async function renderComponent() {
 describe('ReprocessEventModal', function () {
   let wrapper: any;
 
-  beforeAll(async function () {
+  beforeEach(async function () {
     wrapper = await renderComponent();
   });
 
