@@ -6,7 +6,6 @@ import {Location} from 'history';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import PanelTable from 'sentry/components/panels/panelTable';
@@ -24,6 +23,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Color} from 'sentry/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
 
 type TeamMiseryProps = {
@@ -87,7 +87,7 @@ function TeamMisery({
     <Fragment>
       <StyledPanelTable
         isEmpty={projects.length === 0 || periodTableData?.data.length === 0}
-        emptyMessage={t('No Key Transactions Starred By This Team')}
+        emptyMessage={t('No key transactions starred by this team')}
         emptyAction={
           <Button
             size="small"
@@ -316,14 +316,6 @@ const StyledIconStar = styled(IconStar)`
   display: block;
   margin-right: ${space(1)};
   margin-bottom: ${space(0.5)};
-`;
-
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
 `;
 
 const TransactionWrapper = styled('div')`

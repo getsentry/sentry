@@ -1,12 +1,40 @@
 import {Frame} from 'sentry/utils/profiling/frame';
 
+type FrameIndex = Record<string | number, Frame>;
+
 export function createFrameIndex(
   frames: Profiling.RawProfileBase['shared']['frames']
-): Record<string | number, Frame> {
-  return frames.reduce((acc, frame, index) => {
-    acc[index] = new Frame({key: index, ...frame});
-    return acc;
-  }, {});
+): FrameIndex;
+export function createFrameIndex(
+  frames: JSSelfProfiling.Frame[],
+  trace: JSSelfProfiling.Trace
+): FrameIndex;
+export function createFrameIndex(
+  frames: Profiling.RawProfileBase['shared']['frames'] | JSSelfProfiling.Frame[],
+  trace?: JSSelfProfiling.Trace
+): FrameIndex {
+  if (trace) {
+    return (frames as JSSelfProfiling.Frame[]).reduce((acc, frame, index) => {
+      acc[index] = new Frame({
+        key: index,
+        resource:
+          frame.resourceId !== undefined ? trace.resources[frame.resourceId] : undefined,
+        ...frame,
+      });
+      return acc;
+    }, {});
+  }
+
+  return (frames as Profiling.RawProfileBase['shared']['frames']).reduce(
+    (acc, frame, index) => {
+      acc[index] = new Frame({
+        key: index,
+        ...frame,
+      });
+      return acc;
+    },
+    {}
+  );
 }
 
 type Cache<Arguments extends ReadonlyArray<any> | any, Value> = {

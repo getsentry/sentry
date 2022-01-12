@@ -1,44 +1,38 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import {MultipleCheckboxField} from 'sentry/components/forms';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormModel from 'sentry/views/settings/components/forms/model';
 
 describe('MultipleCheckboxField', function () {
-  describe('render()', function () {
-    it('renders without form context', function () {
-      const wrapper = mountWithTheme(
-        <MultipleCheckboxField
-          name="fieldName"
-          choices={[
-            ['1', 'On'],
-            ['2', 'Off'],
-          ]}
-          value={['1']}
-        />
-      );
-      expect(wrapper).toSnapshot();
-    });
+  it('renders without form context', function () {
+    const {container} = mountWithTheme(
+      <MultipleCheckboxField
+        name="fieldName"
+        choices={[
+          ['1', 'On'],
+          ['2', 'Off'],
+        ]}
+        value={['1']}
+      />
+    );
+    expect(container).toSnapshot();
+  });
 
-    it('renders with form context', function () {
-      const wrapper = mountWithTheme(
+  it('renders with form context', function () {
+    const model = new FormModel({initialData: {fieldName: ['1']}});
+    const {container} = mountWithTheme(
+      <Form value={model}>
         <MultipleCheckboxField
           name="fieldName"
           choices={[
             ['1', 'On'],
             ['2', 'Off'],
           ]}
-        />,
-        {
-          context: {
-            form: {
-              data: {
-                fieldName: ['1'],
-              },
-              errors: {},
-            },
-          },
-        }
-      );
-      expect(wrapper).toSnapshot();
-    });
+        />
+      </Form>
+    );
+    expect(container).toSnapshot();
+    expect(model.fields.get('fieldName')).toEqual(['1']);
   });
 });

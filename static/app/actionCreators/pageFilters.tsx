@@ -6,11 +6,14 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
+import {getStateFromQuery} from 'sentry/components/organizations/pageFilters/parse';
 import {
   getDefaultSelection,
-  getStateFromQuery,
+  getPageFilterStorage,
+  setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/utils';
-import {DATE_TIME, LOCAL_STORAGE_KEY, URL_PARAM} from 'sentry/constants/pageFilters';
+import {DATE_TIME, URL_PARAM} from 'sentry/constants/pageFilters';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   Environment,
   MinimalProject,
@@ -20,10 +23,9 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
-import localStorage from 'sentry/utils/localStorage';
 
 /**
- * Note this is the internal project.id, NOT the slug, but it is the stringified version of it
+ * NOTE: this is the internal project.id, NOT the slug
  */
 type ProjectId = string | number;
 type EnvironmentId = Environment['id'];
@@ -33,12 +35,22 @@ type Options = {
    * List of parameters to remove when changing URL params
    */
   resetParams?: string[];
-  save?: boolean;
+  /**
+   * Do not reset the `cursor` query parameter when updating page filters
+   */
   keepCursor?: boolean;
+  /**
+   * Persist changes to the page filter selection into local storage
+   */
+  save?: boolean;
+  /**
+   * Use Location.replace instead of push when updating the URL query state
+   */
+  replace?: boolean;
 };
 
 /**
- * Can be relative time string or absolute (using start and end dates)
+ * Represents the datetime portion of page filters staate
  */
 type DateTimeObject = {
   start?: Date | string | null;
@@ -145,20 +157,10 @@ export function initializeUrlState({
     pageFilters.projects = parsed.project || [];
     pageFilters.environments = parsed.environment || [];
   } else if (!skipLoadLastUsed) {
-    try {
-      const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgSlug}`;
-      const storedValue = localStorage.getItem(localStorageKey);
+    const storedPageFilters = getPageFilterStorage(orgSlug);
 
-      if (storedValue) {
-        pageFilters = {
-          datetime: pageFilters.datetime,
-          ...JSON.parse(storedValue),
-        };
-      }
-    } catch (err) {
-      // use default if invalid
-      Sentry.captureException(err);
-      console.error(err); // eslint-disable-line no-console
+    if (storedPageFilters !== null) {
+      pageFilters = {...storedPageFilters, datetime: pageFilters.datetime};
     }
   }
 
@@ -217,7 +219,8 @@ export function initializeUrlState({
         : datetime.period,
     utc: !parsedWithNoDefaultPeriod.utc ? null : datetime.utc,
   };
-  updateParamsWithoutHistory({project, environment, ...newDatetime}, router, {
+  updateParams({project, environment, ...newDatetime}, router, {
+    replace: true,
     keepCursor: true,
   });
 }
@@ -307,44 +310,15 @@ export function updateParams(obj: UrlParams, router?: Router, options?: Options)
   }
 
   if (options?.save) {
-    PageFiltersActions.save(newQuery);
+    const {organization, selection} = PageFiltersStore.getState();
+    const orgSlug = organization?.slug ?? null;
+
+    setPageFiltersStorage(orgSlug, selection, newQuery);
   }
 
-  router.push({
-    pathname: router.location.pathname,
-    query: newQuery,
-  });
-}
+  const routerAction = options?.replace ? router.replace : router.push;
 
-/**
- * Like updateParams but just replaces the current URL and does not create a
- * new browser history entry
- *
- * @param obj New query params
- * @param [router] React router object
- * @param [options] Options object
- */
-export function updateParamsWithoutHistory(
-  obj: UrlParams,
-  router?: Router,
-  options?: Options
-) {
-  // Allow another component to handle routing
-  if (!router) {
-    return;
-  }
-
-  const newQuery = getNewQueryParams(obj, router.location.query, options);
-
-  // Only push new location if query params have changed because this will cause a heavy re-render
-  if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
-    return;
-  }
-
-  router.replace({
-    pathname: router.location.pathname,
-    query: newQuery,
-  });
+  routerAction({pathname: router.location.pathname, query: newQuery});
 }
 
 /**

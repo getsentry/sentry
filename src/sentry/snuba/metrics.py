@@ -1,11 +1,9 @@
-import enum
 import itertools
 import math
 import random
 import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from operator import itemgetter
 from typing import (
@@ -260,10 +258,6 @@ class QueryDefinition:
             # orderBy one of the group by fields may be supported in the future
             raise InvalidParams("'orderBy' must be one of the provided 'fields'")
 
-        if op in _OPERATIONS_PERCENTILES:
-            # NOTE(jjbayer): This should work, will fix later
-            raise InvalidParams("'orderBy' percentiles is not yet supported")
-
         return (op, metric_name), direction
 
     def _parse_limit(self, query_params):
@@ -414,31 +408,27 @@ class DataSource(ABC):
         """Get all known values for a specific tag"""
 
 
-@dataclass
-class SnubaField:
-    snuba_function: Literal[
-        "sum", "uniq", "avg", "count", "max", "min", "quantiles(0.5,0.75,0.9,0.95,0.99)"
-    ]
-    snuba_alias: Literal["value", "avg", "count", "max", "min", "percentiles"]
-
-
-_OP_TO_FIELD = {
-    "metrics_counters": {"sum": SnubaField("sum", "value")},
+# Map requested op name to the corresponding Snuba function
+_OP_TO_SNUBA_FUNCTION = {
+    "metrics_counters": {"sum": "sum"},
     "metrics_distributions": {
-        "avg": SnubaField("avg", "avg"),
-        "count": SnubaField("count", "count"),
-        "max": SnubaField("max", "max"),
-        "min": SnubaField("min", "min"),
-        "p50": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
-        "p75": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
-        "p90": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
-        "p95": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
-        "p99": SnubaField("quantiles(0.5,0.75,0.9,0.95,0.99)", "percentiles"),
+        "avg": "avg",
+        "count": "count",
+        "max": "max",
+        "min": "min",
+        # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
+        "p50": "quantiles(0.50)",
+        "p75": "quantiles(0.75)",
+        "p90": "quantiles(0.90)",
+        "p95": "quantiles(0.95)",
+        "p99": "quantiles(0.99)",
     },
-    "metrics_sets": {"count_unique": SnubaField("uniq", "value")},
+    "metrics_sets": {"count_unique": "uniq"},
 }
 
-_AVAILABLE_OPERATIONS = {type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_FIELD.items()}
+_AVAILABLE_OPERATIONS = {
+    type_: sorted(mapping.keys()) for type_, mapping in _OP_TO_SNUBA_FUNCTION.items()
+}
 
 
 _BASE_TAGS = {
@@ -687,15 +677,7 @@ class MockDataSource(IndexMockingDataSource):
         }
 
 
-PERCENTILE_INDEX = {}
-
-
-class Percentile(enum.Enum):
-    p50 = 0
-    p75 = 1
-    p90 = 2
-    p95 = 3
-    p99 = 4
+_ALLOWED_GROUPBY_COLUMNS = ("project_id",)
 
 
 class SnubaQueryBuilder:
@@ -735,7 +717,10 @@ class SnubaQueryBuilder:
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
         return [Column("metric_id")] + [
-            Column(resolve_tag_key(field)) for field in query_definition.groupby
+            Column(resolve_tag_key(field))
+            if field not in _ALLOWED_GROUPBY_COLUMNS
+            else Column(field)
+            for field in query_definition.groupby
         ]
 
     def _build_orderby(
@@ -743,15 +728,16 @@ class SnubaQueryBuilder:
     ) -> Optional[List[OrderBy]]:
         if query_definition.orderby is None:
             return None
-        (op, metric_name), direction = query_definition.orderby
-        snuba_field = _OP_TO_FIELD[entity][op]
+        (op, _), direction = query_definition.orderby
 
-        return [OrderBy(Column(snuba_field.snuba_alias), direction)]
+        return [OrderBy(Column(op), direction)]
 
     def _build_queries(self, query_definition):
         queries_by_entity = OrderedDict()
         for op, metric_name in query_definition.fields.values():
-            type_ = _get_metric(metric_name)["type"]
+            type_ = _get_metric(metric_name)[
+                "type"
+            ]  # TODO: We should get the metric type from the op name, not the hard-coded lookup of the mock data source
             entity = self._get_entity(type_)
             queries_by_entity.setdefault(entity, []).append((op, metric_name))
 
@@ -766,8 +752,8 @@ class SnubaQueryBuilder:
     @staticmethod
     def _build_select(entity, fields):
         for op, _ in fields:
-            field = _OP_TO_FIELD[entity][op]
-            yield Function(field.snuba_function, [Column("value")], field.snuba_alias)
+            snuba_function = _OP_TO_SNUBA_FUNCTION[entity][op]
+            yield Function(snuba_function, [Column("value")], alias=op)
 
     def _build_queries_for_entity(self, query_definition, entity, fields, where, groupby):
         totals_query = Query(
@@ -847,7 +833,11 @@ class SnubaResultConverter:
         return reverse_resolve(tag_key)
 
     def _extract_data(self, entity, data, groups):
-        tags = tuple((key, data[key]) for key in sorted(data.keys()) if key.startswith("tags["))
+        tags = tuple(
+            (key, data[key])
+            for key in sorted(data.keys())
+            if (key.startswith("tags[") or key in _ALLOWED_GROUPBY_COLUMNS)
+        )
 
         metric_name = reverse_resolve(data["metric_id"])
         ops = self._ops_by_metric[metric_name]
@@ -866,10 +856,9 @@ class SnubaResultConverter:
         for op in ops:
             key = f"{op}({metric_name})"
 
-            field = _OP_TO_FIELD[entity][op].snuba_alias
-            value = data[field]
-            if field == "percentiles":
-                value = value[Percentile[op].value]
+            value = data[op]
+            if op in _OPERATIONS_PERCENTILES:
+                value = value[0]
 
             # If this is time series data, add it to the appropriate series.
             # Else, add to totals
@@ -897,7 +886,12 @@ class SnubaResultConverter:
 
         groups = [
             dict(
-                by={self._parse_tag(key): reverse_resolve_groupby(value) for key, value in tags},
+                by=dict(
+                    (self._parse_tag(key), reverse_resolve_groupby(value))
+                    if key not in _ALLOWED_GROUPBY_COLUMNS
+                    else (key, value)
+                    for key, value in tags
+                ),
                 **data,
             )
             for tags, data in groups.items()
@@ -1101,7 +1095,7 @@ class MetaFromSnuba:
             value_ids = {value_id for ids in value_id_lists for value_id in ids}
 
         tags = [{"key": tag_name, "value": reverse_resolve(value_id)} for value_id in value_ids]
-        tags.sort(key=itemgetter("key"))
+        tags.sort(key=lambda tag: (tag["key"], tag["value"]))
 
         return tags
 

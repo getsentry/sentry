@@ -214,7 +214,7 @@ export default withApi(withProjects(SuggestProjectCTA));
 const Content = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const StyledIconClose = styled(IconClose)`

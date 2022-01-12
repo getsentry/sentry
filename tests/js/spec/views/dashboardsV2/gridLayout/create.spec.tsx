@@ -51,6 +51,15 @@ describe('Dashboards > Create', function () {
         method: 'POST',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        body: {data: []},
+      });
     });
 
     afterEach(function () {
@@ -66,7 +75,11 @@ describe('Dashboards > Create', function () {
         // @ts-ignore
         body: TestStubs.Dashboard([{}], {id: '1', title: 'Custom Errors'}),
       });
+
+      mountGlobalModal(initialData.routerContext);
+
       const widgetTitle = 'Widget Title';
+
       mountWithTheme(
         <CreateDashboard
           organization={initialData.organization}
@@ -77,16 +90,21 @@ describe('Dashboards > Create', function () {
         />,
         {context: initialData.routerContext}
       );
+
       await act(async () => {
         // Wrap with act because GlobalSelectionHeaderContainer triggers update
         await tick();
       });
-      screen.getByTestId('widget-add').click();
 
-      mountGlobalModal();
+      userEvent.click(screen.getByTestId('widget-add'));
+
+      await act(async () => {
+        // Flakeyness with global modal
+        await tick();
+      });
 
       // Add a custom widget to the dashboard
-      (await screen.findByText('Custom Widget')).click();
+      userEvent.click(await screen.findByText('Custom Widget'));
       userEvent.type(await screen.findByTestId('widget-title-input'), widgetTitle);
       screen.getByText('Save').click();
 

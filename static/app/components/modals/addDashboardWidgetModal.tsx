@@ -120,8 +120,8 @@ const newIssueQuery = {
 };
 
 const DATASET_CHOICES: [WidgetType, string][] = [
-  [WidgetType.DISCOVER, t('All Events (Errors, Transactions, CSP)')],
-  [WidgetType.ISSUE, t('Issues (Assignees, Status, ...)')],
+  [WidgetType.DISCOVER, t('All Events (Errors and Transactions)')],
+  [WidgetType.ISSUE, t('Issues (States, Assignment, Time, etc.)')],
 ];
 
 class AddDashboardWidgetModal extends React.Component<Props, State> {
@@ -132,7 +132,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
-        displayType: displayType ?? DisplayType.LINE,
+        displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
         queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
         errors: undefined,

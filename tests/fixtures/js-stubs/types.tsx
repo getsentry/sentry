@@ -30,6 +30,7 @@ type TestStubFixtures = {
   DebugSymbols: OverridableStub;
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
+  DocIntegration: OverridableStub;
   Entries: SimpleStub;
   Event: OverridableStub;
   EventEntry: OverridableStub;
@@ -61,6 +62,8 @@ type TestStubFixtures = {
   JiraIntegrationProvider: OverridableStub;
   Member: OverridableStub;
   Members: OverridableStubList;
+  MetricsField: OverridableStub;
+  MetricsFieldByMeasurementRating: OverridableStub;
   OrgOwnedApps: SimpleStub;
   Organization: OverridableStub;
   OrganizationEvent: OverridableStub;

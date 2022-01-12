@@ -57,7 +57,6 @@ describe('GlobalSelectionHeader', function () {
     jest.spyOn(globalActions, 'updateEnvironments');
     jest.spyOn(globalActions, 'updateProjects');
     jest.spyOn(globalActions, 'updateParams');
-    jest.spyOn(globalActions, 'updateParamsWithoutHistory');
   });
 
   beforeEach(function () {
@@ -78,7 +77,6 @@ describe('GlobalSelectionHeader', function () {
       globalActions.updateProjects,
       globalActions.updateEnvironments,
       globalActions.updateParams,
-      globalActions.updateParamsWithoutHistory,
       router.push,
       router.replace,
       getItem,
@@ -263,6 +261,7 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
+      organization,
       isReady: true,
       selection: {
         datetime: {
@@ -290,6 +289,7 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
+      organization,
       isReady: true,
       selection: {
         datetime: {
@@ -316,6 +316,7 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
+      organization,
       isReady: true,
       selection: {
         datetime: {
@@ -361,6 +362,7 @@ describe('GlobalSelectionHeader', function () {
     expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
 
     expect(PageFiltersStore.getState()).toEqual({
+      organization,
       isReady: true,
       selection: {
         datetime: {

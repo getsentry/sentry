@@ -1,11 +1,10 @@
-from django.conf import settings
-
 from sentry.exceptions import PluginError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.interfaces.contexts import ContextType
 from sentry.models import Project
 from sentry.plugins.base import Plugin2
 from sentry.plugins.base.configuration import react_plugin_config
+from sentry.utils.settings import is_self_hosted
 from sentry_plugins.base import CorePluginMixin
 
 from .client import InvalidApiUrlError, InvalidWebsiteIdError, SessionStackClient, UnauthorizedError
@@ -123,7 +122,9 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
             },
         ]
 
-        if settings.SENTRY_ONPREMISE:
+        if is_self_hosted():
+            # We only support connecting to an on-premises SessionStack from a
+            # self-hosted Sentry: https://docs.sessionstack.com/docs/sentry.
             configurations.extend(
                 [
                     {

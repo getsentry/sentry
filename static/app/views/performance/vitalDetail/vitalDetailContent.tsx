@@ -4,15 +4,17 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {IconChevron} from 'sentry/icons';
 import {IconFlag} from 'sentry/icons/iconFlag';
@@ -20,8 +22,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
+import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -33,13 +37,16 @@ import {MetricsSwitch} from '../metricsSwitch';
 import {getTransactionSearchQuery} from '../utils';
 
 import Table from './table';
-import {vitalDescription, vitalMap} from './utils';
+import {vitalDescription, vitalMap, vitalToMetricsField} from './utils';
 import VitalChart from './vitalChart';
+import VitalChartMetrics from './vitalChartMetrics';
 import VitalInfo from './vitalInfo';
+import VitalInfoMetrics from './vitalInfoMetrics';
 
 const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
 type Props = {
+  api: Client;
   location: Location;
   eventView: EventView;
   organization: Organization;
@@ -70,7 +77,7 @@ class VitalDetailContent extends React.Component<Props, State> {
   handleSearch = (query: string) => {
     const {location} = this.props;
 
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });
@@ -179,59 +186,143 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 
   renderContent(vital: WebVital) {
-    const {isMetricsData, location, organization, eventView} = this.props;
+    const {isMetricsData, location, organization, eventView, api, projects} = this.props;
     const query = decodeScalar(location.query.query, '');
+    const orgSlug = organization.slug;
+    const {fields, start, end, statsPeriod, environment, project: projectIds} = eventView;
+    const localDateStart = start ? getUtcToLocalDateObject(start) : null;
+    const localDateEnd = end ? getUtcToLocalDateObject(end) : null;
+    const interval = getInterval(
+      {start: localDateStart, end: localDateEnd, period: statsPeriod},
+      'high'
+    );
 
     if (isMetricsData) {
+      const field = `p75(${vitalToMetricsField[vital]})`;
+
       return (
         <React.Fragment>
           <StyledMetricsSearchBar
             searchSource="performance_vitals_metrics"
-            orgSlug={organization.slug}
-            projectIds={eventView.project}
+            orgSlug={orgSlug}
+            projectIds={projectIds}
             query={query}
             onSearch={this.handleSearch}
           />
-          <div>{'TODO'}</div>
-          <StyledVitalInfo>{'TODO'}</StyledVitalInfo>
+          <MetricsRequest
+            api={api}
+            orgSlug={orgSlug}
+            start={start}
+            end={end}
+            statsPeriod={statsPeriod}
+            project={projectIds}
+            environment={environment}
+            field={[field]}
+            query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
+            interval={interval}
+          >
+            {({loading: isLoading, response, reloading, errored}) => {
+              const p75AllTransactions = response?.groups.reduce(
+                (acc, group) => acc + (group.totals[field] ?? 0),
+                0
+              );
+              return (
+                <React.Fragment>
+                  <VitalChartMetrics
+                    start={localDateStart}
+                    end={localDateEnd}
+                    statsPeriod={statsPeriod}
+                    project={projectIds}
+                    environment={environment}
+                    loading={isLoading}
+                    response={response}
+                    errored={errored}
+                    reloading={reloading}
+                    field={field}
+                    vital={vital}
+                  />
+                  <StyledVitalInfo>
+                    <VitalInfoMetrics
+                      api={api}
+                      orgSlug={orgSlug}
+                      start={start}
+                      end={end}
+                      statsPeriod={statsPeriod}
+                      project={projectIds}
+                      environment={environment}
+                      vital={vital}
+                      query={query}
+                      p75AllTransactions={p75AllTransactions}
+                      isLoading={isLoading}
+                    />
+                  </StyledVitalInfo>
+                  <div>TODO</div>
+                </React.Fragment>
+              );
+            }}
+          </MetricsRequest>
         </React.Fragment>
       );
     }
+
+    const filterString = getTransactionSearchQuery(location);
+    const summaryConditions = getSummaryConditions(filterString);
 
     return (
       <React.Fragment>
         <StyledSearchBar
           searchSource="performance_vitals"
           organization={organization}
-          projectIds={eventView.project}
+          projectIds={projectIds}
           query={query}
-          fields={eventView.fields}
+          fields={fields}
           onSearch={this.handleSearch}
         />
         <VitalChart
           organization={organization}
-          query={eventView.query}
-          project={eventView.project}
-          environment={eventView.environment}
-          start={eventView.start}
-          end={eventView.end}
-          statsPeriod={eventView.statsPeriod}
+          query={query}
+          project={projectIds}
+          environment={environment}
+          start={localDateStart}
+          end={localDateEnd}
+          statsPeriod={statsPeriod}
+          interval={interval}
         />
         <StyledVitalInfo>
           <VitalInfo location={location} vital={vital} />
         </StyledVitalInfo>
+        <Teams provideUserTeams>
+          {({teams, initiallyLoaded}) =>
+            initiallyLoaded ? (
+              <TeamKeyTransactionManager.Provider
+                organization={organization}
+                teams={teams}
+                selectedTeams={['myteams']}
+                selectedProjects={eventView.project.map(String)}
+              >
+                <Table
+                  eventView={eventView}
+                  projects={projects}
+                  organization={organization}
+                  location={location}
+                  setError={this.setError}
+                  summaryConditions={summaryConditions}
+                />
+              </TeamKeyTransactionManager.Provider>
+            ) : (
+              <LoadingIndicator />
+            )
+          }
+        </Teams>
       </React.Fragment>
     );
   }
 
   render() {
-    const {location, eventView, organization, vitalName, projects} = this.props;
+    const {location, organization, vitalName} = this.props;
     const {incompatibleAlertNotice} = this.state;
 
     const vital = vitalName || WebVital.LCP;
-
-    const filterString = getTransactionSearchQuery(location);
-    const summaryConditions = getSummaryConditions(filterString);
     const description = vitalDescription[vitalName];
 
     return (
@@ -263,29 +354,6 @@ class VitalDetailContent extends React.Component<Props, State> {
           <Layout.Main fullWidth>
             <StyledDescription>{description}</StyledDescription>
             {this.renderContent(vital)}
-            <Teams provideUserTeams>
-              {({teams, initiallyLoaded}) =>
-                initiallyLoaded ? (
-                  <TeamKeyTransactionManager.Provider
-                    organization={organization}
-                    teams={teams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <Table
-                      eventView={eventView}
-                      projects={projects}
-                      organization={organization}
-                      location={location}
-                      setError={this.setError}
-                      summaryConditions={summaryConditions}
-                    />
-                  </TeamKeyTransactionManager.Provider>
-                ) : (
-                  <LoadingIndicator />
-                )
-              }
-            </Teams>
           </Layout.Main>
         </Layout.Body>
       </React.Fragment>

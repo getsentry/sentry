@@ -122,7 +122,7 @@ function Sidebar({location, organization}: Props) {
 
     // Only keep the querystring if the current route matches one of the above
     if (globalSelectionRoutes.includes(pathname)) {
-      const query = extractSelectionParameters(location?.query);
+      const query = extractSelectionParameters(location?.query ?? {});
 
       // Handle cmd-click (mac) and meta-click (linux)
       if (evt.metaKey) {
@@ -444,7 +444,6 @@ const responsiveFlex = css`
 `;
 
 export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
-  background: ${p => p.theme.sidebar.background};
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
   line-height: 1;

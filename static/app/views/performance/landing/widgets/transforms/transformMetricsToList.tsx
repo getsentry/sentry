@@ -1,4 +1,4 @@
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
 import {MetricsRequestRenderProps} from 'sentry/utils/metrics/metricsRequest';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
@@ -10,9 +10,12 @@ export function transformMetricsToList<T extends WidgetDataConstraint>(
   results: MetricsRequestRenderProps,
   _: QueryDefinitionWithKey<T>
 ) {
-  const {start, end, utc, interval, statsPeriod} = getParams(widgetProps.location.query, {
-    defaultStatsPeriod: DEFAULT_STATS_PERIOD,
-  });
+  const {start, end, utc, interval, statsPeriod} = normalizeDateTimeParams(
+    widgetProps.location.query,
+    {
+      defaultStatsPeriod: DEFAULT_STATS_PERIOD,
+    }
+  );
 
   const {errored, loading, reloading, response} = results;
 

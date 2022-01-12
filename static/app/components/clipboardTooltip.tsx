@@ -42,7 +42,7 @@ const TooltipClipboardWrapper = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
   align-items: center;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
 `;
 
 const TooltipClipboardIconWrapper = styled('div')`

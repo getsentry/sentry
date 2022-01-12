@@ -15,6 +15,7 @@ import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -29,7 +30,13 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, DisplayType, Widget} from './types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from './types';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const WIDGET_PREFIX = 'grid-item';
@@ -60,16 +67,18 @@ type Props = {
   router: InjectedRouter;
   location: Location;
   widgetLimitReached: boolean;
+  isPreview?: boolean;
   /**
    * Fired when widgets are added/removed/sorted.
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
-  handleAddLibraryWidgets: (widgets: Widget[]) => void;
+  handleUpdateWidgetList: (widgets: Widget[]) => void;
   handleAddCustomWidget: (widget: Widget) => void;
   layout: Layout[];
   onLayoutChange: (layout: Layout[]) => void;
   paramDashboardId?: string;
+  paramTemplateId?: string;
   newWidget?: Widget;
 };
 
@@ -114,6 +123,9 @@ class Dashboard extends Component<Props, State> {
       this.fetchTags();
     }
     this.addNewWidget();
+
+    // Get member list data for issue widgets
+    this.fetchMemberList();
   }
 
   async componentDidUpdate(prevProps: Props) {
@@ -127,6 +139,19 @@ class Dashboard extends Component<Props, State> {
     if (newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
+    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+      this.fetchMemberList();
+    }
+  }
+
+  fetchMemberList() {
+    const {api, selection} = this.props;
+    // Stores MemberList in MemberListStore for use in modals and sets state for use is child components
+    fetchOrgMembers(
+      api,
+      this.props.organization.slug,
+      selection.projects?.map(projectId => String(projectId))
+    );
   }
 
   async addNewWidget() {
@@ -152,7 +177,7 @@ class Dashboard extends Component<Props, State> {
       organization,
       dashboard,
       selection,
-      handleAddLibraryWidgets,
+      handleUpdateWidgetList,
       handleAddCustomWidget,
     } = this.props;
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
@@ -168,7 +193,7 @@ class Dashboard extends Component<Props, State> {
         dashboard,
         selection,
         onAddWidget: handleAddCustomWidget,
-        onAddLibraryWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+        onAddLibraryWidget: (widgets: Widget[]) => handleUpdateWidgetList(widgets),
         source: DashboardWidgetSource.LIBRARY,
       });
       return;
@@ -204,15 +229,26 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
+    const {isEditing, handleUpdateWidgetList} = this.props;
     const nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
     nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
+    if (!!!isEditing) {
+      handleUpdateWidgetList(nextList);
+    }
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
     const {layouts} = this.state;
-    const {dashboard, onUpdate, onLayoutChange, organization} = this.props;
+    const {
+      dashboard,
+      onUpdate,
+      onLayoutChange,
+      organization,
+      isEditing,
+      handleUpdateWidgetList,
+    } = this.props;
 
     const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     onUpdate(nextList);
@@ -223,10 +259,13 @@ class Dashboard extends Component<Props, State> {
       );
       onLayoutChange(newLayout);
     }
+    if (!!!isEditing) {
+      handleUpdateWidgetList(nextList);
+    }
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, handleAddLibraryWidgets} = this.props;
+    const {dashboard, isEditing, handleUpdateWidgetList} = this.props;
 
     const widgetCopy = cloneDeep(widget);
     widgetCopy.id = undefined;
@@ -235,7 +274,9 @@ class Dashboard extends Component<Props, State> {
     const nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
 
-    handleAddLibraryWidgets(nextList);
+    if (!!!isEditing) {
+      handleUpdateWidgetList(nextList);
+    }
   };
 
   handleEditWidget = (widget: Widget, index: number) => () => {
@@ -300,7 +341,7 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile} = this.state;
-    const {isEditing, organization, widgetLimitReached} = this.props;
+    const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
     const widgetProps = {
       widget,
@@ -309,6 +350,7 @@ class Dashboard extends Component<Props, State> {
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      isPreview,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {
@@ -362,12 +404,12 @@ class Dashboard extends Component<Props, State> {
 
   renderGridDashboard() {
     const {layouts, isMobile} = this.state;
-    const {
-      isEditing,
-      dashboard: {widgets},
-      organization,
-      widgetLimitReached,
-    } = this.props;
+    const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
+    let {widgets} = dashboard;
+    // Filter out any issue widgets if the user does not have the feature flag
+    if (!organization.features.includes('issues-in-dashboards')) {
+      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
+    }
 
     const canModifyLayout = !isMobile && isEditing;
 
@@ -400,13 +442,12 @@ class Dashboard extends Component<Props, State> {
   }
 
   renderDndDashboard = () => {
-    const {
-      isEditing,
-      onUpdate,
-      dashboard: {widgets},
-      organization,
-      widgetLimitReached,
-    } = this.props;
+    const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
+    let {widgets} = dashboard;
+    // Filter out any issue widgets if the user does not have the feature flag
+    if (!organization.features.includes('issues-in-dashboards')) {
+      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
+    }
 
     const items = this.getWidgetIds();
 
@@ -459,7 +500,7 @@ const WidgetContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-flow: row dense;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -523,7 +564,13 @@ function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     return [];
   }
 
-  const layoutWidgetPairs = zip(desktopLayout, widgets) as [Layout, Widget][];
+  // If there's a layout but no matching widget, then the widget was deleted
+  // in a separate session and should be ignored
+  // TODO(nar): Can remove once layouts are stored in the DB
+  const widgetGridKeys = new Set(widgets.map(constructGridItemKey));
+  const filteredLayouts = desktopLayout.filter(({i}) => widgetGridKeys.has(i));
+
+  const layoutWidgetPairs = zip(filteredLayouts, widgets) as [Layout, Widget][];
 
   // Sort by y and then subsort by x
   const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);

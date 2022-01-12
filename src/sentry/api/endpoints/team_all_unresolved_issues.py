@@ -4,6 +4,7 @@ from itertools import chain
 
 from django.db.models import Count, ExpressionWrapper, F, IntegerField, Min, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce, TruncDay
+from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -33,6 +34,12 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
         """
         if not features.has("organizations:team-insights", team.organization, actor=request.user):
             return Response({"detail": "You do not have the insights feature enabled"}, status=400)
+
+        # Team has no projects
+        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
+        if len(project_list) == 0:
+            return Response({})
+
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
@@ -42,6 +49,9 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
         oldest_history_date = GroupHistory.objects.filter_to_team(team).aggregate(
             Min("date_added"),
         )["date_added__min"]
+
+        if oldest_history_date is None:
+            oldest_history_date = timezone.now()
 
         project_unresolved = {
             r["project"]: r["unresolved"]
@@ -153,7 +163,6 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
             date_series_dict[current_day.isoformat()] = {"open": 0, "closed": 0}
             current_day += timedelta(days=1)
 
-        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         agg_project_precounts = {
             project.id: copy.deepcopy(date_series_dict) for project in project_list
         }

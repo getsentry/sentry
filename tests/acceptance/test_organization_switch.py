@@ -51,7 +51,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
         transition_urls = [
             OrganizationSwitchTest.url_creator(page, self.organization.slug)
-            for page in ["issues", "releases" "discover", "user-feedback"]
+            for page in ["issues", "releases", "discover", "user-feedback"]
         ]
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=False), self.feature(

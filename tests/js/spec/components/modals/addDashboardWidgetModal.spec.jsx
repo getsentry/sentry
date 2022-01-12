@@ -256,6 +256,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       onAddWidget: data => (widget = data),
     });
 
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+
     // Click the add button
     const add = wrapper.find('button[aria-label="Add Overlay"]');
     add.simulate('click');
@@ -279,6 +282,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: data => (widget = data),
     });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
 
     // Click the add button
     const add = wrapper.find('button[aria-label="Add an Equation"]');
@@ -316,6 +322,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: data => (widget = data),
     });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
 
     // Click the add button
     const add = wrapper.find('button[aria-label="Add Overlay"]');
@@ -379,6 +388,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: data => (widget = data),
     });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
 
     // Set first query search conditions
     await setSearchConditions(
@@ -717,6 +729,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: data => (widget = data),
     });
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+
     // No delete button as there is only one field.
     expect(wrapper.find('IconDelete')).toHaveLength(0);
 
@@ -1073,9 +1088,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         onAddWidget: onAdd,
         onUpdateWidget: () => undefined,
       });
-      userEvent.click(screen.getByText('Line Chart'));
-      userEvent.click(screen.getByText('Table'));
-      userEvent.click(screen.getByText('Issues (Assignees, Status, ...)'));
+      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.click(screen.getByTestId('add-widget'));
 
       await tick();
@@ -1105,8 +1118,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DISCOVERV2,
       });
       await tick();
-      userEvent.click(screen.getByText('Line Chart'));
       userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
       expect(screen.queryByText('Data Set')).not.toBeInTheDocument();
       wrapper.unmount();
     });
@@ -1117,8 +1130,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
-      userEvent.click(screen.getByText('Line Chart'));
-      userEvent.click(screen.getByText('Table'));
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
       wrapper.unmount();
