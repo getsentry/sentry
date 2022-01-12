@@ -1,8 +1,9 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import Access from 'sentry/components/acl/access';
+import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Pagination from 'sentry/components/pagination';
@@ -11,25 +12,66 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {ExternalActorMapping, Integration} from 'sentry/types';
+import {ExternalActorMapping, Integration, Organization} from 'sentry/types';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = {
+type CodeOwnersAssociationMappings = {
+  [projectSlug: string]: {
+    associations: {
+      [externalName: string]: string;
+    };
+    errors: {
+      [errorKey: string]: string;
+    };
+  };
+};
+
+type Props = AsyncComponent['props'] & {
+  organization: Organization;
   integration: Integration;
-  mappings: {id: string; externalName: string; sentryName: string}[];
+  mappings: ExternalActorMapping[];
   type: 'team' | 'user';
   onCreateOrEdit: (mapping?: ExternalActorMapping) => void;
   onDelete: (mapping: ExternalActorMapping) => void;
   pageLinks?: string;
 };
 
-type State = {};
+type State = AsyncComponent['state'] & {
+  associationMappings: CodeOwnersAssociationMappings;
+};
 
-class IntegrationExternalMappings extends Component<Props, State> {
-  render() {
+class IntegrationExternalMappings extends AsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {organization} = this.props;
+    return [
+      [
+        'associationMappings',
+        `/organizations/${organization.slug}/codeowners-associations/`,
+      ],
+    ];
+  }
+
+  getUnassociatedMappings() {
+    const {type} = this.props;
+    const {associationMappings} = this.state;
+    const errorKey = `missing_external_${type}s`;
+    const unassociatedMappings = Object.values(associationMappings).reduce(
+      (map, {errors}) => {
+        return new Set<string>([...map, ...errors[errorKey]]);
+      },
+      new Set<string>()
+    );
+    return Array.from(unassociatedMappings).map(externalName => ({
+      externalName,
+      sentryName: '',
+    }));
+  }
+
+  renderBody() {
+    this.getUnassociatedMappings();
     const {integration, mappings, type, onCreateOrEdit, onDelete, pageLinks} = this.props;
-
+    const newMappings = [...this.getUnassociatedMappings(), ...mappings];
     return (
       <Fragment>
         <Panel>
@@ -68,8 +110,8 @@ class IntegrationExternalMappings extends Component<Props, State> {
                 {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
               </EmptyMessage>
             )}
-            {mappings.map(item => (
-              <Access access={['org:integrations']} key={item.id}>
+            {newMappings.map((item, index) => (
+              <Access access={['org:integrations']} key={index}>
                 {({hasAccess}) => (
                   <ConfigPanelItem>
                     <Layout>
