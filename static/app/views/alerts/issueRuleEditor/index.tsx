@@ -946,7 +946,7 @@ const StepConnector = styled('div')`
   height: 100%;
   top: 28px;
   left: 19px;
-  border-right: 1px ${p => p.theme.gray300} dashed;
+  border-right: 1px ${p => p.theme.gray200} dashed;
 `;
 
 const StepLead = styled('div')`
