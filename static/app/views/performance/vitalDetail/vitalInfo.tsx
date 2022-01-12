@@ -49,23 +49,13 @@ function VitalInfo({
   const api = useApi();
 
   const vitals = Array.isArray(vital) ? vital : [vital];
-
-  function renderContent({
-    data,
-    isLoading,
-  }: Pick<React.ComponentProps<typeof VitalBar>, 'data' | 'isLoading'>) {
-    return (
-      <VitalBar
-        isLoading={isLoading}
-        data={data}
-        vital={vital}
-        showBar={!hideBar}
-        showStates={!hideStates}
-        showVitalPercentNames={!hideVitalPercentNames}
-        showDurationDetail={!hideDurationDetail}
-      />
-    );
-  }
+  const contentCommonProps = {
+    vital,
+    showBar: !hideBar,
+    showStates: !hideStates,
+    showVitalPercentNames: !hideVitalPercentNames,
+    showDurationDetail: !hideDurationDetail,
+  };
 
   if (isMetricsData) {
     const query = decodeScalar(location.query.query, '');
@@ -92,14 +82,16 @@ function VitalInfo({
             });
             return acc;
           }, {});
-          return renderContent({data, isLoading});
+          return <VitalBar {...contentCommonProps} isLoading={isLoading} data={data} />;
         }}
       </MetricsRequest>
     );
   }
   return (
     <VitalsCardDiscoverQuery location={location} vitals={vitals}>
-      {({isLoading, vitalsData}) => renderContent({isLoading, data: vitalsData})}
+      {({isLoading, vitalsData}) => (
+        <VitalBar {...contentCommonProps} data={vitalsData} isLoading={isLoading} />
+      )}
     </VitalsCardDiscoverQuery>
   );
 }
