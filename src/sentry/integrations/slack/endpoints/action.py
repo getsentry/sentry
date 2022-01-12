@@ -50,7 +50,7 @@ UNLINK_IDENTITY_MESSAGE = (
 NO_ACCESS_MESSAGE = "You do not have access to the organization for the invitation."
 NO_PERMISSION_MESSAGE = "You do not have permission to approve member invitations."
 NO_IDENTITY_MESSAGE = "Identity not linked for user."
-ENABLE_SLACK_SUCCESS_MESSAGE = "Slack has been enabled."
+ENABLE_SLACK_SUCCESS_MESSAGE = "Slack notifications have been enabled."
 
 DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 SUCCESS_MESSAGE = (
