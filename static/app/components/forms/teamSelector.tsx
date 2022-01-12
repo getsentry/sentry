@@ -1,6 +1,5 @@
 import {useRef} from 'react';
 import {StylesConfig} from 'react-select';
-
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
