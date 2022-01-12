@@ -368,7 +368,7 @@ class DashboardDetail extends Component<Props, State> {
       i: constructGridItemKey(newWidgets[index]),
     }));
     saveDashboardLayout(organizationId, dashboardId, newLayout);
-    this.setState({layout: newLayout});
+    return newLayout;
   };
 
   onCommit = () => {
@@ -383,6 +383,7 @@ class DashboardDetail extends Component<Props, State> {
           createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
             (newDashboard: DashboardDetails) => {
               if (organization.features.includes('dashboard-grid-layout')) {
+                // Redirect occurs so no need to update layout state
                 this.saveLayoutWithNewWidgets(
                   organization.id,
                   newDashboard.id,
@@ -435,11 +436,14 @@ class DashboardDetail extends Component<Props, State> {
               }
 
               if (organization.features.includes('dashboard-grid-layout')) {
-                this.saveLayoutWithNewWidgets(
+                const newLayout = this.saveLayoutWithNewWidgets(
                   organization.id,
                   newDashboard.id,
                   newDashboard.widgets
                 );
+                // Unset modifiedDashboard and set newLayout at the same time
+                // to render newLayout with updated dashboard prop
+                this.setState({layout: newLayout, modifiedDashboard: null});
               }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalyticsEvent({
