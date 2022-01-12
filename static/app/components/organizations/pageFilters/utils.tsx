@@ -7,7 +7,7 @@ import pickBy from 'lodash/pickBy';
 
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {Environment, PageFilters} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 
 import {normalizeDateTimeParams} from './parse';
@@ -85,8 +85,8 @@ function makeLocalStorageKey(orgSlug: string) {
 }
 
 type UpdateData = {
-  project?: Array<string | number> | string | number | null;
-  environment?: Environment['id'][] | null;
+  project?: string[] | null;
+  environment?: string[] | null;
 };
 
 /**
@@ -116,17 +116,9 @@ export function setPageFiltersStorage(
     return;
   }
 
-  const {project, environment} = update;
-  const validatedProject = project
-    ? (Array.isArray(project) ? project : [project])
-        .map(Number)
-        .filter(value => !isNaN(value))
-    : undefined;
-  const validatedEnvironment = environment;
-
   const dataToSave = {
-    projects: validatedProject || current.projects,
-    environments: validatedEnvironment || current.environments,
+    projects: update.project || current.projects,
+    environments: update.environment || current.environments,
   };
 
   const localStorageKey = makeLocalStorageKey(org.slug);
