@@ -132,7 +132,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
-        displayType: displayType ?? DisplayType.LINE,
+        displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
         queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
         errors: undefined,
