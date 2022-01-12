@@ -228,11 +228,10 @@ class Dashboard extends Component<Props, State> {
     });
   };
 
-  handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
+  handleUpdateComplete = (prevWidget: Widget, index: number) => (nextWidget: Widget) => {
     const {isEditing, handleUpdateWidgetList} = this.props;
     const nextList = [...this.props.dashboard.widgets];
-    const updateIndex = nextList.indexOf(prevWidget);
-    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
+    nextList[index] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
@@ -321,7 +320,7 @@ class Dashboard extends Component<Props, State> {
       widget,
       selection,
       onAddWidget: handleAddCustomWidget,
-      onUpdateWidget: this.handleUpdateComplete(widget),
+      onUpdateWidget: this.handleUpdateComplete(widget, index),
     };
     openAddDashboardWidgetModal({
       ...modalProps,
