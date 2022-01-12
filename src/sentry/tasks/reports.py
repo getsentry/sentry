@@ -20,7 +20,7 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
-from snuba_sdk.query import Query
+from snuba_sdk.query import Limit, Query
 
 from sentry import features
 from sentry.api.serializers.snuba import zerofill
@@ -489,6 +489,28 @@ def build_project_calendar_series(interval, project):
     return clean_calendar_data(project, series, start, stop, rollup)
 
 
+def build_key_events(interval, project):
+    start, stop = interval
+
+    # Take the 3 most frequently occuring events
+    query = Query(
+        dataset=Dataset.Events.value,
+        match=Entity("events"),
+        select=[Column("group_id"), Function("count", [])],
+        where=[
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, stop + timedelta(days=1)),
+            Condition(Column("project_id"), Op.EQ, project.id),
+        ],
+        groupby=[Column("group_id")],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limit=Limit(3),
+    )
+    query_result = raw_snql_query(query)
+    print(query_result)
+    return {"hello": "Hello World"}
+
+
 def build_report(fields):
     """
     Constructs the Report namedtuple class, as well as the `prepare` and
@@ -531,6 +553,7 @@ Report, build_project_report, merge_reports = build_report(
             build_project_calendar_series,
             partial(merge_series, function=safe_add),
         ),
+        ("key_events", build_key_events, lambda x, y: y),
     ],
 )
 
