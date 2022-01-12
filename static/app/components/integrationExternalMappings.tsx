@@ -9,7 +9,7 @@ import Confirm from 'sentry/components/confirm';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
-import {IconAdd, IconDelete, IconEdit} from 'sentry/icons';
+import {IconAdd, IconArrow, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ExternalActorMapping, Integration, Organization} from 'sentry/types';
@@ -78,6 +78,9 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
           <PanelHeader disablePadding hasButtons>
             <HeaderLayout>
               <ExternalNameColumn>{tct('External [type]', {type})}</ExternalNameColumn>
+              <ArrowColumn>
+                <IconArrow direction="right" size="md" />
+              </ArrowColumn>
               <SentryNameColumn>{tct('Sentry [type]', {type})}</SentryNameColumn>
               <Access access={['org:integrations']}>
                 {({hasAccess}) => (
@@ -116,6 +119,9 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
                   <ConfigPanelItem>
                     <Layout>
                       <ExternalNameColumn>{item.externalName}</ExternalNameColumn>
+                      <ArrowColumn>
+                        <IconArrow direction="right" size="md" />
+                      </ArrowColumn>
                       <SentryNameColumn>{item.sentryName}</SentryNameColumn>
                       <ButtonColumn>
                         <Tooltip
@@ -171,8 +177,8 @@ const Layout = styled('div')`
   grid-column-gap: ${space(1)};
   width: 100%;
   align-items: center;
-  grid-template-columns: 2.5fr 2.5fr 1fr;
-  grid-template-areas: 'external-name sentry-name button';
+  grid-template-columns: 2.5fr 50px 2.5fr 1fr;
+  grid-template-areas: 'external-name arrow sentry-name button';
 `;
 
 const HeaderLayout = styled(Layout)`
@@ -196,6 +202,10 @@ const Column = styled('span')`
 
 const ExternalNameColumn = styled(Column)`
   grid-area: external-name;
+`;
+
+const ArrowColumn = styled(Column)`
+  grid-area: arrow;
 `;
 
 const SentryNameColumn = styled(Column)`
