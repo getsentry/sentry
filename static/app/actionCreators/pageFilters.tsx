@@ -43,6 +43,10 @@ type Options = {
    * Persist changes to the page filter selection into local storage
    */
   save?: boolean;
+  /**
+   * Use Location.replace instead of push when updating the URL query state
+   */
+  replace?: boolean;
 };
 
 /**
@@ -215,7 +219,8 @@ export function initializeUrlState({
         : datetime.period,
     utc: !parsedWithNoDefaultPeriod.utc ? null : datetime.utc,
   };
-  replaceParams({project, environment, ...newDatetime}, router, {
+  updateParams({project, environment, ...newDatetime}, router, {
+    replace: true,
     keepCursor: true,
   });
 }
@@ -311,37 +316,9 @@ export function updateParams(obj: UrlParams, router?: Router, options?: Options)
     setPageFiltersStorage(orgSlug, selection, newQuery);
   }
 
-  router.push({
-    pathname: router.location.pathname,
-    query: newQuery,
-  });
-}
+  const routerAction = options?.replace ? router.replace : router.push;
 
-/**
- * Like updateParams but just replaces the current URL and does not create a
- * new browser history entry
- *
- * @param obj New query params
- * @param [router] React router object
- * @param [options] Options object
- */
-export function replaceParams(obj: UrlParams, router?: Router, options?: Options) {
-  // Allow another component to handle routing
-  if (!router) {
-    return;
-  }
-
-  const newQuery = getNewQueryParams(obj, router.location.query, options);
-
-  // Only push new location if query params have changed because this will cause a heavy re-render
-  if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
-    return;
-  }
-
-  router.replace({
-    pathname: router.location.pathname,
-    query: newQuery,
-  });
+  routerAction({pathname: router.location.pathname, query: newQuery});
 }
 
 /**
