@@ -393,7 +393,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.handle_member_approval(slack_request, action_option)
 
         if action_list and action_list[0].name == "enable_notifications":
-            self.handle_enable_notifications(slack_request)
+            return self.handle_enable_notifications(slack_request)
 
         return self._handle_group_actions(slack_request, request, action_list)
 
@@ -408,7 +408,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         NotificationSetting.objects.enable_settings_for_user(
             recipient=identity.user, provider=ExternalProviders.SLACK
         )
-        return self.respond(ENABLE_SLACK_SUCCESS_MESSAGE)
+        return self.respond_with_text(ENABLE_SLACK_SUCCESS_MESSAGE)
 
     def handle_member_approval(self, slack_request: SlackActionRequest, action: str) -> Response:
         try:
