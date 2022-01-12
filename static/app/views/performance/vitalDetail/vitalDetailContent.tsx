@@ -9,6 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -21,6 +22,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -181,14 +183,23 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {location, eventView, organization, vitalName, projects, isMetricsData} =
+    const {isMetricsData, location, organization, eventView, vitalName, projects} =
       this.props;
     const {incompatibleAlertNotice} = this.state;
+
+    const {start, end, statsPeriod, environment, project: projectIds} = eventView;
+
     const query = decodeScalar(location.query.query, '');
+    const orgSlug = organization.slug;
+    const localDateStart = start ? getUtcToLocalDateObject(start) : null;
+    const localDateEnd = end ? getUtcToLocalDateObject(end) : null;
+    const interval = getInterval(
+      {start: localDateStart, end: localDateEnd, period: statsPeriod},
+      'high'
+    );
+
     const vital = vitalName || WebVital.LCP;
     const filterString = getTransactionSearchQuery(location);
-    const summaryConditions = getSummaryConditions(filterString);
-    const description = vitalDescription[vitalName];
 
     return (
       <React.Fragment>
@@ -217,11 +228,11 @@ class VitalDetailContent extends React.Component<Props, State> {
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main fullWidth>
-            <StyledDescription>{description}</StyledDescription>
+            <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
             {isMetricsData ? (
               <StyledMetricsSearchBar
                 searchSource="performance_vitals_metrics"
-                orgSlug={organization.slug}
+                orgSlug={orgSlug}
                 projectIds={eventView.project}
                 query={query}
                 onSearch={this.handleSearch}
@@ -238,17 +249,17 @@ class VitalDetailContent extends React.Component<Props, State> {
             )}
             <VitalChart
               organization={organization}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
-              start={eventView.start ?? null}
-              end={eventView.end ?? null}
-              interval={eventView.interval ?? ''}
-              statsPeriod={eventView.statsPeriod}
+              query={query}
+              project={projectIds}
+              environment={environment}
+              start={localDateStart}
+              end={localDateEnd}
+              statsPeriod={statsPeriod}
+              interval={interval}
             />
             <StyledVitalInfo>
               <VitalInfo
-                orgSlug={organization.slug}
+                orgSlug={orgSlug}
                 location={location}
                 vital={vital}
                 project={eventView.project}
@@ -275,7 +286,7 @@ class VitalDetailContent extends React.Component<Props, State> {
                       organization={organization}
                       location={location}
                       setError={this.setError}
-                      summaryConditions={summaryConditions}
+                      summaryConditions={getSummaryConditions(filterString)}
                     />
                   </TeamKeyTransactionManager.Provider>
                 ) : (
