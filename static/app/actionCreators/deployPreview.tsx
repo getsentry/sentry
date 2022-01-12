@@ -44,6 +44,7 @@ export function displayExperimentalSpaAlert() {
       'You are developing against production Sentry API, please BE CAREFUL, as your changes will affect production data.'
     ),
     type: 'warning',
+    opaque: true,
     neverExpire: true,
     noDuplicates: true,
   });
