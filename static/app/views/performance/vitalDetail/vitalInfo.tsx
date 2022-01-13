@@ -24,6 +24,7 @@ type Props = ViewProps & {
   location: Location;
   vital: WebVital | WebVital[];
   orgSlug: Organization['slug'];
+  isLoading?: boolean;
   hideBar?: boolean;
   hideStates?: boolean;
   hideVitalPercentNames?: boolean;
@@ -41,6 +42,7 @@ function VitalInfo({
   environment,
   vital,
   location,
+  isLoading,
   hideBar,
   hideStates,
   hideVitalPercentNames,
@@ -76,7 +78,7 @@ function VitalInfo({
         query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
         groupBy={['measurement_rating']}
       >
-        {({loading: isLoading, response}) => {
+        {({loading, response}) => {
           const data = vitals.reduce((acc, v, index) => {
             acc[v] = getVitalData({
               field: fields[index],
@@ -89,15 +91,25 @@ function VitalInfo({
             data[vital].p75 = p75AllTransactions ?? 0;
           }
 
-          return <VitalBar {...contentCommonProps} isLoading={isLoading} data={data} />;
+          return (
+            <VitalBar
+              {...contentCommonProps}
+              isLoading={isLoading || loading}
+              data={data}
+            />
+          );
         }}
       </MetricsRequest>
     );
   }
   return (
     <VitalsCardDiscoverQuery location={location} vitals={vitals}>
-      {({isLoading, vitalsData}) => (
-        <VitalBar {...contentCommonProps} data={vitalsData} isLoading={isLoading} />
+      {({isLoading: loading, vitalsData}) => (
+        <VitalBar
+          {...contentCommonProps}
+          isLoading={isLoading || loading}
+          data={vitalsData}
+        />
       )}
     </VitalsCardDiscoverQuery>
   );
