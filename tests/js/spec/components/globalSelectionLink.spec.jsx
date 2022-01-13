@@ -37,14 +37,14 @@ describe('GlobalSelectionLink', function () {
 
   it('does not have global selection values in query', function () {
     const context = TestStubs.routerContext();
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
       {context}
     );
 
     expect(screen.getByText('Go somewhere!')).toHaveAttribute('href', path);
 
-    expect(wrapper.container).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('combines query parameters with custom query', function () {
