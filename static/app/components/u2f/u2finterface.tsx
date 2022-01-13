@@ -31,6 +31,8 @@ type State = {
   isSupported: boolean | null;
   hasBeenTapped: boolean;
   deviceFailure: string | null;
+  isSafari: boolean;
+  failCount: number;
 };
 
 class U2fInterface extends React.Component<Props, State> {
@@ -41,17 +43,30 @@ class U2fInterface extends React.Component<Props, State> {
     hasBeenTapped: false,
     deviceFailure: null,
     responseElement: null,
+    isSafari: false,
+    failCount: 0,
   };
 
   async componentDidMount() {
     const supported = this.props.isWebauthnSigninFFEnabled
       ? !!window.PublicKeyCredential
       : await u2f.isSupported();
-
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
 
-    if (supported) {
+    const isSafari =
+      navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
+
+    if (isSafari) {
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({
+        deviceFailure: 'safari: requires interaction',
+        isSafari,
+        hasBeenTapped: false,
+      });
+    }
+
+    if (supported && !isSafari) {
       this.invokeU2fFlow();
     }
   }
@@ -144,6 +159,7 @@ class U2fInterface extends React.Component<Props, State> {
         this.setState({
           deviceFailure: failure,
           hasBeenTapped: false,
+          failCount: this.state.failCount + 1,
         });
       });
   }
@@ -258,6 +274,16 @@ class U2fInterface extends React.Component<Props, State> {
     return this.state.deviceFailure !== 'BAD_APPID';
   }
 
+  renderSafariWebAuthn = () => {
+    return (
+      <a onClick={this.onTryAgain} className="btn btn-primary">
+        {this.props.flowMode === 'enroll'
+          ? t('Enroll with WebAuthn')
+          : t('Sign in with WebAuthn')}
+      </a>
+    );
+  };
+
   renderFailure = () => {
     const {deviceFailure} = this.state;
     const supportMail = ConfigStore.get('supportEmail');
@@ -266,6 +292,9 @@ class U2fInterface extends React.Component<Props, State> {
     ) : (
       <span>{t('Support')}</span>
     );
+    if (this.state.isSafari && this.state.failCount === 0) {
+      return this.renderSafariWebAuthn();
+    }
     return (
       <div className="failure-message">
         <div>
@@ -315,7 +344,11 @@ class U2fInterface extends React.Component<Props, State> {
         className={
           'u2f-box' +
           (this.state.hasBeenTapped ? ' tapped' : '') +
-          (this.state.deviceFailure ? ' device-failure' : '')
+          (this.state.deviceFailure
+            ? this.state.failCount === 0 && this.state.isSafari
+              ? ' loading-dots'
+              : ' device-failure'
+            : '')
         }
       >
         <div className="device-animation-frame">
