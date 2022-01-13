@@ -228,17 +228,18 @@ class Dashboard extends Component<Props, State> {
     });
   };
 
-  handleUpdateComplete = (prevWidget: Widget, index: number) => (nextWidget: Widget) => {
+  handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const {isEditing, handleUpdateWidgetList} = this.props;
     const nextList = [...this.props.dashboard.widgets];
-    nextList[index] = {...nextWidget, tempId: prevWidget.tempId};
+    const updateIndex = nextList.indexOf(prevWidget);
+    nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
 
-  handleDeleteWidget = (widgetToDelete: Widget, index: number) => () => {
+  handleDeleteWidget = (widgetToDelete: Widget) => () => {
     const {layouts} = this.state;
     const {
       dashboard,
@@ -249,8 +250,7 @@ class Dashboard extends Component<Props, State> {
       handleUpdateWidgetList,
     } = this.props;
 
-    const nextList = [...dashboard.widgets];
-    nextList.splice(index, 1);
+    const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     onUpdate(nextList);
 
     if (organization.features.includes('dashboard-grid-layout')) {
@@ -321,7 +321,7 @@ class Dashboard extends Component<Props, State> {
       widget,
       selection,
       onAddWidget: handleAddCustomWidget,
-      onUpdateWidget: this.handleUpdateComplete(widget, index),
+      onUpdateWidget: this.handleUpdateComplete(widget),
     };
     openAddDashboardWidgetModal({
       ...modalProps,
@@ -347,7 +347,7 @@ class Dashboard extends Component<Props, State> {
       widget,
       isEditing,
       widgetLimitReached,
-      onDelete: this.handleDeleteWidget(widget, index),
+      onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
