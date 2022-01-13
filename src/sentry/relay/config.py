@@ -59,6 +59,12 @@ def get_public_key_configs(project, full_config, project_keys=None):
         key = {
             "publicKey": project_key.public_key,
             "numericId": project_key.id,
+            # Disabled keys are omitted from the config, this is just there so
+            # old Relays don't break (we haven't investigated whether there are
+            # actual relays relying on this value)
+            #
+            # Removed that value in https://github.com/getsentry/relay/pull/778/files#diff-e66f275002251930fbfc361b4cca64ab41ff2435029f65c2fd6ffb729129909dL372
+            "isEnabled": True,
         }
 
         if full_config:

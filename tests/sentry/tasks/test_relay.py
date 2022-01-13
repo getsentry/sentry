@@ -112,6 +112,7 @@ def test_generate(
     assert cfg["projectId"] == default_project.id
     assert cfg["publicKeys"] == [
         {
+            "isEnabled": True,
             "publicKey": default_projectkey.public_key,
             "numericId": default_projectkey.id,
             "quotas": [],
