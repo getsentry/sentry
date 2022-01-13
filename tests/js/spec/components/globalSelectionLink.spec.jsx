@@ -21,11 +21,11 @@ describe('GlobalSelectionLink', function () {
     };
     const context = getContext(query);
 
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
       {context}
     );
-    expect(wrapper.container).toSnapshot();
+    expect(container).toSnapshot();
     expect(screen.getByText('Go somewhere!')).toHaveAttribute(
       'href',
       'http://some.url/?environment=staging&project=foo&project=bar'
@@ -81,7 +81,6 @@ describe('GlobalSelectionLink', function () {
 
     userEvent.click(screen.getByText('Go somewhere!'));
 
-    userEvent.click(screen.getByText('Go somewhere!'));
     expect(context.context.router.push).toHaveBeenCalledWith({pathname: path, query});
   });
 });
