@@ -361,7 +361,7 @@ const StyledPanelTable = styled(PanelTable)`
     overflow: initial;
   }
 
-  grid-template-columns: auto 1.5fr 1fr 1fr 1fr auto;
+  grid-template-columns: 4fr auto 140px 60px 110px auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
