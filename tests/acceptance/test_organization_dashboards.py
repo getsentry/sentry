@@ -111,6 +111,13 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
+    def capture_screenshots(self, screenshot_name):
+        self.page.wait_until_loaded()
+        self.browser.snapshot(screenshot_name)
+        self.browser.refresh()
+        self.page.wait_until_loaded()
+        self.browser.snapshot(f"{screenshot_name} (refresh)")
+
     def test_add_and_move_new_widget_on_existing_dashboard(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             self.page.visit_dashboard_detail()
@@ -125,12 +132,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.save_dashboard()
 
-            self.browser.snapshot("dashboards - save new widget layout in custom dashboard")
-            self.browser.refresh()
-            self.page.wait_until_loaded()
-            self.browser.snapshot(
-                "dashboards - save new widget layout in custom dashboard (refresh)"
-            )
+            self.capture_screenshots("dashboards - save new widget layout in custom dashboard")
 
     def test_create_new_dashboard_with_modified_widget_layout(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
@@ -146,12 +148,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.save_dashboard()
 
-            self.browser.snapshot("dashboards - save widget layout in new custom dashboard")
-            self.browser.refresh()
-            self.page.wait_until_loaded()
-            self.browser.snapshot(
-                "dashboards - save widget layout in new custom dashboard (refresh)"
-            )
+            self.capture_screenshots("dashboards - save widget layout in new custom dashboard")
 
     def test_move_existing_widget_on_existing_dashboard(self):
         existing_widget = DashboardWidget.objects.create(
@@ -174,12 +171,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.save_dashboard()
 
-            self.browser.snapshot("dashboards - move existing widget on existing dashboard")
-            self.browser.refresh()
-            self.page.wait_until_loaded()
-            self.browser.snapshot(
-                "dashboards - move existing widget on existing dashboard (refresh)"
-            )
+            self.capture_screenshots("dashboards - move existing widget on existing dashboard")
 
     def test_add_by_widget_library_do_not_overlap(self):
         with self.feature(
@@ -197,13 +189,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="widget-library-card-2"]').click()
             self.browser.element('[data-test-id="confirm-widgets"]').click()
 
-            self.browser.snapshot(
+            self.capture_screenshots(
                 "dashboards - widgets from widget library do not overlap when added"
-            )
-            self.browser.refresh()
-            self.page.wait_until_loaded()
-            self.browser.snapshot(
-                "dashboards - widgets from widget library do not overlap when added (refresh)"
             )
 
     def test_widget_edit_keeps_same_layout_after_modification(self):
@@ -252,13 +239,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.save_dashboard()
 
-            self.browser.snapshot(
+            self.capture_screenshots(
                 "dashboards - edit widgets after layout change does not reset layout"
-            )
-            self.browser.refresh()
-            self.page.wait_until_loaded()
-            self.browser.snapshot(
-                "dashboards - edit widgets after layout change does not reset layout (refresh)"
             )
 
     def test_add_issue_widgets_do_not_overlap(self):
@@ -281,10 +263,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             add_issue_widget("Issue Widget 2")
             self.page.save_dashboard()
 
-            self.browser.snapshot("dashboards - issue widgets do not overlap")
-            self.browser.refresh()
-            self.page.wait_until_loaded()
-            self.browser.snapshot("dashboards - issue widgets do not overlap (refresh)")
+            self.capture_screenshots("dashboards - issue widgets do not overlap")
 
     def test_resize_new_and_existing_widgets(self):
         existing_widget = DashboardWidget.objects.create(
@@ -324,10 +303,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.save_dashboard()
 
-            self.browser.snapshot("dashboards - resize new and existing widgets")
-            self.browser.refresh()
-            self.page.wait_until_loaded()
-            self.browser.snapshot("dashboards - resize new and existing widgets (refresh)")
+            self.capture_screenshots("dashboards - resize new and existing widgets")
 
     def test_delete_existing_widget_does_not_trigger_new_widget_layout_reset(self):
         existing_widget = DashboardWidget.objects.create(
@@ -369,13 +345,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.save_dashboard()
 
-            self.browser.snapshot(
+            self.capture_screenshots(
                 "dashboards - delete existing widget does not reset new widget layout"
-            )
-            self.browser.refresh()
-            self.page.wait_until_loaded()
-            self.browser.snapshot(
-                "dashboards - delete existing widget does not reset new widget layout (refresh)"
             )
 
 
