@@ -14,7 +14,9 @@ const f = (name: string, file?: string, image?: string) =>
 const getDominantColor = (
   c: [number, number, number] | [number, number, number, number] | undefined
 ): string => {
-  if (!c) throw new Error('Color not found');
+  if (!c) {
+    throw new Error('Color not found');
+  }
 
   const index = c.indexOf(Math.max(...c.slice(0, 3)));
   return index === 0 ? 'red' : index === 1 ? 'green' : 'blue';
