@@ -29,6 +29,16 @@ class SlackIntegrationNotificationSent(analytics.Event):
     )
 
 
+class IntegrationIdentityLinked(analytics.Event):
+    type = "integrations.identity_linked"
+
+    attributes = (
+        analytics.Attribute("provider"),
+        analytics.Attribute("actor_id"),
+        analytics.Attribute("actor_type"),
+    )
+
+
 class IntegrationSlackChartUnfurl(analytics.Event):
     type = "integrations.slack.chart_unfurl"
 
@@ -66,6 +76,7 @@ class IntegrationSlackRejectMemberInvitation(IntegrationSlackApproveMemberInvita
 analytics.register(SlackIntegrationAssign)
 analytics.register(SlackIntegrationNotificationSent)
 analytics.register(SlackIntegrationStatus)
+analytics.register(IntegrationIdentityLinked)
 analytics.register(IntegrationSlackChartUnfurl)
 analytics.register(IntegrationSlackLinkIdentity)
 analytics.register(IntegrationSlackApproveMemberInvitation)
