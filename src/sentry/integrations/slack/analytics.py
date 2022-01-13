@@ -29,7 +29,7 @@ class SlackIntegrationNotificationSent(analytics.Event):
     )
 
 
-class IntegrationIdentityLinked(analytics.Event):  # type: ignore
+class IntegrationIdentityLinked(analytics.Event):
     type = "integrations.identity_linked"
 
     attributes = (
@@ -39,7 +39,7 @@ class IntegrationIdentityLinked(analytics.Event):  # type: ignore
     )
 
 
-class IntegrationSlackChartUnfurl(analytics.Event):  # type: ignore
+class IntegrationSlackChartUnfurl(analytics.Event):
     type = "integrations.slack.chart_unfurl"
 
     attributes = (
