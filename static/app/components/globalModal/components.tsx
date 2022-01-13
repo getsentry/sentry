@@ -31,6 +31,8 @@ const CloseButton = styled(Button)`
   right: 0;
   transform: translate(50%, -50%);
   border-radius: 50%;
+  border: none;
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
   height: 24px;
   width: 24px;
