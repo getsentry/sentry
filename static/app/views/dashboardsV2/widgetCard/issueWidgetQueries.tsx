@@ -19,7 +19,7 @@ import {Widget, WidgetQuery} from '../types';
 const MAX_ITEMS = 5;
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
-const DEFAULT_COLLAPSE = ['filtered'];
+const DEFAULT_COLLAPSE = [];
 const DEFAULT_EXPAND = ['owners'];
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
@@ -120,7 +120,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
     GroupStore.add(tableResults);
     const transformedTableResults: TableDataRow[] = [];
     tableResults.forEach(group => {
-      const {id, shortId, title, lifetime, ...resultProps} = group;
+      const {id, shortId, title, lifetime, filtered, ...resultProps} = group;
       const transformedResultProps: Omit<TableDataRow, 'id'> = {};
       Object.keys(resultProps)
         .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
@@ -135,10 +135,16 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         issue: shortId,
         title,
       };
+
       // Get lifetime stats
       if (lifetime) {
         transformedTableResult.lifetimeCount = lifetime?.count;
         transformedTableResult.lifetimeUserCount = lifetime?.userCount;
+      }
+      // Get filtered stats
+      if (filtered) {
+        transformedTableResult.filteredCount = filtered?.count;
+        transformedTableResult.filteredUserCount = filtered?.userCount;
       }
 
       const {period, start, end} = selection.datetime || {};

@@ -452,28 +452,19 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   lifetimeCount: {
     sortField: null,
-    renderFunc: ({lifetimeCount, count, selectionDateString}) =>
-      issuesCountRenderer(lifetimeCount, count, lifetimeCount, selectionDateString),
+    renderFunc: data => issuesCountRenderer(data, 'lifetimeCount'),
   },
   lifetimeUserCount: {
     sortField: null,
-    renderFunc: ({lifetimeUserCount, userCount, selectionDateString}) =>
-      issuesCountRenderer(
-        lifetimeUserCount,
-        userCount,
-        lifetimeUserCount,
-        selectionDateString
-      ),
+    renderFunc: data => issuesCountRenderer(data, 'lifetimeUserCount'),
   },
   count: {
     sortField: null,
-    renderFunc: ({lifetimeCount, count, selectionDateString}) =>
-      issuesCountRenderer(count, count, lifetimeCount, selectionDateString),
+    renderFunc: data => issuesCountRenderer(data, 'count'),
   },
   userCount: {
     sortField: null,
-    renderFunc: ({lifetimeUserCount, userCount, selectionDateString}) =>
-      issuesCountRenderer(userCount, userCount, lifetimeUserCount, selectionDateString),
+    renderFunc: data => issuesCountRenderer(data, 'userCount'),
   },
   firstSeen: {
     sortField: null,
@@ -486,11 +477,15 @@ const SPECIAL_FIELDS: SpecialFields = {
 };
 
 const issuesCountRenderer = (
-  primaryCount,
-  currentCount,
-  lifetimeCount,
-  selectionDateString
+  data: EventData,
+  field: 'count' | 'userCount' | 'lifetimeCount' | 'lifetimeUserCount'
 ) => {
+  const {selectionDateString} = data;
+  const isUserField = field.includes('user');
+  const primaryCount = data[field];
+  const count = data[isUserField ? 'userCount' : 'count'];
+  const lifetimeCount = data[isUserField ? 'lifetimeUserCount' : 'lifetimeCount'];
+  const filteredCount = data[isUserField ? 'filteredUserCount' : 'filteredCount'];
   return (
     <Container>
       <Tooltip
@@ -499,10 +494,21 @@ const issuesCountRenderer = (
         popperStyle={{padding: 0}}
         title={
           <div>
+            {filteredCount ? (
+              <React.Fragment>
+                <Item>
+                  <StyledContent>
+                    {t('Matching search filters')}
+                    <ItemCount value={filteredCount} />
+                  </StyledContent>
+                </Item>
+                <Divider />
+              </React.Fragment>
+            ) : null}
             <Item>
               <StyledContent>
                 {t(`Total in ${selectionDateString}`)}
-                <ItemCount value={currentCount} />
+                <ItemCount value={count} />
               </StyledContent>
             </Item>
             <Divider />
@@ -515,7 +521,16 @@ const issuesCountRenderer = (
           </div>
         }
       >
-        {primaryCount}
+        <span>
+          {['count', 'userCount'].includes(field) && filteredCount ? (
+            <React.Fragment>
+              <Count value={filteredCount} />
+              <SecondaryCount value={primaryCount} />
+            </React.Fragment>
+          ) : (
+            <Count value={primaryCount} />
+          )}
+        </span>
       </Tooltip>
     </Container>
   );
@@ -534,6 +549,14 @@ const contentStyle = css`
 
 const StyledContent = styled('div')`
   ${contentStyle};
+`;
+
+const SecondaryCount = styled(Count)`
+  :before {
+    content: '/';
+    padding-left: ${space(0.25)};
+    padding-right: 2px;
+  }
 `;
 
 const ItemCount = styled(({value, ...p}) => (

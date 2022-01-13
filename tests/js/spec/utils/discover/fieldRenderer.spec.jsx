@@ -50,8 +50,9 @@ describe('getFieldRenderer', function () {
       'spans.total.time': 75,
       'transaction.duration': 75,
       'timestamp.to_day': '2021-09-05T00:00:00+00:00',
-      lifetimeCount: 10,
-      count: 6,
+      lifetimeCount: 10000,
+      filteredCount: 3000,
+      count: 6000,
       selectionDateString: 'last 7 days',
     };
 
@@ -345,11 +346,12 @@ describe('getFieldRenderer', function () {
           organization,
         })
       );
-      expect(screen.getByText('6')).toBeInTheDocument();
-      userEvent.hover(screen.getByText('6'));
+      expect(screen.getByText('3k')).toBeInTheDocument();
+      expect(screen.getByText('6k')).toBeInTheDocument();
+      userEvent.hover(screen.getByText('3k'));
       expect(await screen.findByText('Total in last 7 days')).toBeInTheDocument();
+      expect(screen.getByText('Matching search filters')).toBeInTheDocument();
       expect(screen.getByText('Since issue began')).toBeInTheDocument();
-      expect(screen.getByText('10')).toBeInTheDocument();
     });
   });
 });

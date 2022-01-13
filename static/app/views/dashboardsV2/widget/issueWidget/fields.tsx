@@ -18,10 +18,10 @@ enum FieldKey {
   IS_BOOKMARKED = 'isBookmarked',
   IS_SUBSCRIBED = 'isSubscribed',
   IS_HANDLED = 'isHandled',
-  COUNT = 'count',
-  USER_COUNT = 'userCount',
   LAST_SEEN = 'lastSeen',
   FIRST_SEEN = 'firstSeen',
+  COUNT = 'count',
+  USER_COUNT = 'userCount',
   LIFETIME_COUNT = 'lifetimeCount',
   LIFETIME_USER_COUNT = 'lifetimeUserCount',
 }
