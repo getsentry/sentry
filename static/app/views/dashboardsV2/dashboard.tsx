@@ -290,7 +290,10 @@ class Dashboard extends Component<Props, State> {
       handleAddCustomWidget,
     } = this.props;
 
-    if (organization.features.includes('metrics')) {
+    if (
+      organization.features.includes('metrics') &&
+      organization.features.includes('metrics-dashboards-ui')
+    ) {
       onSetWidgetToBeUpdated(widget);
 
       if (paramDashboardId) {
