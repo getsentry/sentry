@@ -60,7 +60,7 @@ class U2fInterface extends React.Component<Props, State> {
     if (isSafari) {
       // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({
-        deviceFailure: 'safari error',
+        deviceFailure: 'safari: requires interaction',
         isSafari,
         hasBeenTapped: false,
       });
