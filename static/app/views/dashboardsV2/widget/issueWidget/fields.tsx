@@ -20,7 +20,7 @@ enum FieldKey {
   IS_HANDLED = 'isHandled',
   LAST_SEEN = 'lastSeen',
   FIRST_SEEN = 'firstSeen',
-  EVENT_COUNT = 'count',
+  EVENT_COUNT = 'eventCount',
   USER_COUNT = 'userCount',
   LIFETIME_EVENT_COUNT = 'lifetimeEventCount',
   LIFETIME_USER_COUNT = 'lifetimeUserCount',
