@@ -112,8 +112,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.add_widget_through_dashboard("New Widget")
 
-            dragHandle = self.browser.element(".widget-drag")
             # Drag to the right
+            dragHandle = self.browser.element(".widget-drag")
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
 
@@ -138,7 +138,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
 
-            # Save this dashboard
             self.page.save_dashboard()
 
             self.browser.snapshot("dashboards - save widget layout in new custom dashboard")
@@ -169,11 +168,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.save_dashboard()
 
-            self.browser.snapshot("dashboards - save modified widget layout in custom dashboard")
+            self.browser.snapshot("dashboards - move existing widget on existing dashboard")
             self.browser.refresh()
             self.page.wait_until_loaded()
             self.browser.snapshot(
-                "dashboards - save modified widget layout in custom dashboard (refresh)"
+                "dashboards - move existing widget on existing dashboard (refresh)"
             )
 
     def test_add_by_widget_library_do_not_overlap(self):
@@ -215,7 +214,12 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
-            # Edit the first widget
+            # Drag existing widget to the right
+            dragHandle = self.browser.element(".widget-drag")
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
+
+            # Edit the existing widget
             button = self.browser.element('[data-test-id="widget-edit"]')
             button.click()
             title_input = self.browser.element('input[data-test-id="widget-title-input"]')
@@ -223,18 +227,31 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             button = self.browser.element('[data-test-id="add-widget"]')
             button.click()
 
-            dragHandle = self.browser.element(".widget-drag")
-            # Drag to the right
+            # Add and drag new widget to the bottom right
+            self.page.add_widget_through_dashboard("New Widget")
+            dragHandle = self.browser.element(".react-grid-item:nth-of-type(2n) .widget-drag")
             action = ActionChains(self.browser.driver)
-            action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
+            action.drag_and_drop_by_offset(dragHandle, 500, 500).perform()
+
+            # Edit the new widget
+            button = self.browser.element(
+                '.react-grid-item:nth-of-type(2n) [data-test-id="widget-edit"]'
+            )
+            button.click()
+            title_input = self.browser.element('input[data-test-id="widget-title-input"]')
+            title_input.send_keys(Keys.END, "UPDATED!!")
+            button = self.browser.element('[data-test-id="add-widget"]')
+            button.click()
 
             self.page.save_dashboard()
 
-            self.browser.snapshot("dashboards - save modified widget layout in custom dashboard")
+            self.browser.snapshot(
+                "dashboards - edit widgets after layout change does not reset layout"
+            )
             self.browser.refresh()
             self.page.wait_until_loaded()
             self.browser.snapshot(
-                "dashboards - save modified widget layout in custom dashboard (refresh)"
+                "dashboards - edit widgets after layout change does not reset layout (refresh)"
             )
 
     def test_add_issue_widgets_do_not_overlap(self):
