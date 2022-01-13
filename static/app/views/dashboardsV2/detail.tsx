@@ -378,20 +378,6 @@ class DashboardDetail extends Component<Props, State> {
     switch (dashboardState) {
       case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
-<<<<<<< HEAD
-        if (modifiedDashboard) {
-          // Allow duplicate dashboard names when in preview mode
-          createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
-            (newDashboard: DashboardDetails) => {
-              if (organization.features.includes('dashboard-grid-layout')) {
-                // Redirect occurs so no need to update layout state
-                this.saveLayoutWithNewWidgets(
-                  organization.id,
-                  newDashboard.id,
-                  newDashboard.widgets
-                );
-              }
-=======
         if (
           modifiedDashboard ||
           (modifiedDashboard && !isEqual(layout, getDashboardLayout(dashboard.widgets)))
@@ -408,7 +394,6 @@ class DashboardDetail extends Component<Props, State> {
           };
           createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
->>>>>>> bd4c997db5 (wip)
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.create.complete',
