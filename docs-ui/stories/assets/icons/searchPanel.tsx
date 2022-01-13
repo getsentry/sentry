@@ -1,12 +1,12 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 
 import TextField from 'app/components/forms/textField';
 import space from 'app/styles/space';
 
-import {IconPropName, IconData, iconGroups, iconProps, icons} from './data';
+import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
 import IconInfoBox from './infoBox';
 
 export type ExtendedIconData = IconData & {
@@ -32,18 +32,18 @@ const SearchPanel = () => {
   /**
    * All the icons, split into iterable groups
    */
-  const addIconNames = (icons: IconData[]): ExtendedIconData[] =>
-    icons.map(icon => {
+  const addIconNames = (iconData: IconData[]): ExtendedIconData[] =>
+    iconData.map(icon => {
       const nameString = icon.id.split('-')[0];
       const name = nameString.charAt(0).toUpperCase() + nameString.slice(1);
       return {...icon, name};
     });
 
   const enumerateIconProps = (
-    icons: ExtendedIconData[],
+    iconData: ExtendedIconData[],
     prop: string
   ): ExtendedIconData[] =>
-    icons.reduce((acc: ExtendedIconData[], cur: ExtendedIconData) => {
+    iconData.reduce((acc: ExtendedIconData[], cur: ExtendedIconData) => {
       const propData = iconProps[prop];
 
       switch (propData.type) {
@@ -75,11 +75,10 @@ const SearchPanel = () => {
         default:
           return acc;
       }
-      return [];
     }, []);
 
-  const enumerateIconVariants = (icons: ExtendedIconData[]): ExtendedIconData[] =>
-    icons.reduce((acc: ExtendedIconData[], cur: ExtendedIconData) => {
+  const enumerateIconVariants = (iconData: ExtendedIconData[]): ExtendedIconData[] =>
+    iconData.reduce((acc: ExtendedIconData[], cur: ExtendedIconData) => {
       let iconVariants: ExtendedIconData[] = [{...cur, defaultProps: {}}];
 
       cur.additionalProps?.forEach(prop => {

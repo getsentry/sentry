@@ -1,12 +1,12 @@
-import {Dispatch, SetStateAction, useState, useEffect} from 'react';
-import styled from '@emotion/styled';
+import {Dispatch, SetStateAction, useState} from 'react';
 import {Manager, Reference} from 'react-popper';
+import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 import IconPopper from './popper';
 import IconSample from './sample';
-import {SelectedIcon, ExtendedIconData} from './searchPanel';
+import {ExtendedIconData, SelectedIcon} from './searchPanel';
 
 type Props = {
   icon: ExtendedIconData;
@@ -17,29 +17,16 @@ type Props = {
 
 const IconInfoBox = ({icon, selectedIcon, setSelectedIcon, groupId}: Props) => {
   const isSelected = selectedIcon.group === groupId && selectedIcon.icon === icon.id;
-
-  /**
-   * Deselect icon box on outside click
-   */
   const [boxRef, setBoxRef] = useState(null);
-  const clickAwayHandler = e => {
-    if (e.target !== boxRef && !boxRef.contains(e.target)) {
-      setSelectedIcon({group: '', icon: ''});
-    }
-  };
-  useEffect(() => {
-    document.addEventListener('click', clickAwayHandler);
-    return () => document.removeEventListener('click', clickAwayHandler);
-  }, []);
 
   return (
     <Manager>
       <Reference>
-        {({ref}) => (
+        {({ref: popperRef}) => (
           <BoxWrap
             ref={ref => {
               setBoxRef(ref);
-              return ref;
+              popperRef(ref);
             }}
             selected={isSelected}
             onClick={() =>
@@ -58,7 +45,9 @@ const IconInfoBox = ({icon, selectedIcon, setSelectedIcon, groupId}: Props) => {
           </BoxWrap>
         )}
       </Reference>
-      {isSelected && <IconPopper icon={icon} setSelectedIcon={setSelectedIcon} />}
+      {isSelected && (
+        <IconPopper icon={icon} setSelectedIcon={setSelectedIcon} boxRef={boxRef} />
+      )}
     </Manager>
   );
 };

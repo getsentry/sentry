@@ -156,7 +156,7 @@ export const icons: IconData[] = [
   {
     id: 'close',
     groups: ['action'],
-    keywords: ['cross', 'deny', 'terminate', 'exit'],
+    keywords: ['cross', 'deny', 'terminate'],
     additionalProps: ['isCircled'],
   },
   {
@@ -202,8 +202,8 @@ export const icons: IconData[] = [
   },
   {
     id: 'return',
-    groups: ['action', 'keyboard'],
-    keywords: ['enter', 'keyboard'],
+    groups: ['action'],
+    keywords: ['enter'],
   },
   {
     id: 'refresh',
@@ -392,12 +392,12 @@ export const icons: IconData[] = [
   },
   {
     id: 'question',
-    groups: ['content'],
+    groups: ['layout'],
     keywords: ['info', 'about', 'information', 'ask', 'faq', 'q&a'],
   },
   {
     id: 'info',
-    groups: ['content'],
+    groups: ['layout'],
     keywords: ['more', 'about', 'information', 'ask', 'faq', 'q&a'],
   },
   {
