@@ -10,7 +10,13 @@ from sentry.models import (
 )
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.acceptance.page_objects.dashboard_detail import DashboardDetailPage
+from tests.acceptance.page_objects.dashboard_detail import (
+    EDIT_WIDGET_BUTTON,
+    WIDGET_DRAG_HANDLE,
+    WIDGET_RESIZE_HANDLE,
+    WIDGET_TITLE_FIELD,
+    DashboardDetailPage,
+)
 
 FEATURE_NAMES = [
     "organizations:discover-basic",
@@ -69,7 +75,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.page.enter_edit_state()
 
             # Edit the first widget.
-            button = self.browser.element('[data-test-id="widget-edit"]')
+            button = self.browser.element(EDIT_WIDGET_BUTTON)
             button.click()
             self.browser.snapshot("dashboards - edit widget")
 
@@ -113,7 +119,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.add_widget_through_dashboard("New Widget")
 
             # Drag to the right
-            dragHandle = self.browser.element(".widget-drag")
+            dragHandle = self.browser.element(WIDGET_DRAG_HANDLE)
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
 
@@ -134,7 +140,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.add_widget_through_dashboard("New Widget")
 
             # Drag to the right
-            dragHandle = self.browser.element(".widget-drag")
+            dragHandle = self.browser.element(WIDGET_DRAG_HANDLE)
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
 
@@ -162,7 +168,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.enter_edit_state()
 
             # Drag to the right
-            dragHandle = self.browser.element(".widget-drag")
+            dragHandle = self.browser.element(WIDGET_DRAG_HANDLE)
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
 
@@ -215,30 +221,30 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.enter_edit_state()
 
             # Drag existing widget to the right
-            dragHandle = self.browser.element(".widget-drag")
+            dragHandle = self.browser.element(WIDGET_DRAG_HANDLE)
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
 
             # Edit the existing widget
-            button = self.browser.element('[data-test-id="widget-edit"]')
+            button = self.browser.element(EDIT_WIDGET_BUTTON)
             button.click()
-            title_input = self.browser.element('input[data-test-id="widget-title-input"]')
+            title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.send_keys(Keys.END, "UPDATED!!")
             button = self.browser.element('[data-test-id="add-widget"]')
             button.click()
 
             # Add and drag new widget to the bottom right
             self.page.add_widget_through_dashboard("New Widget")
-            dragHandle = self.browser.element(".react-grid-item:nth-of-type(2n) .widget-drag")
+            dragHandle = self.browser.element(
+                f".react-grid-item:nth-of-type(2n) {WIDGET_DRAG_HANDLE}"
+            )
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, 500, 500).perform()
 
             # Edit the new widget
-            button = self.browser.element(
-                '.react-grid-item:nth-of-type(2n) [data-test-id="widget-edit"]'
-            )
+            button = self.browser.element(f".react-grid-item:nth-of-type(2n) {EDIT_WIDGET_BUTTON}")
             button.click()
-            title_input = self.browser.element('input[data-test-id="widget-title-input"]')
+            title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.send_keys(Keys.END, "UPDATED!!")
             button = self.browser.element('[data-test-id="add-widget"]')
             button.click()
@@ -258,7 +264,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         def add_issue_widget(widget_title):
             self.browser.wait_until_clickable('[data-test-id="widget-add"]')
             self.page.click_dashboard_add_widget_button()
-            title_input = self.browser.element('input[data-test-id="widget-title-input"]')
+            title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.send_keys(widget_title)
             self.browser.element('[aria-label="issue"]').click()
             button = self.browser.element('[data-test-id="add-widget"]')
@@ -294,21 +300,23 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.enter_edit_state()
 
             # Resize existing widget
-            resizeHandle = self.browser.element(".react-resizable-handle")
+            resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(resizeHandle, 500, 0).perform()
 
             self.page.add_widget_through_dashboard("New Widget")
 
             # Drag it to the left for consistency
-            dragHandle = self.browser.element(".react-grid-item:nth-of-type(2n) .widget-drag")
+            dragHandle = self.browser.element(
+                f".react-grid-item:nth-of-type(2n) {WIDGET_DRAG_HANDLE}"
+            )
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, -500, 0).perform()
 
             # Resize new widget, get the 2nd element instead of the "last" because the "last" is
             # the add widget button
             resizeHandle = self.browser.element(
-                ".react-grid-item:nth-of-type(2n) .react-resizable-handle"
+                f".react-grid-item:nth-of-type(2n) {WIDGET_RESIZE_HANDLE}"
             )
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(resizeHandle, 500, 0).perform()
@@ -338,14 +346,16 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.add_widget_through_dashboard("New Widget")
 
             # Drag it to the bottom left
-            dragHandle = self.browser.element(".react-grid-item:nth-of-type(2n) .widget-drag")
+            dragHandle = self.browser.element(
+                f".react-grid-item:nth-of-type(2n) {WIDGET_DRAG_HANDLE}"
+            )
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, -500, 500).perform()
 
             # Resize new widget, get the 2nd element instead of the "last" because the "last" is
             # the add widget button
             resizeHandle = self.browser.element(
-                ".react-grid-item:nth-of-type(2n) .react-resizable-handle"
+                f".react-grid-item:nth-of-type(2n) {WIDGET_RESIZE_HANDLE}"
             )
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(resizeHandle, 500, 0).perform()
