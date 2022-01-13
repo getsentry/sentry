@@ -157,10 +157,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         if provider:
             filters["provider"] = provider.value
 
-        print("types", types)
         if types:
             filters["type__in"] = list(map(lambda x: x.value, types))
-            print("mapped types", filters["type__in"])
 
         if scope_type:
             filters["scope_type"] = scope_type.value

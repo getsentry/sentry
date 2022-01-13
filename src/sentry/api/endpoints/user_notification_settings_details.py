@@ -35,7 +35,7 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
                 user,
                 request.user,
                 NotificationSettingsSerializer(),
-                types=type_option,
+                type=type_option,
             ),
         )
 

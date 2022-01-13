@@ -49,7 +49,10 @@ class NotificationSettingTypes(Enum):
     # Notifications about overages
     OVERAGE = 50
 
+    # Sub category of overages, applies to only errors
     OVERAGE_ERRORS = 51
+
+    # TODO: add transactions and attachments
 
 
 NOTIFICATION_SETTING_TYPES = {

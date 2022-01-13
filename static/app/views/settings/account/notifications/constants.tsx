@@ -4,6 +4,7 @@ export const ALL_PROVIDERS = {
   email: 'default',
   slack: 'never',
 };
+export const ALL_PROVIDER_NAMES = Object.keys(ALL_PROVIDERS);
 
 /**
  * These values are stolen from the DB.

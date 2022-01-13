@@ -6,6 +6,7 @@ import {Organization, OrganizationSummary} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
+  ALL_PROVIDER_NAMES,
   CONFIRMATION_MESSAGE,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
@@ -91,7 +92,6 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     changedData: NotificationSettingsByProviderObject,
     notificationType?: string
   ): NotificationSettingsObject => {
-    console.log('changedData', changedData);
     notificationType = notificationType ?? this.props.notificationType;
     const {notificationSettings} = this.state;
 
@@ -100,7 +100,6 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       notificationSettings,
       changedData
     );
-    console.log({updatedNotificationSettings});
 
     this.setState({
       notificationSettings: mergeNotificationSettings(
@@ -119,19 +118,21 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const value = changedData[notificationType];
     const {notificationSettings} = this.state;
 
-    // TODO: update
+    // parent setting will control the provider optionos
+    // just set every provider to the same value for the child
+    const userSettings = ALL_PROVIDER_NAMES.reduce((accum, provider) => {
+      accum[provider] = value;
+      return accum;
+    }, {});
+
+    // setting is a user-only setting
     const updatedNotificationSettings = {
       [notificationType]: {
         user: {
-          me: {
-            slack: value,
-            email: value,
-          },
+          me: userSettings,
         },
       },
     };
-
-    console.log('updatedNotificationSettings', updatedNotificationSettings);
 
     this.setState({
       notificationSettings: mergeNotificationSettings(
@@ -194,7 +195,6 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   getInitialData(): {[key: string]: string} {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
-    console.log('getInitialData', {notificationSettings});
 
     const initialData = {
       [notificationType]: getCurrentDefault(notificationType, notificationSettings),
@@ -248,6 +248,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       notificationType === 'overage' &&
       !isEverythingDisabled(notificationType, notificationSettings)
     ) {
+      // TODO: put in additional fields
       fields.push({
         name: 'overageErrors',
         type: 'select',
@@ -263,18 +264,6 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
             'overageErrors'
           ),
       });
-      // fields.push({
-      //   name: 'overageTransactions',
-      //   type: 'select',
-      //   label: t('Transactions'),
-      //   choices: [
-      //     ['always', t('On')],
-      //     ['never', t('Off')],
-      //   ],
-      //   help: t('Notification for transactions overages.'),
-      //   getData: data =>
-      //     this.getStateToPutForProvider(data as NotificationSettingsByProviderObject),
-      // });
     }
 
     return fields;

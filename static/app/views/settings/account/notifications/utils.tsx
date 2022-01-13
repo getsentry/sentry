@@ -13,8 +13,6 @@ import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notific
 import ParentLabel from 'sentry/views/settings/account/notifications/parentLabel';
 import {FieldObject} from 'sentry/views/settings/components/forms/type';
 
-const notificationParentMapping = {overageErrors: 'overage'};
-
 /**
  * Which fine-tuning parts are grouped by project
  */
@@ -287,7 +285,6 @@ export const getStateToPutForProvider = (
   notificationSettings: NotificationSettingsObject,
   changedData: NotificationSettingsByProviderObject
 ): NotificationSettingsObject => {
-  console.log({notificationType, notificationSettings, changedData});
   const providerList: string[] = changedData.provider?.split('+') || [];
   const fallbackValue = getFallBackValue(notificationType);
 
@@ -302,29 +299,24 @@ export const getStateToPutForProvider = (
     };
   }
 
-  let data = notificationSettings[notificationType];
-  const parentSetting = notificationParentMapping[notificationType];
-  if (parentSetting && !data) {
-    data = notificationSettings[parentSetting];
-  }
-  console.log('with deefaulte', data);
-
   return {
     [notificationType]: Object.fromEntries(
-      Object.entries(data).map(([scopeType, scopeTypeData]) => [
-        scopeType,
-        Object.fromEntries(
-          Object.entries(scopeTypeData).map(([scopeId, scopeIdData]) => [
-            scopeId,
-            backfillMissingProvidersWithFallback(
-              scopeIdData,
-              providerList,
-              fallbackValue,
-              scopeType
-            ),
-          ])
-        ),
-      ])
+      Object.entries(notificationSettings[notificationType]).map(
+        ([scopeType, scopeTypeData]) => [
+          scopeType,
+          Object.fromEntries(
+            Object.entries(scopeTypeData).map(([scopeId, scopeIdData]) => [
+              scopeId,
+              backfillMissingProvidersWithFallback(
+                scopeIdData,
+                providerList,
+                fallbackValue,
+                scopeType
+              ),
+            ])
+          ),
+        ]
+      )
     ),
   };
 };
