@@ -60,9 +60,8 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
-  summaryConditions?: string;
-
   projects: Project[];
+  summaryConditions?: string;
   columnTitles?: string[];
 };
 

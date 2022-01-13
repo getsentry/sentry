@@ -95,6 +95,7 @@ export function platformAndConditionsToPerformanceType(
       return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
     }
   }
+
   return performanceType;
 }
 

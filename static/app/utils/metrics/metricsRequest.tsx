@@ -88,7 +88,6 @@ class MetricsRequest extends React.Component<Props, State> {
 
   get path() {
     const {orgSlug} = this.props;
-
     return `/organizations/${orgSlug}/metrics/data/`;
   }
 

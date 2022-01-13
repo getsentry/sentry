@@ -49,7 +49,7 @@ export default function VitalPercents(props: Props) {
           title={getVitalStateText(props.vital, pct.vitalState)}
           disabled={props.hideTooltips}
         >
-          <VitalStatus>
+          <VitalStatus data-test-id="vital-status">
             {vitalStateIcons[pct.vitalState]}
             <span>
               {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
