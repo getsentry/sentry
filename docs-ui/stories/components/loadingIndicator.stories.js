@@ -1,5 +1,4 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import LoadingTriangle from 'sentry/components/loadingTriangle';
 
 export default {
   title: 'Components/Loading Indicators',
@@ -16,11 +15,9 @@ export const All = () => (
       Mini
       <LoadingIndicator mini />
     </div>
-    <div>
+    <div style={{position: 'relative'}}>
       Triangle
-      <div style={{position: 'relative'}}>
-        <LoadingTriangle />
-      </div>
+      <LoadingIndicator triangle />
     </div>
   </div>
 );
@@ -51,7 +48,7 @@ Mini.parameters = {
 
 export const Triangle = () => (
   <div style={{paddingBottom: 300}}>
-    <LoadingTriangle>Loading message</LoadingTriangle>
+    <LoadingIndicator triangle>Loading message</LoadingIndicator>
   </div>
 );
 
