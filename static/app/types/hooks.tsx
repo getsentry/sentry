@@ -66,16 +66,7 @@ type MemberListHeaderProps = {
   organization: Organization;
 };
 
-type DisabledAppStoreConnectMultiple = {
-  appStoreConnectSingleSource: boolean;
-  organization: Organization;
-  children: React.ReactNode;
-};
-
-type DisabledCustomSymbolSources = {
-  organization: Organization;
-  children: React.ReactNode;
-};
+type DisabledAppStoreConnectMultiple = {organization: Organization};
 
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
@@ -100,7 +91,6 @@ type FirstPartyIntegrationAdditionalCTAProps = {
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;

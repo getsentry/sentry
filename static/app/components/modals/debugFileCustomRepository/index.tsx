@@ -3,9 +3,11 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {getDebugSourceName} from 'sentry/data/debugFileSources';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
 import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromConfig';
@@ -50,11 +52,6 @@ const HookedAppStoreConnectMultiple = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-const HookedCustomSymbolSources = HookOrDefault({
-  hookName: 'component:disabled-custom-symbol-sources',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-});
-
 function DebugFileCustomRepository({
   Header,
   Body,
@@ -82,23 +79,38 @@ function DebugFileCustomRepository({
 
   if (sourceType === CustomRepoType.APP_STORE_CONNECT) {
     return (
-      <HookedAppStoreConnectMultiple
-        organization={organization}
-        appStoreConnectSingleSource={
-          sourceConfig ? true : appStoreConnectSourcesQuantity === 0
-        }
-      >
-        <AppStoreConnect
-          Header={Header}
-          Body={Body}
-          Footer={Footer}
-          orgSlug={orgId}
-          projectSlug={projectSlug}
-          onSubmit={handleSave}
-          initialData={sourceConfig as AppStoreConnectInitialData}
-          appStoreConnectStatusData={appStoreConnectStatusData}
-        />
-      </HookedAppStoreConnectMultiple>
+      <Feature organization={organization} features={['app-store-connect-multiple']}>
+        {({hasFeature, features}) => {
+          if (
+            hasFeature ||
+            (appStoreConnectSourcesQuantity === 1 && sourceConfig) ||
+            appStoreConnectSourcesQuantity === 0
+          ) {
+            return (
+              <AppStoreConnect
+                Header={Header}
+                Body={Body}
+                Footer={Footer}
+                orgSlug={orgId}
+                projectSlug={projectSlug}
+                onSubmit={handleSave}
+                initialData={sourceConfig as AppStoreConnectInitialData}
+                appStoreConnectStatusData={appStoreConnectStatusData}
+              />
+            );
+          }
+
+          return (
+            <HookedAppStoreConnectMultiple organization={organization}>
+              <FeatureDisabled
+                features={features}
+                message={t('This feature is not enabled on your Sentry installation.')}
+                hideHelpToggle
+              />
+            </HookedAppStoreConnectMultiple>
+          );
+        }}
+      </Feature>
     );
   }
 
@@ -147,9 +159,21 @@ function DebugFileCustomRepository({
   }
 
   return (
-    <HookedCustomSymbolSources organization={organization}>
+    <Feature
+      organization={organization}
+      features={['custom-symbol-sources']}
+      hookName="feature-disabled:custom-symbol-sources"
+      renderDisabled={({features}) => (
+        <FeatureDisabled
+          features={features}
+          message={t('This feature is not enabled on your Sentry installation.')}
+          featureName={t('Custom Symbol Sources')}
+          hideHelpToggle
+        />
+      )}
+    >
       {renderOtherCustomSymbolSources()}
-    </HookedCustomSymbolSources>
+    </Feature>
   );
 }
 
