@@ -20,7 +20,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
     title: t('Default'),
     widgets: [
       {
-        title: 'Number of Errors',
+        title: t('Number of Errors'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
@@ -34,7 +34,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Number of Issues',
+        title: t('Number of Issues'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
@@ -48,12 +48,12 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Events',
+        title: t('Events'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'Events',
+            name: t('Events'),
             conditions: '!event.type:transaction',
             fields: ['count()'],
             orderby: 'count()',
@@ -62,18 +62,18 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Affected Users',
+        title: t('Affected Users'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'Known Users',
+            name: t('Known Users'),
             conditions: 'has:user.email !event.type:transaction',
             fields: ['count_unique(user)'],
             orderby: 'count_unique(user)',
           },
           {
-            name: 'Anonymous Users',
+            name: t('Anonymous Users'),
             conditions: '!has:user.email !event.type:transaction',
             fields: ['count_unique(user)'],
             orderby: 'count_unique(user)',
@@ -82,18 +82,18 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Handled vs. Unhandled',
+        title: t('Handled vs. Unhandled'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'Handled',
+            name: t('Handled'),
             conditions: 'error.handled:true',
             fields: ['count()'],
             orderby: 'count()',
           },
           {
-            name: 'Unhandled',
+            name: t('Unhandled'),
             conditions: 'error.handled:false',
             fields: ['count()'],
             orderby: 'count()',
@@ -102,12 +102,12 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Errors by Country',
+        title: t('Errors by Country'),
         displayType: DisplayType.WORLD_MAP,
         interval: '5m',
         queries: [
           {
-            name: 'Error counts',
+            name: t('Error counts'),
             conditions: '!event.type:transaction has:geo.country_code',
             fields: ['count()'],
             orderby: 'count()',
@@ -116,7 +116,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Errors by Browser',
+        title: t('Errors by Browser'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
@@ -133,12 +133,12 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
   },
   {
     id: 'frontend-template',
-    title: 'Frontend',
+    title: t('Frontend'),
     dateCreated: '',
     createdBy: undefined,
     widgets: [
       {
-        title: 'Overall LCP',
+        title: t('Overall LCP'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
@@ -152,7 +152,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Overall FCP',
+        title: t('Overall FCP'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
@@ -166,7 +166,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Overall FID',
+        title: t('Overall FID'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
@@ -180,12 +180,12 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'LCP over time',
+        title: t('LCP over time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'LCP',
+            name: t('LCP'),
             conditions: 'event.type:transaction',
             fields: ['p75(measurements.lcp)'],
             orderby: 'measurements.lcp',
@@ -194,12 +194,12 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'FCP over time',
+        title: t('FCP over time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'FCP',
+            name: t('FCP'),
             conditions: 'event.type:transaction',
             fields: ['p75(measurements.fcp)'],
             orderby: 'measurements.fcp',
@@ -208,12 +208,12 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'FID over time',
+        title: t('FID over time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'FID',
+            name: t('FID'),
             conditions: 'event.type:transaction',
             fields: ['p75(measurements.fid)'],
             orderby: 'measurements.fid',
@@ -225,12 +225,12 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
   },
   {
     id: 'backend-template',
-    title: 'Backend',
+    title: t('Backend'),
     dateCreated: '',
     createdBy: undefined,
     widgets: [
       {
-        title: 'Overall Apdex',
+        title: t('Overall Apdex'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
@@ -244,7 +244,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Failing Transactions',
+        title: t('Failing Transactions'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
@@ -258,7 +258,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Overall Misery',
+        title: t('Overall Misery'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
@@ -272,12 +272,12 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Apdex over time',
+        title: t('Apdex over time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'Apdex',
+            name: t('Apdex'),
             conditions: 'event.type:transaction',
             fields: ['apdex()'],
             orderby: 'apdex',
@@ -286,12 +286,12 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Failure Transactions over time',
+        title: t('Failure Transactions over time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'Failing Transactions',
+            name: t('Failing Transactions'),
             conditions: 'event.type:transaction',
             fields: ['failure_count()'],
             orderby: 'failure_count',
@@ -300,12 +300,12 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: 'Misery over time',
+        title: t('Misery over time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'Miserable Users',
+            name: t('Miserable Users'),
             conditions: 'event.type:transaction',
             fields: ['user_misery()'],
             orderby: 'user_misery',
@@ -317,90 +317,202 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
   },
   {
     id: 'mobile-template',
-    title: 'Mobile',
+    title: t('Mobile'),
     dateCreated: '',
     createdBy: undefined,
     widgets: [
       {
-        title: 'Overall Cold Start',
+        title: t('Total Crashes'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
           {
             name: '',
-            conditions: 'event.type:transaction',
-            fields: ['p75(measurements.app_start_cold)'],
-            orderby: 'p75(measurements.app_start_cold)',
+            fields: ['count()'],
+            conditions: 'error.handled:false event.type:error',
+            orderby: '',
           },
         ],
         tempId: uniqueId(),
       },
       {
-        title: 'Overall Warm Start',
+        title: t('Unique Users Who Crashed'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
           {
             name: '',
-            conditions: 'event.type:transaction',
+            fields: ['count_unique(user)'],
+            conditions: 'error.handled:false event.type:error',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: t('Overall Number of Errors'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['count()'],
+            conditions: 'event.type:error',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: t('Issues Causing Crashes'),
+        displayType: DisplayType.TABLE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['issue', 'count()', 'count_unique(user)'],
+            conditions: 'error.handled:false',
+            orderby: '-count_unique_user',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: t('Crashes Over Time'),
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        queries: [
+          {
+            name: t('Crashes'),
+            fields: ['count()', 'count_unique(user)'],
+            conditions: 'error.handled:false',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: t('Crashes by OS'),
+        displayType: DisplayType.TABLE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['os', 'count()'],
+            conditions: 'has:os error.handled:false',
+            orderby: '-count',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: t('Overall Warm Startup Time'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
             fields: ['p75(measurements.app_start_warm)'],
-            orderby: 'p75(measurements.app_start_warm)',
+            conditions: 'has:measurements.app_start_warm',
+            orderby: '',
           },
         ],
         tempId: uniqueId(),
       },
       {
-        title: 'Transactions Per Minute',
+        title: t('Overall Cold Startup Time'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
           {
             name: '',
-            conditions: 'event.type:transaction',
-            fields: ['tpm()'],
-            orderby: 'tpm',
-          },
-        ],
-        tempId: uniqueId(),
-      },
-      {
-        title: 'Cold Start over time',
-        displayType: DisplayType.LINE,
-        interval: '5m',
-        queries: [
-          {
-            name: 'Cold Start',
-            conditions: 'event.type:transaction',
             fields: ['p75(measurements.app_start_cold)'],
-            orderby: 'p75(measurements.app_start_cold)',
+            conditions: 'has:measurements.app_start_cold',
+            orderby: '',
           },
         ],
         tempId: uniqueId(),
       },
       {
-        title: 'Warm Start over time',
-        displayType: DisplayType.LINE,
+        title: t('Overall Throughput'),
+        displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
         queries: [
           {
-            name: 'Warm Start',
-            conditions: 'event.type:transaction',
-            fields: ['p75(measurements.app_start_warm)'],
-            orderby: 'p75(measurements.app_start_warm)',
+            name: '',
+            fields: ['epm()'],
+            conditions: '',
+            orderby: '',
           },
         ],
         tempId: uniqueId(),
       },
       {
-        title: 'TPM over time',
+        title: t('Warm Startup Times'),
+        displayType: DisplayType.TABLE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['transaction', 'p75(measurements.app_start_warm)'],
+            conditions: 'has:measurements.app_start_warm',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: t('Cold Startup Times'),
+        displayType: DisplayType.TABLE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['transaction', 'p75(measurements.app_start_cold)'],
+            conditions: 'has:measurements.app_start_cold',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: t('Throughput Over Time'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
           {
-            name: 'TPM',
-            conditions: 'event.type:transaction',
-            fields: ['tpm()'],
-            orderby: 'tpm',
+            name: '',
+            fields: ['epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: t('Frozen Frames Over Time'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['p75(measurements.frames_frozen_rate)'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        tempId: uniqueId(),
+      },
+      {
+        title: t('Frozen Frames Rate'),
+        displayType: DisplayType.TABLE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            fields: ['transaction', 'p75(measurements.frames_frozen_rate)'],
+            conditions: 'has:measurements.frames_frozen_rate',
+            orderby: '-p75_measurements_frames_frozen_rate',
           },
         ],
         tempId: uniqueId(),
