@@ -3,11 +3,13 @@ import {mat3, vec2} from 'gl-matrix';
 import {
   createProgram,
   createShader,
+  ELLIPSIS,
   findRangeBinarySearch,
   getContext,
   makeProjectionMatrix,
   Rect,
   Transform,
+  trimTextCenter,
 } from 'sentry/utils/profiling/gl/utils';
 
 describe('makeProjectionMatrix', () => {
@@ -352,5 +354,17 @@ describe('findRangeBinarySearch', () => {
     expect([low, high]).toEqual([3.75, 4.375]);
     expect(fn).toHaveBeenCalledTimes(4);
     expect(text.substring(0, low)).toBe('abc');
+  });
+});
+
+describe('trimTextCenter', () => {
+  it('trims nothing if low > length', () => {
+    expect(trimTextCenter('abc', 4)).toBe('abc');
+  });
+  it('trims center perfectly', () => {
+    expect(trimTextCenter('abcdef', 5)).toBe(`ab${ELLIPSIS}ef`);
+  });
+  it('favors prefix length', () => {
+    expect(trimTextCenter('abcdef', 4)).toBe(`ab${ELLIPSIS}f`);
   });
 });
