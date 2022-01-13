@@ -152,7 +152,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
-    layout = serializers.JSONField(required=False)
+    layout = serializers.JSONField(required=False, allow_null=True)
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -168,6 +168,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         return interval
 
     def validate_layout(self, layout):
+        if layout is None:
+            return None
+
         VALID_KEYS = {"i", "x", "y", "w", "h", "minW", "maxW", "minH", "maxH"}
         invalid_keys = set(layout.keys()) - VALID_KEYS
         if invalid_keys:

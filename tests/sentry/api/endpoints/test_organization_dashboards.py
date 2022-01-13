@@ -270,6 +270,43 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
+    def test_post_widgets_with_null_layout_succeeds(self):
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": None,
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard from Post"
+        )
+        assert dashboard.created_by == self.user
+
+        widgets = self.get_widgets(dashboard.id)
+        assert len(widgets) == 1
+
+        assert "layout" in data["widgets"][0]
+        for expected_widget, actual_widget in zip(data["widgets"], widgets):
+            self.assert_serialized_widget(expected_widget, actual_widget)
+
+            queries = actual_widget.dashboardwidgetquery_set.all()
+            for expected_query, actual_query in zip(expected_widget["queries"], queries):
+                self.assert_serialized_widget_query(expected_query, actual_query)
+
     def test_post_widgets_with_invalid_layout(self):
         data = {
             "title": "Dashboard from Post",
