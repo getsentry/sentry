@@ -349,23 +349,16 @@ class DashboardDetail extends Component<Props, State> {
     const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
     const {layout, modifiedDashboard, dashboardState} = this.state;
 
+    const layoutHasBeenUpdated = !isEqual(layout, getDashboardLayout(dashboard.widgets));
+
     switch (dashboardState) {
       case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
-        if (
-          modifiedDashboard ||
-          (modifiedDashboard && !isEqual(layout, getDashboardLayout(dashboard.widgets)))
-        ) {
-          const newModifiedDashboard = {
-            ...modifiedDashboard,
-            widgets: modifiedDashboard?.widgets.map(widget => {
-              const matchingLayout = layout.find(
-                ({i}) => i === constructGridItemKey(widget)
-              );
-
-              return {...widget, layout: matchingLayout};
-            }),
-          };
+        if (modifiedDashboard || layoutHasBeenUpdated) {
+          const newModifiedDashboard = constructDashboardWidgetsWithLayout(
+            modifiedDashboard,
+            layout
+          );
           createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
@@ -395,26 +388,17 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.EDIT: {
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
-          if (
-            isEqual(dashboard, modifiedDashboard) &&
-            isEqual(layout, getDashboardLayout(dashboard.widgets))
-          ) {
+          if (isEqual(dashboard, modifiedDashboard) && !layoutHasBeenUpdated) {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
             });
             return;
           }
-          const newModifiedDashboard = {
-            ...modifiedDashboard,
-            widgets: modifiedDashboard?.widgets.map(widget => {
-              const matchingLayout = layout.find(
-                ({i}) => i === constructGridItemKey(widget)
-              );
-
-              return {...widget, layout: matchingLayout};
-            }),
-          };
+          const newModifiedDashboard = constructDashboardWidgetsWithLayout(
+            modifiedDashboard,
+            layout
+          );
           updateDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
@@ -710,4 +694,14 @@ function getDashboardLayout(widgets: Widget[]): RGLLayout[] {
       ...(layout as RGLLayout),
       i: constructGridItemKey(widget),
     }));
+}
+
+function constructDashboardWidgetsWithLayout(dashboard, layout) {
+  return {
+    ...dashboard,
+    widgets: dashboard.widgets.map(widget => {
+      const matchingLayout = layout.find(({i}) => i === constructGridItemKey(widget));
+      return {...widget, layout: matchingLayout};
+    }),
+  };
 }
