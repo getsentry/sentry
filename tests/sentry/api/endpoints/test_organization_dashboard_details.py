@@ -676,9 +676,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         for widget in widgets:
             assert widget["layout"] == expected_layouts[int(widget["id"])]
 
-    # We might want to strip the i key in the frontend before the request
-    # but it might be easier to just ignore it
-    def test_ignores_i_key_in_layout(self):
+    def test_ignores_certain_keys_in_layout(self):
         expected_layouts = {
             self.widget_1.id: {"x": 0, "y": 0, "w": 1, "h": 1},
             self.widget_2.id: {"x": 1, "y": 0, "w": 1, "h": 1},
@@ -690,7 +688,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 "widgets": [
                     {
                         "id": widget.id,
-                        "layout": {**expected_layouts[widget.id], "i": "this-should-be-ignored"},
+                        "layout": {
+                            **expected_layouts[widget.id],
+                            "i": "this-should-be-ignored",
+                            "static": "don't want this",
+                            "moved": False,
+                        },
                     }
                     for widget in [self.widget_1, self.widget_2]
                 ]
