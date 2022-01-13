@@ -36,6 +36,13 @@ class DashboardDetailPage(BasePage):
         button = self.browser.element('[data-test-id="add-widget-library"]')
         button.click()
 
+    def add_widget_through_dashboard(self, widget_title):
+        self.click_dashboard_add_widget_button()
+        title_input = self.browser.element('input[data-test-id="widget-title-input"]')
+        title_input.send_keys(widget_title)
+        button = self.browser.element('[data-test-id="add-widget"]')
+        button.click()
+
     def save_dashboard(self):
         button = self.browser.element('[data-test-id="dashboard-commit"]')
         button.click()

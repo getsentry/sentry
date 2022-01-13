@@ -111,12 +111,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Create a new dashboard
             self.page.visit_create_dashboard()
 
-            # Add a widget
-            self.page.click_dashboard_add_widget_button()
-            title_input = self.browser.element('input[data-test-id="widget-title-input"]')
-            title_input.send_keys("New Widget")
-            button = self.browser.element('[data-test-id="add-widget"]')
-            button.click()
+            self.page.add_widget_through_dashboard("New Widget")
 
             dragHandle = self.browser.element(".widget-drag")
             # Drag to the right
@@ -138,12 +133,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
-            # Add a widget
-            self.page.click_dashboard_add_widget_button()
-            title_input = self.browser.element('input[data-test-id="widget-title-input"]')
-            title_input.send_keys("New Widget")
-            button = self.browser.element('[data-test-id="add-widget"]')
-            button.click()
+            self.page.add_widget_through_dashboard("New Widget")
 
             dragHandle = self.browser.element(".widget-drag")
             # Drag to the right
@@ -292,12 +282,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(resizeHandle, 500, 0).perform()
 
-            # Add new widget
-            self.page.click_dashboard_add_widget_button()
-            title_input = self.browser.element('input[data-test-id="widget-title-input"]')
-            title_input.send_keys("New Widget")
-            button = self.browser.element('[data-test-id="add-widget"]')
-            button.click()
+            self.page.add_widget_through_dashboard("New Widget")
 
             # Drag it to the left for consistency
             dragHandle = self.browser.element(".react-grid-item:nth-of-type(2n) .widget-drag")
@@ -334,12 +319,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
-            # Add new widget
-            self.page.click_dashboard_add_widget_button()
-            title_input = self.browser.element('input[data-test-id="widget-title-input"]')
-            title_input.send_keys("New Widget")
-            button = self.browser.element('[data-test-id="add-widget"]')
-            button.click()
+            self.page.add_widget_through_dashboard("New Widget")
 
             # Drag it to the bottom left
             dragHandle = self.browser.element(".react-grid-item:nth-of-type(2n) .widget-drag")
@@ -362,10 +342,14 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.save_dashboard()
 
-            self.browser.snapshot("dashboards - resize new and existing widgets")
+            self.browser.snapshot(
+                "dashboards - delete existing widget does not reset new widget layout"
+            )
             self.browser.refresh()
             self.page.wait_until_loaded()
-            self.browser.snapshot("dashboards - resize new and existing widgets (refresh)")
+            self.browser.snapshot(
+                "dashboards - delete existing widget does not reset new widget layout (refresh)"
+            )
 
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
