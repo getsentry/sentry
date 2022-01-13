@@ -115,10 +115,11 @@ const StyledSearchDropdown = styled('div')`
   right: -1px;
   z-index: ${p => p.theme.zIndex.dropdown};
   overflow: hidden;
+  margin-top: ${space(1)};
   background: ${p => p.theme.background};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const LoadingWrapper = styled('div')`
