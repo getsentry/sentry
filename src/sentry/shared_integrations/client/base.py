@@ -1,152 +1,16 @@
-import logging
-from collections import OrderedDict
 from random import random
 
-import requests
 import sentry_sdk
-from bs4 import BeautifulSoup
 from django.core.cache import cache
-from django.utils.functional import cached_property
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
-from sentry.api.client import ApiClient
 from sentry.http import build_session
 from sentry.utils import json, metrics
-from sentry.utils.decorators import classproperty
 from sentry.utils.hashlib import md5_text
 
-from .exceptions import ApiError, ApiHostError, ApiTimeoutError, UnsupportedResponseType
-
-
-class BaseApiResponse:
-    text = ""
-
-    def __init__(self, headers=None, status_code=None):
-        self.headers = headers
-        self.status_code = status_code
-
-    def __repr__(self):
-        return "<{}: code={}, content_type={}>".format(
-            type(self).__name__,
-            self.status_code,
-            self.headers.get("Content-Type", "") if self.headers else "",
-        )
-
-    @cached_property
-    def rel(self):
-        if not self.headers:
-            return {}
-        link_header = self.headers.get("Link")
-        if not link_header:
-            return {}
-        return {item["rel"]: item["url"] for item in requests.utils.parse_header_links(link_header)}
-
-    @classmethod
-    def from_response(self, response, allow_text=False):
-        if response.request.method == "HEAD":
-            return BaseApiResponse(response.headers, response.status_code)
-        # XXX(dcramer): this doesnt handle leading spaces, but they're not common
-        # paths so its ok
-        if response.text.startswith("<?xml"):
-            return XmlApiResponse(response.text, response.headers, response.status_code)
-        elif response.text.startswith("<"):
-            if not allow_text:
-                raise ValueError(f"Not a valid response type: {response.text[:128]}")
-            elif response.status_code < 200 or response.status_code >= 300:
-                raise ValueError(
-                    f"Received unexpected plaintext response for code {response.status_code}"
-                )
-            return TextApiResponse(response.text, response.headers, response.status_code)
-
-        # Some APIs will return JSON with an invalid content-type, so we try
-        # to decode it anyways
-        if "application/json" not in response.headers.get("Content-Type", ""):
-            try:
-                data = json.loads(response.text, object_pairs_hook=OrderedDict)
-            except (TypeError, ValueError):
-                if allow_text:
-                    return TextApiResponse(response.text, response.headers, response.status_code)
-                raise UnsupportedResponseType(
-                    response.headers.get("Content-Type", ""), response.status_code
-                )
-        elif response.text == "":
-            return TextApiResponse(response.text, response.headers, response.status_code)
-        else:
-            data = json.loads(response.text, object_pairs_hook=OrderedDict)
-        if isinstance(data, dict):
-            return MappingApiResponse(data, response.headers, response.status_code)
-        elif isinstance(data, (list, tuple)):
-            return SequenceApiResponse(data, response.headers, response.status_code)
-        else:
-            raise NotImplementedError
-
-
-class TextApiResponse(BaseApiResponse):
-    def __init__(self, text, *args, **kwargs):
-        self.text = text
-        super().__init__(*args, **kwargs)
-
-
-class XmlApiResponse(BaseApiResponse):
-    def __init__(self, text, *args, **kwargs):
-        self.xml = BeautifulSoup(text, "xml")
-        super().__init__(*args, **kwargs)
-
-
-class MappingApiResponse(dict, BaseApiResponse):
-    def __init__(self, data, *args, **kwargs):
-        dict.__init__(self, data)
-        BaseApiResponse.__init__(self, *args, **kwargs)
-
-    @property
-    def json(self):
-        return self
-
-
-class SequenceApiResponse(list, BaseApiResponse):
-    def __init__(self, data, *args, **kwargs):
-        list.__init__(self, data)
-        BaseApiResponse.__init__(self, *args, **kwargs)
-
-    @property
-    def json(self):
-        return self
-
-
-class TrackResponseMixin:
-    @cached_property
-    def logger(self):
-        return logging.getLogger(self.log_path)
-
-    @classproperty
-    def name_field(cls):
-        return "%s_name" % cls.integration_type
-
-    @classproperty
-    def name(cls):
-        return getattr(cls, cls.name_field)
-
-    def track_response_data(self, code, span, error=None, resp=None):
-        metrics.incr(
-            "%s.http_response" % (self.datadog_prefix),
-            sample_rate=1.0,
-            tags={self.integration_type: self.name, "status": code},
-        )
-
-        try:
-            span.set_http_status(int(code))
-        except ValueError:
-            span.set_status(code)
-
-        span.set_tag(self.integration_type, self.name)
-
-        extra = {
-            self.integration_type: self.name,
-            "status_string": str(code),
-            "error": str(error)[:256] if error else None,
-        }
-        extra.update(getattr(self, "logging_context", None) or {})
-        self.logger.info("%s.http_response" % (self.integration_type), extra=extra)
+from ..exceptions import ApiError, ApiHostError, ApiTimeoutError
+from ..response.base import BaseApiResponse
+from ..track_response import TrackResponseMixin
 
 
 class BaseApiClient(TrackResponseMixin):
@@ -335,38 +199,3 @@ class BaseApiClient(TrackResponseMixin):
             if num_results < page_size:
                 return output
         return output
-
-
-class BaseInternalApiClient(ApiClient, TrackResponseMixin):
-    integration_type = None
-
-    log_path = None
-
-    datadog_prefix = None
-
-    def request(self, *args, **kwargs):
-
-        metrics.incr(
-            "%s.http_request" % self.datadog_prefix,
-            sample_rate=1.0,
-            tags={self.integration_type: self.name},
-        )
-
-        try:
-            with sentry_sdk.configure_scope() as scope:
-                parent_span_id = scope.span.span_id
-                trace_id = scope.span.trace_id
-        except AttributeError:
-            parent_span_id = None
-            trace_id = None
-
-        with sentry_sdk.start_transaction(
-            op=f"{self.integration_type}.http",
-            name=f"{self.integration_type}.http_response.{self.name}",
-            parent_span_id=parent_span_id,
-            trace_id=trace_id,
-            sampled=random() < 0.05,
-        ) as span:
-            resp = ApiClient.request(self, *args, **kwargs)
-            self.track_response_data(resp.status_code, span, None, resp)
-            return resp
