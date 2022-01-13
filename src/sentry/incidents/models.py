@@ -363,6 +363,7 @@ class AlertRule(Model):
     include_all_projects = models.BooleanField(default=False)
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
+    # How many times an alert value must exceed the threshold to fire/resolve the alert
     threshold_period = models.IntegerField()
     # This represents a time delta, in seconds. If not null, this is used to determine which time
     # window to query to compare the result from the current time_window to.
