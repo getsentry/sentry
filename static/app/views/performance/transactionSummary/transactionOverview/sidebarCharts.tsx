@@ -188,6 +188,7 @@ function SidebarChartsContainer({
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
   const project = eventView.project;
   const environment = eventView.environment;
+  const query = eventView.query;
   const utc = normalizeDateTimeParams(location.query).utc === 'true';
 
   const axisLineConfig = {
@@ -289,7 +290,7 @@ function SidebarChartsContainer({
     statsPeriod,
     project,
     environment,
-    query: eventView.query,
+    query,
   };
 
   const contentCommonProps = {
@@ -348,7 +349,7 @@ function SidebarChartsContainer({
               statsPeriod={statsPeriod}
               project={project}
               environment={environment}
-              query={new MutableSearch(eventView.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
+              query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
               field={fields}
             >
               {tpmRequestProps => {
