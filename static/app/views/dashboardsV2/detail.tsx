@@ -376,6 +376,7 @@ class DashboardDetail extends Component<Props, State> {
               });
               this.setState({
                 dashboardState: DashboardState.VIEW,
+                layout: getDashboardLayout(newDashboard.widgets),
               });
 
               // redirect to new dashboard
@@ -428,6 +429,7 @@ class DashboardDetail extends Component<Props, State> {
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
+                layout: getDashboardLayout(newDashboard.widgets),
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
