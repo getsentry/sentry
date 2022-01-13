@@ -1,3 +1,4 @@
+import {FlamegraphTheme} from './flamegraph/FlamegraphTheme';
 import {relativeChange} from './units/units';
 import {Flamegraph} from './flamegraph';
 import {FlamegraphFrame} from './flamegraphFrame';

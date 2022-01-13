@@ -1,5 +1,6 @@
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 
 const makeEvent = (times: number, frame: number): Profiling.Event[] => {
@@ -28,7 +29,7 @@ const THEME = {
     DIFFERENTIAL_DECREASE: [0, 0, 1],
     DIFFERENTIAL_INCREASE: [1, 0, 0],
   },
-};
+} as FlamegraphTheme;
 
 describe('differentialFlamegraph', () => {
   it('INCREASE: color encodes new frames red', () => {
