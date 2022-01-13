@@ -105,6 +105,27 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
+    def test_add_and_move_new_widget_on_existing_dashboard(self):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+            self.page.visit_dashboard_detail()
+            self.page.enter_edit_state()
+
+            self.page.add_widget_through_dashboard("New Widget")
+
+            dragHandle = self.browser.element(".widget-drag")
+            # Drag to the right
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
+
+            self.page.save_dashboard()
+
+            self.browser.snapshot("dashboards - save new widget layout in custom dashboard")
+            self.browser.refresh()
+            self.page.wait_until_loaded()
+            self.browser.snapshot(
+                "dashboards - save new widget layout in custom dashboard (refresh)"
+            )
+
     def test_create_new_dashboard_with_modified_widget_layout(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             # Create a new dashboard
@@ -125,27 +146,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.wait_until_loaded()
             self.browser.snapshot(
                 "dashboards - save widget layout in new custom dashboard (refresh)"
-            )
-
-    def test_add_and_move_new_widget_on_existing_dashboard(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
-            self.page.visit_dashboard_detail()
-            self.page.enter_edit_state()
-
-            self.page.add_widget_through_dashboard("New Widget")
-
-            dragHandle = self.browser.element(".widget-drag")
-            # Drag to the right
-            action = ActionChains(self.browser.driver)
-            action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
-
-            self.page.save_dashboard()
-
-            self.browser.snapshot("dashboards - save new widget layout in custom dashboard")
-            self.browser.refresh()
-            self.page.wait_until_loaded()
-            self.browser.snapshot(
-                "dashboards - save new widget layout in custom dashboard (refresh)"
             )
 
     def test_move_existing_widget_on_existing_dashboard(self):
