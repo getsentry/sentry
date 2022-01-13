@@ -29,16 +29,6 @@ type State = {};
 class NotificationSettingsByOrganization extends Component<Props, State> {
   render() {
     const {notificationType, notificationSettings, onChange, organizations} = this.props;
-    // console.log(
-    //   'init data',
-    //   getParentData(notificationType, notificationSettings, organizations)
-    // );
-    // console.log(
-    //   'fields',
-    //   organizations.map(organization =>
-    //     getParentField(notificationType, notificationSettings, organization, onChange)
-    //   )
-    // );
 
     return (
       <Form

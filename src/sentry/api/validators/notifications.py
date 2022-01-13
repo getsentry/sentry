@@ -75,8 +75,8 @@ def validate_types(
         types_split = type.split(",")
         out = []
         for type in types_split:
-            notifiication_type = {v: k for k, v in NOTIFICATION_SETTING_TYPES.items()}[type]
-            out.append(notifiication_type)
+            notification_type = {v: k for k, v in NOTIFICATION_SETTING_TYPES.items()}[type]
+            out.append(notification_type)
         return out
     except KeyError:
         raise ParameterValidationError(f"Unknown type: {type}", context)

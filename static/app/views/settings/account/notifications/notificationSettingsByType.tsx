@@ -89,10 +89,9 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   /* Methods responsible for updating state and hitting the API. */
 
   getStateToPutForProvider = (
-    changedData: NotificationSettingsByProviderObject,
-    notificationType?: string
+    changedData: NotificationSettingsByProviderObject
   ): NotificationSettingsObject => {
-    notificationType = notificationType ?? this.props.notificationType;
+    const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
     const updatedNotificationSettings = getStateToPutForProvider(
