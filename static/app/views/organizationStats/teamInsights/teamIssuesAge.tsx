@@ -130,7 +130,7 @@ class TeamIssuesAge extends AsyncComponent<Props, State> {
                   seriesName: t('Unresolved Issues'),
                   silent: true,
                   data: seriesData,
-                  barCategoryGap: '10%',
+                  barCategoryGap: '5%',
                 },
               ]}
             />

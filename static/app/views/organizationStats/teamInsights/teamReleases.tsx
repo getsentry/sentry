@@ -219,7 +219,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                     show: false,
                   },
                 }),
-                barCategoryGap: '10%',
+                barCategoryGap: '5%',
               },
             ]}
             tooltip={{

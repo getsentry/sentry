@@ -142,7 +142,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                   silent: true,
                   animationDuration: 500,
                   animationDelay: 0,
-                  barCategoryGap: '10%',
+                  barCategoryGap: '5%',
                 },
                 {
                   seriesName: t('Not Reviewed'),
@@ -150,7 +150,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                   silent: true,
                   animationDuration: 500,
                   animationDelay: 500,
-                  barCategoryGap: '10%',
+                  barCategoryGap: '5%',
                 },
               ]}
             />

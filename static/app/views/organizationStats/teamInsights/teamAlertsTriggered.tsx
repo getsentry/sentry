@@ -144,7 +144,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
                 seriesName: t('Alerts Triggered'),
                 data: seriesData,
                 silent: true,
-                barCategoryGap: '10%',
+                barCategoryGap: '5%',
               },
             ]}
           />

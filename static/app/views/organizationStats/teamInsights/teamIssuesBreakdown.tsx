@@ -149,7 +149,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
         animationDuration: 500,
         animationDelay: idx * 500,
         silent: true,
-        barCategoryGap: '10%',
+        barCategoryGap: '5%',
       })
     );
 
