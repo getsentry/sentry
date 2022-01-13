@@ -336,7 +336,7 @@ describe('getFieldRenderer', function () {
     });
 
     it('can render counts', async function () {
-      const renderer = getFieldRenderer('count', {
+      const renderer = getFieldRenderer('eventCount', {
         count: 'string',
       });
 
