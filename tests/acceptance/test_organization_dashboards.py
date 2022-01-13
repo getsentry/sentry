@@ -79,7 +79,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             # Open widget library
             self.page.click_dashboard_header_add_widget_button()
-
             self.browser.element('[data-test-id="library-tab"]').click()
 
             # Select/deselect widget library cards
