@@ -300,7 +300,7 @@ describe('Performance > VitalDetail', function () {
 
     // It shows the vital card
     expect(
-      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 51293ms'))
+      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 534ms'))
     ).toBeInTheDocument();
 
     expect(screen.getByText('Good 28%')).toBeInTheDocument();
@@ -503,7 +503,7 @@ describe('Performance > VitalDetail', function () {
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
 
     expect(
-      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 51292.95'))
+      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 534.30'))
     ).toBeInTheDocument();
 
     // The table is still a TODO
@@ -599,7 +599,7 @@ describe('Performance > VitalDetail', function () {
     expect(await screen.findByText('Largest Contentful Paint')).toBeInTheDocument();
 
     expect(
-      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 51293ms'))
+      screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 534ms'))
     ).toBeInTheDocument();
 
     // The table is still a TODO
