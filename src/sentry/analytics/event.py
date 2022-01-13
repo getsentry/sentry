@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 import datetime as dt
 from base64 import b64encode
 from collections.abc import Mapping
@@ -14,7 +13,7 @@ from sentry.analytics.utils import get_data
 from sentry.utils.dates import to_timestamp
 
 
-class Event(abc.ABC):
+class Event:
     __slots__ = ["uuid", "data", "datetime"]
 
     # This MUST be overridden by child classes.
