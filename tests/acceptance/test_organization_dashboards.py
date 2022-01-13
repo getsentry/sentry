@@ -133,8 +133,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.page.add_widget_through_dashboard("New Widget")
 
-            dragHandle = self.browser.element(".widget-drag")
             # Drag to the right
+            dragHandle = self.browser.element(".widget-drag")
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
 
@@ -162,8 +162,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
-            dragHandle = self.browser.element(".widget-drag")
             # Drag to the right
+            dragHandle = self.browser.element(".widget-drag")
             action = ActionChains(self.browser.driver)
             action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
 
