@@ -504,7 +504,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Frames Frozen Rate'),
+        title: t('Frozen Frames Rate'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
