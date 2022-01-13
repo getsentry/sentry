@@ -1,7 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {FlamegraphTheme} from '../FlamegraphTheme';
-import {Rect, resizeCanvasToDisplaySize} from '../gl/utils';
+import {FlamegraphTheme} from '../flamegraph/FlamegraphTheme';
+import {getContext, Rect, resizeCanvasToDisplaySize} from '../gl/utils';
 
 class CursorRenderer {
   canvas: HTMLCanvasElement;
@@ -12,13 +12,8 @@ class CursorRenderer {
   constructor(canvas: HTMLCanvasElement, theme: FlamegraphTheme) {
     this.canvas = canvas;
     this.theme = theme;
-    const ctx = canvas.getContext('2d');
+    this.context = getContext(canvas, '2d');
 
-    if (!ctx) {
-      throw new Error('Could not initialize canvas context for CursorRenderer');
-    }
-
-    this.context = ctx;
     resizeCanvasToDisplaySize(canvas);
   }
 
