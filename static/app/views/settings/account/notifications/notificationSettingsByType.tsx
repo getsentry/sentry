@@ -117,8 +117,8 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const value = changedData[notificationType];
     const {notificationSettings} = this.state;
 
-    // parent setting will control the provider optionos
-    // just set every provider to the same value for the child
+    // parent setting will control the which providers we send to
+    // just set every provider to the same value for the child/dependent setting
     const userSettings = ALL_PROVIDER_NAMES.reduce((accum, provider) => {
       accum[provider] = value;
       return accum;
