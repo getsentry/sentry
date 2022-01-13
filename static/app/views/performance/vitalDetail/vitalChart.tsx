@@ -181,7 +181,7 @@ function VitalChart({
 
 export default withRouter(VitalChart);
 
-export type _VitalChartProps = Props & {
+export type _VitalChartProps = {
   loading: boolean;
   reloading: boolean;
   field: string;
