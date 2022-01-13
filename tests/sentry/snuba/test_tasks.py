@@ -10,11 +10,11 @@ from exam import patcher
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key, resolve_weak
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
     get_entity_subscription_for_dataset,
 )
-from sentry.snuba.metrics import resolve, resolve_many_weak, resolve_tag_key, resolve_weak
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
@@ -311,7 +311,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(SessionMetricKey.SESSION)],
+            ["metric_id", "=", resolve(SessionMetricKey.SESSION.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == [session_status]
@@ -335,7 +335,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter
         assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(SessionMetricKey.USER)],
+            ["metric_id", "=", resolve(SessionMetricKey.USER.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == [session_status]
@@ -409,7 +409,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
         assert snuba_filter.groupby == [resolve_tag_key("session.status")]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(SessionMetricKey.SESSION)],
+            ["metric_id", "=", resolve(SessionMetricKey.SESSION.value)],
             [
                 resolve_tag_key("session.status"),
                 "IN",
@@ -474,7 +474,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
         assert snuba_filter.groupby == [resolve_tag_key("session.status")]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(SessionMetricKey.USER)],
+            ["metric_id", "=", resolve(SessionMetricKey.USER.value)],
             [
                 resolve_tag_key("session.status"),
                 "IN",

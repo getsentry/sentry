@@ -1,6 +1,7 @@
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -11,7 +12,6 @@ from sentry.snuba.entity_subscription import (
     TransactionsEntitySubscription,
     get_entity_subscription_for_dataset,
 )
-from sentry.snuba.metrics import resolve, resolve_many_weak, resolve_tag_key
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils import TestCase
 
@@ -114,7 +114,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter
         assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(SessionMetricKey.USER)],
+            ["metric_id", "=", resolve(SessionMetricKey.USER.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == groupby
@@ -145,7 +145,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(SessionMetricKey.SESSION)],
+            ["metric_id", "=", resolve(SessionMetricKey.SESSION.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == groupby

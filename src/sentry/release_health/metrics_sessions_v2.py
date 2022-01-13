@@ -37,16 +37,14 @@ from sentry.release_health.base import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey as MetricKey
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics import (
-    TS_COL_GROUP,
-    TS_COL_QUERY,
+from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
-    get_intervals,
     resolve_tag_key,
     reverse_resolve,
     reverse_resolve_weak,
 )
+from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics import TS_COL_GROUP, TS_COL_QUERY, get_intervals
 from sentry.snuba.sessions_v2 import QueryDefinition, finite_or_none
 from sentry.utils.snuba import raw_snql_query
 

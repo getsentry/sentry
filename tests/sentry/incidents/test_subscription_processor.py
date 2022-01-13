@@ -40,7 +40,7 @@ from sentry.incidents.subscription_processor import (
 )
 from sentry.models import Integration
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
-from sentry.snuba.metrics import resolve_tag_key, resolve_weak
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_weak
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase

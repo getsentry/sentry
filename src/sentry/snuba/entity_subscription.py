@@ -11,8 +11,7 @@ from sentry.models import Environment
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.sentry_metrics.sessions import SessionMetricKey
-from sentry.snuba.dataset import EntityKey
-from sentry.snuba.metrics import (
+from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
     resolve_many_weak,
@@ -20,6 +19,7 @@ from sentry.snuba.metrics import (
     resolve_weak,
     reverse_resolve,
 )
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, resolve_column, resolve_snuba_aliases
@@ -295,7 +295,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             {
                 "aggregations": [[f"{self.aggregation_func}(value)", None, "value"]],
                 "conditions": [
-                    ["metric_id", "=", resolve(self.metric_key)],
+                    ["metric_id", "=", resolve(self.metric_key.value)],
                     [self.session_status, "IN", session_status_tag_values],
                 ],
                 "groupby": self.get_query_groupby(),
