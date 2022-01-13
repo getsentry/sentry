@@ -17,7 +17,7 @@ import {Widget, WidgetQuery} from '../types';
 const MAX_ITEMS = 5;
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
-const DEFAULT_COLLAPSE = ['stats', 'filtered', 'lifetime'];
+const DEFAULT_COLLAPSE = ['filtered'];
 const DEFAULT_EXPAND = ['owners'];
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
@@ -51,14 +51,16 @@ type State = {
   loading: boolean;
   tableResults: Group[];
   memberListStoreLoaded: boolean;
+  totalCount: null | string;
 };
 
-class WidgetQueries extends React.Component<Props, State> {
+class IssueWidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
     errorMessage: undefined,
     tableResults: [],
     memberListStoreLoaded: MemberListStore.isLoaded(),
+    totalCount: null,
   };
 
   componentDidMount() {
@@ -110,32 +112,36 @@ class WidgetQueries extends React.Component<Props, State> {
     }, undefined),
   ];
 
-  transformTableResults(tableResults: Group[]): TableDataRow[] {
+  transformTableResults(): TableDataRow[] {
+    const {tableResults} = this.state;
     GroupStore.add(tableResults);
     const transformedTableResults: TableDataRow[] = [];
     tableResults.forEach(group => {
-      const {id, shortId, title, ...resultProps} = group;
-      const transformedResultProps = {};
-      Object.keys(resultProps).map(key => {
-        const value = resultProps[key];
-        transformedResultProps[key] = ['number', 'string'].includes(typeof value)
-          ? value
-          : String(value);
-      });
+      const {id, shortId, title, lifetime, ...resultProps} = group;
+      const transformedResultProps: Omit<TableDataRow, 'id'> = {};
+      Object.keys(resultProps)
+        .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
+        .forEach(key => {
+          transformedResultProps[key] = resultProps[key];
+        });
 
-      const transformedTableResult = {
+      const transformedTableResult: TableDataRow = {
         ...transformedResultProps,
         id,
         'issue.id': id,
         issue: shortId,
         title,
       };
+      if (lifetime) {
+        transformedTableResult.lifetimeCount = lifetime?.count;
+        transformedTableResult.lifetimeUserCount = lifetime?.userCount;
+      }
       transformedTableResults.push(transformedTableResult);
     });
     return transformedTableResults;
   }
 
-  fetchEventData() {
+  async fetchIssuesData() {
     const {selection, api, organization, widget} = this.props;
     this.setState({tableResults: []});
     // Issue Widgets only support single queries
@@ -164,36 +170,40 @@ class WidgetQueries extends React.Component<Props, State> {
       params.utc = selection.datetime.utc;
     }
 
-    const groupListPromise = api.requestPromise(groupListUrl, {
-      method: 'GET',
-      data: qs.stringify({
-        ...params,
-        limit: MAX_ITEMS,
-      }),
-    });
-    groupListPromise
-      .then(data => {
-        this.setState({loading: false, errorMessage: undefined, tableResults: data});
-      })
-      .catch(response => {
-        const errorResponse = response?.responseJSON?.detail ?? null;
-        this.setState({
-          loading: false,
-          errorMessage: errorResponse ?? t('Unable to load Widget'),
-          tableResults: [],
-        });
+    try {
+      const [data, _, resp] = await api.requestPromise(groupListUrl, {
+        includeAllArgs: true,
+        method: 'GET',
+        data: qs.stringify({
+          ...params,
+          limit: MAX_ITEMS,
+        }),
       });
+      this.setState({
+        loading: false,
+        errorMessage: undefined,
+        tableResults: data,
+        totalCount: resp?.getResponseHeader('X-Hits') ?? null,
+      });
+    } catch (response) {
+      const errorResponse = response?.responseJSON?.detail ?? null;
+      this.setState({
+        loading: false,
+        errorMessage: errorResponse ?? t('Unable to load Widget'),
+        tableResults: [],
+      });
+    }
   }
 
   fetchData() {
     this.setState({loading: true, errorMessage: undefined});
-    this.fetchEventData();
+    this.fetchIssuesData();
   }
 
   render() {
     const {children} = this.props;
-    const {loading, tableResults, errorMessage, memberListStoreLoaded} = this.state;
-    const transformedResults = this.transformTableResults(tableResults);
+    const {loading, errorMessage, memberListStoreLoaded} = this.state;
+    const transformedResults = this.transformTableResults();
     return children({
       loading: loading || !memberListStoreLoaded,
       transformedResults,
@@ -202,4 +212,4 @@ class WidgetQueries extends React.Component<Props, State> {
   }
 }
 
-export default WidgetQueries;
+export default IssueWidgetQueries;
