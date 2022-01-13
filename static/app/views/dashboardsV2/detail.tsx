@@ -349,12 +349,10 @@ class DashboardDetail extends Component<Props, State> {
     const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
     const {layout, modifiedDashboard, dashboardState} = this.state;
 
-    const layoutHasBeenUpdated = !isEqual(layout, getDashboardLayout(dashboard.widgets));
-
     switch (dashboardState) {
       case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
-        if (modifiedDashboard || layoutHasBeenUpdated) {
+        if (modifiedDashboard) {
           const newModifiedDashboard = constructDashboardWidgetsWithLayout(
             modifiedDashboard,
             layout
@@ -388,7 +386,10 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.EDIT: {
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
-          if (isEqual(dashboard, modifiedDashboard) && !layoutHasBeenUpdated) {
+          if (
+            isEqual(dashboard, modifiedDashboard) &&
+            isEqual(layout, getDashboardLayout(modifiedDashboard.widgets))
+          ) {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
