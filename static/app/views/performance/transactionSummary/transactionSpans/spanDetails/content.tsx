@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading as _SectionHeading} from 'sentry/components/charts/styles';
+import Count from 'sentry/components/count';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {t, tn} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -23,6 +24,7 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {PerformanceDuration} from '../../../utils';
 import Tab from '../../tabs';
+import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';
 
 import SpanChart from './chart';
@@ -177,6 +179,7 @@ function SpanDetailsHeader(props: HeaderProps) {
   const {
     description,
     frequency,
+    avgOccurrences,
     p75ExclusiveTime,
     p95ExclusiveTime,
     p99ExclusiveTime,
@@ -234,7 +237,11 @@ function SpanDetailsHeader(props: HeaderProps) {
             ? formatPercentage(Math.min(frequency, totalCount) / totalCount)
             : '\u2014'}
         </SectionBody>
-        <SectionSubtext>{tn('%s event', '%s events', frequency)}</SectionSubtext>
+        <SectionSubtext>
+          {defined(avgOccurrences)
+            ? tct('[times] times per event', {times: avgOccurrences.toFixed(2)})
+            : '\u2014'}
+        </SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
         <SectionHeading>{t('Total Exclusive Time')}</SectionHeading>
@@ -245,17 +252,24 @@ function SpanDetailsHeader(props: HeaderProps) {
             '\u2014'
           )}
         </SectionBody>
-        <SectionSubtext>TBD</SectionSubtext>
+        <SectionSubtext>
+          {defined(frequency)
+            ? tct('[events] events', {events: <Count value={frequency} />})
+            : '\u2014'}
+        </SectionSubtext>
       </HeaderInfo>
     </ContentHeader>
   );
 }
 
 function getSpansEventView(eventView: EventView): EventView {
-  eventView = eventView.clone();
+  // TODO: There is a bug where if the sort is not avg occurrence,
+  // then the avg occurrence will never be added to the fields
+  eventView = eventView.withSorts([{field: SpanSortOthers.AVG_OCCURRENCE, kind: 'desc'}]);
   eventView.fields = [
     {field: 'count()'},
     {field: 'count_unique(id)'},
+    {field: 'equation|count() / count_unique(id)'},
     {field: 'sumArray(spans_exclusive_time)'},
     {field: 'percentileArray(spans_exclusive_time, 0.75)'},
     {field: 'percentileArray(spans_exclusive_time, 0.95)'},

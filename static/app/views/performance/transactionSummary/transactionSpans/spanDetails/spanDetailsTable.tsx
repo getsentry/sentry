@@ -173,7 +173,7 @@ const COLUMN_TYPE: Omit<
 const SPANS_TABLE_COLUMN_ORDER: TableColumn[] = [
   {
     key: 'id',
-    name: t('Example Transaction'),
+    name: t('Event ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   {

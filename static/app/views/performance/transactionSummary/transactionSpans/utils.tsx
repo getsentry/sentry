@@ -202,7 +202,7 @@ export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
     'percentileArray(spans_exclusive_time, 0.75)',
     'count()',
     'count_unique(id)',
-    'equation|count()/count_unique(id)',
+    'equation|count() / count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortOthers.COUNT]: [
