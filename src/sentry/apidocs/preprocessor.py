@@ -1,4 +1,12 @@
-PUBLIC_ENDPOINTS = {}
+from typing import Dict, Literal, Set, TypedDict
+
+
+class EndpointRegistryType(TypedDict):
+    callback: str
+    methods: Set[Literal["GET", "POST", "PUT", "PATCH", "DELETE"]]
+
+
+PUBLIC_ENDPOINTS: Dict[str, EndpointRegistryType] = {}
 
 # need to import extensions here so preprocessor knows they exist when ran
 from sentry.apidocs.extensions import *  # NOQA

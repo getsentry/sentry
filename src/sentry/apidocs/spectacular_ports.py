@@ -3,7 +3,7 @@ import inspect
 import typing
 from collections import OrderedDict, defaultdict
 from enum import Enum
-from typing import Literal, Union, get_type_hints
+from typing import Any, Literal, Union, get_type_hints
 
 from drf_spectacular.drainage import get_override
 from drf_spectacular.plumbing import (
@@ -32,13 +32,14 @@ from typing_extensions import _TypedDictMeta
 # TODO:
 #   figure out solution for field descriptions
 #   support deprecated fields via extension
+#   map TypedDicts in schema registry
 
 
 def _get_type_hint_origin(hint):
     return typing.get_origin(hint), typing.get_args(hint)
 
 
-def resolve_type_hint(hint):
+def resolve_type_hint(hint) -> Any:
     """drf-spectacular library method modified to add descriptions to TypedDict"""
     origin, args = _get_type_hint_origin(hint)
 

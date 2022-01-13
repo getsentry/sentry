@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSerializerExtension
 from drf_spectacular.openapi import AutoSchema
@@ -8,14 +8,11 @@ from drf_spectacular.utils import Direction
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 
 
-class TokenAuthExtension(OpenApiAuthenticationExtension):
+class TokenAuthExtension(OpenApiAuthenticationExtension):  # type: ignore
     target_class = "sentry.api.authentication.TokenAuthentication"
     name = "auth_token"
 
-    def get_security_definition(self, auto_schema):
-        return {"type": "http", "scheme": "bearer"}
-
-    def get_security_requirement(self, auto_schema):
+    def get_security_requirement(self, auto_schema: AutoSchema) -> Dict[str, List[Any]]:
         permissions = set()
         # TODO: resolve duplicates
         for permission in auto_schema.view.get_permissions():
@@ -24,12 +21,19 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
 
         return {self.name: list(permissions)}
 
+    def get_security_definition(
+        self, auto_schema: AutoSchema
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        return {"type": "http", "scheme": "bearer"}
 
-# TODO: map things in registry?
-# add docstring as description
-# excluded attributes?
-# optional/required in responses
+
 class SentryResponseSerializerExtension(OpenApiSerializerExtension):  # type: ignore
+    """
+    This extension will register any Sentry Response Serializer as a component that can be used
+    in an OpenAPI schema. To have the serializer schema be mapped, you must type the
+    `serialize` function with a TypedDict / List.
+    """
+
     priority = 0
     target_class = "sentry.api.serializers.base.Serializer"
     match_subclasses = True
@@ -44,6 +48,11 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):  # type: ig
 
 
 # class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):  # type: ignore
+#     """
+#     This extension is used for the `inline_sentry_response_serializer` utils function
+#     and will simply resolve the type passed into the function to an OpenAPI schema.
+#     """
+
 #     priority = 0
 #     target_class = "sentry.apidocs.schemaserializer.RawSchema"
 #     match_subclasses = True
@@ -59,8 +68,3 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):  # type: ig
 class RawSchema:
     def __init__(self, t: type) -> None:
         self.typeSchema = t
-
-
-def inline_sentry_response_serializer(name: str, t: type) -> type:
-    serializer_class = type(name, (RawSchema,), {"typeSchema": t})
-    return serializer_class
