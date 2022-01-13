@@ -341,7 +341,6 @@ class DashboardDetail extends Component<Props, State> {
     openAddDashboardWidgetModal({
       organization,
       dashboard,
-      onAddWidget: (widget: Widget) => this.handleAddCustomWidget(widget),
       onAddLibraryWidget: (widgets: Widget[]) => this.handleUpdateWidgetList(widgets),
       source: DashboardWidgetSource.LIBRARY,
     });

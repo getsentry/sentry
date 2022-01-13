@@ -138,7 +138,7 @@ addParameters({
         'Core',
         ['Overview', 'Colors', 'Typography'],
         'Assets',
-        ['Logo', 'Icons', 'Platforms'],
+        ['Icons', 'Logo', 'Platforms'],
         'Components',
         [
           'Buttons',
