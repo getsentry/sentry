@@ -383,3 +383,30 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
 }
 
 export {getContext};
+
+/** Find closest min and max value to target */
+export function findRangeBinarySearch(
+  {low, high}: {low: number; high: number},
+  fn: (val: number) => number,
+  target: number,
+  precision = 1
+): [number, number] {
+  if (target < low || target > high) {
+    throw new Error(
+      `Target value needs to be in low-high range, got ${target} for [${low}, ${high}]`
+    );
+  }
+  // eslint-disable-next-line
+  while (true) {
+    if (high - low <= precision) {
+      return [low, high];
+    }
+
+    const mid = (high + low) / 2;
+    if (fn(mid) < target) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+}
