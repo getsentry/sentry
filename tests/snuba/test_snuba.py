@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
-from snuba_sdk.column import InvalidColumn
+from snuba_sdk.column import InvalidColumnError
 
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -68,7 +68,7 @@ class SnubaTest(TestCase, SnubaTestCase):
 
     def test_fail(self) -> None:
         now = datetime.now()
-        with pytest.raises(InvalidColumn):
+        with pytest.raises(InvalidColumnError):
             snuba.query(
                 start=now - timedelta(days=1),
                 end=now + timedelta(days=1),

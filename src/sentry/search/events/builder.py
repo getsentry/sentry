@@ -68,7 +68,7 @@ class QueryBuilder(QueryFilter):  # type: ignore
         resolved = self.resolve_column(column)
 
         if isinstance(resolved, Column):
-            return LimitBy(resolved, count)
+            return LimitBy([resolved], count)
 
         # TODO: Limit By can only operate on a `Column`. This has the implication
         # that non aggregate transforms are not allowed in the order by clause.
