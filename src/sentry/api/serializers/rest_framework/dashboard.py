@@ -194,6 +194,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         layout_to_store = {}
         for key in layout.keys():
             if key in STORE_KEYS:
+                if not isinstance(layout[key], int):
+                    raise serializers.ValidationError(f"Expected number for: {key}")
                 layout_to_store[key] = layout[key]
         return layout_to_store
 

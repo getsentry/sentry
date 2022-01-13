@@ -338,6 +338,28 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
 
+    def test_post_widgets_with_valid_layout_keys_but_non_int_values(self):
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": "this", "y": "should", "w": "fail", "h": 1},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+
     def test_invalid_data(self):
         response = self.do_request("post", self.url, data={"malformed-data": "Dashboard from Post"})
         assert response.status_code == 400
