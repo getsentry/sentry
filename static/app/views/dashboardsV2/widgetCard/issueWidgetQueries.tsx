@@ -153,7 +153,6 @@ class IssueWidgetQueries extends React.Component<Props, State> {
           ? 'time range'
           : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
       transformedTableResult.selectionDateString = selectionDateString;
-
       transformedTableResults.push(transformedTableResult);
     });
     return transformedTableResults;
