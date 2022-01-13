@@ -283,9 +283,12 @@ def pytest_collection_modifyitems(config, items):
     root = None
     test_durations = {}
 
-    try:
-        import xml.etree.ElementTree as ET
-        tree = ET.parse('.artifacts/plugins.junit.xml')
+    import glob
+    import xml.etree.ElementTree as ET
+    reports = glob.glob(".pytest-reference-reports/*.xml")
+
+    for report in reports:
+        tree = ET.parse(report)
         root = tree.getroot()
 
         for testsuite in root:
@@ -293,9 +296,6 @@ def pytest_collection_modifyitems(config, items):
                 break
             for testcase in testsuite.findall('testcase'):
                 test_durations[f"{testcase.attrib['classname']}.{testcase.attrib['name']}"] = float(testcase.attrib["time"])
-
-    except FileNotFoundError:
-        pass
 
     total_group_durations = [0] * total_groups
     tests_by_groups = {}
