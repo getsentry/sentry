@@ -37,7 +37,7 @@ describe('Hook', function () {
 
   it('renders an invalid hook', function () {
     mountWithTheme(
-      <div data-test-id="invalid">
+      <div>
         <Hook name="invalid-hook" organization={TestStubs.Organization()} />
         invalid
       </div>,
