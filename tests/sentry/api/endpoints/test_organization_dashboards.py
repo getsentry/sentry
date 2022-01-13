@@ -331,7 +331,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "queries": [
                         {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
                     ],
-                    "layout": {"babablooey": 5},
+                    "layout": {"babablooey": 5, "potato": 3},
                 },
             ],
         }

@@ -171,14 +171,31 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         if layout is None:
             return None
 
-        VALID_KEYS = {"i", "x", "y", "w", "h", "minW", "maxW", "minH", "maxH"}
-        invalid_keys = set(layout.keys()) - VALID_KEYS
+        STORE_KEYS = {
+            "x",
+            "y",
+            "w",
+            "h",
+            "min_w",
+            "max_w",
+            "min_h",
+            "max_h",
+        }
+        IGNORE_KEYS = {
+            "i",
+            "static",
+            "moved",
+        }
+        invalid_keys = set(layout.keys()) - (STORE_KEYS.union(IGNORE_KEYS))
         if invalid_keys:
-            raise serializers.ValidationError({"layout": "has invalid keys"})
-        if "i" in layout.keys():
-            # Ignore "i" because the key can be derived from the widget id
-            del layout["i"]
-        return layout
+            invalid_keys_str = ", ".join(invalid_keys)
+            raise serializers.ValidationError(f"Contains invalid keys: {invalid_keys_str}")
+
+        layout_to_store = {}
+        for key in layout.keys():
+            if key in STORE_KEYS:
+                layout_to_store[key] = layout[key]
+        return layout_to_store
 
     def validate(self, data):
         query_errors = []
