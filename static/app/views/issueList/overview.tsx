@@ -208,6 +208,10 @@ class IssueListOverview extends React.Component<Props, State> {
       }
     }
 
+    if (prevState.itemsRemoved !== this.state.itemsRemoved) {
+      this.fetchData();
+    }
+
     // Wait for saved searches to load before we attempt to fetch stream data
     if (this.props.savedSearchLoading) {
       return;
@@ -923,7 +927,9 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onMarkReviewed = (itemIds: string[]) => {
+    const {groupIds} = this.state;
     const query = this.getQuery();
+    const notReviewedGroupIds = groupIds.filter(id => !itemIds.includes(id));
 
     if (!isForReviewQuery(query)) {
       return;
@@ -940,6 +946,7 @@ class IssueListOverview extends React.Component<Props, State> {
           [query as Query]: currentQueryCount,
         },
         itemsRemoved: itemsRemoved + inInboxCount,
+        groupIds: notReviewedGroupIds,
       });
     }
   };
