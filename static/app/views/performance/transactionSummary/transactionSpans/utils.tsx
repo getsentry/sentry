@@ -6,16 +6,11 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {
-  SpanSlug,
-  SpanSort,
-  SpanSortOption,
-  SpanSortOthers,
-  SpanSortPercentiles,
-} from './types';
+import {SpanSort, SpanSortOption, SpanSortOthers, SpanSortPercentiles} from './types';
 
 export function generateSpansRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/spans/`;
@@ -137,15 +132,25 @@ export function parseSpanSlug(spanSlug: string | undefined): SpanSlug | undefine
   return {op, group};
 }
 
-export function generateSpansEventView(
-  location: Location,
-  transactionName: string
-): EventView {
+export function generateSpansEventView({
+  location,
+  transactionName,
+  isMetricsData,
+}: {
+  location: Location;
+  transactionName: string;
+  isMetricsData: boolean;
+}): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-  conditions
-    .setFilterValues('event.type', ['transaction'])
-    .setFilterValues('transaction', [transactionName]);
+
+  // event.type is not a valid metric tag, so it will be added to the query only
+  // in case the metric switch is disabled (for now).
+  if (!isMetricsData) {
+    conditions.setFilterValues('event.type', ['transaction']);
+  }
+
+  conditions.setFilterValues('transaction', [transactionName]);
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -197,7 +202,7 @@ export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
     'percentileArray(spans_exclusive_time, 0.75)',
     'count()',
     'count_unique(id)',
-    'equation|count()/count_unique(id)',
+    'equation|count() / count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortOthers.COUNT]: [

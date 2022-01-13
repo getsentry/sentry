@@ -50,7 +50,7 @@ class U2fInterface(AuthenticatorInterface):
     )
     allow_multi_enrollment = True
     # rp is a relying party for webauthn, this would be sentry.io for SAAS
-    # and the prefix for on-premise / dev environments
+    # and the prefix for self-hosted / dev environments
     rp_id = urlparse(options.get("system.url-prefix")).hostname
     rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
     webauthn_registration_server = Fido2Server(rp)

@@ -1,3 +1,5 @@
+from selenium.webdriver.common.action_chains import ActionChains
+
 from sentry.models import (
     Dashboard,
     DashboardWidget,
@@ -15,6 +17,8 @@ FEATURE_NAMES = [
 
 EDIT_FEATURE = ["organizations:dashboards-edit"]
 
+GRID_LAYOUT_FEATURE = ["organizations:dashboard-grid-layout"]
+
 
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
@@ -28,7 +32,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def test_view_dashboard(self):
@@ -99,6 +103,38 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.browser.snapshot("dashboards - widget library")
 
+    def test_add_and_move_new_widget_on_existing_dashboard(self):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+            # Create a new dashboard
+            self.browser.get(f"/organizations/{self.organization.slug}/dashboards/new/")
+            self.wait_until_loaded()
+
+            # Save this dashboard
+            button = self.browser.element('[data-test-id="dashboard-commit"]')
+            button.click()
+
+            # Go to edit mode.
+            button = self.browser.element('[data-test-id="dashboard-edit"]')
+            button.click()
+
+            # Add a widget
+            button = self.browser.element('[data-test-id="widget-add"]')
+            button.click()
+            title_input = self.browser.element('input[data-test-id="widget-title-input"]')
+            title_input.send_keys("New Widget")
+            button = self.browser.element('[data-test-id="add-widget"]')
+            button.click()
+
+            dragHandle = self.browser.element(".widget-drag")
+            # Drag to the right
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(dragHandle, 1000, 0).perform()
+
+            button = self.browser.element('[data-test-id="dashboard-commit"]')
+            button.click()
+
+            self.browser.snapshot("dashboards - save new widget layout in custom dashboard")
+
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
@@ -131,7 +167,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         self.default_path = f"/organizations/{self.organization.slug}/dashboards/"
 
     def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def test_dashboard_manager(self):

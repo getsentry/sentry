@@ -15,7 +15,7 @@ import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
 import {Body, Main, Side} from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
@@ -293,7 +293,7 @@ class ReleaseOverview extends AsyncView<Props> {
   get pageDateTime(): DateTimeObject {
     const query = this.props.location.query;
 
-    const {start, end, statsPeriod} = getParams(query, {
+    const {start, end, statsPeriod} = normalizeDateTimeParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,

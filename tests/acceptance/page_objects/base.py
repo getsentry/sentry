@@ -9,7 +9,7 @@ class BasePage:
         return self.browser.driver
 
     def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
 
 class BaseElement:
