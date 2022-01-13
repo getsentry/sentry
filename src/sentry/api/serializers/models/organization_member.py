@@ -1,5 +1,7 @@
 from collections import defaultdict
-from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set, TypedDict
+from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set
+
+from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
@@ -219,7 +221,13 @@ class OrganizationMemberSCIMSerializerRequired(TypedDict):
 class OrganizationMemberSCIMSerializerResponse(
     OrganizationMemberSCIMSerializerRequired, total=False
 ):
+    """
+    Conforming to the SCIM RFC, this represents a Sentry Org Member
+    as a SCIM user object.
+    """
+
     active: bool
+    """Sentry doesn't use this field but is expected by SCIM"""
 
 
 class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore

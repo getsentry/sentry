@@ -3,8 +3,9 @@ from typing import Any, Optional
 
 from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSerializerExtension
 from drf_spectacular.openapi import AutoSchema
-from drf_spectacular.plumbing import resolve_type_hint
 from drf_spectacular.utils import Direction
+
+from sentry.apidocs.spectacular_ports import resolve_type_hint
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):

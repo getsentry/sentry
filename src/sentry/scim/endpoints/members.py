@@ -108,6 +108,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                     "active": True,
                     "meta": {"resourceType": "User"},
                 },
+                status_codes=["200"],
             ),
         ],
     )
