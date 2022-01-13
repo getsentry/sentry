@@ -5,9 +5,9 @@ import {KeyValueListData} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
 
-type Props = {
+interface Props {
   data: Record<string, string>;
-};
+}
 
 const FrameVariables = ({data}: Props) => {
   // make sure that clicking on the variables does not actually do

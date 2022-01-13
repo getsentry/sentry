@@ -6,11 +6,11 @@ import EventDataSection from '../../events/eventDataSection';
 
 import Line from './frame/line';
 
-type Props = {
+interface Props {
   type: string;
   data: Frame;
   event: Event;
-};
+}
 
 const TemplateInterface = ({type, data, event}: Props) => (
   <EventDataSection type={type} title={t('Template')}>

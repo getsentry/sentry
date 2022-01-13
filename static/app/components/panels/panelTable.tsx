@@ -9,28 +9,24 @@ import space from 'sentry/styles/space';
 
 import Panel from './panel';
 
-type Props = {
+interface Props {
   /**
    * Headers of the table.
    */
   headers: React.ReactNode[];
-
   /**
    * The body of the table. Make sure the number of children elements are
    * multiples of the length of headers.
    */
   children?: React.ReactNode | (() => React.ReactNode);
-
   /**
    * If this is true, then display a loading indicator
    */
   isLoading?: boolean;
-
   /**
    * Displays an `<EmptyStateWarning>` if true
    */
   isEmpty?: boolean;
-
   /**
    * Message to use for `<EmptyStateWarning>`
    */
@@ -39,19 +35,16 @@ type Props = {
    * Action to display when isEmpty is true
    */
   emptyAction?: React.ReactNode;
-
   /**
    * Renders without predefined padding on the header and body cells
    */
   disablePadding?: boolean;
-
   className?: string;
-
   /**
    * A custom loading indicator.
    */
   loader?: React.ReactNode;
-};
+}
 
 /**
  * Bare bones table generates a CSS grid template based on the content.
@@ -119,14 +112,14 @@ function getContent(children: Props['children']) {
   return children;
 }
 
-type WrapperProps = {
+interface WrapperProps {
   /**
    * The number of columns the table will have, this is derived from the headers list
    */
   columns: number;
   hasRows: boolean;
   disablePadding: Props['disablePadding'];
-};
+}
 
 const LoadingWrapper = styled('div')``;
 

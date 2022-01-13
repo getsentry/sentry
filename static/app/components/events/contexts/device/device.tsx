@@ -9,10 +9,10 @@ import getDeviceKnownData from './getDeviceKnownData';
 import {DeviceData, DeviceKnownDataType} from './types';
 import {getInferredData} from './utils';
 
-type Props = {
+interface Props {
   data: DeviceData;
   event: Event;
-};
+}
 
 const deviceKnownDataValues = [
   DeviceKnownDataType.NAME,

@@ -7,15 +7,10 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
-/**
- * Renders the first & last seen times for a group or event with
- * a clock icon.
- */
-
-type Props = {
+interface Props {
   lastSeen: string;
   firstSeen: string;
-};
+}
 
 const Times = ({lastSeen, firstSeen}: Props) => (
   <Container>

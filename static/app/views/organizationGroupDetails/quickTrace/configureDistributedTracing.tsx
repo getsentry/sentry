@@ -22,16 +22,16 @@ import withApi from 'sentry/utils/withApi';
 
 const DISTRIBUTED_TRACING_FEATURE = 'distributed_tracing';
 
-type Props = {
+interface Props {
   api: Client;
   project: Project;
   organization: Organization;
   event: Event;
-};
+}
 
-type State = {
+interface State {
   shouldShow: boolean | null;
-};
+}
 
 class ConfigureDistributedTracing extends Component<Props, State> {
   state: State = {

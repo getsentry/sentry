@@ -4,15 +4,15 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   id: number;
   details: ThreadInfo;
-};
+}
 
-type ThreadInfo = {
+interface ThreadInfo {
   label?: string;
   filename?: string;
-};
+}
 
 const SelectedOption = ({id, details}: Props) => (
   <Wrapper>

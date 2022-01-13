@@ -29,7 +29,7 @@ import withApi from 'sentry/utils/withApi';
 
 import ChartFooter from './chartFooter';
 
-type ResultsChartProps = {
+interface ResultsChartProps {
   api: Client;
   router: InjectedRouter;
   organization: Organization;
@@ -37,7 +37,7 @@ type ResultsChartProps = {
   location: Location;
   confirmedQuery: boolean;
   yAxisValue: string[];
-};
+}
 
 class ResultsChart extends Component<ResultsChartProps> {
   shouldComponentUpdate(nextProps: ResultsChartProps) {
@@ -140,7 +140,7 @@ class ResultsChart extends Component<ResultsChartProps> {
   }
 }
 
-type ContainerProps = {
+interface ContainerProps {
   api: Client;
   router: InjectedRouter;
   eventView: EventView;
@@ -148,13 +148,12 @@ type ContainerProps = {
   organization: Organization;
   confirmedQuery: boolean;
   yAxis: string[];
-
   // chart footer props
   total: number | null;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
-};
+}
 
 class ResultsChartContainer extends Component<ContainerProps> {
   shouldComponentUpdate(nextProps: ContainerProps) {

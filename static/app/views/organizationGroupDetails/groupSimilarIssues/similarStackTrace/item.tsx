@@ -21,7 +21,7 @@ import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
-type Props = {
+interface Props {
   issue: Group;
   project: Project;
   orgId: Organization['id'];
@@ -36,7 +36,7 @@ type Props = {
     exception: number;
     message: number;
   };
-};
+}
 
 const initialState = {visible: true, checked: false, busy: false};
 

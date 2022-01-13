@@ -2,7 +2,7 @@ import {combineStatus} from './utils';
 
 export type DebugStatus = ReturnType<typeof combineStatus>;
 
-export type DebugImage = {
+export interface DebugImage {
   code_file: string;
   debug_id: string;
   image_addr: string;
@@ -20,4 +20,4 @@ export type DebugImage = {
     has_symbols: boolean;
   };
   code_id?: string;
-};
+}

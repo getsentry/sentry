@@ -18,18 +18,18 @@ import withApi from 'sentry/utils/withApi';
 import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
 import InputField from 'sentry/views/settings/components/forms/inputField';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   api: Client;
   filename: string;
   integrations: Integration[];
   onSubmit: () => void;
   organization: Organization;
   project: Project;
-};
+}
 
-type State = {
+interface State {
   sourceCodeInput: string;
-};
+}
 
 class StacktraceLinkModal extends Component<Props, State> {
   state: State = {

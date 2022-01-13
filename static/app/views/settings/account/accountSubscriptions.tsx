@@ -17,7 +17,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-type Subscription = {
+interface Subscription {
   email: string;
   listDescription: string;
   listId: number;
@@ -25,11 +25,11 @@ type Subscription = {
   subscribed: boolean;
   subscribedDate: string | null;
   unsubscribedDate: string | null;
-};
+}
 
-type State = AsyncView['state'] & {
+interface State {
   subscriptions: Subscription[];
-};
+}
 
 class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

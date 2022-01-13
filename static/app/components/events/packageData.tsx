@@ -8,9 +8,9 @@ import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 
-type Props = {
+interface Props {
   event: Event;
-};
+}
 
 class EventPackageData extends Component<Props> {
   shouldComponentUpdate(nextProps: Props) {

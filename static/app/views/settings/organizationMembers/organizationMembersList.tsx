@@ -36,12 +36,12 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
   inviteRequests: Member[];
-};
+}
 
 const MemberListHeader = HookOrDefault({
   hookName: 'component:member-list-header',

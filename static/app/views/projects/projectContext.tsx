@@ -24,11 +24,11 @@ enum ErrorTypes {
   UNKNOWN = 'UNKNOWN',
 }
 
-type ChildFuncProps = {
+interface ChildFuncProps {
   project: Project;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   /**
    * If true, this will not change `state.loading` during `fetchData` phase
@@ -40,15 +40,15 @@ type Props = {
   orgId: string;
   children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
   loadingProjects: boolean;
-};
+}
 
-type State = {
+interface State {
   memberList: User[];
   project: Project | null;
   loading: boolean;
   error: boolean;
   errorType: ErrorTypes | null;
-};
+}
 
 /**
  * Higher-order component that sets `project` as a child context

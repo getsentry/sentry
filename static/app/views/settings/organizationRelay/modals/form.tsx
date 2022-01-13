@@ -13,7 +13,7 @@ import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput'
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
 type Values = Record<FormField, string>;
 
-type Props = {
+interface Props {
   isFormValid: boolean;
   values: Values;
   errors: Partial<Values>;
@@ -22,7 +22,7 @@ type Props = {
   onValidate: (field: FormField) => () => void;
   onValidateKey: () => void;
   onChange: (field: FormField, value: string) => void;
-};
+}
 
 const Form = ({
   values,

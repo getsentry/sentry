@@ -42,7 +42,7 @@ import {generateTransactionLink} from '../utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   aggregateColumn: string;
@@ -50,7 +50,7 @@ type Props = {
   projects: Project[];
   transactionName: string;
   tagKey?: string;
-};
+}
 
 const findRowKey = row => {
   return Object.keys(row).find(key => key.includes('histogram'));

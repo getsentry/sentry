@@ -6,20 +6,20 @@ import {Organization, OrganizationSummary, Project} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
-type InjectedLatestContextProps = {
+interface InjectedLatestContextProps {
   organizations?: OrganizationSummary[];
   organization?: Organization | null;
   project?: Project | null;
-};
+}
 
-type HocProps = {
+interface HocProps {
   organization?: Organization | null;
   organizations: OrganizationSummary[];
-};
+}
 
-type State = {
+interface State {
   latestContext: Omit<InjectedLatestContextProps, 'organizations'>;
-};
+}
 
 const fallbackContext: State['latestContext'] = {
   organization: null,

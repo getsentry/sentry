@@ -9,7 +9,7 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {User} from 'sentry/types';
 
-type Props = {
+interface Props {
   title: string;
   detail: React.ReactNode;
   to: React.ComponentProps<typeof Link>['to'];
@@ -18,7 +18,7 @@ type Props = {
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
   renderContextMenu?: () => void;
-};
+}
 
 function DashboardCard({
   title,

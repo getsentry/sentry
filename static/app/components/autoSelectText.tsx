@@ -9,9 +9,9 @@ type Props = React.PropsWithChildren<{
   style?: React.CSSProperties;
 }>;
 
-type AutoSelectHandle = {
+interface AutoSelectHandle {
   selectText: () => void;
-};
+}
 
 const AutoSelectText: React.ForwardRefRenderFunction<AutoSelectHandle, Props> = (
   {children, className, ...props},

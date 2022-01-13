@@ -23,15 +23,15 @@ const defaultProps = {
   isChecked: false,
 };
 
-type Props = {
+interface Props {
   project: Project;
   organization: Organization;
   onMultiSelect?: (project: Project, event: React.MouseEvent) => void;
-} & typeof defaultProps;
+}
 
-type State = {
+interface State {
   bookmarkHasChanged: boolean;
-};
+}
 
 class ProjectSelectorItem extends React.PureComponent<Props, State> {
   static defaultProps = defaultProps;

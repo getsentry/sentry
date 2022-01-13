@@ -14,12 +14,12 @@ import EventView from 'sentry/utils/discover/eventView';
 
 import List from './list';
 
-type Props = {
+interface Props {
   event: Event;
   organization: Organization;
   location: Location;
   traceID?: string;
-};
+}
 
 const Body = ({traceID, organization, event, location}: Props) => {
   if (!traceID) {

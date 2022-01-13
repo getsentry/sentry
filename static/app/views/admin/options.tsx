@@ -10,12 +10,12 @@ import {
   TextField,
 } from 'sentry/views/settings/components/forms';
 
-type Section = {
+interface Section {
   key: string;
   heading?: string;
-};
+}
 
-type Field = {
+interface Field {
   key: string;
   label: React.ReactNode;
   help?: React.ReactNode;
@@ -29,7 +29,7 @@ type Field = {
   disabled?: boolean;
   defaultValue?: () => string | false;
   component?: React.ComponentType<any>;
-};
+}
 
 // This are ordered based on their display order visually
 const sections: Section[] = [

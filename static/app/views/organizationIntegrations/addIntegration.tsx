@@ -6,14 +6,14 @@ import {t} from 'sentry/locale';
 import {IntegrationProvider, IntegrationWithConfig, Organization} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
-type Props = {
+interface Props {
   children: (
     openDialog: (urlParams?: {[key: string]: string}) => void
   ) => React.ReactNode;
   provider: IntegrationProvider;
   onInstall: (data: IntegrationWithConfig) => void;
   account?: string;
-  organization: Organization; // for analytics
+  organization: Organization; // for analytics;
   analyticsParams?: {
     view:
       | 'integrations_directory_integration_detail'
@@ -23,7 +23,7 @@ type Props = {
     already_installed: boolean;
   };
   modalParams?: {[key: string]: string};
-};
+}
 
 export default class AddIntegration extends React.Component<Props> {
   componentDidMount() {

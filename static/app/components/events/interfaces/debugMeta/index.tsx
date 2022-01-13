@@ -36,19 +36,19 @@ const PANEL_MAX_HEIGHT = 400;
 
 type Image = React.ComponentProps<typeof DebugImage>['image'];
 
-type DefaultProps = {
+interface DefaultProps {
   data: {
     images: Array<Image>;
   };
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   event: Event;
   organization: Organization;
   projectId: Project['id'];
-};
+}
 
-type State = {
+interface State {
   filter: string;
   debugImages: Array<Image>;
   filteredImages: Array<Image>;
@@ -56,7 +56,7 @@ type State = {
   showDetails: boolean;
   foundFrame?: Frame;
   panelBodyHeight?: number;
-};
+}
 
 function normalizeId(id: string | undefined): string {
   return id ? id.trim().toLowerCase().replace(/[- ]/g, '') : '';

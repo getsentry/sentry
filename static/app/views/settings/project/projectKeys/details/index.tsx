@@ -17,9 +17,9 @@ type Props = RouteComponentProps<
   {}
 >;
 
-type State = {
+interface State {
   data: ProjectKey;
-} & AsyncView['state'];
+}
 
 export default class ProjectKeyDetails extends AsyncView<Props, State> {
   getTitle() {

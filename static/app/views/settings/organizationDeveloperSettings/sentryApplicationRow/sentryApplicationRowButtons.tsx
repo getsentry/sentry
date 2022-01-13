@@ -4,13 +4,12 @@ import {Organization, SentryApp} from 'sentry/types';
 
 import ActionButtons from './actionButtons';
 
-type Props = {
+interface Props {
   organization: Organization;
   app: SentryApp;
-
   onClickRemove: (app: SentryApp) => void;
   onClickPublish?: () => void;
-};
+}
 
 const SentryApplicationRowButtons = ({
   organization,

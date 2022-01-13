@@ -1,7 +1,7 @@
-type HistogramDataUnit = {
+interface HistogramDataUnit {
   bin: number;
   count: number;
-};
+}
 
 export type HistogramData = HistogramDataUnit[];
 

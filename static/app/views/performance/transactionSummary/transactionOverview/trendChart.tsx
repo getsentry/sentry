@@ -37,14 +37,13 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = WithRouterProps &
-  ViewProps & {
-    location: Location;
-    organization: OrganizationSummary;
-    queryExtra: Query;
-    trendDisplay: string;
-    withoutZerofill: boolean;
-  };
+interface Props extends WithRouterProps, ViewProps {
+  location: Location;
+  organization: OrganizationSummary;
+  queryExtra: Query;
+  trendDisplay: string;
+  withoutZerofill: boolean;
+}
 
 function TrendChart({
   project,

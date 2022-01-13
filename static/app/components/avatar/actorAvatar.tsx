@@ -9,12 +9,12 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import {Actor} from 'sentry/types';
 import Teams from 'sentry/utils/teams';
 
-type DefaultProps = {
+interface DefaultProps {
   hasTooltip: boolean;
   size: number;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   actor: Actor;
   default?: string;
   title?: string;
@@ -24,7 +24,7 @@ type Props = DefaultProps & {
   suggested?: boolean;
   tooltip?: React.ReactNode;
   tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
-};
+}
 
 class ActorAvatar extends React.Component<Props> {
   static defaultProps: DefaultProps = {

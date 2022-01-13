@@ -4,9 +4,9 @@ import useTeams from 'sentry/utils/useTeams';
 
 type RenderProps = ReturnType<typeof useTeams>;
 
-type Props = Parameters<typeof useTeams>[0] & {
+interface Props {
   children: (props: RenderProps) => React.ReactNode;
-};
+}
 
 /**
  * This is a utility component to leverage the useTeams hook to provide

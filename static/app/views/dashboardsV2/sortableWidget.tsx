@@ -10,7 +10,7 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {Widget} from './types';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
-type Props = {
+interface Props {
   widget: Widget;
   dragId: string;
   isEditing: boolean;
@@ -20,7 +20,7 @@ type Props = {
   widgetLimitReached: boolean;
   organization: Organization;
   hideDragHandle?: boolean;
-};
+}
 
 function SortableWidget(props: Props) {
   const {

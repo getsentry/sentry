@@ -1,31 +1,31 @@
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
-export type TraceInfo = {
-  /**
-   * The projects in the trace
-   */
-  projects: Set<string>;
-  /**
-   * The errors in the trace.
-   */
-  errors: Set<string>;
-  /**
-   * The transactions in the trace.
-   */
-  transactions: Set<string>;
-  /**
-   * The very earliest start timestamp in the trace.
-   */
-  startTimestamp: number;
-  /**
-   * The very latest end timestamp in the trace.
-   */
-  endTimestamp: number;
-  /**
-   * The maximum generation in the trace.
-   */
-  maxGeneration: number;
-};
+export interface TraceInfo {
+ /**
+  * The projects in the trace
+  */
+ projects: Set<string>;
+ /**
+  * The errors in the trace.
+  */
+ errors: Set<string>;
+ /**
+  * The transactions in the trace.
+  */
+ transactions: Set<string>;
+ /**
+  * The very earliest start timestamp in the trace.
+  */
+ startTimestamp: number;
+ /**
+  * The very latest end timestamp in the trace.
+  */
+ endTimestamp: number;
+ /**
+  * The maximum generation in the trace.
+  */
+ maxGeneration: number;
+}
 
 export type TraceRoot = Pick<
   TraceFullDetailed,
@@ -34,7 +34,7 @@ export type TraceRoot = Pick<
   traceSlug: string;
 };
 
-export type TreeDepth = {
-  depth: number;
-  isOrphanDepth: boolean;
-};
+export interface TreeDepth {
+ depth: number;
+ isOrphanDepth: boolean;
+}

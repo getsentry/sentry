@@ -21,11 +21,10 @@ import withApi from 'sentry/utils/withApi';
 import withRelease from 'sentry/utils/withRelease';
 import withRepositories from 'sentry/utils/withRepositories';
 
-type Props = {
+interface Props {
   api: Client;
   projectSlug: string;
   releaseVersion: string;
-
   organization: Organization;
   release?: Release;
   releaseLoading?: boolean;
@@ -36,11 +35,11 @@ type Props = {
   repositories?: Array<Repository>;
   repositoriesLoading?: boolean;
   repositoriesError?: Error;
-};
+}
 
-type State = {
+interface State {
   visible: boolean;
-};
+}
 
 class VersionHoverCard extends React.Component<Props, State> {
   state: State = {

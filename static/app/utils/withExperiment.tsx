@@ -14,7 +14,7 @@ import {
 import {logExperiment} from 'sentry/utils/analytics';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type Options<E extends ExperimentKey, L extends boolean> = {
+interface Options<E extends ExperimentKey, L extends boolean> {
   /**
    * The key of the experiment that will be injected into the component
    */
@@ -36,27 +36,27 @@ type Options<E extends ExperimentKey, L extends boolean> = {
    *       correct!!
    */
   injectLogExperiment?: L;
-};
+}
 
 type ExpectedProps<T extends ExperimentType> = T extends 'organization'
   ? {organization: Organization}
   : {};
 
-type InjectedExperimentProps<E extends ExperimentKey, L extends boolean> = {
+interface InjectedExperimentProps<E extends ExperimentKey, L extends boolean> {
   /**
    * The value of the injected experiment. Use this to determine behavior of
    * your component depending on the value.
    */
   experimentAssignment: ExperimentAssignment[E];
-} & (L extends true ? LogExperimentProps : {});
+}
 
-type LogExperimentProps = {
+interface LogExperimentProps {
   /**
    * Call this method when the user has been exposed to the experiment this
    * component has been provided the value of.
    */
   logExperiment: () => void;
-};
+}
 
 /**
  * A HoC wrapper that injects `experimentAssignment` into a component

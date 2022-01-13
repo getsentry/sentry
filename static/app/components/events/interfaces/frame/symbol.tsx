@@ -13,7 +13,7 @@ import FunctionName from './functionName';
 import GroupingIndicator from './groupingIndicator';
 import {getFrameHint} from './utils';
 
-type Props = {
+interface Props {
   frame: Frame;
   absoluteFilePaths?: boolean;
   showCompleteFunctionName?: boolean;
@@ -25,7 +25,7 @@ type Props = {
    */
   isHoverPreviewed?: boolean;
   className?: string;
-};
+}
 
 const Symbol = ({
   frame,

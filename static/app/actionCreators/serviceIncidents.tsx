@@ -3,19 +3,14 @@ import {SentryServiceIncident, SentryServiceStatus} from 'sentry/types';
 
 type IncidentImpact = SentryServiceStatus['indicator'];
 
-/**
- * This is a partial typing of the statuspage API [0]
- *
- * [0]: https://doers.statuspage.io/api/v2/incidents/
- */
-type StatuspageIncident = {
+interface StatuspageIncident {
   id: string;
   name: string;
   status: string;
   impact: IncidentImpact;
   shortlink: string;
   incident_updates: {body: string}[];
-};
+}
 
 function getIncidentsFromIncidentResponse(statuspageIncidents: StatuspageIncident[]): {
   incidents: SentryServiceIncident[];

@@ -32,7 +32,7 @@ import {FieldObject} from 'sentry/views/settings/components/forms/type';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type getFieldsOpts = {
+interface getFieldsOpts {
   authenticator: Authenticator;
   /**
    * Flag to track if totp has been sent
@@ -50,7 +50,7 @@ type getFieldsOpts = {
    * Callback when u2f device is activated
    */
   onU2fTap: U2fsign['props']['onTap'];
-};
+}
 
 /**
  * Retrieve additional form fields (or modify ones) based on 2fa method
@@ -134,11 +134,11 @@ const getFields = ({
 
 type Props = AsyncView['props'] & WithRouterProps<{authId: string}, {}> & {};
 
-type State = AsyncView['state'] & {
+interface State {
   authenticator: Authenticator | null;
   hasSentCode: boolean;
   sendingCode: boolean;
-};
+}
 
 type PendingInvite = ReturnType<typeof getPendingInvite>;
 

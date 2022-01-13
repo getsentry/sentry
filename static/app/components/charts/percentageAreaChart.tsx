@@ -14,10 +14,10 @@ type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
 export type AreaChartSeries = Series & Omit<LineSeriesOption, 'data' | 'name'>;
 
-type DefaultProps = {
+interface DefaultProps {
   getDataItemName: ({name}: SeriesDataUnit) => SeriesDataUnit['name'];
   getValue: ({value}: SeriesDataUnit, total?: number) => number;
-};
+}
 
 type Props = Omit<ChartProps, 'series'> &
   DefaultProps & {

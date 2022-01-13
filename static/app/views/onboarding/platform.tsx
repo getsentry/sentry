@@ -18,12 +18,12 @@ import withTeams from 'sentry/utils/withTeams';
 import StepHeading from './components/stepHeading';
 import {StepProps} from './types';
 
-type Props = StepProps & {
+interface Props extends StepProps {
   api: Client;
   teams: Team[];
-};
+}
 
-type State = {
+interface State {
   /**
    * This will be flipped to true immediately before creating the first
    * project. We use state here to avoid the intermittent prop value where
@@ -38,7 +38,7 @@ type State = {
    * button.
    */
   progressing: boolean;
-};
+}
 
 class OnboardingPlatform extends Component<Props, State> {
   state: State = {

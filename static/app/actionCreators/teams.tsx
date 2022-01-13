@@ -6,10 +6,10 @@ import {Team} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {uniqueId} from 'sentry/utils/guid';
 
-type CallbackOptions = {
+interface CallbackOptions {
   success?: Function;
   error?: Function;
-};
+}
 
 const doCallback = (
   params: CallbackOptions = {},
@@ -19,18 +19,21 @@ const doCallback = (
   callIfFunction(params[name], ...args);
 };
 
-/**
- * Note these are both slugs
- */
-type OrgSlug = {orgId: string};
-type OrgAndTeamSlug = OrgSlug & {teamId: string};
+interface OrgSlug {
+  orgId: string;
+}
 
-type TeamData = {data: Team};
+interface OrgAndTeamSlug extends OrgSlug {
+  teamId: string;
+}
 
-/**
- * This is the actual internal id, not username or email
- */
-type MemberId = {memberId: string};
+interface TeamData {
+  data: Team;
+}
+
+interface MemberId {
+  memberId: string;
+}
 
 // Fetch teams for org
 export function fetchTeams(api: Client, params: OrgSlug, options: CallbackOptions) {

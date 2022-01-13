@@ -48,16 +48,16 @@ import {
 } from './utils';
 import {BackendCards, FrontendCards, MobileCards} from './vitalsCards';
 
-type Props = {
+interface Props extends WithRouterProps {
   organization: Organization;
   eventView: EventView;
   location: Location;
   projects: Project[];
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
-} & WithRouterProps;
+}
 
-type State = {};
+interface State {}
 class LandingContent extends Component<Props, State> {
   getSummaryConditions(query: string) {
     const parsed = new MutableSearch(query);

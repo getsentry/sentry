@@ -37,13 +37,12 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = WithRouterProps &
-  ViewProps & {
-    location: Location;
-    organization: OrganizationSummary;
-    queryExtra: object;
-    withoutZerofill: boolean;
-  };
+interface Props extends WithRouterProps, ViewProps {
+  location: Location;
+  organization: OrganizationSummary;
+  queryExtra: object;
+  withoutZerofill: boolean;
+}
 
 const YAXIS_VALUES = [
   'p75(measurements.fp)',

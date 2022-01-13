@@ -22,13 +22,13 @@ import {decodeScalar} from 'sentry/utils/queryString';
 
 import NoGroupsHandler from '../issueList/noGroupsHandler';
 
-type Props = {
+interface Props {
   organization: Organization;
   location: Location;
   projectId: number;
   api: Client;
   query?: string;
-};
+}
 
 function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();

@@ -31,12 +31,12 @@ const defaultProps = {
   shouldSelectWithTab: false,
 };
 
-type Item = {
+interface Item {
   disabled?: boolean;
   'data-test-id'?: string;
-};
+}
 
-type GetInputArgs<E extends HTMLInputElement> = {
+interface GetInputArgs<E extends HTMLInputElement> {
   type?: string;
   placeholder?: string;
   style?: React.CSSProperties;
@@ -44,21 +44,21 @@ type GetInputArgs<E extends HTMLInputElement> = {
   onKeyDown?: (event: React.KeyboardEvent<E>) => void;
   onFocus?: (event: React.FocusEvent<E>) => void;
   onBlur?: (event: React.FocusEvent<E>) => void;
-};
+}
 
 type GetInputOutput<E extends HTMLInputElement> = GetInputArgs<E> &
   GetActorArgs<E> & {
     value?: string;
   };
 
-export type GetItemArgs<T> = {
+export interface GetItemArgs<T> {
   item: T;
   index: number;
   onClick?: (item: T) => (e: React.MouseEvent) => void;
   style?: React.CSSProperties;
-};
+}
 
-type ChildrenProps<T> = Parameters<DropdownMenu['props']['children']>[0] & {
+interface ChildrenProps<T> {
   highlightedIndex: number;
   getInputProps: <E extends HTMLInputElement = HTMLInputElement>(
     args: GetInputArgs<E>
@@ -68,16 +68,16 @@ type ChildrenProps<T> = Parameters<DropdownMenu['props']['children']>[0] & {
   };
   inputValue: string;
   selectedItem?: T;
-};
+}
 
-type State<T> = {
+interface State<T> {
   isOpen: boolean;
   highlightedIndex: number;
   inputValue: string;
   selectedItem?: T;
-};
+}
 
-type Props<T> = typeof defaultProps & {
+interface Props<T> {
   /**
    * Must be a function that returns a component
    */
@@ -102,7 +102,7 @@ type Props<T> = typeof defaultProps & {
     e?: React.MouseEvent | React.KeyboardEvent
   ) => void;
   onMenuOpen?: () => void;
-};
+}
 
 class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
   static defaultProps = defaultProps;

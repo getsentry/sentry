@@ -16,7 +16,7 @@ import {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
 
-type Props = {
+interface Props {
   className?: string;
   disabled: boolean;
   disableRemove: boolean;
@@ -28,15 +28,14 @@ type Props = {
   inviteStatus: InviteStatus;
   onRemove: () => void;
   theme: Theme;
-
   onChangeEmails: (emails: null | SelectOption[]) => void;
   onChangeRole: (role: SelectOption) => void;
   onChangeTeams: (teams?: SelectOption[] | null) => void;
-};
+}
 
-type State = {
+interface State {
   inputValue: string;
-};
+}
 
 function ValueComponent(
   props: MultiValueProps<SelectOption>,

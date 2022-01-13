@@ -13,11 +13,11 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
-type Props = {
+interface Props {
   router: InjectedRouter;
   organization: Organization;
   activeTab: 'stream' | 'rules';
-};
+}
 
 const AlertHeader = ({router, organization, activeTab}: Props) => {
   /**

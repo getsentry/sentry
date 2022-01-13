@@ -1,8 +1,7 @@
 import {StacktraceErrorMessage} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IntegrationType, PlatformType, SentryAppStatus} from 'sentry/types';
 
-// define the various event payloads
-type View = {
+interface View {
   view?:
     | 'external_install'
     | 'legacy_integrations'
@@ -13,55 +12,56 @@ type View = {
     | 'integration_configuration_detail'
     | 'onboarding'
     | 'project_creation';
-};
+}
 
-type SingleIntegrationEventParams = {
-  integration: string; // the slug
+interface SingleIntegrationEventParams extends View {
+  integration: string; // the slug;
   integration_type: IntegrationType;
   already_installed?: boolean;
   plan?: string;
   // include the status since people might do weird things testing unpublished integrations
   integration_status?: SentryAppStatus;
   integration_tab?: 'configurations' | 'overview';
-} & View;
+}
 
-type MultipleIntegrationsEventParams = {
+interface MultipleIntegrationsEventParams extends View {
   integrations_installed: number;
-} & View;
+}
 
-type IntegrationSearchEventParams = {
+interface IntegrationSearchEventParams extends View {
   search_term: string;
   num_results: number;
-} & View;
+}
 
-type IntegrationCategorySelectEventParams = {
+interface IntegrationCategorySelectEventParams extends View {
   category: string;
-} & View;
+}
 
-type IntegrationStacktraceLinkEventParams = {
+interface IntegrationStacktraceLinkEventParams extends View {
   provider?: string;
   platform?: PlatformType;
   setup_type?: 'automatic' | 'manual';
   error_reason?: StacktraceErrorMessage;
-} & View;
+}
 
-type IntegrationServerlessFunctionsViewedParams = {
+interface IntegrationServerlessFunctionsViewedParams extends SingleIntegrationEventParams {
   num_functions: number;
-} & SingleIntegrationEventParams;
+}
 
-type IntegrationServerlessFunctionActionParams = {
+interface IntegrationServerlessFunctionActionParams extends SingleIntegrationEventParams {
   action: 'enable' | 'disable' | 'updateVersion';
-} & SingleIntegrationEventParams;
+}
 
-type IntegrationInstallationInputValueChangeEventParams = {
+interface IntegrationInstallationInputValueChangeEventParams extends SingleIntegrationEventParams {
   field_name: string;
-} & SingleIntegrationEventParams;
+}
 
-type IntegrationCodeOwnersEventParams = {
+interface IntegrationCodeOwnersEventParams extends View {
   project_id: string;
-} & View;
+}
+
 // define the event key to payload mappings
-export type IntegrationEventParameters = {
+export interface IntegrationEventParameters {
   'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;
   'integrations.install_modal_opened': SingleIntegrationEventParams;
   'integrations.integration_viewed': SingleIntegrationEventParams;
@@ -77,7 +77,7 @@ export type IntegrationEventParameters = {
   'integrations.resolve_now_clicked': SingleIntegrationEventParams;
   'integrations.request_install': SingleIntegrationEventParams;
   'integrations.code_mappings_viewed': SingleIntegrationEventParams;
-  'integrations.details_viewed': SingleIntegrationEventParams; // for an individual configuration
+  'integrations.details_viewed': SingleIntegrationEventParams; // for an individual configuration;
   'integrations.index_viewed': MultipleIntegrationsEventParams;
   'integrations.directory_item_searched': IntegrationSearchEventParams;
   'integrations.directory_category_selected': IntegrationCategorySelectEventParams;
@@ -98,7 +98,7 @@ export type IntegrationEventParameters = {
   'integrations.code_owners_cta_docs_clicked': IntegrationCodeOwnersEventParams;
   'integrations.show_code_owners_prompt': IntegrationCodeOwnersEventParams;
   'integrations.dismissed_code_owners_prompt': IntegrationCodeOwnersEventParams;
-};
+}
 
 export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 

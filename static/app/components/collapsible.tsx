@@ -3,20 +3,20 @@ import * as React from 'react';
 import Button from 'sentry/components/button';
 import {t, tn} from 'sentry/locale';
 
-type CollapseButtonRenderProps = {
+interface CollapseButtonRenderProps {
   onCollapse: () => void;
-};
+}
 
-type ExpandButtonRenderProps = {
+interface ExpandButtonRenderProps {
   onExpand: () => void;
   numberOfHiddenItems: number;
-};
+}
 
-type Props = {
+interface Props {
   maxVisibleItems?: number;
   collapseButton?: (props: CollapseButtonRenderProps) => React.ReactNode;
   expandButton?: (props: ExpandButtonRenderProps) => React.ReactNode;
-};
+}
 
 /**
  * This component is used to show first X items and collapse the rest

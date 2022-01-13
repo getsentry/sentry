@@ -29,11 +29,7 @@ import {
 } from 'sentry/views/alerts/incidentRules/constants';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
 
-/**
- * Discover query supports more features than alert rules
- * To create an alert rule from a discover query, some parameters need to be adjusted
- */
-type IncompatibleQueryProperties = {
+interface IncompatibleQueryProperties {
   /**
    * Must have exactly one project selected and not -1 (all projects)
    */
@@ -47,9 +43,9 @@ type IncompatibleQueryProperties = {
    */
   hasEventTypeError: boolean;
   hasYAxisError: boolean;
-};
+}
 
-type AlertProps = {
+interface AlertProps {
   incompatibleQuery: IncompatibleQueryProperties;
   eventView: EventView;
   orgId: string;
@@ -57,7 +53,7 @@ type AlertProps = {
    * Dismiss alert
    */
   onClose: () => void;
-};
+}
 
 /**
  * Displays messages to the user on what needs to change in their query

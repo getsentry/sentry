@@ -321,9 +321,9 @@ const HomeLinkIcon = styled(HomeLink)`
   ${flexCenter};
 `;
 
-type CenterableProps = {
+interface CenterableProps {
   isCentered?: boolean;
-};
+}
 
 const ExternalHomeLink = styled(
   (props: CenterableProps & React.ComponentPropsWithRef<typeof ExternalLink>) => (

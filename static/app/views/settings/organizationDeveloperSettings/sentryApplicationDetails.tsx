@@ -135,10 +135,10 @@ class SentryAppFormModel extends FormModel {
 
 type Props = RouteComponentProps<{orgId: string; appSlug?: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   app: SentryApp | null;
   tokens: InternalAppApiToken[];
-};
+}
 
 export default class SentryApplicationDetails extends AsyncView<Props, State> {
   form = new SentryAppFormModel();

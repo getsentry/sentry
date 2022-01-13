@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {IconChevron} from 'sentry/icons';
 
-type Props = {
+interface Props {
   isHover?: boolean;
   isLast?: boolean;
-};
+}
 
 const Divider = ({isHover, isLast}: Props) =>
   isLast ? null : (

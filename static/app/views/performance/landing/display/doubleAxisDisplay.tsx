@@ -18,14 +18,14 @@ import {getTransactionSearchQuery} from '../../utils';
 import {SingleAxisChart} from './singleAxisChart';
 import {getAxisOrBackupAxis, getBackupAxes} from './utils';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   eventView: EventView;
   axisOptions: AxisOption[];
   leftAxis: AxisOption;
   rightAxis: AxisOption;
-};
+}
 
 function DoubleAxisDisplay(props: Props) {
   const {eventView, location, organization, axisOptions, leftAxis, rightAxis} = props;

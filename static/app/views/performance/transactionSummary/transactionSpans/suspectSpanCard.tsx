@@ -29,7 +29,7 @@ import {
 } from './types';
 import {getSuspectSpanSortFromEventView} from './utils';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   suspectSpan: SuspectSpan;
@@ -37,7 +37,7 @@ type Props = {
   eventView: EventView;
   totals: SpansTotalValues | null;
   preview: number;
-};
+}
 
 export default function SuspectSpanEntry(props: Props) {
   const {
@@ -95,11 +95,11 @@ export default function SuspectSpanEntry(props: Props) {
   );
 }
 
-type HeaderItemProps = {
+interface HeaderItemProps {
   sort: SpanSortOption;
   suspectSpan: SuspectSpan;
   totals: SpansTotalValues | null;
-};
+}
 
 const PERCENTILE_LABELS: Record<SpanSortPercentiles, string> = {
   [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: t('p50 Exclusive Time'),
@@ -225,9 +225,9 @@ function TotalCumulativeDuration(props: HeaderItemProps) {
   );
 }
 
-type SpanLabelProps = {
+interface SpanLabelProps {
   span: SuspectSpan;
-};
+}
 
 function SpanLabel(props: SpanLabelProps) {
   const {span} = props;

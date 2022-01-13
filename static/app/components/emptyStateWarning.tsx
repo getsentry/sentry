@@ -5,12 +5,12 @@ import {IconSearch} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = {
+interface Props {
   small?: boolean;
   children?: React.ReactNode;
   withIcon?: boolean;
   className?: string;
-};
+}
 
 const EmptyStateWarning = ({
   small = false,

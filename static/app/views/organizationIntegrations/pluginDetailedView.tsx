@@ -14,9 +14,9 @@ import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import InstalledPlugin from './installedPlugin';
 import PluginDeprecationAlert from './pluginDeprecationAlert';
 
-type State = {
+interface State {
   plugins: PluginWithProjectList[];
-};
+}
 
 type Tab = AbstractIntegrationDetailedView['state']['tab'];
 

@@ -7,15 +7,15 @@ import Form from 'sentry/views/settings/components/forms/form';
 import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 import {Field} from 'sentry/views/settings/components/forms/type';
 
-type Props = {
+interface Props {
   integration: Integration;
   organization: Organization;
   onUpdate: () => void;
-};
+}
 
-type State = {
+interface State {
   integration: Integration;
-};
+}
 
 class IntegrationMainSettings extends Component<Props, State> {
   state: State = {

@@ -23,19 +23,19 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
-type Props = {
+interface Props {
   selection: PageFilters;
   params: {orgId: string};
   organization: Organization;
-};
+}
 
 const timePeriods = range(-1, -24 * 7, -1);
 const defaultValue = '0.1';
 
-type GroupWithPercent = {
+interface GroupWithPercent {
   group: Group;
   percent: number;
-};
+}
 
 function SessionPercent({params, selection, organization}: Props) {
   const api = useApi();

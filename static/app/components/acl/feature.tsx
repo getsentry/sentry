@@ -10,7 +10,7 @@ import withProject from 'sentry/utils/withProject';
 
 import ComingSoon from './comingSoon';
 
-type Props = {
+interface Props {
   /**
    * The following properties will be set by the HoCs
    */
@@ -63,42 +63,33 @@ type Props = {
    */
   children: React.ReactNode | ChildrenRenderFn;
   project?: Project;
-};
+}
 
-/**
- * Common props passed to children and disabled render handlers.
- */
-type FeatureRenderProps = {
+interface FeatureRenderProps {
   organization: Organization;
   features: string[];
   hasFeature: boolean;
   project?: Project;
-};
+}
 
-/**
- * When a feature is disabled the caller of Feature may provide a `renderDisabled`
- * prop. This prop can be overridden by getsentry via hooks. Often getsentry will
- * call the original children function  but override the `renderDisabled`
- * with another function/component.
- */
-type RenderDisabledProps = FeatureRenderProps & {
+interface RenderDisabledProps extends FeatureRenderProps {
   children: React.ReactNode | ChildrenRenderFn;
   renderDisabled?: (props: FeatureRenderProps) => React.ReactNode;
-};
+}
 
 export type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
 
-type ChildRenderProps = FeatureRenderProps & {
+interface ChildRenderProps extends FeatureRenderProps {
   renderDisabled?: undefined | boolean | RenderDisabledFn;
-};
+}
 
 export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;
 
-type AllFeatures = {
+interface AllFeatures {
   configFeatures: string[];
   organization: string[];
   project: string[];
-};
+}
 
 /**
  * Component to handle feature flags.

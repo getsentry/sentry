@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import theme from 'sentry/utils/theme';
 import OwnershipModal from 'sentry/views/settings/project/projectOwnership/editRulesModal';
 
-type Props = ModalRenderProps & EditOwnershipRulesModalOptions;
+interface Props extends ModalRenderProps, EditOwnershipRulesModalOptions {}
 
 const EditOwnershipRulesModal = ({Body, Header, onSave, ...props}: Props) => {
   return (

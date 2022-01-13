@@ -6,12 +6,12 @@ import {Group, TimeseriesValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   statsPeriod: string;
   data: Group;
   height?: number;
   showSecondaryPoints?: boolean;
-};
+}
 
 function GroupChart({
   data,

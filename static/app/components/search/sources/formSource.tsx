@@ -24,9 +24,9 @@ type Props = WithRouterProps<{orgId: string}> & {
   searchMap?: null | FormSearchField[];
 };
 
-type State = {
+interface State {
   fuzzy: null | Fuse<FormSearchField, Fuse.FuseOptions<FormSearchField>>;
-};
+}
 
 class FormSource extends React.Component<Props, State> {
   static defaultProps = {

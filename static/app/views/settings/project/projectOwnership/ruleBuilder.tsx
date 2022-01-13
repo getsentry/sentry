@@ -37,22 +37,22 @@ function getMatchPlaceholder(type: string): string {
   }
 }
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
   onAddRule: (rule: string) => void;
   urls: string[];
   paths: string[];
   disabled: boolean;
-};
+}
 
-type State = {
+interface State {
   text: string;
   tagName: string;
   type: string;
   owners: Owner[];
   isValid: boolean;
-};
+}
 
 class RuleBuilder extends React.Component<Props, State> {
   state: State = initialState;

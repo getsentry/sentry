@@ -4,10 +4,10 @@ import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
 import {Environment} from 'sentry/types';
 
-type Props = {
+interface Props {
   environments: Environment[];
   onRetry?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-};
+}
 
 const GroupEventDetailsLoadingError = ({onRetry, environments}: Props) => {
   const reasons = [

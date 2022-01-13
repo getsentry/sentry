@@ -10,7 +10,7 @@ type RowProps = Pick<
   'itemSize' | 'highlightedIndex' | 'inputValue' | 'getItemProps'
 >;
 
-type Props = {
+interface Props extends RowProps {
   // flat item array | grouped item array
   items: ItemsAfterFilter;
   /**
@@ -25,7 +25,6 @@ type Props = {
    * If you use grouping with virtualizedHeight, the labels will be that height unless specified here
    */
   virtualizedLabelHeight?: number;
-
   /**
    * Supplying this height will force the dropdown menu to be a virtualized list.
    * This is very useful (and probably required) if you have a large list. e.g. Project selector with many projects.
@@ -33,7 +32,7 @@ type Props = {
    * Currently, our implementation of the virtualized list requires a fixed height.
    */
   virtualizedHeight?: number;
-} & RowProps;
+}
 
 function getHeight(
   items: ItemsAfterFilter,

@@ -39,12 +39,13 @@ const METRIC_CONDITION_MAP = {
 const DEFAULT_PLACEHOLDER_VALUE = '10';
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
-type Props = AsyncComponent['props'] & {
+
+interface Props {
   organization: Organization;
   onChange: StateUpdater;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   // TODO(ts): When we have alert conditional types, convert this
   conditions: any;
   intervalChoices: [string, string][] | undefined;
@@ -52,9 +53,9 @@ type State = AsyncComponent['state'] & {
   interval: string;
   alertSetting: string;
   metric: MetricValues;
-};
+}
 
-type RequestDataFragment = {
+interface RequestDataFragment {
   defaultRules: boolean;
   shouldCreateCustomRule: boolean;
   name: string;
@@ -62,7 +63,7 @@ type RequestDataFragment = {
   actions: {id: string}[];
   actionMatch: string;
   frequency: number;
-};
+}
 
 function getConditionFrom(
   interval: string,

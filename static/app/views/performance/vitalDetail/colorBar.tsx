@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 import space from 'sentry/styles/space';
 import {Color} from 'sentry/utils/theme';
 
-type ColorStop = {
+interface ColorStop {
   percent: number;
   color: Color;
-};
+}
 
-type Props = {
+interface Props {
   colorStops: ColorStop[];
   barHeight?: number;
-};
+}
 
 const ColorBar = (props: Props) => {
   return (
@@ -26,10 +26,10 @@ const ColorBar = (props: Props) => {
   );
 };
 
-type VitalBarProps = {
+interface VitalBarProps {
   fractions: number[];
   barHeight?: number;
-};
+}
 
 const VitalBar = styled('div')<VitalBarProps>`
   height: ${p => (p.barHeight ? `${p.barHeight}px` : '16px')};
@@ -43,9 +43,9 @@ const VitalBar = styled('div')<VitalBarProps>`
   border-radius: 2px;
 `;
 
-type ColorProps = {
+interface ColorProps {
   color: Color;
-};
+}
 
 const BarStatus = styled('div')<ColorProps>`
   background-color: ${p => p.theme[p.color]};

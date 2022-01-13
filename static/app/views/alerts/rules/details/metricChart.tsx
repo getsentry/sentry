@@ -58,7 +58,7 @@ import {
 
 import {TimePeriodType} from './constants';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   rule: IncidentRule;
   incidents?: Incident[];
@@ -71,12 +71,12 @@ type Props = WithRouterProps & {
   query: string;
   orgId: string;
   handleZoom: (start: DateString, end: DateString) => void;
-};
+}
 
-type State = {
+interface State {
   width: number;
   height: number;
-};
+}
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {

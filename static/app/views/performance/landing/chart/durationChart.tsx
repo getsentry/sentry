@@ -21,7 +21,7 @@ import Chart from '../../charts/chart';
 import {DoubleHeaderContainer} from '../../styles';
 import {getFieldOrBackup} from '../display/utils';
 
-type Props = {
+interface Props extends WithRouterProps {
   eventView: EventView;
   organization: Organization;
   field: string;
@@ -29,7 +29,7 @@ type Props = {
   titleTooltip: string;
   backupField?: string;
   usingBackupAxis: boolean;
-} & WithRouterProps;
+}
 
 function DurationChart({
   organization,

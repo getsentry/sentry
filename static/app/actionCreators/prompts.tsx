@@ -1,6 +1,6 @@
 import {Client} from 'sentry/api';
 
-type PromptsUpdateParams = {
+interface PromptsUpdateParams {
   /**
    * The numeric organization ID as a string
    */
@@ -14,7 +14,7 @@ type PromptsUpdateParams = {
    */
   feature: string;
   status: 'snoozed' | 'dismissed';
-};
+}
 
 /**
  * Update the status of a prompt
@@ -31,7 +31,7 @@ export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
   });
 }
 
-type PromptCheckParams = {
+interface PromptCheckParams {
   /**
    * The numeric organization ID as a string
    */
@@ -44,16 +44,16 @@ type PromptCheckParams = {
    * The prompt feature name
    */
   feature: string;
-};
+}
 
-export type PromptResponseItem = {
+export interface PromptResponseItem {
   snoozed_ts?: number;
   dismissed_ts?: number;
-};
-export type PromptResponse = {
+}
+export interface PromptResponse {
   data?: PromptResponseItem;
   features?: {[key: string]: PromptResponseItem};
-};
+}
 
 export type PromptData = null | {
   dismissedTime?: number;

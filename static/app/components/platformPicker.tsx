@@ -29,7 +29,7 @@ const PlatformList = styled('div')`
 
 type Category = typeof PLATFORM_CATEGORIES[number]['id'];
 
-type Props = {
+interface Props {
   setPlatform: (key: PlatformKey | null) => void;
   platform?: string | null;
   showOther?: boolean;
@@ -39,12 +39,12 @@ type Props = {
   defaultCategory?: Category;
   organization?: Organization;
   source?: string;
-};
+}
 
-type State = {
+interface State {
   category: Category;
   filter: string;
-};
+}
 
 class PlatformPicker extends React.Component<Props, State> {
   static defaultProps = {

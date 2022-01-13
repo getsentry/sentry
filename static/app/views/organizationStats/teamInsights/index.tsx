@@ -7,10 +7,10 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = {
+interface Props {
   organization: Organization;
   children?: React.ReactNode;
-};
+}
 
 function TeamInsightsContainer({children, organization}: Props) {
   return (

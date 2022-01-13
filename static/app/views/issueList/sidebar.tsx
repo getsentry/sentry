@@ -14,21 +14,21 @@ import Input from 'sentry/views/settings/components/forms/controls/input';
 import IssueListTagFilter from './tagFilter';
 import {TagValueLoader} from './types';
 
-type DefaultProps = {
+interface DefaultProps {
   tags: TagCollection;
   query: string;
   onQueryChange: (query: string) => void;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   tagValueLoader: TagValueLoader;
   loading?: boolean;
-};
+}
 
-type State = {
+interface State {
   queryObj: QueryObj;
   textFilter: string;
-};
+}
 
 class IssueListSidebar extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

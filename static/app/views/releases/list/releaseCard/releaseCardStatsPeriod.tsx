@@ -7,10 +7,10 @@ import space from 'sentry/styles/space';
 import {HealthStatsPeriodOption, PageFilters} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-type Props = {
+interface Props {
   location: Location;
   selection: PageFilters;
-};
+}
 
 const ReleaseCardStatsPeriod = ({location, selection}: Props) => {
   const activePeriod =

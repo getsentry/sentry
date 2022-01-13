@@ -7,9 +7,9 @@ import ButtonBar from 'sentry/components/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   actions: React.ReactNode;
-};
+}
 
 function Onboarding({actions}: Props) {
   return (

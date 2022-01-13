@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Radio from 'sentry/components/radio';
 import space from 'sentry/styles/space';
 
-type RadioPanelGroupProps<C extends string> = {
+interface RadioPanelGroupProps<C extends string> {
   label: string;
   /**
    * An array of [id, name]
@@ -12,7 +12,7 @@ type RadioPanelGroupProps<C extends string> = {
   choices: [C, React.ReactNode, React.ReactNode?][];
   value: string | null;
   onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
-};
+}
 
 type Props<C extends string> = RadioPanelGroupProps<C> &
   Omit<React.HTMLAttributes<HTMLDivElement>, keyof RadioPanelGroupProps<C>>;

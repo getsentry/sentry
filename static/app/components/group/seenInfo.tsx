@@ -16,7 +16,7 @@ import theme from 'sentry/utils/theme';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
-type Props = {
+interface Props {
   organization: Organization;
   projectSlug: string;
   projectId: string;
@@ -26,7 +26,7 @@ type Props = {
   dateGlobal: RelaxedDateType;
   release?: Release;
   environment?: string;
-};
+}
 
 class SeenInfo extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props) {

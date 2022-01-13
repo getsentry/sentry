@@ -5,7 +5,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 
-export type ConfirmMessageRenderProps = {
+export interface ConfirmMessageRenderProps {
   /**
    * Confirms the modal
    */
@@ -27,9 +27,9 @@ export type ConfirmMessageRenderProps = {
    * This should be called in the components componentDidMount.
    */
   setConfirmCallback: (cb: () => void) => void;
-};
+}
 
-export type ConfirmButtonsRenderProps = {
+export interface ConfirmButtonsRenderProps {
   /**
    * Applications can call this function to manually close the modal.
    */
@@ -39,13 +39,13 @@ export type ConfirmButtonsRenderProps = {
    * onConfirm / onCancel callbacks.
    */
   defaultOnClick: () => void;
-};
+}
 
-type ChildrenRenderProps = {
+interface ChildrenRenderProps {
   open: () => void;
-};
+}
 
-export type OpenConfirmOptions = {
+export interface OpenConfirmOptions {
   /**
    * Callback when user confirms
    */
@@ -106,9 +106,9 @@ export type OpenConfirmOptions = {
    * Text to show in the confirmation button
    */
   confirmText?: React.ReactNode;
-};
+}
 
-type Props = OpenConfirmOptions & {
+interface Props extends OpenConfirmOptions {
   /**
    * Render props to control rendering of the modal in its entirety
    */
@@ -123,7 +123,7 @@ type Props = OpenConfirmOptions & {
    * Stop event propagation when opening the confirm modal
    */
   stopPropagation?: boolean;
-};
+}
 
 /**
  * Opens a confirmation modal when called. The procedural version of the
@@ -207,7 +207,7 @@ type ModalProps = ModalRenderProps &
     | 'disableConfirmButton'
   >;
 
-type ModalState = {
+interface ModalState {
   /**
    * Is confirm button disabled
    */
@@ -216,7 +216,7 @@ type ModalState = {
    * The callback registered from the rendered message to call
    */
   confirmCallback: null | (() => void);
-};
+}
 
 class ConfirmModal extends React.Component<ModalProps, ModalState> {
   state: ModalState = {

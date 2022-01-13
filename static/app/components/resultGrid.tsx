@@ -11,14 +11,14 @@ import withApi from 'sentry/utils/withApi';
 
 type Option = [value: string, label: string];
 
-type FilterProps = {
+interface FilterProps {
   name: string;
   queryKey: string;
   options: Option[];
   path: string;
   value: string;
   location: Location;
-};
+}
 
 class Filter extends React.Component<FilterProps> {
   getCurrentLabel() {
@@ -82,12 +82,12 @@ class Filter extends React.Component<FilterProps> {
   }
 }
 
-type SortByProps = {
+interface SortByProps {
   options: Option[];
   path: string;
   location: Location;
   value: string;
-};
+}
 
 class SortBy extends React.Component<SortByProps> {
   getCurrentSortLabel() {
@@ -131,10 +131,10 @@ class SortBy extends React.Component<SortByProps> {
   }
 }
 
-type FilterConfig = {
+interface FilterConfig {
   name: string;
   options: Option[];
-};
+}
 
 // XXX(ts): Using Partial here on the DefaultProps is not really correct, since
 // defaultProps guarantees they'll be set. But because this component is
@@ -144,7 +144,7 @@ type Props = {
   location: Location;
 } & Partial<DefaultProps>;
 
-type DefaultProps = {
+interface DefaultProps {
   columns: React.ReactNode[];
   columnsForRow: (row: any) => React.ReactNode[];
   defaultSort: string;
@@ -157,9 +157,9 @@ type DefaultProps = {
   method: RequestOptions['method'];
   path: string;
   sortOptions: Option[];
-};
+}
 
-type State = {
+interface State {
   rows: any[];
   loading: boolean;
   error: string | boolean;
@@ -167,7 +167,7 @@ type State = {
   query: string;
   sortBy: string;
   filters: Record<string, string>;
-};
+}
 
 class ResultGrid extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

@@ -16,20 +16,23 @@ import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButt
 
 const API_LIMIT = 1000;
 
-type Release = {version: string; date: string};
+interface Release {
+  version: string;
+  date: string;
+}
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   selection: PageFilters;
   isProjectStabilized: boolean;
   query?: string;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   currentReleases: Release[] | null;
   previousReleases: Release[] | null;
   noReleaseEver: boolean;
-};
+}
 
 class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;

@@ -26,18 +26,18 @@ import {didProjectOrEnvironmentChange} from './utils';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '160px';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   projectSlug: string;
   location: Location;
   isProjectStabilized: boolean;
   projectId?: string;
-};
+}
 
-type State = {
+interface State {
   releases: Release[] | null;
   hasOlderReleases?: boolean;
-} & AsyncComponent['state'];
+}
 
 class ProjectLatestReleases extends AsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {

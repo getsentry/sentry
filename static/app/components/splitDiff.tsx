@@ -7,12 +7,12 @@ const diffFnMap = {
   lines: diffLines,
 } as const;
 
-type Props = {
+interface Props {
   base: string;
   target: string;
   type?: keyof typeof diffFnMap;
   className?: string;
-};
+}
 
 const SplitDiff = ({className, type = 'lines', base, target}: Props) => {
   const diffFn = diffFnMap[type];

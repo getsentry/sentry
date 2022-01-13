@@ -21,7 +21,7 @@ import SelectField from 'sentry/views/settings/components/forms/selectField';
 const CLEAR_PASSWORD_BUTTON_SIZE = 22;
 const PASSWORD_INPUT_PADDING_RIGHT = INPUT_PADDING + CLEAR_PASSWORD_BUTTON_SIZE;
 
-type InitialData = {
+interface InitialData {
   name: string;
   url: string;
   layout: {
@@ -32,7 +32,7 @@ type InitialData = {
   password?: {
     'hidden-secret': boolean;
   };
-};
+}
 
 type Data = Partial<Pick<InitialData, 'name' | 'url'>> &
   Omit<InitialData, 'name' | 'url' | 'password' | 'layout'> & {

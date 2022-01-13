@@ -9,7 +9,7 @@ import {Theme} from 'sentry/utils/theme';
  * `EventLite` represents the type of a simplified event from
  * the `events-trace` and `events-trace-light` endpoints.
  */
-export type EventLite = {
+export interface EventLite {
   event_id: string;
   generation: number | null;
   span_id: string;
@@ -19,9 +19,9 @@ export type EventLite = {
   project_slug: string;
   parent_event_id: string | null;
   parent_span_id: string | null;
-};
+}
 
-export type TraceError = {
+export interface TraceError {
   issue: string;
   issue_id: number;
   event_id: string;
@@ -30,13 +30,13 @@ export type TraceError = {
   project_slug: string;
   title: string;
   level: keyof Theme['level'];
-};
+}
 
 export type TraceLite = EventLite[];
 
-export type QuickTraceEvent = EventLite & {
+export interface QuickTraceEvent extends EventLite {
   errors?: TraceError[];
-};
+}
 
 /**
  * The `events-trace` endpoint returns a tree structure that gives
@@ -67,29 +67,29 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   'transaction.status': string;
 };
 
-export type TraceProps = {
+export interface TraceProps {
   traceId: string;
   start?: string;
   end?: string;
   statsPeriod?: string;
-};
+}
 
-export type TraceRequestProps = DiscoverQueryProps & TraceProps;
+export interface TraceRequestProps extends DiscoverQueryProps, TraceProps {}
 
-export type EmptyQuickTrace = {
+export interface EmptyQuickTrace {
   type: 'empty' | 'missing';
   trace: QuickTraceEvent[];
-};
+}
 
-export type PartialQuickTrace = {
+export interface PartialQuickTrace {
   type: 'partial';
   trace: QuickTraceEvent[] | null;
-};
+}
 
-export type FullQuickTrace = {
+export interface FullQuickTrace {
   type: 'full';
   trace: QuickTraceEvent[] | null;
-};
+}
 
 export type BaseTraceChildrenProps = Omit<
   GenericChildrenProps<TraceProps>,
@@ -98,13 +98,12 @@ export type BaseTraceChildrenProps = Omit<
 
 export type QuickTrace = EmptyQuickTrace | PartialQuickTrace | FullQuickTrace;
 
-export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps &
-  QuickTrace & {
-    currentEvent: QuickTraceEvent | null;
-  };
+export interface QuickTraceQueryChildrenProps extends BaseTraceChildrenProps, QuickTrace {
+  currentEvent: QuickTraceEvent | null;
+}
 
-export type TraceMeta = {
+export interface TraceMeta {
   projects: number;
   transactions: number;
   errors: number;
-};
+}

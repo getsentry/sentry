@@ -24,10 +24,10 @@ type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
   team: Team;
 };
 
-type State = AsyncView['state'] & {
+interface State {
   teamDetails: Team;
   integrations: Integration[];
-};
+}
 
 const DOCS_LINK =
   'https://docs.sentry.io/product/integrations/notification-incidents/slack/#team-notifications';

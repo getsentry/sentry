@@ -6,11 +6,11 @@ import RuleForm from 'sentry/views/alerts/incidentRules/ruleForm';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import AsyncView from 'sentry/views/asyncView';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   projectId: string;
   ruleId: string;
-};
+}
 
 type Props = {
   organization: Organization;
@@ -19,10 +19,10 @@ type Props = {
   userTeamIds: string[];
 } & RouteComponentProps<RouteParams, {}>;
 
-type State = {
+interface State {
   rule: IncidentRule;
-  actions: Map<string, any>; // This is temp
-} & AsyncView['state'];
+  actions: Map<string, any>; // This is temp;
+}
 
 class IncidentRulesDetails extends AsyncView<Props, State> {
   getDefaultState() {

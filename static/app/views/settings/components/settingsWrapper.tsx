@@ -4,10 +4,10 @@ import {Location} from 'history';
 import space from 'sentry/styles/space';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 
-type Props = {
+interface Props {
   location: Location;
   children: React.ReactChildren;
-};
+}
 
 function SettingsWrapper({location, children}: Props) {
   useScrollToTop({

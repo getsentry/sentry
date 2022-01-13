@@ -15,11 +15,11 @@ import {getMatchFieldPlaceholder} from './utils';
 // react-select doesn't seem to expose ContainerProps
 type ContainerProps = React.ComponentProps<typeof components.SelectContainer>;
 
-type Tag = {
+interface Tag {
   value: string;
-};
+}
 
-type Props = {
+interface Props {
   projectId: Project['id'];
   orgSlug: Organization['slug'];
   category:
@@ -31,7 +31,7 @@ type Props = {
     | DynamicSamplingInnerName.EVENT_TRANSACTION;
   onChange: (value: string) => void;
   value?: string;
-};
+}
 
 function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
   const api = useApi();

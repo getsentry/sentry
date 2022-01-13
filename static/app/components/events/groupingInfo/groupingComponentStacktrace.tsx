@@ -6,15 +6,15 @@ import GroupingComponent from './groupingComponent';
 import GroupingComponentFrames from './groupingComponentFrames';
 import {groupingComponentFilter} from './utils';
 
-type FrameGroup = {
+interface FrameGroup {
   key: string;
   data: EventGroupComponent[];
-};
+}
 
-type Props = {
+interface Props {
   component: EventGroupComponent;
   showNonContributing: boolean;
-};
+}
 
 const GroupingComponentStacktrace = ({component, showNonContributing}: Props) => {
   const getFrameGroups = () => {

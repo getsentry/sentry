@@ -14,11 +14,12 @@ import {
   SpanGeneratedBoundsType,
 } from './utils';
 
-type Props = {
+interface Props {
   event: EventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   dividerPosition: number;
-};
+}
+
 class MeasurementsPanel extends PureComponent<Props> {
   render() {
     const {event, generateBounds, dividerPosition} = this.props;
@@ -101,16 +102,16 @@ const Label = styled('div')<{failedThreshold: boolean}>`
 
 export default MeasurementsPanel;
 
-type LabelContainerProps = {
+interface LabelContainerProps {
   left: string;
   label: string;
   tooltipLabel: string;
   failedThreshold: boolean;
-};
+}
 
-type LabelContainerState = {
+interface LabelContainerState {
   width: number;
-};
+}
 
 class LabelContainer extends Component<LabelContainerProps> {
   state: LabelContainerState = {

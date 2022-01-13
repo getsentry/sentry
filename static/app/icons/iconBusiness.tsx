@@ -6,9 +6,9 @@ import {uniqueId} from 'sentry/utils/guid';
 
 import SvgIcon from './svgIcon';
 
-type WrappedProps = {
+interface WrappedProps extends Props {
   forwardRef: React.Ref<SVGSVGElement>;
-} & Props;
+}
 
 function IconBusinessComponent({
   gradient = false,

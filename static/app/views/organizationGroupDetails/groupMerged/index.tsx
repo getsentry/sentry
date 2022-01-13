@@ -22,13 +22,13 @@ type Props = RouteComponentProps<
   organization: Organization;
 };
 
-type State = {
+interface State {
   query: string;
   loading: boolean;
   error: boolean;
   mergedItems: Array<Fingerprint>;
   mergedLinks?: string;
-};
+}
 
 class GroupMergedView extends Component<Props, State> {
   state: State = {

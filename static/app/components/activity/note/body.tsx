@@ -1,9 +1,9 @@
 import marked from 'sentry/utils/marked';
 
-type Props = {
+interface Props {
   text: string;
   className?: string;
-};
+}
 
 const NoteBody = ({className, text}: Props) => (
   <div

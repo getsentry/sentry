@@ -7,9 +7,9 @@ import {defined} from 'sentry/utils';
 
 type Props = InputField['props'];
 
-type State = InputField['state'] & {
+interface State {
   value: boolean;
-};
+}
 
 export default class BooleanField extends InputField<Props, State> {
   coerceValue(initialValue: string | number) {

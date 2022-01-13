@@ -5,9 +5,9 @@ import Tag from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {ImageStatus} from 'sentry/types/debugImage';
 
-type Props = {
+interface Props {
   status: ImageStatus;
-};
+}
 
 function Status({status}: Props) {
   switch (status) {

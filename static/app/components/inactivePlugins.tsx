@@ -7,10 +7,10 @@ import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {Plugin} from 'sentry/types';
 
-type Props = {
+interface Props {
   plugins: Plugin[];
   onEnablePlugin: (plugin: Plugin) => void;
-};
+}
 
 const InactivePlugins = ({plugins, onEnablePlugin}: Props) => {
   if (plugins.length === 0) {

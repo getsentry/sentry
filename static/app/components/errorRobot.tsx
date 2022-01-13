@@ -14,7 +14,7 @@ import {defined} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
-type Props = {
+interface Props {
   api: Client;
   org: Organization;
   project?: Project;
@@ -26,13 +26,13 @@ type Props = {
    * - undefined to indicate the project API should be consulted to find out
    */
   sampleIssueId?: string;
-};
+}
 
-type State = {
+interface State {
   error: boolean;
   loading: boolean;
   sampleIssueId?: string;
-};
+}
 
 class ErrorRobot extends Component<Props, State> {
   state: State = {

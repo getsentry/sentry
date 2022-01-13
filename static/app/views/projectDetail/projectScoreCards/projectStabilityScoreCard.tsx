@@ -23,18 +23,18 @@ import {
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   selection: PageFilters;
   isProjectStabilized: boolean;
   hasSessions: boolean | null;
   query?: string;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   currentSessions: SessionApiResponse | null;
   previousSessions: SessionApiResponse | null;
-};
+}
 
 class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;

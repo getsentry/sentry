@@ -8,22 +8,21 @@ import getProjectsByTeams from 'sentry/utils/getProjectsByTeams';
 
 import {metric} from './analytics';
 
-// We require these props when using this HOC
-type DependentProps = {
+interface DependentProps {
   api: Client;
   organization: Organization;
-};
+}
 
-type InjectedTeamsProps = {
+interface InjectedTeamsProps {
   teams: TeamWithProjects[];
   loadingTeams: boolean;
   error: Error | null;
-};
+}
 
 const withTeamsForUser = <P extends InjectedTeamsProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  (class extends React.Component<
     Omit<P, keyof InjectedTeamsProps> & Partial<InjectedTeamsProps> & DependentProps,
     InjectedTeamsProps
   > {
@@ -94,6 +93,6 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
     render() {
       return <WrappedComponent {...(this.props as P & DependentProps)} {...this.state} />;
     }
-  };
+  });
 
 export default withTeamsForUser;

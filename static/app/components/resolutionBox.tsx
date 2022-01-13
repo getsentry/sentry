@@ -16,11 +16,11 @@ import {
   ResolutionStatusDetails,
 } from 'sentry/types';
 
-type Props = {
+interface Props {
   statusDetails: ResolutionStatusDetails;
   projectId: string;
   activities?: GroupActivity[];
-};
+}
 
 function renderReason(
   statusDetails: ResolutionStatusDetails,

@@ -27,12 +27,12 @@ import Divider from './divider';
 import Features from './features';
 import ProcessingIcon from './processingIcon';
 
-type Props = {
+interface Props {
   candidate: ImageCandidate;
   isInternalSource: boolean;
   hasReprocessWarning: boolean;
   eventDateReceived?: string;
-};
+}
 
 function Information({
   candidate,

@@ -1,9 +1,9 @@
 import BaseAvatar from 'sentry/components/avatar/baseAvatar';
 import {DocIntegration} from 'sentry/types';
 
-type Props = {
+interface Props {
   docIntegration?: DocIntegration;
-} & BaseAvatar['props'];
+}
 
 const DocIntegrationAvatar = ({docIntegration, ...props}: Props) => {
   if (!docIntegration?.avatar) {

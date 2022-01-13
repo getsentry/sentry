@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import Tooltip from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   tooltip?: React.ReactNode;
   className?: string;
-};
+}
 
 function NotAvailable({tooltip, className}: Props) {
   return (

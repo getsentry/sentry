@@ -4,13 +4,13 @@ import TagStore from 'sentry/stores/tagStore';
 import {TagCollection} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type InjectedTagsProps = {
+interface InjectedTagsProps {
   tags: TagCollection;
-};
+}
 
-type State = {
+interface State {
   tags: TagCollection;
-};
+}
 
 /**
  * HOC for getting *only* tags from the TagStore.

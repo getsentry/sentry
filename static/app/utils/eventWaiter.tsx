@@ -21,7 +21,7 @@ const recordAnalyticsFirstEvent = ({key, organization, project}) =>
  */
 type FirstIssue = null | true | Group;
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   project: Project;
@@ -31,11 +31,11 @@ type Props = {
   onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
   onTransactionReceived?: (props: {firstIssue: FirstIssue}) => void;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   firstIssue: FirstIssue;
-};
+}
 
 /**
  * This is a render prop component that can be used to wait for the first event

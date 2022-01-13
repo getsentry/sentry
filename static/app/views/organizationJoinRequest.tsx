@@ -13,9 +13,9 @@ import Form from 'sentry/views/settings/components/forms/form';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
 
-type State = {
+interface State {
   submitSuccess: boolean | null;
-};
+}
 
 class OrganizationJoinRequest extends Component<Props, State> {
   state: State = {

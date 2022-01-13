@@ -1,12 +1,12 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   hasImage?: boolean;
   centered?: boolean;
   children: React.ReactNode;
   theme?: any;
-};
+}
 
 type WellProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
 

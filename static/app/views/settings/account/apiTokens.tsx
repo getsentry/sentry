@@ -16,13 +16,13 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = {
+interface Props {
   organization: Organization;
-} & AsyncView['props'];
+}
 
-type State = {
+interface State {
   tokenList: InternalAppApiToken[] | null;
-} & AsyncView['state'];
+}
 
 export class ApiTokens extends AsyncView<Props, State> {
   getTitle() {

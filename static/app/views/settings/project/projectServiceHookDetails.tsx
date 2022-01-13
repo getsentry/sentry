@@ -22,15 +22,19 @@ import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput'
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
 
-type Params = {orgId: string; projectId: string; hookId: string};
+interface Params {
+  orgId: string;
+  projectId: string;
+  hookId: string;
+}
 
-type StatsProps = {
+interface StatsProps {
   params: Params;
-};
+}
 
-type StatsState = {
+interface StatsState {
   stats: {ts: number; total: number}[] | null;
-} & AsyncComponent['state'];
+}
 
 class HookStats extends AsyncComponent<StatsProps, StatsState> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -97,9 +101,10 @@ class HookStats extends AsyncComponent<StatsProps, StatsState> {
 }
 
 type Props = RouteComponentProps<Params, {}>;
-type State = {
+
+interface State {
   hook: ServiceHook | null;
-} & AsyncView['state'];
+}
 
 export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

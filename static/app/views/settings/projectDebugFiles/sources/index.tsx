@@ -9,7 +9,7 @@ import {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
 import BuiltInRepositories from './builtInRepositories';
 import CustomRepositories from './customRepositories';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   projSlug: Project['slug'];
@@ -19,7 +19,7 @@ type Props = {
   router: InjectedRouter;
   location: Location;
   isLoading: boolean;
-};
+}
 
 function Sources({
   api,

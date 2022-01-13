@@ -6,16 +6,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-/**
- * Used in new inbox
- * Renders the first & last seen times for a group or event with
- * a clock icon.
- */
-
-type Props = {
+interface Props {
   lastSeen: string;
   firstSeen: string;
-};
+}
 
 const TimesTag = ({lastSeen, firstSeen}: Props) => {
   return (

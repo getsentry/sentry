@@ -24,7 +24,7 @@ const defaultProps = {
   busy: false,
 };
 
-type Props = {
+interface Props {
   teams: Mentionable[];
   memberList: Mentionable[];
   /**
@@ -43,14 +43,14 @@ type Props = {
   onCreate?: (data: NoteType) => void;
   onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
   theme: Theme;
-} & typeof defaultProps;
+}
 
-type State = {
+interface State {
   preview: boolean;
   value: string;
   memberMentions: Mentioned[];
   teamMentions: Mentioned[];
-};
+}
 
 class NoteInputComponent extends React.Component<Props, State> {
   state: State = {
@@ -286,10 +286,11 @@ class NoteInputContainer extends React.Component<NoteInputContainerProps> {
 
 export default NoteInputContainer;
 
-type NotePreviewProps = {
+interface NotePreviewProps {
   minHeight: Props['minHeight'];
   theme: Props['theme'];
-};
+}
+
 // This styles both the note preview and the note editor input
 const getNotePreviewCss = (p: NotePreviewProps) => {
   const {minHeight, padding, overflow, border} = mentionStyle(p)['&multiLine'].input;

@@ -3,10 +3,10 @@ import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {AvatarUser, Commit} from 'sentry/types';
 
-type Props = {
+interface Props {
   commit: Commit;
   headerClass: string;
-};
+}
 
 const unknownUser: AvatarUser = {
   id: '',

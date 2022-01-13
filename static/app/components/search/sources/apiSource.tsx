@@ -268,12 +268,12 @@ type Props = WithRouterProps<{orgId: string}> & {
   searchOptions?: Fuse.FuseOptions<ResultItem>;
 };
 
-type State = {
+interface State {
   loading: boolean;
   searchResults: null | Result[];
   directResults: null | Result[];
   fuzzy: null | Fuse<ResultItem, Fuse.FuseOptions<ResultItem>>;
-};
+}
 
 class ApiSource extends React.Component<Props, State> {
   static defaultProps = {

@@ -6,13 +6,13 @@ import {Meta} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   isRelease: boolean;
   streamPath: string;
   locationSearch: string;
   tag: EventTag;
   meta?: Meta;
-};
+}
 
 const EventTagsPillValue = ({
   tag: {key, value},

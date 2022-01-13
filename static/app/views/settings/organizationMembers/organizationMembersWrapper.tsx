@@ -16,9 +16,9 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   inviteRequests: Member[];
-};
+}
 
 class OrganizationMembersWrapper extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

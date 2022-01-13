@@ -263,7 +263,7 @@ function handleDropdownItem(
   });
 }
 
-type EventNodeSelectorProps = {
+interface EventNodeSelectorProps {
   location: Location;
   organization: OrganizationSummary;
   events: QuickTraceEvent[];
@@ -274,7 +274,7 @@ type EventNodeSelectorProps = {
   nodeKey: keyof typeof TOOLTIP_PREFIX;
   errorDest: ErrorDestination;
   transactionDest: TransactionDestination;
-};
+}
 
 function EventNodeSelector({
   location,
@@ -434,7 +434,7 @@ function EventNodeSelector({
   );
 }
 
-type DropdownNodeProps = {
+interface DropdownNodeProps {
   event: TraceError | QuickTraceEvent;
   organization: OrganizationSummary;
   anchor: 'left' | 'right';
@@ -442,7 +442,7 @@ type DropdownNodeProps = {
   onSelect?: (eventKey: any) => void;
   to?: LocationDescriptor;
   subtext?: string;
-};
+}
 
 function DropdownNodeItem({
   event,
@@ -492,14 +492,14 @@ function DropdownNodeItem({
   );
 }
 
-type EventNodeProps = {
+interface EventNodeProps {
   text: React.ReactNode;
   hoverText: React.ReactNode;
   to?: LocationDescriptor;
   onClick?: (eventKey: any) => void;
   type?: keyof Theme['tag'];
   shouldOffset?: boolean;
-};
+}
 
 function StyledEventNode({
   text,
@@ -528,9 +528,10 @@ type MissingServiceProps = Pick<QuickTraceProps, 'anchor' | 'organization'> & {
   connectorSide: 'left' | 'right';
   platform: string;
 };
-type MissingServiceState = {
+
+interface MissingServiceState {
   hideMissing: boolean;
-};
+}
 
 const HIDE_MISSING_SERVICE_KEY = 'quick-trace:hide-missing-services';
 // 30 days

@@ -11,11 +11,11 @@ import {RELEASES_TOUR_STEPS} from 'sentry/views/releases/list/releasesPromo';
 const DOCS_URL = 'https://docs.sentry.io/product/releases/';
 const DOCS_HEALTH_URL = 'https://docs.sentry.io/product/releases/health/';
 
-type Props = {
+interface Props {
   organization: Organization;
   health?: boolean;
   projectId?: string;
-};
+}
 
 function MissingReleasesButtons({organization, health, projectId}: Props) {
   function handleTourAdvance(step: number, duration: number) {

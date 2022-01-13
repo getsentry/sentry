@@ -29,9 +29,9 @@ type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
   activeReleaseRepo?: Repository;
 } & AsyncView['props'];
 
-type State = {
+interface State {
   fileList: CommitFile[];
-} & AsyncView['state'];
+}
 
 class FilesChanged extends AsyncView<Props, State> {
   getTitle() {

@@ -16,46 +16,41 @@ const BreadcrumbList = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-export type Crumb = {
+export interface Crumb {
   /**
    * Label of the crumb
    */
   label: React.ReactNode;
-
   /**
    * Link of the crumb
    */
   to?: React.ComponentProps<typeof Link>['to'] | null;
-
   /**
    * It will keep the page filter values (projects, environments, time) in the
    * querystring when navigating (GlobalSelectionLink)
    */
   preservePageFilters?: boolean;
-
   /**
    * Component will try to come up with unique key, but you can provide your own
    * (used when mapping over crumbs)
    */
   key?: string;
-};
+}
 
-export type CrumbDropdown = {
+export interface CrumbDropdown {
   /**
    * Name of the crumb
    */
   label: React.ReactNode;
-
   /**
    * Items of the crumb dropdown
    */
   items: React.ComponentProps<typeof BreadcrumbDropdown>['items'];
-
   /**
    * Callback function for when an item is selected
    */
   onSelect: React.ComponentProps<typeof BreadcrumbDropdown>['onSelect'];
-};
+}
 
 type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
   /**
@@ -141,11 +136,11 @@ const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
   }
 `;
 
-type BreadcrumbLinkProps = {
+interface BreadcrumbLinkProps {
   to: React.ComponentProps<typeof Link>['to'];
   preservePageFilters?: boolean;
   children?: React.ReactNode;
-};
+}
 
 const BreadcrumbLink = styled(
   ({preservePageFilters, to, ...props}: BreadcrumbLinkProps) =>

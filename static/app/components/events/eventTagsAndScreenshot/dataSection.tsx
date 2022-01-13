@@ -8,12 +8,12 @@ import EventDataSection, {
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   title: string;
   description: string;
   children: React.ReactNode;
   className?: string;
-};
+}
 
 function DataSection({title, description, children, className, ...props}: Props) {
   const type = kebabCase(title);

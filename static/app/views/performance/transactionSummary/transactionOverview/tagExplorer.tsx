@@ -163,26 +163,27 @@ const getColumnsWithReplacedDuration = (
   return columns;
 };
 
-type TagValueProps = {
+interface TagValueProps {
   row: TableDataRow;
-};
+}
 
 export function TagValue(props: TagValueProps) {
   return <div className="truncate">{props.row.tags_value}</div>;
 }
 
-type Props = {
+interface Props {
   eventView: EventView;
   organization: Organization;
   location: Location;
   projects: Project[];
   transactionName: string;
   currentFilter: SpanOperationBreakdownFilter;
-};
+}
 
-type State = {
+interface State {
   widths: number[];
-};
+}
+
 class _TagExplorer extends React.Component<Props> {
   state: State = {
     widths: [],
@@ -483,12 +484,12 @@ class _TagExplorer extends React.Component<Props> {
   }
 }
 
-type HeaderProps = {
+interface HeaderProps {
   organization: Organization;
   transactionName: string;
   location: Location;
   pageLinks: string | null;
-};
+}
 
 function TagsHeader(props: HeaderProps) {
   const {pageLinks, organization, location, transactionName} = props;

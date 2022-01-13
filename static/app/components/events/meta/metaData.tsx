@@ -5,7 +5,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {Meta} from 'sentry/types';
 
-type Props<Values, K extends Extract<keyof Values, string>> = {
+interface Props<Values, K extends Extract<keyof Values, string>> {
   object: Values;
   prop: K;
   /**
@@ -15,7 +15,7 @@ type Props<Values, K extends Extract<keyof Values, string>> = {
    */
   children: (value: Values[K], meta?: Meta) => React.ReactNode;
   required: boolean;
-};
+}
 
 /**
  * Retrieves metadata from an object (object should be a proxy that

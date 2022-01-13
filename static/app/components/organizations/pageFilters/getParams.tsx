@@ -117,15 +117,15 @@ function getUtcValue(maybe: boolean | ParamValue) {
   return parseUtcValue(result);
 }
 
-type ParsedParams = {
+interface ParsedParams {
   start?: string;
   end?: string;
   period?: string;
   utc?: string;
   [others: string]: string | null | undefined;
-};
+}
 
-type InputParams = {
+interface InputParams {
   pageStatsPeriod?: ParamValue;
   pageStart?: Date | ParamValue;
   pageEnd?: Date | ParamValue;
@@ -136,14 +136,14 @@ type InputParams = {
   statsPeriod?: ParamValue;
   utc?: boolean | ParamValue;
   [others: string]: any;
-};
+}
 
-type Options = {
+interface Options {
   allowEmptyPeriod?: boolean;
   allowAbsoluteDatetime?: boolean;
   allowAbsolutePageDatetime?: boolean;
   defaultStatsPeriod?: string;
-};
+}
 
 export function getParams(params: InputParams, options: Options = {}): ParsedParams {
   const {

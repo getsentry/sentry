@@ -471,9 +471,9 @@ const BorderlessEventEntries = styled(EventEntries)`
   }
 `;
 
-type StyledEventUserFeedbackProps = {
+interface StyledEventUserFeedbackProps {
   includeBorder: boolean;
-};
+}
 
 const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbackProps>`
   border-radius: 0;

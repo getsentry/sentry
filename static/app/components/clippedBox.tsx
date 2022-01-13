@@ -7,25 +7,25 @@ import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type DefaultProps = {
+interface DefaultProps {
   clipHeight?: number;
   btnText?: string;
   defaultClipped?: boolean;
-};
+}
 
-type Props = {
+interface Props extends DefaultProps {
   clipHeight: number;
   title?: string;
   renderedHeight?: number;
   onReveal?: () => void;
   className?: string;
-} & DefaultProps;
+}
 
-type State = {
+interface State {
   isClipped: boolean;
   isRevealed: boolean;
   renderedHeight?: number;
-};
+}
 
 class ClippedBox extends React.PureComponent<Props, State> {
   static defaultProps: DefaultProps = {

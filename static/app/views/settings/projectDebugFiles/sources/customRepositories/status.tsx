@@ -11,10 +11,10 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
 
-type Props = {
+interface Props {
   onEditRepository: () => void;
   details?: AppStoreConnectStatusData;
-};
+}
 
 function Status({details, onEditRepository}: Props) {
   const theme = useTheme();

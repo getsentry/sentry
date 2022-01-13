@@ -8,15 +8,15 @@ import space from 'sentry/styles/space';
 import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
-type Props = {
+interface Props {
   event: Event;
   orgId: Organization['id'];
   projectId: Project['id'];
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   attachmentList: Array<IssueAttachment> | null;
-} & AsyncComponent['state'];
+}
 
 class RRWebIntegration extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

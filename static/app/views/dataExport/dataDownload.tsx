@@ -17,12 +17,12 @@ export enum DownloadStatus {
   Expired = 'EXPIRED',
 }
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   dataExportId: string;
-};
+}
 
-type Download = {
+interface Download {
   id: number;
   user: {
     id: number;
@@ -38,11 +38,11 @@ type Download = {
   };
   status: DownloadStatus;
   checksum: string;
-};
+}
 
 type Props = {} & RouteComponentProps<RouteParams, {}>;
 
-type State = {
+interface State {
   download: Download;
   errors: {
     download: {
@@ -53,7 +53,7 @@ type State = {
       };
     };
   };
-} & AsyncView['state'];
+}
 
 class DataDownload extends AsyncView<Props, State> {
   getTitle(): string {

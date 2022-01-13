@@ -3,7 +3,7 @@ import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
 
-type Data = {
+interface Data {
   mailHost: string;
   mailPassword: string;
   mailUsername: string;
@@ -13,9 +13,11 @@ type Data = {
   mailFrom: string;
   mailListNamespace: string;
   testMailEmail: string;
-};
+}
 
-type State = AsyncView['state'] & {data: Data};
+interface State {
+  data: Data;
+}
 
 export default class AdminMail extends AsyncView<{}, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

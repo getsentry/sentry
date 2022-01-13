@@ -11,9 +11,9 @@ import OrganizationRepositories from './organizationRepositories';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & AsyncView['props'];
 
-type State = AsyncView['state'] & {
+interface State {
   itemList: Repository[] | null;
-};
+}
 
 export default class OrganizationRepositoriesContainer extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

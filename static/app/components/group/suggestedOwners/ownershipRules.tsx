@@ -18,14 +18,14 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import SidebarSection from '../sidebarSection';
 
-type Props = {
+interface Props {
   project: Project;
   organization: Organization;
   issueId: string;
   codeowners: CodeOwner[];
   handleCTAClose: () => void;
   isDismissed: boolean;
-};
+}
 
 const OwnershipRules = ({
   project,

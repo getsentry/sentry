@@ -12,7 +12,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import MergedItem from './mergedItem';
 import MergedToolbar from './mergedToolbar';
 
-type Props = {
+interface Props {
   /**
    * From GroupMergedView -> handleUnmerge
    */
@@ -26,7 +26,7 @@ type Props = {
   project: Project;
   fingerprints?: Fingerprint[];
   pageLinks?: string;
-};
+}
 
 function MergedList({
   fingerprints = [],

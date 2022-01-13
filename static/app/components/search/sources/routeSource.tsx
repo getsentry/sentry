@@ -19,11 +19,7 @@ type Config =
   | typeof organizationSettingsNavigation
   | typeof projectSettingsNavigation;
 
-// XXX(epurkhiser): We use the context in mapFunc to handle both producing the
-// NavigationSection list AND filtering out items in the sections that should
-// not be shown using the `show` attribute of the NavigationItem
-type Context = Parameters<Extract<Config, Function>>[0] &
-  Parameters<Extract<NavigationItem['show'], Function>>[0];
+interface Context {}
 
 /**
  * navigation configuration can currently be either:
@@ -44,12 +40,12 @@ const mapFunc = (config: Config, context: Context | null = null) =>
       )
   );
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Fuse configuration for searching NavigationItem's
    */
   searchOptions: FuseOptions<NavigationItem>;
-};
+}
 
 type Props = RouteComponentProps<{}, {}> &
   DefaultProps & {
@@ -65,12 +61,12 @@ type Props = RouteComponentProps<{}, {}> &
     children: (props: ChildProps) => React.ReactNode;
   };
 
-type State = {
+interface State {
   /**
    * A Fuse instance configured to search NavigationItem's
    */
   fuzzy: undefined | null | Fuse<NavigationItem, FuseOptions<NavigationItem>>;
-};
+}
 
 class RouteSource extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

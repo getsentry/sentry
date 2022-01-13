@@ -12,13 +12,13 @@ import {DisplayType} from '../types';
 
 import {WidgetTemplate} from './data';
 
-type Props = {
+interface Props {
   widget: WidgetTemplate;
   ['data-test-id']?: string;
   setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
   setErrored: (errored: boolean) => void;
   selectedWidgets: WidgetTemplate[];
-};
+}
 
 function WidgetLibraryCard({
   selectedWidgets,
@@ -97,9 +97,9 @@ const Description = styled('div')`
   color: ${p => p.theme.gray300};
 `;
 
-type PanelProps = {
+interface PanelProps {
   selected?: boolean;
-};
+}
 
 const StyledPanel = styled(Panel)<PanelProps>`
   margin-bottom: 0;

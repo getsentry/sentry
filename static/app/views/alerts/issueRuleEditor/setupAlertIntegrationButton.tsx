@@ -8,16 +8,16 @@ import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
 import {Organization, Project} from 'sentry/types';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   projectSlug: string;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   detailedProject?: Project & {
     hasAlertIntegrationInstalled: boolean;
   };
-};
+}
 
 /**
  * This component renders a button to Set up an alert integration (just Slack for now)

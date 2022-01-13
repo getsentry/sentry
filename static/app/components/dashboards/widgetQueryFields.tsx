@@ -18,7 +18,7 @@ import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import Field from 'sentry/views/settings/components/forms/field';
 
-type Props = {
+interface Props {
   /**
    * The widget display type. Used to render different fieldsets.
    */
@@ -39,7 +39,7 @@ type Props = {
   organization: Organization;
   errors?: Record<string, any>;
   style?: React.CSSProperties;
-};
+}
 
 function WidgetQueryFields({
   widgetType,

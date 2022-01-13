@@ -23,7 +23,7 @@ import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 
 import {DisplayType} from '../utils';
 
-type Props = {
+interface Props {
   series: Series[];
   displayType: DisplayType;
   location: Location;
@@ -32,7 +32,7 @@ type Props = {
   selection: PageFilters;
   router: InjectedRouter;
   platform?: PlatformKey;
-};
+}
 
 function Chart({
   series: timeseriesResults,

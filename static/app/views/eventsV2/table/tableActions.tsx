@@ -16,7 +16,7 @@ import EventView from 'sentry/utils/discover/eventView';
 
 import {downloadAsCsv} from '../utils';
 
-type Props = {
+interface Props {
   isLoading: boolean;
   error: string | null;
   title: string;
@@ -27,7 +27,7 @@ type Props = {
   onEdit: () => void;
   onChangeShowTags: () => void;
   showTags: boolean;
-};
+}
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
   trackAnalyticsEvent({
@@ -116,9 +116,9 @@ function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   );
 }
 
-type FeatureWrapperProps = Props & {
+interface FeatureWrapperProps extends Props {
   children: (hasFeature: boolean, props: Props) => React.ReactNode;
-};
+}
 
 function FeatureWrapper(props: FeatureWrapperProps) {
   const noEditMessage = t('Requires discover query feature.');

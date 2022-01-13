@@ -17,7 +17,9 @@ import SentryProjectSelectorField from 'sentry/views/settings/components/forms/s
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';
 
-type Props = {projects: Project[]};
+interface Props {
+  projects: Project[];
+}
 
 export default class AwsLambdaProjectSelect extends React.Component<Props> {
   model = new FormModel();

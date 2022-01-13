@@ -8,10 +8,10 @@ import {getStatusTooltipDescription} from '../utils';
 
 import Status from '.';
 
-type Props = {
+interface Props {
   candidate: ImageCandidate;
   hasReprocessWarning: boolean;
-};
+}
 
 function StatusTooltip({candidate, hasReprocessWarning}: Props) {
   const {download} = candidate;

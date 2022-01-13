@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import overflowEllipsisLeft from 'sentry/styles/overflowEllipsisLeft';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   isParagraph?: boolean;
   ellipsisDirection?: 'left' | 'right';
   ['data-test-id']?: string;
   className?: string;
-};
+}
 
 const TextOverflow = styled(
   ({isParagraph, className, children, ['data-test-id']: dataTestId}: Props) => {

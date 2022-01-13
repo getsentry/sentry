@@ -1,8 +1,8 @@
 import InputField from 'sentry/components/forms/inputField';
 
-type State = InputField['state'] & {
+interface State {
   value?: string;
-};
+}
 
 export default class TextareaField extends InputField<InputField['props'], State> {
   getField() {

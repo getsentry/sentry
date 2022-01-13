@@ -19,11 +19,11 @@ import {
 
 import {SidebarSection} from './styles';
 
-type Props = {
+interface Props {
   organization: Organization;
   location: Location;
   project?: Project;
-};
+}
 
 function ProjectQuickLinks({organization, project, location}: Props) {
   function getTrendsLink() {

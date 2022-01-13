@@ -41,15 +41,15 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = ViewProps & {
+interface Props extends ViewProps {
   organization: OrganizationSummary;
   location: Location;
   currentFilter: SpanOperationBreakdownFilter;
-};
+}
 
-type State = {
+interface State {
   zoomError: boolean;
-};
+}
 
 /**
  * Fetch and render a bar chart that shows event volume

@@ -32,25 +32,25 @@ type OperationName = string | typeof OtherOperation;
 type OperationNameIntervals = Record<OperationName, Array<TimeWindowSpan>>;
 type OperationNameCoverage = Record<OperationName, Duration>;
 
-type OpStats = {
+interface OpStats {
   name: OperationName;
   percentage: number;
   totalInterval: number;
-};
+}
 
 const TOP_N_SPANS = 4;
 
 type OpBreakdownType = OpStats[];
 
-type DefaultProps = {
+interface DefaultProps {
   topN: number;
   hideHeader: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   operationNameFilters: ActiveOperationFilter;
   event: Event;
-};
+}
 
 class OpsBreakdown extends Component<Props> {
   static defaultProps: DefaultProps = {

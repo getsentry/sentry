@@ -21,9 +21,9 @@ type Props = {
   project: Project;
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
-type State = {
+interface State {
   projectTeams: null | Team[];
-} & AsyncView['state'];
+}
 
 class ProjectTeams extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type Props = {
-  /**
-   * Do not add padding to left and right of the header
-   */
-  disablePadding?: boolean;
-  /**
-   * Usually we place controls at the right of a panel header, to make the
-   * spacing between the edges correct we will want less padding on the right.
-   * Use this when the panel has something such as buttons living there.
-   */
-  hasButtons?: boolean;
-  /**
-   * Use light text
-   */
-  lightText?: boolean;
-};
+interface Props {
+ /**
+  * Do not add padding to left and right of the header
+  */
+ disablePadding?: boolean;
+ /**
+  * Usually we place controls at the right of a panel header, to make the
+  * spacing between the edges correct we will want less padding on the right.
+  * Use this when the panel has something such as buttons living there.
+  */
+ hasButtons?: boolean;
+ /**
+  * Use light text
+  */
+ lightText?: boolean;
+}
 
 const getPadding = ({disablePadding, hasButtons}: Props) => css`
   padding: ${hasButtons ? space(1) : space(2)} ${disablePadding ? 0 : space(2)};

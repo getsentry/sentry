@@ -4,32 +4,31 @@ import {EventQuery} from 'sentry/actionCreators/events';
 import {EventsStatsData} from 'sentry/types';
 import EventView, {LocationQuery} from 'sentry/utils/discover/eventView';
 
-export type TrendView = EventView & {
+export interface TrendView extends EventView {
   orderby?: string;
   trendFunction?: string;
   trendType?: TrendChangeType;
   middle?: string;
-};
+}
 
-export type TrendsQuery = EventQuery &
-  LocationQuery & {
-    trendFunction?: string;
-    trendType?: TrendChangeType;
-    middle?: string;
-    interval?: string;
-  };
+export interface TrendsQuery extends EventQuery, LocationQuery {
+  trendFunction?: string;
+  trendType?: TrendChangeType;
+  middle?: string;
+  interval?: string;
+}
 
-export type TrendFunction = {
+export interface TrendFunction {
   label: string;
   field: TrendFunctionField;
   alias: string;
   legendLabel: string;
-};
+}
 
-export type TrendParameter = {
+export interface TrendParameter {
   label: string;
   column: string;
-};
+}
 
 export enum TrendChangeType {
   IMPROVED = 'improved',
@@ -56,20 +55,19 @@ export enum TrendColumnField {
   SPANS_RESOURCE = 'spans.resource',
 }
 
-export type TrendStat = {
+export interface TrendStat {
   data: EventsStatsData;
   order: number;
-};
+}
 
-export type TrendsStats = {
+export interface TrendsStats {
   [transaction: string]: TrendStat;
-};
+}
 
-export type TrendsTransaction = {
+export interface TrendsTransaction {
   transaction: string;
   project: string;
   count: number;
-
   aggregate_range_1: number;
   aggregate_range_2: number;
   count_range_1: number;
@@ -77,18 +75,18 @@ export type TrendsTransaction = {
   trend_percentage: number;
   trend_difference: number;
   count_percentage: number;
-};
+}
 
-export type TrendsDataEvents = {
+export interface TrendsDataEvents {
   data: TrendsTransaction[];
   meta: any;
-};
+}
 
-export type TrendsData = {
+export interface TrendsData {
   events: TrendsDataEvents;
   stats: TrendsStats;
-};
+}
 
-export type NormalizedTrendsTransaction = TrendsTransaction & {
+export interface NormalizedTrendsTransaction extends TrendsTransaction {
   received_at: Readonly<moment.Moment>;
-};
+}

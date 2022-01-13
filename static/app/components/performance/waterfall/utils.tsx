@@ -23,9 +23,9 @@ export const getBackgroundColor = ({
   return theme.background;
 };
 
-type HatchProps = {
+interface HatchProps {
   spanBarHatch: boolean;
-};
+}
 
 export function getHatchPattern(
   {spanBarHatch}: HatchProps,
@@ -165,13 +165,13 @@ export const getHumanDuration = (duration: number): string => {
 
 export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
 
-type Rect = {
+interface Rect {
   // x and y are left/top coords respectively
   x: number;
   y: number;
   width: number;
   height: number;
-};
+}
 
 // get position of element relative to top/left of document
 const getOffsetOfElement = (element: Element) => {

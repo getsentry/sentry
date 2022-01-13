@@ -5,7 +5,7 @@ import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {Group, Organization, TagWithTopValues} from 'sentry/types';
 import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
 
-type Props = {
+interface Props {
   group: Group;
   tag: string;
   name: string;
@@ -13,13 +13,13 @@ type Props = {
   totalValues: number;
   topValues: TagWithTopValues['topValues'];
   projectId: string;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
   iOSDeviceList?: IOSDeviceList;
-};
+}
 
 class GroupTagDistributionMeter extends Component<Props, State> {
   state: State = {

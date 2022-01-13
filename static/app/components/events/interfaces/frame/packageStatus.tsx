@@ -4,10 +4,10 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconCircle, IconFlag} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   status: 'error' | 'success' | 'empty';
   tooltip?: string;
-};
+}
 
 function PackageStatus({status, tooltip}: Props) {
   const getIcon = () => {

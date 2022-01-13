@@ -14,7 +14,7 @@ interface OptionRecord {
   label: string;
 }
 
-type Props = {
+interface Props {
   project: Project;
   organization: Organization;
   disabled: boolean;
@@ -24,7 +24,7 @@ type Props = {
   options: OptionRecord[];
   memberValue: string | number;
   teamValue: string | number;
-};
+}
 
 class MemberTeamFields extends React.Component<Props> {
   handleChange = (attribute: 'targetType' | 'targetIdentifier', newValue: string) => {

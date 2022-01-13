@@ -8,10 +8,10 @@ import {Project} from 'sentry/types';
 
 const sentryStatusPageLink = 'https://status.sentry.io/';
 
-type Props = {
+interface Props {
   projects: Project[];
   className?: string;
-};
+}
 
 // This alert makes the user aware that one or more projects have been selected for the Low Priority Queue
 function GlobalEventProcessingAlert({className, projects}: Props) {

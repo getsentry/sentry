@@ -36,10 +36,10 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
   selection: PageFilters;
 };
 
-type State = {
+interface State {
   ruleList?: CombinedMetricIssueAlerts[];
   teamFilterSearch?: string;
-};
+}
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

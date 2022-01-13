@@ -19,14 +19,14 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {removeTracingKeysFromSearch} from '../../utils';
 
-type Props = {
+interface Props {
   organization: OrganizationSummary;
   location: Location;
   transaction: string;
   statsPeriod?: string;
   start?: string;
   end?: string;
-};
+}
 
 class RelatedIssues extends Component<Props> {
   getIssuesEndpoint() {

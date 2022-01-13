@@ -15,9 +15,10 @@ import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput'
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{appId: string}, {}>;
-type State = {
+
+interface State {
   app: ApiApplication;
-} & AsyncView['state'];
+}
 
 class ApiApplicationsDetails extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

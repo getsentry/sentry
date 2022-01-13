@@ -41,15 +41,14 @@ class TitleButton extends Component<TitleProps> {
   }
 }
 
-type BaseProps = {
+interface BaseProps {
   organization: Organization;
   transactionName: string;
-};
+}
 
-type Props = BaseProps &
-  TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {
-    project: Project;
-  };
+interface Props extends BaseProps, TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps {
+  project: Project;
+}
 
 function TeamKeyTransactionButton({
   counts,
@@ -71,10 +70,10 @@ function TeamKeyTransactionButton({
   );
 }
 
-type WrapperProps = BaseProps & {
+interface WrapperProps extends BaseProps {
   eventView: EventView;
   projects: Project[];
-};
+}
 
 function TeamKeyTransactionButtonWrapper({
   eventView,

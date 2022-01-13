@@ -9,14 +9,14 @@ import {Meta} from 'sentry/types';
 
 const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
 
-type Props = {
+interface Props {
   value: string | number;
   meta?: Meta;
-};
+}
 
-type State = {
+interface State {
   view: number;
-};
+}
 
 class Value extends Component<Props, State> {
   state: State = {view: 0};

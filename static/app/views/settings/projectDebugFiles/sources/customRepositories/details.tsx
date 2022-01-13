@@ -6,9 +6,9 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
 
-type Props = {
+interface Props {
   details?: AppStoreConnectStatusData;
-};
+}
 
 function Details({details}: Props) {
   const {latestBuildVersion, latestBuildNumber, lastCheckedBuilds} = details ?? {};

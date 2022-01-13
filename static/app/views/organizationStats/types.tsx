@@ -12,12 +12,12 @@ export enum Outcome {
 /**
  * Raw response from API endpoint
  */
-export type UsageSeries = SeriesApi & {
+export interface UsageSeries extends SeriesApi {
   start: string;
   end: string;
-};
+}
 
-export type UsageStat = {
+export interface UsageStat {
   date: string;
   total: number;
   accepted: number;
@@ -26,4 +26,4 @@ export type UsageStat = {
     total: number;
     other?: number;
   };
-};
+}

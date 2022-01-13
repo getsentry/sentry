@@ -5,7 +5,7 @@ import {UserExperiments} from './experiments';
 /**
  * Avatars are a more primitive version of User.
  */
-export type AvatarUser = {
+export interface AvatarUser {
   id: string;
   name: string;
   username: string;
@@ -19,18 +19,15 @@ export type AvatarUser = {
     avatarType: Avatar['avatarType'];
   };
   lastSeen?: string;
-};
+}
 
-/**
- * This is an authenticator that a user is enrolled in
- */
-type UserEnrolledAuthenticator = {
+interface UserEnrolledAuthenticator {
   dateUsed: EnrolledAuthenticator['lastUsedAt'];
   dateCreated: EnrolledAuthenticator['createdAt'];
   type: Authenticator['id'];
   id: EnrolledAuthenticator['authId'];
   name: EnrolledAuthenticator['name'];
-};
+}
 
 export type User = Omit<AvatarUser, 'options'> & {
   lastLogin: string;
@@ -66,32 +63,28 @@ export type User = Omit<AvatarUser, 'options'> & {
 
 // XXX(epurkhiser): we should understand how this is diff from User['emails]
 // above
-export type UserEmail = {
+export interface UserEmail {
   email: string;
   isPrimary: boolean;
   isVerified: boolean;
-};
+}
 
-/**
- * API tokens and Api Applications.
- */
-// See src/sentry/api/serializers/models/apitoken.py for the differences based on application
-type BaseApiToken = {
+interface BaseApiToken {
   id: string;
   scopes: Scope[];
   expiresAt: string;
   dateCreated: string;
   state: string;
-};
+}
 
 // We include the token for API tokens used for internal apps
-export type InternalAppApiToken = BaseApiToken & {
+export interface InternalAppApiToken extends BaseApiToken {
   application: null;
   token: string;
   refreshToken: string;
-};
+}
 
-export type ApiApplication = {
+export interface ApiApplication {
   allowedOrigins: string[];
   clientID: string;
   clientSecret: string | null;
@@ -101,16 +94,19 @@ export type ApiApplication = {
   privacyUrl: string | null;
   redirectUris: string[];
   termsUrl: string | null;
-};
+}
 
 // Used in user session history.
-export type InternetProtocol = {
+export interface InternetProtocol {
   id: string;
   ipAddress: string;
   lastSeen: string;
   firstSeen: string;
   countryCode: string | null;
   regionCode: string | null;
-};
+}
 
-export type SubscriptionDetails = {disabled?: boolean; reason?: string};
+export interface SubscriptionDetails {
+  disabled?: boolean;
+  reason?: string;
+}

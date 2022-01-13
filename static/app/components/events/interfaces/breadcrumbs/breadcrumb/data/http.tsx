@@ -10,11 +10,11 @@ import {defined} from 'sentry/utils';
 
 import Summary from './summary';
 
-type Props = {
+interface Props {
   searchTerm: string;
   breadcrumb: BreadcrumbTypeHTTP;
   linkedEvent?: React.ReactElement;
-};
+}
 
 function Http({breadcrumb, searchTerm, linkedEvent}: Props) {
   const {data} = breadcrumb;

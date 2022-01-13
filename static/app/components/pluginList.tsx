@@ -6,13 +6,13 @@ import {Organization, Plugin, Project} from 'sentry/types';
 
 import {Panel, PanelItem} from './panels';
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
   pluginList: Plugin[];
   onDisablePlugin?: (plugin: Plugin) => void;
   onEnablePlugin?: (plugin: Plugin) => void;
-};
+}
 
 const PluginList = ({
   organization,

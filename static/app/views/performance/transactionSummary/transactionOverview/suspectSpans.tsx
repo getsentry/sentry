@@ -79,13 +79,13 @@ const SUSPECT_SPANS_TABLE_COLUMN_ORDER: SuspectSpanTableColumn[] = [
 
 const SPANS_CURSOR_NAME = 'spansCursor';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   eventView: EventView;
   projectId: string;
   transactionName: string;
-};
+}
 
 export default function SuspectSpans(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
@@ -247,13 +247,13 @@ function renderBodyCellWithMeta({
   };
 }
 
-type HeaderProps = {
+interface HeaderProps {
   location: Location;
   organization: Organization;
   projectId: string;
   transactionName: string;
   pageLinks: string | null;
-};
+}
 
 function SuspectSpansHeader(props: HeaderProps) {
   const {location, organization, projectId, transactionName, pageLinks} = props;

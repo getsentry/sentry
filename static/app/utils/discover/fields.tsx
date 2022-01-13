@@ -6,17 +6,17 @@ import {assert} from 'sentry/types/utils';
 
 import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
 
-export type Sort = {
+export interface Sort {
   kind: 'asc' | 'desc';
   field: string;
-};
+}
 
 // Contains the URL field value & the related table column width.
 // Can be parsed into a Column using explodeField()
-export type Field = {
+export interface Field {
   field: string;
   width?: number;
-};
+}
 
 export type ColumnType =
   | 'boolean'
@@ -29,10 +29,10 @@ export type ColumnType =
 
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
-export type ParsedFunction = {
+export interface ParsedFunction {
   name: string;
   arguments: string[];
-};
+}
 
 type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
 
@@ -436,12 +436,12 @@ export type AggregationOutputType = Extract<
 
 export type PlotType = 'bar' | 'line' | 'area';
 
-type DefaultValueInputs = {
+interface DefaultValueInputs {
   parameter: AggregateParameter;
   organization: Organization;
-};
+}
 
-export type Aggregation = {
+export interface Aggregation {
   /**
    * List of parameters for the function.
    */
@@ -462,7 +462,7 @@ export type Aggregation = {
   getFieldOverrides?: (
     data: DefaultValueInputs
   ) => Partial<Omit<AggregateParameter, 'kind'>>;
-};
+}
 
 enum FieldKey {
   CULPRIT = 'culprit',
@@ -610,10 +610,10 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
 
 export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
 
-export type FieldTag = {
+export interface FieldTag {
   key: FieldKey;
   name: FieldKey;
-};
+}
 
 export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(Object.keys(FIELDS).map(item => [item, {key: item, name: item}]))

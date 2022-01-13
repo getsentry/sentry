@@ -29,7 +29,7 @@ import {FieldValueKind} from './types';
 
 type Sources = WidgetType;
 
-type Props = {
+interface Props {
   // Input columns
   columns: Column[];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
@@ -38,9 +38,9 @@ type Props = {
   organization: Organization;
   className?: string;
   source?: Sources;
-};
+}
 
-type State = {
+interface State {
   isDragging: boolean;
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
@@ -48,7 +48,7 @@ type State = {
   error: Map<number, string | undefined>;
   left: undefined | number;
   top: undefined | number;
-};
+}
 
 const DRAG_CLASS = 'draggable-item';
 const GHOST_PADDING = 4;

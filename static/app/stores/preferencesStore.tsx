@@ -4,12 +4,12 @@ import PreferencesActions from 'sentry/actions/preferencesActions';
 
 import {CommonStoreInterface} from './types';
 
-type Preferences = {
+interface Preferences {
   /**
    * Is the sidebar collapsed to the side
    */
   collapsed?: boolean;
-};
+}
 
 type PreferenceStoreInterface = CommonStoreInterface<Preferences> & {
   prefs: Preferences;

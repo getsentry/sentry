@@ -10,7 +10,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import {Dataset} from './types';
 
-type PresetCta = {
+interface PresetCta {
   /**
    * The location to direct to upon clicking the CTA.
    */
@@ -23,16 +23,16 @@ type PresetCta = {
    * The tooltip title for the CTA button, may be empty.
    */
   title?: string;
-};
+}
 
-type PresetCtaOpts = {
+interface PresetCtaOpts {
   orgSlug: string;
   projects: Project[];
   incident?: Incident;
   stats?: IncidentStats;
-};
+}
 
-type Preset = {
+interface Preset {
   /**
    * The regex used to match aggregates to this preset.
    */
@@ -53,7 +53,7 @@ type Preset = {
    * Generates the CTA component
    */
   makeCtaParams: (opts: PresetCtaOpts) => PresetCta;
-};
+}
 
 export const PRESET_AGGREGATES: Preset[] = [
   {

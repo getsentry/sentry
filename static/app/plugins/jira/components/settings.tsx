@@ -7,16 +7,22 @@ import DefaultSettings from 'sentry/plugins/components/settings';
 
 type Field = Parameters<typeof DefaultSettings.prototype.renderField>[0]['config'];
 
-type FieldWithValues = Field & {value?: any; defaultValue?: any};
+interface FieldWithValues extends Field {
+  value?: any;
+  defaultValue?: any;
+}
 
-type ApiData = {default_project?: string; config: FieldWithValues[]};
+interface ApiData {
+  default_project?: string;
+  config: FieldWithValues[];
+}
 
 type Props = DefaultSettings['props'];
 
-type State = DefaultSettings['state'] & {
+interface State {
   page: number;
   editing?: boolean;
-};
+}
 
 const PAGE_FIELD_LIST = {
   0: ['instance_url', 'username', 'password'],

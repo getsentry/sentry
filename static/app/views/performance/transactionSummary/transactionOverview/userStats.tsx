@@ -17,7 +17,7 @@ import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
 
-type Props = {
+interface Props {
   isLoading: boolean;
   hasWebVitals: boolean;
   error: string | null;
@@ -25,7 +25,7 @@ type Props = {
   location: Location;
   organization: Organization;
   transactionName: string;
-};
+}
 
 function UserStats({
   isLoading,

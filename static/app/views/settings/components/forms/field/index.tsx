@@ -34,64 +34,62 @@ type InheritedControlStateProps = Omit<
   'children' | 'error'
 >;
 
-type Props = InheritedFieldControlProps &
-  InheritedFieldWrapperProps &
-  InheritedControlStateProps & {
-    /**
-     * Show "required" indicator
-     */
-    required?: boolean;
-    /**
-     * Should field be visible
-     */
-    visible?: boolean | ((props: Props) => boolean);
-    /**
-     * Should field be disabled?
-     */
-    disabled?: boolean | ((props: Props) => boolean);
-    /**
-     * User-facing field name
-     */
-    label?: React.ReactNode;
-    /**
-     * Should the label be rendered for the field?
-     */
-    hideLabel?: boolean;
-    /**
-     * Help or description of the field
-     */
-    help?: React.ReactNode | React.ReactElement | ((props: Props) => React.ReactNode);
-    /**
-     * Displays the help element in the tooltip
-     */
-    showHelpInTooltip?: boolean;
-    /**
-     * The control's `id` property
-     */
-    id?: string;
-    /**
-     * Additional inline styles for the field
-     */
-    style?: React.CSSProperties;
-    /**
-     * The classname of the field
-     */
-    className?: string;
-    /**
-     * The classname of the field control
-     */
-    controlClassName?: string;
-    /**
-     * Error message to display for the field
-     */
-    error?: string;
-    validate?: Function; // TODO(TS): Do we need this?
-    /**
-     * The control to render. May be given a function to render with resolved
-     * props.
-     */
-    children?: React.ReactNode | ((props: ChildRenderProps) => React.ReactNode);
-  };
+interface Props extends InheritedFieldControlProps, InheritedFieldWrapperProps, InheritedControlStateProps {
+  /**
+   * Show "required" indicator
+   */
+  required?: boolean;
+  /**
+   * Should field be visible
+   */
+  visible?: boolean | ((props: Props) => boolean);
+  /**
+   * Should field be disabled?
+   */
+  disabled?: boolean | ((props: Props) => boolean);
+  /**
+   * User-facing field name
+   */
+  label?: React.ReactNode;
+  /**
+   * Should the label be rendered for the field?
+   */
+  hideLabel?: boolean;
+  /**
+   * Help or description of the field
+   */
+  help?: React.ReactNode | React.ReactElement | ((props: Props) => React.ReactNode);
+  /**
+   * Displays the help element in the tooltip
+   */
+  showHelpInTooltip?: boolean;
+  /**
+   * The control's `id` property
+   */
+  id?: string;
+  /**
+   * Additional inline styles for the field
+   */
+  style?: React.CSSProperties;
+  /**
+   * The classname of the field
+   */
+  className?: string;
+  /**
+   * The classname of the field control
+   */
+  controlClassName?: string;
+  /**
+   * Error message to display for the field
+   */
+  error?: string;
+  validate?: Function; // TODO(TS): Do we need this?;
+  /**
+   * The control to render. May be given a function to render with resolved
+   * props.
+   */
+  children?: React.ReactNode | ((props: ChildRenderProps) => React.ReactNode);
+}
 
 type ChildRenderProps = Omit<Props, 'className' | 'disabled'> & {
   help: React.ReactNode;

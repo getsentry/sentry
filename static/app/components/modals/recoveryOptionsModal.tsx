@@ -9,15 +9,14 @@ import space from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = AsyncComponent['props'] &
-  ModalRenderProps & {
-    authenticatorName: string;
-  };
+interface Props extends ModalRenderProps {
+  authenticatorName: string;
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   authenticators: Authenticator[] | null;
   skipSms: boolean;
-};
+}
 
 class RecoveryOptionsModal extends AsyncComponent<Props, State> {
   getDefaultState() {

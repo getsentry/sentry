@@ -63,7 +63,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
   hideHeader: boolean;
 };
 
-type State = {
+interface State {
   integrations: Integration[] | null;
   plugins: PluginWithProjectList[] | null;
   appInstalls: SentryAppInstallation[] | null;
@@ -76,7 +76,7 @@ type State = {
   displayedList: AppOrProviderOrPlugin[];
   selectedCategory: string;
   fuzzy?: Fuse<AppOrProviderOrPlugin, typeof fuseOptions>;
-};
+}
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
 

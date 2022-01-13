@@ -13,20 +13,20 @@ import {EventUser} from 'sentry/types/event';
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import Item from './item';
 
-type Props = {
+interface Props {
   data: EventUser;
-};
+}
 
-type UserTitle = {
+interface UserTitle {
   value: string;
   meta?: Meta;
-};
+}
 
-type UserDetails = {
+interface UserDetails {
   subject: string;
   value?: string;
   meta?: Meta;
-};
+}
 
 const ContextSummaryUser = ({data}: Props) => {
   const user = removeFilterMaskedEntries(data);

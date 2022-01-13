@@ -4,11 +4,11 @@ import momentTimezone from 'moment-timezone';
 
 import ConfigStore from 'sentry/stores/configStore';
 
-type DefaultProps = {
+interface DefaultProps {
   seconds: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   date: moment.MomentInput | momentTimezone.MomentInput;
   dateOnly?: boolean;
   timeOnly?: boolean;
@@ -16,7 +16,7 @@ type Props = DefaultProps & {
   timeAndDate?: boolean;
   utc?: boolean;
   format?: string;
-};
+}
 
 class DateTime extends Component<Props> {
   static defaultProps: DefaultProps = {

@@ -17,12 +17,11 @@ const defaultProps = {
 
 type InputProps = React.ComponentProps<typeof NoteInput>;
 
-type Props = {
+interface Props extends InputProps {
   storageKey: string;
   itemKey: string;
   text?: string;
-} & InputProps &
-  typeof defaultProps;
+}
 
 class NoteInputWithStorage extends React.Component<Props> {
   static defaultProps = defaultProps;

@@ -7,14 +7,14 @@ import {DataCategory, Organization} from 'sentry/types';
 import {Outcome, UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   dataCategory: DataCategory;
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   orgStats: UsageSeries | undefined;
-} & AsyncComponent['state'];
+}
 
 /**
  * Making 1 extra API call to display this number isn't very efficient.

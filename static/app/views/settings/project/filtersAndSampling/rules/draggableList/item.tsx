@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 
 type UseSortableOutputProps = ReturnType<typeof useSortable>;
 
-export type ItemProps = {
+export interface ItemProps {
   value: React.ReactNode;
   renderItem(args: {
     dragging: boolean;
@@ -28,7 +28,7 @@ export type ItemProps = {
   attributes?: UseSortableOutputProps['attributes'];
   wrapperStyle?: React.CSSProperties;
   innerWrapperStyle?: React.CSSProperties;
-};
+}
 
 function Item({
   value,

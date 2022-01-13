@@ -12,17 +12,17 @@ const prettyDate = (x: string) => moment(x).format('ll LTS');
 
 type Props = RouteComponentProps<{}, {}> & {api: Client};
 
-type State = {
+interface State {
   loading: boolean;
-};
+}
 
-type RelayRow = {
+interface RelayRow {
   id: string;
   relayId: string;
   publicKey: string;
   firstSeen: string;
   lastSeen: string;
-};
+}
 
 class AdminRelays extends Component<Props, State> {
   state: State = {

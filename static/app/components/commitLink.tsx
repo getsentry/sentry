@@ -7,16 +7,16 @@ import {t} from 'sentry/locale';
 import {Repository} from 'sentry/types';
 import {getShortCommitHash} from 'sentry/utils';
 
-type CommitFormatterParameters = {
+interface CommitFormatterParameters {
   baseUrl: string;
   commitId: string;
-};
+}
 
-type CommitProvider = {
+interface CommitProvider {
   icon: React.ReactNode;
   providerIds: string[];
   commitUrl: (opts: CommitFormatterParameters) => string;
-};
+}
 
 // TODO(epurkhiser, jess): This should be moved into plugins.
 const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
@@ -42,11 +42,11 @@ const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
   },
 ];
 
-type Props = {
+interface Props {
   commitId: string;
   repository?: Repository;
   inline?: boolean;
-};
+}
 
 function CommitLink({inline, commitId, repository}: Props) {
   if (!commitId || !repository) {

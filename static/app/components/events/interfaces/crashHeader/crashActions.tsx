@@ -12,12 +12,12 @@ import {
   Thread,
 } from 'sentry/types';
 
-type NotifyOptions = {
+interface NotifyOptions {
   stackView?: STACK_VIEW;
   stackType?: STACK_TYPE;
-};
+}
 
-type Props = {
+interface Props {
   hasHierarchicalGrouping: boolean;
   stackView?: STACK_VIEW;
   stackType?: STACK_TYPE;
@@ -26,7 +26,7 @@ type Props = {
   thread?: Thread;
   exception?: ExceptionType;
   onChange?: (notifyOptions: NotifyOptions) => void;
-};
+}
 
 const CrashActions = ({
   hasHierarchicalGrouping,

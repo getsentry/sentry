@@ -2,12 +2,12 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   /**
    * The text interface
    */
   children: string;
-};
+}
 
 const CommandLine = ({children}: Props) => <Wrapper>{children}</Wrapper>;
 

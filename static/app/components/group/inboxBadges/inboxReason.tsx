@@ -18,12 +18,12 @@ const GroupInboxReason = {
   REPROCESSED: 4,
 };
 
-type Props = {
+interface Props {
   inbox: InboxDetails;
   fontSize?: 'sm' | 'md';
   /** Displays the time an issue was added to inbox */
   showDateAdded?: boolean;
-};
+}
 
 const EVENT_ROUND_LIMIT = 1000;
 

@@ -14,18 +14,18 @@ import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   urlPrefix: string;
   organization: Organization;
   team: Team;
   openMembership: boolean;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
-};
+}
 
 class AllTeamsRow extends React.Component<Props, State> {
   state: State = {

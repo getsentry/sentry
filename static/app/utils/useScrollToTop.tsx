@@ -1,13 +1,13 @@
 import {useEffect, useRef} from 'react';
 import {Location} from 'history';
 
-type Options = {
+interface Options {
   location: Location;
   /**
    * Function to stop scrolling from happening if a certan condition is met
    */
   disable?: (location: Location, prevLocation: Location) => boolean;
-};
+}
 
 /**
  * Automatically scrolls to the top of the page any time the location changes.

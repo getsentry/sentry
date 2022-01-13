@@ -18,14 +18,14 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 
 import ImageVisualization from './imageVisualization';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   eventAttachment: EventAttachment;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   event: Event;
   onDelete: () => void;
   downloadUrl: string;
-};
+}
 
 function Modal({
   eventAttachment,

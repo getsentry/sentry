@@ -4,9 +4,9 @@ import {Team} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import useTeams from 'sentry/utils/useTeams';
 
-type InjectedTeamsProps = {
+interface InjectedTeamsProps {
   teams?: Team[];
-};
+}
 
 /**
  * Higher order component that provides a list of teams

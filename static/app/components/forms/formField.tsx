@@ -9,13 +9,13 @@ import {defined} from 'sentry/utils';
 
 type Value = string | number | boolean;
 
-type DefaultProps = {
+interface DefaultProps {
   required?: boolean;
   disabled?: boolean;
   hideErrorMessage?: boolean;
-};
+}
 
-type FormFieldProps = DefaultProps & {
+interface FormFieldProps extends DefaultProps {
   name: string;
   style?: object;
   label?: React.ReactNode;
@@ -27,12 +27,12 @@ type FormFieldProps = DefaultProps & {
   error?: string;
   value?: Value;
   meta?: Meta;
-};
+}
 
-type FormFieldState = {
+interface FormFieldState {
   error: string | null;
   value: Value;
-};
+}
 
 export default class FormField<
   Props extends FormFieldProps = FormFieldProps,

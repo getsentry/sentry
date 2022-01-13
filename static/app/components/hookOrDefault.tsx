@@ -3,7 +3,7 @@ import * as React from 'react';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName, Hooks} from 'sentry/types/hooks';
 
-type Params<H extends HookName> = {
+interface Params<H extends HookName> {
   /**
    * The name of the hook as listed in hookstore.add(hookName, callback)
    */
@@ -18,7 +18,7 @@ type Params<H extends HookName> = {
    * use React.Suspense and React.lazy to render the component.
    */
   defaultComponentPromise?: () => Promise<ReturnType<Hooks[H]>>;
-};
+}
 
 /**
  * Use this instead of the usual ternery operator when using getsentry hooks.
@@ -48,7 +48,10 @@ function HookOrDefault<H extends HookName>({
   defaultComponentPromise,
 }: Params<H>) {
   type Props = React.ComponentProps<ReturnType<Hooks[H]>>;
-  type State = {hooks: Hooks[H][]};
+
+  interface State {
+    hooks: Hooks[H][];
+  }
 
   class HookOrDefaultComponent extends React.Component<Props, State> {
     static displayName = `HookOrDefaultComponent(${hookName})`;

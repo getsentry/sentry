@@ -277,9 +277,9 @@ export function initSessionsChart(theme: Theme) {
   };
 }
 
-type GetSessionsIntervalOptions = {
+interface GetSessionsIntervalOptions {
   highFidelity?: boolean;
-};
+}
 
 export function getSessionsInterval(
   datetimeObj: DateTimeObject,

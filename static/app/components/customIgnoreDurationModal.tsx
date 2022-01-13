@@ -14,13 +14,13 @@ const defaultProps = {
   label: t('Ignore this issue until \u2026'),
 };
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   onSelected: (details: ResolutionStatusDetails) => void;
-} & typeof defaultProps;
+}
 
-type State = {
+interface State {
   dateWarning: boolean;
-};
+}
 
 export default class CustomIgnoreDurationModal extends Component<Props, State> {
   static defaultProps = defaultProps;

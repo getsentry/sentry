@@ -43,7 +43,7 @@ function getReleaseProjectId(release: Release, selection: PageFilters) {
   return undefined;
 }
 
-type Props = {
+interface Props {
   release: Release;
   organization: Organization;
   activeDisplay: ReleasesDisplayOption;
@@ -54,7 +54,7 @@ type Props = {
   isTopRelease: boolean;
   getHealthData: ReleasesRequestRenderProps['getHealthData'];
   showReleaseAdoptionStages: boolean;
-};
+}
 
 class ReleaseCard extends Component<Props> {
   shouldComponentUpdate(nextProps: Props) {

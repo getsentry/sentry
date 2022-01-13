@@ -72,14 +72,14 @@ const TREND_FUNCTIONS_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(
   })
 );
 
-type Props = {
+interface Props {
   organization: OrganizationSummary;
   location: Location;
   eventView: EventView;
   totalValues: number | null;
   currentFilter: SpanOperationBreakdownFilter;
   withoutZerofill: boolean;
-};
+}
 
 class TransactionSummaryCharts extends Component<Props> {
   handleDisplayChange = (value: string) => {

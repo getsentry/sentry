@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {imageStyle} from 'sentry/components/avatar/styles';
 import theme from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   round?: boolean;
   suggested?: boolean;
   forwardedRef?: React.Ref<SVGSVGElement>;
-};
+}
 
 type BackgroundAvatarProps = React.ComponentProps<'svg'> & Props;
 

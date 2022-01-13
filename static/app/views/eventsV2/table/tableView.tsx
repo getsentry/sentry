@@ -49,14 +49,12 @@ import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
 import {TableColumn} from './types';
 
-export type TableViewProps = {
+export interface TableViewProps {
   location: Location;
   organization: Organization;
   projects: Project[];
-
   isLoading: boolean;
   error: string | null;
-
   isFirstPage: boolean;
   eventView: EventView;
   tableData: TableData | null | undefined;
@@ -64,10 +62,9 @@ export type TableViewProps = {
   measurementKeys: null | string[];
   spanOperationBreakdownKeys?: string[];
   title: string;
-
   onChangeShowTags: () => void;
   showTags: boolean;
-};
+}
 
 /**
  * The `TableView` is marked with leading _ in its method names. It consumes
@@ -538,10 +535,10 @@ const StyledIcon = styled(IconStack)`
   vertical-align: middle;
 `;
 
-type TopResultsIndicatorProps = {
+interface TopResultsIndicatorProps {
   count: number;
   index: number;
-};
+}
 
 const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
   position: absolute;

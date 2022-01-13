@@ -36,17 +36,18 @@ function getProjectID(eventData: EventData, projects: Project[]): string | undef
   return project.id;
 }
 
-type TableProps = {
+interface TableProps {
   eventView: EventView;
   organization: Organization;
   location: Location;
   summaryConditions: string;
   projects: Project[];
-};
+}
 
-type TableState = {
+interface TableState {
   widths: number[];
-};
+}
+
 class Table extends React.Component<TableProps, TableState> {
   state: TableState = {
     widths: [],
@@ -170,7 +171,7 @@ class Table extends React.Component<TableProps, TableState> {
   }
 }
 
-type Props = {
+interface Props {
   organization: Organization;
   location: Location;
   rule: IncidentRule;
@@ -178,7 +179,7 @@ type Props = {
   filter: string;
   start?: string;
   end?: string;
-};
+}
 
 class RelatedTransactions extends React.Component<Props> {
   render() {

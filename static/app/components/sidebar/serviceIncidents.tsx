@@ -20,9 +20,9 @@ import {CommonSidebarProps} from './types';
 
 type Props = CommonSidebarProps;
 
-type State = {
+interface State {
   status: SentryServiceStatus | null;
-};
+}
 
 class ServiceIncidents extends Component<Props, State> {
   state: State = {

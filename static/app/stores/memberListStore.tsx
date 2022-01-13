@@ -2,7 +2,7 @@ import Reflux from 'reflux';
 
 import {User} from 'sentry/types';
 
-type MemberListStoreInterface = {
+interface MemberListStoreInterface {
   state: User[];
   loaded: boolean;
   loadInitialData(items: User[]): void;
@@ -10,7 +10,7 @@ type MemberListStoreInterface = {
   getById(id: string): User | undefined;
   getByEmail(email: string): User | undefined;
   getAll(): User[];
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & MemberListStoreInterface = {
   // listenables: MemberActions,

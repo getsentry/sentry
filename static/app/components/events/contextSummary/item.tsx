@@ -4,11 +4,11 @@ import classNames from 'classnames';
 
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   icon: React.ReactElement;
   children: React.ReactNode;
   className?: string;
-};
+}
 
 const Item = ({children, icon, className}: Props) => (
   <Wrapper className={classNames('context-item', className)} data-test-id="context-item">

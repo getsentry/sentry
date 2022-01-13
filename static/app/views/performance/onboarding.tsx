@@ -85,10 +85,10 @@ export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
-};
+}
 
 function Onboarding({organization, project}: Props) {
   const api = useApi();

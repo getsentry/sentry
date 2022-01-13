@@ -4,25 +4,20 @@ import styled from '@emotion/styled';
 import {HeaderTitle} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   // Icon left of title
   icon?: React.ReactNode;
-
   // The title
   title: React.ReactNode;
   subtitle?: React.ReactNode;
-
   // Disables font styles in the title. Allows for more custom titles.
   noTitleStyles?: boolean;
   className?: string;
-
   // CTA button
   action?: React.ReactNode;
-
   body?: React.ReactNode;
-
   tabs?: React.ReactNode;
-};
+}
 
 class UnstyledSettingsPageHeader extends React.Component<Props> {
   static defaultProps = {
@@ -60,10 +55,10 @@ class UnstyledSettingsPageHeader extends React.Component<Props> {
   }
 }
 
-type TitleProps = {
+interface TitleProps {
   styled?: boolean;
   tabs?: React.ReactNode;
-};
+}
 
 const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;

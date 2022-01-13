@@ -34,10 +34,10 @@ import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../type
 import {eventsRequestQueryProps} from '../utils';
 import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
-type DataType = {
+interface DataType {
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;
-};
+}
 
 export function transformFieldsWithStops(props: {
   field: string;

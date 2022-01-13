@@ -9,20 +9,20 @@ import {Monitor} from 'sentry/views/monitors/types';
 
 import CheckInIcon from './checkInIcon';
 
-type CheckIn = {
+interface CheckIn {
   dateCreated: string;
   duration: number;
   id: string;
   status: 'ok' | 'error';
-};
+}
 
-type Props = {
+interface Props {
   monitor: Monitor;
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   checkInList: CheckIn[];
-} & AsyncComponent['state'];
+}
 
 export default class MonitorCheckIns extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

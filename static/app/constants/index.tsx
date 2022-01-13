@@ -78,11 +78,12 @@ export const MEMBER_ROLES = [
   },
 ];
 
-export type PermissionChoice = {
+export interface PermissionChoice {
   label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
   scopes: Scope[];
-};
-type PermissionObj = {
+}
+
+interface PermissionObj {
   resource: 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
   help: string;
   label?: string;
@@ -92,7 +93,7 @@ type PermissionObj = {
     write?: PermissionChoice;
     admin: PermissionChoice;
   };
-};
+}
 
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
 

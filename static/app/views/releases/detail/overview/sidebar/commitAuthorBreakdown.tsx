@@ -12,19 +12,19 @@ import {Commit, User} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import {userDisplayName} from 'sentry/utils/formatters';
 
-type GroupedAuthorCommits = {
+interface GroupedAuthorCommits {
   [key: string]: {author: User | undefined; commitCount: number};
-};
+}
 
-type Props = {
+interface Props {
   projectSlug: string;
   orgId: string;
   version: string;
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   commits: Commit[];
-} & AsyncComponent['state'];
+}
 
 class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
   shouldReload = true;

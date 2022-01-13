@@ -35,7 +35,7 @@ const recordAnalytics = (
     action,
   });
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   /**
    * Task to render
    */
@@ -49,10 +49,9 @@ type Props = WithRouterProps & {
    * supplemental component with the ability to complete a task
    */
   onMarkComplete: (taskKey: OnboardingTaskKey) => void;
-
   forwardedRef: React.Ref<HTMLDivElement>;
   organization: Organization;
-};
+}
 
 function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}: Props) {
   const handleSkip = () => {

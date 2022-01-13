@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import SearchBar from 'sentry/components/searchBar';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   onChange: (value: string) => void;
   query: string;
   placeholder: string;
@@ -13,7 +13,7 @@ type Props = {
    */
   filter?: React.ReactElement;
   className?: string;
-};
+}
 
 function SearchBarAction({onChange, query, placeholder, filter, className}: Props) {
   return (

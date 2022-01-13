@@ -32,10 +32,10 @@ import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../type
 import {eventsRequestQueryProps} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
-type DataType = {
+interface DataType {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
-};
+}
 
 const slowList = [
   PerformanceWidgetSetting.SLOW_HTTP_OPS,

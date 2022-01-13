@@ -12,19 +12,19 @@ import EventView, {
 import {usePerformanceEventView} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export type GenericChildrenProps<T> = {
+export interface GenericChildrenProps<T> {
   isLoading: boolean;
   error: null | string;
   tableData: T | null;
   pageLinks: null | string;
-};
+}
 
-type OptionalContextProps = {
+interface OptionalContextProps {
   eventView?: EventView | ImmutableEventView;
   orgSlug?: string;
-};
+}
 
-type BaseDiscoverQueryProps = {
+interface BaseDiscoverQueryProps {
   api: Client;
   /**
    * Used as the default source for cursor values.
@@ -53,22 +53,22 @@ type BaseDiscoverQueryProps = {
    * on the OrganizationEventsV2Endpoint view.
    */
   referrer?: string;
-};
+}
 
-export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
-export type DiscoverQueryProps = BaseDiscoverQueryProps & {
+export interface DiscoverQueryPropsWithContext extends BaseDiscoverQueryProps, OptionalContextProps {}
+export interface DiscoverQueryProps extends BaseDiscoverQueryProps {
   orgSlug: string;
   eventView: EventView | ImmutableEventView;
-};
+}
 
-type InnerRequestProps<P> = DiscoverQueryProps & P;
-type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
+interface InnerRequestProps<P> extends DiscoverQueryProps, P {}
+interface OuterRequestProps<P> extends DiscoverQueryPropsWithContext, P {}
 
-export type ReactProps<T> = {
+export interface ReactProps<T> {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
-};
+}
 
-type ComponentProps<T, P> = {
+interface ComponentProps<T, P> {
   /**
    * Route to the endpoint
    */
@@ -93,7 +93,7 @@ type ComponentProps<T, P> = {
    * A hook for parent orchestrators to pass down data based on query results, unlike afterFetch it is not meant for specializations as it will not modify data.
    */
   didFetch?: (data: T) => void;
-};
+}
 
 type Props<T, P> = InnerRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
 type OuterProps<T, P> = OuterRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;

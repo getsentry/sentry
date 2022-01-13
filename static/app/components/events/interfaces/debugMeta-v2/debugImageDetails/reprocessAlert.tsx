@@ -18,18 +18,18 @@ enum ReprocessableEventReason {
   ATTACHMENT_NOT_FOUND = 'attachment.not_found',
 }
 
-type ReprocessableEvent = {
+interface ReprocessableEvent {
   reprocessable: boolean;
   reason?: ReprocessableEventReason;
-};
+}
 
-type Props = {
+interface Props {
   onReprocessEvent: () => void;
   api: Client;
   orgSlug: Organization['slug'];
   projSlug: Project['slug'];
   eventId: Event['id'];
-};
+}
 
 function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Props) {
   const [reprocessableEvent, setReprocessableEvent] = useState<

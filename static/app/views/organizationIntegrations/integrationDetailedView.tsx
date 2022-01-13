@@ -28,10 +28,10 @@ const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
   defaultComponent: () => null,
 });
 
-type State = {
+interface State {
   configurations: Integration[];
   information: {providers: IntegrationProvider[]};
-};
+}
 
 class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   AbstractIntegrationDetailedView['props'],

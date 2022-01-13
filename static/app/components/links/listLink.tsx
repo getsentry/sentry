@@ -6,11 +6,11 @@ import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
-type DefaultProps = {
+interface DefaultProps {
   index: boolean;
   activeClassName: string;
   disabled: boolean;
-};
+}
 
 type LinkProps = Omit<React.ComponentProps<typeof RouterLink>, 'to'>;
 

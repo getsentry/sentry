@@ -59,7 +59,7 @@ import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 
-type Props = {
+interface Props {
   location: Location;
   eventView: EventView;
   projectId: string;
@@ -71,7 +71,7 @@ type Props = {
   projects: Project[];
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
-};
+}
 
 class SummaryContent extends React.Component<Props> {
   handleSearch = (query: string) => {

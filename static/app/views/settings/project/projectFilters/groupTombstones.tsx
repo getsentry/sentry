@@ -15,10 +15,10 @@ import space from 'sentry/styles/space';
 import {GroupTombstone} from 'sentry/types';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type RowProps = {
+interface RowProps {
   data: GroupTombstone;
   onUndiscard: (id: string) => void;
-};
+}
 
 function GroupTombstoneRow({data, onUndiscard}: RowProps) {
   const actor = data.actor;
@@ -67,15 +67,15 @@ function GroupTombstoneRow({data, onUndiscard}: RowProps) {
   );
 }
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   orgId: string;
   projectId: string;
-};
+}
 
-type State = {
+interface State {
   tombstones: GroupTombstone[];
   tombstonesPageLinks: null | string;
-} & AsyncComponent['state'];
+}
 
 class GroupTombstones extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

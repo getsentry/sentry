@@ -5,11 +5,11 @@ import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   isOpen: boolean;
   getActorProps: GetActorPropsFn;
   checkedQuantity: number;
-};
+}
 
 function DropDownButton({isOpen, getActorProps, checkedQuantity}: Props) {
   if (checkedQuantity > 0) {

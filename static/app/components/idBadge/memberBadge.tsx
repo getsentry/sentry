@@ -8,7 +8,7 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {AvatarUser, Member} from 'sentry/types';
 
-type Props = {
+interface Props {
   member: Member;
   avatarSize?: UserAvatar['props']['size'];
   displayName?: React.ReactNode;
@@ -17,7 +17,7 @@ type Props = {
   useLink?: boolean;
   hideEmail?: boolean;
   className?: string;
-};
+}
 
 function getMemberUser(member: Member): AvatarUser {
   if (member.user) {

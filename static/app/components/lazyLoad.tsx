@@ -28,10 +28,10 @@ type Props<C extends Component> = Omit<
   route?: {componentPromise: () => PromisedImport<C>};
 };
 
-type State<C extends Component> = {
+interface State<C extends Component> {
   Component: C | null;
   error: any | null;
-};
+}
 
 class LazyLoad<C extends Component> extends React.Component<Props<C>, State<C>> {
   state: State<C> = {

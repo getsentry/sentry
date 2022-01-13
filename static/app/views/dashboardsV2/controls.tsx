@@ -16,7 +16,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 
 import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
-type Props = {
+interface Props {
   organization: Organization;
   dashboards: DashboardListItem[];
   onEdit: () => void;
@@ -26,7 +26,7 @@ type Props = {
   onAddWidget: () => void;
   widgetLimitReached: boolean;
   dashboardState: DashboardState;
-};
+}
 
 class Controls extends React.Component<Props> {
   render() {

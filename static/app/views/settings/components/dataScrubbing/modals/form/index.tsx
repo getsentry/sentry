@@ -25,7 +25,7 @@ import SourceField from './sourceField';
 
 type Values = Omit<Record<KeysOfUnion<Rule>, string>, 'id'>;
 
-type Props<V extends Values, K extends keyof V> = {
+interface Props<V extends Values, K extends keyof V> {
   values: V;
   errors: Partial<V>;
   sourceSuggestions: Array<SourceSuggestion>;
@@ -33,11 +33,11 @@ type Props<V extends Values, K extends keyof V> = {
   onChange: (field: K, value: string) => void;
   eventId: EventId;
   onUpdateEventId: (eventId: string) => void;
-};
+}
 
-type State = {
+interface State {
   displayEventId: boolean;
-};
+}
 
 class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
   state: State = {displayEventId: !!this.props.eventId?.value};

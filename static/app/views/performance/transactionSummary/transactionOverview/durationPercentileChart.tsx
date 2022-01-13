@@ -32,20 +32,19 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type ApiResult = {
+interface ApiResult {
   [bucket: string]: number;
-};
+}
 
-type Props = AsyncComponent['props'] &
-  ViewProps & {
-    organization: OrganizationSummary;
-    location: Location;
-    currentFilter: SpanOperationBreakdownFilter;
-  };
+interface Props extends ViewProps {
+  organization: OrganizationSummary;
+  location: Location;
+  currentFilter: SpanOperationBreakdownFilter;
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   chartData: {data: ApiResult[]} | null;
-};
+}
 
 /**
  * Fetch and render a bar chart that shows event volume

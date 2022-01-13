@@ -9,7 +9,8 @@ import {buildTeamId, buildUserId} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
-type AssignToUserParams = {
+
+interface AssignToUserParams {
   /**
    * Issue id
    */
@@ -17,7 +18,7 @@ type AssignToUserParams = {
   user: User | Actor;
   member?: Member;
   assignedBy: AssignedBy;
-};
+}
 
 export function assignToUser(params: AssignToUserParams) {
   const api = new Client();
@@ -83,14 +84,14 @@ export function clearAssignment(groupId: string, assignedBy: AssignedBy) {
   return request;
 }
 
-type AssignToActorParams = {
+interface AssignToActorParams {
   /**
    * Issue id
    */
   id: string;
   actor: Pick<Actor, 'id' | 'type'>;
   assignedBy: AssignedBy;
-};
+}
 
 export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
   const api = new Client();
@@ -178,17 +179,17 @@ export function updateNote(
   return promise;
 }
 
-type ParamsType = {
+interface ParamsType {
   itemIds?: Array<number> | Array<string>;
   query?: string;
   environment?: string | Array<string> | null;
   project?: Array<number> | null;
-};
+}
 
-type UpdateParams = ParamsType & {
+interface UpdateParams extends ParamsType {
   orgId: string;
   projectId?: string;
-};
+}
 
 type QueryArgs =
   | {
@@ -301,10 +302,10 @@ export function bulkDelete(
   );
 }
 
-type BulkUpdateParams = UpdateParams & {
+interface BulkUpdateParams extends UpdateParams {
   failSilently?: boolean;
   data?: any;
-};
+}
 
 export function bulkUpdate(
   api: Client,

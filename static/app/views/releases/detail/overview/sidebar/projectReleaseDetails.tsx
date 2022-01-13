@@ -11,12 +11,12 @@ import Version from 'sentry/components/version';
 import {t, tn} from 'sentry/locale';
 import {ReleaseMeta, ReleaseWithHealth} from 'sentry/types';
 
-type Props = {
+interface Props {
   release: ReleaseWithHealth;
   releaseMeta: ReleaseMeta;
   orgSlug: string;
   projectSlug: string;
-};
+}
 
 const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Props) => {
   const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;

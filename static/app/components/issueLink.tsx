@@ -15,13 +15,13 @@ import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 
-type Props = {
+interface Props {
   orgId: string;
   issue: Group;
   to: string;
   card: boolean;
   children: React.ReactNode;
-};
+}
 
 const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
   if (!card) {

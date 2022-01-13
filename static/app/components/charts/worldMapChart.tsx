@@ -34,11 +34,11 @@ type Props = Omit<ChartProps, 'series'> & {
 
 type JSONResult = Record<string, any>;
 
-type State = {
+interface State {
   countryToCodeMap: JSONResult | null;
   map: JSONResult | null;
   codeToCountryMap: JSONResult | null;
-};
+}
 
 const DEFAULT_ZOOM = 1.3;
 const DISCOVER_ZOOM = 1.1;

@@ -48,12 +48,12 @@ type Props = {
   group: Group;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type State = {
+interface State {
   createBusy: boolean;
   error: boolean;
   errorJSON: CreateError | null;
   inputId: string;
-};
+}
 
 class GroupActivity extends Component<Props, State> {
   // TODO(dcramer): only re-render on group/activity change

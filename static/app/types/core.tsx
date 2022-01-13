@@ -10,11 +10,11 @@ import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 /**
  * Visual representation of a project/team/organization/user
  */
-export type Avatar = {
+export interface Avatar {
   avatarUuid: string | null;
   avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
   color?: boolean;
-};
+}
 
 export type ObjectStatus =
   | 'active'
@@ -22,12 +22,12 @@ export type ObjectStatus =
   | 'pending_deletion'
   | 'deletion_in_progress';
 
-export type Actor = {
+export interface Actor {
   type: 'user' | 'team';
   id: string;
   name: string;
   email?: string;
-};
+}
 
 export type Scope = typeof API_ACCESS_SCOPES[number];
 
@@ -44,12 +44,12 @@ export type Writable<T> = {-readonly [K in keyof T]: T[K]};
 /**
  * The option format used by react-select based components
  */
-export type SelectValue<T> = {
+export interface SelectValue<T> {
   label: string | number | React.ReactElement;
   value: T;
   disabled?: boolean;
   tooltip?: string;
-};
+}
 
 /**
  * The 'other' option format used by checkboxes, radios and more.
@@ -80,7 +80,7 @@ export const DataCategoryName = {
 export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
-export type PageFilters = {
+export interface PageFilters {
   /**
    * Currently selected Project IDs
    */
@@ -98,4 +98,4 @@ export type PageFilters = {
     period: RelativePeriod | string;
     utc: boolean | null;
   };
-};
+}

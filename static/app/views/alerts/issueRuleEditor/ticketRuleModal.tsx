@@ -10,7 +10,7 @@ import {IssueAlertRuleAction} from 'sentry/types/alerts';
 import AsyncView from 'sentry/views/asyncView';
 import Form from 'sentry/views/settings/components/forms/form';
 
-type Props = {
+interface Props {
   // Comes from the in-code definition of a `TicketEventAction`.
   formFields: {[key: string]: any};
   index: number;
@@ -23,11 +23,11 @@ type Props = {
   ) => void;
   organization: Organization;
   ticketType?: string;
-} & AbstractExternalIssueForm['props'];
+}
 
-type State = {
+interface State {
   issueConfigFieldsCache: IssueConfigField[];
-} & AbstractExternalIssueForm['state'];
+}
 
 class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   getDefaultState(): State {

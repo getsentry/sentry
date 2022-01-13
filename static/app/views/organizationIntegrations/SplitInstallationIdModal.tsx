@@ -5,10 +5,10 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 
-type Props = {
+interface Props {
   installationId: string;
   closeModal: () => void;
-};
+}
 
 /**
  * This component is a hack for Split.

@@ -11,22 +11,18 @@ import ConfigStore from 'sentry/stores/configStore';
 import {AvatarUser, User} from 'sentry/types';
 import {userDisplayName} from 'sentry/utils/formatters';
 
-type Props = {
+interface Props {
   // Avatar size
   avatarSize?: number;
-
   // List of *all* users that have seen something
   seenBy?: User[];
-
   // Tooltip message for the "Seen By" icon
   iconTooltip?: string;
-
   // Max avatars to display
   maxVisibleAvatars?: number;
-
   iconPosition?: 'left' | 'right';
   className?: string;
-};
+}
 
 const SeenByList = ({
   avatarSize = 28,

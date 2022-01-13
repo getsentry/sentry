@@ -12,19 +12,19 @@ import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = {
+interface Props {
   api: Client;
   project: Project;
   params: {orgId: string; projectId: string};
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
   statsError: boolean;
   formattedData: Series[];
   blankStats: boolean;
-};
+}
 
 type RawStats = Record<string, [timestamp: number, value: number][]>;
 

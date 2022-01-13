@@ -3,24 +3,24 @@ import flatten from 'lodash/flatten';
 
 import {Result} from './types';
 
-type ChildProps = {
+interface ChildProps {
   results: Result[];
   isLoading: boolean;
   hasAnyResults: boolean;
-};
+}
 
-type Props = {
+interface Props {
   sources: React.ComponentType[];
   query: string;
   children: (props: ChildProps) => React.ReactElement;
   params: {orgId: string};
   searchOptions?: Fuse.FuseOptions<any>;
-};
+}
 
-type SourceResult = {
+interface SourceResult {
   isLoading: boolean;
   results: Result[];
-};
+}
 
 class SearchSources extends React.Component<Props> {
   // `allSources` will be an array of all result objects from each source

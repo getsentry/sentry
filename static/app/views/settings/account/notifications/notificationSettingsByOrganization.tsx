@@ -14,7 +14,7 @@ import {
 import Form from 'sentry/views/settings/components/forms/form';
 import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
-type Props = {
+interface Props {
   notificationType: string;
   notificationSettings: NotificationSettingsObject;
   organizations: OrganizationSummary[];
@@ -22,9 +22,9 @@ type Props = {
     changedData: NotificationSettingsByProviderObject,
     parentId: string
   ) => NotificationSettingsObject;
-};
+}
 
-type State = {};
+interface State {}
 
 class NotificationSettingsByOrganization extends Component<Props, State> {
   render() {

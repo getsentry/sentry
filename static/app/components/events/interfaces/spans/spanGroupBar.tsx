@@ -55,7 +55,7 @@ import {
 
 const MARGIN_LEFT = 0;
 
-type Props = {
+interface Props {
   event: Readonly<EventTransaction>;
   treeDepth: number;
   span: Readonly<ProcessedSpanType>;
@@ -64,7 +64,7 @@ type Props = {
   continuingTreeDepths: Array<TreeDepthType>;
   spanGrouping: EnhancedSpan[];
   toggleSpanGroup: () => void;
-};
+}
 
 class SpanGroupBar extends React.Component<Props> {
   getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {

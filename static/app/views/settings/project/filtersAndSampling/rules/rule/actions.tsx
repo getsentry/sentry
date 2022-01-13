@@ -20,13 +20,13 @@ const deleteRuleMessage = t(
 
 const editRuleMessage = t('You do not have permission to edit dynamic sampling rules.');
 
-type Props = {
+interface Props {
   disabled: boolean;
   isMenuActionsOpen: boolean;
   onEditRule: () => void;
   onDeleteRule: () => void;
   onOpenMenuActions: () => void;
-};
+}
 
 function Actions({
   disabled,

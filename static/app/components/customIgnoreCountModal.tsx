@@ -11,19 +11,19 @@ import SelectField from 'sentry/views/settings/components/forms/selectField';
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   onSelected: (statusDetails: ResolutionStatusDetails) => void;
   label: string;
   countLabel: string;
   countName: CountNames;
   windowName: WindowNames;
   windowOptions: SelectValue<number>[];
-};
+}
 
-type State = {
+interface State {
   count: number;
   window: number | null;
-};
+}
 
 class CustomIgnoreCountModal extends Component<Props, State> {
   state: State = {

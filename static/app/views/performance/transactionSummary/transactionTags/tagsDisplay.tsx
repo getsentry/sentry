@@ -17,14 +17,14 @@ import TagsHeatMap from './tagsHeatMap';
 import {TagValueTable} from './tagValueTable';
 import {getTagSortForTagsPage} from './utils';
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   organization: Organization;
   projects: Project[];
   transactionName: string;
   tagKey?: string;
-};
+}
 
 const HISTOGRAM_TAG_KEY_LIMIT = 8;
 const HISTOGRAM_BUCKET_LIMIT = 40;

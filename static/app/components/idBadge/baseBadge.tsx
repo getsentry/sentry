@@ -6,9 +6,9 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {AvatarProject, Organization, Team} from 'sentry/types';
 
-type Props = {
+interface Props {
   displayName: React.ReactNode;
-  hideName?: boolean; // Hides the main display name
+  hideName?: boolean; // Hides the main display name;
   hideAvatar?: boolean;
   avatarProps?: Record<string, any>;
   avatarSize?: number;
@@ -17,7 +17,7 @@ type Props = {
   organization?: Organization;
   project?: AvatarProject;
   className?: string;
-};
+}
 
 const BaseBadge = React.memo(
   ({

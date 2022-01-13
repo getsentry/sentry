@@ -6,13 +6,13 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import space from 'sentry/styles/space';
 
-type MetaDataProps = {
+interface MetaDataProps {
   headingText: string;
   tooltipText: string;
   bodyText: React.ReactNode;
   subtext: React.ReactNode;
   badge?: 'alpha' | 'beta' | 'new';
-};
+}
 
 export function MetaData({
   headingText,

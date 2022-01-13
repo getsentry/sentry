@@ -18,10 +18,10 @@ import withProjects from 'sentry/utils/withProjects';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';
 
-type Props = CommonSidebarProps & {
+interface Props extends CommonSidebarProps {
   org: Organization;
   projects: Project[];
-};
+}
 
 const isDone = (task: OnboardingTaskStatus) =>
   task.status === 'complete' || task.status === 'skipped';

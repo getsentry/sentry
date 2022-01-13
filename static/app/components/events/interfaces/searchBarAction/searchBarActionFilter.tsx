@@ -9,19 +9,19 @@ import space from 'sentry/styles/space';
 
 import DropDownButton from './dropDownButton';
 
-type Option = {
+interface Option {
   id: string;
   symbol: React.ReactElement;
   isChecked: boolean;
   description?: string;
-};
+}
 
 type Options = Record<string, Array<Option>>;
 
-type Props = {
+interface Props {
   options: Options;
   onChange: (options: Options) => void;
-};
+}
 
 function SearchBarActionFilter({options, onChange}: Props) {
   const checkedQuantity = Object.values(options)

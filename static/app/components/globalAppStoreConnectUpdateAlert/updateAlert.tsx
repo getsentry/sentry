@@ -7,13 +7,13 @@ import {IconRefresh} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
-type Props = {
+interface Props {
   organization: Organization;
   project?: Project;
   Wrapper?: React.ComponentType;
   isCompact?: boolean;
   className?: string;
-};
+}
 
 function UpdateAlert({Wrapper, project, className}: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);

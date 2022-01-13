@@ -8,12 +8,12 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type BadgeProps = {
+interface BadgeProps {
   type: 'alpha' | 'beta' | 'new';
   variant?: 'indicator' | 'badge';
   title?: string;
   noTooltip?: boolean;
-};
+}
 
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;
 

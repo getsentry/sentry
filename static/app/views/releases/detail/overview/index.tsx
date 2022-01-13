@@ -72,10 +72,10 @@ export enum TransactionsListOption {
   IMPROVEMENT = 'improved',
 }
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   release: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;

@@ -53,10 +53,10 @@ type Props = Pick<
   eventView: EventView;
 };
 
-type State = {
+interface State {
   event: Event | undefined;
   isSidebarVisible: boolean;
-} & AsyncComponent['state'];
+}
 
 class EventDetailsContent extends AsyncComponent<Props, State> {
   state: State = {

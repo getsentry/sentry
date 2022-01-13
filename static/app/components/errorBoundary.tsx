@@ -9,23 +9,22 @@ import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-type DefaultProps = {
+interface DefaultProps {
   mini: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   // To add context for better UX
   className?: string;
   customComponent?: React.ReactNode;
   message?: React.ReactNode;
-
   // To add context for better error reporting
   errorTag?: Record<string, string>;
-};
+}
 
-type State = {
+interface State {
   error: Error | null;
-};
+}
 
 const exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'] as const;
 

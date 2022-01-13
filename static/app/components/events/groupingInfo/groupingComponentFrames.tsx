@@ -8,17 +8,17 @@ import space from 'sentry/styles/space';
 
 import {GroupingComponentListItem} from './groupingComponent';
 
-type DefaultProps = {
+interface DefaultProps {
   maxVisibleItems: number;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   items: React.ReactNode[];
-};
+}
 
-type State = {
+interface State {
   collapsed: boolean;
-};
+}
 
 class GroupingComponentFrames extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

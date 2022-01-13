@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import FormField from 'sentry/components/forms/formField';
 
-type InputFieldProps = FormField['props'] & {
+interface InputFieldProps {
   placeholder?: string;
   inputStyle?: object;
   onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
@@ -12,7 +12,7 @@ type InputFieldProps = FormField['props'] & {
   autoComplete?: string;
   min?: number;
   step?: number;
-};
+}
 
 class InputField<
   Props extends InputFieldProps = InputFieldProps,

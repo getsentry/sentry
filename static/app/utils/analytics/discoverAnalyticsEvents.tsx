@@ -1,7 +1,7 @@
-export type DiscoverEventParameters = {
+export interface DiscoverEventParameters {
   'discover_views.add_to_dashboard.modal_open': {saved_query: boolean};
   'discover_views.add_to_dashboard.confirm': {};
-};
+}
 
 export type DiscoverEventKey = keyof DiscoverEventParameters;
 

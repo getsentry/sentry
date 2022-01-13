@@ -14,10 +14,10 @@ const displayOptions = {
   [ReleasesDisplayOption.USERS]: {label: t('Users')},
 };
 
-type Props = {
+interface Props {
   selected: ReleasesDisplayOption;
   onSelect: (key: string) => void;
-};
+}
 
 function ReleasesDisplayOptions({selected, onSelect}: Props) {
   return (

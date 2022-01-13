@@ -23,7 +23,7 @@ type IssueAlertRuleFormField =
  * These templates that tell the UI how to render the action or condition
  * and what fields it needs
  */
-export type IssueAlertRuleActionTemplate = {
+export interface IssueAlertRuleActionTemplate {
   id: string;
   label: string;
   prompt: string;
@@ -37,7 +37,7 @@ export type IssueAlertRuleActionTemplate = {
   ticketType?: string;
   link?: string;
   sentryAppInstallationUuid?: string;
-};
+}
 export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 
 /**
@@ -63,7 +63,7 @@ export type IssueAlertRuleCondition = Omit<
   [key: string]: number | string;
 };
 
-export type UnsavedIssueAlertRule = {
+export interface UnsavedIssueAlertRule {
   /** When an issue matches [actionMatch] of the following */
   actionMatch: 'all' | 'any' | 'none';
   /** If that issue has [filterMatch] of these properties */
@@ -75,15 +75,15 @@ export type UnsavedIssueAlertRule = {
   frequency: number;
   name: string;
   owner?: string | null;
-};
+}
 
 // Issue-based alert rule
-export type IssueAlertRule = UnsavedIssueAlertRule & {
+export interface IssueAlertRule extends UnsavedIssueAlertRule {
   dateCreated: string;
   createdBy: {id: number; email: string; name: string} | null;
   projects: string[];
   id: string;
-};
+}
 
 export enum MailActionTargetType {
   IssueOwners = 'IssueOwners',
@@ -97,7 +97,7 @@ export enum AssigneeTargetType {
   Member = 'Member',
 }
 
-export type NoteType = {
+export interface NoteType {
   text: string;
   mentions: string[];
-};
+}

@@ -15,14 +15,14 @@ import testableTransition from 'sentry/utils/testableTransition';
 type EventWaiterProps = Omit<React.ComponentProps<typeof EventWaiter>, 'children'>;
 type FirstIssue = null | true | Group;
 
-type RenderProps = {
+interface RenderProps {
   indicator: React.ReactNode;
   firstEventButton: React.ReactNode;
-};
+}
 
-type Props = EventWaiterProps & {
+interface Props extends EventWaiterProps {
   children: (props: RenderProps) => React.ReactNode;
-};
+}
 
 const FirstEventIndicator = ({children, ...props}: Props) => (
   <EventWaiter {...props}>

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   forwardRef?: React.Ref<HTMLButtonElement>;
   className?: string;
   id?: string;
@@ -15,7 +15,7 @@ type Props = {
   isLoading?: boolean;
   isDisabled?: boolean;
   toggle: React.HTMLProps<HTMLButtonElement>['onClick'];
-};
+}
 
 const Switch = ({
   forwardRef,

@@ -5,10 +5,10 @@ import {Meta} from 'sentry/types';
 
 import Redaction from './redaction';
 
-type Props = {
+interface Props {
   value: React.ReactNode;
   meta?: Meta;
-};
+}
 
 // If you find yourself modifying this component to fix some tooltip bug,
 // consider that `meta` is not properly passed into this component in the

@@ -23,13 +23,13 @@ import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
 import {TimePeriodType} from './constants';
 
-type Props = {
+interface Props {
   organization: OrganizationSummary;
   rule: IncidentRule;
   projects: Project[];
   timePeriod: TimePeriodType;
   query?: string;
-};
+}
 
 class RelatedIssues extends Component<Props> {
   renderErrorMessage = ({detail}: {detail: string}, retry: () => void) => {

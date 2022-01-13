@@ -9,9 +9,9 @@ import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
 import {PerformanceWidgetProps, WidgetDataResult} from '../types';
 
-type AreaDataType = {
+interface AreaDataType {
   chart: WidgetDataResult & ReturnType<typeof transformHistogramQuery>;
-};
+}
 
 export function HistogramWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, location} = props;

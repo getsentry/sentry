@@ -4,10 +4,10 @@ import {t} from 'sentry/locale';
 
 import {EventExtraData, EventExtraDataType} from './types';
 
-type Output = {
+interface Output {
   subject: string;
   value?: React.ReactNode;
-};
+}
 
 const getEventExtraDataKnownDataDetails = (
   data: EventExtraData,

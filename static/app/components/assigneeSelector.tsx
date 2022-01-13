@@ -26,19 +26,19 @@ import space from 'sentry/styles/space';
 import {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'sentry/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
-type SuggestedAssignee = Actor & {
+interface SuggestedAssignee extends Actor {
   suggestedReason: SuggestedOwnerReason;
   assignee: AssignableTeam | User;
-};
+}
 
-type AssignableTeam = {
+interface AssignableTeam {
   id: string;
   display: string;
   email: string;
   team: Team;
-};
+}
 
-type Props = {
+interface Props {
   id: string;
   size?: number;
   memberList?: User[];
@@ -48,14 +48,14 @@ type Props = {
     assignee: User | Actor,
     suggestedAssignee?: SuggestedAssignee
   ) => void;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   assignedTo?: Actor;
   memberList?: User[];
   suggestedOwners?: SuggestedOwner[] | null;
-};
+}
 
 class AssigneeSelector extends React.Component<Props, State> {
   static defaultProps = {

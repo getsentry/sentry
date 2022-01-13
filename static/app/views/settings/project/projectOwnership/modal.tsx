@@ -7,27 +7,27 @@ import {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
 import {Entry, EventError} from 'sentry/types/event';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
-type IssueOwnershipResponse = {
+interface IssueOwnershipResponse {
   raw: string;
   fallthrough: boolean;
   dateCreated: string;
   lastUpdated: string;
   isActive: boolean;
   autoAssignment: boolean;
-};
+}
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   project: Project;
   issueId: string;
   onSave: () => void;
-};
+}
 
-type State = {
+interface State {
   ownership: null | IssueOwnershipResponse;
   eventData: null | EventError;
   urlTagData: null | TagWithTopValues;
-} & AsyncComponent['state'];
+}
 
 class ProjectOwnershipModal extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

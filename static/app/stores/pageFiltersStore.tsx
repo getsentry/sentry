@@ -11,15 +11,15 @@ import localStorage from 'sentry/utils/localStorage';
 
 import {CommonStoreInterface} from './types';
 
-type UpdateData = {
+interface UpdateData {
   project: number[];
   environment: string[];
-};
+}
 
-type State = {
+interface State {
   selection: PageFilters;
   isReady: boolean;
-};
+}
 
 type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   state: PageFilters;

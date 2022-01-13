@@ -11,9 +11,9 @@ import {
   OperatingSystemKnownDataType,
 } from './types';
 
-type Props = {
+interface Props {
   data: OperatingSystemKnownData;
-};
+}
 
 const operatingSystemKnownDataValues = [
   OperatingSystemKnownDataType.NAME,

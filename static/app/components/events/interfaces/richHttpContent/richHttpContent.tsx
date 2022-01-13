@@ -10,9 +10,9 @@ import {defined} from 'sentry/utils';
 import RichHttpContentClippedBoxBodySection from './richHttpContentClippedBoxBodySection';
 import RichHttpContentClippedBoxKeyValueList from './richHttpContentClippedBoxKeyValueList';
 
-type Props = {
+interface Props {
   data: EntryRequest['data'];
-};
+}
 
 const RichHttpContent = ({data}: Props) => (
   <Fragment>

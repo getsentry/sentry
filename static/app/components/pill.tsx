@@ -6,13 +6,13 @@ import {Theme} from 'sentry/utils/theme';
 
 type PillType = 'positive' | 'negative' | 'error';
 
-type Props = {
+interface Props {
   type?: PillType;
   name?: React.ReactNode;
   value?: number | string | boolean | null;
   children?: React.ReactNode;
   className?: string;
-};
+}
 
 const Pill = React.memo(({name, value, children, type, className}: Props) => {
   const getTypeAndValue = (): Partial<{valueType: PillType; renderValue: string}> => {

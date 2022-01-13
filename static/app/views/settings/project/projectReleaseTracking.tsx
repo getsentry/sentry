@@ -29,12 +29,12 @@ type Props = {
   plugins: {plugins: Plugin[]; loading: boolean};
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
-type State = {
+interface State {
   data: {
     token: string;
     webhookUrl: string;
   } | null;
-} & AsyncView['state'];
+}
 
 const placeholderData = {
   token: TOKEN_PLACEHOLDER,

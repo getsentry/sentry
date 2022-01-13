@@ -21,7 +21,7 @@ import {
   convertDayValueObjectToSeries,
 } from './utils';
 
-type StatusCounts = {
+interface StatusCounts {
   resolved?: number;
   ignored?: number;
   deleted?: number;
@@ -29,22 +29,22 @@ type StatusCounts = {
   regressed?: number;
   unignored?: number;
   total: number;
-};
+}
 
 type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
 
 type Statuses = keyof Omit<StatusCounts, 'total'>;
 
-type Props = AsyncComponent['props'] & {
+interface Props extends DateTimeObject {
   organization: Organization;
   projects: Project[];
   teamSlug: string;
   statuses: Statuses[];
-} & DateTimeObject;
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   issuesBreakdown: IssuesBreakdown | null;
-};
+}
 
 const keys = ['deleted', 'ignored', 'resolved', 'unignored', 'regressed', 'new', 'total'];
 

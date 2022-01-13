@@ -5,10 +5,10 @@ import Menu from './menu';
 
 type MenuProps = React.ComponentProps<typeof Menu>;
 
-type Props = {
+interface Props extends MenuProps {
   // Should clicking the actor toggle visibility
   allowActorToggle?: boolean;
-} & MenuProps;
+}
 
 const DropdownAutoComplete = ({allowActorToggle = false, children, ...props}: Props) => (
   <Menu {...props}>

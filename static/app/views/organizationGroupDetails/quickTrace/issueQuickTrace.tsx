@@ -22,16 +22,16 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   event: Event;
   location: Location;
-};
+}
 
-type State = {
+interface State {
   shouldShow: boolean | null;
-};
+}
 
 class IssueQuickTrace extends Component<Props, State> {
   state: State = {

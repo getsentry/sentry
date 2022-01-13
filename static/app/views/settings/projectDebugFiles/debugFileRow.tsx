@@ -18,13 +18,13 @@ import {DebugFile} from 'sentry/types/debugFiles';
 
 import {getFeatureTooltip, getFileType} from './utils';
 
-type Props = {
+interface Props {
   debugFile: DebugFile;
   showDetails: boolean;
   downloadUrl: string;
   downloadRole: string;
   onDelete: (id: string) => void;
-};
+}
 
 const DebugFileRow = ({
   debugFile,

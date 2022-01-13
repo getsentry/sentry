@@ -9,7 +9,7 @@ export enum AppKnownDataType {
   BUILD = 'app_build',
 }
 
-export type AppData = {
+export interface AppData {
   type: string;
   app_name?: string;
   app_version?: string;
@@ -19,4 +19,4 @@ export type AppData = {
   build_type?: string;
   app_identifier?: string;
   app_build?: string;
-};
+}

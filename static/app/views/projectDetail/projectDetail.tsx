@@ -40,10 +40,10 @@ import ProjectLatestReleases from './projectLatestReleases';
 import ProjectQuickLinks from './projectQuickLinks';
 import ProjectTeamAccess from './projectTeamAccess';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   projectId: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;

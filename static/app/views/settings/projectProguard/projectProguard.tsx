@@ -21,9 +21,9 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   project: Project;
 };
 
-type State = AsyncView['state'] & {
+interface State {
   mappings: DebugFile[];
-};
+}
 
 class ProjectProguard extends AsyncView<Props, State> {
   getTitle() {

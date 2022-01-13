@@ -7,11 +7,11 @@ import {Color} from 'sentry/utils/theme';
 
 import {IncidentStatus} from './types';
 
-type Props = {
+interface Props {
   status?: IncidentStatus;
   hideText?: boolean;
   isIssue?: boolean;
-};
+}
 
 function AlertBadge({status, hideText = false, isIssue}: Props) {
   let statusText = t('Resolved');

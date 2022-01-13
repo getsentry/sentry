@@ -18,36 +18,30 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-type Props = {
+interface Props {
   router: WithRouterProps['router'];
-
   /**
    * Message to display at the bottom of project list
    */
   footerMessage?: React.ReactNode;
-
   /**
    * Subject that will be used in a tooltip that is shown on a lock icon hover
    * E.g. This 'issue' is unique to a project
    */
   lockedMessageSubject?: string;
-
   /**
    * If true, there will be a back to issues stream icon link
    */
   showIssueStreamLink?: boolean;
-
   /**
    * If true, there will be a project settings icon link
    * (forceProject prop needs to be present to know the right project slug)
    */
   showProjectSettingsLink?: boolean;
-
   /**
    * Slugs of projects to restrict the project selector to
    */
   specificProjectSlugs?: string[];
-
   /**
    * A project will be forced from parent component (selection is disabled, and if user
    * does not have multi-project support enabled, it will not try to auto select a project).
@@ -55,12 +49,11 @@ type Props = {
    * Project will be specified in the prop `forceProject` (since its data is async)
    */
   shouldForceProject?: boolean;
-
   /**
    * If a forced project is passed, selection is disabled
    */
   forceProject?: MinimalProject | null;
-};
+}
 
 export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}: Props) {
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(

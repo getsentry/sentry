@@ -37,16 +37,16 @@ const remainingEventsChoices: [string, string][] = [
   ['delete', t('Delete')],
 ];
 
-export type ReprocessEventModalOptions = {
+export interface ReprocessEventModalOptions {
   groupId: Group['id'];
   organization: Organization;
-};
+}
 
-type Props = ModalRenderProps & ReprocessEventModalOptions;
+interface Props extends ModalRenderProps, ReprocessEventModalOptions {}
 
-type State = {
+interface State {
   maxEvents?: number;
-};
+}
 
 class ReprocessingEventModal extends Component<Props, State> {
   state: State = {maxEvents: undefined};

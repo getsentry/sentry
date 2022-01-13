@@ -421,14 +421,14 @@ function generateExpandedConditions(
   return parsedQuery.formatString();
 }
 
-type FieldGeneratorOpts = {
+interface FieldGeneratorOpts {
   organization: Organization;
   tagKeys?: string[] | null;
   measurementKeys?: string[] | null;
   spanOperationBreakdownKeys?: string[];
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
-};
+}
 
 export function generateFieldOptions({
   organization,

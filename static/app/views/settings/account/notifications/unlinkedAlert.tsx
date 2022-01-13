@@ -6,9 +6,9 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 
-type Props = {
+interface Props {
   organizations: OrganizationSummary[];
-};
+}
 
 class UnlinkedAlert extends Component<Props> {
   render = () => {

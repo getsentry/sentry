@@ -13,7 +13,7 @@ import useApi from 'sentry/utils/useApi';
 
 type ProjectPlaceholder = AvatarProject;
 
-type State = {
+interface State {
   /**
    * Reflects whether or not the initial fetch for the requested projects
    * was fulfilled. This accounts for both the store and specifically loaded
@@ -41,7 +41,7 @@ type State = {
    * Pagination
    */
   nextCursor?: null | string;
-};
+}
 
 type Result = {
   /**
@@ -61,7 +61,7 @@ type Result = {
   onSearch: (searchTerm: string) => Promise<void>;
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
-type Options = {
+interface Options {
   /**
    * Specify an orgId, overriding the organization in the current context
    */
@@ -75,15 +75,15 @@ type Options = {
    * Number of projects to return when not using `props.slugs`
    */
   limit?: number;
-};
+}
 
-type FetchProjectsOptions = {
+interface FetchProjectsOptions {
   slugs?: string[];
   limit?: Options['limit'];
   cursor?: State['nextCursor'];
   search?: State['lastSearch'];
   lastSearch?: State['lastSearch'];
-};
+}
 
 /**
  * Helper function to actually load projects

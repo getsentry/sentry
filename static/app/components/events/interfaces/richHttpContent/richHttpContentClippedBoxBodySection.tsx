@@ -10,11 +10,11 @@ import {defined} from 'sentry/utils';
 
 import getTransformedData from './getTransformedData';
 
-type Props = {
+interface Props {
   data: EntryRequest['data']['data'];
   inferredContentType: EntryRequest['data']['inferredContentType'];
   meta?: Meta;
-};
+}
 
 function RichHttpContentClippedBoxBodySection({data, meta, inferredContentType}: Props) {
   if (!defined(data)) {

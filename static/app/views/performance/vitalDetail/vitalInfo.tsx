@@ -5,14 +5,14 @@ import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCards
 
 import {VitalBar} from '../landing/vitalsCards';
 
-type Props = {
+interface Props {
   location: Location;
   vital: WebVital | WebVital[];
   hideBar?: boolean;
   hideStates?: boolean;
   hideVitalPercentNames?: boolean;
   hideDurationDetail?: boolean;
-};
+}
 
 function VitalInfo(props: Props) {
   const {

@@ -7,9 +7,9 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, EventTransaction} from 'sentry/types/event';
 
-type Props = {
+interface Props {
   event: Event;
-};
+}
 
 class RootSpanStatus extends Component<Props> {
   getTransactionEvent(): EventTransaction | undefined {

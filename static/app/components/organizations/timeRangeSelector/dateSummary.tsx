@@ -6,10 +6,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'sentry/utils/dates';
 
-type Props = {
+interface Props {
   start: moment.MomentInput;
   end: moment.MomentInput;
-};
+}
 
 /**
  * Displays and formats absolute DateTime ranges

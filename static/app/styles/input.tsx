@@ -4,12 +4,12 @@ import {Theme} from 'sentry/utils/theme';
 
 export const INPUT_PADDING = 10;
 
-type Props = {
+interface Props {
   disabled?: boolean;
   monospace?: boolean;
   readOnly?: boolean;
   theme: Theme;
-};
+}
 
 const inputStyles = (props: Props) =>
   css`

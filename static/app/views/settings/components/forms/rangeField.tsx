@@ -3,9 +3,9 @@ import * as React from 'react';
 import RangeSlider from 'sentry/views/settings/components/forms/controls/rangeSlider';
 import InputField, {onEvent} from 'sentry/views/settings/components/forms/inputField';
 
-type DefaultProps = {
+interface DefaultProps {
   formatMessageValue?: false | Function;
-};
+}
 
 type DisabledFunction = (props: Omit<Props, 'formatMessageValue'>) => boolean;
 type PlaceholderFunction = (props: any) => React.ReactNode;

@@ -24,11 +24,11 @@ function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
     : false;
 }
 
-type FirstEventWaiterProps = OnboardingSupplementComponentProps & {
+interface FirstEventWaiterProps extends OnboardingSupplementComponentProps {
   api: Client;
-};
+}
 
-type Options = {
+interface Options {
   /**
    * The organization to show onboarding tasks for
    */
@@ -38,7 +38,7 @@ type Options = {
    * tasks to show additional task details (such as for suggesting sourcemaps)
    */
   projects?: Project[];
-};
+}
 
 export function getOnboardingTasks({
   organization,

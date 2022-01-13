@@ -19,16 +19,16 @@ const defaultProps = {
   menuWidth: 'auto',
 };
 
-type Props = {
+interface Props {
   options: (SelectValue<string> & {checkboxHidden?: boolean})[];
   selected: string[];
   onChange: (value: string[]) => void;
   title: string;
-} & typeof defaultProps;
+}
 
-type State = {
+interface State {
   menuContainerWidth?: number;
-};
+}
 
 class OptionCheckboxSelector extends Component<Props, State> {
   static defaultProps = defaultProps;

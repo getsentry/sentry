@@ -10,15 +10,15 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Release} from 'sentry/types';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   onSelected: ({inRelease: string}) => void;
   orgSlug: string;
   projectSlug?: string;
-};
+}
 
-type State = {
+interface State {
   version: string;
-};
+}
 
 function VersionOption({
   data,

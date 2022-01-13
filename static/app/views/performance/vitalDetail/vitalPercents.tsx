@@ -8,17 +8,17 @@ import {formatPercentage} from 'sentry/utils/formatters';
 
 import {VitalState, vitalStateIcons, webVitalMeh, webVitalPoor} from './utils';
 
-type Percent = {
+interface Percent {
   vitalState: VitalState;
   percent: number;
-};
+}
 
-type Props = {
+interface Props {
   vital: WebVital | WebVital[];
   percents: Percent[];
   showVitalPercentNames?: boolean;
   hideTooltips?: boolean;
-};
+}
 
 function getVitalStateText(vital: WebVital | WebVital[], vitalState) {
   const unit = !Array.isArray(vital) && vital !== WebVital.CLS ? 'ms' : '';

@@ -7,10 +7,10 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {FilesByRepository} from 'sentry/types';
 
-type CollapsedProps = {
+interface CollapsedProps {
   onClick: React.MouseEventHandler<HTMLAnchorElement>;
   count: number;
-};
+}
 
 function Collapsed(props: CollapsedProps) {
   return (
@@ -22,17 +22,17 @@ function Collapsed(props: CollapsedProps) {
   );
 }
 
-type Props = {
+interface Props {
   fileChangeSummary: FilesByRepository[string];
   repository: string;
   collapsible: boolean;
   maxWhenCollapsed: number;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   collapsed: boolean;
-};
+}
 
 class RepositoryFileSummary extends React.Component<Props, State> {
   static defaultProps = {

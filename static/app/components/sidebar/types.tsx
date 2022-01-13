@@ -6,10 +6,10 @@ export enum SidebarPanelKey {
   StatusUpdate = 'statusupdate',
 }
 
-export type CommonSidebarProps = {
+export interface CommonSidebarProps {
   orientation: SidebarOrientation;
   collapsed: boolean;
   currentPanel: SidebarPanelKey | '';
   hidePanel: () => void;
   onShowPanel: () => void;
-};
+}

@@ -21,7 +21,7 @@ import Field from 'sentry/views/settings/components/forms/field';
 
 import WidgetQueryFields from './widgetQueryFields';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   selection: PageFilters;
@@ -30,11 +30,11 @@ type Props = {
   onChange: (widgetQuery: WidgetQuery) => void;
   tags: TagCollection;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
-};
+}
 
-type State = {
+interface State {
   blurTimeout?: ReturnType<typeof setTimeout>;
-};
+}
 
 /**
  * Contain widget queries interactions and signal changes via the onChange

@@ -7,9 +7,9 @@ import getUnknownData from '../getUnknownData';
 import getBrowserKnownData from './getBrowserKnownData';
 import {BrowserKnownData, BrowserKnownDataType} from './types';
 
-type Props = {
+interface Props {
   data: BrowserKnownData;
-};
+}
 
 const browserKnownDataValues = [BrowserKnownDataType.NAME, BrowserKnownDataType.VERSION];
 

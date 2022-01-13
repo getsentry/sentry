@@ -19,7 +19,7 @@ import {getPlatform, isDotnet, trimPackage} from '../utils';
 
 import OriginalSourceInfo from './originalSourceInfo';
 
-type Props = {
+interface Props {
   frame: Frame;
   platform: PlatformType;
   isUsedForGrouping?: boolean;
@@ -27,9 +27,13 @@ type Props = {
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
-};
+}
 
-type GetPathNameOutput = {key: string; value: string; meta?: Meta};
+interface GetPathNameOutput {
+  key: string;
+  value: string;
+  meta?: Meta;
+}
 
 const DefaultTitle = ({frame, platform, isHoverPreviewed, isUsedForGrouping}: Props) => {
   const title: Array<React.ReactElement> = [];

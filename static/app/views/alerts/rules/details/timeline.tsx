@@ -37,12 +37,12 @@ export function getTriggerName(value: string | null) {
   return '';
 }
 
-type IncidentProps = {
+interface IncidentProps {
   api: Client;
   organization: Organization;
   incident: Incident;
   rule: IncidentRule;
-};
+}
 
 class TimelineIncident extends React.Component<IncidentProps> {
   renderActivity(activity: ActivityType, idx: number) {
@@ -179,12 +179,12 @@ class TimelineIncident extends React.Component<IncidentProps> {
   }
 }
 
-type Props = {
+interface Props {
   api: Client;
   rule?: IncidentRule;
   organization: Organization;
   incidents?: Incident[];
-};
+}
 
 class Timeline extends React.Component<Props> {
   renderEmptyMessage = () => {

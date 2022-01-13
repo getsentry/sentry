@@ -8,15 +8,15 @@ import {Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 
-type DefaultProps = {
+interface DefaultProps {
   event: Event | undefined;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   eventView: EventView;
   organization: Organization;
   location: Location;
-};
+}
 
 class DiscoverBreadcrumb extends Component<Props> {
   static defaultProps: DefaultProps = {

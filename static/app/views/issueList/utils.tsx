@@ -11,7 +11,7 @@ export enum Query {
   REPROCESSING = 'is:reprocessing',
 }
 
-type OverviewTab = {
+interface OverviewTab {
   name: string;
   /** Emitted analytics event tab name  */
   analyticsName: string;
@@ -23,7 +23,7 @@ type OverviewTab = {
   tooltipTitle: React.ReactNode;
   /** Tooltip text to be hoverable when text has links */
   tooltipHoverable?: boolean;
-};
+}
 
 /**
  * Get a list of currently active tabs
@@ -103,10 +103,10 @@ export function isForReviewQuery(query: string | undefined) {
 // the tab counts will look like 99+
 export const TAB_MAX_COUNT = 99;
 
-type QueryCount = {
+interface QueryCount {
   count: number;
   hasMore: boolean;
-};
+}
 
 export type QueryCounts = Partial<Record<Query, QueryCount>>;
 

@@ -8,26 +8,25 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {createDefinedContext} from './utils';
 
-type QueryObject = {
+interface QueryObject {
   query: {
     [k: string]: any;
   };
-}; // TODO(k-fish): Fix to ensure exact types for all requests. Simplified type for now, need to pull this in from events file.
+}
 
-type BatchQueryDefinition = {
+interface BatchQueryDefinition {
   // Intermediate promise functions
   resolve: (value: any) => void;
   reject: (reason?: string) => void;
-
   batchProperty: string;
   requestQueryObject: QueryObject;
   path: string;
   api: Client;
-};
+}
 
-type QueryBatch = {
+interface QueryBatch {
   addQuery: (q: BatchQueryDefinition, id: symbol) => void;
-};
+}
 
 const [GenericQueryBatcherProvider, _useGenericQueryBatcher] =
   createDefinedContext<QueryBatch>({
@@ -213,16 +212,16 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
   );
 };
 
-type NodeContext = {
+interface NodeContext {
   id: Ref<Symbol>;
   batchProperty: string;
-};
+}
 
 const BatchNodeContext = createContext<NodeContext | undefined>(undefined);
 
-export type QueryBatching = {
+export interface QueryBatching {
   batchRequest: (_: Client, path: string, query: QueryObject) => Promise<any>;
-};
+}
 
 // Wraps api request components to collect at most one request per frame / render pass using symbol as a unique id.
 // Transforms these requests into an intermediate promise and adds a query definition that the batch function will use.

@@ -14,11 +14,11 @@ import Chunks from './chunks';
 import {getTooltipText} from './utils';
 import ValueElement from './valueElement';
 
-type Props = {
+interface Props {
   value: React.ReactNode;
   meta?: Meta;
   className?: string;
-};
+}
 
 const AnnotatedText = ({value, meta, className, ...props}: Props) => {
   const renderValue = () => {

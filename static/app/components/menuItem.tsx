@@ -7,7 +7,7 @@ import space from 'sentry/styles/space';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {Theme} from 'sentry/utils/theme';
 
-type MenuItemProps = {
+interface MenuItemProps {
   /**
    * Should this item act as a header
    */
@@ -64,11 +64,9 @@ type MenuItemProps = {
    * Enable to stop event propagation on click
    */
   stopPropagation?: boolean;
-
   'aria-label'?: string;
-
   className?: string;
-};
+}
 
 type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
 

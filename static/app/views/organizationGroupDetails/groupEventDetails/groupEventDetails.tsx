@@ -52,10 +52,10 @@ type Props = RouteComponentProps<
   className?: string;
 };
 
-type State = {
+interface State {
   eventNavLinks: string;
   releasesCompletion: any;
-};
+}
 
 class GroupEventDetails extends Component<Props, State> {
   state: State = {

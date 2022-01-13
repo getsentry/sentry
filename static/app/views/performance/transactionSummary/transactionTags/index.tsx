@@ -13,11 +13,11 @@ import Tab from '../tabs';
 
 import TagsPageContent from './content';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   projects: Project[];
-};
+}
 
 function TransactionTags(props: Props) {
   const {location, organization, projects} = props;

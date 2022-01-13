@@ -8,10 +8,10 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import FiltersAndSampling from './filtersAndSampling';
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
-};
+}
 
 const Index = ({organization, ...props}: Props) => (
   <Feature

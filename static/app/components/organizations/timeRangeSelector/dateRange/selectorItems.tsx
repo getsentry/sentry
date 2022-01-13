@@ -4,15 +4,15 @@ import RelativeSelector from 'sentry/components/organizations/timeRangeSelector/
 import SelectorItem from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItem';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   handleSelectRelative: (value: string, e?: React.MouseEvent) => void;
   handleAbsoluteClick: (value: string, e?: React.MouseEvent) => void;
   isAbsoluteSelected: boolean;
   relativeSelected: string;
-  relativePeriods?: Record<string, React.ReactNode>; // Override DEFAULT_RELATIVE_PERIODS
+  relativePeriods?: Record<string, React.ReactNode>; // Override DEFAULT_RELATIVE_PERIODS;
   shouldShowRelative?: boolean;
   shouldShowAbsolute?: boolean;
-};
+}
 
 const SelectorItems = ({
   shouldShowRelative,

@@ -4,15 +4,15 @@ import {Context} from 'sentry/components/forms/form';
 import InputField from 'sentry/components/forms/inputField';
 import FormState from 'sentry/components/forms/state';
 
-type Props = InputField['props'] & {
+interface Props {
   hasSavedValue?: boolean;
   prefix: string;
   formState?: typeof FormState[keyof typeof FormState];
-};
+}
 
-type State = InputField['state'] & {
+interface State {
   editing: boolean;
-};
+}
 
 // TODO(dcramer): im not entirely sure this is working correctly with
 // value propagation in all scenarios

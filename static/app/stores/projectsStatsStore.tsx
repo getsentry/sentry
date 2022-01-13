@@ -3,14 +3,13 @@ import Reflux from 'reflux';
 import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
 
-type ProjectsStatsStoreInterface = {
+interface ProjectsStatsStoreInterface {
   itemsBySlug: Record<string, Project>;
-
   getInitialState(): ProjectsStatsStoreInterface['itemsBySlug'];
   reset(): void;
   getBySlug(slug: string): Project;
   getAll(): ProjectsStatsStoreInterface['itemsBySlug'];
-};
+}
 
 /**
  * This is a store specifically used by the dashboard, so that we can

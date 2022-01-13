@@ -14,7 +14,7 @@ import InputField from 'sentry/views/settings/components/forms/inputField';
 
 type InputFieldProps = React.ComponentProps<typeof InputField>;
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Text used for the 'add row' button.
    */
@@ -28,7 +28,7 @@ type DefaultProps = {
    * Automatically save even if fields are empty
    */
   allowEmpty: boolean;
-};
+}
 
 const defaultProps: DefaultProps = {
   addButtonText: t('Add Item'),
@@ -38,7 +38,7 @@ const defaultProps: DefaultProps = {
 
 type MappedSelectors = Record<string, Partial<ControlProps>>;
 
-export type ChoiceMapperProps = {
+export interface ChoiceMapperProps extends DefaultProps {
   /**
    * A list of column labels (headers) for the multichoice table. This should
    * have the same mapping keys as the mappedSelectors prop.
@@ -85,17 +85,14 @@ export type ChoiceMapperProps = {
    * Field controls get a boolean.
    */
   disabled?: boolean;
-
   // TODO(ts) This isn't aligned with InputField but that's what the runtime code had.
   onBlur?: () => void;
-
   onChange: InputFieldProps['onChange'];
-
   // TODO(ts) tighten this up.
   value: Record<string, any>;
-} & DefaultProps;
+}
 
-type FieldProps = ChoiceMapperProps & InputFieldProps;
+interface FieldProps extends ChoiceMapperProps, InputFieldProps {}
 
 export default class ChoiceMapper extends React.Component<FieldProps> {
   static defaultProps = defaultProps;

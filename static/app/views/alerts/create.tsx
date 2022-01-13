@@ -22,10 +22,10 @@ import {
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   projectId: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -35,9 +35,9 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type AlertType = 'metric' | 'issue';
 
-type State = {
+interface State {
   alertType: AlertType;
-};
+}
 
 class Create extends Component<Props, State> {
   state = this.getInitialState();

@@ -17,7 +17,7 @@ import withTags from 'sentry/utils/withTags';
 
 import TableView from './tableView';
 
-type TableProps = {
+interface TableProps {
   api: Client;
   location: Location;
   eventView: EventView;
@@ -28,15 +28,15 @@ type TableProps = {
   title: string;
   onChangeShowTags: () => void;
   confirmedQuery: boolean;
-};
+}
 
-type TableState = {
+interface TableState {
   isLoading: boolean;
   tableFetchID: symbol | undefined;
   error: null | string;
   pageLinks: null | string;
   tableData: TableData | null | undefined;
-};
+}
 
 /**
  * `Table` is a container element that handles 2 things

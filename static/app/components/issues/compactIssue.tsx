@@ -18,12 +18,12 @@ import {Aliases} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type HeaderProps = {
+interface HeaderProps {
   organization: Organization;
   projectId: string;
   data: BaseGroup;
   eventId?: string;
-};
+}
 
 class CompactIssueHeader extends Component<HeaderProps> {
   render() {
@@ -82,17 +82,17 @@ function isGroup(maybe: GroupTypes): maybe is BaseGroup {
   return (maybe as BaseGroup).status !== undefined;
 }
 
-type Props = {
+interface Props {
   api: Client;
   id: string;
   organization: Organization;
   eventId?: string;
   data?: BaseGroup;
-};
+}
 
-type State = {
+interface State {
   issue?: GroupTypes;
-};
+}
 
 class CompactIssue extends Component<Props, State> {
   state: State = {

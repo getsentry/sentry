@@ -9,10 +9,10 @@ export function createFrameIndex(
   }, {});
 }
 
-type Cache<Arguments extends ReadonlyArray<any> | any, Value> = {
+interface Cache<Arguments extends ReadonlyArray<any> | any, Value> {
   args: Arguments;
   value: Value;
-};
+}
 
 export function memoizeByReference<Arguments, Value>(
   fn: (args: Arguments) => Value

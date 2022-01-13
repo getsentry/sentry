@@ -5,11 +5,11 @@ import {DEFAULT_ERROR_JSON} from 'sentry/constants';
 /**
  * Represents a mentionable user or team.
  */
-export type Mentionable = {
+export interface Mentionable {
   id: string;
   display: string;
   email: string;
-};
+}
 
 /**
  * List of id, display name

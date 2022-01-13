@@ -13,17 +13,17 @@ import {
 
 type Resource = typeof EVENT_CHOICES[number];
 
-type DefaultProps = {
+interface DefaultProps {
   webhookDisabled: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   resource: Resource;
   disabledFromPermissions: boolean;
   checked: boolean;
   onChange: (resource: Resource, checked: boolean) => void;
   organization: Organization;
-};
+}
 
 export class SubscriptionBox extends React.Component<Props> {
   static defaultProps: DefaultProps = {

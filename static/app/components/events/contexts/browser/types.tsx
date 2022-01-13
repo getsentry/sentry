@@ -3,7 +3,7 @@ export enum BrowserKnownDataType {
   VERSION = 'version',
 }
 
-export type BrowserKnownData = {
+export interface BrowserKnownData {
   name: string;
   version: string;
-};
+}

@@ -22,7 +22,7 @@ export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
   disabled?: boolean;
 };
 
-type Props = {
+interface Props {
   isLoading: boolean;
   error: string | null;
   title: React.ComponentClass<TitleProps>;
@@ -33,11 +33,11 @@ type Props = {
   keyedTeams: Set<string> | null;
   counts: Map<string, number> | null;
   initialValue?: number;
-};
+}
 
-type State = {
+interface State {
   isOpen: boolean;
-};
+}
 
 class TeamKeyTransaction extends Component<Props, State> {
   constructor(props: Props) {
@@ -267,12 +267,12 @@ class TeamKeyTransaction extends Component<Props, State> {
   }
 }
 
-type ItemProps = {
+interface ItemProps {
   team: Team;
   disabled: boolean;
   isKeyed?: boolean;
   onSelect?: () => void;
-};
+}
 
 function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) {
   return (

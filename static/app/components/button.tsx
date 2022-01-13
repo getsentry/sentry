@@ -9,14 +9,9 @@ import Tooltip from 'sentry/components/tooltip';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {Theme} from 'sentry/utils/theme';
 
-/**
- * The button can actually also be an anchor or React router Link (which seems
- * to be poorly typed as `any`). So this is a bit of a workaround to receive
- * the proper html attributes.
- */
-type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
+interface ButtonElement extends HTMLButtonElement, HTMLAnchorElement {}
 
-type Props = {
+interface Props {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
   size?: 'zero' | 'xsmall' | 'small';
   align?: 'center' | 'left' | 'right';
@@ -33,11 +28,10 @@ type Props = {
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
   name?: string;
-
   // This is only used with `<ButtonBar>`
   barId?: string;
   children?: React.ReactNode;
-};
+}
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> & Props;
 
@@ -132,7 +126,9 @@ Button.displayName = 'Button';
 
 export default Button;
 
-type StyledButtonProps = ButtonProps & {theme: Theme};
+interface StyledButtonProps extends ButtonProps {
+  theme: Theme;
+}
 
 const getFontSize = ({size, priority, theme}: StyledButtonProps) => {
   if (priority === 'link') {
@@ -299,10 +295,10 @@ const ButtonLabel = styled('span', {
   padding: ${getLabelPadding};
 `;
 
-type IconProps = {
+interface IconProps {
   size?: ButtonProps['size'];
   hasChildren?: boolean;
-};
+}
 
 const getIconMargin = ({size, hasChildren}: IconProps) => {
   // If button is only an icon, then it shouldn't have margin

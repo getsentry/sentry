@@ -26,7 +26,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import {groupByTrend} from './utils';
 
-type TeamMiseryProps = {
+interface TeamMiseryProps {
   organization: Organization;
   location: Location;
   projects: Project[];
@@ -35,7 +35,7 @@ type TeamMiseryProps = {
   isLoading: boolean;
   period?: string;
   error?: Error | null;
-};
+}
 
 /** The number of elements to display before collapsing */
 const COLLAPSE_COUNT = 5;
@@ -185,7 +185,7 @@ function TeamMisery({
   );
 }
 
-type Props = AsyncComponent['props'] & {
+interface Props extends DateTimeObject {
   organization: Organization;
   teamId: string;
   projects: Project[];
@@ -193,7 +193,7 @@ type Props = AsyncComponent['props'] & {
   period?: string;
   start?: string;
   end?: string;
-} & DateTimeObject;
+}
 
 function TeamMiseryWrapper({
   organization,

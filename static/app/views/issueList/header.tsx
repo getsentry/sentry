@@ -21,12 +21,12 @@ import withProjects from 'sentry/utils/withProjects';
 import SavedSearchTab from './savedSearchTab';
 import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
-type WrapGuideProps = {
+interface WrapGuideProps {
   children: React.ReactElement;
   tabQuery: string;
   query: string;
   to: React.ComponentProps<typeof GuideAnchor>['to'];
-};
+}
 
 function WrapGuideTabs({children, tabQuery, query, to}: WrapGuideProps) {
   if (tabQuery === Query.FOR_REVIEW) {

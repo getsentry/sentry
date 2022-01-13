@@ -9,14 +9,14 @@ import {defined} from 'sentry/utils';
 
 type Value = string | number | boolean;
 
-type Props = {
+interface Props {
   hideLabelDivider?: boolean;
   choices: Choices;
-} & FormField['props'];
+}
 
-type State = FormField['state'] & {
+interface State {
   values: Value[];
-};
+}
 
 export default class MultipleCheckboxField extends FormField<Props, State> {
   onChange = (e: React.ChangeEvent<HTMLInputElement>, _value?: Value) => {

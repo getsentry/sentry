@@ -2,10 +2,10 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import RRWebPlayer from 'rrweb-player';
 
-type Props = {
+interface Props {
   url: string;
   className?: string;
-};
+}
 
 type RRwebEvents = ConstructorParameters<typeof RRWebPlayer>[0]['props']['events'];
 

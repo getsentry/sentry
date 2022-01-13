@@ -13,9 +13,9 @@ type ConfigStoreInterface = CommonStoreInterface<Config> & {
   loadInitialData(config: Config): void;
 };
 
-type Internals = {
+interface Internals {
   config: Config;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & Internals & ConfigStoreInterface = {
   // When the app is booted we will _immediately_ hydrate the config store,

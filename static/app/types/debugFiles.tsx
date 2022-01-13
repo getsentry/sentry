@@ -11,16 +11,18 @@ export enum DebugFileFeature {
   SOURCES = 'sources',
 }
 
-type Secret = {'hidden-secret': boolean};
+interface Secret {
+  'hidden-secret': boolean;
+}
 
-export type BuiltinSymbolSource = {
+export interface BuiltinSymbolSource {
   hidden: boolean;
   id: string;
   name: string;
   sentry_key: string;
-};
+}
 
-export type DebugFile = {
+export interface DebugFile {
   codeId: string;
   cpuName: string;
   dateCreated: string;
@@ -33,7 +35,7 @@ export type DebugFile = {
   symbolType: string;
   uuid: string;
   data?: {type: DebugFileType; features: DebugFileFeature[]};
-};
+}
 
 // Custom Repository
 export enum CustomRepoType {
@@ -43,18 +45,18 @@ export enum CustomRepoType {
   APP_STORE_CONNECT = 'appStoreConnect',
 }
 
-export type AppStoreConnectValidationError = {
+export interface AppStoreConnectValidationError {
   code:
     | 'app-connect-authentication-error'
     | 'app-connect-forbidden-error'
     | 'app-connect-multiple-sources-error';
-};
+}
 
 export type AppStoreConnectCredentialsStatus =
   | {status: 'valid'}
   | ({status: 'invalid'} & AppStoreConnectValidationError);
 
-export type AppStoreConnectStatusData = {
+export interface AppStoreConnectStatusData {
   credentials: AppStoreConnectCredentialsStatus;
   /**
    * Indicates the number of downloads waiting to be processed and completed,
@@ -75,9 +77,9 @@ export type AppStoreConnectStatusData = {
   latestBuildVersion: string | null;
   lastCheckedBuilds: string | null;
   updateAlertMessage?: string;
-};
+}
 
-export type CustomRepoAppStoreConnect = {
+export interface CustomRepoAppStoreConnect {
   type: CustomRepoType.APP_STORE_CONNECT;
   appId: string;
   appName: string;
@@ -88,9 +90,9 @@ export type CustomRepoAppStoreConnect = {
   name: string;
   appconnectPrivateKey: Secret;
   details?: AppStoreConnectStatusData;
-};
+}
 
-type CustomRepoHttp = {
+interface CustomRepoHttp {
   type: CustomRepoType.HTTP;
   id: string;
   layout: {casing: string; type: string};
@@ -98,9 +100,9 @@ type CustomRepoHttp = {
   url: string;
   username: string;
   password: Secret;
-};
+}
 
-type CustomRepoS3 = {
+interface CustomRepoS3 {
   type: CustomRepoType.S3;
   bucket: string;
   id: string;
@@ -109,9 +111,9 @@ type CustomRepoS3 = {
   region: string;
   access_key: string;
   secret_key: Secret;
-};
+}
 
-type CustomRepoGCS = {
+interface CustomRepoGCS {
   type: CustomRepoType.GCS;
   bucket: string;
   client_email: string;
@@ -120,7 +122,7 @@ type CustomRepoGCS = {
   name: string;
   prefix: string;
   private_key: Secret;
-};
+}
 
 export type CustomRepo =
   | CustomRepoAppStoreConnect

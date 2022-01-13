@@ -24,11 +24,11 @@ type Props = {
   organization?: Organization;
 } & Pick<ExceptionType, 'values'>;
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
   crashReport: string;
-};
+}
 
 class RawContent extends React.Component<Props, State> {
   state: State = {

@@ -18,7 +18,7 @@ import ActionSet from './actionSet';
 import Headers from './headers';
 import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 
-type Props = {
+interface Props {
   api: Client;
   allResultsVisible: boolean;
   organization: Organization;
@@ -32,16 +32,16 @@ type Props = {
   displayCount: React.ReactElement;
   displayReprocessingActions: boolean;
   onMarkReviewed?: (itemIds: string[]) => void;
-};
+}
 
-type State = {
+interface State {
   anySelected: boolean;
   multiSelected: boolean;
   pageSelected: boolean;
   allInQuerySelected: boolean;
   selectedIds: Set<string>;
   selectedProjectSlug?: string;
-};
+}
 
 class IssueListActions extends React.Component<Props, State> {
   state: State = {

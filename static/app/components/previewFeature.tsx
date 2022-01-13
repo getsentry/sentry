@@ -4,9 +4,9 @@ import Alert from 'sentry/components/alert';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   type?: React.ComponentProps<typeof Alert>['type'];
-};
+}
 
 const PreviewFeature = ({type = 'info'}: Props) => (
   <Alert type={type} icon={<IconLab size="sm" />}>

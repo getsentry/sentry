@@ -1,4 +1,4 @@
-export type ProjectKey = {
+export interface ProjectKey {
   dateCreated: string;
   id: string;
   browserSdk: {
@@ -24,4 +24,4 @@ export type ProjectKey = {
   secret: string;
   isActive: boolean;
   public: string;
-};
+}

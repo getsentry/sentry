@@ -17,22 +17,22 @@ export enum ExportQueryType {
   Discover = 'Discover',
 }
 
-type DataExportPayload = {
+interface DataExportPayload {
   queryType: ExportQueryType;
-  queryInfo: any; // TODO(ts): Formalize different possible payloads
-};
+  queryInfo: any; // TODO(ts): Formalize different possible payloads;
+}
 
-type Props = {
+interface Props {
   api: Client;
   disabled?: boolean;
   organization: Organization;
   payload: DataExportPayload;
   icon?: React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   inProgress: boolean;
-};
+}
 
 class DataExport extends React.Component<Props, State> {
   state = this.initialState;

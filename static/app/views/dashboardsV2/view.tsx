@@ -80,10 +80,10 @@ function ViewEditDashboard(props: Props) {
 
 export default withOrganization(ViewEditDashboard);
 
-type FeatureProps = {
+interface FeatureProps {
   organization: Organization;
   children: React.ReactNode;
-};
+}
 
 export const DashboardBasicFeature = ({organization, children}: FeatureProps) => {
   const renderDisabled = () => (

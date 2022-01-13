@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Theme} from 'sentry/utils/theme';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
-type Params = {
+interface Params {
   /**
    * If this is true, will make a single corner blended with actor (depends on anchor orientation)
    */
@@ -25,7 +25,7 @@ type Params = {
    * If this is true, will make corners blend with its opener (so no border radius)
    */
   blendWithActor?: boolean;
-};
+}
 
 /**
  * If `blendCorner` is false, then we apply border-radius to all corners

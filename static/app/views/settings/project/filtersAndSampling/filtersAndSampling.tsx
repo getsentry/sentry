@@ -24,17 +24,17 @@ import Modal from './modal';
 import RulesPanel from './rulesPanel';
 import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
-type Props = AsyncView['props'] & {
+interface Props {
   project: Project;
   organization: Organization;
   hasAccess: boolean;
-};
+}
 
-type State = AsyncView['state'] & {
+interface State {
   errorRules: DynamicSamplingRules;
   transactionRules: DynamicSamplingRules;
   projectDetails: Project | null;
-};
+}
 
 class FiltersAndSampling extends AsyncView<Props, State> {
   getTitle() {

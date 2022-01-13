@@ -1,9 +1,9 @@
-export type UserSelectValues = {
+export interface UserSelectValues {
   userSelect: string | null;
   MozUserSelect: string | null;
   msUserSelect: string | null;
   webkitUserSelect: string | null;
-};
+}
 
 export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValues => {
   // NOTE: Vendor prefixes other than `ms` should begin with a capital letter.

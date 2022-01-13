@@ -22,14 +22,14 @@ const optionsAvailable = [
 
 type Field = ReturnType<typeof getOption>;
 
-type FieldDef = {
+interface FieldDef {
   field: Field;
   value: string | undefined;
-};
+}
 
-type State = AsyncView['state'] & {
+interface State {
   data: Record<string, FieldDef>;
-};
+}
 
 export default class AdminSettings extends AsyncView<{}, State> {
   get endpoint() {

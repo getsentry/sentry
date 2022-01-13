@@ -10,11 +10,11 @@ type EffectiveDirective = keyof typeof effectiveDirectives;
 
 const linkOverrides = {'script-src': 'script-src_2'};
 
-type Props = {
+interface Props {
   data: {
     effective_directive: EffectiveDirective;
   };
-};
+}
 
 const CSPHelp = ({data: {effective_directive: key}}: Props) => {
   const getHelp = () => ({

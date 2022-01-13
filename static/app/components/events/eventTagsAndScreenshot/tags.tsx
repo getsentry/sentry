@@ -11,13 +11,13 @@ import EventTags from '../eventTags/eventTags';
 import DataSection from './dataSection';
 import TagsHighlight from './tagsHighlight';
 
-type Props = {
+interface Props {
   event: Event;
   organization: Organization;
   projectSlug: Project['slug'];
   location: Location;
   hasContext: boolean;
-};
+}
 
 function Tags({event, organization, projectSlug, location, hasContext}: Props) {
   return (

@@ -8,14 +8,13 @@ import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import recreateRoute from 'sentry/utils/recreateRoute';
 
-type Props = ModalRenderProps &
-  WithRouterProps & {
-    slug: string;
-  };
+interface Props extends ModalRenderProps, WithRouterProps {
+  slug: string;
+}
 
-type State = {
+interface State {
   timer: number;
-};
+}
 
 class RedirectToProjectModal extends Component<Props, State> {
   state: State = {

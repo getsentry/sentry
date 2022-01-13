@@ -17,9 +17,11 @@ const callbackWithArgs = function (context: any, callback: any, ...args: any) {
 
 type GenericFieldProps = Parameters<typeof GenericField>[0];
 
-type Props = {};
+interface Props {}
 
-type State = {state: GenericFieldProps['formState']};
+interface State {
+  state: GenericFieldProps['formState'];
+}
 
 class PluginComponentBase<
   P extends Props = Props,

@@ -28,23 +28,13 @@ type InputProps = Pick<
   'getInputProps'
 >;
 
-/**
- * Render prop for search results
- *
- * Args: {
- *  item: Search Item
- *  index: item's index in results
- *  highlighted: is item highlighted
- *  itemProps: props that should be spread for root item
- * }
- */
-type ItemProps = {
+interface ItemProps {
   item: Item;
   matches: Result['matches'];
   index: number;
   highlighted: boolean;
   itemProps: React.ComponentProps<typeof SearchResultWrapper>;
-};
+}
 
 // Not using typeof defaultProps because of the wrapping HOC which
 // causes defaultProp magic to fall off.

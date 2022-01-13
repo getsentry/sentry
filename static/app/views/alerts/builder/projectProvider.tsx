@@ -16,9 +16,9 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
 };
 
-type RouteParams = {
+interface RouteParams {
   projectId: string;
-};
+}
 
 function AlertBuilderProjectProvider(props: Props) {
   const api = useApi();

@@ -1,12 +1,12 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   /**
    * Adds hover and focus states to the card
    */
   interactive?: boolean;
-};
+}
 
 const hoverStyle = css`
   &:focus,

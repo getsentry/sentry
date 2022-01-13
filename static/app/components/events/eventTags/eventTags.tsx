@@ -7,12 +7,12 @@ import {defined, generateQueryWithTag} from 'sentry/utils';
 
 import EventTagsPill from './eventTagsPill';
 
-type Props = {
+interface Props {
   event: Event;
   organization: Organization;
   projectId: string;
   location: Location;
-};
+}
 
 const EventTags = ({event: {tags = []}, organization, projectId, location}: Props) => {
   if (!tags.length) {

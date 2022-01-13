@@ -9,18 +9,18 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
-export type TourStep = {
+export interface TourStep {
   title: string;
   body: React.ReactNode;
   actions?: React.ReactNode;
   image?: React.ReactNode;
-};
+}
 
-type ChildProps = {
+interface ChildProps {
   showModal: () => void;
-};
+}
 
-type Props = {
+interface Props {
   children: (props: ChildProps) => React.ReactNode;
   /**
    * The list of tour steps.
@@ -43,20 +43,19 @@ type Props = {
    * Provide a URL for the done state to open in a new tab.
    */
   doneUrl?: string;
-};
+}
 
-type State = {
+interface State {
   /**
    * The timestamp when the modal was shown.
    * Used to calculate how long the modal was open
    */
   openedAt: number;
-
   /**
    * The last known step
    */
   current: number;
-};
+}
 
 const defaultProps = {
   doneText: t('Done'),
@@ -128,10 +127,10 @@ type ContentsProps = ModalRenderProps &
   Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> &
   Pick<State, 'openedAt'>;
 
-type ContentsState = {
+interface ContentsState {
   current: number;
   openedAt: number;
-};
+}
 
 class ModalContents extends React.Component<ContentsProps, ContentsState> {
   static defaultProps = defaultProps;

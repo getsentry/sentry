@@ -23,9 +23,9 @@ import AsyncView from 'sentry/views/asyncView';
 import UserFeedbackEmpty from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
-type State = AsyncView['state'] & {
+interface State {
   reportList: UserReport[];
-};
+}
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;

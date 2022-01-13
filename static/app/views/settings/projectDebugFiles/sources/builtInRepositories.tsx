@@ -13,14 +13,14 @@ import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 const SECTION_TITLE = t('Built-in Repositories');
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   projSlug: Project['slug'];
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
   isLoading: boolean;
-};
+}
 
 function BuiltInRepositories({
   api,

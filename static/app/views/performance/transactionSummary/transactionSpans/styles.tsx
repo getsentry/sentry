@@ -63,12 +63,12 @@ export const FooterPanel = styled(Panel)`
   border-top-right-radius: 0;
 `;
 
-type HeaderItemProps = {
+interface HeaderItemProps {
   label: string;
   value: React.ReactNode;
   align: 'left' | 'right';
   isSortKey?: boolean;
-};
+}
 
 export function HeaderItem(props: HeaderItemProps) {
   const {label, value, align, isSortKey} = props;
@@ -133,11 +133,11 @@ const DurationBarSection = styled(RowRectangle)`
   top: 0;
 `;
 
-type SpanDurationBarProps = {
+interface SpanDurationBarProps {
   spanOp: string;
   spanDuration: number;
   transactionDuration: number;
-};
+}
 
 export function SpanDurationBar(props: SpanDurationBarProps) {
   const {spanOp, spanDuration, transactionDuration} = props;

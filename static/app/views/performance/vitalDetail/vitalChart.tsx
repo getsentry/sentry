@@ -48,11 +48,10 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = WithRouterProps &
-  ViewProps & {
-    location: Location;
-    organization: OrganizationSummary;
-  };
+interface Props extends WithRouterProps, ViewProps {
+  location: Location;
+  organization: OrganizationSummary;
+}
 
 function VitalChart({
   project,
@@ -280,7 +279,7 @@ function VitalChart({
 
 export default withRouter(VitalChart);
 
-export type _VitalChartProps = Props & {
+export interface _VitalChartProps extends Props {
   data?: Series[];
   loading: boolean;
   reloading: boolean;
@@ -293,7 +292,7 @@ export type _VitalChartProps = Props & {
     mehCountField: string;
     goodCountField: string;
   };
-};
+}
 
 function fieldToVitalType(
   seriesName: string,

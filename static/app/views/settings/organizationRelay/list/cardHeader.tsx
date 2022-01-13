@@ -11,11 +11,11 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Relay} from 'sentry/types';
 
-type Props = Relay & {
+interface Props extends Relay {
   onEdit: (publicKey: Relay['publicKey']) => () => void;
   onDelete: (publicKey: Relay['publicKey']) => () => void;
   disabled: boolean;
-};
+}
 
 const CardHeader = ({
   publicKey,

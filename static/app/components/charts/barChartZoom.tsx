@@ -7,19 +7,19 @@ import ToolBox from 'sentry/components/charts/components/toolBox';
 import {EChartChartReadyHandler, EChartDataZoomHandler} from 'sentry/types/echarts';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
-export type RenderProps = {
+export interface RenderProps {
   dataZoom: ReturnType<typeof DataZoomInside>;
   toolBox: ReturnType<typeof ToolBox>;
   onChartReady: EChartChartReadyHandler;
   onDataZoom: EChartDataZoomHandler;
-};
+}
 
-export type BarChartBucket = {
+export interface BarChartBucket {
   start: number;
   end: number;
-};
+}
 
-type Props = {
+interface Props {
   location: Location;
   /**
    * This is the query parameter the start of the zoom will be propagated to.
@@ -62,7 +62,7 @@ type Props = {
   onDataZoomCancelled?: () => void;
   onChartReady?: EChartChartReadyHandler;
   onDataZoom?: EChartDataZoomHandler;
-};
+}
 
 class BarChartZoom extends React.Component<Props> {
   zooming: (() => void) | null = null;

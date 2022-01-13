@@ -4,14 +4,14 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {OrganizationSummary} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type InjectedOrganizationsProps = {
+interface InjectedOrganizationsProps {
   organizationsLoading?: boolean;
   organizations: OrganizationSummary[];
-};
+}
 
-type State = {
+interface State {
   organizations: OrganizationSummary[];
-};
+}
 
 function withOrganizations<P extends InjectedOrganizationsProps>(
   WrappedComponent: React.ComponentType<P>

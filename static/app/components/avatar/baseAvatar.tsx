@@ -49,7 +49,7 @@ const defaultProps: DefaultProps = {
   round: false,
 };
 
-type DefaultProps = {
+interface DefaultProps {
   style?: React.CSSProperties;
   suggested?: boolean;
   /**
@@ -74,9 +74,9 @@ type DefaultProps = {
     | 'project-avatar'
     | 'sentry-app-avatar'
     | 'doc-integration-avatar';
-};
+}
 
-type BaseProps = DefaultProps & {
+interface BaseProps extends DefaultProps {
   size?: number;
   /**
    * This is the size of the remote image to request.
@@ -101,15 +101,15 @@ type BaseProps = DefaultProps & {
   tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
   className?: string;
   forwardedRef?: React.Ref<HTMLSpanElement>;
-};
+}
 
 type Props = BaseProps;
 
-type State = {
+interface State {
   showBackupAvatar: boolean;
   hasLoaded: boolean;
   loadError: boolean;
-};
+}
 
 class BaseAvatar extends React.Component<Props, State> {
   static defaultProps = defaultProps;

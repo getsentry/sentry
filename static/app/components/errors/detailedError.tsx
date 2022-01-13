@@ -6,14 +6,14 @@ import Button from 'sentry/components/button';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Hide support links in footer of error message
    */
   hideSupportLinks: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   className?: string;
   /**
    * Error heading
@@ -27,7 +27,7 @@ type Props = DefaultProps & {
    * Retry callback
    */
   onRetry?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-};
+}
 
 function openFeedback(e: React.MouseEvent) {
   e.preventDefault();

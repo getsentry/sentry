@@ -18,19 +18,19 @@ import space from 'sentry/styles/space';
 import {Organization, Plugin, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
   data: Plugin;
   onDisablePlugin: (data: Plugin) => void;
   api: Client;
   enabled?: boolean;
-};
+}
 
-type State = {
+interface State {
   testResults: string;
   loading?: boolean;
-};
+}
 
 class PluginConfig extends Component<Props, State> {
   static defaultProps = {

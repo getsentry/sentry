@@ -27,21 +27,21 @@ import {
 
 type AlertsTriggered = Record<string, number>;
 
-type AlertsTriggeredRule = IncidentRule & {
+interface AlertsTriggeredRule extends IncidentRule {
   weeklyAvg: number;
   totalThisWeek: number;
-};
+}
 
-type Props = AsyncComponent['props'] & {
+interface Props extends DateTimeObject {
   organization: Organization;
   projects: Project[];
   teamSlug: string;
-} & DateTimeObject;
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   alertsTriggered: AlertsTriggered | null;
   alertsTriggeredRules: AlertsTriggeredRule[] | null;
-};
+}
 
 class TeamAlertsTriggered extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;

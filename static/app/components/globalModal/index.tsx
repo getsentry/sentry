@@ -15,7 +15,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
-type ModalOptions = {
+interface ModalOptions {
   /**
    * Callback for when the modal is closed
    */
@@ -38,9 +38,9 @@ type ModalOptions = {
    * disappear on an accidental click. Defaults to `true`.
    */
   allowClickClose?: boolean;
-};
+}
 
-type ModalRenderProps = {
+interface ModalRenderProps {
   /**
    * Closes the modal
    */
@@ -63,7 +63,7 @@ type ModalRenderProps = {
    * header which can include the close button.
    */
   CloseButton: ReturnType<typeof makeCloseButton>;
-};
+}
 
 /**
  * Meta-type to make re-exporting these in the action creator easy without
@@ -71,12 +71,12 @@ type ModalRenderProps = {
  *
  * eg. you won't accidentally import ModalRenderProps from here.
  */
-export type ModalTypes = {
+export interface ModalTypes {
   options: ModalOptions;
   renderProps: ModalRenderProps;
-};
+}
 
-type Props = {
+interface Props {
   /**
    * Configuration of the modal
    */
@@ -96,7 +96,7 @@ type Props = {
    * specify it when using the action creator.
    */
   onClose?: () => void;
-};
+}
 
 function GlobalModal({visible = false, options = {}, children, onClose}: Props) {
   const closeModal = React.useCallback(() => {
@@ -254,9 +254,9 @@ const Content = styled('div')`
   box-shadow: ${p => p.theme.modalBoxShadow};
 `;
 
-type State = {
+interface State {
   modalStore: ReturnType<typeof ModalStore.get>;
-};
+}
 
 class GlobalModalContainer extends React.Component<Partial<Props>, State> {
   state: State = {

@@ -13,12 +13,12 @@ import Filter from './filter';
 
 const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 
-type Props = {
+interface Props {
   selectedTeams: Set<string>;
   handleChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
   showStatus?: boolean;
   selectedStatus?: Set<string>;
-};
+}
 
 export function getTeamParams(team?: string | string[]): string[] {
   if (team === undefined) {

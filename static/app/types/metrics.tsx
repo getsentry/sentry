@@ -1,6 +1,6 @@
 import {DateString} from './core';
 
-export type MetricsApiResponse = {
+export interface MetricsApiResponse {
   intervals: string[];
   groups: {
     by: Record<string, string>;
@@ -10,25 +10,25 @@ export type MetricsApiResponse = {
   start: DateString;
   end: DateString;
   query: string;
-};
+}
 
-export type MetricTag = {
+export interface MetricTag {
   key: string;
-};
+}
 
-export type MetricTagValue = {
+export interface MetricTagValue {
   key: string;
   value: string;
-};
+}
 
-export type MetricMeta = {
+export interface MetricMeta {
   name: string;
   operations: string[];
-};
+}
 
-export type MetricQuery = {
+export interface MetricQuery {
   legend?: string;
   aggregation?: string;
   groupBy?: string[];
   metricMeta?: MetricMeta;
-};
+}

@@ -9,20 +9,20 @@ import withApi from 'sentry/utils/withApi';
 
 import {SpanExample} from './types';
 
-type SpanExamplesProps = {
+interface SpanExamplesProps {
   spanOp: string;
   spanGroup: string;
-};
+}
 
-type RequestProps = DiscoverQueryProps & SpanExamplesProps;
+interface RequestProps extends DiscoverQueryProps, SpanExamplesProps {}
 
 export type ChildrenProps = Omit<GenericChildrenProps<SpanExamplesProps>, 'tableData'> & {
   examples: SpanExample[] | null;
 };
 
-type Props = RequestProps & {
+interface Props extends RequestProps {
   children: (props: ChildrenProps) => React.ReactNode;
-};
+}
 
 function getSuspectSpanPayload(props: RequestProps) {
   const {spanOp, spanGroup} = props;

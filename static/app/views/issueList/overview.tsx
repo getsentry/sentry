@@ -83,9 +83,9 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 
-type Params = {
+interface Params {
   orgId: string;
-};
+}
 
 type Props = {
   api: Client;
@@ -99,7 +99,7 @@ type Props = {
   tags: TagCollection;
 } & RouteComponentProps<{searchId?: string}, {}>;
 
-type State = {
+interface State {
   groupIds: string[];
   selectAllActive: boolean;
   realtimeActive: boolean;
@@ -121,7 +121,7 @@ type State = {
   memberList: ReturnType<typeof indexMembersByProject>;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
-};
+}
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
   project: number[];

@@ -6,9 +6,9 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 
-type Props = {
+interface Props {
   traceID?: string;
-};
+}
 
 const Header = ({traceID}: Props) => (
   <Wrapper>

@@ -12,27 +12,27 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
-type DefaultProps = {
+interface DefaultProps {
   isLoading: boolean;
   showReleasePackage: boolean;
   hasError: boolean;
   renderLoading: () => React.ReactNode;
   renderEmpty: () => React.ReactNode;
   renderError: () => React.ReactNode;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   title: string;
   segments: TagSegment[];
   totalValues: number;
   onTagClick?: (title: string, value: TagSegment) => void;
-};
+}
 
-type SegmentValue = {
+interface SegmentValue {
   to: LocationDescriptor;
   onClick: () => void;
   index: number;
-};
+}
 
 export default class TagDistributionMeter extends React.Component<Props> {
   static defaultProps: DefaultProps = {

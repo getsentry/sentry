@@ -53,11 +53,11 @@ import {
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
-type RuleTaskResponse = {
+interface RuleTaskResponse {
   status: 'pending' | 'failed' | 'success';
   alertRule?: IncidentRule;
   error?: string;
-};
+}
 
 type Props = {
   organization: Organization;
@@ -72,7 +72,7 @@ type Props = {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
-type State = {
+interface State {
   triggers: Trigger[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
@@ -80,10 +80,8 @@ type State = {
   comparisonDelta?: number;
   projects: Project[];
   triggerErrors: Map<number, {[fieldName: string]: string}>;
-
   // `null` means loading
   availableActions: MetricActionTemplate[] | null;
-
   // Rule conditions form inputs
   // Needed for TriggersChart
   dataset: Dataset;
@@ -93,7 +91,7 @@ type State = {
   environment: string | null;
   uuid?: string;
   eventTypes?: EventTypes[];
-} & AsyncComponent['state'];
+}
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 

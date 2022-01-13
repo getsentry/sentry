@@ -9,13 +9,13 @@ type DropdownItemProps = Pick<
   tooltip?: string;
 };
 
-type Props = {
+interface Props {
   label: string;
   options: Record<string, DropdownItemProps>;
   selected: string;
   onSelect: (key: string) => void;
   className?: string;
-};
+}
 
 const ReleasesDropdown = ({
   label: prefix,

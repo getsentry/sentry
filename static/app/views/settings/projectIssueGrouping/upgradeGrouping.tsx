@@ -19,7 +19,7 @@ import {getGroupingChanges, getGroupingRisk} from './utils';
 
 const upgradeGroupingId = 'upgrade-grouping';
 
-type Props = {
+interface Props {
   groupingConfigs: EventGroupingConfig[];
   organization: Organization;
   projectId: string;
@@ -27,7 +27,7 @@ type Props = {
   onUpgrade: () => void;
   api: Client;
   location: Location;
-};
+}
 
 function UpgradeGrouping({
   groupingConfigs,

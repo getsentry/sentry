@@ -12,7 +12,9 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   inline?: boolean;
 };
 
-type StyleFuncProps = Props & {theme: Theme};
+interface StyleFuncProps extends Props {
+  theme: Theme;
+}
 
 /**
  * Get priority from alerts or badge styles

@@ -45,18 +45,17 @@ class PendingChangeQueue {
 
 type Item = BaseGroup | Group | GroupCollapseRelease;
 
-type Internals = {
+interface Internals {
   items: Item[];
   statuses: Record<string, Record<string, boolean>>;
   pendingChanges: PendingChangeQueue;
-
   indexOfActivity: (groupId: string, id: string) => number;
   addActivity: (groupId: string, data: Activity, index?: number) => void;
   updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
   removeActivity: (groupId: string, id: string) => number;
-};
+}
 
-type GroupStoreInterface = Reflux.StoreDefinition & {
+interface GroupStoreInterface extends Reflux.StoreDefinition {
   init: () => void;
   reset: () => void;
   loadInitialData: (items: Item[]) => void;
@@ -94,7 +93,7 @@ type GroupStoreInterface = Reflux.StoreDefinition & {
   ) => void;
   onPopulateStats: (itemIds: string[], response: GroupStats[]) => void;
   onPopulateReleases: (itemId: string, releaseData: GroupRelease) => void;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   listenables: [GroupActions],

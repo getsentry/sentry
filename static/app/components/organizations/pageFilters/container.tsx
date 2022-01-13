@@ -35,16 +35,15 @@ type GlobalSelectionHeaderProps = Omit<
   | 'loadingProjects'
 >;
 
-type Props = WithRouterProps &
-  GlobalSelectionHeaderProps & {
-    /**
-     * Skip loading from local storage
-     * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
-     * We do not want to load the user's last used env/project in this case, otherwise will
-     * lead to very confusing behavior.
-     */
-    skipLoadLastUsed?: boolean;
-  };
+interface Props extends WithRouterProps, GlobalSelectionHeaderProps {
+  /**
+   * Skip loading from local storage
+   * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
+   * We do not want to load the user's last used env/project in this case, otherwise will
+   * lead to very confusing behavior.
+   */
+  skipLoadLastUsed?: boolean;
+}
 
 /**
  * The page filters container handles initalization of page filters for the

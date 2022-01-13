@@ -41,7 +41,7 @@ type TableResultProps = Pick<WidgetQueries['state'], 'errorMessage' | 'loading'>
   transformedResults: TableDataRow[];
 };
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   organization: Organization;
   location: Location;
@@ -60,7 +60,7 @@ type Props = WithRouterProps & {
   noLazyLoad?: boolean;
   hideDragHandle?: boolean;
   widgetLimitReached: boolean;
-};
+}
 
 class WidgetCard extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props): boolean {

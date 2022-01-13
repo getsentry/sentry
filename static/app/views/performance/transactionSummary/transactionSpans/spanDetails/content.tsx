@@ -30,14 +30,14 @@ import {emptyValue, SpanLabelContainer} from '../styles';
 import {SpanSlug} from '../types';
 import {getTotalsView} from '../utils';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   eventView: EventView;
   projectId: string;
   transactionName: string;
   spanSlug: SpanSlug;
-};
+}
 
 export default function SpanDetailsContentWrapper(props: Props) {
   const {location, organization, eventView, projectId, transactionName, spanSlug} = props;
@@ -114,7 +114,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
   );
 }
 
-type ContentProps = {
+interface ContentProps {
   location: Location;
   organization: Organization;
   spanSlug: SpanSlug;
@@ -122,7 +122,7 @@ type ContentProps = {
   totalCount: number;
   suspectSpansResults: SuspectSpansProps;
   spanExamplesResults: SpanExamplesProps;
-};
+}
 
 function SpanDetailsContent(props: ContentProps) {
   const {
@@ -173,12 +173,12 @@ function SpanDetailsContent(props: ContentProps) {
   );
 }
 
-type HeaderProps = {
+interface HeaderProps {
   spanSlug: SpanSlug;
   description: string | null;
   suspectSpan: SuspectSpan;
   totalCount: number | null;
-};
+}
 
 function SpanDetailsHeader(props: HeaderProps) {
   const {spanSlug, description, suspectSpan, totalCount} = props;

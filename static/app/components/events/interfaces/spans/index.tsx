@@ -26,15 +26,15 @@ import {ParsedTraceType} from './types';
 import {parseTrace, scrollToSpan} from './utils';
 import WaterfallModel from './waterfallModel';
 
-type Props = {
+interface Props extends WithRouterProps {
   event: EventTransaction;
   organization: Organization;
-} & WithRouterProps;
+}
 
-type State = {
+interface State {
   parsedTrace: ParsedTraceType;
   waterfallModel: WaterfallModel;
-};
+}
 
 class SpansInterface extends PureComponent<Props, State> {
   state: State = {

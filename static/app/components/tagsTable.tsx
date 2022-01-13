@@ -14,12 +14,12 @@ import space from 'sentry/styles/space';
 import {MetaError} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
 
-type Props = {
+interface Props {
   event: Event;
   query: string;
   generateUrl: (tag: EventTag) => LocationDescriptor;
   title?: React.ReactNode;
-};
+}
 
 const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props) => {
   const eventWithMeta = withMeta(event) as Event;

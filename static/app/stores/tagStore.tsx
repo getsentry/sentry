@@ -49,14 +49,14 @@ const BUILTIN_TAGS = [
   return acc;
 }, {});
 
-type TagStoreInterface = {
+interface TagStoreInterface {
   state: TagCollection;
   getBuiltInTags(): TagCollection;
   getIssueAttributes(): TagCollection;
   getAllTags(): TagCollection;
   reset(): void;
   onLoadTagsSuccess(data: Tag[]): void;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
   state: {},

@@ -30,7 +30,7 @@ import {DisplayModes} from '../projectCharts';
 
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 
-type Props = {
+interface Props {
   title: string;
   router: InjectedRouter;
   selection: PageFilters;
@@ -41,7 +41,7 @@ type Props = {
   help?: string;
   disablePrevious?: boolean;
   query?: string;
-};
+}
 
 function ProjectBaseSessionsChart({
   title,
@@ -139,7 +139,7 @@ function ProjectBaseSessionsChart({
   );
 }
 
-type ChartProps = {
+interface ChartProps {
   theme: Theme;
   zoomRenderProps: ZoomRenderProps;
   reloading: boolean;
@@ -147,12 +147,12 @@ type ChartProps = {
   releaseSeries: Series[];
   previousTimeSeries?: Series[];
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
-};
+}
 
-type ChartState = {
+interface ChartState {
   seriesSelection: Record<string, boolean>;
   forceUpdate: boolean;
-};
+}
 
 class Chart extends Component<ChartProps, ChartState> {
   state: ChartState = {

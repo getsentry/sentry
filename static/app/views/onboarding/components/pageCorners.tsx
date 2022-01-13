@@ -3,9 +3,9 @@ import {AnimationControls, motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
-type Props = {
+interface Props {
   animateVariant: AnimationControls;
-};
+}
 
 const PageCorners = ({animateVariant}: Props) => (
   <Container>

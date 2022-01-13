@@ -19,8 +19,8 @@ import GuideStore, {GuideStoreState} from 'sentry/stores/guideStore';
 import space from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 
-type Props = {
-  target?: string; // Shouldn't target be mandatory?
+interface Props {
+  target?: string; // Shouldn't target be mandatory?;
   position?: React.ComponentProps<typeof Hovercard>['position'];
   offset?: string;
   to?: {
@@ -30,14 +30,14 @@ type Props = {
   onFinish?: () => void;
   /** Hovercard renders the container */
   containerClassName?: string;
-};
+}
 
-type State = {
+interface State {
   active: boolean;
   orgId: string | null;
   step: number;
   currentGuide?: Guide;
-};
+}
 
 /**
  * A GuideAnchor puts an informative hovercard around an element.
@@ -219,11 +219,9 @@ class GuideAnchor extends React.Component<Props, State> {
 
 export {GuideAnchor};
 
-/**
- * Wraps the GuideAnchor so we don't have to render it if it's disabled
- * Using a class so we automatically have children as a typed prop
- */
-type WrapperProps = {disabled?: boolean} & Props;
+interface WrapperProps extends Props {
+  disabled?: boolean;
+}
 
 export default class GuideAnchorWrapper extends React.Component<WrapperProps> {
   render() {

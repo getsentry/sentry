@@ -19,9 +19,9 @@ type Props = Omit<AsyncView['props'], 'params'> & {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   applications: SentryApp[];
-};
+}
 
 class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   getTitle() {

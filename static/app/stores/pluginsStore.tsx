@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 import PluginActions from 'sentry/actions/pluginActions';
 import {Plugin} from 'sentry/types';
 
-type PluginStoreInterface = {
+interface PluginStoreInterface {
   state: {
     loading: boolean;
     plugins: Plugin[];
@@ -12,7 +12,7 @@ type PluginStoreInterface = {
   };
   plugins: Map<string, Plugin> | null;
   updating: Map<string, Plugin>;
-};
+}
 
 const defaultState = {
   loading: true,

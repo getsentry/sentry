@@ -3,12 +3,12 @@ import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {t} from 'sentry/locale';
 import {Frame} from 'sentry/types';
 
-type Props = {
+interface Props {
   frame: Frame;
   hasHiddenDetails?: boolean;
   showCompleteFunctionName?: boolean;
   className?: string;
-};
+}
 
 const FunctionName = ({
   frame,

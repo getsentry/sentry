@@ -97,10 +97,10 @@ export const ICON_PATHS = {
   zulip,
 };
 
-type Props = {
+interface Props {
   pluginId?: string;
   size?: number;
-};
+}
 
 const PluginIcon = styled('div')<Props>`
   position: relative;

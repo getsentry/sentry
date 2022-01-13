@@ -30,7 +30,7 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   collapse?: string[];
 };
 
-type Props = {
+interface Props {
   api: Client;
   organization: OrganizationSummary;
   widget: Widget;
@@ -40,13 +40,13 @@ type Props = {
     errorMessage: undefined | string;
     transformedResults: TableDataRow[];
   }) => React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   errorMessage: undefined | string;
   loading: boolean;
   tableResults: Group[];
-};
+}
 
 class WidgetQueries extends React.Component<Props, State> {
   state: State = {

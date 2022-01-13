@@ -16,29 +16,29 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {assignTempId} from './dashboard';
 import {DashboardDetails, DashboardListItem} from './types';
 
-type OrgDashboardsChildrenProps = {
+interface OrgDashboardsChildrenProps {
   dashboard: DashboardDetails | null;
   dashboards: DashboardListItem[];
   error: boolean;
   onDashboardUpdate: (updatedDashboard: DashboardDetails) => void;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   params: {orgId: string; dashboardId?: string};
   location: Location;
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   // endpoint response
   dashboards: DashboardListItem[] | null;
   /**
    * The currently selected dashboard.
    */
   selectedDashboard: DashboardDetails | null;
-} & AsyncComponent['state'];
+}
 
 class OrgDashboards extends AsyncComponent<Props, State> {
   state: State = {

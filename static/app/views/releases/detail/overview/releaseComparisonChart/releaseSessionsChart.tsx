@@ -40,7 +40,7 @@ import {
   releaseMarkLinesLabels,
 } from '../../utils';
 
-type Props = {
+interface Props extends WithRouterProps {
   theme: Theme;
   release: ReleaseWithHealth;
   project: ReleaseProject;
@@ -56,7 +56,7 @@ type Props = {
   start?: string;
   end?: string;
   utc?: boolean;
-} & WithRouterProps;
+}
 
 class ReleaseSessionsChart extends React.Component<Props> {
   formatTooltipValue = (value: string | number | null, label?: string) => {

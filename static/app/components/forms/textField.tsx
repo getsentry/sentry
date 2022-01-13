@@ -1,8 +1,8 @@
 import InputField from 'sentry/components/forms/inputField';
 
-type Props = InputField['props'] & {
+interface Props {
   spellCheck?: string;
-};
+}
 
 export default class TextField extends InputField<Props> {
   getAttributes() {

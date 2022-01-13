@@ -17,13 +17,13 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
   onDelete: () => void;
   onDiscard: () => void;
   disabled: boolean;
-};
+}
 
 function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Props) {
   function renderDiscardDisabled({children, ...props}) {

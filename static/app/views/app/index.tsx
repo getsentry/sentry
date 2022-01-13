@@ -30,9 +30,9 @@ const GlobalNotifications = HookOrDefault({
   defaultComponent: () => null,
 });
 
-type Props = {
+interface Props {
   children: React.ReactNode;
-};
+}
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));

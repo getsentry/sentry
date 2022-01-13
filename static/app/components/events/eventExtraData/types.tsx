@@ -2,6 +2,6 @@ export enum EventExtraDataType {
   CRASHED_PROCESS = 'crashed_process',
 }
 
-export type EventExtraData = {
+export interface EventExtraData {
   [key: string]: any;
-};
+}

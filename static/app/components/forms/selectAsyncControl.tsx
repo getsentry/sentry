@@ -9,22 +9,22 @@ import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 import SelectControl, {ControlProps, GeneralSelectValue} from './selectControl';
 
-type Result = {
+interface Result {
   value: string;
   label: string;
-};
+}
 
-type Props = {
+interface Props {
   url: string;
-  onResults: (data: any) => Result[]; // TODO(ts): Improve data type
+  onResults: (data: any) => Result[]; // TODO(ts): Improve data type;
   onQuery: (query: string | undefined) => {};
   forwardedRef: React.Ref<ReactSelect<GeneralSelectValue>>;
   value: ControlProps['value'];
-};
+}
 
-type State = {
+interface State {
   query?: string;
-};
+}
 
 /**
  * Performs an API request to `url` when menu is initially opened

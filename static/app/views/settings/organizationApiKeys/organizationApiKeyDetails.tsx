@@ -20,18 +20,18 @@ import {DeprecatedApiKey} from './types';
 
 const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   apiKey: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-type State = AsyncView['state'] & {
+interface State {
   apiKey: DeprecatedApiKey;
-};
+}
 
 class OrganizationApiKeyDetails extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

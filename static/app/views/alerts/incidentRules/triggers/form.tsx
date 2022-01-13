@@ -22,12 +22,11 @@ import {
   UnsavedTrigger,
 } from '../types';
 
-type Props = {
+interface Props {
   api: Client;
   config: Config;
   disabled: boolean;
   organization: Organization;
-
   /**
    * Map of fieldName -> errorMessage
    */
@@ -43,10 +42,9 @@ type Props = {
   fieldHelp: React.ReactNode;
   triggerLabel: React.ReactNode;
   placeholder: string;
-
   onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
-};
+}
 
 class TriggerForm extends React.PureComponent<Props> {
   /**

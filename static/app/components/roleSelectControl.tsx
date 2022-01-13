@@ -6,12 +6,12 @@ import space from 'sentry/styles/space';
 import {MemberRole} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 
-type OptionType = {
+interface OptionType {
   label: string;
   value: string;
   disabled: boolean;
   description: string;
-};
+}
 
 type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
   roles: MemberRole[];

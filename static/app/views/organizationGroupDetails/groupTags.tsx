@@ -25,9 +25,9 @@ type Props = AsyncComponent['props'] & {
   environments: string[];
 } & RouteComponentProps<{}, {}>;
 
-type State = AsyncComponent['state'] & {
+interface State {
   tagList: null | TagWithTopValues[];
-};
+}
 
 class GroupTags extends AsyncComponent<Props, State> {
   getDefaultState(): State {

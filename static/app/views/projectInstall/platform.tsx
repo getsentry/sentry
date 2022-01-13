@@ -33,11 +33,11 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string; projectId: string; platform: string}, {}>;
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
   html: string;
-};
+}
 
 class ProjectInstallPlatform extends Component<Props, State> {
   state: State = {

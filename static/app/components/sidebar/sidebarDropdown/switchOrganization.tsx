@@ -13,10 +13,11 @@ import withOrganizations from 'sentry/utils/withOrganizations';
 
 import Divider from './divider.styled';
 
-type Props = {
+interface Props {
   organizations: OrganizationSummary[];
   canCreateOrganization: boolean;
-};
+}
+
 /**
  * Switch Organization Menu Label + Sub Menu
  */

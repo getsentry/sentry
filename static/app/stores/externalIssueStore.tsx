@@ -2,11 +2,11 @@ import Reflux from 'reflux';
 
 import {PlatformExternalIssue} from 'sentry/types';
 
-type ExternalIssueStoreInterface = {
+interface ExternalIssueStoreInterface {
   load(items: PlatformExternalIssue[]): void;
   add(issue: PlatformExternalIssue): void;
   getInitialState(): PlatformExternalIssue[];
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & ExternalIssueStoreInterface = {
   init() {

@@ -5,9 +5,9 @@ import {IconCheckmark, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ImageStatus} from 'sentry/types/debugImage';
 
-type Props = {
+interface Props {
   status: ImageStatus;
-};
+}
 
 function ProcessingIcon({status}: Props) {
   switch (status) {

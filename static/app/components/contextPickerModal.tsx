@@ -19,53 +19,45 @@ import Projects from 'sentry/utils/projects';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   /**
    * The destination route
    */
   nextPath: string;
-
   /**
    * List of available organizations
    */
   organizations: Organization[];
-
   /**
    * Does modal need to prompt for organization.
    * TODO(billy): This can be derived from `nextPath`
    */
   needOrg: boolean;
-
   /**
    * Does modal need to prompt for project
    */
   needProject: boolean;
-
   /**
    * Organization slug
    */
   organization: string;
-
   projects: Project[];
   loading: boolean;
-
   /**
    * Finish callback
    */
   onFinish: (path: string) => void;
-
   /**
    * Callback for when organization is selected
    */
   onSelectOrganization: (orgSlug: string) => void;
-
   /**
    * Id of the project (most likely from the URL)
    * on which the modal was opened
    */
   comingFromProjectId?: string;
   integrationConfigs: Integration[];
-};
+}
 
 const selectStyles: StylesConfig = {
   menu: provided => ({
@@ -453,11 +445,11 @@ type ContainerProps = Omit<
   configUrl?: string;
 } & AsyncComponent['props'];
 
-type ContainerState = {
+interface ContainerState {
   selectedOrganization?: string;
   organizations: Organization[];
   integrationConfigs?: Integration[];
-} & AsyncComponent['state'];
+}
 
 class ContextPickerModalContainer extends AsyncComponent<ContainerProps, ContainerState> {
   getDefaultState() {

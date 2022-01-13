@@ -16,7 +16,7 @@ type Markers = React.ComponentProps<typeof MiniBarChart>['markers'];
  */
 type StatsGroup = Record<string, TimeseriesValue[]>;
 
-type Props = {
+interface Props {
   group: Group;
   statsPeriod: string;
   title: string;
@@ -27,7 +27,7 @@ type Props = {
   release?: Release;
   releaseStats?: StatsGroup;
   environmentStats?: StatsGroup;
-};
+}
 
 function GroupReleaseChart(props: Props) {
   const {

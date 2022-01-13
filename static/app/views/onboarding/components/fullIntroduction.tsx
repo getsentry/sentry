@@ -9,9 +9,9 @@ import {t, tct} from 'sentry/locale';
 
 import SetupIntroduction from './setupIntroduction';
 
-type Props = {
+interface Props {
   currentPlatform: PlatformKey;
-};
+}
 
 export default function FullIntroduction({currentPlatform}: Props) {
   return (

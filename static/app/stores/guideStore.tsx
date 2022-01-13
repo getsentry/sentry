@@ -19,7 +19,7 @@ function guidePrioritySort(a: Guide, b: Guide) {
   return a_priority - b_priority;
 }
 
-export type GuideStoreState = {
+export interface GuideStoreState {
   /**
    * All tooltip guides
    */
@@ -52,7 +52,7 @@ export type GuideStoreState = {
    * The previously shown guide
    */
   prevGuide: Guide | null;
-};
+}
 
 const defaultState: GuideStoreState = {
   guides: [],
@@ -65,15 +65,14 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
-type GuideStoreInterface = {
+interface GuideStoreInterface {
   state: GuideStoreState;
-
   onFetchSucceeded(data: GuidesServerData): void;
   onRegisterAnchor(target: string): void;
   onUnregisterAnchor(target: string): void;
   recordCue(guide: string): void;
   updatePrevGuide(nextGuide: Guide | null): void;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   state: defaultState,

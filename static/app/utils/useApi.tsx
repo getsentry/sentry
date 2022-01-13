@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 
 import {Client} from 'sentry/api';
 
-type Options = {
+interface Options {
   /**
    * Enabling this option will disable clearing in-flight requests when the
    * component is unmounted.
@@ -19,7 +19,7 @@ type Options = {
    * persistInFlight configuration.
    */
   api?: Client;
-};
+}
 
 /**
  * Returns an API client that will have it's requests canceled when the owning

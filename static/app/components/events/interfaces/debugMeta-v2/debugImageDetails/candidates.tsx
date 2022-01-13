@@ -30,7 +30,7 @@ type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options
 
 type ImageCandidates = Image['candidates'];
 
-type Props = {
+interface Props {
   candidates: ImageCandidates;
   organization: Organization;
   projSlug: Project['slug'];
@@ -40,14 +40,14 @@ type Props = {
   onDelete: (debugId: string) => void;
   eventDateReceived?: string;
   imageStatus?: ImageStatus;
-};
+}
 
-type State = {
+interface State {
   searchTerm: string;
   filterOptions: FilterOptions;
   filteredCandidatesBySearch: ImageCandidates;
   filteredCandidatesByFilter: ImageCandidates;
-};
+}
 
 class Candidates extends React.Component<Props, State> {
   state: State = {

@@ -9,14 +9,14 @@ import space from 'sentry/styles/space';
 import Rules from './rules';
 import {Rule} from './types';
 
-type Props = {
+interface Props {
   rules: Array<Rule>;
-};
+}
 
-type State = {
+interface State {
   isCollapsed: boolean;
   contentHeight?: string;
-};
+}
 
 class OrganizationRules extends Component<Props, State> {
   state: State = {

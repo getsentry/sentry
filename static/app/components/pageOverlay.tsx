@@ -53,12 +53,12 @@ Body.defaultProps = {
   transition: testableTransition(),
 };
 
-type ContentOpts = {
+interface ContentOpts {
   Body: typeof Body;
   Header: typeof Header;
-};
+}
 
-type PositioningStrategyOpts = {
+interface PositioningStrategyOpts {
   /**
    * The main container component rect.
    */
@@ -71,9 +71,9 @@ type PositioningStrategyOpts = {
    * The wrapper being positioned Rect.
    */
   wrapperRect: DOMRect;
-};
+}
 
-type Props = {
+interface Props {
   text: (opts: ContentOpts) => React.ReactNode;
   animateDelay?: number;
   /**
@@ -102,7 +102,7 @@ type Props = {
    * that resolves the X and Y position.
    */
   positioningStrategy: (opts: PositioningStrategyOpts) => {x: number; y: number};
-};
+}
 
 type DefaultProps = Pick<Props, 'positioningStrategy'>;
 

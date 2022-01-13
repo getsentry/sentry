@@ -9,11 +9,11 @@ export enum OperatingSystemIgnoredDataType {
   BUILD = 'build',
 }
 
-export type OperatingSystemKnownData = {
+export interface OperatingSystemKnownData {
   name: string;
   type: string;
   build: string;
   kernel_version: string;
   version?: string;
   rooted?: boolean;
-};
+}

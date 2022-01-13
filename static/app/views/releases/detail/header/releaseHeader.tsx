@@ -22,14 +22,14 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import ReleaseActions from './releaseActions';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   release: Release;
   project: Required<ReleaseProject>;
   releaseMeta: ReleaseMeta;
   refetchData: () => void;
-};
+}
 
 const ReleaseHeader = ({
   location,

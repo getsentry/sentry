@@ -14,12 +14,12 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
-type ContainerProps = {
+interface ContainerProps {
   shareUrl: string;
   onConfirming: () => void;
   onConfirm: () => void;
   onCancel: () => void;
-};
+}
 
 type UrlRef = React.ElementRef<typeof AutoSelectText> | null;
 
@@ -72,7 +72,7 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
   }
 }
 
-type Props = {
+interface Props {
   loading: boolean;
   onToggle: () => void;
   /**
@@ -85,7 +85,7 @@ type Props = {
   isShared?: boolean;
   shareUrl?: string | null;
   disabled?: boolean;
-};
+}
 
 class ShareIssue extends React.Component<Props> {
   hasConfirmModal = false;

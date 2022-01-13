@@ -9,9 +9,9 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
-};
+}
 
 /**
  * Wraps children with emotions ThemeProvider reactively set a theme.

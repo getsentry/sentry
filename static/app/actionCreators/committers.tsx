@@ -3,11 +3,11 @@ import {Client} from 'sentry/api';
 import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
 import {Committer} from 'sentry/types';
 
-type ParamsGet = {
+interface ParamsGet {
   orgSlug: string;
   projectSlug: string;
   eventId: string;
-};
+}
 
 export function getCommitters(api: Client, params: ParamsGet) {
   const {orgSlug, projectSlug, eventId} = params;

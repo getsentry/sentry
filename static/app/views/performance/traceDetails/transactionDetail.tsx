@@ -30,12 +30,12 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   transaction: TraceFullDetailed;
   scrollToHash: (hash: string) => void;
-};
+}
 
 class TransactionDetail extends Component<Props> {
   renderTransactionErrors() {

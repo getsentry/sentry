@@ -5,13 +5,13 @@ import space from 'sentry/styles/space';
 
 import {getListSymbolStyle, listSymbol} from './utils';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   symbol?: keyof typeof listSymbol | React.ReactElement;
   initialCounterValue?: number;
   'data-test-id'?: string;
   className?: string;
-};
+}
 
 const List = styled(
   ({

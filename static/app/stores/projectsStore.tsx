@@ -6,21 +6,18 @@ import {Project, Team} from 'sentry/types';
 
 import {CommonStoreInterface} from './types';
 
-type State = {
+interface State {
   projects: Project[];
   loading: boolean;
-};
+}
 
 type StatsData = Record<string, Project['stats']>;
 
-/**
- * Attributes that need typing but aren't part of the external interface,
- */
-type Internals = {
+interface Internals {
   removeTeamFromProject(teamSlug: string, project: Project): void;
   itemsById: Record<string, Project>;
   loading: boolean;
-};
+}
 
 type ProjectsStoreInterface = CommonStoreInterface<State> & {
   init(): void;

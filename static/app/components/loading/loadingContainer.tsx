@@ -12,15 +12,15 @@ const defaultProps = {
 
 type DefaultProps = Readonly<typeof defaultProps>;
 
-type Props = {
+interface Props extends DefaultProps {
   className?: string;
   children?: React.ReactNode;
-} & DefaultProps;
+}
 
-type MaskProps = {
+interface MaskProps {
   isReloading: boolean;
   maskBackgroundColor: string;
-};
+}
 
 export default function LoadingContainer(props: Props) {
   const {className, children, isReloading, isLoading, maskBackgroundColor} = props;

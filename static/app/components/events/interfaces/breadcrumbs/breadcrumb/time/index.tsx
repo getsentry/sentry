@@ -8,12 +8,12 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {getFormattedTimestamp} from './utils';
 
-type Props = {
+interface Props {
   searchTerm: string;
   timestamp?: string;
   relativeTime?: string;
   displayRelativeTime?: boolean;
-};
+}
 
 const Time = memo(function Time({
   timestamp,

@@ -16,15 +16,14 @@ import {
 } from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = AsyncComponent['props'] &
-  WithRouterProps & {
-    integration: Integration;
-    organization: Organization;
-  };
+interface Props extends WithRouterProps {
+  integration: Integration;
+  organization: Organization;
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   members: (Member & {externalUsers: ExternalUser[]})[];
-};
+}
 
 class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

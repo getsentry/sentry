@@ -43,10 +43,10 @@ export const ICON_PATHS = {
   vsts,
 };
 
-type Props = {
+interface Props {
   providerId?: string;
   size?: number;
-};
+}
 
 const IdentityIcon = styled('div')<Props>`
   position: relative;

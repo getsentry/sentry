@@ -8,14 +8,14 @@ import {KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   data?: KeyValueListData;
   onClick?: () => void;
   raw?: boolean;
   longKeys?: boolean;
   isContextData?: boolean;
   isSorted?: boolean;
-};
+}
 
 const KeyValueList = ({
   data,

@@ -45,7 +45,7 @@ export class Request {
   }
 }
 
-export type ResponseMeta<R = any> = {
+export interface ResponseMeta<R = any> {
   /**
    * The response status code
    */
@@ -66,7 +66,7 @@ export type ResponseMeta<R = any> = {
    * Get a header value from the response
    */
   getResponseHeader: (header: string) => string | null;
-};
+}
 
 /**
  * Check if the requested method does not require CSRF tokens
@@ -189,7 +189,7 @@ export type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
 
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
-export type RequestCallbacks = {
+export interface RequestCallbacks {
   /**
    * Callback for the request completing (success or error)
    */
@@ -203,9 +203,9 @@ export type RequestCallbacks = {
    */
   // TODO(ts): Update this when sentry is mostly migrated to TS
   error?: FunctionCallback;
-};
+}
 
-export type RequestOptions = RequestCallbacks & {
+export interface RequestOptions extends RequestCallbacks {
   /**
    * The HTTP method to use when making the API request
    */
@@ -224,20 +224,20 @@ export type RequestOptions = RequestCallbacks & {
    * coalesce the stacks together.
    */
   preservedError?: Error;
-};
+}
 
-type ClientOptions = {
+interface ClientOptions {
   /**
    * The base URL path to prepend to API request URIs.
    */
   baseUrl?: string;
-};
+}
 
-type HandleRequestErrorOptions = {
+interface HandleRequestErrorOptions {
   id: string;
   path: string;
   requestOptions: Readonly<RequestOptions>;
-};
+}
 
 /**
  * The API client is used to make HTTP requests to Sentry's backend.

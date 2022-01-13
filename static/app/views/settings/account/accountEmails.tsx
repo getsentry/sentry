@@ -24,9 +24,9 @@ const ENDPOINT = '/users/me/emails/';
 
 type Props = AsyncView['props'];
 
-type State = AsyncView['state'] & {
+interface State {
   emails: UserEmail[];
-};
+}
 
 class AccountEmails extends AsyncView<Props, State> {
   getTitle() {
@@ -148,7 +148,7 @@ export class EmailAddresses extends AsyncComponent<Props, State> {
   }
 }
 
-type EmailRowProps = {
+interface EmailRowProps {
   email: string;
   onRemove: (email: string, e: React.MouseEvent) => void;
   onVerify: (email: string, e: React.MouseEvent) => void;
@@ -156,7 +156,7 @@ type EmailRowProps = {
   isVerified?: boolean;
   isPrimary?: boolean;
   hideRemove?: boolean;
-};
+}
 
 const EmailRow = ({
   email,

@@ -11,16 +11,16 @@ export enum STACK_TYPE {
   MINIFIED = 'minified',
 }
 
-export type StacktraceType = {
+export interface StacktraceType {
   hasSystemFrames: boolean;
   registers: Record<string, any> | null;
   framesOmitted: any;
   frames?: Array<Frame>;
-};
+}
 
 export type RawStacktrace = StacktraceType | null;
 
-type MechanismMeta = {
+interface MechanismMeta {
   errno?: {
     number: number;
     name?: string;
@@ -37,9 +37,9 @@ type MechanismMeta = {
     name?: string;
     code_name?: string;
   };
-};
+}
 
-export type StackTraceMechanism = {
+export interface StackTraceMechanism {
   handled: boolean;
   synthetic: boolean;
   type: string;
@@ -47,4 +47,4 @@ export type StackTraceMechanism = {
   data?: object;
   description?: string;
   help_link?: string;
-};
+}

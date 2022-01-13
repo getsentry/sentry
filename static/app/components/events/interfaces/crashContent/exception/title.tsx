@@ -5,10 +5,10 @@ import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   type: string;
   exceptionModule?: string | null;
-};
+}
 
 const ExceptionTitle = ({type, exceptionModule}: Props) => {
   if (defined(exceptionModule)) {

@@ -4,13 +4,11 @@ import findLastIndex from 'lodash/findLastIndex';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
-type Options = {
+interface Options {
   routes: RouteWithName[];
-
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
   // params should have `{orgId: slug}`
   params: {[key: string]: string | undefined};
-
   /**
    * The number of routes to to pop off of `routes
    * Must be < 0
@@ -19,7 +17,7 @@ type Options = {
    */
   stepBack?: -1 | -2 | -3 | -4 | -5 | -6 | -7 | -8 | -9;
   location?: Location;
-};
+}
 
 /**
  * Given a route object or a string and a list of routes + params from router, this will attempt to recreate a location string while replacing url params.

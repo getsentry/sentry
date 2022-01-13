@@ -96,14 +96,14 @@ export function getAxisOptions(organization: Organization): TooltipOption[] {
   ];
 }
 
-export type AxisOption = TooltipOption & {
+export interface AxisOption extends TooltipOption {
   field: string;
   backupOption?: AxisOption;
   label: string;
   isDistribution?: boolean;
   isLeftDefault?: boolean;
   isRightDefault?: boolean;
-};
+}
 
 export function getFrontendAxisOptions(organization: Organization): AxisOption[] {
   return [

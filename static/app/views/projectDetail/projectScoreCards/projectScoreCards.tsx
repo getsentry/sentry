@@ -7,14 +7,14 @@ import ProjectApdexScoreCard from './projectApdexScoreCard';
 import ProjectStabilityScoreCard from './projectStabilityScoreCard';
 import ProjectVelocityScoreCard from './projectVelocityScoreCard';
 
-type Props = {
+interface Props {
   organization: Organization;
   selection: PageFilters;
   isProjectStabilized: boolean;
   hasSessions: boolean | null;
   hasTransactions?: boolean;
   query?: string;
-};
+}
 
 function ProjectScoreCards({
   organization,

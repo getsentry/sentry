@@ -15,21 +15,21 @@ import Modal from './modal';
 type FormProps = React.ComponentProps<typeof Form>;
 type Values = FormProps['values'];
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   onSubmitSuccess: (organization: Organization) => void;
   orgSlug: Organization['slug'];
   api: Client;
   savedRelays: Array<Relay>;
-};
+}
 
-type State = {
+interface State {
   values: Values;
   requiredValues: Array<keyof Values>;
   disables: FormProps['disables'];
   errors: FormProps['errors'];
   isFormValid: boolean;
   title: string;
-};
+}
 
 class DialogManager<
   P extends Props = Props,

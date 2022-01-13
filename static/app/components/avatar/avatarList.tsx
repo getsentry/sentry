@@ -16,12 +16,12 @@ const defaultProps = {
 type DefaultProps = Readonly<typeof defaultProps>;
 type Mutable<T> = {-readonly [P in keyof T]: T[P]};
 
-type Props = {
+interface Props extends DefaultProps {
   className?: string;
   users: AvatarUser[];
   renderTooltip?: UserAvatar['props']['renderTooltip'];
   tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
-} & DefaultProps;
+}
 
 export default class AvatarList extends Component<Props> {
   static defaultProps = defaultProps;

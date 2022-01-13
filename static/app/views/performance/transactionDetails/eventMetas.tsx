@@ -38,9 +38,9 @@ type Props = Pick<
   meta: TraceMeta | null;
 };
 
-type State = {
+interface State {
   isLargeScreen: boolean;
-};
+}
 
 /**
  * This should match the breakpoint chosen for the `EventDetailHeader` below

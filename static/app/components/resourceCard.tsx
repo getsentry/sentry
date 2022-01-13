@@ -5,11 +5,11 @@ import {Panel} from 'sentry/components/panels';
 import space from 'sentry/styles/space';
 import {analytics} from 'sentry/utils/analytics';
 
-type Props = {
+interface Props {
   title: string;
   link: string;
   imgUrl: string;
-};
+}
 
 const ResourceCard = ({title, link, imgUrl}: Props) => (
   <ResourceCardWrapper

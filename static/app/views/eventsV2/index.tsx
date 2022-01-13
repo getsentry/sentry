@@ -5,10 +5,10 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = {
+interface Props {
   organization: Organization;
   children: React.ReactChildren;
-};
+}
 
 function DiscoverContainer({organization, children}: Props) {
   function renderNoAccess() {

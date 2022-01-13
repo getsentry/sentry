@@ -23,13 +23,13 @@ import {buildTeamId, buildUserId} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 
-export type Owner = {
+export interface Owner {
   value: string;
   label: React.ReactNode;
   searchKey: string;
   actor: Actor;
   disabled?: boolean;
-};
+}
 
 function ValueComponent({data, removeProps}: MultiValueProps<Owner>) {
   return (
@@ -42,7 +42,7 @@ function ValueComponent({data, removeProps}: MultiValueProps<Owner>) {
 const getSearchKeyForUser = (user: User) =>
   `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   project: Project;
@@ -51,12 +51,12 @@ type Props = {
   onChange: (owners: Owner[]) => void;
   disabled: boolean;
   onInputChange?: (text: string) => void;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   inputValue: string;
-};
+}
 
 class SelectOwners extends React.Component<Props, State> {
   state: State = {

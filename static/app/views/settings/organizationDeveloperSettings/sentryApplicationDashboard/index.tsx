@@ -17,7 +17,7 @@ import RequestLog from './requestLog';
 
 type Props = RouteComponentProps<{appSlug: string; orgId: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   stats: {
     totalUninstalls: number;
     totalInstalls: number;
@@ -31,7 +31,7 @@ type State = AsyncView['state'] & {
     views: [number, number][];
   };
   app: SentryApp;
-};
+}
 
 export default class SentryApplicationDashboard extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -205,11 +205,12 @@ export default class SentryApplicationDashboard extends AsyncView<Props, State> 
   }
 }
 
-type InteractionsChartProps = {
+interface InteractionsChartProps {
   data: {
     [key: string]: [number, number][];
   };
-};
+}
+
 const InteractionsChart = ({data}: InteractionsChartProps) => {
   const elementInteractionsSeries = Object.keys(data).map((key: string) => {
     const seriesData = data[key].map(point => ({

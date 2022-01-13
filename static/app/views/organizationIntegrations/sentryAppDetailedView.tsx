@@ -24,11 +24,11 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import SplitInstallationIdModal from './SplitInstallationIdModal';
 
-type State = {
+interface State {
   sentryApp: SentryApp;
   featureData: IntegrationFeature[];
   appInstalls: SentryAppInstallation[];
-};
+}
 
 type Tab = AbstractIntegrationDetailedView['state']['tab'];
 

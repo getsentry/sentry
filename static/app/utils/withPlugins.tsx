@@ -8,15 +8,15 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProject from 'sentry/utils/withProject';
 
-type WithPluginProps = {
+interface WithPluginProps {
   organization: Organization;
   project?: Project;
-};
+}
 
-type State = {
+interface State {
   plugins: Plugin[];
   loading: boolean;
-};
+}
 
 /**
  * Higher order component that fetches list of plugins and

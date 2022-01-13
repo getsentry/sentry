@@ -15,9 +15,9 @@ import {Item, ItemsBeforeFilter} from './types';
 type AutoCompleteChildrenArgs = Parameters<AutoComplete<Item>['props']['children']>[0];
 type Actions = AutoCompleteChildrenArgs['actions'];
 
-export type MenuFooterChildProps = {
+export interface MenuFooterChildProps {
   actions: Actions;
-};
+}
 
 type ListProps = React.ComponentProps<typeof List>;
 

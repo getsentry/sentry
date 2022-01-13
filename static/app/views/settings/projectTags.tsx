@@ -21,9 +21,9 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 type Props = RouteComponentProps<{projectId: string; orgId: string}, {}> &
   AsyncView['props'];
 
-type State = {
+interface State {
   tags: Array<TagWithTopValues>;
-} & AsyncView['state'];
+}
 
 class ProjectTags extends AsyncView<Props, State> {
   getDefaultState(): State {

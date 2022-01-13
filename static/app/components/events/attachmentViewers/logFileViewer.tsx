@@ -11,7 +11,7 @@ import {
 import space from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 
-type Props = ViewerProps & AsyncComponent['props'];
+interface Props extends ViewerProps {}
 
 type State = AsyncComponent['state'];
 

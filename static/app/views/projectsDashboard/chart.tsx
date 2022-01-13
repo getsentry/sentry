@@ -10,11 +10,11 @@ import NoEvents from './noEvents';
 
 type BaseChartProps = React.ComponentProps<typeof BaseChart>;
 
-type Props = {
+interface Props {
   firstEvent: boolean;
   stats: Project['stats'];
   transactionStats?: Project['transactionStats'];
-};
+}
 
 const Chart = ({firstEvent, stats, transactionStats}: Props) => {
   const series: BaseChartProps['series'] = [];

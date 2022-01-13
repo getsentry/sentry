@@ -1,8 +1,8 @@
 import Item from './item';
 
-type Props = {
+interface Props {
   title: string;
-};
+}
 
 const ContextSummaryNoSummary = ({title}: Props) => (
   <Item icon={<span className="context-item-icon" />}>

@@ -28,10 +28,10 @@ type Props = {
   organization?: Organization;
 } & Partial<DefaultProps>;
 
-type State = {
+interface State {
   showingAbsoluteAddresses: boolean;
   showCompleteFunctionName: boolean;
-};
+}
 
 class Content extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

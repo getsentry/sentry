@@ -11,20 +11,20 @@ import GroupingStore from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 
-type Props = {
+interface Props {
   orgId: Organization['slug'];
   project: Project;
   groupId: Group['id'];
   onUnmerge: () => void;
   onToggleCollapse: () => void;
-};
+}
 
-type State = {
+interface State {
   unmergeList: Map<any, any>;
   unmergeLastCollapsed: boolean;
   unmergeDisabled: boolean;
   enableFingerprintCompare: boolean;
-};
+}
 
 class MergedToolbar extends React.Component<Props, State> {
   state: State = this.getInitialState();

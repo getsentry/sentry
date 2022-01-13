@@ -10,10 +10,10 @@ import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   alert: ReturnType<typeof AlertStore['getState']>[number];
   system: boolean;
-};
+}
 
 const AlertMessage = ({alert, system}: Props) => {
   const handleClose = () => AlertActions.closeAlert(alert);

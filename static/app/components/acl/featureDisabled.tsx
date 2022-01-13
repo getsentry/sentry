@@ -16,7 +16,7 @@ const installText = (features: string[], featureName: string): string =>
     .map(f => `SENTRY_FEATURES['${f}'] = True`)
     .join('\n')}`;
 
-type Props = {
+interface Props {
   /**
    * The feature flag keys that should be displayed in the code example for
    * enabling the feature.
@@ -43,11 +43,11 @@ type Props = {
    * A custom message to display. Defaults to a generic disabled message.
    */
   message: string;
-};
+}
 
-type State = {
+interface State {
   showHelp: boolean;
-};
+}
 
 /**
  * DisabledInfo renders a component informing that a feature has been disabled.

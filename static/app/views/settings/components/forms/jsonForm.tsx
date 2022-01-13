@@ -28,10 +28,10 @@ type Props = {
     'highlighted' | 'fields' | 'additionalFieldProps'
   >;
 
-type State = {
+interface State {
   // Field name that should be highlighted
   highlighted?: string;
-};
+}
 
 class JsonForm extends React.Component<Props, State> {
   state: State = {

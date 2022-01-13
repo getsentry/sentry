@@ -10,20 +10,20 @@ import {Organization, Project} from 'sentry/types';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   query: string;
   selectedProjectIds?: number[];
   groupIds: string[];
   emptyMessage?: React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   fetchingSentFirstEvent: boolean;
   firstEventProjects?: Project[] | null;
   sentFirstEvent?: boolean;
-};
+}
 
 /**
  * Component which is rendered when no groups/issues were found. This could

@@ -20,14 +20,14 @@ const iconStyle = css`
   top: 1px;
 `;
 
-type Props = {
+interface Props {
   tag: EventTag;
   streamPath: string;
   releasesPath: string;
   query: Query;
   organization: Organization;
   projectId: string;
-};
+}
 
 const EventTagsPill = ({
   tag,

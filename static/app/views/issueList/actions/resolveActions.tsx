@@ -3,13 +3,13 @@ import {Organization} from 'sentry/types';
 
 import {ConfirmAction} from './utils';
 
-type Props = {
+interface Props {
   orgSlug: Organization['slug'];
   anySelected: boolean;
   params: any;
   onUpdate: (data?: any) => void;
   onShouldConfirm: (action: ConfirmAction) => boolean;
-};
+}
 
 function ResolveActionsContainer({
   params,

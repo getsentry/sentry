@@ -17,14 +17,14 @@ import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
 import ContextMenu from '../contextMenu';
 import {Widget, WidgetType} from '../types';
 
-type Props = {
+interface Props {
   organization: Organization;
   widget: Widget;
   selection: PageFilters;
   onDuplicate: () => void;
   widgetLimitReached: boolean;
   showContextMenu?: boolean;
-};
+}
 
 function WidgetCardContextMenu({
   organization,

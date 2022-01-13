@@ -30,33 +30,32 @@ import withProjects from 'sentry/utils/withProjects';
 import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   frame: Frame;
   event: Event;
   organization: Organization;
   lineNo: number;
   projects: Project[];
-};
+}
 
 export type StacktraceErrorMessage =
   | 'file_not_found'
   | 'stack_root_mismatch'
   | 'integration_link_forbidden';
 
-// format of the ProjectStacktraceLinkEndpoint response
-type StacktraceResultItem = {
+interface StacktraceResultItem {
   integrations: Integration[];
   config?: RepositoryProjectPathConfigWithIntegration;
   sourceUrl?: string;
   error?: StacktraceErrorMessage;
   attemptedUrl?: string;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   match: StacktraceResultItem;
   isDismissed: boolean;
   promptLoaded: boolean;
-};
+}
 
 class StacktraceLink extends AsyncComponent<Props, State> {
   get project() {

@@ -1,4 +1,4 @@
-type TooltipStoreInterface = {
+interface TooltipStoreInterface {
   addTooltip(tooltip: React.Component): void;
   removeTooltip(tooltip: React.Component): void;
   openAllTooltips(): boolean;
@@ -6,7 +6,7 @@ type TooltipStoreInterface = {
   tooltips: React.Component[];
   getOpenableSingleTooltips(): React.Component[];
   init(): TooltipStoreInterface;
-};
+}
 
 const MAX_TOOLTIPS_TO_OPEN = 100;
 

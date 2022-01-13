@@ -21,7 +21,7 @@ import TextareaField from './textareaField';
 import TextField from './textField';
 import {Field} from './type';
 
-type Props = {
+interface Props {
   field: Field;
   highlighted?: boolean;
   disabled?: boolean | ((props) => boolean);
@@ -32,7 +32,7 @@ type Props = {
   onBlur?: (value, event) => void;
   access?: Set<Scope>;
   noOptionsMessage?: () => string;
-};
+}
 
 export default class FieldFromConfig extends Component<Props> {
   render() {

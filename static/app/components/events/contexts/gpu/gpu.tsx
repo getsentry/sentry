@@ -7,9 +7,9 @@ import getUnknownData from '../getUnknownData';
 import getOperatingSystemKnownData from './getGPUKnownData';
 import {GPUData, GPUKnownDataType} from './types';
 
-type Props = {
+interface Props {
   data: GPUData;
-};
+}
 
 const gpuKnownDataValues = [
   GPUKnownDataType.NAME,

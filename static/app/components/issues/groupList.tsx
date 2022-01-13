@@ -57,14 +57,14 @@ type Props = WithRouterProps & {
   queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
   errorData: {detail: string} | null;
   groups: Group[];
   pageLinks: string | null;
   memberList?: ReturnType<typeof indexMembersByProject>;
-};
+}
 
 class GroupList extends React.Component<Props, State> {
   static defaultProps = defaultProps;

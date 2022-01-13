@@ -9,7 +9,7 @@ import SelectControl, {ControlProps} from './selectControl';
 type SelectProps = Omit<ControlProps, 'onChange' | 'name'>;
 type FormProps = FormField['props'];
 
-type Props = FormProps & SelectProps;
+interface Props extends FormProps, SelectProps {}
 
 export default class SelectField extends FormField<Props> {
   static defaultProps = {

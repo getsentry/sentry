@@ -7,10 +7,10 @@ import {getRelativeTimeFromEventDateCreated} from '../utils';
 
 import {AppData, AppKnownDataType} from './types';
 
-type Output = {
+interface Output {
   subject: string;
   value?: React.ReactNode;
-};
+}
 
 function getAppKnownDataDetails(
   event: Event,

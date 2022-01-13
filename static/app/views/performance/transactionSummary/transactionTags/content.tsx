@@ -26,13 +26,13 @@ import {getTransactionField} from '../transactionOverview/tagExplorer';
 import TagsDisplay from './tagsDisplay';
 import {decodeSelectedTagKey} from './utils';
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   organization: Organization;
   projects: Project[];
   transactionName: string;
-};
+}
 
 type TagOption = string;
 

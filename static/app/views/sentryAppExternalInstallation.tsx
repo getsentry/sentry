@@ -18,13 +18,13 @@ import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   selectedOrgSlug: string | null;
   organization: Organization | null;
   organizations: Organization[];
   reloading: boolean;
   sentryApp: SentryApp;
-};
+}
 
 export default class SentryAppExternalInstallation extends AsyncView<Props, State> {
   getDefaultState() {

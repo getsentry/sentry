@@ -4,9 +4,9 @@ import {ChunkType} from 'sentry/types';
 import Redaction from './redaction';
 import {getTooltipText} from './utils';
 
-type Props = {
+interface Props {
   chunk: ChunkType;
-};
+}
 
 const Chunk = ({chunk}: Props) => {
   if (chunk.type === 'redaction') {

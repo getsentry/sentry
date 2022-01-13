@@ -29,15 +29,15 @@ import {getErrorMessage, isLegacyBrowser} from './utils';
 
 type ConditionsProps = React.ComponentProps<typeof Conditions>['conditions'];
 
-type State = {
+interface State {
   conditions: ConditionsProps;
   errors: {
     sampleRate?: string;
   };
   sampleRate: number | null;
-};
+}
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   title: string;
   emptyMessage: string;
   conditionCategories: Array<[DynamicSamplingInnerName, string]>;
@@ -56,7 +56,7 @@ type Props = ModalRenderProps & {
   onChange?: (props: State) => void;
   extraFields?: React.ReactElement;
   rule?: DynamicSamplingRule;
-};
+}
 
 function RuleModal({
   Header,

@@ -6,22 +6,22 @@ import {FieldObject} from 'sentry/views/settings/components/forms/type';
 /**
  * Processed form field metadata.
  */
-export type FormSearchField = {
+export interface FormSearchField {
   route: string;
   title: React.ReactNode;
   description: React.ReactNode;
   field: FieldObject;
-};
+}
 
-type StoreInterface = {
+interface StoreInterface {
   reset(): void;
   get(): Internals['searchMap'];
-};
+}
 
-type Internals = {
+interface Internals {
   searchMap: null | FormSearchField[];
   onLoadSearchMap: (searchMap: null | FormSearchField[]) => void;
-};
+}
 
 /**
  * Store for "form" searches, but probably will include more

@@ -9,16 +9,16 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Repository} from 'sentry/types';
 
-type Props = {
+interface Props {
   repositories: Array<Repository>;
   router: InjectedRouter;
   location: Location;
   activeRepository?: Repository;
-};
+}
 
-type State = {
+interface State {
   dropdownButtonWidth?: number;
-};
+}
 
 class RepositorySwitcher extends PureComponent<Props, State> {
   state: State = {};

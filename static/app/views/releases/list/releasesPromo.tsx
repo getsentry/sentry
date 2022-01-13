@@ -77,10 +77,10 @@ export const RELEASES_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type Props = {
+interface Props {
   organization: Organization;
   projectId?: number;
-};
+}
 
 class ReleasesPromo extends Component<Props> {
   componentDidMount() {

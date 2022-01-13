@@ -38,7 +38,7 @@ import {trackTagPageInteraction} from './utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   aggregateColumn: string;
@@ -50,11 +50,11 @@ type Props = {
   pageLinks: string | null;
   isLoading: boolean;
   onCursor?: CursorHandler;
-};
+}
 
-type State = {
+interface State {
   widths: number[];
-};
+}
 
 export class TagValueTable extends Component<Props, State> {
   state: State = {

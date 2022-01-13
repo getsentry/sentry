@@ -3,11 +3,11 @@ import * as React from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types/event';
 
-type Props = {
+interface Props {
   data: Record<string, React.ReactNode | undefined>;
   alias: string;
   event: Event;
-};
+}
 
 function getKnownData(data: Props['data']) {
   return Object.entries(data)

@@ -57,12 +57,12 @@ const SelectorItemsHook = HookOrDefault({
   defaultComponent: SelectorItems,
 });
 
-export type ChangeData = {
+export interface ChangeData {
   relative: string | null;
   start?: Date;
   end?: Date;
   utc?: boolean | null;
-};
+}
 
 type DateRangeChangeData = Parameters<
   React.ComponentProps<typeof DateRange>['onChange']
@@ -150,7 +150,7 @@ type Props = WithRouterProps & {
   maxPickableDays?: number;
 } & Partial<typeof defaultProps>;
 
-type State = {
+interface State {
   isOpen: boolean;
   hasChanges: boolean;
   hasDateRangeErrors: boolean;
@@ -158,7 +158,7 @@ type State = {
   start?: Date;
   end?: Date;
   utc?: boolean | null;
-};
+}
 
 class TimeRangeSelector extends React.PureComponent<Props, State> {
   static defaultProps = defaultProps;
@@ -468,9 +468,9 @@ const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
 `;
 
-type MenuProps = {
+interface MenuProps {
   isAbsoluteSelected: boolean;
-};
+}
 
 const Menu = styled('div')<MenuProps>`
   ${p => !p.isAbsoluteSelected && 'left: -1px'};

@@ -20,14 +20,14 @@ import {
 import GroupingComponent from './groupingComponent';
 import {hasNonContributingComponent} from './utils';
 
-type Props = {
+interface Props {
   variant: EventGroupVariant;
   showGroupingConfig: boolean;
-};
+}
 
-type State = {
+interface State {
   showNonContributing: boolean;
-};
+}
 
 type VariantData = [string, React.ReactNode][];
 

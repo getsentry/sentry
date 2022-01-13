@@ -38,12 +38,12 @@ import {
 import Chart from './chart';
 import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   project: Project;
   hasProjectAccess: boolean;
-};
+}
 
 class ProjectCard extends Component<Props> {
   componentDidMount() {
@@ -234,16 +234,16 @@ class ProjectCard extends Component<Props> {
   }
 }
 
-type ContainerProps = {
+interface ContainerProps {
   api: Client;
   project: Project;
   organization: Organization;
   hasProjectAccess: boolean;
-};
+}
 
-type ContainerState = {
+interface ContainerState {
   projectDetails: Project | null;
-};
+}
 
 class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
   state = this.getInitialState();

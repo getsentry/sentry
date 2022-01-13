@@ -5,7 +5,7 @@ import {IconArrow} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
-type NumberDragControlProps = {
+interface NumberDragControlProps {
   onChange: (delta: number, event: React.MouseEvent<HTMLDivElement>) => void;
   axis?: 'x' | 'y';
   /**
@@ -16,14 +16,14 @@ type NumberDragControlProps = {
    * The value to increment by if the shift key is held. Defaults to 1
    */
   shiftStep?: number;
-};
+}
 
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof NumberDragControlProps> &
   NumberDragControlProps;
 
-type State = {
+interface State {
   isClicked: boolean;
-};
+}
 
 class NumberDragControl extends React.Component<Props, State> {
   state: State = {

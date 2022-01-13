@@ -10,7 +10,7 @@ import withApi from 'sentry/utils/withApi';
 
 type Histograms = Record<string, HistogramData>;
 
-type HistogramProps = {
+interface HistogramProps {
   fields: string[];
   numBuckets: number;
   min?: number;
@@ -18,9 +18,9 @@ type HistogramProps = {
   precision?: number;
   dataFilter?: DataFilter;
   didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
-};
+}
 
-type RequestProps = DiscoverQueryProps & HistogramProps;
+interface RequestProps extends DiscoverQueryProps, HistogramProps {}
 
 export type HistogramQueryChildrenProps = Omit<
   GenericChildrenProps<HistogramProps>,
@@ -29,9 +29,9 @@ export type HistogramQueryChildrenProps = Omit<
   histograms: Histograms | null;
 };
 
-type Props = RequestProps & {
+interface Props extends RequestProps {
   children: (props: HistogramQueryChildrenProps) => React.ReactNode;
-};
+}
 
 function getHistogramRequestPayload(props: RequestProps) {
   const {fields, numBuckets, min, max, precision, dataFilter, eventView, location} =

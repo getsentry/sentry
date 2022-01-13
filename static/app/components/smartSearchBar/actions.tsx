@@ -20,7 +20,7 @@ type SmartSearchBarProps = React.ComponentProps<typeof SmartSearchBar>;
 type ActionItem = NonNullable<SmartSearchBarProps['actionBarItems']>[number];
 type ActionProps = React.ComponentProps<ActionItem['Action']>;
 
-type PinSearchActionOpts = {
+interface PinSearchActionOpts {
   /**
    * The currently pinned search
    */
@@ -29,7 +29,7 @@ type PinSearchActionOpts = {
    * The current issue sort
    */
   sort: string;
-};
+}
 
 /**
  * The Pin Search action toggles the current as a pinned search
@@ -123,12 +123,12 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
   return {key: 'pinSearch', Action: withRouter(PinSearchAction)};
 }
 
-type SaveSearchActionOpts = {
+interface SaveSearchActionOpts {
   /**
    * The current issue sort
    */
   sort: string;
-};
+}
 
 /**
  * The Save Search action triggers the create saved search modal from the
@@ -163,9 +163,9 @@ export function makeSaveSearchAction({sort}: SaveSearchActionOpts) {
   return {key: 'saveSearch', Action: SavedSearchAction};
 }
 
-type SearchBuilderActionOpts = {
+interface SearchBuilderActionOpts {
   onSidebarToggle: React.MouseEventHandler;
-};
+}
 
 /**
  * The Search Builder action toggles the Issue Stream search builder

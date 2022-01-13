@@ -19,10 +19,10 @@ type AppStoreConnectInitialData = React.ComponentProps<
 
 type HttpInitialData = React.ComponentProps<typeof Http>['initialData'];
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   projectId: string;
-};
+}
 
 type Props = WithRouterProps<RouteParams, {}> & {
   /**

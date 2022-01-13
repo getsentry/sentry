@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   url: string | null;
   attachmentId: string;
@@ -19,7 +19,7 @@ type Props = {
   previewIsOpen?: boolean;
   onDelete: (attachmentId: string) => void;
   onPreview?: (attachmentId: string) => void;
-};
+}
 
 class EventAttachmentActions extends Component<Props> {
   handlePreview() {

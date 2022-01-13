@@ -10,7 +10,7 @@ import FormModel, {FieldValue} from 'sentry/views/settings/components/forms/mode
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 
-type Options = {
+interface Options {
   duration?: number;
   append?: boolean;
   modelArg?: {
@@ -20,15 +20,15 @@ type Options = {
   };
   disableDismiss?: boolean;
   undo?: () => void;
-};
+}
 
-export type Indicator = {
+export interface Indicator {
   type: IndicatorType;
   id: string | number;
   message: React.ReactNode;
   options: Options;
   clearId?: null | number;
-};
+}
 
 // Removes a single indicator
 export function removeIndicator(indicator: Indicator) {
@@ -123,10 +123,10 @@ const prettyFormString = (val: ChangeValue, model: FormModel, fieldName: string)
 // For example project key rate limits.
 type ChangeValue = FieldValue | Record<string, any>;
 
-type Change = {
+interface Change {
   old: ChangeValue;
   new: ChangeValue;
-};
+}
 
 /**
  * This will call an action creator to generate a "Toast" message that

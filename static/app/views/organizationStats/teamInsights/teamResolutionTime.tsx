@@ -14,14 +14,14 @@ import {barAxisLabel, convertDaySeriesToWeeks} from './utils';
 
 type TimeToResolution = Record<string, {count: number; avg: number}>;
 
-type Props = AsyncComponent['props'] & {
+interface Props extends DateTimeObject {
   organization: Organization;
   teamSlug: string;
-} & DateTimeObject;
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   resolutionTime: TimeToResolution | null;
-};
+}
 
 class TeamResolutionTime extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;

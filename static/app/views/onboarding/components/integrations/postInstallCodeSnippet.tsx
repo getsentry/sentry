@@ -5,11 +5,11 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {IntegrationProvider} from 'sentry/types';
 
-type Props = {
+interface Props {
   provider: IntegrationProvider;
   isOnboarding?: boolean;
   platform?: PlatformKey;
-};
+}
 
 export default function PostInstallCodeSnippet({
   provider,

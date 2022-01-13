@@ -8,11 +8,11 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Release, ReleaseProject} from 'sentry/types';
 
-type Props = {
+interface Props {
   organization: Organization;
   release: Release;
   project: Required<ReleaseProject>;
-};
+}
 
 function ReleaseStats({organization, release, project}: Props) {
   const {lastDeploy, dateCreated, version} = release;

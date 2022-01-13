@@ -9,22 +9,24 @@ import GenericDiscoverQuery, {
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 
-type HasMeasurementsProps = {
+interface HasMeasurementsProps {
   transaction: string;
   type: 'web' | 'mobile';
-};
+}
 
-type RequestProps = DiscoverQueryProps & HasMeasurementsProps;
+interface RequestProps extends DiscoverQueryProps, HasMeasurementsProps {}
 
-type HasMeasurements = {measurements: boolean};
+interface HasMeasurements {
+  measurements: boolean;
+}
 
 type ChildrenProps = Omit<GenericChildrenProps<HasMeasurementsProps>, 'tableData'> & {
   hasMeasurements: boolean | null;
 };
 
-type Props = RequestProps & {
+interface Props extends RequestProps {
   children: (props: ChildrenProps) => React.ReactNode;
-};
+}
 
 function getHasMeasurementsRequestPayload(props: RequestProps) {
   const {eventView, location, transaction, type} = props;

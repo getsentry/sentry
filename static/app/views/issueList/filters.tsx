@@ -15,7 +15,7 @@ import {IssueDisplayOptions} from './utils';
 
 type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 
-type Props = {
+interface Props {
   organization: Organization;
   savedSearch: SavedSearch;
   display: IssueDisplayOptions;
@@ -23,14 +23,13 @@ type Props = {
   query: string;
   isSearchDisabled: boolean;
   selectedProjects: number[];
-
   onDisplayChange: (display: string) => void;
   onSortChange: (sort: string) => void;
   onSearch: (query: string) => void;
   onSidebarToggle: (event: React.MouseEvent) => void;
   tagValueLoader: TagValueLoader;
   tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
-};
+}
 
 class IssueListFilters extends React.Component<Props> {
   render() {

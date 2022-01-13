@@ -58,13 +58,13 @@ function getImageStatusDetails(status: Status) {
   }
 }
 
-type Props = {
+interface Props {
   image: DebugImageType;
   showDetails: boolean;
   organization: Organization;
   projectId: Project['id'];
   style?: React.CSSProperties;
-};
+}
 
 const DebugImage = React.memo(
   ({image, organization, projectId, showDetails, style}: Props) => {

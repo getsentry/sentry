@@ -11,10 +11,10 @@ import {LEGACY_BROWSER_LIST} from '../utils';
 
 const legacyBrowsers = Object.values(LegacyBrowser) as Array<LegacyBrowser>;
 
-type Props = {
+interface Props {
   onChange: (selectedLegacyBrowsers: Array<LegacyBrowser>) => void;
   selectedLegacyBrowsers?: Array<LegacyBrowser>;
-};
+}
 
 function LegacyBrowsers({onChange, selectedLegacyBrowsers = []}: Props) {
   function handleChange({

@@ -11,14 +11,14 @@ import useKeypress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
-type Props = {
+interface Props {
   value: string;
   onChange: (value: string) => void;
   name?: string;
   errorMessage?: React.ReactNode;
   successMessage?: React.ReactNode;
   isDisabled?: boolean;
-};
+}
 
 function EditableText({
   value,

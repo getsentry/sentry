@@ -16,9 +16,9 @@ import {tableLayout} from './utils';
 
 type Props = RouteComponentProps<{}, {}>;
 
-type State = {
+interface State {
   ipList: Array<InternetProtocol> | null;
-} & AsyncView['state'];
+}
 
 class SessionHistory extends AsyncView<Props, State> {
   getTitle() {

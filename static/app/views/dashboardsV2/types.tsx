@@ -22,14 +22,14 @@ export enum WidgetType {
   ISSUE = 'issue',
 }
 
-export type WidgetQuery = {
+export interface WidgetQuery {
   name: string;
   fields: string[];
   conditions: string;
   orderby: string;
-};
+}
 
-export type Widget = {
+export interface Widget {
   id?: string;
   title: string;
   displayType: DisplayType;
@@ -37,29 +37,29 @@ export type Widget = {
   queries: WidgetQuery[];
   widgetType?: WidgetType;
   tempId?: string;
-};
+}
 
 /**
  * The response shape from dashboard list endpoint
  */
-export type DashboardListItem = {
+export interface DashboardListItem {
   id: string;
   title: string;
   dateCreated?: string;
   createdBy?: User;
   widgetDisplay: DisplayType[];
-};
+}
 
 /**
  * Saved dashboard with widgets
  */
-export type DashboardDetails = {
+export interface DashboardDetails {
   title: string;
   widgets: Widget[];
   id: string;
   dateCreated: string;
   createdBy?: User;
-};
+}
 
 export enum DashboardState {
   VIEW = 'view',

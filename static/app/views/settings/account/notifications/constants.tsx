@@ -20,10 +20,12 @@ export const MIN_PROJECTS_FOR_CONFIRMATION = 3;
 export const MIN_PROJECTS_FOR_SEARCH = 3;
 export const MIN_PROJECTS_FOR_PAGINATION = 100;
 
-export type NotificationSettingsByProviderObject = {[key: string]: string};
-export type NotificationSettingsObject = {
+export interface NotificationSettingsByProviderObject {
+  [key: string]: string;
+}
+export interface NotificationSettingsObject {
   [key: string]: {[key: string]: {[key: string]: NotificationSettingsByProviderObject}};
-};
+}
 
 export const NOTIFICATION_SETTINGS_TYPES = [
   'alerts',

@@ -27,11 +27,11 @@ import Field from 'sentry/views/settings/components/forms/field';
 // installationId present for Github flow
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   selectedOrgSlug?: string;
   organization?: Organization;
   provider?: IntegrationProvider;
-};
+}
 
 export default class IntegrationOrganizationLink extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

@@ -2,10 +2,10 @@ import {t} from 'sentry/locale';
 
 import {BrowserKnownData, BrowserKnownDataType} from './types';
 
-type Output = {
+interface Output {
   subject: string;
   value: React.ReactNode | null;
-};
+}
 
 function getOperatingSystemKnownDataDetails(
   data: BrowserKnownData,

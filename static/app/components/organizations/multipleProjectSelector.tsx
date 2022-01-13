@@ -21,7 +21,7 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import ProjectSelector from './projectSelector';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   organization: Organization;
   value: number[];
   projects: Project[];
@@ -42,11 +42,11 @@ type Props = WithRouterProps & {
     isOpen: boolean;
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   hasChanges: boolean;
-};
+}
 
 class MultipleProjectSelector extends React.PureComponent<Props, State> {
   static defaultProps = {
@@ -327,15 +327,15 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
   }
 }
 
-type FeatureRenderProps = {
+interface FeatureRenderProps {
   hasFeature: boolean;
   renderShowAllButton?: (p: {
     canShowAllProjects: boolean;
     onButtonClick: () => void;
   }) => React.ReactNode;
-};
+}
 
-type ControlProps = {
+interface ControlProps {
   organization: Organization;
   onApply: () => void;
   onShowAllProjects: () => void;
@@ -344,7 +344,7 @@ type ControlProps = {
   disableMultipleProjectSelection?: boolean;
   hasChanges?: boolean;
   message?: React.ReactNode;
-};
+}
 
 const SelectorFooterControls = ({
   selected,

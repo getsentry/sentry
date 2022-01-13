@@ -31,14 +31,14 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
   {value: 24 * 7 * 60, label: t('per week')},
 ];
 
-type Props = {
+interface Props {
   onUpdate: (params: UpdateResolutionStatus) => void;
   disabled?: boolean;
   shouldConfirm?: boolean;
   confirmMessage?: React.ReactNode;
   confirmLabel?: string;
   isIgnored?: boolean;
-};
+}
 
 const IgnoreActions = ({
   onUpdate,

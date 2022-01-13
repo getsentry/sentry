@@ -14,9 +14,9 @@ import {Monitor} from './types';
 type Props = AsyncView['props'] &
   RouteComponentProps<{orgId: string; monitorId: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   monitor: Monitor | null;
-};
+}
 
 class MonitorDetails extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

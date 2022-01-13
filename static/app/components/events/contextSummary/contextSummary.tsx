@@ -13,12 +13,12 @@ import ContextSummaryOS from './contextSummaryOS';
 import ContextSummaryUser from './contextSummaryUser';
 import filterContexts from './filterContexts';
 
-export type Context = {
+export interface Context {
   keys: string[];
   // TODO(ts): Refactor this component
   Component: (props: any) => JSX.Element;
   unknownTitle?: string;
-};
+}
 
 const MIN_CONTEXTS = 3;
 const MAX_CONTEXTS = 4;
@@ -39,9 +39,9 @@ const KNOWN_CONTEXTS: Context[] = [
   {keys: ['gpu'], Component: ContextSummaryGPU},
 ];
 
-type Props = {
+interface Props {
   event: Event;
-};
+}
 
 class ContextSummary extends React.Component<Props> {
   render() {

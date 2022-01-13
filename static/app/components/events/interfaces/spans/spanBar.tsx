@@ -101,7 +101,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 
 const MARGIN_LEFT = 0;
 
-type SpanBarProps = {
+interface SpanBarProps {
   event: Readonly<EventTransaction>;
   organization: Organization;
   trace: Readonly<ParsedTraceType>;
@@ -124,11 +124,11 @@ type SpanBarProps = {
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   toggleSpanGroup: (() => void) | undefined;
   numOfSpans: number;
-};
+}
 
-type SpanBarState = {
+interface SpanBarState {
   showDetail: boolean;
-};
+}
 
 class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   state: SpanBarState = {

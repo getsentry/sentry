@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   command: string;
-};
+}
 
 const Terminal = ({command}: Props) => (
   <Wrapper>

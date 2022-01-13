@@ -8,14 +8,14 @@ import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   children: (opts: {skip: (e: React.MouseEvent) => void}) => React.ReactNode;
   onSkip: () => void;
-};
+}
 
-type State = {
+interface State {
   showConfirmation: boolean;
-};
+}
 
 class SkipConfirm extends React.Component<Props, State> {
   state: State = {

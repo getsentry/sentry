@@ -18,7 +18,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   eventView: EventView;
@@ -26,14 +26,14 @@ type Props = {
   totalValues: null | number;
   confirmedQuery?: boolean;
   generateUrl: (key: string, value: string) => LocationDescriptor;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   tags: Tag[];
   totalValues: null | number;
   error: string;
-};
+}
 
 class Tags extends Component<Props, State> {
   state: State = {

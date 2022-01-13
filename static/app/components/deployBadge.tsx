@@ -5,13 +5,13 @@ import {t} from 'sentry/locale';
 import {Deploy} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-type Props = {
+interface Props {
   deploy: Deploy;
   projectId?: number;
   orgSlug?: string;
   version?: string;
   className?: string;
-};
+}
 
 const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) => {
   const shouldLinkToIssues = !!orgSlug && !!version;

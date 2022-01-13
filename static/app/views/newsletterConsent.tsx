@@ -7,9 +7,9 @@ import {ApiForm, InputField} from 'sentry/views/settings/components/forms';
 import RadioBoolean from 'sentry/views/settings/components/forms/controls/radioBoolean';
 import FieldWrapper from 'sentry/views/settings/components/forms/field/fieldWrapper';
 
-type Props = {
+interface Props {
   onSubmitSuccess?: () => void;
-};
+}
 
 function NewsletterConsent({onSubmitSuccess}: Props) {
   useEffect(() => {

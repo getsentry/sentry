@@ -7,7 +7,7 @@ import {MetricTag, Organization, Project} from 'sentry/types';
 import GroupByField from './groupByField';
 import SearchQueryField from './searchQueryField';
 
-type Props = {
+interface Props {
   api: Client;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
@@ -16,7 +16,7 @@ type Props = {
   onChangeGroupBy: (groupBy?: string[]) => void;
   searchQuery?: string;
   groupBy?: string[];
-};
+}
 
 function FiltersAndGroups({
   api,

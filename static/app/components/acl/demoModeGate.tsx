@@ -4,21 +4,19 @@ import ConfigStore from 'sentry/stores/configStore';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = {
+interface Props {
   /**
    * Current Organization
    */
   organization: Organization;
-
   /**
    * Children can be a node or a function as child.
    */
   children?: React.ReactNode;
-
   demoComponent?:
     | React.ReactNode
     | ((props: {children?: React.ReactNode}) => React.ReactNode);
-};
+}
 
 /**
  * Component to handle demo mode switches

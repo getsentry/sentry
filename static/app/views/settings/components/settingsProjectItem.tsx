@@ -6,14 +6,14 @@ import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
-type Props = {
+interface Props {
   project: Project;
   organization: Organization;
-};
+}
 
-type State = {
+interface State {
   isBookmarked: boolean;
-};
+}
 
 class ProjectItem extends Component<Props, State> {
   state: State = {

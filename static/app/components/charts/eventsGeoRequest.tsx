@@ -7,12 +7,12 @@ import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
-type ChildrenArgs = {
+interface ChildrenArgs {
   errored: boolean;
   loading: boolean;
   reloading: boolean;
   tableData?: TableDataWithTitle[];
-};
+}
 
 const EventsGeoRequest = ({
   api,

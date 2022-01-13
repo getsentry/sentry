@@ -7,11 +7,11 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
 
-type Props = {
+interface Props {
   sort: string;
   query: string;
   onSelect: (sort: string) => void;
-};
+}
 
 export function getSortTooltip(key: IssueSortOptions) {
   switch (key) {

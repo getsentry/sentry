@@ -9,16 +9,17 @@ import {IntegrationType, Organization} from 'sentry/types';
 
 import RequestIntegrationModal from './RequestIntegrationModal';
 
-type Props = {
+interface Props {
   organization: Organization;
   name: string;
   slug: string;
   type: IntegrationType;
-};
-type State = {
+}
+
+interface State {
   isOpen: boolean;
   isSent: boolean;
-};
+}
 
 export default class RequestIntegrationButton extends Component<Props, State> {
   state: State = {

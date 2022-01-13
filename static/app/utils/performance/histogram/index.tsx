@@ -8,19 +8,19 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {FILTER_OPTIONS} from './constants';
 import {DataFilter} from './types';
 
-type HistogramChildrenProps = {
+interface HistogramChildrenProps {
   isZoomed: boolean;
   handleResetView: () => void;
   activeFilter: SelectValue<DataFilter>;
   handleFilterChange: (option: string) => void;
   filterOptions: typeof FILTER_OPTIONS;
-};
+}
 
-type Props = {
+interface Props {
   location: Location;
   zoomKeys: string[];
   children: (props: HistogramChildrenProps) => React.ReactNode;
-};
+}
 
 class Histogram extends React.Component<Props> {
   isZoomed() {

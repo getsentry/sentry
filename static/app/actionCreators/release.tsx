@@ -11,11 +11,11 @@ import {t} from 'sentry/locale';
 import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
 import {Deploy, Release, ReleaseStatus} from 'sentry/types';
 
-type ParamsGet = {
+interface ParamsGet {
   orgSlug: string;
   projectSlug: string;
   releaseVersion: string;
-};
+}
 
 export function getProjectRelease(api: Client, params: ParamsGet) {
   const {orgSlug, projectSlug, releaseVersion} = params;

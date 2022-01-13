@@ -22,14 +22,14 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * This component must be controlled using a value array
    */
   value: string[];
-};
+}
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps, DefaultProps {
   api: Client;
   organization: Organization;
   projects: Project[];
@@ -43,12 +43,12 @@ type Props = WithRouterProps & {
    * When menu is closed
    */
   onUpdate: () => void;
-} & DefaultProps;
+}
 
-type State = {
+interface State {
   hasChanges: boolean;
   selectedEnvs: Set<string>;
-};
+}
 
 /**
  * Environment Selector
@@ -314,12 +314,12 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   min-width: 100%;
 `;
 
-type EnvironmentSelectorItemProps = {
+interface EnvironmentSelectorItemProps {
   environment: string;
   inputValue: string;
   isChecked: boolean;
   onMultiSelect: (environment: string) => void;
-};
+}
 
 class EnvironmentSelectorItem extends React.PureComponent<EnvironmentSelectorItemProps> {
   handleMultiSelect = () => {

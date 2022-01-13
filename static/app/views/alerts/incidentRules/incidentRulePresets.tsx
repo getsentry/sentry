@@ -5,7 +5,7 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import {getIncidentRuleDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentRuleDiscoverUrl';
 
-type PresetCta = {
+interface PresetCta {
   /**
    * The location to direct to upon clicking the CTA.
    */
@@ -18,16 +18,16 @@ type PresetCta = {
    * The tooltip title for the CTA button, may be empty.
    */
   title?: string;
-};
+}
 
-type PresetCtaOpts = {
+interface PresetCtaOpts {
   orgSlug: string;
   projects: Project[];
   rule?: IncidentRule;
   eventType?: string;
   start?: string;
   end?: string;
-};
+}
 
 /**
  * Get the CTA used for alert rules that do not have a preset

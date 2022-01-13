@@ -5,10 +5,10 @@ import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
-type Props = {
+interface Props {
   totalEvents: number;
   pendingEvents: number;
-};
+}
 
 function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
   const remainingEventsToReprocess = totalEvents - pendingEvents;

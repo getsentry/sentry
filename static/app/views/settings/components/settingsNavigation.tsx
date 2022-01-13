@@ -6,7 +6,7 @@ import space from 'sentry/styles/space';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Additional navigation configuration driven by hooks
    */
@@ -19,15 +19,14 @@ type DefaultProps = {
    * How far from the top of the page should the navigation be when stickied.
    */
   stickyTop: string;
-};
+}
 
-type Props = DefaultProps &
-  NavigationProps & {
-    /**
-     * The configuration for this navigation panel
-     */
-    navigationObjects: NavigationSection[];
-  };
+interface Props extends DefaultProps, NavigationProps {
+  /**
+   * The configuration for this navigation panel
+   */
+  navigationObjects: NavigationSection[];
+}
 
 class SettingsNavigation extends React.Component<Props> {
   static defaultProps: DefaultProps = {

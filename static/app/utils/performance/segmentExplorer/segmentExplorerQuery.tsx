@@ -11,7 +11,7 @@ import withApi from 'sentry/utils/withApi';
 /**
  * An individual row in a Segment explorer result
  */
-export type TableDataRow = {
+export interface TableDataRow {
   tags_key: string;
   tags_value: string;
   sumdelta: number;
@@ -19,12 +19,12 @@ export type TableDataRow = {
   frequency: number;
   aggregate: number;
   comparison: number;
-};
+}
 
-export type TableData = {
+export interface TableData {
   data: TableDataRow[];
   meta: {};
-};
+}
 
 /**
  * A Segment Explorer result including rows and metadata.
@@ -34,21 +34,20 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
   tableData: TableData | null;
 };
 
-type QueryProps = DiscoverQueryProps & {
+interface QueryProps extends DiscoverQueryProps {
   aggregateColumn: string;
   allTagKeys?: boolean;
   tagKey?: string;
   sort?: string | string[];
   children: (props: ChildrenProps) => React.ReactNode;
-};
+}
 
-type FacetQuery = LocationQuery &
-  EventQuery & {
-    sort?: string | string[];
-    aggregateColumn?: string;
-    allTagKeys?: boolean;
-    tagKey?: string;
-  };
+interface FacetQuery extends LocationQuery, EventQuery {
+  sort?: string | string[];
+  aggregateColumn?: string;
+  allTagKeys?: boolean;
+  tagKey?: string;
+}
 
 export function getRequestFunction(_props: QueryProps) {
   const {aggregateColumn} = _props;

@@ -15,12 +15,12 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = {
+interface Props {
   isEnrolled: boolean;
   codes: string[];
   onRegenerateBackupCodes: () => void;
   className?: string;
-};
+}
 
 const RecoveryCodes = ({
   className,

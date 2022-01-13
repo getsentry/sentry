@@ -25,7 +25,7 @@ import {TableColumn} from 'sentry/views/eventsV2/table/types';
 import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
-type Props = {
+interface Props {
   eventView: EventView;
   organization: Organization;
   location: Location;
@@ -44,7 +44,7 @@ type Props = {
   handleCellAction?: (
     c: TableColumn<React.ReactText>
   ) => (a: Actions, v: React.ReactText) => void;
-};
+}
 
 class TransactionsTable extends React.PureComponent<Props> {
   getTitles() {

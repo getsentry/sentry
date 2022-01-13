@@ -3,12 +3,14 @@ import {Fragment} from 'react';
 import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
 
-type Data = {
+interface Data {
   groups: [groupName: string, grouppedWarnings: string[]][];
   warnings: string[];
-};
+}
 
-type State = AsyncView['state'] & {data: Data | null};
+interface State {
+  data: Data | null;
+}
 
 class AdminWarnings extends AsyncView<{}, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

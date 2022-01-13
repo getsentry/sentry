@@ -35,14 +35,14 @@ const INTERVALS: SelectValue<string>[] = [
   {value: 'year', label: 'year(s)'},
 ];
 
-type Props = {
+interface Props {
   monitor?: Monitor;
   projects: Project[];
   selection: PageFilters;
   apiEndpoint: string;
   apiMethod: Form['props']['apiMethod'];
   onSubmitSuccess: Form['props']['onSubmitSuccess'];
-};
+}
 
 class MonitorForm extends Component<Props> {
   form = new MonitorModel();

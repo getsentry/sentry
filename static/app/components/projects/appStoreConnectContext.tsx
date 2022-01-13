@@ -14,11 +14,11 @@ export type AppStoreConnectContextProps =
 
 const AppStoreConnectContext = createContext<AppStoreConnectContextProps>(undefined);
 
-type ProviderProps = {
+interface ProviderProps {
   children: React.ReactNode;
   organization: Organization;
   project?: Project;
-};
+}
 
 const Provider = ({children, project, organization}: ProviderProps) => {
   const api = useApi();

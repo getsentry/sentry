@@ -53,13 +53,13 @@ function getInitials(displayName: string | undefined) {
   return initials.toUpperCase();
 }
 
-type Props = {
+interface Props {
   identifier?: string;
   displayName?: string;
   round?: boolean;
   forwardedRef?: React.Ref<SVGSVGElement>;
   suggested?: boolean;
-};
+}
 
 type LetterAvatarProps = React.ComponentProps<'svg'> & Props;
 

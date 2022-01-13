@@ -7,9 +7,9 @@ export enum RuntimeIgnoredDataType {
   BUILD = 'build',
 }
 
-export type RuntimeData = {
+export interface RuntimeData {
   name: string;
   type: string;
   build: string;
   version?: string;
-};
+}

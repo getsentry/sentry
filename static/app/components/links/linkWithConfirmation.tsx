@@ -4,14 +4,14 @@ import classNames from 'classnames';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 
-type Props = {
+interface Props {
   message: React.ReactNode;
   title: string;
   onConfirm: () => void;
   disabled?: boolean;
   className?: string;
   priority?: React.ComponentProps<typeof Button>['priority'];
-};
+}
 
 /**
  * <Confirm> is a more generic version of this component

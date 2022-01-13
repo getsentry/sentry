@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-type HighlightProps = {
+interface HighlightProps {
   /**
    * The text to highlight
    */
@@ -14,7 +14,7 @@ type HighlightProps = {
    * The original text
    */
   children: string;
-};
+}
 
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof HighlightProps> &
   HighlightProps;

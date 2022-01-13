@@ -8,14 +8,14 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
-type RenderProps = {
+interface RenderProps {
   defaultSearchBar: React.ReactNode;
   busy: boolean;
   handleChange: (value: string) => void;
   value: string;
-};
+}
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Placeholder text in the search input
    */
@@ -23,36 +23,33 @@ type DefaultProps = {
   /**
    * Time in milliseconds to wait before firing off the request
    */
-  debounceWait?: number; // optional, otherwise app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy
-};
+  debounceWait?: number; // optional, otherwise app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy;
+}
 
-type Props = WithRouterProps &
-  DefaultProps & {
-    api: Client;
-    className?: string;
-    /**
-     * URL to make the search request to
-     */
-    url: string;
-    /**
-     * Updates URL with search query in the URL param: `query`
-     */
-    updateRoute?: boolean;
+interface Props extends WithRouterProps, DefaultProps {
+  api: Client;
+  className?: string;
+  /**
+   * URL to make the search request to
+   */
+  url: string;
+  /**
+   * Updates URL with search query in the URL param: `query`
+   */
+  updateRoute?: boolean;
+  onSearchSubmit?: (query: string, event: React.FormEvent) => void;
+  onSuccess: (data: object, resp: ResponseMeta | undefined) => void;
+  onError: () => void;
+  /**
+   * A render-prop child may be passed to handle custom rendering of the input.
+   */
+  children?: (otps: RenderProps) => React.ReactNode;
+}
 
-    onSearchSubmit?: (query: string, event: React.FormEvent) => void;
-    onSuccess: (data: object, resp: ResponseMeta | undefined) => void;
-    onError: () => void;
-
-    /**
-     * A render-prop child may be passed to handle custom rendering of the input.
-     */
-    children?: (otps: RenderProps) => React.ReactNode;
-  };
-
-type State = {
+interface State {
   query: string;
   busy: boolean;
-};
+}
 
 /**
  * This is a search input that can be easily used in AsyncComponent/Views.

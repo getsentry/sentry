@@ -49,16 +49,16 @@ import TransactionGroup from './transactionGroup';
 import {TraceInfo, TreeDepth} from './types';
 import {getTraceInfo, isRootTransaction} from './utils';
 
-type IndexedFusedTransaction = {
+interface IndexedFusedTransaction {
   transaction: TraceFullDetailed;
   indexed: string[];
-};
+}
 
-type AccType = {
+interface AccType {
   renderedChildren: React.ReactNode[];
   lastIndex: number;
   numberOfHiddenTransactionsAbove: number;
-};
+}
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
   organization: Organization;
@@ -71,10 +71,10 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   meta: TraceMeta | null;
 };
 
-type State = {
+interface State {
   searchQuery: string | undefined;
   filteredTransactionIds: Set<string> | undefined;
-};
+}
 
 class TraceDetailsContent extends React.Component<Props, State> {
   state: State = {

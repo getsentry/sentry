@@ -250,9 +250,18 @@ export function getTransactionName(location: Location): string | undefined {
   return decodeScalar(transaction);
 }
 
-type DurationProps = {abbreviation?: boolean};
-type SecondsProps = {seconds: number} & DurationProps;
-type MillisecondsProps = {milliseconds: number} & DurationProps;
+interface DurationProps {
+  abbreviation?: boolean;
+}
+
+interface SecondsProps extends DurationProps {
+  seconds: number;
+}
+
+interface MillisecondsProps extends DurationProps {
+  milliseconds: number;
+}
+
 type PerformanceDurationProps = SecondsProps | MillisecondsProps;
 const hasMilliseconds = (props: PerformanceDurationProps): props is MillisecondsProps => {
   return defined((props as MillisecondsProps).milliseconds);

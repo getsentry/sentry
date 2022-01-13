@@ -13,14 +13,14 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import IntegrationServerlessRow from './integrationServerlessRow';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   integration: IntegrationWithConfig;
   organization: Organization;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   serverlessFunctions: ServerlessFunction[];
-};
+}
 
 class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
   getDefaultState(): State {

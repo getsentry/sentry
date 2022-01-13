@@ -12,7 +12,7 @@ import {defined} from 'sentry/utils';
 
 import {isStacktraceNewestFirst} from './utils';
 
-type Props = {
+interface Props {
   event: Event;
   type: string;
   data: ExceptionType;
@@ -20,7 +20,7 @@ type Props = {
   hasHierarchicalGrouping: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
-};
+}
 
 function Exception({
   event,

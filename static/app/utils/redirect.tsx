@@ -2,10 +2,10 @@ import {useEffect} from 'react';
 import {InjectedRouter} from 'react-router';
 import {LocationDescriptor} from 'history';
 
-type Props = {
+interface Props {
   router: InjectedRouter;
   to: LocationDescriptor;
-};
+}
 
 // This is react-router v4 <Redirect to="path/" /> component to allow things
 // to be declarative.

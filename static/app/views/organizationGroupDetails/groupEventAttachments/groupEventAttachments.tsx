@@ -12,14 +12,13 @@ import {t} from 'sentry/locale';
 import GroupEventAttachmentsFilter from './groupEventAttachmentsFilter';
 import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 
-type Props = {
+interface Props extends WithRouterProps {
   projectSlug: string;
-} & WithRouterProps &
-  AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   deletedAttachments: string[];
-} & AsyncComponent['state'];
+}
 
 class GroupEventAttachments extends AsyncComponent<Props, State> {
   getDefaultState() {

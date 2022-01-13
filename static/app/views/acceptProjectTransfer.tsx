@@ -11,14 +11,14 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 type Props = RouteComponentProps<{}, {}>;
 
-type TransferDetails = {
+interface TransferDetails {
   organizations: Organization[];
   project: Project;
-};
+}
 
-type State = {
+interface State {
   transferDetails: TransferDetails | null;
-} & AsyncView['state'];
+}
 
 class AcceptProjectTransfer extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

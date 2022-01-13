@@ -14,11 +14,10 @@ import {getParams} from './getParams';
 
 const DEFAULT_PARAMS = getParams({});
 
-// Parses URL query parameters for values relevant to page filters
-type GetStateFromQueryOptions = {
+interface GetStateFromQueryOptions {
   allowEmptyPeriod?: boolean;
   allowAbsoluteDatetime?: boolean;
-};
+}
 
 export function getStateFromQuery(
   query: Location['query'],

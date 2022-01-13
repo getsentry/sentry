@@ -8,85 +8,15 @@ import {Permissions} from 'sentry/types/index';
 import FormContext from 'sentry/views/settings/components/forms/formContext';
 import SelectField from 'sentry/views/settings/components/forms/selectField';
 
-/**
- * Custom form element that presents API scopes in a resource-centric way. Meaning
- * a dropdown for each resource, that rolls up into a flat list of scopes.
- *
- *
- * API Scope vs Permission
- *
- *    "API Scopes" are the string identifier that gates an endpoint. For example,
- *    `project:read` or `org:admin`. They're made up of two parts:
- *
- *       <resource>:<access>
- *
- *    "Permissions" are a more user-friendly way of conveying this same information.
- *    They're roughly the same with one exception:
- *
- *       - No Access
- *       - Read
- *       - Read & Write
- *       - Admin
- *
- *    "Read & Write" actually maps to the `write` access level since `read` is
- *    implied. Similarly, `admin` implies `read` and `write`.
- *
- *    This components displays things per Resource. Meaning the User selects
- *    "Read", "Read & Write", or "Admin" for Project or Organization or etc.
- *
- *    === Scopes to Permissions
- *
- *    The first thing this component does on instantiation is take the list of API
- *    Scopes passed via `props` and converts them to "Permissions.
- *
- *    So a list of scopes like the following:
- *
- *       ['project:read', 'project:write', 'org:admin']
- *
- *    will become an object that looks like:
- *
- *       {
- *         'Project': 'write',
- *         'Organization': 'admin',
- *       }
- *
- *
- * State
- *
- *    This component stores state like the example object from above. When the
- *    User changes the Permission for a particular resource, it updates the
- *    `state.permissions` object to reflect the change.
- *
- *
- * Updating the Form Field Value
- *
- *    In addition to updating the state, when a value is changed this component
- *    recalculates the full list of API Scopes that need to be passed to the API.
- *
- *    So if the User has changed Project to "Admin" and Organization to "Read & Write",
- *    we end up with a `state.permissions` like:
- *
- *       {
- *         'Project': 'admin',
- *         'Organization': 'write',
- *       }
- *
- *    From there, we calculate the full list of API Scopes. This list includes all
- *    implied scopes, meaning the above state would result in:
- *
- *       ['project:read', 'project:write', 'project:admin', 'org:read', 'org:write']
- *
- */
-
-type Props = {
+interface Props {
   permissions: Permissions;
   onChange: (permissions: Permissions) => void;
   appPublished: boolean;
-};
+}
 
-type State = {
+interface State {
   permissions: Permissions;
-};
+}
 
 export default class PermissionSelection extends Component<Props, State> {
   state: State = {

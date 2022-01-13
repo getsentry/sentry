@@ -14,18 +14,18 @@ import {
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   api: Client;
   group: Group;
   sentryAppComponent: SentryAppComponent;
   sentryAppInstallation: SentryAppInstallation;
   event: Event;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
-};
+}
 
-type State = {
+interface State {
   action: 'create' | 'link';
-};
+}
 
 class SentryAppExternalIssueModal extends Component<Props, State> {
   state: State = {

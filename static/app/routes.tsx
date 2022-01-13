@@ -28,10 +28,10 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
-type CustomProps = {
+interface CustomProps {
   name?: string;
   componentPromise?: () => Promise<any>;
-};
+}
 
 /**
  * We add some additional props to our routes

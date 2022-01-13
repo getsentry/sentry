@@ -5,7 +5,7 @@ import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
 import Spinner from 'sentry/views/settings/components/forms/spinner';
 
-type Props = {
+interface Props {
   /**
    * Display the saving state
    */
@@ -18,7 +18,7 @@ type Props = {
    * Display the  error indicator
    */
   error?: string | boolean;
-};
+}
 
 /**
  * ControlState (i.e. loading/error icons) for form fields

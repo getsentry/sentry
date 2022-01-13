@@ -4,10 +4,10 @@ import {PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   withChart: boolean;
   narrowGroups?: boolean;
-};
+}
 
 const GroupListHeader = ({withChart = true, narrowGroups = false}: Props) => (
   <PanelHeader disablePadding>

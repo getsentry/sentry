@@ -10,7 +10,7 @@ export enum GPUKnownDataType {
   API_TYPE = 'api_type',
 }
 
-export type GPUData = {
+export interface GPUData {
   id: number;
   vendor_id: number;
   name?: string;
@@ -21,4 +21,4 @@ export type GPUData = {
   npot_support?: string;
   multi_threaded_rendering?: boolean;
   api_type?: string;
-};
+}

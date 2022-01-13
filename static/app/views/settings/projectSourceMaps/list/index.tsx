@@ -27,9 +27,9 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   project: Project;
 };
 
-type State = AsyncView['state'] & {
+interface State {
   archives: SourceMapsArchive[];
-};
+}
 
 class ProjectSourceMaps extends AsyncView<Props, State> {
   getTitle() {

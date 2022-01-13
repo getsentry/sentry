@@ -6,7 +6,7 @@ import space from 'sentry/styles/space';
 import {t} from '../../locale';
 import ExternalLink from '../links/externalLink';
 
-type Props = {
+interface Props {
   hasSeen?: boolean;
   title?: string;
   image?: string;
@@ -14,7 +14,7 @@ type Props = {
   link?: string;
   cta?: string;
   children?: React.ReactNode;
-};
+}
 
 const SidebarPanelItem = ({
   hasSeen,

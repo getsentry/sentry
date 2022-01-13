@@ -34,10 +34,7 @@ type CommonProps = Omit<
   confirmLabel?: string;
 };
 
-type Props = CommonProps &
-  ({type?: 'button'} & Partial<
-    Omit<React.ComponentProps<typeof StyledActionButton>, 'as'>
-  >);
+interface Props extends CommonProps {}
 
 export default function ActionLink({
   message,

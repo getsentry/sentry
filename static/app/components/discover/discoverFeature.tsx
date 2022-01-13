@@ -5,9 +5,9 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Hovercard from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   children: ({hasFeature: boolean}) => React.ReactNode;
-};
+}
 
 /**
  * Provide a component that passes a prop to indicate if the current

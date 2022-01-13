@@ -9,9 +9,9 @@ import {Monitor} from './types';
 type Props = AsyncView['props'] &
   RouteComponentProps<{orgId: string; monitorId: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   monitor: Monitor | null;
-};
+}
 
 export default class EditMonitor extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

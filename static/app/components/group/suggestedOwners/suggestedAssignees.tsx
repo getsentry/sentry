@@ -10,16 +10,16 @@ import {Actor, Commit} from 'sentry/types';
 
 import SidebarSection from '../sidebarSection';
 
-type Owner = {
+interface Owner {
   actor: Actor;
   commits?: Array<Commit>;
   rules?: Array<any> | null;
-};
+}
 
-type Props = {
+interface Props {
   owners: Array<Owner>;
   onAssign: (actor: Actor) => () => void;
-};
+}
 
 const SuggestedAssignees = ({owners, onAssign}: Props) => (
   <SidebarSection

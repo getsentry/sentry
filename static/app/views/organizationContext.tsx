@@ -37,7 +37,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
   organizations: Organization[];
 };
 
-type State = {
+interface State {
   organization: Organization | null;
   loading: boolean;
   dirty?: boolean;
@@ -49,7 +49,7 @@ type State = {
     organizationsLoading: boolean;
     location: RouteComponentProps<{orgId: string}, {}>['location'];
   };
-};
+}
 
 const OrganizationContext = createContext<Organization | null>(null);
 

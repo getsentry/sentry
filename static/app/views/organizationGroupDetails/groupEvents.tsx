@@ -21,13 +21,13 @@ type Props = {
   group: Group;
 } & RouteComponentProps<{groupId: string; orgId: string}, {}>;
 
-type State = {
+interface State {
   eventList: Event[];
   loading: boolean;
   error: string | false;
   pageLinks: string;
   query: string;
-};
+}
 
 class GroupEvents extends React.Component<Props, State> {
   constructor(props: Props) {

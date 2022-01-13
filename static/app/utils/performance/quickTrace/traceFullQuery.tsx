@@ -16,10 +16,10 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 import withApi from 'sentry/utils/withApi';
 
-type AdditionalQueryProps = {
+interface AdditionalQueryProps {
   eventId?: string;
   detailed?: boolean;
-};
+}
 
 type TraceFullQueryChildrenProps<T> = BaseTraceChildrenProps &
   Omit<FullQuickTrace, 'trace'> & {

@@ -20,10 +20,10 @@ const FEATURE_TOOLTIPS = {
   ),
 };
 
-type Props = {
+interface Props {
   feature: 'symtab' | 'debug' | 'unwind' | 'sources';
   available?: boolean;
-};
+}
 
 const DebugFileFeature = ({available = true, feature}: Props) => {
   const tooltipText = FEATURE_TOOLTIPS[feature];

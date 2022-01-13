@@ -20,15 +20,18 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type RouteParams = {projectId: string; orgId: string};
+interface RouteParams {
+  projectId: string;
+  orgId: string;
+}
 
-type StatProps = {
+interface StatProps {
   params: RouteParams;
-};
+}
 
-type StatState = AsyncComponent['state'] & {
+interface StatState {
   stats: TimeseriesValue[];
-};
+}
 
 class DataForwardingStats extends AsyncComponent<StatProps, StatState> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -87,9 +90,9 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
-type State = AsyncComponent['state'] & {
+interface State {
   plugins: Plugin[];
-};
+}
 
 class ProjectDataForwarding extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

@@ -55,9 +55,9 @@ import ReleasesRequest from './releasesRequest';
 import ReleasesSortOptions, {ReleasesSortOption} from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -65,9 +65,9 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   selection: PageFilters;
 };
 
-type State = {
+interface State {
   releases: Release[];
-} & AsyncView['state'];
+}
 
 class ReleasesList extends AsyncView<Props, State> {
   shouldReload = true;

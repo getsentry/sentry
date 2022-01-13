@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   items: Array<React.ReactElement>;
   className?: string;
-};
+}
 
 function List({items, className}: Props) {
   if (!items.length) {

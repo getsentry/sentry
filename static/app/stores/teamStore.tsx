@@ -6,13 +6,13 @@ import {defined} from 'sentry/utils';
 
 import {CommonStoreInterface} from './types';
 
-type State = {
+interface State {
   teams: Team[];
   loading: boolean;
   hasMore: boolean | null;
   cursor: string | null;
   loadedUserTeams: boolean;
-};
+}
 
 type TeamStoreInterface = CommonStoreInterface<State> & {
   initialized: boolean;

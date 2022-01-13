@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import ContextData from 'sentry/components/contextData';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   kvData?: Record<string, any>;
-};
+}
 
 function Summary({kvData, children}: Props) {
   if (!kvData || !Object.keys(kvData).length) {

@@ -10,12 +10,12 @@ import space from 'sentry/styles/space';
 import {MethodType, Rule, RuleType} from './types';
 import {getMethodLabel, getRuleLabel} from './utils';
 
-type Props = {
+interface Props {
   rules: Array<Rule>;
   onEditRule?: (id: Rule['id']) => () => void;
   onDeleteRule?: (id: Rule['id']) => () => void;
   disabled?: boolean;
-};
+}
 
 const getListItemDescription = (rule: Rule) => {
   const {method, type, source} = rule;

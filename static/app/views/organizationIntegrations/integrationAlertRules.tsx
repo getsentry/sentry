@@ -9,10 +9,10 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = {
+interface Props {
   projects: Project[];
   organization: Organization;
-};
+}
 
 const IntegrationAlertRules = ({projects, organization}: Props) => (
   <Panel>

@@ -8,12 +8,12 @@ import {t} from 'sentry/locale';
 import {Organization, PluginWithProjectList} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
-type Props = {
+interface Props {
   organization: Organization;
   plugin: PluginWithProjectList;
-};
+}
 
-type State = {};
+interface State {}
 
 class PluginDeprecationAlert extends Component<Props, State> {
   render() {

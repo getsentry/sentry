@@ -8,10 +8,10 @@ import {
 } from 'sentry/utils/performance/vitals/constants';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 
-type Measurement = {
+interface Measurement {
   name: string;
   key: string;
-};
+}
 
 type MeasurementCollection = Record<string, Measurement>;
 
@@ -34,14 +34,14 @@ function measurementsFromDetails(
 const MOBILE_MEASUREMENTS = measurementsFromDetails(MOBILE_VITAL_DETAILS);
 const WEB_MEASUREMENTS = measurementsFromDetails(WEB_VITAL_DETAILS);
 
-type ChildrenProps = {
+interface ChildrenProps {
   measurements: MeasurementCollection;
-};
+}
 
-type Props = {
+interface Props {
   organization: Organization;
   children: (props: ChildrenProps) => React.ReactNode;
-};
+}
 
 function Measurements({organization, children}: Props) {
   const measurements = organization.features.includes('performance-mobile-vitals')

@@ -14,9 +14,9 @@ import {
 } from 'sentry/icons';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
-type Props = {
+interface Props {
   type: BreadcrumbType;
-};
+}
 
 function Icon({type}: Props) {
   switch (type) {

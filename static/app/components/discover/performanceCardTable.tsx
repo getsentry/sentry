@@ -26,7 +26,7 @@ import {
 } from 'sentry/utils/performance/vitals/constants';
 import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
-type PerformanceCardTableProps = {
+interface PerformanceCardTableProps {
   organization: Organization;
   location: Location;
   project: ReleaseProject;
@@ -36,7 +36,7 @@ type PerformanceCardTableProps = {
   thisReleaseTableData: TableData | null;
   performanceType: string;
   isLoading: boolean;
-};
+}
 
 function PerformanceCardTable({
   organization,
@@ -678,14 +678,14 @@ function PerformanceCardTable({
   );
 }
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   allReleasesEventView: EventView;
   releaseEventView: EventView;
   performanceType: string;
   project: ReleaseProject;
   location: Location;
-};
+}
 
 function PerformanceCardTableWrapper({
   organization,

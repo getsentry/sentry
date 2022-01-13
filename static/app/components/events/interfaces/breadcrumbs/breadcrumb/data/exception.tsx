@@ -8,11 +8,11 @@ import {defined} from 'sentry/utils';
 
 import Summary from './summary';
 
-type Props = {
+interface Props {
   searchTerm: string;
   breadcrumb: BreadcrumbTypeDefault;
   linkedEvent?: React.ReactElement;
-};
+}
 
 function Exception({breadcrumb, searchTerm, linkedEvent}: Props) {
   const {data, message} = breadcrumb;

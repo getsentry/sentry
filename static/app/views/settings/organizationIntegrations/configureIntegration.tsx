@@ -28,21 +28,23 @@ import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   integrationId: string;
-};
+}
+
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
 type Tab = 'repos' | 'codeMappings' | 'userMappings' | 'teamMappings' | 'settings';
 
-type State = AsyncView['state'] & {
+interface State {
   config: {providers: IntegrationProvider[]};
   integration: IntegrationWithConfig;
   tab?: Tab;
-};
+}
+
 class ConfigureIntegration extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, integrationId} = this.props.params;

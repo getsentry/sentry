@@ -39,11 +39,11 @@ enum IssuesQuery {
   ALL = 'release',
 }
 
-type IssuesQueryParams = {
+interface IssuesQueryParams {
   limit: number;
   sort: string;
   query: string;
-};
+}
 
 const defaultProps = {
   withChart: false,
@@ -59,7 +59,7 @@ type Props = {
   queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
-type State = {
+interface State {
   issuesType: IssuesType;
   count: {
     new: number | null;
@@ -70,7 +70,7 @@ type State = {
   };
   pageLinks?: string;
   onCursor?: () => void;
-};
+}
 
 class ReleaseIssues extends Component<Props, State> {
   static defaultProps = defaultProps;

@@ -1,17 +1,17 @@
-export type GapSpanType = {
+export interface GapSpanType {
   type: 'gap';
   start_timestamp: number;
-  timestamp: number; // this is essentially end_timestamp
+  timestamp: number; // this is essentially end_timestamp;
   description?: string;
   isOrphan: boolean;
-};
+}
 
-export type RawSpanType = {
+export interface RawSpanType {
   trace_id: string;
   parent_span_id?: string;
   span_id: string;
   start_timestamp: number;
-  timestamp: number; // this is essentially end_timestamp
+  timestamp: number; // this is essentially end_timestamp;
   same_process_as_parent?: boolean;
   op?: string;
   description?: string;
@@ -20,7 +20,7 @@ export type RawSpanType = {
   tags?: {[key: string]: string};
   hash?: string;
   exclusive_time?: number;
-};
+}
 
 export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'trace_id',
@@ -38,9 +38,9 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'exclusive_time',
 ]);
 
-export type OrphanSpanType = {
+export interface OrphanSpanType extends RawSpanType {
   type: 'orphan';
-} & RawSpanType;
+}
 
 export type SpanType = RawSpanType | OrphanSpanType;
 
@@ -53,13 +53,13 @@ export type FetchEmbeddedChildrenState =
   | 'loading_embedded_transactions'
   | 'error_fetching_embedded_transactions';
 
-export type SpanGroupProps = {
+export interface SpanGroupProps {
   spanGrouping: EnhancedSpan[] | undefined;
   showSpanGroup: boolean;
   toggleSpanGroup: (() => void) | undefined;
-};
+}
 
-type CommonEnhancedProcessedSpanType = {
+interface CommonEnhancedProcessedSpanType {
   numOfSpanChildren: number;
   treeDepth: number;
   isLastSibling: boolean;
@@ -69,7 +69,7 @@ type CommonEnhancedProcessedSpanType = {
   toggleEmbeddedChildren:
     | ((props: {orgSlug: string; eventSlug: string}) => void)
     | undefined;
-};
+}
 
 export type EnhancedSpan =
   | ({
@@ -104,15 +104,17 @@ export type EnhancedProcessedSpanType =
       continuingTreeDepths: Array<TreeDepthType>;
     } & SpanGroupProps);
 
-export type SpanEntry = {
+export interface SpanEntry {
   type: 'spans';
   data: Array<RawSpanType>;
-};
+}
 
 // map span_id to children whose parent_span_id is equal to span_id
-export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
+export interface SpanChildrenLookupType {
+  [span_id: string]: Array<SpanType>;
+}
 
-export type ParsedTraceType = {
+export interface ParsedTraceType {
   op: string;
   childSpans: SpanChildrenLookupType;
   traceID: string;
@@ -125,7 +127,7 @@ export type ParsedTraceType = {
   description?: string;
   hash?: string;
   exclusiveTime?: number;
-};
+}
 
 export enum TickAlignment {
   Left,
@@ -133,7 +135,7 @@ export enum TickAlignment {
   Center,
 }
 
-export type TraceContextType = {
+export interface TraceContextType {
   op?: string;
   type?: 'trace';
   span_id?: string;
@@ -143,49 +145,49 @@ export type TraceContextType = {
   status?: string;
   hash?: string;
   exclusive_time?: number;
-};
+}
 
 type SpanTreeDepth = number;
 
-export type OrphanTreeDepth = {
+export interface OrphanTreeDepth {
   type: 'orphan';
   depth: number;
-};
+}
 
 export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;
 
-export type IndexedFusedSpan = {
+export interface IndexedFusedSpan {
   span: RawSpanType;
   indexed: string[];
   tagKeys: string[];
   tagValues: string[];
   dataKeys: string[];
   dataValues: string[];
-};
+}
 
-export type FuseResult = {
+export interface FuseResult {
   item: IndexedFusedSpan;
   score: number;
-};
+}
 
-export type FilterSpans = {
+export interface FilterSpans {
   results: FuseResult[];
   spanIDs: Set<string>;
-};
+}
 
 type FuseKey = 'indexed' | 'tagKeys' | 'tagValues' | 'dataKeys' | 'dataValues';
 
-export type SpanFuseOptions = {
+export interface SpanFuseOptions {
   keys: FuseKey[];
   includeMatches: false;
   threshold: number;
   location: number;
   distance: number;
   maxPatternLength: number;
-};
+}
 
-export type TraceBound = {
+export interface TraceBound {
   spanId: string;
   traceStartTimestamp: number;
   traceEndTimestamp: number;
-};
+}

@@ -3,10 +3,10 @@ import {defined} from 'sentry/utils';
 
 import {OperatingSystemKnownData, OperatingSystemKnownDataType} from './types';
 
-type Output = {
+interface Output {
   subject: string;
   value: React.ReactNode | null;
-};
+}
 
 function getOperatingSystemKnownDataDetails(
   data: OperatingSystemKnownData,

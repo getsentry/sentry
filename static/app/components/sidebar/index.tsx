@@ -51,10 +51,10 @@ const SidebarOverride = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children({})}</Fragment>,
 });
 
-type Props = {
+interface Props {
   organization?: Organization;
   location?: Location;
-};
+}
 
 function Sidebar({location, organization}: Props) {
   const config = useLegacyStore(ConfigStore);

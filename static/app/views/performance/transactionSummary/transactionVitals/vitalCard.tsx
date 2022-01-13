@@ -45,7 +45,7 @@ import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './
 import {Rectangle} from './types';
 import {asPixelRect, findNearestBucketIndex, getRefRect, mapPoint} from './utils';
 
-type Props = {
+interface Props {
   theme: Theme;
   location: Location;
   organization: Organization;
@@ -61,9 +61,9 @@ type Props = {
   max?: number;
   precision?: number;
   dataFilter?: DataFilter;
-};
+}
 
-type State = {
+interface State {
   /**
    * This is a pair of reference points on the graph that we can use to map any
    * other points to their pixel coordinates on the graph.
@@ -88,7 +88,7 @@ type State = {
    * - refPixelRect.point1.y > refPixelRect.point2.y
    */
   refPixelRect: Rectangle | null;
-};
+}
 
 class VitalCard extends Component<Props, State> {
   state: State = {

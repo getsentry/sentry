@@ -14,13 +14,13 @@ const Label = styled('label')`
   margin-bottom: 0;
 `;
 
-type Props = {
+interface Props {
   enforceAllowed: boolean;
   disabled: boolean;
   selectedRole: string;
   roleList: MemberRole[];
   setRole: (id: string) => void;
-};
+}
 
 class RoleSelect extends Component<Props> {
   render() {

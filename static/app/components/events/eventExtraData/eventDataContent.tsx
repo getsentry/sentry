@@ -3,10 +3,10 @@ import {defined} from 'sentry/utils';
 
 import getEventExtraDataKnownData from './getEventExtraDataKnownData';
 
-type Props = {
+interface Props {
   raw: boolean;
   data?: Record<string, any>;
-};
+}
 
 const EventDataContent = ({data, raw}: Props) => {
   if (!defined(data)) {

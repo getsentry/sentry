@@ -5,9 +5,9 @@ import {Client} from 'sentry/api';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import {Repository} from 'sentry/types';
 
-type ParamsGet = {
+interface ParamsGet {
   orgSlug: string;
-};
+}
 
 export function getRepositories(api: Client, params: ParamsGet) {
   const {orgSlug} = params;

@@ -19,17 +19,17 @@ const defaultProps = {
   menuWidth: 'auto',
 };
 
-type Props = {
+interface Props {
   options: SelectValue<string>[];
   selected: string;
   onChange: (value: string) => void;
   title: string;
   featureType?: 'alpha' | 'beta' | 'new';
-} & typeof defaultProps;
+}
 
-type State = {
+interface State {
   menuContainerWidth?: number;
-};
+}
 
 class OptionSelector extends Component<Props, State> {
   static defaultProps = defaultProps;

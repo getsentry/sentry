@@ -2,10 +2,10 @@ import ActionLink from 'sentry/components/actions/actionLink';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   onUpdate: (data?: any) => void;
   disabled?: boolean;
-};
+}
 
 function ReviewAction({disabled, onUpdate}: Props) {
   return (

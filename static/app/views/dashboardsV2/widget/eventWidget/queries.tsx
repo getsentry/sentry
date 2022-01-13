@@ -13,7 +13,7 @@ import Field from 'sentry/views/settings/components/forms/field';
 import {WidgetQuery} from '../../types';
 import {DisplayType} from '../utils';
 
-type Props = {
+interface Props {
   queries: WidgetQuery[];
   selectedProjectIds: number[];
   organization: Organization;
@@ -22,7 +22,7 @@ type Props = {
   onAddQuery: () => void;
   onChangeQuery: (queryIndex: number, queries: WidgetQuery) => void;
   errors?: Array<Record<string, any>>;
-};
+}
 
 function Queries({
   queries,

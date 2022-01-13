@@ -74,10 +74,10 @@ const TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type Props = {
+interface Props {
   organization: Organization;
   resultsUrl: string;
-};
+}
 
 function DiscoverBanner({organization, resultsUrl}: Props) {
   function onAdvance(step: number, duration: number) {

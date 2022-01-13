@@ -7,14 +7,14 @@ import TextField from 'sentry/components/forms/textField';
 import {t, tct} from 'sentry/locale';
 import {AuthConfig} from 'sentry/types';
 
-type Props = {
+interface Props {
   api: Client;
   authConfig: AuthConfig;
-};
+}
 
-type State = {
+interface State {
   errorMessage: string | null;
-};
+}
 
 class SsoForm extends Component<Props, State> {
   state: State = {
@@ -68,10 +68,10 @@ class SsoForm extends Component<Props, State> {
   }
 }
 
-type SlugExampleProps = {
+interface SlugExampleProps {
   hostname: string;
   slug: string;
-};
+}
 
 const SlugExample = ({hostname, slug}: SlugExampleProps) => (
   <code>

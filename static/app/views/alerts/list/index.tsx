@@ -38,7 +38,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
 };
 
-type State = {
+interface State {
   incidentList: Incident[];
   /**
    * Is there at least one alert rule configured for the currently selected
@@ -50,7 +50,7 @@ type State = {
    * organization.
    */
   firstVisitShown?: boolean;
-};
+}
 
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

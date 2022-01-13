@@ -5,7 +5,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   /**
    * A set of LocationDescriptors that will be used in the buttons in the following order:
    * [Oldest, Older, Newer, Newest]
@@ -19,7 +19,7 @@ type Props = {
   onOlderClick?: () => void;
   onNewerClick?: () => void;
   onNewestClick?: () => void;
-};
+}
 
 const NavigationButtonGroup = ({
   links,

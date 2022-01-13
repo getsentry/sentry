@@ -8,15 +8,15 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {Group, Organization, Plugin, Project} from 'sentry/types';
 
-type Field = {
+interface Field {
   has_autocomplete?: boolean;
   depends?: string[];
-} & Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
+}
 
 type ActionType = 'link' | 'create' | 'unlink';
 type FieldStateValue = typeof FormState[keyof typeof FormState];
 
-type Props = {
+interface Props {
   actionType: ActionType;
   group: Group;
   project: Project;
@@ -30,9 +30,9 @@ type Props = {
   };
   onSuccess?: (data: any) => void;
   onError?: (data: any) => void;
-};
+}
 
-type State = {
+interface State {
   createFormData: Record<string, any>;
   linkFormData: Record<string, any>;
   unlinkFormData: Record<string, any>;
@@ -49,7 +49,7 @@ type State = {
     errors?: Record<string, string>;
   };
   loading?: boolean;
-} & PluginComponentBase['state'];
+}
 
 class IssueActions extends PluginComponentBase<Props, State> {
   constructor(props: Props, context) {

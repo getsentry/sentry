@@ -15,17 +15,17 @@ import IntegrationItem from 'sentry/views/organizationIntegrations/integrationIt
 
 import ExternalIssueForm from './externalIssueForm';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   api: Client;
   configurations: GroupIntegration[];
   group: Group;
   onChange: (onSuccess?: () => void, onError?: () => void) => void;
-};
+}
 
-type LinkedIssues = {
+interface LinkedIssues {
   linked: GroupIntegration[];
   unlinked: GroupIntegration[];
-};
+}
 
 const ExternalIssueActions = ({configurations, group, onChange, api}: Props) => {
   const {linked, unlinked} = configurations

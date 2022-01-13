@@ -11,10 +11,10 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import {TraceKnownData, TraceKnownDataType} from './types';
 
-type Output = {
+interface Output {
   subject: string;
   value: React.ReactNode;
-};
+}
 
 function getUserKnownDataDetails(
   data: TraceKnownData,

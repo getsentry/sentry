@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import List from 'sentry/components/list';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
-};
+}
 
 function BuildSteps({children}: Props) {
   return <StyledList symbol="colored-numeric">{children}</StyledList>;

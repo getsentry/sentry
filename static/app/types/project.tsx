@@ -8,20 +8,19 @@ import {Organization, Team} from './organization';
 import {Deploy, Release} from './release';
 
 // Minimal project representation for use with avatars.
-export type AvatarProject = {
+export interface AvatarProject {
   slug: string;
   platform?: PlatformKey;
   id?: string | number;
-};
+}
 
-export type Project = {
+export interface Project extends AvatarProject {
   id: string;
   dateCreated: string;
   isMember: boolean;
   teams: Team[];
   features: string[];
   organization: Organization;
-
   isBookmarked: boolean;
   isInternal: boolean;
   hasUserReports?: boolean;
@@ -36,7 +35,6 @@ export type Project = {
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
-
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
     next_id: number;
@@ -58,12 +56,12 @@ export type Project = {
     previousCrashFreeRate: number | null;
     hasHealthData: boolean;
   };
-} & AvatarProject;
+}
 
 export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
-export type ProjectKey = {
+export interface ProjectKey {
   id: string;
   name: string;
   label: string;
@@ -89,30 +87,32 @@ export type ProjectKey = {
     choices: [key: string, value: string][];
   };
   dateCreated: string;
-};
+}
 
-export type ProjectSdkUpdates = {
+export interface ProjectSdkUpdates {
   projectId: string;
   sdkName: string;
   sdkVersion: string;
   suggestions: SDKUpdatesSuggestion[];
-};
+}
 
-export type Environment = {
+export interface Environment {
   id: string;
   displayName: string;
   name: string;
 
   // XXX: Provided by the backend but unused due to `getUrlRoutingName()`
   // urlRoutingName: string;
-};
+}
 
-export type TeamWithProjects = Team & {projects: Project[]};
+export interface TeamWithProjects extends Team {
+  projects: Project[];
+}
 
-export type PlatformIntegration = {
+export interface PlatformIntegration {
   id: string;
   type: string;
   language: string;
   link: string | null;
   name: string;
-};
+}

@@ -5,11 +5,11 @@ import {t, tct} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 import getSdkUpdateSuggestion from 'sentry/utils/getSdkUpdateSuggestion';
 
-type Props = {
+interface Props {
   event: Omit<Event, 'sdkUpdates'> & {
     sdkUpdates: NonNullable<Event['sdkUpdates']>;
   };
-};
+}
 
 const SdkUpdates = ({event}: Props) => {
   const {sdkUpdates} = event;

@@ -76,9 +76,9 @@ export default function DatePickerField(props: Props) {
   );
 }
 
-type InputWrapperProps = {
+interface InputWrapperProps {
   isOpen: boolean;
-};
+}
 
 const InputWrapper = styled('div')<InputWrapperProps>`
   ${inputStyles}

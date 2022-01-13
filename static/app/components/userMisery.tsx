@@ -6,14 +6,14 @@ import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   bars: number;
   barHeight: number;
   userMisery: number;
   miseryLimit: number | undefined;
   totalUsers: number | undefined;
   miserableUsers: number | undefined;
-};
+}
 
 function UserMisery(props: Props) {
   const {bars, barHeight, userMisery, miseryLimit, totalUsers, miserableUsers} = props;

@@ -45,10 +45,10 @@ type Props = {
 } & RouteComponentProps<{}, {}> &
   AsyncComponent['props'];
 
-type State = {
+interface State {
   savedQueries: SavedQuery[] | null;
   savedQueriesPageLinks: string;
-} & AsyncComponent['state'];
+}
 
 class DiscoverLanding extends AsyncComponent<Props, State> {
   state: State = {

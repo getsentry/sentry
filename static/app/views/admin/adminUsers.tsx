@@ -10,17 +10,17 @@ export const prettyDate = function (x) {
   return moment(x).format('ll');
 };
 
-type Row = {
+interface Row {
   id: string;
   username: string;
   email: string;
   dateJoined: string;
   lastLogin: string;
-};
+}
 
-type Props = {
+interface Props {
   location: Location;
-} & AsyncView['props'];
+}
 
 export default class AdminUsers extends AsyncView<Props> {
   getRow = (row: Row) => [

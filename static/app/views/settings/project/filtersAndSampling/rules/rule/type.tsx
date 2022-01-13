@@ -4,9 +4,9 @@ import * as Sentry from '@sentry/react';
 import {t} from 'sentry/locale';
 import {DynamicSamplingRuleType} from 'sentry/types/dynamicSampling';
 
-type Props = {
+interface Props {
   type: DynamicSamplingRuleType;
-};
+}
 
 function Type({type}: Props) {
   switch (type) {

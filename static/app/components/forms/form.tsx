@@ -7,7 +7,7 @@ import FormContext, {FormContextData} from 'sentry/components/forms/formContext'
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 
-type FormProps = {
+interface FormProps {
   cancelLabel?: string;
   onCancel?: () => void;
   onSubmit?: (
@@ -27,14 +27,14 @@ type FormProps = {
   submitDisabled?: boolean;
   submitLabel?: string;
   extraButton?: React.ReactNode;
-};
+}
 
-type FormClassState = {
+interface FormClassState {
   data: any;
   errors: {non_field_errors?: object[]} & object;
   initialData: object;
   state: FormState;
-};
+}
 
 // Re-export for compatibility alias.
 export type Context = FormContextData;

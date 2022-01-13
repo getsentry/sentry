@@ -36,7 +36,7 @@ import {
   isExpandable,
 } from './utils';
 
-type Props = {
+interface Props {
   data: Frame;
   event: Event;
   registers: Record<string, string>;
@@ -62,11 +62,11 @@ type Props = {
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
-};
+}
 
-type State = {
+interface State {
   isExpanded?: boolean;
-};
+}
 
 function makeFilter(
   addr: string,

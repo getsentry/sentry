@@ -5,10 +5,10 @@ import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = {
+interface Props {
   onRefresh: () => void;
   disabled: boolean;
-};
+}
 
 const WaitingActivity = ({onRefresh, disabled}: Props) => (
   <Panel>

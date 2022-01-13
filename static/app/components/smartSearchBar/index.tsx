@@ -86,7 +86,7 @@ const generateOpAutocompleteGroup = (
   };
 };
 
-type ActionProps = {
+interface ActionProps {
   api: Client;
   /**
    * Render the actions as a menu item
@@ -104,9 +104,9 @@ type ActionProps = {
    * The saved search type passed to the search bar
    */
   savedSearchType?: SavedSearchType;
-};
+}
 
-type ActionBarItem = {
+interface ActionBarItem {
   /**
    * Name of the action
    */
@@ -115,21 +115,20 @@ type ActionBarItem = {
    * The action component to render
    */
   Action: React.ComponentType<ActionProps>;
-};
+}
 
-type AutocompleteGroup = {
+interface AutocompleteGroup {
   searchItems: SearchItem[];
   recentSearchItems: SearchItem[] | undefined;
   tagName: string;
   type: ItemType;
-};
+}
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   organization: Organization;
   dropdownClassName?: string;
   className?: string;
-
   defaultQuery?: string;
   query?: string | null;
   /**
@@ -231,9 +230,9 @@ type Props = WithRouterProps & {
    * trigger re-renders.
    */
   members?: User[];
-};
+}
 
-type State = {
+interface State {
   /**
    * The current search query in the input
    */
@@ -271,7 +270,7 @@ type State = {
    * The number of actions that are not in the overflow menu.
    */
   numActionsVisible: number;
-};
+}
 
 class SmartSearchBar extends React.Component<Props, State> {
   static defaultProps = {
@@ -1422,9 +1421,9 @@ class SmartSearchBar extends React.Component<Props, State> {
   }
 }
 
-type ContainerState = {
+interface ContainerState {
   members: ReturnType<typeof MemberListStore.getAll>;
-};
+}
 
 class SmartSearchBarContainer extends React.Component<Props, ContainerState> {
   state: ContainerState = {

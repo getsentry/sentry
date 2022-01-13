@@ -2,7 +2,7 @@ import Reflux from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
 
-type SelectedGroupStoreInterface = {
+interface SelectedGroupStoreInterface {
   init(): void;
   onGroupChange(itemIds: string[]): void;
   add(ids: string[]): void;
@@ -16,11 +16,11 @@ type SelectedGroupStoreInterface = {
   deselectAll(): void;
   toggleSelect(itemId: string): void;
   toggleSelectAll(): void;
-};
+}
 
-type Internals = {
+interface Internals {
   records: Record<string, boolean>;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & Internals & SelectedGroupStoreInterface = {
   records: {},

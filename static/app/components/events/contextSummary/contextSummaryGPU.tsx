@@ -11,20 +11,20 @@ import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
 import Item from './item';
 
-type Props = {
+interface Props {
   data: Data;
-};
+}
 
-type Data = {
+interface Data {
   name: string;
   vendor_name?: string;
-};
+}
 
-type VersionElement = {
+interface VersionElement {
   subject: string;
   value: string;
   meta?: Meta;
-};
+}
 
 const ContextSummaryGPU = ({data}: Props) => {
   if (Object.keys(data).length === 0 || !data.name) {

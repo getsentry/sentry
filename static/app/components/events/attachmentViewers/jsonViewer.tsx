@@ -8,7 +8,7 @@ import {
   ViewerProps,
 } from 'sentry/components/events/attachmentViewers/utils';
 
-type Props = ViewerProps & AsyncComponent['props'];
+interface Props extends ViewerProps {}
 
 type State = AsyncComponent['state'];
 

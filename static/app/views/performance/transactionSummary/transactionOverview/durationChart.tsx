@@ -40,14 +40,13 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = WithRouterProps &
-  ViewProps & {
-    location: Location;
-    organization: OrganizationSummary;
-    queryExtra: Query;
-    currentFilter: SpanOperationBreakdownFilter;
-    withoutZerofill: boolean;
-  };
+interface Props extends WithRouterProps, ViewProps {
+  location: Location;
+  organization: OrganizationSummary;
+  queryExtra: Query;
+  currentFilter: SpanOperationBreakdownFilter;
+  withoutZerofill: boolean;
+}
 
 function generateYAxisValues(currentFilter: SpanOperationBreakdownFilter) {
   const field = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter] ?? '';

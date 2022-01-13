@@ -9,12 +9,12 @@ import ConfigStore from 'sentry/stores/configStore';
 import {ChallengeData, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type TapParams = {
+interface TapParams {
   response: string;
   challenge: string;
-};
+}
 
-type Props = {
+interface Props {
   organization: Organization;
   challengeData: ChallengeData;
   isWebauthnSigninFFEnabled: boolean;
@@ -22,16 +22,16 @@ type Props = {
   silentIfUnsupported: boolean;
   onTap: ({response, challenge}: TapParams) => Promise<void>;
   style?: React.CSSProperties;
-};
+}
 
-type State = {
+interface State {
   responseElement: HTMLInputElement | null;
   formElement: HTMLFormElement | null;
   challengeElement: HTMLInputElement | null;
   isSupported: boolean | null;
   hasBeenTapped: boolean;
   deviceFailure: string | null;
-};
+}
 
 class U2fInterface extends React.Component<Props, State> {
   state: State = {

@@ -7,10 +7,10 @@ import ControlState from 'sentry/views/settings/components/forms/field/controlSt
 
 import {EventIdStatus} from '../../types';
 
-type Props = {
+interface Props {
   onClickIconClose: () => void;
   status?: EventIdStatus;
-};
+}
 
 const EventIdFieldStatusIcon = ({status, onClickIconClose}: Props) => {
   switch (status) {

@@ -28,7 +28,7 @@ import AlertBadge from '../alertBadge';
 import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 
-type Props = {
+interface Props {
   rule: CombinedMetricIssueAlerts;
   projects: Project[];
   projectsLoaded: boolean;
@@ -37,7 +37,7 @@ type Props = {
   onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   // Set of team ids that the user belongs to
   userTeams: Set<string>;
-};
+}
 
 /**
  * Memoized function to find a project from a list of projects

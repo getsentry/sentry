@@ -2,11 +2,11 @@ import {t, tct} from 'sentry/locale';
 
 import {BULK_LIMIT, BULK_LIMIT_STR} from './utils';
 
-type Props = {
+interface Props {
   all: boolean;
   query: string;
   queryCount: number;
-};
+}
 
 function ExtraDescription({all, query, queryCount}: Props) {
   if (!all) {

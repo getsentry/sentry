@@ -19,7 +19,7 @@ import FrameVariables from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
 import StacktraceLink from './stacktraceLink';
 
-type Props = {
+interface Props {
   frame: Frame;
   event: Event;
   organization?: Organization;
@@ -32,7 +32,7 @@ type Props = {
   emptySourceNotation?: boolean;
   hasAssembly?: boolean;
   expandable?: boolean;
-};
+}
 
 const Context = ({
   hasContextVars = false,

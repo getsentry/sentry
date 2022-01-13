@@ -26,7 +26,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   theme: Theme;
   organization: Organization;
   eventView: EventView;
@@ -34,7 +34,7 @@ type Props = {
   location: Location;
   referrer?: string;
   yAxis?: string[];
-};
+}
 
 class MiniGraph extends React.Component<Props> {
   shouldComponentUpdate(nextProps) {

@@ -17,11 +17,10 @@ import withProjects from 'sentry/utils/withProjects';
 import {Outcome, UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 
-type Props = {
+interface Props {
   organization: Organization;
   projects: Project[];
   loadingProjects: boolean;
-
   dataCategory: DataCategory;
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
@@ -37,11 +36,11 @@ type Props = {
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
   getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   projectStats: UsageSeries | undefined;
-} & AsyncComponent['state'];
+}
 
 export enum SortBy {
   PROJECT = 'project',

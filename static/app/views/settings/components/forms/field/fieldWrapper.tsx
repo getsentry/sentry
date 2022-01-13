@@ -3,11 +3,7 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-/**
- * Using Parameters<typeof FieldWrapper> in the Field component somehow
- * causes an infinite recursive depth so exporting the props is best workaround
- */
-type Props = {
+interface Props {
   /**
    * When stacking forms the bottom border is hidden and padding is adjusted
    * for form elements to be stacked on each other.
@@ -28,7 +24,7 @@ type Props = {
    * Is "highlighted", i.e. after a search
    */
   highlighted?: boolean;
-};
+}
 
 const inlineStyle = (p: Props) =>
   p.inline

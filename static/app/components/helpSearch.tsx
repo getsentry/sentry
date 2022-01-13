@@ -13,11 +13,11 @@ type HelpResult = Parameters<
   React.ComponentProps<typeof HelpSource>['children']
 >[0]['results'][0];
 
-type ResultItemProps = HelpResult & {
+interface ResultItemProps extends HelpResult {
   highlighted: boolean;
   // TODO(ts): Improve types when we've typed more of the search components
   itemProps: any;
-};
+}
 
 const renderResult = ({item, matches, itemProps, highlighted}: ResultItemProps) => {
   const sectionHeading =

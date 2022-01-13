@@ -24,11 +24,11 @@ import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 
-type RouteParams = {
+interface RouteParams {
   groupId: string;
   orgId: string;
   tagKey: string;
-};
+}
 
 type Props = {
   baseUrl: string;
@@ -37,11 +37,11 @@ type Props = {
   environments?: string[];
 } & RouteComponentProps<RouteParams, {}>;
 
-type State = {
+interface State {
   tag: Tag | null;
   tagValueList: TagValue[] | null;
   tagValueListPageLinks: string;
-};
+}
 
 const DEFAULT_SORT = 'count';
 

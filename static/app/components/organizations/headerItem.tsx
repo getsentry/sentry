@@ -10,9 +10,9 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
-type DefaultProps = {
+interface DefaultProps {
   allowClear: boolean;
-};
+}
 
 type Props = {
   icon: React.ReactNode;
@@ -104,11 +104,11 @@ const getColor = (p: ColorProps & {theme: Theme}) => {
   return p.isOpen || p.hasSelected ? p.theme.textColor : p.theme.gray300;
 };
 
-type ColorProps = {
+interface ColorProps {
   locked?: boolean;
   isOpen?: boolean;
   hasSelected?: boolean;
-};
+}
 
 const StyledHeaderItem = styled('div', {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',

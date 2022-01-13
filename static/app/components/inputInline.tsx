@@ -16,10 +16,10 @@ type Props = {
   value?: string;
 } & React.DOMAttributes<HTMLInputElement>;
 
-type State = {
+interface State {
   isFocused: boolean;
   isHovering: boolean;
-};
+}
 
 /**
  * InputInline is a cool pattern and @doralchan has confirmed that this has more

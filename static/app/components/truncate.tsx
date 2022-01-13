@@ -3,23 +3,23 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type DefaultProps = {
+interface DefaultProps {
   className: string;
   minLength: number;
   maxLength: number;
   leftTrim: boolean;
   expandable: boolean;
   expandDirection: 'left' | 'right';
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   value: string;
   trimRegex?: RegExp;
-};
+}
 
-type State = {
+interface State {
   isExpanded: boolean;
-};
+}
 
 class Truncate extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

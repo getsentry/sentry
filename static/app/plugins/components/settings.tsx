@@ -10,24 +10,27 @@ import {parseRepo} from 'sentry/utils';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
   plugin: Plugin;
-} & PluginComponentBase['props'];
+}
 
 type Field = Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
 
-type BackendField = Field & {value?: any; defaultValue?: any};
+interface BackendField extends Field {
+  value?: any;
+  defaultValue?: any;
+}
 
-type State = {
+interface State {
   fieldList: Field[] | null;
   initialData: Record<string, any> | null;
   formData: Record<string, any>;
   errors: Record<string, any>;
   rawData: Record<string, any>;
   wasConfiguredOnPageLoad: boolean;
-} & PluginComponentBase['state'];
+}
 
 class PluginSettings<
   P extends Props = Props,

@@ -9,14 +9,14 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
   /* used to override when under local state */
   isBookmarked?: boolean;
   className?: string;
   onToggle?: (isBookmarked: boolean) => void;
-};
+}
 
 const BookmarkStar = ({
   isBookmarked: isBookmarkedProp,

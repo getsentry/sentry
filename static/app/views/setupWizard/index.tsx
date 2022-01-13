@@ -6,9 +6,9 @@ import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 
-type Props = {
+interface Props {
   hash?: boolean | string;
-};
+}
 
 function SetupWizard({hash = false}: Props) {
   const api = useApi();

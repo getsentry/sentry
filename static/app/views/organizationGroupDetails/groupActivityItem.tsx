@@ -19,12 +19,12 @@ import {
   User,
 } from 'sentry/types';
 
-type Props = {
+interface Props {
   author: React.ReactNode;
   activity: GroupActivity;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
-};
+}
 
 function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
   const issuesLink = `/organizations/${orgSlug}/issues/`;

@@ -12,10 +12,10 @@ import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = {
+interface Props {
   organization: Organization;
   children?: React.ReactNode;
-};
+}
 
 function DeletionInProgress({organization}: Props) {
   return (

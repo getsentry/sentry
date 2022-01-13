@@ -9,16 +9,16 @@ export enum ItemType {
   PROPERTY = 'property',
 }
 
-export type SearchGroup = {
+export interface SearchGroup {
   type: ItemType | 'header';
   title: string;
   icon: React.ReactNode;
   value?: string;
   desc?: string;
   children: SearchItem[];
-};
+}
 
-export type SearchItem = {
+export interface SearchItem {
   type?: ItemType;
   title?: string;
   value: string;
@@ -26,11 +26,11 @@ export type SearchItem = {
   active?: boolean;
   children?: React.ReactNode[];
   ignoreMaxSearchItems?: boolean;
-};
+}
 
-export type Tag = {
+export interface Tag {
   predefined: boolean;
   key: string;
   desc: string;
   values: string[];
-};
+}

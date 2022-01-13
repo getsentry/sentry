@@ -10,10 +10,10 @@ import {InternalAppApiToken} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 
-type Props = {
+interface Props {
   token: InternalAppApiToken;
   onRemove: (token: InternalAppApiToken) => void;
-};
+}
 
 function ApiTokenRow({token, onRemove}: Props) {
   return (

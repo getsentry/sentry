@@ -5,10 +5,10 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   keyName: React.ReactNode;
   value: React.ReactNode;
-};
+}
 
 export const KeyValueTable = styled('dl')`
   display: grid;

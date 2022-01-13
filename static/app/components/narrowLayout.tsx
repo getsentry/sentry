@@ -6,10 +6,10 @@ import {Client} from 'sentry/api';
 import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   showLogout?: boolean;
   maxWidth?: string;
-};
+}
 
 class NarrowLayout extends Component<Props> {
   UNSAFE_componentWillMount() {

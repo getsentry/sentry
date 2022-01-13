@@ -20,14 +20,14 @@ const avatarStyle = {
   marginRight: 8,
 };
 
-type Props = {
+interface Props {
   isLoading: boolean;
   entries: AuditLog[] | null;
   pageLinks: string | null;
   eventType: string;
   eventTypes: string[];
   onEventSelect: (value: string) => void;
-};
+}
 
 const AuditLogList = ({
   isLoading,

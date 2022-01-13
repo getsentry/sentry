@@ -19,13 +19,13 @@ const defaultProps = {
 
 type DefaultProps = Readonly<typeof defaultProps>;
 
-type Props = {
+interface Props extends DefaultProps {
   title: React.ReactNode;
   type: string;
   toggleRaw?: (enable: boolean) => void;
   actions?: React.ReactNode;
   className?: string;
-} & DefaultProps;
+}
 
 class EventDataSection extends React.Component<Props> {
   static defaultProps = defaultProps;

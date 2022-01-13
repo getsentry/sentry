@@ -235,10 +235,7 @@ export const filterTypeConfig = {
 
 type FilterTypeConfig = typeof filterTypeConfig;
 
-/**
- * Object representing an invalid filter state
- */
-type InvalidFilter = {
+interface InvalidFilter {
   /**
    * The message indicating why the filter is invalid
    */
@@ -251,7 +248,7 @@ type InvalidFilter = {
    * This may be multiple filter types.
    */
   expectedType?: FilterType[];
-};
+}
 
 type FilterMap = {
   [F in keyof FilterTypeConfig]: {
@@ -296,11 +293,11 @@ type InFilter = FilterMap[FilterType.TextIn] | FilterMap[FilterType.NumericIn];
  */
 type FilterResult = FilterMap[FilterType];
 
-type TokenConverterOpts = {
+interface TokenConverterOpts {
   text: TextFn;
   location: LocationFn;
   config: SearchConfig;
-};
+}
 
 /**
  * Used to construct token results via the token grammar
@@ -693,22 +690,18 @@ type ConverterResultMap = {
 
 type Converter = keyof ConverterResultMap;
 
-/**
- * Converter keys specific to Key and Value tokens
- */
-type KVTokens = Converter & `token${'Key' | 'Value'}${string}`;
+interface KVTokens extends Converter {}
 
-/**
- * Similar to TokenResult, but only includes Key* and Value* token type
- * results. This avoids a circular reference when this is used for the Filter
- * token converter result
- */
-type KVConverter<T extends Token> = ConverterResultMap[KVTokens] & {type: T};
+interface KVConverter<T extends Token> {
+  type: T;
+}
 
 /**
  * Each token type is discriminated by the `type` field.
  */
-export type TokenResult<T extends Token> = ConverterResultMap[Converter] & {type: T};
+export interface TokenResult<T extends Token> {
+  type: T;
+}
 
 /**
  * Result from parsing a search query.
@@ -724,7 +717,7 @@ export type ParseResult = Array<
 /**
  * Configures behavior of search parsing
  */
-export type SearchConfig = {
+export interface SearchConfig {
   /**
    * Keys which are considered valid for duration filters
    */
@@ -754,7 +747,7 @@ export type SearchConfig = {
    * Enables boolean filtering (AND / OR)
    */
   allowBoolean: boolean;
-};
+}
 
 const defaultConfig: SearchConfig = {
   textOperatorKeys: new Set([

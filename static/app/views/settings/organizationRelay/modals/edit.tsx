@@ -3,9 +3,9 @@ import {Relay} from 'sentry/types';
 
 import ModalManager from './modalManager';
 
-type Props = {
+interface Props {
   relay: Relay;
-} & ModalManager['props'];
+}
 
 type State = ModalManager['state'];
 

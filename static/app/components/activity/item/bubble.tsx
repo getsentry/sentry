@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   backgroundColor?: string;
   borderColor?: string;
-};
+}
 
 /**
  * This creates a bordered box that has a left pointing arrow

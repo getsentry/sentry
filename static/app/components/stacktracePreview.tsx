@@ -24,7 +24,7 @@ const REQUEST_DELAY = 100;
 const HOVERCARD_DELAY = 400;
 export const STACKTRACE_PREVIEW_TOOLTIP_DELAY = 1000;
 
-type Props = {
+interface Props {
   issueId: string;
   organization: Organization;
   api: Client;
@@ -34,13 +34,13 @@ type Props = {
   eventId?: string;
   projectSlug?: string;
   className?: string;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   loadingVisible: boolean;
   event?: Event;
-};
+}
 
 class StacktracePreview extends React.Component<Props, State> {
   state: State = {

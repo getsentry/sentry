@@ -45,20 +45,20 @@ const GoodbyeModalContent = ({Header, Body, Footer}: ModalRenderProps) => (
   </div>
 );
 
-type OwnedOrg = {
+interface OwnedOrg {
   organization: Organization;
   singleOwner: boolean;
-};
+}
 
 type Props = AsyncView['props'];
 
-type State = AsyncView['state'] & {
+interface State {
   organizations: OwnedOrg[] | null;
   /**
    * Org slugs that will be removed
    */
   orgsToRemove: Set<string> | null;
-};
+}
 
 class AccountClose extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

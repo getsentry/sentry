@@ -26,22 +26,23 @@ type AvatarChooserType =
   | 'sentryAppColor'
   | 'sentryAppSimple'
   | 'docIntegration';
-type DefaultChoice = {
+
+interface DefaultChoice {
   preview?: React.ReactNode;
   allowDefault?: boolean;
   choiceText?: string;
-};
+}
 
-type DefaultProps = {
+interface DefaultProps {
   onSave: (model: Model) => void;
   allowGravatar?: boolean;
   allowLetter?: boolean;
   allowUpload?: boolean;
   type?: AvatarChooserType;
   defaultChoice?: DefaultChoice;
-};
+}
 
-type Props = {
+interface Props extends DefaultProps {
   api: Client;
   endpoint: string;
   model: Model;
@@ -50,14 +51,14 @@ type Props = {
   isUser?: boolean;
   title?: string;
   help?: React.ReactNode;
-} & DefaultProps;
+}
 
-type State = {
+interface State {
   model: Model;
   hasError: boolean;
   savedDataUrl?: string | null;
   dataUrl?: string | null;
-};
+}
 
 class AvatarChooser extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

@@ -38,24 +38,24 @@ export function closeModal() {
   ModalActions.closeModal();
 }
 
-type OpenSudoModalOptions = {
+interface OpenSudoModalOptions {
   onClose?: () => void;
   superuser?: boolean;
   sudo?: boolean;
   retryRequest?: () => Promise<any>;
-};
+}
 
-type emailVerificationModalOptions = {
+interface emailVerificationModalOptions {
   onClose?: () => void;
   emailVerified?: boolean;
   actionMessage?: string;
-};
+}
 
-type inviteMembersModalOptions = {
+interface inviteMembersModalOptions {
   onClose?: () => void;
   initialData?: Partial<InviteRow>[];
   source?: string;
-};
+}
 
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
   const mod = await import('sentry/components/modals/sudoModal');
@@ -74,14 +74,14 @@ export async function openEmailVerification({
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
 }
 
-type OpenDiffModalOptions = {
+interface OpenDiffModalOptions {
   targetIssueId: string;
   project: Project;
   baseIssueId: Group['id'];
   orgId: Organization['id'];
   baseEventId?: Event['id'];
   targetEventId?: string;
-};
+}
 
 export async function openDiffModal(options: OpenDiffModalOptions) {
   const mod = await import('sentry/components/modals/diffModal');
@@ -90,7 +90,7 @@ export async function openDiffModal(options: OpenDiffModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-type CreateTeamModalOptions = {
+interface CreateTeamModalOptions {
   /**
    * The organization to create a team for
    */
@@ -100,7 +100,7 @@ type CreateTeamModalOptions = {
    */
   project?: Project;
   onClose?: (team: Team) => void;
-};
+}
 
 export async function openCreateTeamModal(options: CreateTeamModalOptions) {
   const mod = await import('sentry/components/modals/createTeamModal');
@@ -109,7 +109,7 @@ export async function openCreateTeamModal(options: CreateTeamModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-type CreateOwnershipRuleModalOptions = {
+interface CreateOwnershipRuleModalOptions {
   /**
    * The organization to create a rules for
    */
@@ -119,14 +119,14 @@ type CreateOwnershipRuleModalOptions = {
    */
   project: Project;
   issueId: string;
-};
+}
 
-export type EditOwnershipRulesModalOptions = {
+export interface EditOwnershipRulesModalOptions {
   organization: Organization;
   project: Project;
   ownership: IssueOwnership;
   onSave: (text: string | null) => void;
-};
+}
 
 export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
   const mod = await import('sentry/components/modals/createOwnershipRuleModal');
@@ -149,9 +149,9 @@ export async function openCommandPalette(options: ModalOptions = {}) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-type RecoveryModalOptions = {
+interface RecoveryModalOptions {
   authenticatorName: string;
-};
+}
 
 export async function openRecoveryOptions(options: RecoveryModalOptions) {
   const mod = await import('sentry/components/modals/recoveryOptionsModal');
@@ -160,11 +160,11 @@ export async function openRecoveryOptions(options: RecoveryModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-export type TeamAccessRequestModalOptions = {
+export interface TeamAccessRequestModalOptions {
   memberId: string;
   teamId: string;
   orgId: string;
-};
+}
 
 export async function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
   const mod = await import('sentry/components/modals/teamAccessRequestModal');
@@ -180,10 +180,10 @@ export async function redirectToProject(newProjectSlug: string) {
   openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
 }
 
-type HelpSearchModalOptions = {
+interface HelpSearchModalOptions {
   organization?: Organization;
   placeholder?: string;
-};
+}
 
 export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
   const mod = await import('sentry/components/modals/helpSearchModal');
@@ -192,21 +192,21 @@ export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export type SentryAppDetailsModalOptions = {
+export interface SentryAppDetailsModalOptions {
   sentryApp: SentryApp;
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
-  onCloseModal?: () => void; // used for analytics
-};
+  onCloseModal?: () => void; // used for analytics;
+}
 
-type DebugFileSourceModalOptions = {
+interface DebugFileSourceModalOptions {
   sourceType: CustomRepoType;
   onSave: (data: Record<string, any>) => Promise<void>;
   appStoreConnectStatusData?: AppStoreConnectStatusData;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;
-};
+}
 
 export async function openDebugFileSourceModal({
   onClose,

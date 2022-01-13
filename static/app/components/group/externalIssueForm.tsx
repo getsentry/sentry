@@ -20,11 +20,11 @@ const SUBMIT_LABEL_BY_ACTION = {
   create: t('Create Issue'),
 };
 
-type Props = {
+interface Props {
   group: Group;
   integration: Integration;
   onChange: (onSuccess?: () => void, onError?: () => void) => void;
-} & AbstractExternalIssueForm['props'];
+}
 
 type State = AbstractExternalIssueForm['state'];
 

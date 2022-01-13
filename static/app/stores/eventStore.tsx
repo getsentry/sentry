@@ -4,12 +4,12 @@ import Reflux from 'reflux';
 
 import {Event} from 'sentry/types/event';
 
-type Internals = {
+interface Internals {
   itemsById: Record<string, Event>;
   items: Event[];
-};
+}
 
-type EventStoreInterface = {
+interface EventStoreInterface {
   init(): void;
   reset(): void;
   loadInitialData(items: Event[]): void;
@@ -18,7 +18,7 @@ type EventStoreInterface = {
   get(id: string): Event | undefined;
   getAllItemIds(): string[];
   getAllItems(): Event[];
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & Internals & EventStoreInterface = {
   items: [],

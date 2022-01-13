@@ -53,10 +53,10 @@ type IndicatorStoreInterface = CommonStoreInterface<Indicator[]> & {
   remove(indicator: Indicator): void;
 };
 
-type Internals = {
+interface Internals {
   items: any[];
   lastId: number;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & Internals & IndicatorStoreInterface = {
   items: [],

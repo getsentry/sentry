@@ -2,7 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-type Props = {
+interface Props {
   onChangeStart: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeEnd: (event: React.ChangeEvent<HTMLInputElement>) => void;
   // Takes string in 24 hour format
@@ -12,11 +12,11 @@ type Props = {
   // Should inputs be disabled
   disabled?: boolean;
   className?: string;
-};
+}
 
-type State = {
+interface State {
   focused: boolean;
-};
+}
 
 const TimePicker = styled(
   class TimePicker extends React.Component<Props, State> {

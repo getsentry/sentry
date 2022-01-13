@@ -5,12 +5,13 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   value: string[];
-};
-type State = {
+}
+
+interface State {
   expanded: boolean;
-};
+}
 
 class ArrayValue extends Component<Props, State> {
   state: State = {

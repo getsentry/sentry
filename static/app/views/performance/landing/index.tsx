@@ -39,7 +39,7 @@ import {
   LandingDisplayField,
 } from './utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   eventView: EventView;
   location: Location;
@@ -49,7 +49,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
-};
+}
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
   [LandingDisplayField.ALL]: AllTransactionsView,

@@ -11,13 +11,13 @@ import withProjects from 'sentry/utils/withProjects';
 
 import Summary from './summary';
 
-type Props = {
+interface Props {
   searchTerm: string;
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
   event: Event;
   orgSlug: Organization['slug'];
   linkedEvent?: React.ReactElement;
-};
+}
 
 function Default({breadcrumb, event, orgSlug, searchTerm, linkedEvent}: Props) {
   const {message} = breadcrumb;

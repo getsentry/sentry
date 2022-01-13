@@ -17,14 +17,14 @@ import {DisplayType} from '../utils';
 import Chart from './chart';
 import StatsRequest from './statsRequest';
 
-type MetricWidget = {
+interface MetricWidget {
   title: string;
   displayType: DisplayType;
   groupings: MetricQuery[];
   searchQuery?: string;
-};
+}
 
-type Props = {
+interface Props {
   widget: MetricWidget;
   api: Client;
   location: Location;
@@ -32,7 +32,7 @@ type Props = {
   selection: PageFilters;
   router: InjectedRouter;
   project: Project;
-};
+}
 
 function Card({widget, api, location, router, organization, project, selection}: Props) {
   const {groupings, searchQuery, title, displayType} = widget;

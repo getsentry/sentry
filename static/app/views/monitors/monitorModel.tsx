@@ -2,9 +2,9 @@ import FormModel from 'sentry/views/settings/components/forms/model';
 
 import {MonitorConfig} from './types';
 
-type TransformedData = {
+interface TransformedData {
   config?: Partial<MonitorConfig>;
-};
+}
 
 export default class MonitorModel extends FormModel {
   getTransformedData() {

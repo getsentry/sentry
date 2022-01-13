@@ -22,9 +22,9 @@ import {Theme} from 'sentry/utils/theme';
 import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
 
-export type CommitsByRepository = {
+export interface CommitsByRepository {
   [key: string]: Commit[];
-};
+}
 
 /**
  * Convert list of individual file changes into a per-file summary grouped by repository
@@ -71,15 +71,11 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
   }, {});
 }
 
-/**
- * Get request query according to the url params and active repository
- */
-
-type GetQueryProps = {
+interface GetQueryProps {
   location: Location;
   perPage?: number;
   activeRepository?: Repository;
-};
+}
 
 export function getQuery({location, perPage = 40, activeRepository}: GetQueryProps) {
   const query = {
@@ -153,10 +149,10 @@ export const releaseComparisonChartHelp = {
   [ReleaseComparisonChartType.USER_COUNT]: t('The number of users in a given period.'),
 };
 
-type GenerateReleaseMarklineOptions = {
+interface GenerateReleaseMarklineOptions {
   hideLabel?: boolean;
   axisIndex?: number;
-};
+}
 
 function generateReleaseMarkLine(
   title: string,

@@ -7,18 +7,17 @@ export const MILLION = 10 ** 6;
 export const BILLION = 10 ** 9;
 export const GIGABYTE = 10 ** 9;
 
-type FormatOptions = {
+interface FormatOptions {
   /**
    * Truncate 1234 => 1.2k or 1,234,000 to 1.23M
    */
   isAbbreviated?: boolean;
-
   /**
    * Convert attachments to use the most appropriate unit KB/MB/GB/TB/etc.
    * Otherwise, it will default to GB
    */
   useUnitScaling?: boolean;
-};
+}
 
 /**
  * This expects usage values/quantities for the data categories that we sell.

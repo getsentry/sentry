@@ -8,13 +8,13 @@ import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type DefaultProps = {
+interface DefaultProps {
   message: React.ReactNode;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   onRetry?: () => void;
-};
+}
 
 /**
  * Renders an Alert box of type "error". Renders a "Retry" button only if a `onRetry` callback is defined.

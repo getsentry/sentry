@@ -11,16 +11,16 @@ import space from 'sentry/styles/space';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
-type DropdownSection = {
+interface DropdownSection {
   id: string;
   label: string;
   items: Array<{label: string; value: string; checked: boolean; filtered: boolean}>;
-};
+}
 
-type SectionProps = DropdownSection & {
+interface SectionProps extends DropdownSection {
   toggleSection: (id: string) => void;
   toggleFilter: (section: string, value: string) => void;
-};
+}
 
 function FilterSection({id, label, items, toggleSection, toggleFilter}: SectionProps) {
   const checkedItemsCount = items.filter(item => item.checked).length;
@@ -56,11 +56,11 @@ function FilterSection({id, label, items, toggleSection, toggleFilter}: SectionP
   );
 }
 
-type Props = {
+interface Props {
   header: React.ReactElement;
   onFilterChange: (section: string, filterSelection: Set<string>) => void;
   dropdownSections: DropdownSection[];
-};
+}
 
 class Filter extends Component<Props> {
   toggleFilter = (sectionId: string, value: string) => {

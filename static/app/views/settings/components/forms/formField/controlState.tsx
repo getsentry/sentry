@@ -4,10 +4,10 @@ import FormState from 'sentry/components/forms/state';
 import ControlState from 'sentry/views/settings/components/forms/field/controlState';
 import FormModel from 'sentry/views/settings/components/forms/model';
 
-type Props = {
+interface Props {
   model: FormModel;
   name: string;
-};
+}
 
 /**
  * ControlState (i.e. loading/error icons) for connected form components

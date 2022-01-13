@@ -13,14 +13,14 @@ import Header from './header';
 import Option from './option';
 import SelectedOption from './selectedOption';
 
-type Props = {
+interface Props {
   threads: Array<Thread>;
   activeThread: Thread;
   event: Event;
   fullWidth?: boolean;
   exception?: Required<ExceptionType>;
   onChange?: (thread: Thread) => void;
-};
+}
 
 const DROPDOWN_MAX_HEIGHT = 400;
 

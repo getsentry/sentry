@@ -54,7 +54,7 @@ const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   dashboard: DashboardDetails;
@@ -73,12 +73,12 @@ type Props = {
   onLayoutChange: (layout: Layout[]) => void;
   paramDashboardId?: string;
   newWidget?: Widget;
-};
+}
 
-type State = {
+interface State {
   isMobile: boolean;
   layouts: Layouts;
-};
+}
 
 class Dashboard extends Component<Props, State> {
   constructor(props) {

@@ -5,10 +5,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Frame} from 'sentry/types';
 
-type Props = {
+interface Props {
   frame: Frame;
   onShowAllImages: (filter: string) => void;
-};
+}
 
 const ImageForBar = ({frame, onShowAllImages}: Props) => {
   const handleShowAllImages = () => {

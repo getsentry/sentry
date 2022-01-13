@@ -21,9 +21,9 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
 } & AsyncComponent['props'];
 
-type State = {
+interface State {
   keyList: Array<ProjectKey> | null;
-} & AsyncComponent['state'];
+}
 
 class ProjectInstallOverview extends AsyncComponent<Props, State> {
   get isGettingStarted() {

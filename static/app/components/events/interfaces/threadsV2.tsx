@@ -38,9 +38,9 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
   };
 };
 
-type State = {
+interface State {
   activeThread?: Thread;
-};
+}
 
 function getIntendedStackView(thread: Thread, event: Event) {
   const exception = getThreadException(event, thread);

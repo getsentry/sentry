@@ -14,12 +14,12 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {Project, Team} from 'sentry/types';
 
-type UpdateParams = {
+interface UpdateParams {
   orgId: string;
   projectId: string;
   data?: {[key: string]: any};
   query?: Query;
-};
+}
 
 export function update(api: Client, params: UpdateParams) {
   ProjectActions.update(params.projectId, params.data);

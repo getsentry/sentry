@@ -36,7 +36,7 @@ function getSelectAllText(allRowsCount?: number, bulkLimit?: number) {
   };
 }
 
-type Props = {
+interface Props {
   /**
    * Number of selected rows
    */
@@ -70,7 +70,7 @@ type Props = {
    */
   allRowsCount?: number;
   className?: string;
-};
+}
 
 function BulkNotice({
   selectedRowsCount,

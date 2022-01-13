@@ -25,9 +25,9 @@ import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
-type DataType = {
+interface DataType {
   chart: WidgetDataResult & ReturnType<typeof transformTrendsDiscover>;
-};
+}
 
 const fields = [{field: 'transaction'}, {field: 'project'}];
 

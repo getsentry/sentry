@@ -9,12 +9,12 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {RadioLineItem} from 'sentry/views/settings/components/forms/controls/radioGroup';
 
-type Props = {
+interface Props {
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
   items: (() => React.ReactNode)[];
   radioColor?: string;
-};
+}
 
 export default function SelectableList(props: Props) {
   return (

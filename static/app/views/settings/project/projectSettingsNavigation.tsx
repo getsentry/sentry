@@ -6,10 +6,10 @@ import withProject from 'sentry/utils/withProject';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
 import getConfiguration from 'sentry/views/settings/project/navigationConfiguration';
 
-type Props = {
+interface Props {
   organization: Organization;
   project?: Project;
-};
+}
 
 const ProjectSettingsNavigation = ({organization, project}: Props) => {
   const appStoreConnectContext = useContext(AppStoreConnectContext);

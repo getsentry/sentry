@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   dashedBorder?: boolean;
-};
+}
 
 const Panel = styled('div')<Props>`
   background: ${p => (p.dashedBorder ? p.theme.backgroundSecondary : p.theme.background)};

@@ -2,11 +2,11 @@ import {IconFile} from 'sentry/icons';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 import theme from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   fileName: string;
   size?: string;
   className?: string;
-};
+}
 
 const FileIcon = ({fileName, size: providedSize = 'sm', className}: Props) => {
   const fileExtension = getFileExtension(fileName);

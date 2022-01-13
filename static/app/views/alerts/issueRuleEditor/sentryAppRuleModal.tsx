@@ -6,13 +6,13 @@ import SentryAppExternalForm, {
   SchemaFormConfig,
 } from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   sentryAppInstallationUuid: string;
   appName: string;
   config: SchemaFormConfig;
   resetValues: {[key: string]: any};
   onSubmitSuccess: React.ComponentProps<typeof SentryAppExternalForm>['onSubmitSuccess'];
-};
+}
 
 const SentryAppRuleModal = ({
   Header,

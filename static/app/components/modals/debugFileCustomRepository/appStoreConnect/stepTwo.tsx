@@ -5,11 +5,11 @@ import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {AppStoreApp, StepTwoData} from './types';
 
-type Props = {
+interface Props {
   appStoreApps: AppStoreApp[];
   stepTwoData: StepTwoData;
   onSetStepTwoData: (stepTwoData: StepTwoData) => void;
-};
+}
 
 function StepTwo({stepTwoData, onSetStepTwoData, appStoreApps}: Props) {
   return (

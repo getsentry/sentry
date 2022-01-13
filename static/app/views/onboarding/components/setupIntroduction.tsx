@@ -7,10 +7,11 @@ import space from 'sentry/styles/space';
 
 import StepHeading from './stepHeading';
 
-type Props = {
+interface Props {
   stepHeaderText: string;
   platform: PlatformKey;
-};
+}
+
 export default function SetupIntroduction({stepHeaderText, platform}: Props) {
   return (
     <TitleContainer>

@@ -3,25 +3,23 @@ import Reflux from 'reflux';
 import RepoActions from 'sentry/actions/repositoryActions';
 import {Repository} from 'sentry/types';
 
-type RepositoryStoreInterface = {
+interface RepositoryStoreInterface {
   get(): {
     orgSlug?: string;
     repositories?: Repository[];
     repositoriesLoading?: boolean;
     repositoriesError?: Error;
   };
-
   state: {
     orgSlug?: string;
     repositories?: Repository[];
     repositoriesLoading?: boolean;
     repositoriesError?: Error;
   };
-
   loadRepositories(orgSlug: string): void;
   loadRepositoriesSuccess(data: Repository[]): void;
   loadRepositoriesError(error: Error): void;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
   listenables: RepoActions,

@@ -14,9 +14,9 @@ import ReportUri, {
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
-type State = {
+interface State {
   keyList: null | ProjectKey[];
-} & AsyncView['state'];
+}
 
 export default class ProjectHpkpReports extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

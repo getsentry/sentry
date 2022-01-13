@@ -27,10 +27,10 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type State = {
+interface State {
   relays: Array<Relay>;
   relayActivities: Array<RelayActivity>;
-} & AsyncView['state'];
+}
 
 class RelayWrapper extends AsyncView<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {

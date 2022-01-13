@@ -12,19 +12,18 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
-
   platform: string;
   projectSlug: string;
   orgSlug: string;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   html: string | undefined;
   link: string | undefined;
-};
+}
 
 class InlineDocs extends Component<Props, State> {
   state: State = {

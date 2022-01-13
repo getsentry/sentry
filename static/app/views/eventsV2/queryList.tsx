@@ -36,7 +36,7 @@ import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
 import {getPrebuiltQueries} from './utils';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   location: Location;
@@ -45,7 +45,7 @@ type Props = {
   pageLinks: string;
   onQueryChange: () => void;
   savedQuerySearchQuery: string;
-};
+}
 
 class QueryList extends React.Component<Props> {
   componentDidMount() {

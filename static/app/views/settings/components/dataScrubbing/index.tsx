@@ -22,7 +22,7 @@ import {ProjectId, Rule} from './types';
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/';
 
-type Props<T extends ProjectId> = {
+interface Props<T extends ProjectId> {
   endpoint: string;
   organization: Organization;
   onSubmitSuccess?: (data: T extends undefined ? Organization : Project) => void;
@@ -30,14 +30,14 @@ type Props<T extends ProjectId> = {
   relayPiiConfig?: string;
   additionalContext?: React.ReactNode;
   disabled?: boolean;
-};
+}
 
-type State = {
+interface State {
   rules: Array<Rule>;
   savedRules: Array<Rule>;
   orgRules: Array<Rule>;
   relayPiiConfig?: string;
-};
+}
 
 class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
   Props<T>,

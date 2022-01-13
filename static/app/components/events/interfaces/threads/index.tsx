@@ -28,12 +28,12 @@ type Props = Pick<
   hideGuide?: boolean;
 };
 
-type State = {
+interface State {
   stackType: STACK_TYPE;
   newestFirst: boolean;
   activeThread?: Thread;
   stackView?: STACK_VIEW;
-};
+}
 
 function getIntendedStackView(thread: Thread, event: Event) {
   const exception = getThreadException(event, thread);

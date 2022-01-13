@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   sampleRate: number;
-};
+}
 
 function SampleRate({sampleRate}: Props) {
   return <Wrapper>{`${sampleRate * 100}\u0025`}</Wrapper>;

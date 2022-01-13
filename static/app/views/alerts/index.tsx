@@ -2,9 +2,9 @@ import {cloneElement, Fragment, isValidElement} from 'react';
 
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
-};
+}
 
 function AlertsContainer({children}: Props) {
   const organization = useOrganization();

@@ -7,17 +7,17 @@ import RequestError from 'sentry/utils/requestError/requestError';
 
 import {CommonStoreInterface} from './types';
 
-type UpdateOptions = {
+interface UpdateOptions {
   replace?: boolean;
-};
+}
 
-type State = {
+interface State {
   organization: Organization | null;
   loading: boolean;
   dirty: boolean;
   errorType?: string | null;
   error?: RequestError | null;
-};
+}
 
 type OrganizationStoreInterface = CommonStoreInterface<State> & {
   init(): void;

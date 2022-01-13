@@ -162,11 +162,11 @@ type Props = {
     router: WithRouterProps['router'] | null;
   };
 
-type State = {
+interface State {
   projects: number[] | null;
   environments: string[] | null;
   searchQuery: string;
-};
+}
 
 class GlobalSelectionHeader extends React.Component<Props, State> {
   static defaultProps = defaultProps;

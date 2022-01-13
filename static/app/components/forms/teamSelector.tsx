@@ -74,7 +74,7 @@ const placeholderSelectStyles: StylesConfig = {
   }),
 };
 
-type Props = {
+interface Props extends ControlProps {
   organization: Organization;
   onChange: (value: any) => any;
   /**
@@ -90,21 +90,21 @@ type Props = {
    */
   useId?: boolean;
   includeUnassigned?: boolean;
-} & ControlProps;
+}
 
-type TeamActor = {
+interface TeamActor {
   type: 'team';
   id: string;
   name: string;
-};
+}
 
-type TeamOption = {
+interface TeamOption {
   value: string | null;
   label: React.ReactNode;
   searchKey: string;
   actor: TeamActor | null;
   disabled?: boolean;
-};
+}
 
 function TeamSelector(props: Props) {
   const {includeUnassigned, styles, ...extraProps} = props;

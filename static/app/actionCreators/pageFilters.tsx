@@ -28,19 +28,16 @@ import localStorage from 'sentry/utils/localStorage';
 type ProjectId = string | number;
 type EnvironmentId = Environment['id'];
 
-type Options = {
+interface Options {
   /**
    * List of parameters to remove when changing URL params
    */
   resetParams?: string[];
   save?: boolean;
   keepCursor?: boolean;
-};
+}
 
-/**
- * Can be relative time string or absolute (using start and end dates)
- */
-type DateTimeObject = {
+interface DateTimeObject {
   start?: Date | string | null;
   end?: Date | string | null;
   statsPeriod?: string | null;
@@ -49,20 +46,13 @@ type DateTimeObject = {
    * @deprecated
    */
   period?: string | null;
-};
+}
 
-/**
- * Cast project ids to strings, as everything is assumed to be a string in URL params
- *
- * We also handle internal types so Dates and booleans can show up in the start/end/utc
- * keys. Long term it would be good to narrow down these types.
- */
-type UrlParams = {
+interface UrlParams extends DateTimeObject {
   project?: ProjectId[] | null;
   environment?: EnvironmentId[] | null;
-} & DateTimeObject & {
-    [others: string]: any;
-  };
+  [others: string]: any;
+}
 
 /**
  * This can be null which will not perform any router side effects, and instead updates store.
@@ -80,7 +70,7 @@ function getProjectIdFromProject(project: MinimalProject) {
   return parseInt(project.id, 10);
 }
 
-type InitializeUrlStateParams = {
+interface InitializeUrlStateParams {
   organization: Organization;
   queryParams: InjectedRouter['location']['query'];
   router: InjectedRouter;
@@ -94,7 +84,7 @@ type InitializeUrlStateParams = {
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
   showAbsolute?: boolean;
-};
+}
 
 export function initializeUrlState({
   organization,

@@ -11,10 +11,10 @@ type InjectedSavedSearchesProps = {
   savedSearch: SavedSearch | null;
 } & RouteComponentProps<{searchId?: string}, {}>;
 
-type State = {
+interface State {
   savedSearches: SavedSearch[];
   isLoading: boolean;
-};
+}
 
 /**
  * Wrap a component with saved issue search data from the store.

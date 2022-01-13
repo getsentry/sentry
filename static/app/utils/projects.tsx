@@ -15,33 +15,28 @@ import withProjects from 'sentry/utils/withProjects';
 
 type ProjectPlaceholder = AvatarProject;
 
-type State = {
+interface State {
   /**
    * Projects from API
    */
   fetchedProjects: Project[] | ProjectPlaceholder[];
-
   /**
    * Projects fetched from store
    */
   projectsFromStore: Project[];
-
   /**
    * Reflects whether or not the initial fetch for the requested projects
    * was fulfilled
    */
   initiallyLoaded: boolean;
-
   /**
    * This is state for when fetching data from API
    */
   fetching: boolean;
-
   /**
    * This is set when we fail to find some slugs from both store and API
    */
   isIncomplete: null | boolean;
-
   /**
    * Project results (from API) are paginated and there are more projects
    * that are not in the initial queryset
@@ -49,12 +44,11 @@ type State = {
   hasMore: null | boolean;
   prevSearch: null | string;
   nextCursor?: null | string;
-
   /**
    * The error that occurred if fetching failed
    */
   fetchError: null | RequestError;
-};
+}
 
 export type RenderProps = {
   /**
@@ -74,45 +68,39 @@ export type RenderProps = {
 >;
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * If slugs is passed, forward placeholder objects with slugs while fetching
    */
   passthroughPlaceholderProject?: boolean;
-};
+}
 
-type Props = {
+interface Props extends DefaultProps {
   api: Client;
-
   /**
    * Organization slug
    */
   orgId: string;
-
   /**
    * List of projects that have we already have summaries for (i.e. from store)
    */
   projects: Project[];
-
   /**
    * List of slugs to look for summaries for, this can be from `props.projects`,
    * otherwise fetch from API
    */
   slugs?: string[];
-
   /**
    * Number of projects to return when not using `props.slugs`
    */
   limit?: number;
-
   /**
    * Whether to fetch all the projects in the organization of which the user
    * has access to
    * */
   allProjects?: boolean;
-
   children: RenderFunc;
-} & DefaultProps;
+}
 
 /**
  * This is a utility component that should be used to fetch an organization's projects (summary).

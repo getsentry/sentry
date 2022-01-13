@@ -15,35 +15,32 @@ const DEFAULT_NO_ACCESS_MESSAGE = (
 );
 
 // Props that function children will get.
-export type ChildRenderProps = {
+export interface ChildRenderProps {
   hasAccess: boolean;
   hasSuperuser: boolean;
-};
+}
 
 type ChildFunction = (props: ChildRenderProps) => React.ReactNode;
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Should the component require all access levels or just one or more.
    */
   requireAll?: boolean;
-
   /**
    * Requires superuser
    */
   isSuperuser?: boolean;
-
   /**
    * Custom renderer function for "no access" message OR `true` to use
    * default message. `false` will suppress message.
    */
   renderNoAccessMessage: ChildFunction | boolean;
-
   /**
    * List of required access levels
    */
   access: Scope[];
-};
+}
 
 const defaultProps: DefaultProps = {
   renderNoAccessMessage: false,

@@ -14,7 +14,7 @@ import withLatestContext from 'sentry/utils/withLatestContext';
 
 import {ChildProps, Result, ResultItem} from './types';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   organization: Organization;
   project: Project;
   /**
@@ -29,12 +29,12 @@ type Props = WithRouterProps & {
    * Render function that renders the global search result
    */
   children: (props: ChildProps) => React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   results: Result[];
-};
+}
 
 const MARK_TAGS = {
   highlightPreTag: '<mark>',

@@ -15,7 +15,7 @@ import withApi from 'sentry/utils/withApi';
 const getSearchKeyForUser = (user: User) =>
   `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
 
-type MentionableUser = {
+interface MentionableUser {
   value: string;
   label: React.ReactElement;
   searchKey: string;
@@ -25,9 +25,9 @@ type MentionableUser = {
     name: string;
   };
   disabled?: boolean;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   project?: Project;
   organization: Organization;
@@ -37,20 +37,20 @@ type Props = {
   disabled?: boolean;
   placeholder?: string;
   styles?: {control?: (provided: any) => any};
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   memberListLoading: boolean;
   inputValue: string;
   options: MentionableUser[] | null;
-};
+}
 
-type FilterOption<T> = {
+interface FilterOption<T> {
   value: string;
   label: React.ReactNode;
   data: T;
-};
+}
 
 /**
  * A component that allows you to select either members and/or teams

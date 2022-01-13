@@ -42,10 +42,10 @@ type Props = {
   'params'
 >;
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
-};
+}
 
 class KeySettings extends Component<Props, State> {
   state: State = {

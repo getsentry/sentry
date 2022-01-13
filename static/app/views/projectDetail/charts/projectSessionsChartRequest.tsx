@@ -33,16 +33,16 @@ import {DisplayModes} from '../projectCharts';
 const omitIgnoredProps = (props: Props) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 
-type ProjectSessionsChartRequestRenderProps = {
+interface ProjectSessionsChartRequestRenderProps {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
   timeseriesData: Series[];
   previousTimeseriesData: Series | null;
   totalSessions: number | null;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   selection: PageFilters;
@@ -52,15 +52,15 @@ type Props = {
   theme: Theme;
   disablePrevious?: boolean;
   query?: string;
-};
+}
 
-type State = {
+interface State {
   reloading: boolean;
   errored: boolean;
   timeseriesData: Series[] | null;
   previousTimeseriesData: Series | null;
   totalSessions: number | null;
-};
+}
 
 class ProjectSessionsChartRequest extends React.Component<Props, State> {
   state: State = {

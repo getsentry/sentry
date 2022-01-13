@@ -24,10 +24,10 @@ type Props = React.HTMLAttributes<HTMLPreElement> & {
   jsonConsts?: boolean;
 };
 
-type State = {
+interface State {
   data: Value;
   withAnnotatedText: boolean;
-};
+}
 
 function getValueWithAnnotatedText(v: Value, meta?: Meta) {
   return <AnnotatedText value={v} meta={meta} />;

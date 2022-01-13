@@ -6,10 +6,10 @@ import Tag, {Background} from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 
-type Props = {
+interface Props {
   level: BreadcrumbLevelType;
   searchTerm?: string;
-};
+}
 
 const Level = memo(function Level({level, searchTerm = ''}: Props) {
   switch (level) {

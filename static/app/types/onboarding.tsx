@@ -14,12 +14,12 @@ export enum OnboardingTaskKey {
   FIRST_TRANSACTION = 'setup_transactions',
 }
 
-export type OnboardingSupplementComponentProps = {
+export interface OnboardingSupplementComponentProps {
   task: OnboardingTask;
   onCompleteTask: () => void;
-};
+}
 
-export type OnboardingTaskDescriptor = {
+export interface OnboardingTaskDescriptor {
   task: OnboardingTaskKey;
   title: string;
   description: string;
@@ -40,31 +40,21 @@ export type OnboardingTaskDescriptor = {
    * An extra component that may be rendered within the onboarding task item.
    */
   SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
-} & (
-  | {
-      actionType: 'app' | 'external';
-      location: string;
-    }
-  | {
-      actionType: 'action';
-      action: () => void;
-    }
-);
+}
 
-export type OnboardingTaskStatus = {
+export interface OnboardingTaskStatus {
   task: OnboardingTaskKey;
   status: 'skipped' | 'pending' | 'complete';
   user?: AvatarUser | null;
   dateCompleted?: string;
   completionSeen?: string;
   data?: object;
-};
+}
 
-export type OnboardingTask = OnboardingTaskStatus &
-  OnboardingTaskDescriptor & {
-    /**
-     * Onboarding tasks that are currently incomplete and must be completed
-     * before this task should be completed.
-     */
-    requisiteTasks: OnboardingTask[];
-  };
+export interface OnboardingTask extends OnboardingTaskStatus, OnboardingTaskDescriptor {
+  /**
+   * Onboarding tasks that are currently incomplete and must be completed
+   * before this task should be completed.
+   */
+  requisiteTasks: OnboardingTask[];
+}

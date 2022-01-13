@@ -10,13 +10,13 @@ import Details from './details';
 import Status from './status';
 import {customRepoTypeLabel} from './utils';
 
-type Props = {
+interface Props {
   repository: CustomRepo;
   onDelete: (repositoryId: string) => void;
   onEdit: (repositoryId: string) => void;
   hasFeature: boolean;
   hasAccess: boolean;
-};
+}
 
 function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props) {
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);

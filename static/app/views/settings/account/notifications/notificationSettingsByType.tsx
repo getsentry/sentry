@@ -36,16 +36,16 @@ import {FieldObject} from 'sentry/views/settings/components/forms/type';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = {
+interface Props {
   notificationType: string;
   organizations: Organization[];
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   notificationSettings: NotificationSettingsObject;
   identities: Identity[];
   organizationIntegrations: OrganizationIntegration[];
-} & AsyncComponent['state'];
+}
 
 class NotificationSettingsByType extends AsyncComponent<Props, State> {
   getDefaultState(): State {

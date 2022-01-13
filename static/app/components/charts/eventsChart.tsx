@@ -49,7 +49,7 @@ type ChartComponent =
   | React.ComponentType<LineChart['props']>
   | React.ComponentType<React.ComponentProps<typeof WorldMapChart>>;
 
-type ChartProps = {
+interface ChartProps {
   theme: Theme;
   loading: boolean;
   reloading: boolean;
@@ -89,12 +89,12 @@ type ChartProps = {
   topEvents?: number;
   referrer?: string;
   fromDiscover?: boolean;
-};
+}
 
-type State = {
+interface State {
   seriesSelection: Record<string, boolean>;
   forceUpdate: boolean;
-};
+}
 
 class Chart extends React.Component<ChartProps, State> {
   state: State = {
@@ -438,7 +438,7 @@ export type EventsChartProps = {
   | 'fromDiscover'
 >;
 
-type ChartDataProps = {
+interface ChartDataProps {
   zoomRenderProps: ZoomRenderProps;
   errored: boolean;
   loading: boolean;
@@ -450,7 +450,7 @@ type ChartDataProps = {
   timeframe?: {start: number; end: number};
   topEvents?: number;
   tableData?: TableDataWithTitle[];
-};
+}
 
 class EventsChart extends React.Component<EventsChartProps> {
   isStacked() {

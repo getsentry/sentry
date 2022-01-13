@@ -24,15 +24,15 @@ const defaultProps = {
 };
 type DefaultProps = typeof defaultProps;
 
-type Props = {
+interface Props extends DefaultProps {
   className?: string;
   organization: Organization;
   item: Activity;
-} & DefaultProps;
+}
 
-type State = {
+interface State {
   clipped: Props['defaultClipped'];
-};
+}
 
 class ActivityItem extends Component<Props, State> {
   static defaultProps = defaultProps;

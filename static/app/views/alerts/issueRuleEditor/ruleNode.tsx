@@ -27,14 +27,14 @@ import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppE
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
-export type FormField = {
+export interface FormField {
   // Type of form fields
   type: string;
   // The rest is configuration for the form field
   [key: string]: any;
-};
+}
 
-type Props = {
+interface Props {
   index: number;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   data: IssueAlertRuleAction | IssueAlertRuleCondition;
@@ -44,7 +44,8 @@ type Props = {
   onDelete: (rowIndex: number) => void;
   onReset: (rowIndex: number, name: string, value: string) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
-};
+}
+
 class RuleNode extends React.Component<Props> {
   handleDelete = () => {
     const {index, onDelete} = this.props;

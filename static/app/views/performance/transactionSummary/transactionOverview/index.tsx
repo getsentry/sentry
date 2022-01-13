@@ -42,12 +42,12 @@ import {ZOOM_END, ZOOM_START} from './latencyChart';
 // as React.ReactText
 type TotalValues = Record<string, number>;
 
-type Props = {
+interface Props {
   location: Location;
   selection: PageFilters;
   organization: Organization;
   projects: Project[];
-};
+}
 
 function TransactionOverview(props: Props) {
   const api = useApi();

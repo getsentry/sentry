@@ -8,10 +8,10 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   title: string;
   widgetCount: number;
-};
+}
 
 function TemplateCard({title, widgetCount}: Props) {
   return (

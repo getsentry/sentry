@@ -3,9 +3,9 @@ import PlatformList from 'sentry/components/platformList';
 import Tooltip from 'sentry/components/tooltip';
 import {AvatarProject} from 'sentry/types';
 
-type Props = {
+interface Props {
   project: AvatarProject;
-} & BaseAvatar['props'];
+}
 
 const ProjectAvatar = ({project, hasTooltip, tooltip, ...props}: Props) => (
   <Tooltip disabled={!hasTooltip} title={tooltip}>

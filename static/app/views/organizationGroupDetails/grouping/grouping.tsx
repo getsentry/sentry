@@ -26,14 +26,14 @@ import NewIssue from './newIssue';
 
 type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   groupId: Group['id'];
   projSlug: Project['slug'];
   router: InjectedRouter;
   location: Location<{level?: number; cursor?: string}>;
-};
+}
 
 type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
   eventCount: number;
@@ -41,10 +41,10 @@ type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
   latestEvent: BaseGroup['latestEvent'];
 };
 
-type GroupingLevel = {
+interface GroupingLevel {
   id: number;
   isCurrent: boolean;
-};
+}
 
 function LinkFooter() {
   return (

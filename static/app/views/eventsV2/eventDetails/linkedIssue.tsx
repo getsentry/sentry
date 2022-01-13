@@ -16,14 +16,14 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 
-type Props = {
+interface Props {
   groupId: string;
   eventId: string;
-};
+}
 
-type State = {
+interface State {
   group: Group;
-};
+}
 
 class LinkedIssue extends AsyncComponent<
   Props & AsyncComponent['props'],

@@ -41,12 +41,12 @@ export function getBreakdownChartData({
   }, {});
 }
 
-type FillChartDataFromMetricsResponse = {
+interface FillChartDataFromMetricsResponse {
   response: SessionApiResponse;
   field: string;
   chartData: ChartData;
   valueFormatter?: (value: number) => number;
-};
+}
 
 export function fillChartDataFromMetricsResponse({
   response,

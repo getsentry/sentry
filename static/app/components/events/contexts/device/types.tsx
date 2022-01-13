@@ -39,7 +39,7 @@ export enum DeviceKnownDataType {
 }
 
 // TODO(ts): add correct types
-export type DeviceData = {
+export interface DeviceData {
   name: string;
   family?: string;
   cpu_description?: string;
@@ -78,4 +78,4 @@ export type DeviceData = {
   memory?: any;
   storage?: any;
   renderedModel?: any;
-};
+}

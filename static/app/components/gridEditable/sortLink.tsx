@@ -9,15 +9,14 @@ import {IconArrow} from 'sentry/icons';
 export type Alignments = 'left' | 'right' | undefined;
 export type Directions = 'desc' | 'asc' | undefined;
 
-type Props = {
+interface Props {
   align: Alignments;
   title: React.ReactNode;
   direction: Directions;
   canSort: boolean;
-
   generateSortLink: () => LocationDescriptorObject | undefined;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-};
+}
 
 class SortLink extends React.Component<Props> {
   renderArrow() {
@@ -50,7 +49,10 @@ class SortLink extends React.Component<Props> {
 }
 
 type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
-type StyledLinkProps = LinkProps & {align: Alignments};
+
+interface StyledLinkProps extends LinkProps {
+  align: Alignments;
+}
 
 const StyledLink = styled((props: StyledLinkProps) => {
   const forwardProps = omit(props, ['align']);

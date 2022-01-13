@@ -13,10 +13,10 @@ import {Organization, Project} from 'sentry/types';
 
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
 
-type Props = {
+interface Props {
   organization: Organization;
   project?: Project;
-};
+}
 
 function ProjectTeamAccess({organization, project}: Props) {
   const hasEditPermissions = organization.access.includes('project:write');

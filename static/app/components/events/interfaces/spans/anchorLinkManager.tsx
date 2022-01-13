@@ -1,18 +1,18 @@
 import {Component, createContext} from 'react';
 
-export type AnchorLinkManagerChildrenProps = {
+export interface AnchorLinkManagerChildrenProps {
   registerScrollFn: (id: string, fn: () => void) => void;
   scrollToHash: (hash: string) => void;
-};
+}
 
 const AnchorLinkManagerContext = createContext<AnchorLinkManagerChildrenProps>({
   registerScrollFn: () => () => undefined,
   scrollToHash: () => undefined,
 });
 
-type Props = {
+interface Props {
   children: React.ReactNode;
-};
+}
 
 export class Provider extends Component<Props> {
   componentDidMount() {

@@ -18,13 +18,13 @@ export enum ReleasesSortOption {
   ADOPTION = 'adoption',
 }
 
-type Props = {
+interface Props {
   selected: ReleasesSortOption;
   selectedDisplay: ReleasesDisplayOption;
   onSelect: (key: string) => void;
   organization: Organization;
   environments: string[];
-};
+}
 
 function ReleasesSortOptions({
   selected,

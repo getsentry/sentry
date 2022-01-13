@@ -27,14 +27,19 @@ const DateRangePicker = React.lazy(() => import('./dateRangeWrapper'));
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
-// react.date-range doesn't export this as a type.
-type RangeSelection = {selection: RangeWithKey};
+interface RangeSelection {
+  selection: RangeWithKey;
+}
 
 function isRangeSelection(maybe: OnChangeProps): maybe is RangeSelection {
   return (maybe as RangeSelection).selection !== undefined;
 }
 
-type ChangeData = {start?: Date; end?: Date; hasDateRangeErrors?: boolean};
+interface ChangeData {
+  start?: Date;
+  end?: Date;
+  hasDateRangeErrors?: boolean;
+}
 
 const defaultProps = {
   showAbsolute: true,
@@ -84,10 +89,10 @@ type Props = WithRouterProps & {
   utc?: boolean | null;
 } & Partial<typeof defaultProps>;
 
-type State = {
+interface State {
   hasStartErrors: boolean;
   hasEndErrors: boolean;
-};
+}
 
 class BaseDateRange extends React.Component<Props, State> {
   static defaultProps = defaultProps;

@@ -14,9 +14,9 @@ export const DataSection = styled('div')`
   }
 `;
 
-type BannerProps = {
+interface BannerProps {
   priority: 'default' | 'danger' | 'success';
-};
+}
 
 function getColors({priority, theme}: BannerProps & {theme: Theme}) {
   const COLORS = {

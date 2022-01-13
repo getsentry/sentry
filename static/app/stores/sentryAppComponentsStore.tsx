@@ -3,13 +3,13 @@ import Reflux from 'reflux';
 import SentryAppComponentsActions from 'sentry/actions/sentryAppComponentActions';
 import {SentryAppComponent} from 'sentry/types';
 
-type SentryAppComponentsStoreInterface = {
+interface SentryAppComponentsStoreInterface {
   onLoadComponents: (items: SentryAppComponent[]) => void;
   getComponentByType: (type: string | undefined) => SentryAppComponent[];
   getAll: () => SentryAppComponent[];
   getInitialState: () => SentryAppComponent[];
   get: (uuid: string) => SentryAppComponent | undefined;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & SentryAppComponentsStoreInterface = {
   init() {

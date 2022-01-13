@@ -8,11 +8,11 @@ import grammar from './grammar.pegjs';
 const MAX_OPERATORS = 10;
 const MAX_OPERATOR_MESSAGE = t('Maximum operators exceeded');
 
-type OperationOpts = {
+interface OperationOpts {
   operator: Operator;
   lhs?: Expression;
   rhs: Expression;
-};
+}
 
 type Operator = 'plus' | 'minus' | 'multiply' | 'divide';
 type Expression = Operation | string | number | null;
@@ -110,11 +110,11 @@ function flatten(remaining: Array<Operation>): Operation {
   return term;
 }
 
-type parseResult = {
+interface parseResult {
   result: Expression;
   error: string | undefined;
   tc: TokenConverter;
-};
+}
 
 export function parseArithmetic(query: string): parseResult {
   const tc = new TokenConverter();

@@ -20,14 +20,14 @@ import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import {StepProps} from './types';
 
-type Props = StepProps & {
+interface Props extends StepProps {
   api: Client;
   organization: Organization;
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   keyList: Array<ProjectKey> | null;
-} & AsyncComponent['state'];
+}
 
 class OtherSetup extends AsyncComponent<Props, State> {
   getDefaultState() {

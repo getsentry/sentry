@@ -11,30 +11,30 @@ import {Group, Organization, Plugin, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type PluginIssue = {
+interface PluginIssue {
   issue_id: string;
   url: string;
   label: string;
-};
+}
 
-type TitledPlugin = Plugin & {
+interface TitledPlugin extends Plugin {
   // issue serializer adds more fields
   // TODO: should be able to use name instead of title
   title: string;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   group: Group;
   organization: Organization;
   project: Project;
   plugin: TitledPlugin;
-};
+}
 
-type State = {
+interface State {
   issue: PluginIssue | null;
   pluginLoading: boolean;
-};
+}
 
 class PluginActions extends Component<Props, State> {
   state: State = {
@@ -130,17 +130,17 @@ class PluginActions extends Component<Props, State> {
   }
 }
 
-type ModalProps = ModalRenderProps & {
+interface ModalProps extends ModalRenderProps {
   group: Group;
   project: Project;
   organization: Organization;
   plugin: TitledPlugin & {issue: PluginIssue | null};
   onSuccess: (data: any) => void;
-};
+}
 
-type ModalState = {
+interface ModalState {
   actionType: 'create' | 'link' | null;
-};
+}
 
 class PluginActionsModal extends Component<ModalProps, ModalState> {
   state: ModalState = {

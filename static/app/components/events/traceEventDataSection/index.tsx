@@ -18,7 +18,7 @@ import EventDataSection from '../eventDataSection';
 import DisplayOptions, {DisplayOption} from './displayOptions';
 import SortOptions, {SortOption} from './sortOptions';
 
-type Props = {
+interface Props {
   title: React.ReactNode;
   type: string;
   recentFirst: boolean;
@@ -37,13 +37,13 @@ type Props = {
   stackTraceNotFound: boolean;
   wrapTitle?: boolean;
   showPermalink?: boolean;
-};
+}
 
-type State = {
+interface State {
   raw: boolean;
   recentFirst: boolean;
   activeDisplayOptions: DisplayOption[];
-};
+}
 
 const TraceEventDataSectionContext = createContext<State | undefined>(undefined);
 

@@ -7,15 +7,18 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {Monitor, MonitorStat} from './types';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   monitor: Monitor;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   stats: MonitorStat[] | null;
-};
+}
 
-type Stat = {name: string; value: number};
+interface Stat {
+  name: string;
+  value: number;
+}
 
 export default class MonitorStats extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

@@ -4,11 +4,11 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {Frame} from 'sentry/types';
 
-type Props = {
+interface Props {
   leadsToApp: boolean;
   isExpanded?: boolean;
   nextFrame?: Frame;
-};
+}
 
 function LeadHint({leadsToApp, isExpanded, nextFrame}: Props) {
   if (isExpanded || !leadsToApp) {

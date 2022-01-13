@@ -14,7 +14,7 @@ type AdditionalDropdownProps = Pick<
   'onChange' | 'busyItemsStillVisible'
 >;
 
-type Props = {
+interface Props extends AdditionalDropdownProps {
   route: RouteWithName;
   hasMenu?: boolean;
   isLast?: boolean;
@@ -22,11 +22,11 @@ type Props = {
   name: React.ReactNode;
   items: Item[];
   onSelect: (item: Item) => void;
-} & AdditionalDropdownProps;
+}
 
-type State = {
+interface State {
   isOpen: boolean;
-};
+}
 
 class BreadcrumbDropdown extends React.Component<Props, State> {
   state: State = {

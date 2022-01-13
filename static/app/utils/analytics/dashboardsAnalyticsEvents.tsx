@@ -1,4 +1,4 @@
-export type DashboardsEventParameters = {
+export interface DashboardsEventParameters {
   'dashboards_views.add_widget_modal.opened': {};
   'dashboards_views.add_widget_modal.change': {
     from: string;
@@ -36,7 +36,7 @@ export type DashboardsEventParameters = {
   'dashboards_manage.templates.toggle': {
     show_templates: boolean;
   };
-};
+}
 
 export type DashboardsEventKey = keyof DashboardsEventParameters;
 

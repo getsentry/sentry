@@ -30,35 +30,35 @@ export enum BreadcrumbType {
   TRANSACTION = 'transaction',
 }
 
-type BreadcrumbTypeBase = {
+interface BreadcrumbTypeBase {
   level: BreadcrumbLevelType;
-  timestamp?: string; // it's recommended
+  timestamp?: string; // it's recommended;
   category?: string | null;
   message?: string;
   event_id?: string;
-};
+}
 
-export type BreadcrumbTypeSystem = {
+export interface BreadcrumbTypeSystem extends BreadcrumbTypeBase {
   type: BreadcrumbType.SYSTEM;
   action: string;
   extras: Record<string, any>;
-} & BreadcrumbTypeBase;
+}
 
-export type BreadcrumbTypeSession = {
+export interface BreadcrumbTypeSession extends BreadcrumbTypeBase {
   type: BreadcrumbType.SESSION;
   action: string;
   extras: Record<string, any>;
-} & BreadcrumbTypeBase;
+}
 
-export type BreadcrumbTypeNavigation = {
+export interface BreadcrumbTypeNavigation extends BreadcrumbTypeBase {
   type: BreadcrumbType.NAVIGATION;
   data?: {
     to?: string;
     from?: string;
   };
-} & BreadcrumbTypeBase;
+}
 
-export type BreadcrumbTypeHTTP = {
+export interface BreadcrumbTypeHTTP extends BreadcrumbTypeBase {
   type: BreadcrumbType.HTTP;
   data?: {
     url?: string;
@@ -75,9 +75,9 @@ export type BreadcrumbTypeHTTP = {
     status_code?: number;
     reason?: string;
   };
-} & BreadcrumbTypeBase;
+}
 
-export type BreadcrumbTypeDefault = {
+export interface BreadcrumbTypeDefault extends BreadcrumbTypeBase {
   type:
     | BreadcrumbType.INFO
     | BreadcrumbType.DEBUG
@@ -93,15 +93,15 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.SESSION
     | BreadcrumbType.TRANSACTION;
   data?: Record<string, any>;
-} & BreadcrumbTypeBase;
+}
 
 export type RawCrumb =
   | BreadcrumbTypeNavigation
   | BreadcrumbTypeHTTP
   | BreadcrumbTypeDefault;
 
-export type Crumb = RawCrumb & {
+export interface Crumb extends RawCrumb {
   description: string;
   color: Color;
   id: number;
-};
+}

@@ -146,22 +146,13 @@ function argsInvolveReact(args: FormatArg[]) {
  */
 type TemplateSubvalue = string | {group: string};
 
-/**
- * ParsedTemplate is a mapping of group names to Template Subvalue arrays.
- */
-type ParsedTemplate = {[group: string]: TemplateSubvalue[]};
+interface ParsedTemplate {
+  [group: string]: TemplateSubvalue[];
+}
 
-/**
- * ComponentMap maps template group keys to react node instances.
- *
- * NOTE: template group keys that include additional sub values (e.g.
- * [groupName:this string is the sub value]) will override the mapped react
- * nodes children prop.
- *
- * In the above example the component map of {groupName: <strong>text</strong>}
- * will be translated to `<strong>this string is the sub value</strong>`.
- */
-type ComponentMap = {[group: string]: React.ReactNode};
+interface ComponentMap {
+  [group: string]: React.ReactNode;
+}
 
 /**
  * Parses a template string into groups.

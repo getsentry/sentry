@@ -17,7 +17,7 @@ import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
 import SavedQueryButtonGroup from './savedQuery';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   location: Location;
@@ -27,12 +27,12 @@ type Props = {
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
   yAxis: string[];
-};
+}
 
-type State = {
+interface State {
   savedQuery: SavedQuery | undefined;
   loading: boolean;
-};
+}
 
 class ResultsHeader extends React.Component<Props, State> {
   state: State = {

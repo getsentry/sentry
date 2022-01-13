@@ -4,17 +4,17 @@ import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import {SentryAppComponent} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type InjectedAppComponentsProps = {
+interface InjectedAppComponentsProps {
   components: SentryAppComponent[];
-};
+}
 
-type State = {
+interface State {
   components: SentryAppComponent[];
-};
+}
 
-type Options = {
+interface Options {
   componentType?: 'stacktrace-link';
-};
+}
 
 function withSentryAppComponents<P extends InjectedAppComponentsProps>(
   WrappedComponent: React.ComponentType<P>,

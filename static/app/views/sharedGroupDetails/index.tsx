@@ -22,11 +22,11 @@ type Props = RouteComponentProps<{shareId: string}, {}> & {
   api: Client;
 };
 
-type State = {
+interface State {
   group: Group | null;
   loading: boolean;
   error: boolean;
-};
+}
 
 class SharedGroupDetails extends Component<Props, State> {
   static childContextTypes = {

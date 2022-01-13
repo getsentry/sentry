@@ -32,10 +32,7 @@ export const FieldType = [
 
 export type FieldValue = any;
 
-// TODO(ts): A lot of these attributes are missing correct types. We'll likely
-// need to introduce some generics in here to get rid of some of these anys.
-
-type BaseField = {
+interface BaseField {
   label?: React.ReactNode | (() => React.ReactNode);
   name: string;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
@@ -59,7 +56,6 @@ type BaseField = {
   choices?:
     | ((props: {[key: string]: any}) => void)
     | readonly Readonly<[number | string, React.ReactNode]>[];
-
   formatLabel?: (value: number | '') => React.ReactNode;
   transformInput?: (value: FieldValue) => FieldValue;
   getData?: (data: object) => object;
@@ -80,48 +76,43 @@ type BaseField = {
   showReturnButton?: boolean;
   getValue?: (value: FieldValue) => any;
   setValue?: (value: FieldValue, props?: any) => any;
-
   onChange?: (value: FieldValue) => void;
-
   validate?: ({id: String, form: object}) => string[][];
-
   // TODO(ts): FormField prop?
   inline?: boolean;
-
   // TODO(ts): used in sentryAppPublishRequestModal
   meta?: string;
-
   selectionInfoFunction?: (props: any) => React.ReactNode;
-
   stacked?: boolean;
   hideLabel?: boolean;
   flexibleControlStateSize?: boolean;
-};
+}
 
-// TODO(ts): These are field specific props. May not be needed as we convert
-// the fields as we can grab the props from them
-
-type CustomType = {type: 'custom'} & {
+interface CustomType {
+  type: 'custom';
   Component: (arg: BaseField) => React.ReactNode;
-};
+}
 
-type InputType = {type: 'string' | 'secret'} & {
+interface InputType {
+  type: 'string' | 'secret';
   autoComplete?: string;
-};
+}
 
-type SelectControlType = {type: 'choice' | 'select'} & {
+interface SelectControlType {
+  type: 'choice' | 'select';
   multiple?: boolean;
   allowClear?: boolean;
-  options?: Array<{label: string; value: any}>; // for new select
+  options?: Array<{label: string; value: any}>; // for new select;
   defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
   noOptionsMessage?: () => string;
-};
+}
 
-type TextareaType = {type: 'textarea'} & {
+interface TextareaType {
+  type: 'textarea';
   autosize?: boolean;
   rows?: number;
-};
+}
 
 type RangeSliderProps = React.ComponentProps<typeof RangeSlider>;
 
@@ -129,7 +120,7 @@ type RangeType = {type: 'range'} & Omit<RangeSliderProps, 'value'> & {
     value?: Pick<RangeSliderProps, 'value'>;
   };
 
-export type TableType = {
+export interface TableType {
   type: 'table';
   /**
    * An object with of column labels (headers) for the table.
@@ -144,11 +135,11 @@ export type TableType = {
    * The confirmation message before a a row is deleted
    */
   confirmDeleteMessage?: string;
-  // TODO(TS): Should we have addButtonText and allowEmpty here as well?
-};
+  // TODO(TS): Should we have addButtonText and allowEmpty here as well?;
+}
 
 // maps a sentry project to another field
-export type ProjectMapperType = {
+export interface ProjectMapperType {
   type: 'project_mapper';
   mappedDropdown: {
     items: Array<{value: string | number; label: string; url: string}>;
@@ -161,44 +152,31 @@ export type ProjectMapperType = {
     allowedDomain: string;
   };
   iconType: string;
-};
+}
 
-export type ChoiceMapperType = {
+export interface ChoiceMapperType extends ChoiceMapperProps {
   type: 'choice_mapper';
-} & ChoiceMapperProps;
+}
 
 // selects a sentry project with avatars
-export type SentryProjectSelectorType = {
+export interface SentryProjectSelectorType {
   type: 'sentry_project_selector';
   projects: Project[];
   avatarSize?: number;
-};
+}
 
-export type SelectAsyncType = {
+export interface SelectAsyncType extends SelectAsyncFieldProps {
   type: 'select_async';
-} & SelectAsyncFieldProps;
+}
 
-export type Field = (
-  | CustomType
-  | SelectControlType
-  | InputType
-  | TextareaType
-  | RangeType
-  | TableType
-  | ProjectMapperType
-  | SentryProjectSelectorType
-  | SelectAsyncType
-  | ChoiceMapperType
-  | {type: typeof FieldType[number]}
-) &
-  BaseField;
+export interface Field extends BaseField {}
 
 export type FieldObject = Field | Function;
 
-export type JsonFormObject = {
+export interface JsonFormObject {
   title?: React.ReactNode;
   fields: FieldObject[];
-};
+}
 
 export type Data = Record<string, any>;
 

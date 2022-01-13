@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-type Props = {
+interface Props {
   className?: string;
   bytes: number;
-};
+}
 
 function FileSize(props: Props) {
   const {className, bytes} = props;

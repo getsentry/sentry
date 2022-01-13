@@ -3,11 +3,11 @@ import {Fragment} from 'react';
 import InputField from 'sentry/components/forms/inputField';
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   yesLabel: string;
   noLabel: string;
   yesFirst?: boolean;
-} & InputField['props'];
+}
 
 export default class RadioBooleanField extends InputField<Props> {
   static defaultProps = {

@@ -1,50 +1,50 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
 
-type MobilePromptBannerParams = {
+interface MobilePromptBannerParams {
   matchedUserAgentString: string;
-};
+}
 
-type ShowParams = MobilePromptBannerParams & {
+interface ShowParams extends MobilePromptBannerParams {
   matchedUserAgentString: string;
   mobileEventBrowserName: string;
   mobileEventClientOsName: string;
-};
+}
 
-type PlatformParam = {
+interface PlatformParam {
   platform: PlatformKey;
-};
+}
 
-type PlatformCategory = {
+interface PlatformCategory {
   category: string;
   source?: string;
-};
+}
 
-type PlatformPickerParam = {
+interface PlatformPickerParam {
   platform_id: string;
   source?: string;
-};
+}
 
-type PlatformSearchParam = {
+interface PlatformSearchParam {
   search: string;
   num_results: number;
   source?: string;
-};
+}
 
-type SampleEventParam = {
+interface SampleEventParam {
   platform?: PlatformKey;
-};
+}
 
-type InviteRequestParam = {
+interface InviteRequestParam {
   member_id: number;
   invite_status: string;
-};
+}
 
-type InviteModal = {
+interface InviteModal {
   modal_session: string;
-};
+}
 
 // define the event key to payload mappings
-export type GrowthEventParameters = {
+export interface GrowthEventParameters {
   'growth.show_mobile_prompt_banner': ShowParams;
   'growth.dismissed_mobile_prompt_banner': MobilePromptBannerParams;
   'growth.opened_mobile_project_suggest_modal': MobilePromptBannerParams;
@@ -93,7 +93,7 @@ export type GrowthEventParameters = {
   'sdk_updates.seen': {};
   'sdk_updates.snoozed': {};
   'sdk_updates.clicked': {};
-};
+}
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
 

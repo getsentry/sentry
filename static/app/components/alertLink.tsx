@@ -12,20 +12,20 @@ type Priority = 'info' | 'warning' | 'success' | 'error' | 'muted';
 
 type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
 
-type OtherProps = {
+interface OtherProps {
   ['data-test-id']?: string;
   icon?: string | React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
   children?: React.ReactNode;
-};
+}
 
-type DefaultProps = {
+interface DefaultProps {
   size: Size;
   priority: Priority;
   withoutMarginBottom: boolean;
   openInNewTab: boolean;
   href?: string;
-};
+}
 
 type Props = OtherProps & Partial<DefaultProps> & Partial<Pick<LinkProps, 'to'>>;
 

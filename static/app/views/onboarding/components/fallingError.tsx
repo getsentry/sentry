@@ -3,21 +3,21 @@ import {motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
-type RenderProps = {
+interface RenderProps {
   fallCount: number;
   triggerFall: (countIt?: boolean) => void;
   fallingError: React.ReactNode;
-};
+}
 
-type Props = {
+interface Props {
   children: (renderProps: RenderProps) => React.ReactNode;
   onFall?: (fallCount: number) => void;
-};
+}
 
-type State = {
+interface State {
   isFalling: boolean;
   fallCount: number;
-};
+}
 
 class FallingError extends React.Component<Props, State> {
   state: State = {

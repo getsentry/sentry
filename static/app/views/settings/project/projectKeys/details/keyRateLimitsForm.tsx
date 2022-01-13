@@ -21,10 +21,10 @@ const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,
 ];
 
-type RateLimitValue = {
+interface RateLimitValue {
   window: number;
   count: number;
-};
+}
 
 type Props = {
   data: ProjectKey;

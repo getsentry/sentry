@@ -6,20 +6,20 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   since: number;
   resolution: string;
   stat: string;
   label: string;
   height?: number;
-};
+}
 
-type State = {
+interface State {
   error: boolean;
   loading: boolean;
   data: [number, number][] | null;
-};
+}
 
 class InternalStatChart extends Component<Props, State> {
   state: State = {

@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 import PluginIcon, {DEFAULT_ICON, ICON_PATHS} from 'sentry/plugins/components/pluginIcon';
 import {Integration} from 'sentry/types';
 
-type Props = {
+interface Props {
   integration: Integration;
   size?: number;
-};
+}
 
-type State = {
+interface State {
   imgSrc: Integration['icon'];
-};
+}
 
 type IconProps = Pick<Props, 'size'>;
 

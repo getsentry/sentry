@@ -10,12 +10,12 @@ import {Theme} from 'sentry/utils/theme';
 
 import EditorTools from './editorTools';
 
-type Props = {
+interface Props {
   authorName: string;
   user?: User;
   onEdit: () => void;
   onDelete: () => void;
-};
+}
 
 const NoteHeader = ({authorName, user, onEdit, onDelete}: Props) => {
   const activeUser = ConfigStore.get('user');

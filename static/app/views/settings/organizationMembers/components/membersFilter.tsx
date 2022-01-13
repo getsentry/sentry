@@ -8,25 +8,25 @@ import space from 'sentry/styles/space';
 import {MemberRole} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-type Props = {
+interface Props {
   className?: string;
   roles: MemberRole[];
   query: string;
   onChange: (query: string) => void;
-};
+}
 
-type BooleanFilterProps = {
+interface BooleanFilterProps {
   onChange: (value: boolean | null) => void;
   value: boolean | null;
   children: React.ReactNode;
-};
+}
 
-type Filters = {
+interface Filters {
   roles: string[];
   isInvited: boolean | null;
   ssoLinked: boolean | null;
   has2fa: boolean | null;
-};
+}
 
 const getBoolean = (list: string[]) =>
   Array.isArray(list) && list.length

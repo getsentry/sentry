@@ -7,7 +7,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type Props = EditOwnershipRulesModalOptions;
-type State = {};
+interface State {}
 
 class EditOwnershipRulesModal extends Component<Props, State> {
   render() {

@@ -6,14 +6,14 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Level} from 'sentry/types';
 
-type Props = {
+interface Props {
   level?: Level;
   levelIndicatorSize?: string;
   message?: React.ReactNode;
   annotations?: React.ReactNode;
   className?: string;
   hasGuideAnchor?: boolean;
-};
+}
 
 const BaseEventMessage = ({
   className,

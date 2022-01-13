@@ -4,7 +4,7 @@ import classNames from 'classnames';
 
 import sentryLoader from 'sentry-images/sentry-loader.svg';
 
-type Props = {
+interface Props {
   overlay?: boolean;
   dark?: boolean;
   mini?: boolean;
@@ -16,7 +16,7 @@ type Props = {
   className?: string;
   style?: React.CSSProperties;
   children?: React.ReactNode;
-};
+}
 
 function renderLogoSpinner() {
   return <img src={sentryLoader} />;

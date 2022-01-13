@@ -4,24 +4,24 @@ import EnvironmentActions from 'sentry/actions/environmentActions';
 import {Environment} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 
-type EnhancedEnvironment = Environment & {
+interface EnhancedEnvironment extends Environment {
   displayName: string;
   urlRoutingName: string;
-};
+}
 
-type State = {
+interface State {
   environments: EnhancedEnvironment[] | null;
   error: Error | null;
-};
+}
 
-type OrganizationEnvironmentsStoreInterface = {
+interface OrganizationEnvironmentsStoreInterface {
   state: State;
   init(): void;
   onFetchEnvironments(): void;
   onFetchEnvironmentsSuccess(environments: Environment[]): void;
   onFetchEnvironmentsError(error: Error): void;
   get(): State;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & OrganizationEnvironmentsStoreInterface = {
   state: {

@@ -14,12 +14,12 @@ export enum EventsDisplayFilterName {
   p100 = 'p100',
 }
 
-export type EventsDisplayFilter = {
+export interface EventsDisplayFilter {
   name: EventsDisplayFilterName;
   sort?: {kind: 'desc' | 'asc'; field: string};
   label: string;
   query?: string[][];
-};
+}
 
 export type EventsFilterOptions = {
   [name in EventsDisplayFilterName]: EventsDisplayFilter;

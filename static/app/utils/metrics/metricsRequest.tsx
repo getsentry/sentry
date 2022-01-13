@@ -16,22 +16,22 @@ const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
-export type MetricsRequestRenderProps = {
+export interface MetricsRequestRenderProps {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
-};
+}
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Include data for previous period
    */
   includePrevious: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   api: Client;
   organization: Organization;
   field: string[];
@@ -47,14 +47,14 @@ type Props = DefaultProps & {
   limit?: number;
   interval?: string;
   isDisabled?: boolean;
-};
+}
 
-type State = {
+interface State {
   reloading: boolean;
   errored: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
-};
+}
 
 class MetricsRequest extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

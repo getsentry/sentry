@@ -13,11 +13,11 @@ import EventWidget from './eventWidget';
 import MetricWidget from './metricWidget';
 import {DataSet} from './utils';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   dashboardId: string;
   widgetId?: number;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;

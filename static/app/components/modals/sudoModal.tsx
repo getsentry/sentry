@@ -32,10 +32,10 @@ type Props = WithRouterProps &
     retryRequest?: () => Promise<any>;
   };
 
-type State = {
+interface State {
   error: boolean;
   busy: boolean;
-};
+}
 
 class SudoModal extends React.Component<Props, State> {
   state: State = {

@@ -26,18 +26,18 @@ function useDismissable(bannerKey: string) {
   return [value === 'true', dismiss] as const;
 }
 
-type BannerWrapperProps = {
+interface BannerWrapperProps {
   backgroundImg?: string;
   backgroundComponent?: React.ReactNode;
-};
+}
 
-type Props = BannerWrapperProps & {
+interface Props extends BannerWrapperProps {
   title?: string;
   subtitle?: string;
   isDismissable?: boolean;
   dismissKey?: string;
   className?: string;
-};
+}
 
 type BannerType = React.FC<Props> & {
   /**

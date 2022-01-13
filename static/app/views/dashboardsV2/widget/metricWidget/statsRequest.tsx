@@ -26,7 +26,7 @@ import {fillChartDataFromMetricsResponse, getBreakdownChartData} from './utils';
 type FilteredGrouping = Required<Pick<MetricQuery, 'metricMeta' | 'aggregation'>> &
   Omit<MetricQuery, 'metricMeta' | 'aggregation'>;
 
-type RequestQuery = {
+interface RequestQuery {
   field: string;
   interval: string;
   query?: string;
@@ -34,15 +34,15 @@ type RequestQuery = {
   end?: string;
   period?: string;
   utc?: string;
-};
+}
 
-type ChildrenArgs = {
+interface ChildrenArgs {
   isLoading: boolean;
   errored: boolean;
   series: Series[];
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   projectId: Project['id'];
@@ -52,7 +52,7 @@ type Props = {
   children: (args: ChildrenArgs) => React.ReactElement;
   groupings: MetricQuery[];
   searchQuery?: string;
-};
+}
 
 function StatsRequest({
   api,

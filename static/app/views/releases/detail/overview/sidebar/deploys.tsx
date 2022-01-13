@@ -8,12 +8,12 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Deploy} from 'sentry/types';
 
-type Props = {
+interface Props {
   version: string;
   orgSlug: string;
   deploys: Deploy[];
   projectId: number;
-};
+}
 
 const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
   return (

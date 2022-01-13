@@ -5,13 +5,13 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   title: string;
   newestFirst: boolean;
   onChange?: ({newestFirst}: {newestFirst: boolean}) => void;
   beforeTitle?: React.ReactNode;
   hideGuide?: boolean;
-};
+}
 
 const CrashTitle = ({
   title,

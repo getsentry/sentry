@@ -27,10 +27,10 @@ import {transformMetricsToList} from '../transforms/transformMetricsToList';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
-type DataType = {
+interface DataType {
   chart: WidgetDataResult & ReturnType<typeof transformMetricsToArea>;
   list: WidgetDataResult & ReturnType<typeof transformMetricsToList>;
-};
+}
 
 const framesList = [
   PerformanceWidgetSetting.MOST_SLOW_FRAMES,

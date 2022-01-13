@@ -30,7 +30,7 @@ import withApi from 'sentry/utils/withApi';
 
 import SidebarSection from './sidebarSection';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   project: Project;
@@ -38,16 +38,16 @@ type Props = {
   event?: Event;
   environments: Environment[];
   className?: string;
-};
+}
 
-type State = {
+interface State {
   environments: Environment[];
   currentRelease?: CurrentRelease;
   participants: Group['participants'];
   allEnvironmentsGroupData?: Group;
   tagsWithTopValues?: Record<string, TagWithTopValues>;
   error?: boolean;
-};
+}
 
 class BaseGroupSidebar extends React.Component<Props, State> {
   state: State = {

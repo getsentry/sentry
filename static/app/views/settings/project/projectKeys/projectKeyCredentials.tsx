@@ -21,14 +21,14 @@ const DEFAULT_PROPS = {
   showProjectId: false,
 };
 
-type Props = {
+interface Props {
   projectId: string;
   data: ProjectKey;
-} & typeof DEFAULT_PROPS;
+}
 
-type State = {
+interface State {
   showDeprecatedDsn: boolean;
-};
+}
 
 class ProjectKeyCredentials extends Component<Props, State> {
   static defaultProps = DEFAULT_PROPS;

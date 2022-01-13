@@ -46,7 +46,7 @@ const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_DAY]: t('24 hours'),
 };
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   projectSlug: string;
@@ -62,11 +62,11 @@ type Props = {
   onTimeWindowChange: (value: number) => void;
   comparisonDelta?: number;
   allowChangeEventTypes?: boolean;
-};
+}
 
-type State = {
+interface State {
   environments: Environment[] | null;
-};
+}
 
 class RuleConditionsForm extends React.PureComponent<Props, State> {
   state: State = {

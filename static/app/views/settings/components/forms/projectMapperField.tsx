@@ -28,12 +28,15 @@ import {ProjectMapperType} from 'sentry/views/settings/components/forms/type';
 type MappedValue = string | number;
 
 type Props = InputField['props'];
-type RenderProps = Props & ProjectMapperType & {model: FormModel};
 
-type State = {
+interface RenderProps extends Props, ProjectMapperType {
+  model: FormModel;
+}
+
+interface State {
   selectedSentryProjectId: number | null;
   selectedMappedValue: MappedValue | null;
-};
+}
 
 // Get the icon
 const getIcon = (iconType: string) => {

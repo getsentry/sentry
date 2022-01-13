@@ -15,16 +15,16 @@ import EventView from 'sentry/utils/discover/eventView';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
-type Props = {
+interface Props {
   title: React.ComponentClass<TitleProps>;
   eventView: EventView;
   tableMeta: TableData['meta'];
   location: Location;
-};
+}
 
-type State = {
+interface State {
   isOpen: boolean;
-};
+}
 
 class OperationSort extends Component<Props, State> {
   constructor(props: Props) {

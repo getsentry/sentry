@@ -21,7 +21,7 @@ const checkBelowThreshold = (scores = {}) => {
   return !scoreKeys.map(key => scores[key]).find(score => score >= MIN_SCORE);
 };
 
-type State = {
+interface State {
   // List of fingerprints that belong to issue
   mergedItems: [];
   // Map of {[fingerprint]: Array<fingerprint, event id>} that is selected to be unmerged
@@ -43,11 +43,11 @@ type State = {
   mergeDisabled: boolean;
   loading: boolean;
   error: boolean;
-};
+}
 
 type ScoreMap = Record<string, number | null>;
 
-type ApiFingerprint = {
+interface ApiFingerprint {
   id: string;
   latestEvent: Event;
   state?: string;
@@ -58,17 +58,17 @@ type ApiFingerprint = {
   parentLabel?: string;
   childId?: string;
   childLabel?: string;
-};
+}
 
-type ChildFingerprint = {
+interface ChildFingerprint {
   childId: string;
   childLabel?: string;
   eventCount?: number;
   lastSeen?: string;
   latestEvent?: Event;
-};
+}
 
-export type Fingerprint = {
+export interface Fingerprint {
   id: string;
   latestEvent: Event;
   eventCount: number;
@@ -78,9 +78,9 @@ export type Fingerprint = {
   parentId?: string;
   label?: string;
   parentLabel?: string;
-};
+}
 
-type ResponseProcessors = {
+interface ResponseProcessors {
   merged: (item: ApiFingerprint[]) => Fingerprint[];
   similar: (data: [Group, ScoreMap]) => {
     issue: Group;
@@ -89,7 +89,7 @@ type ResponseProcessors = {
     aggregate: Record<string, number>;
     isBelowThreshold: boolean;
   };
-};
+}
 
 type DataKey = keyof ResponseProcessors;
 
@@ -103,13 +103,13 @@ type ResultsAsArray = Array<{
   links: string | null;
 }>;
 
-type IdState = {
+interface IdState {
   busy?: boolean;
   checked?: boolean;
   collapsed?: boolean;
-};
+}
 
-type GroupingStoreInterface = Reflux.StoreDefinition & {
+interface GroupingStoreInterface extends Reflux.StoreDefinition {
   init(): void;
   getInitialState(): State;
   setStateForId(
@@ -165,11 +165,11 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     | 'unmergeLastCollapsed'
   >;
   triggerMergeState(): Pick<State, 'mergeState' | 'mergeDisabled' | 'mergeList'>;
-};
+}
 
-type Internals = {
+interface Internals {
   api: Client;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface = {
   listenables: [GroupingActions],

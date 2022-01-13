@@ -23,9 +23,9 @@ type Props = Partial<DefaultProps> & {
   className?: string;
 };
 
-type DefaultProps = {
+interface DefaultProps {
   guideAnchorName: string;
-};
+}
 
 function EventOrGroupTitle({
   guideAnchorName = 'issue_title',

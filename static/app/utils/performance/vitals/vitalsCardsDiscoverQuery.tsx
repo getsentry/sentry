@@ -10,39 +10,39 @@ import GenericDiscoverQuery, {
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import withApi from 'sentry/utils/withApi';
 
-export type TableDataRow = {
+export interface TableDataRow {
   id: string;
   [key: string]: React.ReactText;
-};
+}
 
-export type TableData = {
+export interface TableData {
   data: Array<TableDataRow>;
   meta?: MetaType;
-};
+}
 
-export type VitalData = {
+export interface VitalData {
   poor: number;
   meh: number;
   good: number;
   total: number;
   p75: number | null;
-};
+}
 
 export type VitalsData = Record<string, VitalData>;
 
-type VitalsProps = {
+interface VitalsProps {
   vitals: WebVital[];
-};
+}
 
-type RequestProps = DiscoverQueryPropsWithContext & VitalsProps;
+interface RequestProps extends DiscoverQueryPropsWithContext, VitalsProps {}
 
 type ChildrenProps = Omit<GenericChildrenProps<VitalsProps>, 'tableData'> & {
   vitalsData: VitalsData | null;
 };
 
-type Props = RequestProps & {
+interface Props extends RequestProps {
   children: (props: ChildrenProps) => React.ReactNode;
-};
+}
 
 function getRequestPayload(props: RequestProps) {
   const {eventView, vitals} = props;

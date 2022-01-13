@@ -12,8 +12,9 @@ const defaultProps = {
   placeholder: t('Choose Sentry project'),
 };
 
-// projects can be passed as a direct prop as well
-type Props = {projects?: Project[]} & InputField['props'];
+interface Props {
+  projects?: Project[];
+}
 
 type RenderProps = {
   projects: Project[]; // can't use AvatarProject since we need the ID

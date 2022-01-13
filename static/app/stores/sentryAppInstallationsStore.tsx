@@ -2,10 +2,10 @@ import Reflux from 'reflux';
 
 import {SentryAppInstallation} from 'sentry/types';
 
-type SentryAppInstallationStoreInterface = {
+interface SentryAppInstallationStoreInterface {
   load(items: SentryAppInstallation[]): void;
   getInitialState(): SentryAppInstallation[];
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & SentryAppInstallationStoreInterface = {
   init() {

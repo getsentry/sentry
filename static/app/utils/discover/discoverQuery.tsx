@@ -9,26 +9,28 @@ import GenericDiscoverQuery, {DiscoverQueryProps} from './genericDiscoverQuery';
 /**
  * An individual row in a DiscoverQuery result
  */
-export type TableDataRow = {
+export interface TableDataRow {
   id: string;
   [key: string]: React.ReactText;
-};
+}
 
 /**
  * A DiscoverQuery result including rows and metadata.
  */
-export type TableData = {
+export interface TableData {
   data: Array<TableDataRow>;
   meta?: MetaType;
-};
+}
 
-export type TableDataWithTitle = TableData & {title: string};
+export interface TableDataWithTitle extends TableData {
+  title: string;
+}
 
-export type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
+export interface DiscoverQueryPropsWithThresholds extends DiscoverQueryProps {
   transactionName?: string;
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
-};
+}
 
 function shouldRefetchData(
   prevProps: DiscoverQueryPropsWithThresholds,

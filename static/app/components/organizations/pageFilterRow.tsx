@@ -6,12 +6,12 @@ import space from 'sentry/styles/space';
 
 const defaultRenderCheckbox = ({checkbox}) => checkbox;
 
-type CheckboxRenderOptions = {
+interface CheckboxRenderOptions {
   checkbox: React.ReactNode;
   checked?: boolean;
-};
+}
 
-type Props = {
+interface Props {
   checked: boolean;
   onCheckClick: (event: React.MouseEvent) => void;
   children: React.ReactNode;
@@ -22,7 +22,7 @@ type Props = {
    * prop along with the `checked` boolean.
    */
   renderCheckbox?: (options: CheckboxRenderOptions) => React.ReactNode;
-};
+}
 
 function PageFilterRow({
   checked,

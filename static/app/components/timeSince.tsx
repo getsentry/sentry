@@ -14,27 +14,25 @@ const ONE_MINUTE_IN_MS = 60000;
 
 type RelaxedDateType = string | number | Date;
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Suffix after elapsed time
    * e.g. "ago" in "5 minutes ago"
    */
   suffix: string;
-};
+}
 
 type TimeProps = React.HTMLProps<HTMLTimeElement>;
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps, TimeProps {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    */
   date: RelaxedDateType;
-
   /**
    * By default we show tooltip with absolute date on hover, this prop disables that
    */
   disabledAbsoluteTooltip?: boolean;
-
   /**
    * For relative time shortens minutes to min, hour to hr etc.
    */
@@ -44,15 +42,13 @@ type Props = DefaultProps & {
    * min to m, hr to h
    */
   extraShort?: boolean;
-
   tooltipTitle?: React.ReactNode;
-
   className?: string;
-} & TimeProps;
+}
 
-type State = {
+interface State {
   relative: string;
-};
+}
 
 class TimeSince extends React.PureComponent<Props, State> {
   static defaultProps: DefaultProps = {

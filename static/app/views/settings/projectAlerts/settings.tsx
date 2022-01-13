@@ -16,7 +16,11 @@ import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type RouteParams = {orgId: string; projectId: string};
+interface RouteParams {
+  orgId: string;
+  projectId: string;
+}
+
 type Props = RouteComponentProps<RouteParams, {}> &
   AsyncView['props'] & {
     canEditRule: boolean;
@@ -24,10 +28,10 @@ type Props = RouteComponentProps<RouteParams, {}> &
     project: Project;
   };
 
-type State = AsyncView['state'] & {
+interface State {
   project: Project | null;
   pluginList: Array<Plugin> | null;
-};
+}
 
 class Settings extends AsyncView<Props, State> {
   getDefaultState() {

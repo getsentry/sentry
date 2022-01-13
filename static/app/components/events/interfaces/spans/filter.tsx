@@ -12,14 +12,14 @@ import space from 'sentry/styles/space';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
-type NoFilter = {
+interface NoFilter {
   type: 'no_filter';
-};
+}
 
-export type ActiveFilter = {
+export interface ActiveFilter {
   type: 'active_filter';
   operationNames: Set<string>;
-};
+}
 
 export const noFilter: NoFilter = {
   type: 'no_filter',
@@ -27,12 +27,12 @@ export const noFilter: NoFilter = {
 
 export type ActiveOperationFilter = NoFilter | ActiveFilter;
 
-type Props = {
+interface Props {
   operationNameCounts: Map<string, number>;
   operationNameFilter: ActiveOperationFilter;
   toggleOperationNameFilter: (operationName: string) => void;
   toggleAllOperationNameFilters: () => void;
-};
+}
 
 class Filter extends React.Component<Props> {
   isOperationNameActive(operationName: string) {

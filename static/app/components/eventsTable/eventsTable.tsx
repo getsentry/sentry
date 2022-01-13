@@ -5,13 +5,14 @@ import {t} from 'sentry/locale';
 import {Tag} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
-type Props = {
+interface Props {
   events: Event[];
   tagList: Tag[];
   orgId: string;
   projectId: string;
   groupId: string;
-};
+}
+
 class EventsTable extends Component<Props> {
   render() {
     const {events, tagList, orgId, projectId, groupId} = this.props;

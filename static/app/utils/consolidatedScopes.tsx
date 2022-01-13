@@ -30,11 +30,12 @@ const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
 
 const PROJECT_RELEASES = 'project:releases';
 
-type PermissionLevelResources = {
+interface PermissionLevelResources {
   read: string[];
   write: string[];
   admin: string[];
-};
+}
+
 /**
  * Numerical value of the scope where Admin is higher than Write,
  * which is higher than Read. Used to sort scopes by access.

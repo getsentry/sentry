@@ -5,12 +5,12 @@ import {LocationDescriptor, LocationDescriptorObject} from 'history';
 import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 
-type Project = {
+interface Project {
   id: string;
   slug: string;
-};
+}
 
-type Props = {
+interface Props {
   /**
    * Path used on the redirect router if the user did not select a project
    */
@@ -23,7 +23,7 @@ type Props = {
   };
   router: InjectedRouter;
   projects: Project[];
-};
+}
 
 function PickProjectToContinue({
   noProjectRedirectPath,

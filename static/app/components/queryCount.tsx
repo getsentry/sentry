@@ -1,11 +1,11 @@
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   count?: number | null;
   max?: number;
   hideIfEmpty?: boolean;
   hideParens?: boolean;
-};
+}
 
 /**
  * Displays a number count. If `max` is specified, then give representation

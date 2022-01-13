@@ -28,11 +28,11 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string; platform: string}, {}> &
   AsyncComponent['props'];
 
-type State = {
+interface State {
   installed: boolean;
   integrations: {providers: IntegrationProvider[]};
   project: Project | null;
-} & AsyncComponent['state'];
+}
 
 class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
   getDefaultState() {

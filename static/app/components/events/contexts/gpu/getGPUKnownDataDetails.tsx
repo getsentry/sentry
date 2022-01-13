@@ -3,10 +3,10 @@ import {t} from 'sentry/locale';
 import formatMemory from './formatMemory';
 import {GPUData, GPUKnownDataType} from './types';
 
-type Output = {
+interface Output {
   subject: string;
   value?: React.ReactNode;
-};
+}
 
 function getGPUKnownDataDetails(data: GPUData, type: GPUKnownDataType): Output {
   switch (type) {

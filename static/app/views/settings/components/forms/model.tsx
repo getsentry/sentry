@@ -12,7 +12,7 @@ type SaveSnapshot = (() => number) | null;
 
 export type FieldValue = string | number | boolean | undefined; // is undefined valid here?
 
-export type FormOptions = {
+export interface FormOptions {
   apiEndpoint?: string;
   apiMethod?: APIRequestMethod;
   allowUndo?: boolean;
@@ -26,14 +26,14 @@ export type FormOptions = {
     change?: {old: FieldValue; new: FieldValue}
   ) => void;
   onSubmitError?: (error: any, instance: FormModel, id?: string) => void;
-};
+}
 
 type ClientOptions = ConstructorParameters<typeof Client>[0];
 
-type OptionsWithInitial = FormOptions & {
+interface OptionsWithInitial extends FormOptions {
   initialData?: object;
   apiOptions?: ClientOptions;
-};
+}
 
 class FormModel {
   /**

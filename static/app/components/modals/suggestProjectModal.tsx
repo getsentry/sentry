@@ -24,15 +24,15 @@ import withApi from 'sentry/utils/withApi';
 import EmailField from 'sentry/views/settings/components/forms/emailField';
 import Form from 'sentry/views/settings/components/forms/form';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   api: Client;
   organization: Organization;
   matchedUserAgentString: string;
-};
+}
 
-type State = {
+interface State {
   askTeammate: boolean;
-};
+}
 
 class SuggestProjectModal extends Component<Props, State> {
   state: State = {

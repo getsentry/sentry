@@ -32,16 +32,16 @@ import {StepProps} from './types';
  */
 const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
-type Props = StepProps & {
+interface Props extends StepProps {
   api: Client;
   organization: Organization;
-};
+}
 
-type State = {
+interface State {
   platformDocs: {html: string; link: string} | null;
   loadedPlatform: PlatformKey | null;
   hasError: boolean;
-};
+}
 
 class DocumentationSetup extends React.Component<Props, State> {
   state: State = {

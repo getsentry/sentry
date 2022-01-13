@@ -17,12 +17,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {NUM_BUCKETS, VITAL_GROUPS} from './constants';
 import VitalCard from './vitalCard';
 
-type Props = {
+interface Props {
   organization: Organization;
   location: Location;
   eventView: EventView;
   dataFilter?: DataFilter;
-};
+}
 
 class VitalsPanel extends Component<Props> {
   renderVitalCard(

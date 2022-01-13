@@ -13,7 +13,7 @@ import {Group, Organization, Project} from 'sentry/types';
 import Item from './item';
 import Toolbar from './toolbar';
 
-type SimilarItem = {
+interface SimilarItem {
   issue: Group;
   isBelowThreshold: boolean;
   score?: Record<string, number | null>;
@@ -25,13 +25,13 @@ type SimilarItem = {
     exception: number;
     message: number;
   };
-};
+}
 
-type DefaultProps = {
+interface DefaultProps {
   filteredItems: Array<SimilarItem>;
-};
+}
 
-type Props = {
+interface Props extends DefaultProps {
   orgId: Organization['id'];
   project: Project;
   onMerge: () => void;
@@ -39,11 +39,11 @@ type Props = {
   groupId: string;
   pageLinks: string | null;
   items: Array<SimilarItem>;
-} & DefaultProps;
+}
 
-type State = {
+interface State {
   showAllItems: boolean;
-};
+}
 
 class List extends Component<Props, State> {
   static defaultProps: DefaultProps = {

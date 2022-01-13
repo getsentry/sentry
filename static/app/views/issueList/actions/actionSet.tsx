@@ -17,7 +17,7 @@ import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
-type Props = {
+interface Props {
   orgSlug: Organization['slug'];
   queryCount: number;
   query: string;
@@ -30,7 +30,7 @@ type Props = {
   onMerge: () => void;
   onUpdate: (data?: any) => void;
   selectedProjectSlug?: string;
-};
+}
 
 function ActionSet({
   orgSlug,

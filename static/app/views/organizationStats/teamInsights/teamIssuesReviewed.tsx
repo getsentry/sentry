@@ -23,15 +23,15 @@ import {
 
 type IssuesBreakdown = Record<string, Record<string, {reviewed: number; total: number}>>;
 
-type Props = AsyncComponent['props'] & {
+interface Props extends DateTimeObject {
   organization: Organization;
   projects: Project[];
   teamSlug: string;
-} & DateTimeObject;
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   issuesBreakdown: IssuesBreakdown | null;
-};
+}
 
 class TeamIssuesReviewed extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;

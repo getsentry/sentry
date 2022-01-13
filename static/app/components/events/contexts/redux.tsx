@@ -7,10 +7,10 @@ type KeyValueListData = React.ComponentProps<typeof ContextBlock>['data'];
 
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   alias: string;
   data: Record<string, any>;
-};
+}
 
 class ReduxContextType extends React.Component<Props> {
   getKnownData(): KeyValueListData {

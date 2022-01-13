@@ -16,7 +16,7 @@ import {AvatarUser, Member} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'sentry/utils/recreateRoute';
 
-type Props = {
+interface Props {
   params: Record<string, string>;
   routes: PlainRoute[];
   member: Member;
@@ -30,11 +30,11 @@ type Props = {
   canAddMembers: boolean;
   currentUser: AvatarUser;
   status: '' | 'loading' | 'success' | 'error' | null;
-};
+}
 
-type State = {
+interface State {
   busy: boolean;
-};
+}
 
 const DisabledMemberTooltip = HookOrDefault({
   hookName: 'component:disabled-member-tooltip',

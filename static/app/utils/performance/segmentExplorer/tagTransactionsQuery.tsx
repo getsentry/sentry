@@ -6,19 +6,19 @@ import GenericDiscoverQuery, {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import withApi from 'sentry/utils/withApi';
 
-export type TableDataRow = {
+export interface TableDataRow {
   id: string;
   [key: string]: React.ReactText;
-};
+}
 
-export type TableData = {
+export interface TableData {
   data: Array<TableDataRow>;
   meta?: MetaType;
-};
+}
 
-type QueryProps = DiscoverQueryProps & {
+interface QueryProps extends DiscoverQueryProps {
   query: string;
-};
+}
 
 function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
   return prevProps.query !== nextProps.query;

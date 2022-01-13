@@ -9,9 +9,9 @@ import UnhandledTag, {
   TagAndMessageWrapper,
 } from '../organizationGroupDetails/unhandledTag';
 
-type Props = {
+interface Props {
   group: Group;
-};
+}
 
 const SharedGroupHeader = ({group}: Props) => (
   <Wrapper>

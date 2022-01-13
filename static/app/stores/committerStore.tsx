@@ -3,18 +3,17 @@ import Reflux from 'reflux';
 import CommitterActions from 'sentry/actions/committerActions';
 import {Committer} from 'sentry/types';
 
-type State = {
+interface State {
   // Use `getCommitterStoreKey` to generate key
   [key: string]: {
     committers?: Committer[];
     committersLoading?: boolean;
     committersError?: Error;
   };
-};
+}
 
-type CommitterStoreInterface = {
+interface CommitterStoreInterface {
   state: State;
-
   load(orgSlug: string, projectSlug: string, eventId: string): void;
   loadSuccess(
     orgSlug: string,
@@ -23,7 +22,6 @@ type CommitterStoreInterface = {
     data: Committer[]
   ): void;
   loadError(orgSlug: string, projectSlug: string, eventId: string, error: Error): void;
-
   get(
     orgSlug: string,
     projectSlug: string,
@@ -33,7 +31,7 @@ type CommitterStoreInterface = {
     committersLoading?: boolean;
     committersError?: Error;
   };
-};
+}
 
 export const storeConfig: Reflux.StoreDefinition & CommitterStoreInterface = {
   listenables: CommitterActions,

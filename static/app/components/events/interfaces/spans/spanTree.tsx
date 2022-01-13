@@ -20,14 +20,14 @@ import {
 import {getSpanID, getSpanOperation} from './utils';
 import WaterfallModel from './waterfallModel';
 
-type PropType = ScrollbarManagerChildrenProps & {
+interface PropType extends ScrollbarManagerChildrenProps {
   organization: Organization;
   dragProps: DragManagerChildrenProps;
   traceViewRef: React.RefObject<HTMLDivElement>;
   filterSpans: FilterSpans | undefined;
   waterfallModel: WaterfallModel;
   spans: EnhancedProcessedSpanType[];
-};
+}
 
 class SpanTree extends React.Component<PropType> {
   shouldComponentUpdate(nextProps: PropType) {
@@ -149,12 +149,12 @@ class SpanTree extends React.Component<PropType> {
       viewEnd: dragProps.viewWindowEnd,
     });
 
-    type AccType = {
+    interface AccType {
       numOfSpansOutOfViewAbove: number;
       numOfFilteredSpansAbove: number;
       spanTree: React.ReactNode[];
       spanNumber: number;
-    };
+    }
 
     const numOfSpans = spans.reduce((sum: number, payload: EnhancedProcessedSpanType) => {
       switch (payload.type) {

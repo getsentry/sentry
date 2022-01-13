@@ -6,14 +6,14 @@ export enum ErrorType {
   RegexParse = 'regex-parse',
 }
 
-type Error = {
+interface Error {
   type: ErrorType;
   message: string;
-};
+}
 
-type ResponseError = {
+interface ResponseError {
   responseJSON?: Record<string, Array<string>>;
-};
+}
 
 function handleError(error: ResponseError): Error {
   const errorMessage = error.responseJSON?.relayPiiConfig[0];

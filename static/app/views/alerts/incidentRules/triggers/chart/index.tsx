@@ -47,11 +47,10 @@ import {
 
 import ThresholdsChart from './thresholdsChart';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   projects: Project[];
-
   query: IncidentRule['query'];
   timeWindow: IncidentRule['timeWindow'];
   environment: string | null;
@@ -62,7 +61,7 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   header?: React.ReactNode;
   comparisonDelta?: number;
-};
+}
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
   [TimePeriod.SIX_HOURS]: t('Last 6 hours'),
@@ -154,10 +153,10 @@ const getBucketSize = (timeWindow: TimeWindow, dataPoints: number): number => {
   return 2;
 };
 
-type State = {
+interface State {
   statsPeriod: TimePeriod;
   totalCount: number | null;
-};
+}
 
 /**
  * This is a chart to be used in Metric Alert rules that fetches events based on

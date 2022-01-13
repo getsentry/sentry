@@ -65,7 +65,7 @@ type ResolvedObservableProps = {
   [T in PropToObserve]?: Field['props'][T];
 };
 
-type BaseProps<P> = {
+interface BaseProps<P> {
   /**
    * Name of the field
    */
@@ -111,18 +111,16 @@ type BaseProps<P> = {
   selectionInfoFunction?: (
     props: PassthroughProps<P> & {error?: string; value: FieldValue}
   ) => React.ReactNode;
-
   onKeyDown?: (value, event) => void;
   onBlur?: (value, event) => void;
   onChange?: (value, event) => void;
-
   // TODO(ts): These are actually props that are needed for some lower
   // component. We should let the rendering component pass these in instead
   defaultValue?: FieldValue;
   resetOnError?: boolean;
   placeholder?: ObservedFnOrValue<P, React.ReactNode>;
-  formatMessageValue?: boolean | Function; // used in prettyFormString
-};
+  formatMessageValue?: boolean | Function; // used in prettyFormString;
+}
 
 type Props<P> = BaseProps<P> & ObservableProps<P> & Omit<Field['props'], PropToObserve>;
 

@@ -5,12 +5,12 @@ import {Field} from 'sentry/views/settings/components/forms/type';
 import {DateString} from './core';
 import {Organization} from './organization';
 
-export type AuthenticatorDevice = {
+export interface AuthenticatorDevice {
   key_handle: string;
   authId: string;
   name: string;
   timestamp?: string;
-};
+}
 
 export type Authenticator = {
   /**
@@ -77,7 +77,7 @@ export type Authenticator = {
       }
   );
 
-export type ChallengeData = {
+export interface ChallengeData {
   // will have only authenticateRequest or registerRequest
   authenticateRequests: u2f.SignRequest;
   registerRequests: u2f.RegisterRequest;
@@ -85,45 +85,45 @@ export type ChallengeData = {
   // for WebAuthn register
   webAuthnRegisterData: string;
   webAuthnAuthenticationData: string;
-};
+}
 
-export type EnrolledAuthenticator = {
+export interface EnrolledAuthenticator {
   lastUsedAt: string | null;
   createdAt: string;
   authId: string;
   name: string;
-};
+}
 
 /**
  * This is an authenticator that a user is enrolled in
  */
-export type UserEnrolledAuthenticator = {
+export interface UserEnrolledAuthenticator {
   dateUsed: EnrolledAuthenticator['lastUsedAt'];
   dateCreated: EnrolledAuthenticator['createdAt'];
   type: Authenticator['id'];
   id: EnrolledAuthenticator['authId'];
   name: EnrolledAuthenticator['name'];
-};
+}
 
 /**
  * XXX(ts): This actually all comes from getsentry. We should definitely
  * refactor this into a more proper 'hook' mechanism in the future
  */
-export type AuthConfig = {
+export interface AuthConfig {
   canRegister: boolean;
   serverHostname: string;
   hasNewsletter: boolean;
   githubLoginLink: string;
   vstsLoginLink: string;
   googleLoginLink: string;
-};
+}
 
-export type AuthProvider = {
+export interface AuthProvider {
   key: string;
   name: string;
   requiredFeature: string;
   disables2FA: boolean;
-};
+}
 
 export enum UserIdentityCategory {
   SOCIAL_IDENTITY = 'social-identity',
@@ -137,15 +137,15 @@ export enum UserIdentityStatus {
   NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
 }
 
-export type UserIdentityProvider = {
+export interface UserIdentityProvider {
   key: string;
   name: string;
-};
+}
 
 /**
  * UserIdentityConfig is used in Account Identities
  */
-export type UserIdentityConfig = {
+export interface UserIdentityConfig {
   category: UserIdentityCategory;
   id: string;
   provider: UserIdentityProvider;
@@ -153,4 +153,4 @@ export type UserIdentityConfig = {
   isLogin: boolean;
   organization: Organization | null;
   dateAdded: DateString;
-};
+}

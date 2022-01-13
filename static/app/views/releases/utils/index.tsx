@@ -127,7 +127,10 @@ export const getReleaseHandledIssuesUrl = (
 export const isReleaseArchived = (release: Release) =>
   release.status === ReleaseStatus.Archived;
 
-export type ReleaseBounds = {releaseStart?: string | null; releaseEnd?: string | null};
+export interface ReleaseBounds {
+  releaseStart?: string | null;
+  releaseEnd?: string | null;
+}
 
 export function getReleaseBounds(release?: Release): ReleaseBounds {
   const {lastEvent, currentProjectMeta, dateCreated} = release || {};
@@ -165,10 +168,10 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
   };
 }
 
-type GetReleaseParams = {
+interface GetReleaseParams {
   location: Location;
   releaseBounds: ReleaseBounds;
-};
+}
 
 export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
   const params = getParams(

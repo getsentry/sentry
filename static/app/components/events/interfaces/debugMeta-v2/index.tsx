@@ -41,24 +41,23 @@ import {
 
 const IMAGE_INFO_UNAVAILABLE = '-1';
 
-type DefaultProps = {
+interface DefaultProps {
   data: {
     images: Array<Image | null>;
   };
-};
+}
 
 type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options'];
 type Images = Array<React.ComponentProps<typeof DebugImage>['image']>;
 
-type Props = DefaultProps &
-  WithRouterProps & {
-    event: Event;
-    organization: Organization;
-    projectId: Project['id'];
-    groupId?: Group['id'];
-  };
+interface Props extends DefaultProps, WithRouterProps {
+  event: Event;
+  organization: Organization;
+  projectId: Project['id'];
+  groupId?: Group['id'];
+}
 
-type State = {
+interface State {
   searchTerm: string;
   filteredImages: Images;
   filteredImagesBySearch: Images;
@@ -66,7 +65,7 @@ type State = {
   filterOptions: FilterOptions;
   scrollbarWidth: number;
   panelTableHeight?: number;
-};
+}
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,

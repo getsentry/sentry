@@ -3,10 +3,9 @@ import Reflux from 'reflux';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import {Organization} from 'sentry/types';
 
-type OrganizationsStoreInterface = {
+interface OrganizationsStoreInterface {
   state: Organization[];
   loaded: boolean;
-
   onUpdate(org: Organization): void;
   onChangeSlug(prev: Organization, next: Organization): void;
   onRemoveSuccess(slug: string): void;
@@ -15,7 +14,7 @@ type OrganizationsStoreInterface = {
   remove(slug: string): void;
   add(item: Organization): void;
   load(items: Organization[]): void;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {
   listenables: [OrganizationsActions],

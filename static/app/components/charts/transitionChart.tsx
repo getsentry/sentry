@@ -6,16 +6,16 @@ const defaultProps = {
   height: '200px',
 };
 
-type Props = {
+interface Props {
   reloading: boolean;
   loading: boolean;
-} & typeof defaultProps;
+}
 
-type State = {
+interface State {
   prevReloading: boolean;
   prevLoading: boolean;
   key: number;
-};
+}
 
 class TransitionChart extends Component<Props, State> {
   static defaultProps = defaultProps;

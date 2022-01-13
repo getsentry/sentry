@@ -41,18 +41,18 @@ import ShareIssue from 'sentry/views/organizationGroupDetails/actions/shareIssue
 import DeleteAction from './deleteAction';
 import SubscribeAction from './subscribeAction';
 
-type Props = {
+interface Props {
   api: Client;
   group: Group;
   project: Project;
   organization: Organization;
   disabled: boolean;
   event?: Event;
-};
+}
 
-type State = {
+interface State {
   shareBusy: boolean;
-};
+}
 
 class Actions extends React.Component<Props, State> {
   state: State = {

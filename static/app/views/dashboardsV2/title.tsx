@@ -5,12 +5,12 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import {DashboardDetails} from './types';
 
-type Props = {
+interface Props {
   dashboard: DashboardDetails | null;
   isEditing: boolean;
   organization: Organization;
   onUpdate: (dashboard: DashboardDetails) => void;
-};
+}
 
 function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {
   return (

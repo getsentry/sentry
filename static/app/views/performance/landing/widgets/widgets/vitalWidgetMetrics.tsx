@@ -39,10 +39,10 @@ const settingToVital: Record<string, WebVital> = {
   [PerformanceWidgetSetting.WORST_CLS_VITALS]: WebVital.CLS,
 };
 
-type DataType = {
+interface DataType {
   list: WidgetDataResult & ReturnType<typeof transformMetricsToList>;
   chart: WidgetDataResult & ReturnType<typeof transformMetricsToVitalSeries>;
-};
+}
 
 export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   const api = useApi();

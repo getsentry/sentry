@@ -15,9 +15,9 @@ type Props<H extends HookName> = {
   children?: (opts: {hooks: Array<Hooks[H]>}) => React.ReactNode;
 } & Omit<Parameters<Hooks[H]>[0], 'name'>;
 
-type HookState<H extends HookName> = {
+interface HookState<H extends HookName> {
   hooks: Array<Hooks[H]>;
-};
+}
 
 /**
  * Instead of accessing the HookStore directly, use this.

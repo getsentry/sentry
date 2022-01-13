@@ -23,10 +23,10 @@ export type TableColumn<K> = GridColumnOrder<K> & {
 
 export type TableColumnSort<K> = GridColumnSortBy<K>;
 
-export type TableState = {
+export interface TableState {
   columnOrder: TableColumn<keyof TableDataRow>[];
   columnSortBy: TableColumnSort<keyof TableDataRow>[];
-};
+}
 
 export enum FieldValueKind {
   TAG = 'tag',

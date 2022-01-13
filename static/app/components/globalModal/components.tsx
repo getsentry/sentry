@@ -62,12 +62,12 @@ const ModalFooter = styled('footer')`
   margin: ${space(3)} -${space(4)} -${space(4)};
 `;
 
-type HeaderProps = {
+interface HeaderProps {
   /**
    * Show a close button in the header
    */
   closeButton?: boolean;
-};
+}
 
 /**
  * Creates a ModalHeader that includes props to enable the close button

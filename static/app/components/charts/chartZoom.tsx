@@ -24,11 +24,11 @@ import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
-type Period = {
+interface Period {
   period: string;
   start: DateString;
   end: DateString;
-};
+}
 
 const ZoomPropKeys = [
   'period',
@@ -49,7 +49,7 @@ export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
   toolBox?: ToolboxComponentOption;
 };
 
-type Props = {
+interface Props {
   children: (props: ZoomRenderProps) => React.ReactNode;
   router?: InjectedRouter;
   disabled?: boolean;
@@ -65,7 +65,7 @@ type Props = {
   onRestore?: EChartRestoreHandler;
   onZoom?: (period: Period) => void;
   usePageDate?: boolean;
-};
+}
 
 /**
  * This is a very opinionated component that takes a render prop through `children`. It

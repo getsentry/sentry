@@ -13,21 +13,21 @@ import {Mentionable} from './types';
 const buildUserId = (id: string) => `user:${id}`;
 const buildTeamId = (id: string) => `team:${id}`;
 
-type ChildFuncProps = {
+interface ChildFuncProps {
   members: Mentionable[];
   teams: Mentionable[];
-};
+}
 
-type Props = {
+interface Props {
   me: User;
   organization: Organization;
   projectSlugs: string[];
   children: (props: ChildFuncProps) => React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   members: User[];
-};
+}
 
 /**
  * Make sure the actionCreator, `fetchOrgMembers`, has been called somewhere

@@ -7,14 +7,14 @@ import {Organization, Project} from 'sentry/types';
 
 type OrgTypes = Organization | null;
 
-type State = {
+interface State {
   project: Project | null;
   lastProject: Project | null;
   organization: OrgTypes;
   environment: string | string[] | null;
-};
+}
 
-type LatestContextStoreInterface = {
+interface LatestContextStoreInterface {
   state: State;
   reset(): void;
   get(): State;
@@ -22,7 +22,7 @@ type LatestContextStoreInterface = {
   onSetActiveOrganization(organization: OrgTypes): void;
   onSetActiveProject(project: Project | null): void;
   onUpdateProject(project: Project | null): void;
-};
+}
 
 /**
  * Keeps track of last usable project/org this currently won't track when users

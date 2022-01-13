@@ -68,18 +68,15 @@ const handleClick = (clickSeries: any, instance: ECharts) => {
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
 
-/**
- * Used for some properties that can be truncated
- */
-type Truncateable = {
+interface Truncateable {
   /**
    * Truncate the label / value some number of characters.
    * If true is passed, it will use truncate based on a default length.
    */
   truncate?: number | boolean;
-};
+}
 
-type Props = {
+interface Props {
   options?: EChartsOption;
   /**
    * Chart Series
@@ -279,7 +276,7 @@ type Props = {
    * Inline styles
    */
   style?: React.CSSProperties;
-};
+}
 
 function BaseChartUnwrapped({
   colors,

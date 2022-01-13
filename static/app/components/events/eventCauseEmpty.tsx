@@ -80,21 +80,21 @@ const DUMMY_COMMIT: Commit = {
 
 const SUSPECT_COMMITS_FEATURE = 'suspect_commits';
 
-type ClickPayload = {
+interface ClickPayload {
   action: 'snoozed' | 'dismissed';
   eventKey: IssueEventKey;
-};
+}
 
-type Props = {
+interface Props {
   event: Event;
   organization: Organization;
   project: Project;
   api: Client;
-};
+}
 
-type State = {
+interface State {
   shouldShow: boolean | undefined;
-};
+}
 
 class EventCauseEmpty extends Component<Props, State> {
   state: State = {

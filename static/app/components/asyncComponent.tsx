@@ -16,14 +16,14 @@ import RouteError from 'sentry/views/routeError';
 
 type AsyncComponentProps = Partial<RouteComponentProps<{}, {}>>;
 
-type AsyncComponentState = {
+interface AsyncComponentState {
   loading: boolean;
   reloading: boolean;
   error: boolean;
   errors: Record<string, ResponseMeta>;
   remainingRequests?: number;
   [key: string]: any;
-};
+}
 
 type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
 

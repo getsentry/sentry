@@ -22,7 +22,7 @@ import {SetStateAction} from '../types';
 import EventsTable from './eventsTable';
 import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   eventView: EventView;
@@ -34,7 +34,7 @@ type Props = {
   percentileValues?: Record<EventsDisplayFilterName, number>;
   webVital?: WebVital;
   setError: SetStateAction<string | undefined>;
-};
+}
 
 function EventsContent(props: Props) {
   const {

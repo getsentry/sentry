@@ -4,12 +4,12 @@ import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import MetaData from 'sentry/components/events/meta/metaData';
 import {isFunction} from 'sentry/utils';
 
-type Props<Values> = {
+interface Props<Values> {
   object: Values;
   objectKey: Extract<keyof Values, string>;
   required?: boolean;
   children: (value: string | null | React.ReactNode) => React.ReactNode | string;
-};
+}
 
 /**
  * Returns the value of `object[prop]` and returns an annotated component if

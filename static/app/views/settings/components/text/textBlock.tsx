@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   noMargin?: boolean;
-};
+}
 
 const TextBlock = styled('div')<Props>`
   line-height: 1.5;

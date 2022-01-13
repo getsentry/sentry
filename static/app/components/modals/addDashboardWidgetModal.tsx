@@ -60,7 +60,7 @@ import Tooltip from '../tooltip';
 
 import {TAB, TabsButtonBar} from './dashboardWidgetLibraryModal/tabsButtonBar';
 
-export type DashboardWidgetModalOptions = {
+export interface DashboardWidgetModalOptions {
   organization: Organization;
   dashboard?: DashboardDetails;
   selection?: PageFilters;
@@ -77,21 +77,20 @@ export type DashboardWidgetModalOptions = {
   statsPeriod?: RelativePeriod | string;
   selectedWidgets?: WidgetTemplate[];
   onAddLibraryWidget?: (widgets: Widget[]) => void;
-};
+}
 
-type Props = ModalRenderProps &
-  DashboardWidgetModalOptions & {
-    api: Client;
-    organization: Organization;
-    selection: PageFilters;
-    tags: TagCollection;
-  };
+interface Props extends ModalRenderProps, DashboardWidgetModalOptions {
+  api: Client;
+  organization: Organization;
+  selection: PageFilters;
+  tags: TagCollection;
+}
 
-type FlatValidationError = {
+interface FlatValidationError {
   [key: string]: string | FlatValidationError[] | FlatValidationError;
-};
+}
 
-type State = {
+interface State {
   title: string;
   displayType: Widget['displayType'];
   interval: Widget['interval'];
@@ -102,7 +101,7 @@ type State = {
   selectedDashboard?: SelectValue<string>;
   userHasModified: boolean;
   widgetType: WidgetType;
-};
+}
 
 const newQuery = {
   name: '',

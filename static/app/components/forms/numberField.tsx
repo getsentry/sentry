@@ -1,9 +1,9 @@
 import InputField from 'sentry/components/forms/inputField';
 
-type Props = {
+interface Props {
   min?: number;
   max?: number;
-} & InputField['props'];
+}
 
 export default class NumberField extends InputField<Props> {
   coerceValue(value) {

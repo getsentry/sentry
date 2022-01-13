@@ -7,11 +7,11 @@ import {Group} from 'sentry/types';
 
 import {getSubscriptionReason} from '../utils';
 
-type Props = {
+interface Props {
   group: Group;
   onClick: (event: React.MouseEvent) => void;
   disabled?: boolean;
-};
+}
 
 function SubscribeAction({disabled, group, onClick}: Props) {
   const disabledNotifications = group.subscriptionDetails?.disabled ?? false;

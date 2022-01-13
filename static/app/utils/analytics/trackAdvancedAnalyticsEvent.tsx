@@ -10,13 +10,7 @@ import {
 import {searchEventMap, SearchEventParameters} from './searchAnalyticsEvents';
 import {TeamInsightsEventParameters, workflowEventMap} from './workflowAnalyticsEvents';
 
-type EventParameters = GrowthEventParameters &
-  IssueEventParameters &
-  PerformanceEventParameters &
-  DashboardsEventParameters &
-  DiscoverEventParameters &
-  TeamInsightsEventParameters &
-  SearchEventParameters;
+interface EventParameters extends GrowthEventParameters, IssueEventParameters, PerformanceEventParameters, DashboardsEventParameters, DiscoverEventParameters, TeamInsightsEventParameters, SearchEventParameters {}
 
 const allEventMap = {
   ...growthEventMap,

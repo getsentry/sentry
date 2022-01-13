@@ -5,10 +5,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {PageFilters} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type InjectedPageFiltersProps = {
+interface InjectedPageFiltersProps {
   selection?: PageFilters;
   isGlobalSelectionReady?: boolean;
-};
+}
 
 /**
  * Higher order component that uses PageFiltersStore and provides the active

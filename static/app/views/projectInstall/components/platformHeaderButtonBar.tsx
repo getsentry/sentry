@@ -2,10 +2,11 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   gettingStartedLink: string;
   docsLink: string;
-};
+}
+
 export default function PlatformHeaderButtonBar({gettingStartedLink, docsLink}: Props) {
   return (
     <ButtonBar gap={1}>

@@ -3,7 +3,9 @@ import merge from 'lodash/merge';
 
 import {Theme} from 'sentry/utils/theme';
 
-type Props = YAXisComponentOption & {theme: Theme};
+interface Props extends YAXisComponentOption {
+  theme: Theme;
+}
 
 export default function YAxis({theme, ...props}: Props): YAXisComponentOption {
   return merge(

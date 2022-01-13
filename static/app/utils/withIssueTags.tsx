@@ -7,15 +7,15 @@ import TeamStore from 'sentry/stores/teamStore';
 import {TagCollection, Team, User} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type InjectedTagsProps = {
+interface InjectedTagsProps {
   tags: TagCollection;
-};
+}
 
-type State = {
+interface State {
   tags: TagCollection;
   users: User[];
   teams: Team[];
-};
+}
 
 const uuidPattern = /[0-9a-f]{32}$/;
 const getUsername = ({isManaged, username, email}: User) => {

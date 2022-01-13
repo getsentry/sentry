@@ -5,13 +5,14 @@ import space from 'sentry/styles/space';
 import {Integration} from 'sentry/types';
 import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';
 
-type DefaultProps = {
+interface DefaultProps {
   compact: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   integration: Integration;
-};
+}
+
 export default class IntegrationItem extends Component<Props> {
   static defaultProps: DefaultProps = {
     compact: false,

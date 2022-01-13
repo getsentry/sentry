@@ -10,12 +10,12 @@ import {
 } from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import WidgetLibraryCard from 'sentry/views/dashboardsV2/widgetLibrary/widgetCard';
 
-type Props = {
+interface Props {
   selectedWidgets: WidgetTemplate[];
   errored: boolean;
   setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
   setErrored: (errored: boolean) => void;
-};
+}
 
 function DashboardWidgetLibraryTab({
   selectedWidgets,

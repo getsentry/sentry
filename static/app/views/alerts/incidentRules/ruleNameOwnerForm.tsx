@@ -7,10 +7,10 @@ import {Project, Team} from 'sentry/types';
 import FormField from 'sentry/views/settings/components/forms/formField';
 import TextField from 'sentry/views/settings/components/forms/textField';
 
-type Props = {
+interface Props {
   disabled: boolean;
   project: Project;
-};
+}
 
 class RuleNameOwnerForm extends PureComponent<Props> {
   render() {

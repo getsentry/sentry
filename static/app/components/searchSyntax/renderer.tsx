@@ -9,7 +9,7 @@ import space from 'sentry/styles/space';
 import {ParseResult, Token, TokenResult} from './parser';
 import {isWithinToken} from './utils';
 
-type Props = {
+interface Props {
   /**
    * The result from parsing the search query string
    */
@@ -19,7 +19,7 @@ type Props = {
    * highlight active tokens and trigger error tooltips.
    */
   cursorPosition?: number;
-};
+}
 
 /**
  * Renders the parsed query with syntax highlighting.
@@ -186,10 +186,10 @@ const NumberToken = ({token}: {token: TokenResult<Token.ValueNumber>}) => (
   </Fragment>
 );
 
-type FilterProps = {
+interface FilterProps {
   active: boolean;
   invalid: boolean;
-};
+}
 
 const colorType = (p: FilterProps) =>
   `${p.invalid ? 'invalid' : 'valid'}${p.active ? 'Active' : ''}` as const;

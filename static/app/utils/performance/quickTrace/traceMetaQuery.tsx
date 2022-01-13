@@ -12,9 +12,9 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 import withApi from 'sentry/utils/withApi';
 
-export type TraceMetaQueryChildrenProps = BaseTraceChildrenProps & {
+export interface TraceMetaQueryChildrenProps extends BaseTraceChildrenProps {
   meta: TraceMeta | null;
-};
+}
 
 type QueryProps = Omit<TraceRequestProps, 'eventView'> & {
   children: (props: TraceMetaQueryChildrenProps) => React.ReactNode;

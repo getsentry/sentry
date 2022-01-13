@@ -8,10 +8,10 @@ import getUnknownData from '../getUnknownData';
 import getAppKnownData from './getAppKnownData';
 import {AppData, AppKnownDataType} from './types';
 
-type Props = {
+interface Props {
   data: AppData;
   event: Event;
-};
+}
 
 const appKnownDataValues = [
   AppKnownDataType.ID,

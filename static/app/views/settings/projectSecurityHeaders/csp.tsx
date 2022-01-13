@@ -18,10 +18,10 @@ import ReportUri, {
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
-type State = {
+interface State {
   keyList: null | ProjectKey[];
   project: null | Project;
-} & AsyncView['state'];
+}
 
 export default class ProjectCspReports extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

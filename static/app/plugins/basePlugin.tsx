@@ -1,10 +1,10 @@
 import Settings from 'sentry/plugins/components/settings';
 import {Organization, Plugin, Project} from 'sentry/types';
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
-};
+}
 
 class BasePlugin {
   plugin: Plugin;

@@ -16,12 +16,12 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SourceMapsArchive} from 'sentry/types';
 
-type Props = {
+interface Props {
   archive: SourceMapsArchive;
   orgId: string;
   projectId: string;
   onDelete: (name: string) => void;
-};
+}
 
 const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
   const {name, date, fileCount} = archive;

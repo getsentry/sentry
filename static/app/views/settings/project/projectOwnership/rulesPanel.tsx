@@ -9,7 +9,7 @@ import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   raw: string;
   dateUpdated: string | null;
   provider?: string;
@@ -18,7 +18,7 @@ type Props = {
   placeholder?: string;
   controls?: React.ReactNode[];
   'data-test-id': string;
-};
+}
 
 function RulesPanel({
   raw,

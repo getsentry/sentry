@@ -24,18 +24,18 @@ const MAX_ERRORS = 100;
 
 export type Error = ErrorItem['props']['error'];
 
-type Props = {
+interface Props {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   proGuardErrors: Array<Error>;
   event: Event;
-};
+}
 
-type State = {
+interface State {
   isOpen: boolean;
   releaseArtifacts?: Array<Artifact>;
-};
+}
 
 class Errors extends Component<Props, State> {
   state: State = {

@@ -12,9 +12,9 @@ import {
 
 import {getInnerNameLabel, LEGACY_BROWSER_LIST} from '../../utils';
 
-type Props = {
+interface Props {
   condition: DynamicSamplingCondition;
-};
+}
 
 function Conditions({condition}: Props) {
   function getConvertedValue(value: DynamicSamplingConditionLogicalInner['value']) {

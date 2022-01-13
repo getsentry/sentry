@@ -6,9 +6,9 @@ import space from 'sentry/styles/space';
 import {TreeLabelPart} from 'sentry/types';
 import {getTreeLabelPartDetails} from 'sentry/utils/events';
 
-type Props = {
+interface Props {
   treeLabel: TreeLabelPart[];
-};
+}
 
 function EventTitleTreeLabel({treeLabel}: Props) {
   const firstFourParts = treeLabel.slice(0, 4);

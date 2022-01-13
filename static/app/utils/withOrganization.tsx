@@ -4,14 +4,14 @@ import SentryTypes from 'sentry/sentryTypes';
 import {Organization} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type InjectedOrganizationProps = {
+interface InjectedOrganizationProps {
   organization?: Organization;
-};
+}
 
 const withOrganization = <P extends InjectedOrganizationProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  (class extends React.Component<
     Omit<P, keyof InjectedOrganizationProps> & InjectedOrganizationProps
   > {
     static displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
@@ -30,6 +30,6 @@ const withOrganization = <P extends InjectedOrganizationProps>(
         />
       );
     }
-  };
+  });
 
 export default withOrganization;

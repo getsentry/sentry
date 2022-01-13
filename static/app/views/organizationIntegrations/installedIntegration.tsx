@@ -17,16 +17,16 @@ import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyti
 import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
-export type Props = {
+export interface Props {
   organization: Organization;
   provider: IntegrationProvider;
   integration: Integration;
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
-  trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
+  trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback;
   className?: string;
   requiresUpgrade?: boolean;
-};
+}
 
 export default class InstalledIntegration extends React.Component<Props> {
   handleUninstallClick = () => {

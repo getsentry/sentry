@@ -29,34 +29,34 @@ import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 const getCategoryName = (category?: string) =>
   categoryList.find(({id}) => id === category)?.id;
 
-type RuleEventData = {
+interface RuleEventData {
   eventKey: string;
   eventName: string;
   organization_id: string;
   project_id: string;
   rule_type: string;
   custom_rule_id?: string;
-};
+}
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: any;
   organization: Organization;
   teams: Team[];
-};
+}
 
 type PlatformName = React.ComponentProps<typeof PlatformIcon>['platform'];
 type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
 >[0];
 
-type State = {
+interface State {
   error: boolean;
   projectName: string;
   team: string;
   platform: PlatformName | null;
   inFlight: boolean;
   dataFragment: IssueAlertFragment | undefined;
-};
+}
 
 class CreateProject extends React.Component<Props, State> {
   constructor(props: Props, context) {

@@ -8,27 +8,27 @@ import {Organization, ProjectSdkUpdates} from 'sentry/types';
 import withApi from './withApi';
 import withOrganization from './withOrganization';
 
-type InjectedProps = {
+interface InjectedProps {
   /**
    * List of (Project + SDK)s and potential update suggestions for each.
    *
    * Null when updates have not been loaded for this org.
    */
   sdkUpdates?: ProjectSdkUpdates[] | null;
-};
+}
 
-type Props = {
+interface Props {
   organization: Organization;
   /**
    * Project IDs to limit the updates query to
    */
   projectIds?: string[];
   api: Client;
-};
+}
 
-type State = {
+interface State {
   sdkUpdates: ProjectSdkUpdates[] | null;
-};
+}
 
 function withSdkUpdates<P extends InjectedProps>(
   WrappedComponent: React.ComponentType<P>

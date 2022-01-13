@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {MetricMeta} from 'sentry/types';
 import SelectField from 'sentry/views/settings/components/forms/selectField';
 
-type Props = {
+interface Props {
   metricMetas: MetricMeta[];
   onChange: <F extends keyof Pick<Props, 'metricMeta' | 'aggregation'>>(
     field: F,
@@ -16,7 +16,7 @@ type Props = {
   ) => void;
   aggregation?: MetricMeta['operations'][0];
   metricMeta?: MetricMeta;
-};
+}
 
 function MetricSelectField({metricMetas, metricMeta, aggregation, onChange}: Props) {
   const operations = metricMeta?.operations ?? [];

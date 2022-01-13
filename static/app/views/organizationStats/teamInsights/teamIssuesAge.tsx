@@ -18,15 +18,15 @@ import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {getTitle} from 'sentry/utils/events';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   teamSlug: string;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   oldestIssues: Group[] | null;
   unresolvedIssueAge: Record<string, number> | null;
-};
+}
 
 /**
  * takes "< 1 hour" and returns a datetime of 1 hour ago

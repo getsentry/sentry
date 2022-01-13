@@ -12,10 +12,10 @@ import UserFeedbackEmpty from 'sentry/views/userFeedback/userFeedbackEmpty';
 
 import {fetchGroupUserReports} from './utils';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   groupId: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   group: Group;
@@ -24,12 +24,12 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   environments: string[];
 };
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
   reportList: UserReport[];
   pageLinks?: string | null;
-};
+}
 
 class GroupUserFeedback extends Component<Props, State> {
   state: State = {

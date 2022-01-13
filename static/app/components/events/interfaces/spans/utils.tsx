@@ -25,7 +25,10 @@ import {
 export const isValidSpanID = (maybeSpanID: any) =>
   isString(maybeSpanID) && maybeSpanID.length > 0;
 
-export type SpanBoundsType = {startTimestamp: number; endTimestamp: number};
+export interface SpanBoundsType {
+  startTimestamp: number;
+  endTimestamp: number;
+}
 export type SpanGeneratedBoundsType =
   | {type: 'TRACE_TIMESTAMPS_EQUAL'; isSpanVisibleInView: boolean}
   | {type: 'INVALID_VIEW_WINDOW'; isSpanVisibleInView: boolean}
@@ -48,12 +51,12 @@ export type SpanGeneratedBoundsType =
       isSpanVisibleInView: boolean;
     };
 
-export type SpanViewBoundsType = {
+export interface SpanViewBoundsType {
   warning: undefined | string;
   left: undefined | number;
   width: undefined | number;
   isSpanVisibleInView: boolean;
-};
+}
 
 const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
   const {startTimestamp, endTimestamp} = spanBounds;
@@ -478,14 +481,14 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
 // PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
 export const durationlessBrowserOps = ['mark', 'paint'];
 
-type Measurements = {
+interface Measurements {
   [name: string]: number | undefined;
-};
+}
 
-type VerticalMark = {
+interface VerticalMark {
   marks: Measurements;
   failedThreshold: boolean;
-};
+}
 
 function hasFailedThreshold(marks: Measurements): boolean {
   const names = Object.keys(marks);

@@ -13,10 +13,10 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 
 const DEPLOY_COUNT = 2;
 
-type Props = {
+interface Props {
   project: Project;
   shorten?: boolean;
-};
+}
 
 const Deploys = ({project, shorten}: Props) => {
   const flattenedDeploys = Object.entries(project.latestDeploys || {}).map(
@@ -52,9 +52,9 @@ const Deploys = ({project, shorten}: Props) => {
 
 export default Deploys;
 
-type DeployProps = Props & {
+interface DeployProps extends Props {
   deploy: Pick<DeployType, 'version' | 'dateFinished' | 'environment'>;
-};
+}
 
 const Deploy = ({deploy, project, shorten}: DeployProps) => (
   <Fragment>

@@ -6,11 +6,11 @@ export enum TokenType {
   FREE_TEXT,
 }
 
-export type Token = {
+export interface Token {
   type: TokenType;
   value: string;
   key?: string;
-};
+}
 
 function isOp(t: Token) {
   return t.type === TokenType.OPERATOR;

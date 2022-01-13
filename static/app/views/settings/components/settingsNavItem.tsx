@@ -9,14 +9,14 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   to: React.ComponentProps<RouterLink>['to'];
   label: React.ReactNode;
   badge?: string | number | null;
   index?: boolean;
   id?: string;
   onClick?: (e: React.MouseEvent) => void;
-};
+}
 
 const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
   const LabelHook = HookOrDefault({

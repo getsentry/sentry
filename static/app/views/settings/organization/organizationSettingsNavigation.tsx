@@ -8,14 +8,14 @@ import SettingsNavigation from 'sentry/views/settings/components/settingsNavigat
 import navigationConfiguration from 'sentry/views/settings/organization/navigationConfiguration';
 import {NavigationSection} from 'sentry/views/settings/types';
 
-type Props = {
+interface Props {
   organization: Organization;
-};
+}
 
-type State = {
+interface State {
   hookConfigs: NavigationSection[];
   hooks: React.ReactElement[];
-};
+}
 
 class OrganizationSettingsNavigation extends React.Component<Props, State> {
   state: State = this.getHooks();

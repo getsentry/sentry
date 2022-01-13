@@ -8,18 +8,18 @@ import {t} from 'sentry/locale';
 
 type KeyValueListData = React.ComponentProps<typeof ContextBlock>['data'];
 
-type StateDescription = {
+interface StateDescription {
   type?: string;
   value: Record<string, any>;
-};
+}
 
-type Props = {
+interface Props {
   alias: string;
   data: {
     state: StateDescription;
     [state: string]: StateDescription;
   };
-};
+}
 
 class StateContextType extends React.Component<Props> {
   getStateTitle(name: string, type?: string) {

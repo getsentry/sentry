@@ -33,16 +33,16 @@ import {useMetricsSwitch} from './metricsSwitch';
 import Onboarding from './onboarding';
 import {addRoutePerformanceContext, handleTrendsClick} from './utils';
 
-type Props = {
+interface Props {
   selection: PageFilters;
   location: Location;
   router: InjectedRouter;
   demoMode?: boolean;
-};
+}
 
-type State = {
+interface State {
   error?: string;
-};
+}
 
 function PerformanceContent({selection, location, demoMode}: Props) {
   const api = useApi();

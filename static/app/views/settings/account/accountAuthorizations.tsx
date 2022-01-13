@@ -14,18 +14,18 @@ import AsyncView from 'sentry/views/asyncView';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-type Authorization = {
+interface Authorization {
   application: ApiApplication;
   homepageUrl: string;
   id: string;
   scopes: string[];
-};
+}
 
 type Props = RouteComponentProps<{}, {}>;
 
-type State = {
+interface State {
   data: Authorization[];
-} & AsyncView['state'];
+}
 
 class AccountAuthorizations extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

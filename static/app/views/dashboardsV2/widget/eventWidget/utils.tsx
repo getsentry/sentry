@@ -9,13 +9,13 @@ import {Widget} from 'sentry/views/dashboardsV2/types';
 
 import {DisplayType} from '../utils';
 
-type ValidationError = {
+interface ValidationError {
   [key: string]: string[] | ValidationError[] | ValidationError;
-};
+}
 
-type FlatValidationError = {
+interface FlatValidationError {
   [key: string]: string | FlatValidationError[] | FlatValidationError;
-};
+}
 
 export function mapErrors(
   data: ValidationError,

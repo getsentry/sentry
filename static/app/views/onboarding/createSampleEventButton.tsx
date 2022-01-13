@@ -23,9 +23,9 @@ type Props = React.ComponentProps<typeof Button> & {
   source: string;
 };
 
-type State = {
+interface State {
   creating: boolean;
-};
+}
 
 const EVENT_POLL_RETRIES = 15;
 const EVENT_POLL_INTERVAL = 1000;

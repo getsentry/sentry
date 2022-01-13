@@ -1,14 +1,14 @@
 import {t} from 'sentry/locale';
 import {SelectValue} from 'sentry/types';
 
-export type FineTuneField = {
+export interface FineTuneField {
   title: string;
   description: string;
   type: 'select';
   options?: SelectValue<string>[];
   defaultValue?: string;
   defaultFieldName?: string;
-};
+}
 
 // TODO: clean up unused fields
 export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {

@@ -38,7 +38,7 @@ import {getReleaseBounds, ReleaseBounds} from '../utils';
 
 import ReleaseHeader from './header/releaseHeader';
 
-type ReleaseContextType = {
+interface ReleaseContextType {
   release: ReleaseWithHealth;
   project: Required<ReleaseProject>;
   deploys: Deploy[];
@@ -46,13 +46,14 @@ type ReleaseContextType = {
   refetchData: () => void;
   hasHealthData: boolean;
   releaseBounds: ReleaseBounds;
-};
+}
+
 const ReleaseContext = createContext<ReleaseContextType>({} as ReleaseContextType);
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   release: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -60,11 +61,11 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   releaseMeta: ReleaseMeta;
 };
 
-type State = {
+interface State {
   release: ReleaseWithHealth;
   deploys: Deploy[];
   sessions: SessionApiResponse | null;
-} & AsyncView['state'];
+}
 
 class ReleasesDetail extends AsyncView<Props, State> {
   shouldReload = true;
@@ -228,9 +229,11 @@ class ReleasesDetail extends AsyncView<Props, State> {
 }
 
 type ReleasesDetailContainerProps = Omit<Props, 'releaseMeta'>;
-type ReleasesDetailContainerState = {
+
+interface ReleasesDetailContainerState {
   releaseMeta: ReleaseMeta | null;
-} & AsyncComponent['state'];
+}
+
 class ReleasesDetailContainer extends AsyncComponent<
   ReleasesDetailContainerProps,
   ReleasesDetailContainerState

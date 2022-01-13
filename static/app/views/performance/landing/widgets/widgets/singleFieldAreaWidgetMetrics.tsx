@@ -15,9 +15,9 @@ import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {DurationChart, HighlightNumber, Subtitle} from './singleFieldAreaWidget';
 
-type DataType = {
+interface DataType {
   chart: WidgetDataResult & ReturnType<typeof transformMetricsToArea>;
-};
+}
 
 export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
   const api = useApi();

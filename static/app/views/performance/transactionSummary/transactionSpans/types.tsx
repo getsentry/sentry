@@ -15,11 +15,11 @@ export enum SpanSortOthers {
 
 export type SpanSort = SpanSortPercentiles | SpanSortOthers;
 
-export type SpanSortOption = {
+export interface SpanSortOption {
   prefix: string;
   label: string;
   field: SpanSort;
-};
+}
 
 export type SuspectSpanTableColumnKeys =
   | 'id'
@@ -34,12 +34,12 @@ export type SuspectSpanTableColumn = GridColumnOrder<SuspectSpanTableColumnKeys>
 
 export type SuspectSpanDataRow = Record<SuspectSpanTableColumnKeys, any>;
 
-export type SpansTotalValues = {
+export interface SpansTotalValues {
   count: number;
   sum_transaction_duration: number;
-};
+}
 
-export type SpanSlug = {
+export interface SpanSlug {
   op: string;
   group: string;
-};
+}

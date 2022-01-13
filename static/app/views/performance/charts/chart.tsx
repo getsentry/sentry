@@ -11,7 +11,7 @@ import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
-type Props = {
+interface Props {
   data: Series[];
   previousData?: Series[];
   router: InjectedRouter;
@@ -27,7 +27,7 @@ type Props = {
   chartColors?: string[];
   loading: boolean;
   isLineChart?: boolean;
-};
+}
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
 function computeAxisMax(data) {

@@ -12,9 +12,9 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
-type Props = {
+interface Props {
   organization: Organization;
-};
+}
 
 function Resources({organization}: Props) {
   useEffect(() => {

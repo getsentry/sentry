@@ -15,10 +15,10 @@ const pipelineMapper: Record<string, [React.ElementType, string]> = {
   awsLambdaFailureDetails: [AwsLambdaFailureDetails, 'AWS Lambda View Failures'],
 };
 
-type Props = {
+interface Props {
   pipelineName: string;
   [key: string]: any;
-};
+}
 
 /**
  * This component is a wrapper for specific pipeline views for integrations

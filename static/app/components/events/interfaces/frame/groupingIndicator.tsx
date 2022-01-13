@@ -4,9 +4,9 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   className?: string;
-};
+}
 
 function GroupingIndicator({className}: Props) {
   return (

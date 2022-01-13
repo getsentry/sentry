@@ -1,13 +1,15 @@
-export type InviteStatus = {[email: string]: {error?: string; sent: boolean}};
+export interface InviteStatus {
+  [email: string]: {error?: string; sent: boolean};
+}
 
-export type InviteRow = {
+export interface InviteRow {
   emails: Set<string>;
   teams: Set<string>;
   role: string;
-};
+}
 
-export type NormalizedInvite = {
+export interface NormalizedInvite {
   email: string;
   teams: Set<string>;
   role: string;
-};
+}

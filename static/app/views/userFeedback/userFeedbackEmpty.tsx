@@ -14,12 +14,12 @@ import {trackAdhocEvent, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 
-type Props = {
+interface Props {
   organization: Organization;
   projects: Project[];
   loadingProjects: boolean;
   projectIds?: string[];
-};
+}
 
 class UserFeedbackEmpty extends Component<Props> {
   componentDidMount() {

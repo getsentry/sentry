@@ -21,11 +21,11 @@ const RELATIVE_PERIODS = pick(DEFAULT_RELATIVE_PERIODS, [
   '30d',
 ]);
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   projects: Project[];
-};
+}
 
 function TransactionSpans(props: Props) {
   const {location, organization, projects} = props;

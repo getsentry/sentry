@@ -7,10 +7,10 @@ export enum TraceKnownDataType {
   TRANSACTION_NAME = 'transaction_name',
 }
 
-export type TraceKnownData = {
+export interface TraceKnownData {
   trace_id?: string;
   span_id?: string;
   parent_span_id?: string;
   op?: string;
   status?: string;
-};
+}

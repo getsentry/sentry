@@ -6,10 +6,10 @@ import {objectIsEmpty} from 'sentry/utils';
 
 import Chunk from './chunk';
 
-type Props = {
+interface Props {
   event: Event;
   group?: Group;
-};
+}
 
 function Contexts({event, group}: Props) {
   const {user, contexts} = event;

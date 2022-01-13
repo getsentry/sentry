@@ -5,12 +5,12 @@ import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {t} from 'sentry/locale';
 import {objectIsEmpty} from 'sentry/utils';
 
-type Props = {
+interface Props {
   data: {
     formatted: string;
     params?: Record<string, any> | any[];
   };
-};
+}
 
 const Message = ({data}: Props) => {
   const renderParams = () => {

@@ -25,10 +25,10 @@ type Props = RouteComponentProps<{}, {}> & {
   projects: Project[];
 };
 
-type State = {
+interface State {
   eventView: EventView;
   error?: string;
-};
+}
 
 class TrendsSummary extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {

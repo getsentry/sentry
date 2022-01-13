@@ -34,14 +34,14 @@ import {cloneDashboard} from '../utils';
 
 import DashboardCard from './dashboardCard';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   location: Location;
   dashboards: DashboardListItem[] | null;
   pageLinks: string;
   onDashboardsChange: () => void;
-};
+}
 
 function DashboardList({
   api,

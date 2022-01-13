@@ -16,16 +16,16 @@ import {defined} from 'sentry/utils';
 
 import {displayCrashFreePercent} from '../../../utils';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   location: Location;
   organization: Organization;
   version: string;
   projectSlug: string;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   releaseStats?: {usersBreakdown: CrashFreeTimeBreakdown} | null;
-};
+}
 
 class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
   shouldReload = true;

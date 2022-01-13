@@ -11,7 +11,7 @@ import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import TransactionBar from './transactionBar';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
 
-type Props = ScrollbarManagerChildrenProps & {
+interface Props extends ScrollbarManagerChildrenProps {
   location: Location;
   organization: Organization;
   transaction: TraceRoot | TraceFullDetailed;
@@ -24,11 +24,11 @@ type Props = ScrollbarManagerChildrenProps & {
   hasGuideAnchor: boolean;
   renderedChildren: React.ReactNode[];
   barColor?: string;
-};
+}
 
-type State = {
+interface State {
   isExpanded: boolean;
-};
+}
 
 class TransactionGroup extends React.Component<Props, State> {
   state: State = {

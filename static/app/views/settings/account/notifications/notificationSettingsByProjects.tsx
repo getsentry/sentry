@@ -25,18 +25,18 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import Form from 'sentry/views/settings/components/forms/form';
 import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
-type Props = {
+interface Props {
   notificationType: string;
   notificationSettings: NotificationSettingsObject;
   onChange: (
     changedData: NotificationSettingsByProviderObject,
     parentId: string
   ) => NotificationSettingsObject;
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   projects: Project[];
-} & AsyncComponent['state'];
+}
 
 class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
   getDefaultState(): State {

@@ -11,7 +11,7 @@ import SentryAppExternalForm, {
   SchemaFormConfig,
 } from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
-type Props = {
+interface Props {
   group: Group;
   sentryAppInstallation: SentryAppInstallation;
   appName: string;
@@ -19,7 +19,7 @@ type Props = {
   action: 'create' | 'link';
   event: Event;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
-};
+}
 
 export class SentryAppExternalIssueForm extends Component<Props> {
   onSubmitSuccess = (issue: PlatformExternalIssue) => {

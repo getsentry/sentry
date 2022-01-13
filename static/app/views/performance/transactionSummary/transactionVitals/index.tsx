@@ -16,11 +16,11 @@ import Tab from '../tabs';
 import {PERCENTILE, VITAL_GROUPS} from './constants';
 import VitalsContent from './content';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   projects: Project[];
-};
+}
 
 function TransactionVitals(props: Props) {
   const {location, organization, projects} = props;

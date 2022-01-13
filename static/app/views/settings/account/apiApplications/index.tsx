@@ -18,9 +18,10 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 const ROUTE_PREFIX = '/settings/account/api/';
 
 type Props = RouteComponentProps<{}, {}>;
-type State = {
+
+interface State {
   appList: ApiApplication[];
-} & AsyncView['state'];
+}
 
 class ApiApplications extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

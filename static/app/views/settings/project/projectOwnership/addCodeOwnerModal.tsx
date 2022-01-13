@@ -25,22 +25,22 @@ import withApi from 'sentry/utils/withApi';
 import Form from 'sentry/views/settings/components/forms/form';
 import SelectField from 'sentry/views/settings/components/forms/selectField';
 
-type Props = {
+interface Props extends ModalRenderProps {
   api: Client;
   organization: Organization;
   project: Project;
   codeMappings: RepositoryProjectPathConfig[];
   integrations: Integration[];
   onSave: (data: CodeOwner) => void;
-} & ModalRenderProps;
+}
 
-type State = {
+interface State {
   codeownersFile: CodeownersFile | null;
   codeMappingId: string | null;
   isLoading: boolean;
   error: boolean;
   errorJSON: {raw?: string} | null;
-};
+}
 
 class AddCodeOwnerModal extends Component<Props, State> {
   state: State = {

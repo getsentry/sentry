@@ -7,9 +7,9 @@ import {
   CandidateProcessingStatus,
 } from 'sentry/types/debugImage';
 
-type Props = {
+interface Props {
   processingInfo: CandidateProcessingInfo;
-};
+}
 
 function ProcessingIcon({processingInfo}: Props) {
   switch (processingInfo.status) {

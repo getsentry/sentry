@@ -8,11 +8,11 @@ import {SentryAppComponent} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
-type Props = {
+interface Props {
   lineNo: number;
   filename: string;
   components: Array<SentryAppComponent>;
-};
+}
 
 const OpenInContextLine = ({lineNo, filename, components}: Props) => {
   const handleRecordInteraction =

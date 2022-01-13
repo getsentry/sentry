@@ -4,7 +4,7 @@ import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 
 type Data = [number, {count: number}[]][];
 
-export type Incident = {
+export interface Incident {
   dateClosed: string | null;
   dateStarted: string;
   dateDetected: string;
@@ -12,10 +12,10 @@ export type Incident = {
   id: string;
   identifier: string;
   isSubscribed: boolean;
-  groups: string[]; // Array of group ids
+  groups: string[]; // Array of group ids;
   discoverQuery: string;
   organizationId: string;
-  projects: string[]; // Array of slugs
+  projects: string[]; // Array of slugs;
   seenBy: User[];
   status: IncidentStatus;
   statusMethod: IncidentStatusMethod;
@@ -23,30 +23,30 @@ export type Incident = {
   hasSeen: boolean;
   alertRule: IncidentRule;
   activities?: ActivityType[];
-};
+}
 
-export type IncidentStats = {
+export interface IncidentStats {
   eventStats: {
     data: Data;
   };
   totalEvents: number;
   uniqueUsers: number;
-};
+}
 
-export type ActivityTypeDraft = {
+export interface ActivityTypeDraft {
   comment: null | string;
   dateCreated: string;
   id: string;
   incidentIdentifier: string;
   type: IncidentActivityType;
   user: User | null;
-};
+}
 
-export type ActivityType = ActivityTypeDraft & {
+export interface ActivityType extends ActivityTypeDraft {
   eventStats?: {data: Data};
   previousValue: string | null;
   value: string | null;
-};
+}
 
 export enum IncidentActivityType {
   CREATED = 0,
@@ -75,7 +75,7 @@ export enum AlertRuleStatus {
   DISABLED = 5,
 }
 
-export type CombinedMetricIssueAlerts = (IssueAlertRule | IncidentRule) & {
+export interface CombinedMetricIssueAlerts {
   type: string;
   latestIncident?: Incident | null;
-};
+}

@@ -3,12 +3,14 @@ import {Fragment} from 'react';
 import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
 
-type Data = {
+interface Data {
   extensions: [key: string, value: string][];
   modules: [key: string, value: string][];
-};
+}
 
-type State = AsyncView['state'] & {data: Data};
+interface State {
+  data: Data;
+}
 
 export default class AdminPackages extends AsyncView<{}, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

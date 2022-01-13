@@ -2,9 +2,9 @@ import {t} from 'sentry/locale';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 
-export type WidgetTemplate = Widget & {
+export interface WidgetTemplate extends Widget {
   description: string;
-};
+}
 
 export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {

@@ -50,7 +50,7 @@ import {TraceInfo, TraceRoot, TreeDepth} from './types';
 
 const MARGIN_LEFT = 0;
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   index: number;
@@ -64,11 +64,11 @@ type Props = {
   hasGuideAnchor: boolean;
   toggleExpandedState: () => void;
   barColor?: string;
-};
+}
 
-type State = {
+interface State {
   showDetail: boolean;
-};
+}
 
 class TransactionBar extends React.Component<Props, State> {
   state: State = {

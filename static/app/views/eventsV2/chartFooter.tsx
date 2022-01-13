@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
-type Props = {
+interface Props {
   organization: Organization;
   total: number | null;
   yAxisValue: string[];
@@ -24,7 +24,7 @@ type Props = {
   onDisplayChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
   topEvents: string;
-};
+}
 
 export default function ChartFooter({
   organization,

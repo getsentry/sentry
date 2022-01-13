@@ -38,18 +38,18 @@ const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('Recently Viewed'), value: 'recentlyViewed'},
 ];
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   location: Location;
   router: InjectedRouter;
-} & AsyncView['props'];
+}
 
-type State = {
+interface State {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
   showTemplates: boolean;
-} & AsyncView['state'];
+}
 
 class ManageDashboards extends AsyncView<Props, State> {
   getDefaultState() {

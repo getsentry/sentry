@@ -34,9 +34,9 @@ type Props = RouteComponentProps<{}, {}> & {
   loadingProjects: boolean;
 };
 
-type State = {
+interface State {
   eventView: EventView;
-};
+}
 
 class VitalDetail extends Component<Props, State> {
   state: State = {

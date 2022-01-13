@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 
-type Error = {
+interface Error {
   type:
     | 'unknown'
     | 'bad-structure'
@@ -10,13 +10,13 @@ type Error = {
     | 'invalid-key'
     | 'duplicated-key';
   message: string;
-};
+}
 
-type XhrError = {
+interface XhrError {
   responseJSON?: {
     trustedRelays: Array<string>;
   };
-};
+}
 
 function handleError(error: XhrError): Error {
   const errorMessage = error.responseJSON?.trustedRelays[0];

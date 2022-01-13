@@ -13,14 +13,15 @@ export async function loadDeviceListModule() {
   return import('ios-device-list');
 }
 
-type Props = {
+interface Props {
   value: string;
   children?: (name: string) => React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   iOSDeviceList: IOSDeviceList | null;
-};
+}
+
 /**
  * This is used to map iOS Device Names to model name.
  * This asynchronously loads the ios-device-list library because of its size

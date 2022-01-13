@@ -9,7 +9,7 @@ import space from 'sentry/styles/space';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
-type Props = {
+interface Props {
   externalIssueLink?: string | null;
   externalIssueId?: string | null;
   externalIssueKey?: string | null;
@@ -20,7 +20,7 @@ type Props = {
   hoverCardHeader?: React.ReactNode;
   hoverCardBody?: React.ReactNode;
   showHoverCard?: boolean;
-};
+}
 
 class IssueSyncListElement extends React.Component<Props> {
   componentDidUpdate(nextProps) {

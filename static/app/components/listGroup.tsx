@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type ListGroupProps = {
+interface ListGroupProps {
   striped?: boolean;
-};
+}
 
-type ListGroupItemProps = {
+interface ListGroupItemProps {
   centered?: boolean;
-};
+}
 
 const ListGroupItem = styled('li')<ListGroupItemProps>`
   position: relative;

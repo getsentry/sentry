@@ -8,12 +8,12 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {getDisplayLabel, IssueDisplayOptions} from 'sentry/views/issueList/utils';
 
-type Props = {
+interface Props {
   onDisplayChange: (display: string) => void;
   display: IssueDisplayOptions;
   hasSessions: boolean;
   hasMultipleProjectsSelected: boolean;
-};
+}
 
 const IssueListDisplayOptions = ({
   onDisplayChange,

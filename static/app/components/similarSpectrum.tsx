@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   className?: string;
-};
+}
 
 const BaseSimilarSpectrum = ({className}: Props) => (
   <div className={className}>
@@ -23,9 +23,9 @@ const SimilarSpectrum = styled(BaseSimilarSpectrum)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-type ItemProps = {
+interface ItemProps {
   colorIndex: number;
-};
+}
 
 const SpectrumItem = styled('span')<ItemProps>`
   border-radius: 2px;

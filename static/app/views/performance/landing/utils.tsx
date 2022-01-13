@@ -23,10 +23,10 @@ import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
 export const LEFT_AXIS_QUERY_KEY = 'left';
 export const RIGHT_AXIS_QUERY_KEY = 'right';
 
-type LandingDisplay = {
+interface LandingDisplay {
   label: string;
   field: LandingDisplayField;
-};
+}
 
 export enum LandingDisplayField {
   ALL = 'all',
@@ -206,11 +206,11 @@ export function getDefaultDisplayFieldForPlatform(
   return landingField;
 }
 
-type VitalCardDetail = {
+interface VitalCardDetail {
   title: string;
   tooltip: string;
   formatter: (value: number) => string | number;
-};
+}
 
 export const vitalCardDetails = (
   organization: Organization

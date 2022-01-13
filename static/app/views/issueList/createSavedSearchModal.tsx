@@ -13,17 +13,17 @@ import {OnSubmitCallback} from 'sentry/views/settings/components/forms/type';
 
 import {getSortLabel, IssueSortOptions} from './utils';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   api: Client;
   query: string;
   sort?: string;
   organization: Organization;
-};
+}
 
-type State = {
+interface State {
   isSaving: boolean;
   error: string | null;
-};
+}
 
 const DEFAULT_SORT_OPTIONS = [
   IssueSortOptions.DATE,

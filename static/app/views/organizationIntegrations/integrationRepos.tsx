@@ -20,12 +20,12 @@ import {Integration, Organization, Repository} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   integration: Integration;
   organization: Organization;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   adding: boolean;
   dropdownBusy: boolean;
   itemList: Repository[];
@@ -33,7 +33,7 @@ type State = AsyncComponent['state'] & {
     repos: {identifier: string; name: string}[];
     searchable: boolean;
   };
-};
+}
 
 class IntegrationRepos extends AsyncComponent<Props, State> {
   getDefaultState(): State {

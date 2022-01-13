@@ -10,12 +10,12 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, ReleaseProject} from 'sentry/types';
 
-type Props = {
+interface Props {
   projects: ReleaseProject[];
   location: Location;
   version: string;
   organization: Organization;
-};
+}
 
 function OtherProjects({projects, location, version, organization}: Props) {
   return (

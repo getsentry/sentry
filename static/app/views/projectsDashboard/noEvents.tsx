@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   seriesCount: number;
-};
+}
 
 const NoEvents = ({seriesCount}: Props) => (
   <Container>

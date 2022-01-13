@@ -15,9 +15,9 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 import withApi from 'sentry/utils/withApi';
 
-type AdditionalQueryProps = {
+interface AdditionalQueryProps {
   eventId: string;
-};
+}
 
 type TraceLiteQueryChildrenProps = BaseTraceChildrenProps &
   Omit<PartialQuickTrace, 'trace'> & {

@@ -104,7 +104,7 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
   return output;
 }
 
-type Props = {
+interface Props {
   api: Client;
   organization: OrganizationSummary;
   widget: Widget;
@@ -112,16 +112,16 @@ type Props = {
   children: (
     props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
   ) => React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   errorMessage: undefined | string;
   loading: boolean;
   queryFetchID: symbol | undefined;
   timeseriesResults: undefined | Series[];
   rawResults: undefined | RawResult[];
   tableResults: undefined | TableDataWithTitle[];
-};
+}
 
 class WidgetQueries extends React.Component<Props, State> {
   state: State = {

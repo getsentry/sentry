@@ -18,19 +18,17 @@ import {formatUsageWithUnits} from '../utils';
 
 const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
-type Props = {
+interface Props {
   isLoading?: boolean;
   isEmpty?: boolean;
   isError?: boolean;
   errors?: Record<string, Error>;
-
   headers: React.ReactNode[];
-
   dataCategory: DataCategory;
   usageStats: TableStat[];
-};
+}
 
-export type TableStat = {
+export interface TableStat {
   project: Project;
   projectLink: string;
   projectSettingsLink: string;
@@ -38,7 +36,7 @@ export type TableStat = {
   accepted: number;
   filtered: number;
   dropped: number;
-};
+}
 
 class UsageTable extends React.Component<Props> {
   get formatUsageOptions() {

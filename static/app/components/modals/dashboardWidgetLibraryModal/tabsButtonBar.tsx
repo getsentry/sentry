@@ -25,14 +25,14 @@ export enum TAB {
   Custom = 'custom',
 }
 
-type Props = {
+interface Props {
   activeTab: TAB;
   organization: Organization;
   dashboard: DashboardDetails;
   selectedWidgets?: WidgetTemplate[];
   customWidget?: Widget;
   onAddWidget?: (widgets: Widget[]) => void;
-};
+}
 
 export function TabsButtonBar({
   activeTab,

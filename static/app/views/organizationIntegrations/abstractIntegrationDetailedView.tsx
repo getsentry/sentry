@@ -41,9 +41,9 @@ type AlertType = React.ComponentProps<typeof Alert> & {
   text: string;
 };
 
-type State = {
+interface State {
   tab: Tab;
-} & AsyncComponent['state'];
+}
 
 type Props = {
   organization: Organization;

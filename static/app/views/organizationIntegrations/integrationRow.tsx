@@ -25,7 +25,7 @@ import AlertContainer from './integrationAlertContainer';
 import IntegrationStatus from './integrationStatus';
 import PluginDeprecationAlert from './pluginDeprecationAlert';
 
-type Props = {
+interface Props {
   organization: Organization;
   type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration';
   slug: string;
@@ -46,7 +46,7 @@ type Props = {
   customAlert?: React.ReactNode;
   plugin?: PluginWithProjectList;
   customIcon?: React.ReactNode;
-};
+}
 
 const urlMap = {
   plugin: 'plugins',
@@ -196,7 +196,10 @@ const LearnMore = styled(Link)`
   color: ${p => p.theme.gray300};
 `;
 
-type PublishStatusProps = {status: SentryApp['status']; theme?: any};
+interface PublishStatusProps {
+  status: SentryApp['status'];
+  theme?: any;
+}
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   <div {...props}>{t(`${status}`)}</div>

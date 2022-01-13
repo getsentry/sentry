@@ -100,13 +100,13 @@ const MenuItemContent = styled('div')`
   width: 100%;
 `;
 
-type DropdownItemProps = {
+interface DropdownItemProps {
   children: React.ReactNode;
   to?: string | LocationDescriptor;
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
   width?: 'small' | 'large';
-};
+}
 
 export function DropdownItem({
   children,

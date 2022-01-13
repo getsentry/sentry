@@ -28,9 +28,9 @@ type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
   activeReleaseRepo?: Repository;
 } & AsyncView['props'];
 
-type State = {
+interface State {
   commits: Commit[];
-} & AsyncView['state'];
+}
 
 class Commits extends AsyncView<Props, State> {
   getTitle() {

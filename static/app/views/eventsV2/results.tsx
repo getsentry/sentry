@@ -50,7 +50,7 @@ import Table from './table';
 import Tags from './tags';
 import {generateTitle} from './utils';
 
-type Props = {
+interface Props {
   api: Client;
   router: InjectedRouter;
   location: Location;
@@ -58,9 +58,9 @@ type Props = {
   selection: PageFilters;
   savedQuery?: SavedQuery;
   loading: boolean;
-};
+}
 
-type State = {
+interface State {
   eventView: EventView;
   error: string;
   errorCode: number;
@@ -70,7 +70,8 @@ type State = {
   confirmedQuery: boolean;
   incompatibleAlertNotice: React.ReactNode;
   savedQuery?: SavedQuery;
-};
+}
+
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
 function readShowTagsState() {
@@ -579,9 +580,9 @@ const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 
-type SavedQueryState = AsyncComponent['state'] & {
+interface SavedQueryState {
   savedQuery?: SavedQuery | null;
-};
+}
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

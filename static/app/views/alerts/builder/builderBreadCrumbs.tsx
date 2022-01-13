@@ -13,7 +13,7 @@ import withProjects from 'sentry/utils/withProjects';
 import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 import {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
-type Props = {
+interface Props {
   orgSlug: string;
   title: string;
   projectSlug: string;
@@ -22,7 +22,7 @@ type Props = {
   location: Location;
   alertName?: string;
   canChangeProject?: boolean;
-};
+}
 
 function BuilderBreadCrumbs(props: Props) {
   const {

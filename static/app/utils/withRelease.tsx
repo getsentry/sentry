@@ -6,21 +6,21 @@ import ReleaseStore from 'sentry/stores/releaseStore';
 import {Deploy, Organization, Release} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type DependentProps = {
+interface DependentProps {
   api: Client;
   organization: Organization;
   projectSlug: string;
   releaseVersion: string;
-};
+}
 
-type InjectedProps = {
+interface InjectedProps {
   release?: Release;
   releaseLoading?: boolean;
   releaseError?: Error;
   deploys?: Array<Deploy>;
   deploysLoading?: boolean;
   deploysError?: Error;
-};
+}
 
 function withRelease<P extends DependentProps>(WrappedComponent: React.ComponentType<P>) {
   class WithRelease extends React.Component<

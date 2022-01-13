@@ -4,12 +4,12 @@ import Confirm from 'sentry/components/confirm';
 import Switch from 'sentry/components/switchButton';
 import InputField, {onEvent} from 'sentry/views/settings/components/forms/inputField';
 
-type Props = {
+interface Props {
   confirm?: {
     true?: React.ReactNode;
     false?: React.ReactNode;
   };
-} & InputField['props'];
+}
 
 export default class BooleanField extends React.Component<Props> {
   coerceValue(value: any) {

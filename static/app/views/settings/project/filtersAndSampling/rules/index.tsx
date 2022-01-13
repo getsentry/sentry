@@ -12,18 +12,18 @@ import DraggableList, {UpdateItemsProps} from './draggableList';
 import Rule from './rule';
 import {layout} from './utils';
 
-type Props = {
+interface Props {
   rules: Array<DynamicSamplingRule>;
   disabled: boolean;
   onEditRule: (rule: DynamicSamplingRule) => () => void;
   onDeleteRule: (rule: DynamicSamplingRule) => () => void;
   onUpdateRules: (rules: Array<DynamicSamplingRule>) => void;
   emptyMessage: string;
-};
+}
 
-type State = {
+interface State {
   rules: Array<DynamicSamplingRule>;
-};
+}
 
 class Rules extends PureComponent<Props, State> {
   state: State = {rules: []};

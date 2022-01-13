@@ -7,12 +7,12 @@ import {Event} from 'sentry/types/event';
 import DistributedTracingPrompt from './configureDistributedTracing';
 import IssueQuickTrace from './issueQuickTrace';
 
-type Props = {
+interface Props {
   event: Event;
   group: Group;
   organization: Organization;
   location: Location;
-};
+}
 
 function QuickTrace({event, group, organization, location}: Props) {
   const hasPerformanceView = organization.features.includes('performance-view');

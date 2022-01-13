@@ -91,11 +91,11 @@ const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
 type ConditionOrActionProperty = 'conditions' | 'actions' | 'filters';
 
-type RuleTaskResponse = {
+interface RuleTaskResponse {
   status: 'pending' | 'failed' | 'success';
   rule?: IssueAlertRule;
   error?: string;
-};
+}
 
 type Props = {
   project: Project;
@@ -104,7 +104,7 @@ type Props = {
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   detailedError: null | {
     [key: string]: string[];
   };
@@ -116,7 +116,7 @@ type State = AsyncView['state'] & {
   } | null;
   uuid: null | string;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
-};
+}
 
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
   return rule?.hasOwnProperty('id') ?? false;

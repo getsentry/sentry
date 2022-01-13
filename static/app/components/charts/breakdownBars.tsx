@@ -4,19 +4,19 @@ import styled from '@emotion/styled';
 import space from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/formatters';
 
-type Point = {
+interface Point {
   label: string;
   value: number;
   onClick?: () => void;
-};
+}
 
-type Props = {
+interface Props {
   /**
    * The data to display. The caller should order the points
    * in the order they want bars displayed.
    */
   data: Point[];
-};
+}
 
 function BreakdownBars({data}: Props) {
   const total = data.reduce((sum, point) => point.value + sum, 0);

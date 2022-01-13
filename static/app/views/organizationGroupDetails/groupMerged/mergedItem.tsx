@@ -10,16 +10,16 @@ import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
-type Props = {
+interface Props {
   organization: Organization;
   fingerprint: Fingerprint;
-};
+}
 
-type State = {
+interface State {
   collapsed: boolean;
   checked: boolean;
   busy: boolean;
-};
+}
 
 class MergedItem extends React.Component<Props, State> {
   state: State = {

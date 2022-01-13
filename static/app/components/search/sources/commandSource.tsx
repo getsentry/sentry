@@ -9,12 +9,12 @@ import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
 
 import {ChildProps, Result} from './types';
 
-type Action = {
+interface Action {
   title: string;
   description: string;
   requiresSuperuser: boolean;
   action: () => void;
-};
+}
 
 const ACTIONS: Action[] = [
   {
@@ -65,7 +65,7 @@ const ACTIONS: Action[] = [
   },
 ];
 
-type Props = {
+interface Props {
   /**
    * search term
    */
@@ -80,11 +80,11 @@ type Props = {
    * Array of routes to search
    */
   searchMap?: PlainRoute[];
-};
+}
 
-type State = {
+interface State {
   fuzzy: null | Fuse<Action, Fuse.FuseOptions<Action>>;
-};
+}
 
 /**
  * This source is a hardcoded list of action creators and/or routes maybe

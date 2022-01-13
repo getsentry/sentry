@@ -7,12 +7,12 @@ import {crashReportTypes} from 'sentry/views/organizationGroupDetails/groupEvent
 import Alert from '../alert';
 import Link from '../links/link';
 
-type Props = {
+interface Props {
   orgSlug: string;
   projectSlug: string;
   location: Location;
   groupId: string;
-};
+}
 
 const EventAttachmentsCrashReportsNotice = ({
   orgSlug,

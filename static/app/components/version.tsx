@@ -15,7 +15,7 @@ import {formatVersion} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = {
+interface Props {
   /**
    * Raw version (canonical release identifier)
    */
@@ -50,7 +50,7 @@ type Props = {
    */
   truncate?: boolean;
   className?: string;
-};
+}
 
 const Version = ({
   version,

@@ -11,12 +11,12 @@ import space from 'sentry/styles/space';
 import {UserReport} from 'sentry/types';
 import {escape, nl2br} from 'sentry/utils';
 
-type Props = {
+interface Props {
   report: UserReport;
   orgId: string;
   issueId: string;
   className?: string;
-};
+}
 
 class EventUserFeedback extends Component<Props> {
   getUrl() {

@@ -10,18 +10,18 @@ import {SeriesDataUnit} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   since: number;
   resolution: string;
-};
+}
 
-type State = {
+interface State {
   error: boolean;
   loading: boolean;
   rawData: Record<string, TimeseriesValue[]>;
   stats: Record<string, SeriesDataUnit[]>;
-};
+}
 
 const initialState: State = {
   error: false,

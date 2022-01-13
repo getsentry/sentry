@@ -33,7 +33,7 @@ export const METRIC_CHOICES = [
   {label: t('Largest Contentful Paint'), value: 'lcp'},
 ];
 
-type Props = {
+interface Props extends ModalRenderProps {
   api: Client;
   organization: Organization;
   transactionName: string;
@@ -43,13 +43,13 @@ type Props = {
   eventView: EventView;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
-} & ModalRenderProps;
+}
 
-type State = {
+interface State {
   threshold: number | undefined;
   metric: TransactionThresholdMetric | undefined;
   error: string | null;
-};
+}
 
 class TransactionThresholdModal extends React.Component<Props, State> {
   state: State = {

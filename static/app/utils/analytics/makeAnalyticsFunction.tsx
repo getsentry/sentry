@@ -4,7 +4,10 @@ import {trackAnalyticsEventV2} from 'sentry/utils/analytics';
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
-type OptionalOrg = {organization: Organization | null};
+interface OptionalOrg {
+  organization: Organization | null;
+}
+
 type Options = Parameters<Hooks['analytics:track-event-v2']>[1];
 
 /**

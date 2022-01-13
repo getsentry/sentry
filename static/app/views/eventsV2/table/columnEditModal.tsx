@@ -17,7 +17,7 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import ColumnEditCollection from './columnEditCollection';
 
-type Props = {
+interface Props extends ModalRenderProps {
   columns: Column[];
   organization: Organization;
   tagKeys: null | string[];
@@ -25,11 +25,11 @@ type Props = {
   spanOperationBreakdownKeys?: string[];
   // Fired when column selections have been applied.
   onApply: (columns: Column[]) => void;
-} & ModalRenderProps;
+}
 
-type State = {
+interface State {
   columns: Column[];
-};
+}
 
 class ColumnEditModal extends Component<Props, State> {
   state: State = {

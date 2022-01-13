@@ -7,10 +7,10 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import {MetricsSwitchContextContainer} from './metricsSwitch';
 
-type Props = {
+interface Props {
   organization: Organization;
   children: React.ReactChildren;
-};
+}
 
 function PerformanceContainer({organization, children}: Props) {
   function renderNoAccess() {

@@ -7,7 +7,7 @@ import {Theme} from 'sentry/utils/theme';
 
 import {CommonStoreInterface} from './types';
 
-type Alert = {
+interface Alert {
   message: React.ReactNode;
   type: keyof Theme['alert'];
   expireAfter?: number;
@@ -17,7 +17,7 @@ type Alert = {
   neverExpire?: boolean;
   noDuplicates?: boolean;
   onClose?: () => void;
-};
+}
 
 type AlertStoreInterface = CommonStoreInterface<Alert[]> & {
   init(): void;
@@ -25,10 +25,10 @@ type AlertStoreInterface = CommonStoreInterface<Alert[]> & {
   onCloseAlert(alert: Alert, duration?: number): void;
 };
 
-type Internals = {
+interface Internals {
   alerts: Alert[];
   count: number;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & Internals & AlertStoreInterface = {
   listenables: AlertActions,

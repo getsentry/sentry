@@ -33,13 +33,13 @@ type Props = React.ComponentProps<typeof Alert> & {
   Wrapper?: React.ComponentType;
 };
 
-type State = {
+interface State {
   isDismissed: boolean | null;
-};
+}
 
-type AnalyticsOpts = {
+interface AnalyticsOpts {
   organization: Organization;
-};
+}
 
 const recordAnalyticsSeen = ({organization}: AnalyticsOpts) =>
   trackAdvancedAnalyticsEvent('sdk_updates.seen', {organization});

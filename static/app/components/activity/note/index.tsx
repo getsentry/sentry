@@ -12,7 +12,7 @@ import EditorTools from './editorTools';
 import NoteHeader from './header';
 import NoteInput from './input';
 
-type Props = {
+interface Props {
   /**
    * String for author name to be displayed in header.
    *
@@ -57,7 +57,7 @@ type Props = {
    * pass through to ActivityItem. Hides the date/timestamp in header
    */
   hideDate?: boolean;
-};
+}
 
 function Note(props: Props) {
   const [editing, setEditing] = useState(false);

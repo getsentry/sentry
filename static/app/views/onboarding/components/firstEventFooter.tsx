@@ -10,12 +10,12 @@ import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventBu
 
 import FirstEventIndicator from './firstEventIndicator';
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
   docsLink?: string;
   docsOnClick?: () => void;
-};
+}
 
 export default function FirstEventFooter({
   organization,

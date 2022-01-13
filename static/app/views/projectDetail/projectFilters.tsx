@@ -6,11 +6,11 @@ import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 
 import {TagValueLoader} from '../issueList/types';
 
-type Props = {
+interface Props {
   query: string;
   onSearch: (q: string) => void;
   tagValueLoader: TagValueLoader;
-};
+}
 
 function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
   const getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {

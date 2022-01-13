@@ -16,15 +16,15 @@ import ButtonBar from '../../buttonBar';
 import DashboardWidgetLibraryTab from './libraryTab';
 import {TAB, TabsButtonBar} from './tabsButtonBar';
 
-export type DashboardWidgetLibraryModalOptions = {
+export interface DashboardWidgetLibraryModalOptions {
   organization: Organization;
   dashboard: DashboardDetails;
   initialSelectedWidgets?: WidgetTemplate[];
   customWidget?: Widget;
   onAddWidget: (widgets: Widget[]) => void;
-};
+}
 
-type Props = ModalRenderProps & DashboardWidgetLibraryModalOptions;
+interface Props extends ModalRenderProps, DashboardWidgetLibraryModalOptions {}
 
 function DashboardWidgetLibraryModal({
   Header,

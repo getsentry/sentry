@@ -10,15 +10,15 @@ const defaultProps = {
   showProject: false,
 };
 
-type Props = {
+interface Props {
   organization: Organization;
   projectIds: string[];
-} & typeof defaultProps;
+}
 
-type State = {
+interface State {
   issues: ProcessingIssue[];
   loading: boolean;
-};
+}
 
 class ProcessingIssueList extends Component<Props, State> {
   static defaultProps = defaultProps;

@@ -62,15 +62,15 @@ const LoginProviders = ({
   </ProviderWrapper>
 );
 
-type Props = {
+interface Props {
   api: Client;
   authConfig: AuthConfig;
-};
+}
 
-type State = {
+interface State {
   errorMessage: null | string;
   errors: Record<string, string>;
-};
+}
 
 class LoginForm extends Component<Props, State> {
   state: State = {

@@ -7,9 +7,9 @@ import getUnknownData from '../getUnknownData';
 import getRuntimeKnownData from './getRuntimeKnownData';
 import {RuntimeData, RuntimeIgnoredDataType, RuntimeKnownDataType} from './types';
 
-type Props = {
+interface Props {
   data: RuntimeData;
-};
+}
 
 const runtimeKnownDataValues = [RuntimeKnownDataType.NAME, RuntimeKnownDataType.VERSION];
 

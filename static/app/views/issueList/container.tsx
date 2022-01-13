@@ -9,11 +9,11 @@ import {Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import SampleEventAlert from 'sentry/views/organizationGroupDetails/sampleEventAlert';
 
-type Props = {
+interface Props {
   organization: Organization;
   projects: Project[];
   children: React.ReactChildren;
-};
+}
 
 function IssueListContainer({organization, children}: Props) {
   const [showSampleEventBanner, setShowSampleEventBanner] = useState(false);

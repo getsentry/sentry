@@ -2,10 +2,10 @@ import {t} from 'sentry/locale';
 
 import {RuntimeData, RuntimeKnownDataType} from './types';
 
-type Output = {
+interface Output {
   subject: string;
   value?: React.ReactNode;
-};
+}
 
 function getRuntimeKnownDataDetails(
   data: RuntimeData,

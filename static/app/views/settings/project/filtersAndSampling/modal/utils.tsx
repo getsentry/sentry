@@ -162,15 +162,15 @@ const unexpectedErrorMessage = t(
   'An internal error occurred while saving dynamic sampling rule'
 );
 
-type ResponseJSONDetailed = {
+interface ResponseJSONDetailed {
   detail: string[];
-};
+}
 
-type ResponseJSON = {
+interface ResponseJSON {
   dynamicSampling?: {
     rules: Array<Partial<DynamicSamplingRule>>;
   };
-};
+}
 
 export function getErrorMessage(
   error: {

@@ -24,22 +24,19 @@ export enum GenericPerformanceWidgetDataType {
   trends = 'trends',
 }
 
-export type PerformanceWidgetProps = {
+export interface PerformanceWidgetProps {
   chartSetting: PerformanceWidgetSetting;
   chartDefinition: ChartDefinition;
   chartHeight: number;
-
   title: string;
   titleTooltip: string;
   fields: string[];
   chartColor?: string;
-
   eventView: EventView;
   location: Location;
   organization: Organization;
-
   ContainerActions: React.FC<{isLoading: boolean}>;
-};
+}
 
 export interface WidgetDataResult {
   isLoading: boolean;
@@ -50,9 +47,9 @@ export interface WidgetDataConstraint {
   [dataKey: string]: WidgetDataResult | undefined;
 }
 
-export type QueryChildren = {
-  children: (props: any) => React.ReactNode; // TODO(k-fish): Fix any type.
-};
+export interface QueryChildren {
+  children: (props: any) => React.ReactNode; // TODO(k-fish): Fix any type.;
+}
 export type QueryFC<T extends WidgetDataConstraint> = React.FC<
   QueryChildren & {
     fields?: string | string[];
@@ -71,10 +68,10 @@ export type QueryFC<T extends WidgetDataConstraint> = React.FC<
   }
 >;
 
-export type QueryDefinition<
+export interface QueryDefinition<
   T extends WidgetDataConstraint,
   S extends WidgetDataResult | undefined
-> = {
+> {
   component: QueryFC<T>;
   fields: string | string[];
   enabled?: (data: T) => boolean;
@@ -82,14 +79,14 @@ export type QueryDefinition<
     props: GenericPerformanceWidgetProps<T>,
     results: any,
     queryDefinition: QueryDefinitionWithKey<T>
-  ) => S; // TODO(k-fish): Fix any type.
-};
+  ) => S; // TODO(k-fish): Fix any type.;
+}
 export type Queries<T extends WidgetDataConstraint> = Record<
   string,
   QueryDefinition<T, T[string]>
 >;
 
-type Visualization<T> = {
+interface Visualization<T> {
   component: React.FC<{
     widgetData: T;
     queryFields?: string;
@@ -101,8 +98,8 @@ type Visualization<T> = {
   noPadding?: boolean;
   bottomPadding?: boolean;
   queryFields?: string[];
-  height: number; // Used to determine placeholder and loading sizes. Will also be passed to the component.
-};
+  height: number; // Used to determine placeholder and loading sizes. Will also be passed to the component.;
+}
 
 type Visualizations<T extends WidgetDataConstraint> = Readonly<Visualization<T>[]>; // Readonly because of index being used for React key.
 
@@ -114,39 +111,34 @@ type Subtitle<T> = React.FC<{
   widgetData: T;
 }>;
 
-export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
+export interface GenericPerformanceWidgetProps<T extends WidgetDataConstraint> {
   chartSetting: PerformanceWidgetSetting;
   chartDefinition: ChartDefinition;
-
   // Header;
   title: string;
   titleTooltip: string;
-
   fields: string[];
   chartHeight: number;
   containerType: PerformanceWidgetContainerTypes;
-
   location: Location;
   eventView: EventView;
   organization: Organization;
-
   // Components
   Subtitle?: Subtitle<T>;
   HeaderActions?: HeaderActions<T>;
   EmptyComponent?: React.FC<{height?: number}>;
-
   Queries: Queries<T>;
   Visualizations: Visualizations<T>;
-};
+}
 
 export type GenericPerformanceWithData<T extends WidgetDataConstraint> =
   GenericPerformanceWidgetProps<T> & WidgetDataProps<T>;
 
-export type WidgetDataProps<T> = {
+export interface WidgetDataProps<T> {
   widgetData: T;
   setWidgetDataForKey: (dataKey: string, result?: WidgetDataResult) => void;
   removeWidgetDataForKey: (dataKey: string) => void;
-};
+}
 
 export type EventsRequestChildrenProps = RenderProps;
 

@@ -28,18 +28,18 @@ import PostInstallCodeSnippet from './components/integrations/postInstallCodeSni
 import SetupIntroduction from './components/setupIntroduction';
 import {StepProps} from './types';
 
-type Props = StepProps & {
+interface Props extends StepProps {
   api: Client;
   organization: Organization;
   integrationSlug: string;
-};
+}
 
-type State = {
+interface State {
   loadedPlatform: PlatformKey | null;
   hasError: boolean;
   provider: IntegrationProvider | null;
   installed: boolean;
-};
+}
 
 class IntegrationSetup extends Component<Props, State> {
   state: State = {

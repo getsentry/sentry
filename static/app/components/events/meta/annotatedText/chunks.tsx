@@ -5,9 +5,9 @@ import {ChunkType} from 'sentry/types';
 
 import Chunk from './chunk';
 
-type Props = {
+interface Props {
   chunks: Array<ChunkType>;
-};
+}
 
 const Chunks = ({chunks}: Props) => (
   <ChunksSpan>

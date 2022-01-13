@@ -10,7 +10,7 @@ import {Theme} from 'sentry/utils/theme';
 
 import {formatAddress, parseAddress} from '../utils';
 
-type Props = {
+interface Props {
   address: string;
   startingAddress: string | null;
   isAbsolute: boolean;
@@ -23,7 +23,7 @@ type Props = {
    */
   isHoverPreviewed?: boolean;
   className?: string;
-};
+}
 
 function TogglableAddress({
   startingAddress,

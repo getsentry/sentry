@@ -5,14 +5,14 @@ type OnChangeHandler = (
   event: React.ChangeEvent<HTMLInputElement>
 ) => void;
 
-type OptionProps = {
+interface OptionProps {
   label: string;
   value: string;
   name?: string;
   checked?: boolean;
   disabled?: boolean;
   onChange?: OnChangeHandler;
-};
+}
 
 const Option = React.forwardRef(function Option(
   {name, disabled, label, value, checked, onChange}: OptionProps,
@@ -42,7 +42,7 @@ const Option = React.forwardRef(function Option(
   );
 });
 
-type Props = {
+interface Props {
   disabled?: boolean;
   name?: string;
   value?: boolean;
@@ -50,7 +50,7 @@ type Props = {
   noLabel?: string;
   yesFirst?: boolean;
   onChange?: OnChangeHandler;
-};
+}
 
 const RadioBoolean = React.forwardRef(function RadioBoolean(
   {

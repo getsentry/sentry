@@ -30,18 +30,18 @@ import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {groupByTrend} from './utils';
 
-type Props = AsyncComponent['props'] & {
+interface Props extends DateTimeObject {
   organization: Organization;
   projects: Project[];
   period?: string;
-} & DateTimeObject;
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   /** weekly selected date range */
   periodSessions: SessionApiResponse | null;
   /** Locked to last 7 days */
   weekSessions: SessionApiResponse | null;
-};
+}
 
 class TeamStability extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;

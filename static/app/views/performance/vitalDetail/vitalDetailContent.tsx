@@ -39,7 +39,7 @@ import VitalInfo from './vitalInfo';
 
 const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
-type Props = {
+interface Props {
   location: Location;
   eventView: EventView;
   organization: Organization;
@@ -47,12 +47,12 @@ type Props = {
   router: InjectedRouter;
   vitalName: WebVital;
   isMetricsData: boolean;
-};
+}
 
-type State = {
+interface State {
   incompatibleAlertNotice: React.ReactNode;
   error: string | undefined;
-};
+}
 
 function getSummaryConditions(query: string) {
   const parsed = new MutableSearch(query);

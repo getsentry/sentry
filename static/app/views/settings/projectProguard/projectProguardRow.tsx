@@ -14,12 +14,12 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
 
-type Props = {
+interface Props {
   mapping: DebugFile;
   onDelete: (id: string) => void;
   downloadUrl: string;
   downloadRole: string;
-};
+}
 
 const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Props) => {
   const {id, debugId, uuid, size, dateCreated} = mapping;

@@ -22,7 +22,7 @@ import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/iss
 
 import RuleNode from './ruleNode';
 
-type Props = {
+interface Props {
   project: Project;
   organization: Organization;
   /**
@@ -44,7 +44,7 @@ type Props = {
   onAddRow: (value: string) => void;
   onResetRow: (ruleIndex: number, name: string, value: string) => void;
   onDeleteRow: (ruleIndex: number) => void;
-};
+}
 
 class RuleNodeList extends React.Component<Props> {
   getNode = (

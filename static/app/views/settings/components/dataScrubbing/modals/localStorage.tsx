@@ -6,10 +6,10 @@ import {SourceSuggestion} from '../types';
 
 const ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY = 'advanced-data-scrubbing';
 
-type StorageValue = {
+interface StorageValue {
   eventId: string;
   sourceSuggestions: Array<SourceSuggestion>;
-};
+}
 
 // TODO(Priscila): add the method below in app/utils
 function fetchFromStorage(): StorageValue | undefined {

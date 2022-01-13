@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-type ClickProps<T> = {
+interface ClickProps<T> {
   onClick?: React.HTMLAttributes<T>['onClick'];
-};
+}
 
 type Props<T extends HTMLElement> = ClickProps<T> & {
   children: React.ReactElement<T>;
 };
 
-type State = {
+interface State {
   startCoords?: [number, number];
-};
+}
 
 /**
  * Does not fire the onlick event if the mouse has moved outside of the

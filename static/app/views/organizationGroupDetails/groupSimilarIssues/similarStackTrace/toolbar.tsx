@@ -10,10 +10,10 @@ import GroupingStore from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
-type Props = {
+interface Props {
   onMerge: () => void;
   v2: boolean;
-};
+}
 
 const initialState = {
   mergeCount: 0,

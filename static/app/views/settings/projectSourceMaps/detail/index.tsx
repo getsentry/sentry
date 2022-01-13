@@ -29,16 +29,20 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
-type RouteParams = {orgId: string; projectId: string; name: string};
+interface RouteParams {
+  orgId: string;
+  projectId: string;
+  name: string;
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   project: Project;
 };
 
-type State = AsyncView['state'] & {
+interface State {
   artifacts: Artifact[];
-};
+}
 
 class ProjectSourceMapsDetail extends AsyncView<Props, State> {
   getTitle() {

@@ -12,17 +12,16 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 
-type Props = ModalRenderProps &
-  TeamAccessRequestModalOptions & {
-    api: Client;
-    memberId: string;
-    teamId: string;
-    orgId: string;
-  };
+interface Props extends ModalRenderProps, TeamAccessRequestModalOptions {
+  api: Client;
+  memberId: string;
+  teamId: string;
+  orgId: string;
+}
 
-type State = {
+interface State {
   createBusy: boolean;
-};
+}
 
 class CreateTeamAccessRequest extends Component<Props, State> {
   state: State = {

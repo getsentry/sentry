@@ -28,9 +28,9 @@ type Props = {
   project: Project;
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
-type State = {
+interface State {
   keyList: ProjectKey[];
-} & AsyncView['state'];
+}
 
 class ProjectKeys extends AsyncView<Props, State> {
   getTitle() {

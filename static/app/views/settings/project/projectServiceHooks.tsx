@@ -20,12 +20,12 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import Field from 'sentry/views/settings/components/forms/field';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-type RowProps = {
+interface RowProps {
   orgId: string;
   projectId: string;
   hook: ServiceHook;
   onToggleActive: () => void;
-};
+}
 
 function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   return (
@@ -57,9 +57,9 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
 };
 
-type State = {
+interface State {
   hookList: null | ServiceHook[];
-} & AsyncView['state'];
+}
 
 class ProjectServiceHooks extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

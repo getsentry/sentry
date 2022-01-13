@@ -25,11 +25,11 @@ import ListItem from '../list/listItem';
 
 import SidebarPanelItem from './sidebarPanelItem';
 
-type Props = {
+interface Props {
   projects: Project[];
   organization: Organization;
   sdkUpdates?: ProjectSdkUpdates[] | null;
-};
+}
 
 const flattenSuggestions = (list: ProjectSdkUpdates[]) =>
   list.reduce<SDKUpdatesSuggestion[]>(

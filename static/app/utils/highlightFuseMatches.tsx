@@ -1,14 +1,14 @@
 import * as React from 'react';
 
-type Match = {
+interface Match {
   value: string;
   indices: [number, number][];
-};
+}
 
-type HighlightResult = {
+interface HighlightResult {
   highlight: boolean;
   text: string;
-};
+}
 
 type MatchResult = HighlightResult[];
 

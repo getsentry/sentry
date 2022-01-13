@@ -9,12 +9,12 @@ import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ProcessingIssue} from 'sentry/types';
 
-type Props = {
+interface Props {
   showProject: boolean;
   issue: ProcessingIssue;
   orgId: string;
   projectId: string;
-};
+}
 
 function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
   const link = `/settings/${orgId}/projects/${projectId}/processing-issues/`;

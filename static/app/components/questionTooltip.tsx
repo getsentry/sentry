@@ -5,10 +5,10 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {IconSize} from 'sentry/utils/theme';
 
-type ContainerProps = {
+interface ContainerProps {
   className?: string;
   size: IconSize | string;
-};
+}
 
 const QuestionIconContainer = styled('span')<ContainerProps>`
   display: inline-block;

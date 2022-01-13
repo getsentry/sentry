@@ -17,20 +17,20 @@ import TransactionThresholdModal, {
   TransactionThresholdMetric,
 } from './transactionThresholdModal';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   transactionName: string;
   projects: Project[];
   eventView: EventView;
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
-};
+}
 
-type State = {
+interface State {
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
   loadingThreshold: boolean;
-};
+}
 
 class TransactionThresholdButton extends Component<Props, State> {
   state: State = {

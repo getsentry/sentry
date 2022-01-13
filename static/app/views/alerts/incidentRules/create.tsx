@@ -12,11 +12,11 @@ import {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
 import RuleForm from './ruleForm';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   projectId: string;
   ruleId?: string;
-};
+}
 
 type Props = {
   organization: Organization;

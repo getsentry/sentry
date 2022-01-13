@@ -16,23 +16,23 @@ const defaultHelp = t(
   'Where to look. In the simplest case this can be an attribute name.'
 );
 
-type Props = {
+interface Props {
   value: string;
   onChange: (value: string) => void;
   isRegExMatchesSelected: boolean;
   suggestions: Array<SourceSuggestion>;
   error?: string;
   onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
-};
+}
 
-type State = {
+interface State {
   suggestions: Array<SourceSuggestion>;
   fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>;
   activeSuggestion: number;
   showSuggestions: boolean;
   hideCaret: boolean;
   help: string;
-};
+}
 
 class SourceField extends React.Component<Props, State> {
   state: State = {

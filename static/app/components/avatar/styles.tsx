@@ -1,10 +1,10 @@
 import {css} from '@emotion/react';
 
-export type ImageStyleProps = {
+export interface ImageStyleProps {
   round?: boolean;
   suggested?: boolean;
   grayscale?: boolean;
-};
+}
 
 export const imageStyle = (props: ImageStyleProps) => css`
   position: absolute;

@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'sentry/constants';
 
-export type GetActorArgs<E extends Element> = {
+export interface GetActorArgs<E extends Element> {
   onClick?: (e: React.MouseEvent<E>) => void;
   onMouseEnter?: (e: React.MouseEvent<E>) => void;
   onMouseLeave?: (e: React.MouseEvent<E>) => void;
@@ -13,9 +13,9 @@ export type GetActorArgs<E extends Element> = {
   onChange?: (e: React.ChangeEvent<E>) => void;
   style?: React.CSSProperties;
   className?: string;
-};
+}
 
-export type GetMenuArgs<E extends Element> = {
+export interface GetMenuArgs<E extends Element> {
   onClick?: (e: React.MouseEvent<E>) => void;
   onMouseEnter?: (e: React.MouseEvent<E>) => void;
   onMouseLeave?: (e: React.MouseEvent<E>) => void;
@@ -23,22 +23,20 @@ export type GetMenuArgs<E extends Element> = {
   onKeyDown?: (event: React.KeyboardEvent<E>) => void;
   className?: string;
   itemCount?: number;
-};
+}
 
-// Props for the "actor" element of `<DropdownMenu>`
-// This is the element that handles visibility of the dropdown menu
-type ActorProps<E extends Element> = {
+interface ActorProps<E extends Element> {
   onClick: (e: React.MouseEvent<E>) => void;
   onMouseEnter: (e: React.MouseEvent<E>) => void;
   onMouseLeave: (e: React.MouseEvent<E>) => void;
   onKeyDown: (e: React.KeyboardEvent<E>) => void;
-};
+}
 
-type MenuProps<E extends Element> = {
+interface MenuProps<E extends Element> {
   onClick: (e: React.MouseEvent<E>) => void;
   onMouseEnter: (e: React.MouseEvent<E>) => void;
   onMouseLeave: (e: React.MouseEvent<E>) => void;
-};
+}
 
 export type GetActorPropsFn = <E extends Element = Element>(
   opts?: GetActorArgs<E>
@@ -48,7 +46,7 @@ export type GetMenuPropsFn = <E extends Element = Element>(
   opts?: GetMenuArgs<E>
 ) => MenuProps<E>;
 
-type RenderProps = {
+interface RenderProps {
   isOpen: boolean;
   getRootProps: Function;
   getActorProps: GetActorPropsFn;
@@ -57,9 +55,9 @@ type RenderProps = {
     open: (event?: React.MouseEvent<Element>) => void;
     close: (event?: React.MouseEvent<Element>) => void;
   };
-};
+}
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Keeps dropdown menu open when menu is clicked
    */
@@ -68,9 +66,9 @@ type DefaultProps = {
    * closes menu on "Esc" keypress
    */
   closeOnEscape: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   onOpen?: Function;
   onClose?: Function;
   /**
@@ -103,11 +101,11 @@ type Props = DefaultProps & {
    * Render function
    */
   children: (renderProps: RenderProps) => React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   isOpen: boolean;
-};
+}
 
 class DropdownMenu extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

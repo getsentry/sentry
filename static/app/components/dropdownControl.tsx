@@ -12,7 +12,7 @@ import Tooltip from 'sentry/components/tooltip';
 
 type ButtonPriority = React.ComponentProps<typeof DropdownButton>['priority'];
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Should the menu contents always be rendered?  Defaults to true.
    * Set to false to have menu contents removed from the DOM on close.
@@ -22,19 +22,19 @@ type DefaultProps = {
    * Width of the menu. Defaults to 100% of the button width.
    */
   menuWidth: string;
-};
+}
 
-type ChildrenArgs = {
+interface ChildrenArgs {
   isOpen: boolean;
   getMenuProps: GetMenuPropsFn;
-};
+}
 
-type ButtonArgs = {
+interface ButtonArgs {
   isOpen: boolean;
   getActorProps: GetActorPropsFn;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   children:
     | ((args: ChildrenArgs) => React.ReactElement)
     | React.ReactElement
@@ -65,11 +65,9 @@ type Props = DefaultProps & {
    * actor (opener) component
    */
   blendWithActor?: boolean;
-
   priority?: ButtonPriority;
-
   className?: string;
-};
+}
 
 /*
  * A higher level dropdown component that helps with building complete dropdowns

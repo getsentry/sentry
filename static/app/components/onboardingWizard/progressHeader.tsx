@@ -6,10 +6,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'sentry/types';
 
-type Props = {
+interface Props {
   allTasks: OnboardingTaskDescriptor[];
   completedTasks: OnboardingTaskStatus[];
-};
+}
 
 function ProgressHeader({allTasks, completedTasks}: Props) {
   const theme = useTheme();

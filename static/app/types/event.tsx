@@ -16,14 +16,14 @@ export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 /**
  * Grouping Configuration.
  */
-export type EventGroupComponent = {
+export interface EventGroupComponent {
   contributes: boolean;
   hint: string | null;
   id: string;
   name: string | null;
   values: EventGroupComponent[] | string[];
-};
-export type EventGroupingConfig = {
+}
+export interface EventGroupingConfig {
   base: string | null;
   changelog: string;
   delegates: string[];
@@ -32,7 +32,7 @@ export type EventGroupingConfig = {
   latest: boolean;
   risk: number;
   strategies: string[];
-};
+}
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
@@ -42,7 +42,7 @@ export enum EventGroupVariantType {
   SALTED_COMPONENT = 'salted-component',
 }
 
-export type EventGroupVariant = {
+export interface EventGroupVariant {
   description: string | null;
   hash: string | null;
   hashMismatch: boolean;
@@ -53,34 +53,31 @@ export type EventGroupVariant = {
   matched_rule?: string;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
-};
+}
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-/**
- * SDK Update metadata
- */
-type EnableIntegrationSuggestion = {
+interface EnableIntegrationSuggestion {
   type: 'enableIntegration';
   integrationName: string;
   enables: Array<SDKUpdatesSuggestion>;
   integrationUrl?: string | null;
-};
+}
 
-export type UpdateSdkSuggestion = {
+export interface UpdateSdkSuggestion {
   type: 'updateSdk';
   sdkName: string;
   newSdkVersion: string;
   enables: Array<SDKUpdatesSuggestion>;
   sdkUrl?: string | null;
-};
+}
 
-type ChangeSdkSuggestion = {
+interface ChangeSdkSuggestion {
   type: 'changeSdk';
   newSdkName: string;
   enables: Array<SDKUpdatesSuggestion>;
   sdkUrl?: string | null;
-};
+}
 
 export type SDKUpdatesSuggestion =
   | EnableIntegrationSuggestion
@@ -99,7 +96,7 @@ export interface Thread {
   name?: string | null;
 }
 
-export type Frame = {
+export interface Frame {
   absPath: string | null;
   colNo: number | null;
   context: Array<[number, string]>;
@@ -125,7 +122,7 @@ export type Frame = {
   isSentinel?: boolean;
   isPrefix?: boolean;
   minGroupingLevel?: number;
-};
+}
 
 export enum FrameBadge {
   SENTINEL = 'sentinel',
@@ -133,7 +130,7 @@ export enum FrameBadge {
   GROUPING = 'grouping',
 }
 
-export type ExceptionValue = {
+export interface ExceptionValue {
   type: string;
   value: string;
   threadId: number | null;
@@ -142,13 +139,13 @@ export type ExceptionValue = {
   mechanism: StackTraceMechanism | null;
   module: string | null;
   frames?: Frame[] | null;
-};
+}
 
-export type ExceptionType = {
+export interface ExceptionType {
   excOmitted: any | null;
   hasSystemFrames: boolean;
   values?: Array<ExceptionValue>;
-};
+}
 
 export type TreeLabelPart =
   | string
@@ -166,7 +163,7 @@ export type TreeLabelPart =
     };
 
 // This type is incomplete
-export type EventMetadata = {
+export interface EventMetadata {
   value?: string;
   message?: string;
   directive?: string;
@@ -181,7 +178,7 @@ export type EventMetadata = {
   finest_tree_label?: TreeLabelPart[];
   current_level?: number;
   display_title_with_tree_label?: boolean;
-};
+}
 
 export enum EventOrGroupType {
   ERROR = 'error',
@@ -212,51 +209,51 @@ export enum EntryType {
   SPANS = 'spans',
 }
 
-type EntryDebugMeta = {
+interface EntryDebugMeta {
   type: EntryType.DEBUGMETA;
   data: {
     images: Array<DebugImage>;
   };
-};
+}
 
-type EntryBreadcrumbs = {
+interface EntryBreadcrumbs {
   type: EntryType.BREADCRUMBS;
   data: {
     values: Array<RawCrumb>;
   };
-};
+}
 
-export type EntryThreads = {
+export interface EntryThreads {
   type: EntryType.THREADS;
   data: {
     values?: Array<Thread>;
   };
-};
+}
 
-export type EntryException = {
+export interface EntryException {
   type: EntryType.EXCEPTION;
   data: ExceptionType;
-};
+}
 
-type EntryStacktrace = {
+interface EntryStacktrace {
   type: EntryType.STACKTRACE;
   data: StacktraceType;
-};
+}
 
-type EntrySpans = {
+interface EntrySpans {
   type: EntryType.SPANS;
-  data: any; // data is not used
-};
+  data: any; // data is not used;
+}
 
-type EntryMessage = {
+interface EntryMessage {
   type: EntryType.MESSAGE;
   data: {
     formatted: string;
     params?: Record<string, any> | any[];
   };
-};
+}
 
-export type EntryRequest = {
+export interface EntryRequest {
   type: EntryType.REQUEST;
   data: {
     url: string;
@@ -273,22 +270,22 @@ export type EntryRequest = {
       | 'application/x-www-form-urlencoded'
       | 'multipart/form-data';
   };
-};
+}
 
-type EntryTemplate = {
+interface EntryTemplate {
   type: EntryType.TEMPLATE;
   data: Frame;
-};
+}
 
-type EntryCsp = {
+interface EntryCsp {
   type: EntryType.CSP;
   data: Record<string, any>;
-};
+}
 
-type EntryGeneric = {
+interface EntryGeneric {
   type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
   data: Record<string, any>;
-};
+}
 
 export type Entry =
   | EntryDebugMeta
@@ -303,51 +300,55 @@ export type Entry =
   | EntryCsp
   | EntryGeneric;
 
-// Contexts
-type RuntimeContext = {
+interface RuntimeContext {
   type: 'runtime';
   version: number;
   build?: string;
   name?: string;
-};
+}
 
-type DeviceContext = {
+interface DeviceContext {
   arch: string;
   family: string;
   model: string;
   type: string;
-};
+}
 
-type OSContext = {
+interface OSContext {
   kernel_version: string;
   version: string;
   type: string;
   build: string;
   name: string;
-};
+}
 
-type EventContexts = {
+interface EventContexts {
   runtime?: RuntimeContext;
   trace?: TraceContextType;
   device?: DeviceContext;
   os?: OSContext;
   client_os?: OSContext;
-};
+}
 
-export type Measurement = {value: number};
+export interface Measurement {
+  value: number;
+}
 
-export type EventTag = {key: string; value: string};
+export interface EventTag {
+  key: string;
+  value: string;
+}
 
-export type EventUser = {
+export interface EventUser {
   username?: string | null;
   name?: string | null;
   ip_address?: string;
   email?: string;
   id?: string;
   data?: string | null;
-};
+}
 
-type EventBase = {
+interface EventBase {
   id: string;
   type:
     | EventOrGroupType.CSP
@@ -396,7 +397,7 @@ type EventBase = {
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
   measurements?: Record<string, Measurement>;
   release?: Release | null;
-};
+}
 
 export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
   entries: (EntrySpans | EntryRequest)[];
@@ -424,10 +425,10 @@ export type Event = EventError | EventTransaction | EventBase;
 
 // Response from EventIdLookupEndpoint
 // /organizations/${orgSlug}/eventids/${eventId}/
-export type EventIdResponse = {
+export interface EventIdResponse {
   organizationSlug: string;
   projectSlug: string;
   groupId: string;
   eventId: string;
   event: Event;
-};
+}

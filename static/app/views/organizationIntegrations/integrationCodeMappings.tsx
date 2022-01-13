@@ -37,16 +37,16 @@ import withProjects from 'sentry/utils/withProjects';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   integration: Integration;
   organization: Organization;
   projects: Project[];
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   pathConfigs: RepositoryProjectPathConfig[];
   repos: Repository[];
-};
+}
 
 class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   getDefaultState(): State {

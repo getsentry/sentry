@@ -25,14 +25,14 @@ type Props = {
   'params'
 >;
 
-type State = {
+interface State {
   since: number;
   until: number;
   loading: boolean;
   error: boolean;
   series: Series[];
   emptyStats: boolean;
-};
+}
 
 const getInitialState = (): State => {
   const until = Math.floor(new Date().getTime() / 1000);

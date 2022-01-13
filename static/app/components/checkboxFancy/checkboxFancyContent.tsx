@@ -1,9 +1,9 @@
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
 
-type Props = {
+interface Props {
   isChecked?: boolean;
   isIndeterminate?: boolean;
-};
+}
 
 const CheckboxFancyContent = ({isChecked, isIndeterminate}: Props) => {
   if (isIndeterminate) {

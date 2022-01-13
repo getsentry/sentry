@@ -19,17 +19,17 @@ import {
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
-type Props = {
+interface Props {
   closeModal: () => void;
   sentryApp: SentryApp;
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   featureData: IntegrationFeature[];
-} & AsyncComponent['state'];
+}
 
 // No longer a modal anymore but yea :)
 export default class SentryAppDetailsModal extends AsyncComponent<Props, State> {

@@ -14,15 +14,15 @@ import space from 'sentry/styles/space';
 import {EntryRequest, Event} from 'sentry/types/event';
 import {isUrl} from 'sentry/utils';
 
-type Props = {
+interface Props {
   event: Event;
   type: string;
   data: EntryRequest['data'];
-};
+}
 
-type State = {
+interface State {
   view: string;
-};
+}
 
 class RequestInterface extends React.Component<Props, State> {
   state: State = {

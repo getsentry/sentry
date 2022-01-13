@@ -14,10 +14,10 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Commit, User} from 'sentry/types';
 
-type Props = {
+interface Props {
   commit: Commit;
   customAvatar?: React.ReactNode;
-};
+}
 
 class CommitRow extends React.Component<Props> {
   renderMessage(message: Commit['message']): string {

@@ -10,15 +10,15 @@ import HistogramChart from '../chart/histogramChart';
 
 import {getAxisOrBackupAxis, getBackupField} from './utils';
 
-type DisplayProps = {
+interface DisplayProps {
   location: Location;
   organization: Organization;
   eventView: EventView;
   axis: AxisOption;
-  onFilterChange: (minValue: number, maxValue: number) => void; // only used for distribution graphs
+  onFilterChange: (minValue: number, maxValue: number) => void; // only used for distribution graphs;
   didReceiveMultiAxis?: (useBackup: boolean) => void;
   usingBackupAxis: boolean;
-};
+}
 
 export function SingleAxisChart(props: DisplayProps) {
   const {

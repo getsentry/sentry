@@ -7,13 +7,13 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 
-type Props = {
+interface Props {
   selection: PageFilters;
   statsPeriod: string;
   onSelectStatsPeriod: (statsPeriod: string) => void;
   isReprocessingQuery: boolean;
   anySelected?: boolean;
-};
+}
 
 function Headers({
   selection,

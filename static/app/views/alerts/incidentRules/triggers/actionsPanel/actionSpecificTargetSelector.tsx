@@ -2,11 +2,11 @@ import {t} from 'sentry/locale';
 import {Action, ActionType, TargetType} from 'sentry/views/alerts/incidentRules/types';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
-type Props = {
+interface Props {
   action: Action;
   disabled: boolean;
   onChange: (value: string) => void;
-};
+}
 
 function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
   const handleChangeSpecificTargetIdentifier = (

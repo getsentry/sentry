@@ -8,9 +8,9 @@ import Badge from './badge';
 
 type Props = React.ComponentProps<typeof Badge>;
 
-type State = {
+interface State {
   team: Team;
-};
+}
 
 class TeamBadgeContainer extends React.Component<Props, State> {
   state: State = {team: this.props.team};

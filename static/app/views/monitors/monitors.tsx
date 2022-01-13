@@ -28,9 +28,9 @@ type Props = AsyncView['props'] &
     organization: Organization;
   };
 
-type State = AsyncView['state'] & {
+interface State {
   monitorList: Monitor[] | null;
-};
+}
 
 class Monitors extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

@@ -30,10 +30,10 @@ import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   teamId: string;
-};
+}
 
 type Props = {
   api: Client;
@@ -41,13 +41,13 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<RouteParams, {}>;
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
   dropdownBusy: boolean;
   teamMemberList: Member[];
   orgMemberList: Member[];
-};
+}
 
 class TeamMembers extends React.Component<Props, State> {
   state: State = {

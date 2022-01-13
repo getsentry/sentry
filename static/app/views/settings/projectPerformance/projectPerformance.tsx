@@ -23,16 +23,16 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   project: Project;
 };
 
-type ProjectThreshold = {
+interface ProjectThreshold {
   id?: string;
   threshold: string;
   metric: string;
   editedBy?: string;
-};
+}
 
-type State = AsyncView['state'] & {
+interface State {
   threshold: ProjectThreshold;
-};
+}
 
 class ProjectPerformance extends AsyncView<Props, State> {
   getTitle() {

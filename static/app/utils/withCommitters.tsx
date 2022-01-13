@@ -7,21 +7,17 @@ import {AvatarProject, Committer, Group, Organization, Project} from 'sentry/typ
 import {Event} from 'sentry/types/event';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type DependentProps = {
+interface DependentProps {
   api: Client;
-
   organization: Organization;
   project: Project | AvatarProject;
   event: Event;
   group?: Group;
-};
+}
 
-// XXX: State does not include loading/error because components using this
-// HOC (suggestedOwners, eventCause) do not have loading/error states. However,
-// the store maintains those states if it is needed in the future.
-type InjectedProps = {
+interface InjectedProps {
   committers?: Committer[];
-};
+}
 
 const initialState: InjectedProps = {
   committers: [],

@@ -41,20 +41,20 @@ const TWO_FACTOR_REQUIRED = t(
   'Cannot be reset since two-factor is required for this organization'
 );
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   memberId: string;
-};
+}
 
 type Props = {
   organization: Organization;
 } & RouteComponentProps<RouteParams, {}>;
 
-type State = {
+interface State {
   roleList: Member['roles'];
   selectedRole: Member['role'];
   member: Member | null;
-} & AsyncView['state'];
+}
 
 const DisabledMemberTooltip = HookOrDefault({
   hookName: 'component:disabled-member-tooltip',

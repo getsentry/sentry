@@ -14,11 +14,11 @@ import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
 import IssueEditor from 'sentry/views/alerts/issueRuleEditor';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   projectId: string;
   ruleId: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -26,9 +26,9 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
 };
 
-type State = {
+interface State {
   ruleName: string;
-};
+}
 
 class ProjectAlertsEditor extends Component<Props, State> {
   state: State = {

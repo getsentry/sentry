@@ -6,11 +6,11 @@ import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/
 import Item, {ItemProps} from './item';
 import SortableItem, {SortableItemProps} from './sortableItem';
 
-export type UpdateItemsProps = {
+export interface UpdateItemsProps {
   activeIndex: string;
   overIndex: string;
   reorderedItems: Array<string>;
-};
+}
 
 type DefaultProps = Pick<
   SortableItemProps,
@@ -22,9 +22,9 @@ type Props = Pick<ItemProps, 'renderItem'> & {
   onUpdateItems: (props: UpdateItemsProps) => void;
 } & DefaultProps;
 
-type State = {
+interface State {
   activeId?: string;
-};
+}
 
 class DraggableList extends Component<Props, State> {
   static defaultProps: DefaultProps = {

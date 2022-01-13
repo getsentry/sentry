@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 
 import {DashboardDetails} from '../types';
 
-type Props = {
+interface Props {
   title: string;
   orgSlug: string;
   goBackLocation: React.ComponentProps<typeof Link>['to'];
@@ -21,7 +21,7 @@ type Props = {
   onDelete?: () => void;
   disabled?: boolean;
   isEditing?: boolean;
-};
+}
 
 function Header({
   title,

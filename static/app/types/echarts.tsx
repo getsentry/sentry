@@ -1,16 +1,16 @@
 import type {AxisPointerComponentOption, ECharts, LineSeriesOption} from 'echarts';
 import type ReactEchartsCore from 'echarts-for-react/lib/core';
 
-export type SeriesDataUnit = {
+export interface SeriesDataUnit {
   value: number;
-  name: string | number; // number because we sometimes use timestamps
+  name: string | number; // number because we sometimes use timestamps;
   onClick?: (series: Series, instance: ECharts) => void;
   itemStyle?: {
     color?: string;
   };
-};
+}
 
-export type Series = {
+export interface Series {
   seriesName: string;
   data: SeriesDataUnit[];
   color?: string;
@@ -19,14 +19,14 @@ export type Series = {
     opacity: number;
   };
   lineStyle?: AxisPointerComponentOption['lineStyle'];
-  stack?: string; // https://echarts.apache.org/en/option.html#series-line.stack
-  z?: number; // https://echarts.apache.org/en/option.html#series-line.z
+  stack?: string; // https://echarts.apache.org/en/option.html#series-line.stack;
+  z?: number; // https://echarts.apache.org/en/option.html#series-line.z;
   markLine?: LineSeriesOption['markLine'];
-};
+}
 
-export type ReactEchartsRef = ReactEchartsCore & {
+export interface ReactEchartsRef extends ReactEchartsCore {
   getEchartsInstance: () => ECharts;
-};
+}
 
 export type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 

@@ -40,7 +40,7 @@ const axisIndexToSessionsField = {
   [usersAxisIndex]: SessionField.USERS,
 };
 
-type Props = {
+interface Props extends WithRouterProps {
   release: ReleaseWithHealth;
   project: ReleaseProject;
   environment: string[];
@@ -49,7 +49,7 @@ type Props = {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
-} & WithRouterProps;
+}
 
 function ReleaseAdoption({
   release,

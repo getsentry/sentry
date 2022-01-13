@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   onClick: (value: string, e?: React.MouseEvent) => void;
   value: string;
   label: React.ReactNode;
   selected: boolean;
   last?: boolean;
   className?: string;
-};
+}
 
 const BaseSelectorItem = ({onClick, value, className, label}: Props) => (
   <div className={className} onClick={e => onClick(value, e)}>

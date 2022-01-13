@@ -22,19 +22,19 @@ import withApi from 'sentry/utils/withApi';
 
 import SentryAppExternalIssueModal from './sentryAppExternalIssueModal';
 
-type Props = {
+interface Props {
   api: Client;
   group: Group;
   sentryAppComponent: SentryAppComponent;
   sentryAppInstallation: SentryAppInstallation;
   externalIssue?: PlatformExternalIssue;
   event: Event;
-};
+}
 
-type State = {
+interface State {
   action: 'create' | 'link';
   externalIssue?: PlatformExternalIssue;
-};
+}
 
 class SentryAppExternalIssueActions extends React.Component<Props, State> {
   state: State = {

@@ -4,11 +4,11 @@ import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {getBackgroundColor} from 'sentry/components/performance/waterfall/utils';
 import {OmitHtmlDivProps} from 'sentry/utils';
 
-type RowProps = {
+interface RowProps {
   cursor?: 'pointer' | 'default';
   visible?: boolean;
   showBorder?: boolean;
-};
+}
 
 type RowAndDivProps = Omit<React.HTMLProps<HTMLDivElement>, keyof RowProps> & RowProps;
 

@@ -19,7 +19,7 @@ import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 
 import {getAxisOptions, TooltipOption} from '../data';
 
-type Props = {
+interface Props {
   api: Client;
   eventView: EventView;
   organization: Organization;
@@ -27,11 +27,11 @@ type Props = {
   location: Location;
   rightAxis: string;
   leftAxis: string;
-};
+}
 
-type State = {
+interface State {
   totalValues: null | number;
-};
+}
 
 class ChartFooter extends Component<Props, State> {
   state: State = {

@@ -28,13 +28,13 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string; teamId: string}, {}>;
 
-type State = {
+interface State {
   error: boolean;
   loading: boolean;
   pageLinks: null | string;
   unlinkedProjects: Project[];
   linkedProjects: Project[];
-};
+}
 
 type DropdownAutoCompleteProps = React.ComponentProps<typeof DropdownAutoComplete>;
 type Item = Parameters<NonNullable<DropdownAutoCompleteProps['onSelect']>>[0];

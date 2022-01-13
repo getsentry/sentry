@@ -1,7 +1,7 @@
 import * as React from 'react';
 import DocumentTitle from 'react-document-title';
 
-type Props = {
+interface Props {
   /**
    * This string will be shown at the very front of the title
    */
@@ -18,9 +18,8 @@ type Props = {
    * Should the ` - Sentry` suffix be excluded?
    */
   noSuffix?: boolean;
-
   children?: React.ReactChild;
-};
+}
 
 /**
  * Assigns the document title. The deepest nested version of this title will be

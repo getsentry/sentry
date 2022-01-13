@@ -24,7 +24,7 @@ import {
   SuspectSpanTableColumnKeys,
 } from './types';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   suspectSpan: SuspectSpan;
@@ -32,7 +32,7 @@ type Props = {
   isLoading: boolean;
   examples: ExampleTransaction[];
   pageLinks?: string | null;
-};
+}
 
 export default function SpanTable(props: Props) {
   const {

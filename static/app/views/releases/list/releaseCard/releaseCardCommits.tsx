@@ -5,10 +5,10 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Release} from 'sentry/types';
 
-type Props = {
+interface Props {
   release: Release;
   withHeading: boolean;
-};
+}
 
 const ReleaseCardCommits = ({release, withHeading = true}: Props) => {
   const commitCount = release.commitCount || 0;

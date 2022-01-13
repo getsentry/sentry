@@ -18,13 +18,12 @@ const LabelHook = HookOrDefault({
   defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
 });
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
   className?: string;
   index?: boolean;
   href?: string;
   to?: string;
-
   /**
    * Key of the sidebar item. Used for label hooks
    */
@@ -69,7 +68,7 @@ type Props = WithRouterProps & {
    * An optional prefix that can be used to reset the "new" indicator
    */
   isNewSeenKeySuffix?: string;
-};
+}
 
 const SidebarItem = ({
   router,

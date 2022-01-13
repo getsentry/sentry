@@ -19,73 +19,63 @@ export const OPEN_DELAY = 50;
  */
 const CLOSE_DELAY = 50;
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Position for the tooltip.
    */
   position?: PopperJS.Placement;
-
   /**
    * Display mode for the container element
    */
   containerDisplayMode?: React.CSSProperties['display'];
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   /**
    * The node to attach the Tooltip to
    */
   children: React.ReactNode;
-
   /**
    * Disable the tooltip display entirely
    */
   disabled?: boolean;
-
   /**
    * The content to show in the tooltip popover
    */
   title: React.ReactNode;
-
   /**
    * Additional style rules for the tooltip content.
    */
   popperStyle?: React.CSSProperties | SerializedStyles;
-
   /**
    * Time to wait (in milliseconds) before showing the tooltip
    */
   delay?: number;
-
   /**
    * If true, user is able to hover tooltip without it disappearing.
    * (nice if you want to be able to copy tooltip contents to clipboard)
    */
   isHoverable?: boolean;
-
   /**
    * If child node supports ref forwarding, you can skip apply a wrapper
    */
   skipWrapper?: boolean;
-
   /**
    * Stops tooltip from being opened during tooltip visual acceptance.
    * Should be set to true if tooltip contains unisolated data (eg. dates)
    */
   disableForVisualTest?: boolean;
-
   /**
    * Force the tooltip to be visible without hovering
    */
   forceShow?: boolean;
-
   className?: string;
-};
+}
 
-type State = {
+interface State {
   isOpen: boolean;
   usesGlobalPortal: boolean;
-};
+}
 
 /**
  * Used to compute the transform origin to give the scale-down micro-animation

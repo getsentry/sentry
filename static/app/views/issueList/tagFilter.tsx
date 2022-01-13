@@ -18,19 +18,19 @@ const defaultProps = {
 
 type SelectOption = Record<'value' | 'label', string>;
 
-type Props = {
+interface Props {
   tag: Tag;
   onSelect: (tag: Tag, value: string | null) => void;
   tagValueLoader: TagValueLoader;
-} & typeof defaultProps;
+}
 
-type State = {
+interface State {
   query: string;
   isLoading: boolean;
   value: string | null;
   textValue: string;
   options?: SelectOption[];
-};
+}
 
 class IssueListTagFilter extends React.Component<Props, State> {
   static defaultProps = defaultProps;

@@ -18,20 +18,20 @@ import {SuggestedAssignees} from './suggestedAssignees';
 
 type OwnerList = React.ComponentProps<typeof SuggestedAssignees>['owners'];
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   project: Project;
   group: Group;
   event: Event;
   committers?: Committer[];
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   event_owners: {rules: Rules; owners: Array<Actor>};
   codeowners: CodeOwner[];
   isDismissed: boolean;
-} & AsyncComponent['state'];
+}
 
 class SuggestedOwners extends AsyncComponent<Props, State> {
   getDefaultState() {

@@ -13,7 +13,7 @@ import {StacktraceType} from 'sentry/types/stacktrace';
 import Line from '../../frame/lineV2';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
-type Props = {
+interface Props {
   data: StacktraceType;
   platform: PlatformType;
   event: Event;
@@ -23,7 +23,7 @@ type Props = {
   isHoverPreviewed?: boolean;
   includeSystemFrames?: boolean;
   expandFirstFrame?: boolean;
-};
+}
 
 function Content({
   data,

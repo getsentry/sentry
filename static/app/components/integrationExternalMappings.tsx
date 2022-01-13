@@ -15,16 +15,16 @@ import {ExternalActorMapping, Integration} from 'sentry/types';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = {
+interface Props {
   integration: Integration;
   mappings: {id: string; externalName: string; sentryName: string}[];
   type: 'team' | 'user';
   onCreateOrEdit: (mapping?: ExternalActorMapping) => void;
   onDelete: (mapping: ExternalActorMapping) => void;
   pageLinks?: string;
-};
+}
 
-type State = {};
+interface State {}
 
 class IntegrationExternalMappings extends Component<Props, State> {
   render() {

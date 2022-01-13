@@ -5,9 +5,9 @@ import {IconMute} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ResolutionStatusDetails} from 'sentry/types';
 
-type Props = {
+interface Props {
   statusDetails: ResolutionStatusDetails;
-};
+}
 
 function MutedBox({statusDetails}: Props) {
   function renderReason() {

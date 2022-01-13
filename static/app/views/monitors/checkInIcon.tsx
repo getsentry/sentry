@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   size: number | string;
   status: 'error' | 'ok';
   color?: string;
-};
+}
 
 export default styled('div')<Props>`
   display: inline-block;

@@ -23,14 +23,14 @@ import {formatVersion} from 'sentry/utils/formatters';
 
 import {isReleaseArchived} from '../../utils';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   projectSlug: string;
   release: Release;
   releaseMeta: ReleaseMeta;
   refetchData: () => void;
-};
+}
 
 function ReleaseActions({
   location,

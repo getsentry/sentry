@@ -19,9 +19,9 @@ import FormModel, {FieldValue} from 'sentry/views/settings/components/forms/mode
 
 export type ExternalIssueAction = 'create' | 'link';
 
-type Props = ModalRenderProps & AsyncComponent['props'];
+interface Props extends ModalRenderProps {}
 
-type State = {
+interface State {
   action: ExternalIssueAction;
   /**
    * Fetched via endpoint, null until set.
@@ -36,7 +36,7 @@ type State = {
    * Cache of options fetched for async fields.
    */
   fetchedFieldOptionsCache: Record<string, Choices>;
-} & AsyncComponent['state'];
+}
 
 const DEBOUNCE_MS = 200;
 

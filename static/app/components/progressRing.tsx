@@ -6,11 +6,11 @@ import {AnimatePresence, motion} from 'framer-motion';
 import testableTransition from 'sentry/utils/testableTransition';
 import theme, {Theme} from 'sentry/utils/theme';
 
-type TextProps = {
+interface TextProps {
   textCss?: Props['textCss'];
   percent: number;
   theme: Theme;
-};
+}
 
 type Props = React.HTMLAttributes<SVGSVGElement> & {
   value: number;

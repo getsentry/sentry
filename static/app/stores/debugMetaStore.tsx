@@ -2,20 +2,20 @@ import Reflux from 'reflux';
 
 const DebugMetaActions = Reflux.createActions(['updateFilter']);
 
-type State = {
+interface State {
   filter: string | null;
-};
+}
 
-type DebugMetaStoreInterface = {
+interface DebugMetaStoreInterface {
   init(): void;
   reset(): void;
   updateFilter(word: string): void;
   get(): State;
-};
+}
 
-type Internals = {
+interface Internals {
   filter: string | null;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & DebugMetaStoreInterface & Internals = {
   filter: null,

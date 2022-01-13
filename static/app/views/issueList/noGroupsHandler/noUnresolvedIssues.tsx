@@ -24,7 +24,9 @@ const Message = () => (
 
 const CongratsRobotsVideo = React.lazy(() => import('./congratsRobots'));
 
-type State = {hasError: boolean};
+interface State {
+  hasError: boolean;
+}
 
 /**
  * Error boundary for loading the robots video.

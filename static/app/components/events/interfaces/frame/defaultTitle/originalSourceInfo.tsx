@@ -3,10 +3,10 @@ import {Fragment} from 'react';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   map?: string | null;
   mapUrl?: string | null;
-};
+}
 
 // TODO(Priscila): Remove BR tags
 // mapUrl not always present; e.g. uploaded source maps

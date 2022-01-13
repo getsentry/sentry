@@ -14,10 +14,10 @@ import SpanTree from './spanTree';
 import {getTraceContext} from './utils';
 import WaterfallModel from './waterfallModel';
 
-type Props = {
+interface Props {
   organization: Organization;
   waterfallModel: WaterfallModel;
-};
+}
 
 class TraceView extends PureComponent<Props> {
   traceViewRef = createRef<HTMLDivElement>();

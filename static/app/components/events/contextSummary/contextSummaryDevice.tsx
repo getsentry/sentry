@@ -12,21 +12,21 @@ import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
 import Item from './item';
 
-type Props = {
+interface Props {
   data: Data;
-};
+}
 
-type Data = {
+interface Data {
   model?: string;
   arch?: string;
   model_id?: string;
-};
+}
 
-type SubTitle = {
+interface SubTitle {
   subject: string;
   value: string;
   meta?: Meta;
-};
+}
 
 const ContextSummaryDevice = ({data}: Props) => {
   if (Object.keys(data).length === 0) {

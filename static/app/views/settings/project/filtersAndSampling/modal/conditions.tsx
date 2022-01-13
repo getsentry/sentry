@@ -15,11 +15,11 @@ import AutoComplete from './autoComplete';
 import LegacyBrowsers from './legacyBrowsers';
 import {getMatchFieldPlaceholder} from './utils';
 
-type Condition = {
+interface Condition {
   category: DynamicSamplingInnerName;
   match?: string;
   legacyBrowsers?: Array<LegacyBrowser>;
-};
+}
 
 type Props = Pick<React.ComponentProps<typeof AutoComplete>, 'orgSlug' | 'projectId'> & {
   conditions: Condition[];

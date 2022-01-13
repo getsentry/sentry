@@ -11,11 +11,11 @@ import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import {MetricQuery, MetricTag} from 'sentry/types';
 
-type Props = {
+interface Props {
   onChange: (groupBy: MetricQuery['groupBy']) => void;
   metricTags: MetricTag[];
   groupBy?: MetricQuery['groupBy'];
-};
+}
 
 function GroupByField({metricTags, groupBy = [], onChange}: Props) {
   const hasSelected = !!groupBy.length;

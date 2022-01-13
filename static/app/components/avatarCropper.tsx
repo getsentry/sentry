@@ -18,7 +18,7 @@ type Position = keyof typeof resizerPositions;
 
 type Model = Pick<AvatarUser, 'avatar'>;
 
-type Props = {
+interface Props {
   model: Model;
   updateDataUrlState: (opts: {savedDataUrl?: string | null; dataUrl?: string}) => void;
   type:
@@ -30,15 +30,15 @@ type Props = {
     | 'sentryAppSimple'
     | 'docIntegration';
   savedDataUrl?: string;
-};
+}
 
-type State = {
+interface State {
   file: File | null;
   objectURL: string | null;
   mousePosition: {pageX: number; pageY: number};
   resizeDimensions: {top: number; left: number; size: number};
   resizeDirection: Position | null;
-};
+}
 
 class AvatarCropper extends React.Component<Props, State> {
   state: State = {

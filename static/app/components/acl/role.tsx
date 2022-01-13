@@ -6,13 +6,13 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type RoleRenderProps = {
+interface RoleRenderProps {
   hasRole: boolean;
-};
+}
 
 type ChildrenRenderFn = (props: RoleRenderProps) => React.ReactNode;
 
-type Props = {
+interface Props {
   /**
    * Minimum required role
    */
@@ -29,7 +29,7 @@ type Props = {
    * the minimum required role.
    */
   children: React.ReactNode | ChildrenRenderFn;
-};
+}
 
 class Role extends React.Component<Props> {
   hasRole() {

@@ -7,17 +7,17 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 import {imageStyle, ImageStyleProps} from './styles';
 
-type Props = {
+interface Props extends ImageStyleProps {
   remoteSize: number;
   gravatarId?: string;
   placeholder?: string;
   onLoad?: () => void;
   onError?: () => void;
-} & ImageStyleProps;
+}
 
-type State = {
+interface State {
   MD5?: any;
-};
+}
 
 class Gravatar extends Component<Props, State> {
   state: State = {

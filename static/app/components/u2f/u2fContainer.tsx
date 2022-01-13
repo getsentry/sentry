@@ -6,16 +6,17 @@ import withApi from 'sentry/utils/withApi';
 
 import U2fSign from './u2fsign';
 
-type Props = {
+interface Props {
   api: Client;
   onTap: U2fSign['props']['onTap'];
   displayMode?: U2fSign['props']['displayMode'];
   className?: string;
   isWebauthnSigninFFEnabled: boolean;
-};
-type State = {
+}
+
+interface State {
   authenticators: Array<Authenticator>;
-};
+}
 
 class U2fContainer extends Component<Props, State> {
   state: State = {

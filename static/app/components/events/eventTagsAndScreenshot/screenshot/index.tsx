@@ -19,13 +19,13 @@ import DataSection from '../dataSection';
 import ImageVisualization from './imageVisualization';
 import Modal, {modalCss} from './modal';
 
-type Props = {
+interface Props {
   event: Event;
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
   onDelete: (attachmentId: EventAttachment['id']) => void;
-};
+}
 
 function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {
   const orgSlug = organization.slug;

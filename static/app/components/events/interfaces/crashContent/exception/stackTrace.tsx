@@ -12,7 +12,7 @@ import StackTraceContent from '../stackTrace/content';
 import StacktraceContentV2 from '../stackTrace/contentV2';
 import StacktraceContentV3 from '../stackTrace/contentV3';
 
-type Props = {
+interface Props {
   data: ExceptionValue['stacktrace'];
   event: Event;
   platform: PlatformType;
@@ -23,7 +23,7 @@ type Props = {
   stackView?: STACK_VIEW;
   expandFirstFrame?: boolean;
   newestFirst?: boolean;
-};
+}
 
 function StackTrace({
   stackView,

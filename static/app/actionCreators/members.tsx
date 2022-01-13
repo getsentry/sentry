@@ -73,11 +73,11 @@ export function indexMembersByProject(members: Member[]): IndexedMembersByProjec
   }, {});
 }
 
-type UpdateMemberOptions = {
+interface UpdateMemberOptions {
   orgId: string;
   memberId: string;
   data: Member | null;
-};
+}
 
 export async function updateMember(
   api: Client,
@@ -99,12 +99,12 @@ export async function updateMember(
   }
 }
 
-type ResendMemberInviteOptions = {
+interface ResendMemberInviteOptions {
   orgId: string;
   memberId: string;
   regenerate?: boolean;
   data?: object;
-};
+}
 
 export async function resendMemberInvite(
   api: Client,

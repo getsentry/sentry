@@ -37,10 +37,10 @@ export const COL_WIDTH_MINIMUM = 90;
 
 type ObjectKey = React.ReactText;
 
-export type GridColumn<K = ObjectKey> = {
+export interface GridColumn<K = ObjectKey> {
   key: K;
   width?: number;
-};
+}
 
 export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
   name: string;
@@ -55,17 +55,16 @@ export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
 /**
  * Store state at the start of "resize" action
  */
-export type ColResizeMetadata = {
-  columnIndex: number; // Column being resized
-  columnWidth: number; // Column width at start of resizing
-  cursorX: number; // X-coordinate of cursor on window
-};
+export interface ColResizeMetadata {
+  columnIndex: number; // Column being resized;
+  columnWidth: number; // Column width at start of resizing;
+  cursorX: number; // X-coordinate of cursor on window;
+}
 
-type GridEditableProps<DataRow, ColumnKey> = {
+interface GridEditableProps<DataRow, ColumnKey> {
   location: Location;
   isLoading?: boolean;
   error?: React.ReactNode | null;
-
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
    * parent component to tell it how/what to render and will mutate the view
@@ -85,7 +84,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
   columnOrder: GridColumnOrder<ColumnKey>[];
   columnSortBy: GridColumnSortBy<ColumnKey>[];
   data: DataRow[];
-
   /**
    * GridEditable allows the parent component to determine how to display the
    * data within it. Note that this is optional.
@@ -112,11 +110,11 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode[];
     prependColumnWidths?: string[];
   };
-};
+}
 
-type GridEditableState = {
+interface GridEditableState {
   numColumn: number;
-};
+}
 
 class GridEditable<
   DataRow extends {[key: string]: any},

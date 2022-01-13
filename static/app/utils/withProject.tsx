@@ -4,9 +4,9 @@ import SentryTypes from 'sentry/sentryTypes';
 import {Project} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type InjectedProjectProps = {
+interface InjectedProjectProps {
   project?: Project;
-};
+}
 
 /**
  * Currently wraps component with project from context
@@ -14,7 +14,7 @@ type InjectedProjectProps = {
 const withProject = <P extends InjectedProjectProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  (class extends React.Component<
     Omit<P, keyof InjectedProjectProps> & Partial<InjectedProjectProps>
   > {
     static displayName = `withProject(${getDisplayName(WrappedComponent)})`;
@@ -30,6 +30,6 @@ const withProject = <P extends InjectedProjectProps>(
         />
       );
     }
-  };
+  });
 
 export default withProject;

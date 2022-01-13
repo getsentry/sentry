@@ -14,7 +14,7 @@ import {FieldFromConfig} from 'sentry/views/settings/components/forms';
 import Form from 'sentry/views/settings/components/forms/form';
 import {Field} from 'sentry/views/settings/components/forms/type';
 
-type Props = {
+interface Props {
   organization: Organization;
   integration: Integration;
   projects: Project[];
@@ -22,7 +22,7 @@ type Props = {
   onSubmitSuccess: Form['props']['onSubmitSuccess'];
   onCancel: Form['props']['onCancel'];
   existingConfig?: RepositoryProjectPathConfig;
-};
+}
 
 export default class RepositoryProjectPathConfigForm extends Component<Props> {
   get initialData() {

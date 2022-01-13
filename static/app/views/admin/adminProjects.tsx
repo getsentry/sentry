@@ -6,13 +6,13 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 
-type Row = {
+interface Row {
   dateCreated: string;
   name: string;
   organization: Organization;
   slug: string;
   status: string;
-};
+}
 
 type Props = RouteComponentProps<{}, {}>;
 

@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';
 
-type Props = {
+interface Props {
   highUp: boolean;
   wrapClassName: string;
   children: React.ReactNode;
-};
+}
 
 function Toggle({highUp, wrapClassName, children}: Props) {
   const [isExpanded, setIsExpanded] = useState(false);

@@ -15,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Member, MemberRole, Organization} from 'sentry/types';
 
-type Props = {
+interface Props {
   inviteRequest: Member;
   inviteRequestBusy: {[key: string]: boolean};
   organization: Organization;
@@ -23,7 +23,7 @@ type Props = {
   onDeny: (inviteRequest: Member) => void;
   onUpdate: (data: Partial<Member>) => void;
   allRoles: MemberRole[];
-};
+}
 
 const InviteModalHook = HookOrDefault({
   hookName: 'member-invite-modal:customization',

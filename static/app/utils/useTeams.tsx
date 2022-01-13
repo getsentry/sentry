@@ -13,7 +13,7 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
-type State = {
+interface State {
   /**
    * Reflects whether or not the initial fetch for the requested teams was
    * fulfilled
@@ -40,7 +40,7 @@ type State = {
    * Pagination
    */
   nextCursor?: null | string;
-};
+}
 
 export type Result = {
   /**
@@ -61,7 +61,7 @@ export type Result = {
   loadMore: (searchTerm?: string) => Promise<void>;
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
-type Options = {
+interface Options {
   /**
    * Number of teams to return when not using `props.slugs`
    */
@@ -79,16 +79,16 @@ type Options = {
    * teams (isMember = true).
    */
   provideUserTeams?: boolean;
-};
+}
 
-type FetchTeamOptions = {
+interface FetchTeamOptions {
   slugs?: string[];
   ids?: string[];
   limit?: Options['limit'];
   cursor?: State['nextCursor'];
   search?: State['lastSearch'];
   lastSearch?: State['lastSearch'];
-};
+}
 
 /**
  * Helper function to actually load teams

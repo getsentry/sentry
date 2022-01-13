@@ -6,13 +6,13 @@ import classNames from 'classnames';
 import Button, {StyledButton} from 'sentry/components/button';
 import space, {ValidSize} from 'sentry/styles/space';
 
-type ButtonBarProps = {
+interface ButtonBarProps {
   children: React.ReactNode;
   gap?: ValidSize;
   merged?: boolean;
   active?: React.ComponentProps<typeof Button>['barId'];
   className?: string;
-};
+}
 
 function ButtonBar({
   children,

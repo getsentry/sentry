@@ -23,7 +23,7 @@ export type CursorHandler = (
   delta: number
 ) => void;
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   pageLinks?: string | null;
   to?: string;
   caption?: React.ReactElement;
@@ -31,7 +31,7 @@ type Props = WithRouterProps & {
   onCursor?: CursorHandler;
   disabled?: boolean;
   className?: string;
-};
+}
 
 const defaultOnCursor: CursorHandler = (cursor, path, query, _direction) =>
   browserHistory.push({

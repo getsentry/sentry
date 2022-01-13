@@ -1,11 +1,11 @@
-type Options = {
+interface Options {
   key: string;
   htmlString: string;
   markTags: {
     highlightPreTag: string;
     highlightPostTag: string;
   };
-};
+}
 
 /**
  * Parses the "marked" html strings into a {key, value, indices} (similar to

@@ -12,11 +12,11 @@ import {Event} from 'sentry/types/event';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 
-type Props = {
+interface Props {
   event: Event;
   organization: OrganizationSummary;
   projectId: string;
-};
+}
 
 /**
  * Render metadata about the event and provide a link to the JSON blob.

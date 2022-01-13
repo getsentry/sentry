@@ -13,7 +13,7 @@ const VALID_DIRECTIONS = ['top', 'bottom', 'left', 'right'] as const;
 
 type Direction = typeof VALID_DIRECTIONS[number];
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Time in ms until hovercard is hidden
    */
@@ -22,9 +22,9 @@ type DefaultProps = {
    * Position tooltip should take relative to the child element
    */
   position: Direction;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   /**
    * Classname to apply to the hovercard
    */
@@ -65,11 +65,11 @@ type Props = DefaultProps & {
    * Popper Modifiers
    */
   modifiers?: PopperProps['modifiers'];
-};
+}
 
-type State = {
+interface State {
   visible: boolean;
-};
+}
 
 class Hovercard extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
@@ -231,11 +231,11 @@ const getTipDirection = (p: HovercardArrowProps) =>
 
 const getOffset = (p: StyledHovercardProps) => p.offset ?? space(2);
 
-type StyledHovercardProps = {
+interface StyledHovercardProps {
   visible: boolean;
   placement: Direction;
   offset?: string;
-};
+}
 
 const StyledHovercard = styled('div')<StyledHovercardProps>`
   border-radius: ${p => p.theme.borderRadius};
@@ -283,11 +283,11 @@ const Body = styled('div')`
   min-height: 30px;
 `;
 
-type HovercardArrowProps = {
+interface HovercardArrowProps {
   placement: Direction;
   tipColor?: string;
   tipBorderColor?: string;
-};
+}
 
 const HovercardArrow = styled('span')<HovercardArrowProps>`
   position: absolute;

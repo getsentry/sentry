@@ -13,7 +13,7 @@ import {
 } from 'sentry/views/alerts/incidentRules/types';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
-type Props = ThresholdControlValue & {
+interface Props extends ThresholdControlValue {
   type: string;
   disabled: boolean;
   disableThresholdType: boolean;
@@ -21,11 +21,11 @@ type Props = ThresholdControlValue & {
   comparisonType: AlertRuleComparisonType;
   onChange: (value: ThresholdControlValue, e: React.FormEvent) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
-};
+}
 
-type State = {
+interface State {
   currentValue: string | null;
-};
+}
 
 class ThresholdControl extends React.Component<Props, State> {
   state: State = {

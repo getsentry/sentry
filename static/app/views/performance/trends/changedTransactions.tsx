@@ -58,7 +58,7 @@ import {
   trendToColor,
 } from './utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   trendChangeType: TrendChangeType;
   previousTrendFunction?: TrendFunctionField;
@@ -67,12 +67,12 @@ type Props = {
   location: Location;
   projects: Project[];
   setError: (msg: string | undefined) => void;
-};
+}
 
-type TrendsCursorQuery = {
+interface TrendsCursorQuery {
   improvedCursor?: string;
   regressionCursor?: string;
-};
+}
 
 const makeTrendsCursorHandler =
   (trendChangeType: TrendChangeType): CursorHandler =>
@@ -325,7 +325,7 @@ function ChangedTransactions(props: Props) {
   );
 }
 
-type TrendsListItemProps = {
+interface TrendsListItemProps {
   api: Client;
   trendView: TrendView;
   organization: Organization;
@@ -339,7 +339,7 @@ type TrendsListItemProps = {
   index: number;
   statsData: TrendsStats;
   handleSelectTransaction: (transaction: NormalizedTrendsTransaction) => void;
-};
+}
 
 function TrendsListItem(props: TrendsListItemProps) {
   const {
@@ -518,7 +518,7 @@ const ValueDelta = ({transaction, trendChangeType}: TrendsListItemProps) => {
   );
 };
 
-type TransactionSummaryLinkProps = TrendsListItemProps & {};
+interface TransactionSummaryLinkProps extends TrendsListItemProps {}
 
 const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
   const {

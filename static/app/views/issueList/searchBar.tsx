@@ -59,10 +59,10 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
   sort: string;
 };
 
-type State = {
+interface State {
   defaultSearchItems: [SearchItem[], SearchItem[]];
   recentSearches: string[];
-};
+}
 
 class IssueListSearchBar extends React.Component<Props, State> {
   state: State = {

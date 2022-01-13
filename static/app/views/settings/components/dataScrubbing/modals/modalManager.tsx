@@ -29,7 +29,7 @@ type Values = FormProps['values'];
 type EventId = NonNullable<FormProps['eventId']>;
 type SourceSuggestions = FormProps['sourceSuggestions'];
 
-type Props<T> = ModalRenderProps & {
+interface Props<T> extends ModalRenderProps {
   onSubmitSuccess: (data: T extends undefined ? Organization : Project) => void;
   onGetNewRules: (values: Values) => Array<Rule>;
   orgSlug: Organization['slug'];
@@ -39,16 +39,16 @@ type Props<T> = ModalRenderProps & {
   title: string;
   projectId?: T;
   initialState?: Partial<Values>;
-};
+}
 
-type State = {
+interface State {
   values: Values;
   requiredValues: Array<keyof Values>;
   errors: FormProps['errors'];
   isFormValid: boolean;
   sourceSuggestions: SourceSuggestions;
   eventId: EventId;
-};
+}
 
 class ModalManager<T extends ProjectId> extends React.Component<Props<T>, State> {
   state = this.getDefaultState();

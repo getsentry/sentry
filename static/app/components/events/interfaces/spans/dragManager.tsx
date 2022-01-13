@@ -11,65 +11,58 @@ enum ViewHandleType {
   Right,
 }
 
-export type DragManagerChildrenProps = {
+export interface DragManagerChildrenProps {
   // handles
 
   isDragging: boolean;
-
   // left-side handle
 
   onLeftHandleDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-  leftHandlePosition: number; // between 0 to 1
-
+  leftHandlePosition: number; // between 0 to 1;
   // right-side handle
 
   onRightHandleDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-  rightHandlePosition: number; // between 0 to 1
-
+  rightHandlePosition: number; // between 0 to 1;
   // window selection
 
   isWindowSelectionDragging: boolean;
-  windowSelectionInitial: number; // between 0 (0%) and 1 (100%)
-  windowSelectionCurrent: number; // between 0 (0%) and 1 (100%)
+  windowSelectionInitial: number; // between 0 (0%) and 1 (100%);
+  windowSelectionCurrent: number; // between 0 (0%) and 1 (100%);
   windowSelectionSize: number;
   onWindowSelectionDragStart: (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => void;
-
   // window sizes
 
-  viewWindowStart: number; // between 0 to 1
-  viewWindowEnd: number; // between 0 to 1
-};
+  viewWindowStart: number; // between 0 to 1;
+  viewWindowEnd: number; // between 0 to 1;
+}
 
-type DragManagerProps = {
+interface DragManagerProps {
   children: (props: DragManagerChildrenProps) => JSX.Element;
-
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
-};
+}
 
-type DragManagerState = {
+interface DragManagerState {
   // draggable handles
 
   isDragging: boolean;
   currentDraggingHandle: ViewHandleType | undefined;
   leftHandlePosition: number;
   rightHandlePosition: number;
-
   // window selection
 
   isWindowSelectionDragging: boolean;
   windowSelectionInitial: number;
   windowSelectionCurrent: number;
   windowSelectionSize: number;
-
   // window sizes
 
   viewWindowStart: number;
   viewWindowEnd: number;
-};
+}
 
 class DragManager extends React.Component<DragManagerProps, DragManagerState> {
   state: DragManagerState = {

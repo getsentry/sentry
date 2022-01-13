@@ -19,7 +19,7 @@ export enum DisplayOption {
   MINIFIED = 'minified',
 }
 
-type Props = {
+interface Props {
   platform: PlatformType;
   activeDisplayOptions: DisplayOption[];
   onChange: (activeDisplayOptions: DisplayOption[]) => void;
@@ -29,7 +29,7 @@ type Props = {
   hasAbsoluteAddresses: boolean;
   hasAppOnlyFrames: boolean;
   raw: boolean;
-};
+}
 
 function DisplayOptions({
   activeDisplayOptions,

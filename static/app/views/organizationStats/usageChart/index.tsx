@@ -81,17 +81,15 @@ export enum SeriesTypes {
   FILTERED = 'Filtered',
 }
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Display datetime in UTC
    */
   usageDateShowUtc: boolean;
-
   /**
    * Intervals between the x-axis values
    */
   usageDateInterval: IntervalPeriod;
-
   /**
    * Modify the usageStats using the transformation method selected.
    * 1. This must be a pure function!
@@ -102,50 +100,43 @@ type DefaultProps = {
     stats: ChartStats,
     transform: ChartDataTransform
   ) => ChartStats;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   theme: Theme;
-
   isLoading?: boolean;
   isError?: boolean;
   errors?: Record<string, Error>;
-
   title?: React.ReactNode;
   footer?: React.ReactNode;
-
   dataCategory: DataCategory;
   dataTransform: ChartDataTransform;
-
   usageDateStart: string;
   usageDateEnd: string;
-
   /**
    * Usage data to draw on chart
    */
   usageStats: ChartStats;
-
   /**
    * Additional data to draw on the chart alongside usage
    */
   chartSeries?: SeriesOption[];
-
   /**
    * Replace default tooltip
    */
   chartTooltip?: TooltipComponentOption;
-};
+}
 
-type State = {
+interface State {
   xAxisDates: string[];
-};
+}
 
-export type ChartStats = {
+export interface ChartStats {
   accepted: NonNullable<SeriesOption['data']>;
   dropped: NonNullable<SeriesOption['data']>;
   projected: NonNullable<SeriesOption['data']>;
   filtered?: NonNullable<SeriesOption['data']>;
-};
+}
 
 export class UsageChart extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

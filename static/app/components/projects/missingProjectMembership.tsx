@@ -15,18 +15,18 @@ import {Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   project?: Project | null;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
   team: string | null;
   project?: Project | null;
-};
+}
 
 class MissingProjectMembership extends Component<Props, State> {
   state: State = {

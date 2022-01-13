@@ -11,7 +11,7 @@ import {Organization, SavedSearch} from 'sentry/types';
 
 import SavedSearchMenu from './savedSearchMenu';
 
-type Props = {
+interface Props {
   organization: Organization;
   savedSearchList: SavedSearch[];
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
@@ -20,7 +20,7 @@ type Props = {
   isActive?: boolean;
   query?: string;
   queryCount?: number;
-};
+}
 
 function SavedSearchTab({
   isActive,

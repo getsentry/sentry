@@ -22,19 +22,19 @@ import {ReleaseContext} from '..';
 // These props are required when using this HoC
 type DependentProps = RouteComponentProps<{orgId: string; release: string}, {}>;
 
-type HoCsProps = {
+interface HoCsProps {
   api: Client;
   organization: Organization;
   repositories?: Repository[];
   repositoriesLoading?: boolean;
   repositoriesError?: Error;
-};
+}
 
-type State = {
+interface State {
   releaseRepos: Repository[];
   isLoading: boolean;
   activeReleaseRepo?: Repository;
-};
+}
 
 function withReleaseRepos<P extends DependentProps>(
   WrappedComponent: React.ComponentType<P>

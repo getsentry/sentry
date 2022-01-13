@@ -13,7 +13,7 @@ import space from 'sentry/styles/space';
 
 import ExternalLink from '../links/externalLink';
 
-type Error = {
+interface Error {
   type: string;
   message: React.ReactNode;
   data?: {
@@ -25,7 +25,7 @@ type Error = {
     sdk_time?: string;
     url?: string;
   } & Record<string, any>;
-};
+}
 
 const keyMapping = {
   image_uuid: 'Debug ID',
@@ -33,13 +33,13 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-type Props = {
+interface Props {
   error: Error;
-};
+}
 
-type State = {
+interface State {
   isOpen: boolean;
-};
+}
 
 class ErrorItem extends React.Component<Props, State> {
   state: State = {

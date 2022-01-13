@@ -8,10 +8,10 @@ import {Organization} from 'sentry/types';
 
 const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
 
-type Props = {
+interface Props {
   organization: Organization;
   projectSlug: string;
-};
+}
 
 function MissingAlertsButtons({organization, projectSlug}: Props) {
   return (

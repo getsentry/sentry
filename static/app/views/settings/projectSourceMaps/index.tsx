@@ -4,9 +4,9 @@ import {RouteComponentProps} from 'react-router';
 import {Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;

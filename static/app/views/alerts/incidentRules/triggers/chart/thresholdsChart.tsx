@@ -25,11 +25,11 @@ import {
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
-type DefaultProps = {
+interface DefaultProps {
   data: Series[];
   comparisonData: Series[];
   comparisonMarkLines: LineChartSeries[];
-};
+}
 
 type Props = DefaultProps & {
   triggers: Trigger[];
@@ -43,12 +43,12 @@ type Props = DefaultProps & {
   comparisonSeriesName?: string;
 } & Partial<PageFilters['datetime']>;
 
-type State = {
+interface State {
   width: number;
   height: number;
   yAxisMax: number | null;
   yAxisMin: number | null;
-};
+}
 
 const CHART_GRID = {
   left: space(2),

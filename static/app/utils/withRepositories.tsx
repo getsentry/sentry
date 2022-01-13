@@ -7,16 +7,16 @@ import RepositoryStore from 'sentry/stores/repositoryStore';
 import {Organization, Repository} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type DependentProps = {
+interface DependentProps {
   api: Client;
   organization: Organization;
-};
+}
 
-type InjectedProps = {
+interface InjectedProps {
   repositories?: Repository[];
   repositoriesLoading?: boolean;
   repositoriesError?: Error;
-};
+}
 
 const INITIAL_STATE: InjectedProps = {
   repositories: undefined,

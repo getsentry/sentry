@@ -51,13 +51,13 @@ export const makeRuleDetailsQuery = (
   };
 };
 
-type Props = {
+interface Props {
   incident: Incident;
   projects: Project[];
   projectsLoaded: boolean;
   orgId: string;
   organization: Organization;
-};
+}
 
 class AlertListRow extends Component<Props> {
   get metricPreset() {

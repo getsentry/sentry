@@ -11,12 +11,12 @@ import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
 import {getTooltipArrow, truncationFormatter} from './utils';
 
-type Marker = {
+interface Marker {
   name: string;
   value: string | number | Date;
   color: string;
   symbolSize?: number;
-};
+}
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 

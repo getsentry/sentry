@@ -14,9 +14,9 @@ import ReportUri from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
-type State = {
+interface State {
   keyList: null | ProjectKey[];
-} & AsyncView['state'];
+}
 
 export default class ProjectSecurityHeaders extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

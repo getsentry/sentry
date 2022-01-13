@@ -9,15 +9,15 @@ import {EventGroupingConfig} from 'sentry/types';
 
 import {GroupingConfigItem} from '.';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   eventConfigId: string;
   configId: string;
   onSelect: (selection: any) => void;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   configs: EventGroupingConfig[];
-};
+}
 
 class GroupingConfigSelect extends AsyncComponent<Props, State> {
   getDefaultState() {

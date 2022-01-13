@@ -26,7 +26,7 @@ const getPlaceholderForType = (type: ActionType) => {
   }
 };
 
-type Props = {
+interface Props {
   action: Action;
   availableAction?: MetricActionTemplate;
   disabled: boolean;
@@ -34,7 +34,7 @@ type Props = {
   organization: Organization;
   project?: Project;
   onChange: (value: string) => void;
-};
+}
 
 export default function ActionTargetSelector(props: Props) {
   const {action, availableAction, disabled, loading, onChange, organization, project} =

@@ -14,7 +14,7 @@ import {
   Team,
 } from 'sentry/types';
 
-type Props = {
+interface Props {
   team?: Team;
   organization?: OrganizationSummary;
   project?: AvatarProject;
@@ -28,7 +28,7 @@ type Props = {
    * True if the rendered Avatar should be a static asset
    */
   isDefault?: boolean;
-} & UserAvatar['props'];
+}
 
 const Avatar = React.forwardRef(function Avatar(
   {

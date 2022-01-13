@@ -28,19 +28,19 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import SidebarSection from './sidebarSection';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   group: Group;
   project: Project;
   organization: Organization;
   event: Event;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   components: SentryAppComponent[];
   sentryAppInstallations: SentryAppInstallation[];
   externalIssues: PlatformExternalIssue[];
   integrations: GroupIntegration[];
-};
+}
 
 class ExternalIssueList extends AsyncComponent<Props, State> {
   unsubscribables: any[] = [];

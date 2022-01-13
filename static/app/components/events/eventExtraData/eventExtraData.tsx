@@ -6,9 +6,9 @@ import {Event} from 'sentry/types/event';
 
 import EventDataContent from './eventDataContent';
 
-type Props = {
+interface Props {
   event: Event;
-};
+}
 
 const EventExtraData = memo(
   ({event}: Props) => {

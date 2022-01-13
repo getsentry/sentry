@@ -1,13 +1,13 @@
 import {EventAttachment} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
-export type ViewerProps = {
+export interface ViewerProps {
   event: Event;
   orgId: string;
   projectId: string;
   attachment: EventAttachment;
   className?: string;
-};
+}
 
 export function getAttachmentUrl(props: ViewerProps, withPrefix?: boolean): string {
   const {orgId, projectId, event, attachment} = props;

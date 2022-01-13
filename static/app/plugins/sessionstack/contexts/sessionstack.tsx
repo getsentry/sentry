@@ -3,17 +3,17 @@ import ReactDOM from 'react-dom';
 
 const ASPECT_RATIO = 16 / 9;
 
-type Props = {
+interface Props {
   data: {
     session_url?: string;
   };
-};
+}
 
-type State = {
+interface State {
   showIframe: boolean;
   width?: number;
   height?: number;
-};
+}
 
 class SessionStackContextType extends Component<Props, State> {
   state: State = {

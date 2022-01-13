@@ -6,9 +6,8 @@ import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
-type Props = {
+interface Props {
   name: string;
-
   /**
    * String is a valid type here only for empty string
    * Otherwise react complains:
@@ -17,32 +16,26 @@ type Props = {
    * And we want this to be a controlled input when value is empty
    */
   value: number | '';
-
   /**
    * min allowed value, not needed if using `allowedValues`
    */
   min?: number;
-
   /**
    * max allowed value, not needed if using `allowedValues`
    */
   max?: number;
-
   step?: number;
   disabled?: boolean;
-
   /**
    * Render prop for slider's label
    * Is passed the value as an argument
    */
   formatLabel?: (value: number | '') => React.ReactNode;
-
   /**
    * Array of allowed values. Make sure `value` is in this list.
    * THIS NEEDS TO BE SORTED
    */
   allowedValues?: number[];
-
   /**
    * Show input control for custom values
    */
@@ -51,12 +44,10 @@ type Props = {
    * Show label with current value
    */
   showLabel?: boolean;
-
   /**
    * Placeholder for custom input
    */
   placeholder?: string;
-
   /**
    * This is called when *any* MouseUp or KeyUp event happens.
    * Used for "smart" Fields to trigger a "blur" event. `onChange` can
@@ -68,7 +59,7 @@ type Props = {
   onChange?: (value: Props['value'], event: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   forwardRef?: React.Ref<HTMLDivElement>;
-};
+}
 
 function RangeSlider({
   value,

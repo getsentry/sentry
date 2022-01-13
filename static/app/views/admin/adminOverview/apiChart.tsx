@@ -18,17 +18,17 @@ const initialState = {
   },
 };
 
-type Props = {
+interface Props {
   api: Client;
   since: number;
   resolution: string;
-};
+}
 
-type State = {
+interface State {
   error: boolean;
   loading: boolean;
   rawData: Record<string, TimeseriesValue[]>;
-};
+}
 
 class ApiChart extends Component<Props, State> {
   state: State = initialState;

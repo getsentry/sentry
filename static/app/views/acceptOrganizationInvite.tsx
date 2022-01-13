@@ -15,7 +15,7 @@ import space from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-type InviteDetails = {
+interface InviteDetails {
   orgSlug: string;
   needsAuthentication: boolean;
   needs2fa: boolean;
@@ -24,15 +24,15 @@ type InviteDetails = {
   requireSso: boolean;
   existingMember: boolean;
   ssoProvider?: string;
-};
+}
 
 type Props = RouteComponentProps<{memberId: string; token: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   inviteDetails: InviteDetails;
   accepting: boolean | undefined;
   acceptError: boolean | undefined;
-};
+}
 
 class AcceptOrganizationInvite extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

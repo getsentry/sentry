@@ -48,7 +48,7 @@ const newQuery = {
   orderby: '',
 };
 
-type Props = AsyncView['props'] & {
+interface Props {
   organization: Organization;
   selection: PageFilters;
   dashboardTitle: DashboardDetails['title'];
@@ -60,16 +60,16 @@ type Props = AsyncView['props'] & {
   onUpdate: (nextWidget: Widget) => void;
   onDelete: () => void;
   widget?: Widget;
-};
+}
 
-type State = AsyncView['state'] & {
+interface State {
   title: string;
   displayType: DisplayType;
   widgetType: WidgetType;
   interval: string;
   queries: Widget['queries'];
   widgetErrors?: Record<string, any>;
-};
+}
 
 class EventWidget extends AsyncView<Props, State> {
   shouldReload = true;

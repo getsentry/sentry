@@ -158,12 +158,12 @@ export interface Config {
   };
 }
 
-export type PipelineInitialData = {
+export interface PipelineInitialData {
   name: string;
   props: Record<string, any>;
-};
+}
 
-export type Broadcast = {
+export interface Broadcast {
   id: string;
   message: string;
   title: string;
@@ -173,23 +173,23 @@ export type Broadcast = {
   dateCreated: string;
   dateExpires: string;
   hasSeen: boolean;
-};
+}
 
-export type SentryServiceIncident = {
+export interface SentryServiceIncident {
   id: string;
   name: string;
   updates?: string[];
   url: string;
   status: string;
-};
+}
 
-export type SentryServiceStatus = {
+export interface SentryServiceStatus {
   indicator: 'major' | 'minor' | 'none';
   incidents: SentryServiceIncident[];
   url: string;
-};
+}
 
-export type PromptActivity = {
+export interface PromptActivity {
   snoozedTime?: number;
   dismissedTime?: number;
-};
+}

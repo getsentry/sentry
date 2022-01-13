@@ -45,14 +45,14 @@ import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest'
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   selection: PageFilters;
   activeDisplay: ReleasesDisplayOption;
   location: Location;
   router: InjectedRouter;
-};
+}
 
 class ReleasesAdoptionChart extends Component<Props> {
   // needs to have different granularity, that's why we use custom getInterval instead of getSessionsInterval

@@ -93,11 +93,11 @@ type Props = {
   queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
-type State = {
+interface State {
   data: Group;
   reviewed: boolean;
   actionTaken: boolean;
-};
+}
 
 class StreamGroup extends React.Component<Props, State> {
   static defaultProps = defaultProps;

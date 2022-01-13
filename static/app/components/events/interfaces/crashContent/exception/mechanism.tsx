@@ -16,9 +16,9 @@ import {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isUrl} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   data: StackTraceMechanism;
-};
+}
 
 class Mechanism extends Component<Props> {
   render() {

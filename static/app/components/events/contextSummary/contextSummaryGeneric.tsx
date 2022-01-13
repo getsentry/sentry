@@ -10,15 +10,15 @@ import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
 import Item from './item';
 
-type Props = {
+interface Props {
   data: Data;
   unknownTitle: string;
-};
+}
 
-type Data = {
+interface Data {
   name: string;
   version?: string;
-};
+}
 
 const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
   if (Object.keys(data).length === 0) {

@@ -1,10 +1,10 @@
-type IssueStream = {
+interface IssueStream {
   group_id: string;
   tab: string;
   was_shown_suggestion: boolean;
-};
+}
 
-export type IssueEventParameters = {
+export interface IssueEventParameters {
   'event_cause.viewed': {
     project_id?: string;
     platform?: string;
@@ -39,7 +39,7 @@ export type IssueEventParameters = {
   };
   'issue.shared_publicly': {};
   resolve_issue: {release: string};
-};
+}
 
 export type IssueEventKey = keyof IssueEventParameters;
 

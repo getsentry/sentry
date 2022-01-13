@@ -12,12 +12,12 @@ import TextField from 'sentry/views/settings/components/forms/textField';
 
 const EVENT_CHOICES: Choices = ['event.alert', 'event.created'].map(e => [e, e]);
 
-type Props = {
+interface Props {
   orgId: string;
   projectId: string;
   initialData: Partial<ServiceHook> & {isActive: boolean};
   hookId?: string;
-};
+}
 
 export default class ServiceHookSettingsForm extends Component<Props> {
   onSubmitSuccess = () => {

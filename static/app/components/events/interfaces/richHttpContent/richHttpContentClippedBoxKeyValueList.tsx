@@ -8,13 +8,13 @@ import getTransformedData from './getTransformedData';
 
 type Data = EntryRequest['data']['data'];
 
-type Props = {
+interface Props {
   title: string;
   data: Data;
   defaultCollapsed?: boolean;
   isContextData?: boolean;
   meta?: Meta;
-};
+}
 
 const RichHttpContentClippedBoxKeyValueList = ({
   data,

@@ -11,17 +11,17 @@ import AsyncView from 'sentry/views/asyncView';
 import OrganizationApiKeysList from './organizationApiKeysList';
 import {DeprecatedApiKey} from './types';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-type State = {
+interface State {
   keys: DeprecatedApiKey[];
-} & AsyncView['state'];
+}
 
 /**
  * API Keys are deprecated, but there may be some legacy customers that still use it

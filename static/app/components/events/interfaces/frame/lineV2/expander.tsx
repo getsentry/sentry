@@ -9,13 +9,13 @@ import {PlatformType} from 'sentry/types';
 
 import {isDotnet} from '../utils';
 
-type Props = {
+interface Props {
   isExpandable: boolean;
   platform: PlatformType;
   onToggleContext: (evt: React.MouseEvent) => void;
   isHoverPreviewed?: boolean;
   isExpanded?: boolean;
-};
+}
 
 function Expander({
   isExpandable,

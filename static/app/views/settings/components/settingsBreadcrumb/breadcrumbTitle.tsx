@@ -3,10 +3,10 @@ import {PlainRoute} from 'react-router';
 
 import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
 
-type Props = {
+interface Props {
   routes: Array<PlainRoute>;
   title: string;
-};
+}
 
 class BreadcrumbTitle extends Component<Props> {
   componentDidMount() {

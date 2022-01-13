@@ -33,18 +33,18 @@ const MOBILE_USER_AGENTS = ['okhttp', 'CFNetwork', 'Alamofire', 'Dalvik'];
 
 type MobileEventResult = {browserName: string; clientOsName: string} | null;
 
-type Props = {
+interface Props {
   projects: Project[];
   event: Event;
   organization: Organization;
   api: Client;
-};
+}
 
-type State = {
+interface State {
   isDismissed?: boolean;
   loaded?: boolean;
   mobileEventResult?: MobileEventResult;
-};
+}
 
 class SuggestProjectCTA extends Component<Props, State> {
   state: State = {};

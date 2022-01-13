@@ -36,10 +36,10 @@ export function isCurrentEvent(
   );
 }
 
-type PathNode = {
+interface PathNode {
   event: TraceFull;
   path: TraceLite;
-};
+}
 
 /**
  * The `events-full` endpoint returns the full trace containing the specified event.
@@ -103,7 +103,7 @@ function simplifyEvent(event: TraceFull): QuickTraceEvent {
   return omit(event, ['children']);
 }
 
-type ParsedQuickTrace = {
+interface ParsedQuickTrace {
   /**
    * `null` represents the lack of a root. It may still have a parent
    */
@@ -128,7 +128,7 @@ type ParsedQuickTrace = {
    * `null` represents the uncertainty of descendants in a lite trace navigator
    */
   descendants: QuickTraceEvent[] | null;
-};
+}
 
 export function parseQuickTrace(
   quickTrace: QuickTrace,

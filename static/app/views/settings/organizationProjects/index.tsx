@@ -32,11 +32,11 @@ type Props = {
 
 type ProjectStats = Record<string, Required<Project['stats']>>;
 
-type State = AsyncView['state'] & {
+interface State {
   projectList: Project[] | null;
   projectListPageLinks: string | null;
   projectStats: ProjectStats | null;
-};
+}
 
 class OrganizationProjects extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

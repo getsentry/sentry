@@ -9,51 +9,44 @@ import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromCon
 
 import {FieldObject, JsonFormObject} from './type';
 
-type DefaultProps = {
+interface DefaultProps {
   additionalFieldProps: {[key: string]: any};
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   /**
    * Panel title
    */
   title?: React.ReactNode;
-
   /**
    * List of fields to render
    */
   fields: FieldObject[];
-
   access?: Set<Scope>;
   features?: Record<string, any>;
-
   /**
    * The name of the field that should be highlighted
    */
   highlighted?: string;
-
   /**
    * Renders inside of PanelBody at the start
    */
   renderHeader?: (arg: JsonFormObject) => React.ReactNode;
-
   /**
    * Renders inside of PanelBody before PanelBody close
    */
   renderFooter?: (arg: JsonFormObject) => React.ReactNode;
-
   /**
    * Disables the entire form
    */
   disabled?: boolean;
-
   /** Can the PanelBody be hidden with a click? */
   collapsible?: boolean;
-};
+}
 
-type State = {
+interface State {
   collapsed: boolean;
-};
+}
 
 export default class FormPanel extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {

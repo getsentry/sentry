@@ -64,7 +64,7 @@ export const logExperiment: Hooks['analytics:log-experiment'] = options =>
 export const analytics: Hooks['analytics:event'] = (name, data) =>
   HookStore.get('analytics:event').forEach(cb => cb(name, data));
 
-type RecordMetric = Hooks['metrics:event'] & {
+interface RecordMetric {
   mark: (opts: {
     /**
      * Name of the metric event
@@ -76,7 +76,6 @@ type RecordMetric = Hooks['metrics:event'] & {
      */
     data?: object;
   }) => void;
-
   measure: (opts: {
     /**
      * Name of the metric event
@@ -100,7 +99,6 @@ type RecordMetric = Hooks['metrics:event'] & {
      */
     noCleanup?: boolean;
   }) => void;
-
   startTransaction: (opts: {
     /**
      * Name of transaction
@@ -115,14 +113,13 @@ type RecordMetric = Hooks['metrics:event'] & {
      */
     op?: string;
   }) => Transaction;
-
   endTransaction: (opts: {
     /**
      * Name of the transaction to end
      */
     name: string;
   }) => void;
-};
+}
 
 /**
  * Used to pass data between metric.mark() and metric.measure()

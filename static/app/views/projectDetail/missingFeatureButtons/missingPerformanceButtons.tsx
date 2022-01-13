@@ -11,9 +11,9 @@ import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
 
 const DOCS_URL = 'https://docs.sentry.io/performance-monitoring/getting-started/';
 
-type Props = {
+interface Props {
   organization: Organization;
-};
+}
 
 function MissingPerformanceButtons({organization}: Props) {
   function handleTourAdvance(step: number, duration: number) {

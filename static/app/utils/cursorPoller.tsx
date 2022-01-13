@@ -1,10 +1,10 @@
 import {Client, Request} from 'sentry/api';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
-type Options = {
+interface Options {
   endpoint: string;
   success: (data: any, link?: string | null) => void;
-};
+}
 
 const BASE_DELAY = 3000;
 const MAX_DELAY = 60000;

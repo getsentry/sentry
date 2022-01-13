@@ -53,13 +53,13 @@ import {
   vitalCardDetails,
 } from './utils';
 
-type FrontendCardsProps = {
+interface FrontendCardsProps {
   eventView: EventView;
   location: Location;
   organization: Organization;
   projects: Project[];
   frontendOnly?: boolean;
-};
+}
 
 export function FrontendCards(props: FrontendCardsProps) {
   const {eventView, location, organization, projects, frontendOnly = false} = props;
@@ -129,15 +129,15 @@ const VitalBarContainer = styled('div')`
   margin-top: ${space(1.5)};
 `;
 
-type BaseCardsProps = {
+interface BaseCardsProps {
   eventView: EventView;
   location: Location;
   organization: Organization;
-};
+}
 
-type GenericCardsProps = BaseCardsProps & {
+interface GenericCardsProps extends BaseCardsProps {
   functions: Column[];
-};
+}
 
 function GenericCards(props: GenericCardsProps) {
   const api = useApi();
@@ -264,9 +264,9 @@ function _BackendCards(props: BaseCardsProps) {
 
 export const BackendCards = _BackendCards;
 
-type MobileCardsProps = BaseCardsProps & {
+interface MobileCardsProps extends BaseCardsProps {
   showStallPercentage: boolean;
-};
+}
 
 function _MobileCards(props: MobileCardsProps) {
   const functions: Column[] = [
@@ -300,9 +300,9 @@ function _MobileCards(props: MobileCardsProps) {
 
 export const MobileCards = _MobileCards;
 
-type SparklineChartProps = {
+interface SparklineChartProps {
   data: number[];
-};
+}
 
 function SparklineChart(props: SparklineChartProps) {
   const {data} = props;
@@ -318,10 +318,10 @@ function SparklineChart(props: SparklineChartProps) {
   );
 }
 
-type SparklineContainerProps = {
+interface SparklineContainerProps {
   width: number;
   height: number;
-};
+}
 
 const SparklineContainer = styled('div')<SparklineContainerProps>`
   flex-grow: 4;
@@ -344,7 +344,7 @@ const VitalsContainer = styled('div')`
   }
 `;
 
-type VitalBarProps = {
+interface VitalBarProps {
   isLoading: boolean;
   data: VitalsData | null;
   vital: WebVital | WebVital[];
@@ -356,7 +356,7 @@ type VitalBarProps = {
   showDetail?: boolean;
   showTooltip?: boolean;
   barHeight?: number;
-};
+}
 
 export function VitalBar(props: VitalBarProps) {
   const {
@@ -450,7 +450,7 @@ const EmptyVitalBar = styled(EmptyStateWarning)`
   padding: ${space(1.5)} 15%;
 `;
 
-type VitalCardProps = {
+interface VitalCardProps {
   title: string;
   tooltip: string;
   value: string | number;
@@ -458,7 +458,7 @@ type VitalCardProps = {
   minHeight?: number;
   horizontal?: boolean;
   isNotInteractive?: boolean;
-};
+}
 
 function VitalCard(props: VitalCardProps) {
   const {chart, minHeight, horizontal, title, tooltip, value, isNotInteractive} = props;
@@ -503,10 +503,10 @@ function getP75(data: VitalData | null, vitalName: WebVital): string {
   return vitalName === WebVital.CLS ? p75.toFixed(2) : `${p75.toFixed(0)}ms`;
 }
 
-type Percent = {
+interface Percent {
   vitalState: VitalState;
   percent: number;
-};
+}
 
 function getPercentsFromCounts({poor, meh, good, total}) {
   const poorPercent = poor / total;

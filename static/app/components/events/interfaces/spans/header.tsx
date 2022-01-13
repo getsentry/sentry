@@ -45,7 +45,7 @@ import {
   SpanGeneratedBoundsType,
 } from './utils';
 
-type PropType = {
+interface PropType {
   organization: Organization;
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
@@ -56,11 +56,11 @@ type PropType = {
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-};
+}
 
-type State = {
+interface State {
   minimapWidth: number | undefined;
-};
+}
 
 class TraceViewHeader extends React.Component<PropType, State> {
   state: State = {

@@ -9,12 +9,15 @@ import {t, tct, tn} from 'sentry/locale';
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';
 
-type ErrorDetail = {name: string; error: string};
+interface ErrorDetail {
+  name: string;
+  error: string;
+}
 
-type Props = {
+interface Props {
   lambdaFunctionFailures: ErrorDetail[];
   successCount: number;
-};
+}
 
 export default function AwsLambdaFailureDetails({
   lambdaFunctionFailures,

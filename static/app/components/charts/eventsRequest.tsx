@@ -22,7 +22,7 @@ import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
-export type TimeSeriesData = {
+export interface TimeSeriesData {
   // timeseries data
   timeseriesData?: Series[];
   comparisonTimeseriesData?: Series[];
@@ -33,9 +33,9 @@ export type TimeSeriesData = {
   previousTimeseriesData?: Series[] | null;
   timeAggregatedData?: Series | {};
   timeframe?: {start: number; end: number};
-};
+}
 
-type LoadingStatus = {
+interface LoadingStatus {
   loading: boolean;
   reloading: boolean;
   /**
@@ -43,14 +43,13 @@ type LoadingStatus = {
    */
   errored: boolean;
   errorMessage?: string;
-};
+}
 
-export type RenderProps = LoadingStatus &
-  TimeSeriesData & {
-    results?: Series[]; // Chart with multiple series.
-  };
+export interface RenderProps extends LoadingStatus, TimeSeriesData {
+  results?: Series[]; // Chart with multiple series.;
+}
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Relative time period for query.
    *
@@ -93,9 +92,9 @@ type DefaultProps = {
    * Transform the response data to be something ingestible by charts
    */
   includeTransformedData: boolean;
-};
+}
 
-type EventsRequestPartialProps = {
+interface EventsRequestPartialProps {
   /**
    * API client instance
    */
@@ -182,23 +181,21 @@ type EventsRequestPartialProps = {
    * A container for query batching data and functions.
    */
   queryBatching?: QueryBatching;
-};
+}
 
 type TimeAggregationProps =
   | {includeTimeAggregation: true; timeAggregationSeriesName: string}
   | {includeTimeAggregation?: false; timeAggregationSeriesName?: undefined};
 
-export type EventsRequestProps = DefaultProps &
-  TimeAggregationProps &
-  EventsRequestPartialProps;
+export interface EventsRequestProps extends DefaultProps, TimeAggregationProps, EventsRequestPartialProps {}
 
-type EventsRequestState = {
+interface EventsRequestState {
   reloading: boolean;
   errored: boolean;
   errorMessage?: string;
   timeseriesData: null | EventsStats | MultiSeriesEventsStats;
   fetchedWithPrevious: boolean;
-};
+}
 
 const propNamesToIgnore = ['api', 'children', 'organization', 'loading', 'queryBatching'];
 const omitIgnoredProps = (props: EventsRequestProps) =>

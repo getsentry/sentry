@@ -56,9 +56,9 @@ class PublishRequestFormModel extends FormModel {
   }
 }
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   app: SentryApp;
-};
+}
 
 export default class SentryAppPublishRequestModal extends Component<Props> {
   form = new PublishRequestFormModel();

@@ -26,9 +26,9 @@ type Props = {
   };
 } & RouteComponentProps<{orgId: string; projectId: string; pluginId: string}, {}>;
 
-type State = {
+interface State {
   pluginDetails?: Plugin;
-} & AsyncView['state'];
+}
 
 /**
  * There are currently two sources of truths for plugin details:

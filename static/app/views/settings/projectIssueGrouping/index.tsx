@@ -21,9 +21,9 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   project: Project;
 };
 
-type State = {
+interface State {
   groupingConfigs: EventGroupingConfig[] | null;
-} & AsyncView['state'];
+}
 
 class ProjectIssueGrouping extends AsyncView<Props, State> {
   getTitle() {

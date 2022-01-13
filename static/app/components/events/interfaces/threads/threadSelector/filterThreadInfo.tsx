@@ -13,11 +13,11 @@ import getThreadException from './getThreadException';
 import getThreadStacktrace from './getThreadStacktrace';
 import trimFilename from './trimFilename';
 
-type ThreadInfo = {
+interface ThreadInfo {
   label?: string;
   filename?: string;
   crashedInfo?: EntryData;
-};
+}
 
 function filterThreadInfo(
   event: Event,

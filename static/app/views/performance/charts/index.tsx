@@ -24,13 +24,13 @@ import {DoubleHeaderContainer, ErrorPanel} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
 
-type Props = {
+interface Props {
   api: Client;
   eventView: EventView;
   organization: Organization;
   location: Location;
   router: InjectedRouter;
-};
+}
 
 class Container extends Component<Props> {
   getChartParameters() {

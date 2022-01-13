@@ -19,13 +19,13 @@ import {
   getCurrentTrendParameter,
 } from 'sentry/views/performance/trends/utils';
 
-export type TrendsRequest = {
+export interface TrendsRequest {
   trendChangeType?: TrendChangeType;
   trendFunctionField?: TrendFunctionField;
   eventView: Partial<TrendView>;
-};
+}
 
-type RequestProps = DiscoverQueryProps & TrendsRequest;
+interface RequestProps extends DiscoverQueryProps, TrendsRequest {}
 
 export type TrendDiscoveryChildrenProps = Omit<
   GenericChildrenProps<TrendsData>,
@@ -34,17 +34,17 @@ export type TrendDiscoveryChildrenProps = Omit<
   trendsData: TrendsData | null;
 };
 
-type Props = RequestProps & {
+interface Props extends RequestProps {
   children: (props: TrendDiscoveryChildrenProps) => React.ReactNode;
-};
+}
 
 type EventChildrenProps = Omit<GenericChildrenProps<TrendsDataEvents>, 'tableData'> & {
   trendsData: TrendsDataEvents | null;
 };
 
-type EventProps = RequestProps & {
+interface EventProps extends RequestProps {
   children: (props: EventChildrenProps) => React.ReactNode;
-};
+}
 
 export function getTrendsRequestPayload(props: RequestProps) {
   const {eventView} = props;

@@ -1,14 +1,11 @@
-type Options = {
+interface Options {
   /** Max number of items to keep at once */
   limit?: number;
-};
+}
 
-/**
- * Minimal type shape for objects that can be managed inside StreamManager.
- */
-type IdShape = {
+interface IdShape {
   id: string;
-};
+}
 
 class StreamManager {
   private idList: string[] = [];

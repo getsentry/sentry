@@ -1,15 +1,15 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
 
-type SampleTransactionParam = {
+interface SampleTransactionParam {
   platform?: PlatformKey;
-};
+}
 
-type PerformanceTourParams = {
+interface PerformanceTourParams {
   step: number;
   duration: number;
-};
+}
 
-export type PerformanceEventParameters = {
+export interface PerformanceEventParameters {
   'performance_views.create_sample_transaction': SampleTransactionParam;
   'performance_views.tour.start': {};
   'performance_views.tour.advance': PerformanceTourParams;
@@ -45,7 +45,7 @@ export type PerformanceEventParameters = {
   'performance_views.spans.change_sort': {
     sort_column?: string;
   };
-};
+}
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;
 

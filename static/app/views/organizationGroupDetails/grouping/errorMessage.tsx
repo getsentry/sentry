@@ -17,7 +17,7 @@ type ErrorCode =
   | 'merged_issues'
   | 'missing_feature';
 
-type Error = {
+interface Error {
   status: number;
   responseJSON?: {
     detail: {
@@ -26,16 +26,16 @@ type Error = {
       message: string;
     };
   };
-};
+}
 
-type Props = {
+interface Props {
   error: Error | string;
   groupId: Group['id'];
   orgSlug: Organization['slug'];
   projSlug: Project['slug'];
   hasProjectWriteAccess: boolean;
   onRetry: () => void;
-};
+}
 
 function ErrorMessage({
   error,

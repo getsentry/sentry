@@ -12,11 +12,11 @@ import {Organization, SentryApp} from 'sentry/types';
 
 import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 
-type Props = {
+interface Props {
   app: SentryApp;
   organization: Organization;
   onRemoveApp: (app: SentryApp) => void;
-};
+}
 
 export default class SentryApplicationRow extends PureComponent<Props> {
   get isInternal() {
@@ -107,7 +107,10 @@ const CenterFlex = styled(Flex)`
   align-items: center;
 `;
 
-type PublishStatusProps = {status: SentryApp['status']; theme?: any};
+interface PublishStatusProps {
+  status: SentryApp['status'];
+  theme?: any;
+}
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   <CenterFlex>

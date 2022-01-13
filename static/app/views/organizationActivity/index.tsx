@@ -22,9 +22,9 @@ type Props = {
 } & RouteComponentProps<{orgId: string}, {}> &
   AsyncView['props'];
 
-type State = {
+interface State {
   activity: Activity[];
-} & AsyncView['state'];
+}
 
 class OrganizationActivity extends AsyncView<Props, State> {
   getTitle() {

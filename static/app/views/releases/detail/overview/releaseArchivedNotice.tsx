@@ -6,10 +6,10 @@ import Button from 'sentry/components/button';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   multi?: boolean;
   onRestore?: () => void;
-};
+}
 
 function ReleaseArchivedNotice({onRestore, multi}: Props) {
   return (

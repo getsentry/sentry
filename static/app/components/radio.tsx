@@ -5,7 +5,9 @@ import styled from '@emotion/styled';
 import {growIn} from 'sentry/styles/animations';
 import {Theme} from 'sentry/utils/theme';
 
-type Props = {radioSize?: 'small'};
+interface Props {
+  radioSize?: 'small';
+}
 
 type CheckedProps = Props &
   Omit<React.HTMLProps<HTMLInputElement>, 'as'> & {theme: Theme};

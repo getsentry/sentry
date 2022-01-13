@@ -7,10 +7,10 @@ import GroupingComponentChildren from './groupingComponentChildren';
 import GroupingComponentStacktrace from './groupingComponentStacktrace';
 import {shouldInlineComponentValue} from './utils';
 
-type Props = {
+interface Props {
   component: EventGroupComponent;
   showNonContributing: boolean;
-};
+}
 
 const GroupingComponent = ({component, showNonContributing}: Props) => {
   const shouldInlineValue = shouldInlineComponentValue(component);

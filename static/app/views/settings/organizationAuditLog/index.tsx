@@ -67,10 +67,10 @@ type Props = RouteComponentProps<{orgId: string}, {}> &
     organization: Organization;
   };
 
-type State = AsyncView['state'] & {
+interface State {
   entryList: AuditLog[] | null;
   entryListPageLinks: string | null;
-};
+}
 
 class OrganizationAuditLog extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

@@ -8,9 +8,9 @@ import {IntegrationInstallationStatus} from 'sentry/types';
 
 import {COLORS} from './constants';
 
-type StatusProps = {
+interface StatusProps {
   status: IntegrationInstallationStatus;
-};
+}
 
 const StatusWrapper = styled('div')`
   display: flex;

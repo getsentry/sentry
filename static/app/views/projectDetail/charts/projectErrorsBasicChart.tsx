@@ -14,16 +14,16 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 
 const ALLOWED_TIME_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   location: Location;
   onTotalValuesChange: (value: number | null) => void;
   projectId?: string;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   projects: Project[] | null;
-};
+}
 
 class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
   getDefaultState() {

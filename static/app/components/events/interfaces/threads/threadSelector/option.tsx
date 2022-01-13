@@ -9,18 +9,18 @@ import {Color} from 'sentry/utils/theme';
 
 import {Grid, GridCell} from './styles';
 
-type Props = {
+interface Props {
   id: number;
   details: ThreadInfo;
   crashedInfo?: EntryData;
   name?: string | null;
   crashed?: boolean;
-};
+}
 
-type ThreadInfo = {
+interface ThreadInfo {
   label?: string;
   filename?: string;
-};
+}
 
 const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
   const {label = `<${t('unknown')}>`, filename = `<${t('unknown')}>`} = details;

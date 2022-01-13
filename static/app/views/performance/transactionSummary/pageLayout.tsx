@@ -25,7 +25,7 @@ import TransactionHeader from './header';
 import Tab from './tabs';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
 
-export type ChildProps = {
+export interface ChildProps {
   location: Location;
   organization: Organization;
   projects: Project[];
@@ -36,9 +36,9 @@ export type ChildProps = {
   // These are used to trigger a reload when the threshold/metric changes.
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
-};
+}
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   projects: Project[];
@@ -49,7 +49,7 @@ type Props = {
   relativeDateOptions?: Record<string, React.ReactNode>;
   maxPickableDays?: number;
   features?: string[];
-};
+}
 
 function PageLayout(props: Props) {
   const {

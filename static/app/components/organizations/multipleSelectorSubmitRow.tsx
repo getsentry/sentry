@@ -5,10 +5,10 @@ import {t} from 'sentry/locale';
 import {growIn} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   onSubmit: () => void;
   disabled?: boolean;
-};
+}
 
 const MultipleSelectorSubmitRow = ({onSubmit, disabled = false}: Props) => (
   <SubmitButtonContainer>

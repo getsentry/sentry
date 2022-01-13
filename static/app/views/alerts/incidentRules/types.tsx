@@ -42,22 +42,22 @@ export enum SessionsAggregate {
   CRASH_FREE_USERS = 'percentage(users_crashed, users) AS _crash_rate_alert_aggregate',
 }
 
-export type UnsavedTrigger = {
-  // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
-  // id yet
-  alertRuleId?: string;
-  label: string;
-  alertThreshold: number | '' | null;
-  actions: Action[];
-};
+export interface UnsavedTrigger {
+ // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
+ // id yet
+ alertRuleId?: string;
+ label: string;
+ alertThreshold: number | '' | null;
+ actions: Action[];
+}
 
-export type ThresholdControlValue = {
-  thresholdType: AlertRuleThresholdType;
-  /**
-   * Resolve threshold is optional, so it can be null
-   */
-  threshold: number | '' | null;
-};
+export interface ThresholdControlValue {
+ thresholdType: AlertRuleThresholdType;
+ /**
+  * Resolve threshold is optional, so it can be null
+  */
+ threshold: number | '' | null;
+}
 
 type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
   id: string;
@@ -67,30 +67,30 @@ type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
 
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
-export type UnsavedIncidentRule = {
-  dataset: Dataset;
-  projects: string[];
-  environment: string | null;
-  query: string;
-  timeWindow: TimeWindow;
-  triggers: Trigger[];
-  aggregate: string;
-  thresholdType: AlertRuleThresholdType;
-  resolveThreshold: number | '' | null;
-  comparisonDelta?: number | null;
-  eventTypes?: EventTypes[];
-  owner?: string | null;
-};
+export interface UnsavedIncidentRule {
+ dataset: Dataset;
+ projects: string[];
+ environment: string | null;
+ query: string;
+ timeWindow: TimeWindow;
+ triggers: Trigger[];
+ aggregate: string;
+ thresholdType: AlertRuleThresholdType;
+ resolveThreshold: number | '' | null;
+ comparisonDelta?: number | null;
+ eventTypes?: EventTypes[];
+ owner?: string | null;
+}
 
-export type SavedIncidentRule = UnsavedIncidentRule & {
-  dateCreated: string;
-  dateModified: string;
-  id: string;
-  status: number;
-  name: string;
-  createdBy?: {id: number; email: string; name: string} | null;
-  originalAlertRuleId?: number | null;
-};
+export interface SavedIncidentRule extends UnsavedIncidentRule {
+ dateCreated: string;
+ dateModified: string;
+ id: string;
+ status: number;
+ name: string;
+ createdBy?: {id: number; email: string; name: string} | null;
+ originalAlertRuleId?: number | null;
+}
 
 export type IncidentRule = Partial<SavedIncidentRule> & UnsavedIncidentRule;
 
@@ -155,53 +155,45 @@ export const TargetLabel = {
  * This is an available action template that is associated to a Trigger in a
  * Metric Alert Rule. They are defined by the available-actions API.
  */
-export type MetricActionTemplate = {
-  /**
-   * The integration type e.g. 'email'
-   */
-  type: ActionType;
-
-  /**
-   * See `TargetType`
-   */
-  allowedTargetTypes: TargetType[];
-
-  /**
-   * Name of the integration. This is a text field that differentiates integrations from the same provider from each other
-   */
-  integrationName?: string;
-
-  /**
-   * Integration id for this `type`, should be passed to backend as `integrationId` when creating an action
-   */
-  integrationId?: number;
-
-  /**
-   * Name of the SentryApp. Like `integrationName`, this differentiates SentryApps from each other.
-   */
-  sentryAppName?: string;
-
-  /**
-   * SentryApp id for this `type`, should be passed to backend as `sentryAppId` when creating an action.
-   */
-  sentryAppId?: number;
-
-  sentryAppInstallationUuid?: string;
-  /**
-   * For some available actions, we pass in the list of available targets.
-   */
-  options?: Array<{label: string; value: any}>;
-
-  /**
-   * If this is a `sentry_app` action, this is the Sentry App's status.
-   */
-  status?: 'unpublished' | 'published' | 'internal';
-
-  /**
-   * Sentry App Alert Rule UI Component settings
-   */
-  settings?: SchemaFormConfig;
-};
+export interface MetricActionTemplate {
+ /**
+  * The integration type e.g. 'email'
+  */
+ type: ActionType;
+ /**
+  * See `TargetType`
+  */
+ allowedTargetTypes: TargetType[];
+ /**
+  * Name of the integration. This is a text field that differentiates integrations from the same provider from each other
+  */
+ integrationName?: string;
+ /**
+  * Integration id for this `type`, should be passed to backend as `integrationId` when creating an action
+  */
+ integrationId?: number;
+ /**
+  * Name of the SentryApp. Like `integrationName`, this differentiates SentryApps from each other.
+  */
+ sentryAppName?: string;
+ /**
+  * SentryApp id for this `type`, should be passed to backend as `sentryAppId` when creating an action.
+  */
+ sentryAppId?: number;
+ sentryAppInstallationUuid?: string;
+ /**
+  * For some available actions, we pass in the list of available targets.
+  */
+ options?: Array<{label: string; value: any}>;
+ /**
+  * If this is a `sentry_app` action, this is the Sentry App's status.
+  */
+ status?: 'unpublished' | 'published' | 'internal';
+ /**
+  * Sentry App Alert Rule UI Component settings
+  */
+ settings?: SchemaFormConfig;
+}
 
 /**
  * This is the user's configured action
@@ -210,62 +202,54 @@ export type Action = UnsavedAction & Partial<SavedActionFields>;
 export type SavedAction = Omit<UnsavedAction, 'unsavedDateCreated' | 'unsavedId'> &
   SavedActionFields;
 
-type SavedActionFields = {
-  /**
-   * The id of the alert rule this action belongs to
-   */
-  alertRuleTriggerId: string;
+interface SavedActionFields {
+ /**
+  * The id of the alert rule this action belongs to
+  */
+ alertRuleTriggerId: string;
+ /**
+  * A human readable description of the action generated by server
+  */
+ desc: string;
+ /**
+  * model id of the action
+  */
+ id: string;
+ /**
+  * date created
+  */
+ dateCreated: string;
+}
 
-  /**
-   * A human readable description of the action generated by server
-   */
-  desc: string;
-
-  /**
-   * model id of the action
-   */
-  id: string;
-
-  /**
-   * date created
-   */
-  dateCreated: string;
-};
-
-type UnsavedAction = {
-  unsavedId: string;
-  /** Used to maintain order of unsaved actions */
-  unsavedDateCreated: string;
-  type: ActionType;
-
-  targetType: TargetType | null;
-
-  /**
-   * How to identify the target. Can be email, slack channel, pagerduty service,
-   * user_id, team_id, SentryApp id, etc
-   */
-  targetIdentifier: string | null;
-  /**
-   * An optional Slack channel or user id the user can input to avoid rate limiting issues.
-   */
-  inputChannelId: string | null;
-  /**
-   * The id of the integration, can be null (e.g. email) or undefined (server errors when posting w/ null value)
-   */
-  integrationId?: number | null;
-
-  /**
-   * The id of the SentryApp, can be null (e.g. email) or undefined (server errors when posting w/ null value)
-   */
-  sentryAppId?: number | null;
-
-  /**
-   * For some available actions, we pass in the list of available targets.
-   */
-  options: Array<{label: string; value: any}> | null;
-
-  /**
-   * If this is a `sentry_app` action, this is the Sentry App's status.
-   */
-  status?: 'unpublished' | 'published' | 'internal';
-};
+interface UnsavedAction {
+ unsavedId: string;
+ /** Used to maintain order of unsaved actions */
+ unsavedDateCreated: string;
+ type: ActionType;
+ targetType: TargetType | null;
+ /**
+  * How to identify the target. Can be email, slack channel, pagerduty service,
+  * user_id, team_id, SentryApp id, etc
+  */
+ targetIdentifier: string | null;
+ /**
+  * An optional Slack channel or user id the user can input to avoid rate limiting issues.
+  */
+ inputChannelId: string | null;
+ /**
+  * The id of the integration, can be null (e.g. email) or undefined (server errors when posting w/ null value)
+  */
+ integrationId?: number | null;
+ /**
+  * The id of the SentryApp, can be null (e.g. email) or undefined (server errors when posting w/ null value)
+  */
+ sentryAppId?: number | null;
+ /**
+  * For some available actions, we pass in the list of available targets.
+  */
+ options: Array<{label: string; value: any}> | null;
+ /**
+  * If this is a `sentry_app` action, this is the Sentry App's status.
+  */
+ status?: 'unpublished' | 'published' | 'internal';
+}

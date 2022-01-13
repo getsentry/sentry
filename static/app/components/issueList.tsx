@@ -14,7 +14,7 @@ import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   endpoint: string;
   emptyText?: string;
@@ -23,15 +23,15 @@ type Props = WithRouterProps & {
   renderEmpty?: () => React.ReactElement;
   noBorder?: boolean;
   noMargin?: boolean;
-};
+}
 
-type State = {
+interface State {
   issueIds: Array<string>;
   loading: boolean;
   error: boolean;
   pageLinks: string | null;
   data: Array<Group>;
-};
+}
 
 class IssueList extends React.Component<Props, State> {
   state: State = this.getInitialState();

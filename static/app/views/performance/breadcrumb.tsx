@@ -15,7 +15,7 @@ import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
 import {getPerformanceLandingUrl} from './utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   location: Location;
   transaction?: {
@@ -26,7 +26,7 @@ type Props = {
   eventSlug?: string;
   traceSlug?: string;
   tab?: Tab;
-};
+}
 
 class Breadcrumb extends Component<Props> {
   getCrumbs() {

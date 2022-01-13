@@ -22,12 +22,12 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import {getTooltipArrow} from './utils';
 
-type ReleaseMetaBasic = {
+interface ReleaseMetaBasic {
   version: string;
   date: string;
-};
+}
 
-type ReleaseConditions = {
+interface ReleaseConditions {
   start: DateString;
   end: DateString;
   project: Readonly<number[]>;
@@ -35,7 +35,7 @@ type ReleaseConditions = {
   statsPeriod?: string;
   cursor?: string;
   query?: string;
-};
+}
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
@@ -62,7 +62,7 @@ function getOrganizationReleases(
   }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   theme: Theme;
   organization: Organization;
@@ -80,12 +80,12 @@ type Props = WithRouterProps & {
   emphasizeReleases?: string[];
   query?: string;
   queryExtra?: Query;
-};
+}
 
-type State = {
+interface State {
   releases: ReleaseMetaBasic[] | null;
   releaseSeries: Series[];
-};
+}
 
 class ReleaseSeries extends React.Component<Props, State> {
   state: State = {

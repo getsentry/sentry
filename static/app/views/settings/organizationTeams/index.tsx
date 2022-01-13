@@ -16,9 +16,9 @@ type Props = {
   teams: Team[];
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   requestList: AccessRequest[];
-};
+}
 
 class OrganizationTeamsContainer extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

@@ -19,11 +19,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {ZOOM_KEYS} from './constants';
 import VitalsPanel from './vitalsPanel';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   eventView: EventView;
-};
+}
 
 function VitalsContent(props: Props) {
   const {location, organization, eventView} = props;

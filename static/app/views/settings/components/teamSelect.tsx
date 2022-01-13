@@ -19,7 +19,7 @@ import {Organization, Team} from 'sentry/types';
 import useTeams from 'sentry/utils/useTeams';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = {
+interface Props {
   organization: Organization;
   /**
    * Should button be disabled
@@ -50,7 +50,7 @@ type Props = {
    * Used to determine whether we should show a loading state while waiting for teams
    */
   loadingTeams?: boolean;
-};
+}
 
 function TeamSelect({
   disabled,
@@ -137,13 +137,13 @@ function TeamSelect({
   );
 }
 
-type TeamRowProps = {
+interface TeamRowProps {
   orgId: string;
   team: Team;
   onRemove: Props['onRemoveTeam'];
   disabled: boolean;
   confirmMessage: string | null;
-};
+}
 
 const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps) => (
   <TeamPanelItem>

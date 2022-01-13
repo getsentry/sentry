@@ -10,7 +10,7 @@ import {CodeOwner, CodeownersFile, Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   project: Project;
@@ -18,7 +18,7 @@ type Props = {
   disabled: boolean;
   onDelete: (data: CodeOwner) => void;
   onUpdate: (data: CodeOwner) => void;
-};
+}
 
 class CodeOwnersPanel extends Component<Props> {
   handleDelete = async (codeowner: CodeOwner) => {

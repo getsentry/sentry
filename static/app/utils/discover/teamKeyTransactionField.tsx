@@ -31,16 +31,15 @@ class TitleStar extends Component<TitleProps> {
   }
 }
 
-type BaseProps = {
+interface BaseProps {
   organization: Organization;
   isKeyTransaction: boolean;
-};
+}
 
-type Props = BaseProps &
-  TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {
-    project: Project;
-    transactionName: string;
-  };
+interface Props extends BaseProps, TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps {
+  project: Project;
+  transactionName: string;
+}
 
 function TeamKeyTransactionField({
   isKeyTransaction,
@@ -65,11 +64,11 @@ function TeamKeyTransactionField({
   );
 }
 
-type WrapperProps = BaseProps & {
+interface WrapperProps extends BaseProps {
   projects: Project[];
   projectSlug: string | undefined;
   transactionName: string | undefined;
-};
+}
 
 function TeamKeyTransactionFieldWrapper({
   isKeyTransaction,

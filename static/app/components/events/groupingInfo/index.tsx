@@ -14,18 +14,18 @@ import withOrganization from 'sentry/utils/withOrganization';
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   projectId: string;
   event: Event;
   showGroupingConfig: boolean;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   isOpen: boolean;
   configOverride: string | null;
   groupInfo: EventGroupInfo;
-};
+}
 
 class EventGroupingInfo extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

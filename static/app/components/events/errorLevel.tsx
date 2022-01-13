@@ -4,10 +4,10 @@ import {Level} from 'sentry/types';
 
 const DEFAULT_SIZE = '13px';
 
-type Props = {
+interface Props {
   size?: string;
   level?: Level;
-};
+}
 
 const ErrorLevel = styled('span')<Props>`
   padding: 0;

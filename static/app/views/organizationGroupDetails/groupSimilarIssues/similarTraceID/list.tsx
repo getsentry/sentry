@@ -21,17 +21,17 @@ import {GroupResolution} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 
-type CustomGroup = GroupResolution & {
+interface CustomGroup extends GroupResolution {
   eventID: string;
   groupID: string;
-};
+}
 
-type Period = {
+interface Period {
   start: string;
   end: string;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   orgSlug: string;
   issues: Array<TableDataRow>;
@@ -39,13 +39,13 @@ type Props = {
   pageLinks: string | null;
   location: Location;
   traceID: string;
-};
+}
 
-type State = {
+interface State {
   groups: Array<CustomGroup>;
   hasError: boolean;
   isLoading: boolean;
-};
+}
 
 class List extends Component<Props, State> {
   state: State = {

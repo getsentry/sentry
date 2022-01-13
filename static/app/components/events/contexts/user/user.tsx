@@ -12,13 +12,13 @@ import getUnknownData from '../getUnknownData';
 import getUserKnownData from './getUserKnownData';
 import {UserIgnoredDataType, UserKnownDataType} from './types';
 
-type Props = {
+interface Props {
   data: Data;
-};
+}
 
-type Data = {
+interface Data extends UserType {
   data: Record<string, string>;
-} & UserType;
+}
 
 const userKnownDataValues = [
   UserKnownDataType.ID,

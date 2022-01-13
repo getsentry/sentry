@@ -45,11 +45,11 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
 
 export const spanOperationBreakdownSingleColumns = OPTIONS.map(o => `spans.${o}`);
 
-type Props = {
+interface Props {
   organization: OrganizationSummary;
   currentFilter: SpanOperationBreakdownFilter;
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
-};
+}
 
 function Filter(props: Props) {
   const {currentFilter, onChangeFilter, organization} = props;

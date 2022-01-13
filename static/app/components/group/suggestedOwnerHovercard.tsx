@@ -15,7 +15,7 @@ import {Actor, Commit} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   /**
    * The suggested actor.
    */
@@ -30,12 +30,12 @@ type Props = {
    * if the actor is not suggested based on ownership rules.
    */
   rules?: any[] | null;
-};
+}
 
-type State = {
+interface State {
   commitsExpanded: boolean;
   rulesExpanded: boolean;
-};
+}
 
 class SuggestedOwnerHovercard extends React.Component<Props, State> {
   state: State = {

@@ -9,14 +9,14 @@ import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   title: React.ReactNode;
   score?: React.ReactNode;
   help?: React.ReactNode;
   trend?: React.ReactNode;
   trendStatus?: 'good' | 'bad';
   className?: string;
-};
+}
 
 function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {
   return (
@@ -83,7 +83,9 @@ export const Score = styled('span')`
   white-space: nowrap;
 `;
 
-type TrendProps = {trendStatus: Props['trendStatus']};
+interface TrendProps {
+  trendStatus: Props['trendStatus'];
+}
 
 export const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};

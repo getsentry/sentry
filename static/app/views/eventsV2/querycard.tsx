@@ -11,7 +11,7 @@ import space from 'sentry/styles/space';
 import {User} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
-type Props = {
+interface Props {
   title?: string;
   subtitle?: string;
   queryDetail?: string;
@@ -21,7 +21,7 @@ type Props = {
   onEventClick?: () => void;
   renderGraph: () => React.ReactNode;
   renderContextMenu?: () => React.ReactNode;
-};
+}
 
 class QueryCard extends React.PureComponent<Props> {
   handleClick = () => {

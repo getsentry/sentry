@@ -7,9 +7,9 @@ import {Group} from 'sentry/types';
 
 import SidebarSection from './sidebarSection';
 
-type Props = {
+interface Props {
   participants: Group['participants'];
-};
+}
 
 const GroupParticipants = ({participants}: Props) => (
   <SidebarSection title={tn('%s Participant', '%s Participants', participants.length)}>

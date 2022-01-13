@@ -4,9 +4,9 @@ import Alert from 'sentry/components/alert';
 import {IconInfo} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 
-type Props = {
+interface Props {
   className?: string;
-};
+}
 
 const FeedbackAlert = ({className}: Props) => (
   <StyledAlert type="info" icon={<IconInfo />} className={className}>

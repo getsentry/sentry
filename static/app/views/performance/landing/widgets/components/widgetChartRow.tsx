@@ -14,13 +14,13 @@ import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import WidgetContainer from './widgetContainer';
 
-export type ChartRowProps = {
+export interface ChartRowProps {
   eventView: EventView;
   location: Location;
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
   chartCount: number;
-};
+}
 
 function getInitialChartSettings(
   chartCount: number,

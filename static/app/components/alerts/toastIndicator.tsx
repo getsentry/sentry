@@ -10,11 +10,11 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
-type Props = {
+interface Props {
   indicator: Indicator;
   onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
   className?: string;
-};
+}
 
 function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
   let icon: React.ReactNode;

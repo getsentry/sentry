@@ -29,19 +29,19 @@ import {
 } from './options';
 import RadioPanelGroup from './radioPanelGroup';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   projectId: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   project: Project;
 };
 
-type State = {
+interface State {
   alertOption: AlertType;
-};
+}
 
 const DEFAULT_ALERT_OPTION = 'issues';
 

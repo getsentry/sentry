@@ -9,10 +9,10 @@ const dataSetChoices: [string, string][] = [
   [DataSet.METRICS, t('Metrics')],
 ];
 
-type Props = {
+interface Props {
   value: DataSet;
   onChange: (value: DataSet) => void;
-};
+}
 
 function ChooseDataSetStep({value, onChange}: Props) {
   return (

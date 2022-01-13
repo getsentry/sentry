@@ -5,9 +5,9 @@ import {NavigationSection} from 'sentry/views/settings/types';
 
 const pathPrefix = '/settings/account';
 
-type ConfigParams = {
+interface ConfigParams {
   organization?: Organization;
-};
+}
 
 function getConfiguration({organization}: ConfigParams): NavigationSection[] {
   return [

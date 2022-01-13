@@ -30,7 +30,7 @@ import TransactionsTable from './transactionsTable';
 
 const DEFAULT_TRANSACTION_LIMIT = 5;
 
-export type DropdownOption = {
+export interface DropdownOption {
   /**
    * The sort to apply to the eventView when this is selected.
    */
@@ -51,9 +51,9 @@ export type DropdownOption = {
    * override the eventView query
    */
   query?: [string, string][];
-};
+}
 
-type Props = {
+interface Props {
   location: Location;
   eventView: EventView;
   trendView?: TrendView;
@@ -119,7 +119,7 @@ type Props = {
   generatePerformanceTransactionEventsView?: () => EventView;
   showTransactions?: TransactionFilterOptions;
   breakdown?: SpanOperationBreakdownFilter;
-};
+}
 
 class TransactionsList extends React.Component<Props> {
   static defaultProps = {

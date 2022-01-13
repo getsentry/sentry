@@ -24,16 +24,16 @@ type ActiveTab = keyof typeof FORM_COMPONENTS;
 
 type TabConfig = [key: ActiveTab, label: string, disabled?: boolean];
 
-type Props = {
+interface Props {
   api: Client;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   error: null | boolean;
   activeTab: ActiveTab;
   authConfig: null | AuthConfig;
-};
+}
 
 class Login extends React.Component<Props, State> {
   state: State = {

@@ -5,10 +5,10 @@ import space from 'sentry/styles/space';
 import {OrganizationSummary, Project} from 'sentry/types';
 import {getParentKey} from 'sentry/views/settings/account/notifications/utils';
 
-type Props = {
+interface Props {
   notificationType: string;
   parent: OrganizationSummary | Project;
-};
+}
 
 // TODO(mgaeta): Infer parentKey from parent.
 const ParentLabel = ({notificationType, parent}: Props) => (

@@ -9,21 +9,21 @@ import {t} from 'sentry/locale';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
-type DefaultProps = {
+interface DefaultProps {
   query: string;
   defaultQuery: string;
   onSearch: (query: string) => void;
-};
+}
 
 type Props = DefaultProps & {
   width?: string;
   onChange?: (query: string) => void;
 } & Omit<React.ComponentProps<typeof Input>, 'onChange'>;
 
-type State = {
+interface State {
   query: string;
   dropdownVisible: boolean;
-};
+}
 
 class SearchBar extends React.PureComponent<Props, State> {
   static defaultProps: DefaultProps = {

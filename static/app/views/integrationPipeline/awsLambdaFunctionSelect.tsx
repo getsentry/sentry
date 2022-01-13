@@ -21,16 +21,19 @@ import HeaderWithHelp from './components/headerWithHelp';
 
 const LAMBDA_COUNT_THRESHOLD = 10;
 
-type LambdaFunction = {FunctionName: string; Runtime: string};
+interface LambdaFunction {
+  FunctionName: string;
+  Runtime: string;
+}
 
-type Props = {
+interface Props {
   lambdaFunctions: LambdaFunction[];
   initialStepNumber: number;
-};
+}
 
-type State = {
+interface State {
   submitting: boolean;
-};
+}
 
 const getLabel = (func: LambdaFunction) => func.FunctionName;
 

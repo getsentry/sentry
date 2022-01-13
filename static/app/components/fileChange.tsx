@@ -7,11 +7,11 @@ import TextOverflow from 'sentry/components/textOverflow';
 import space from 'sentry/styles/space';
 import {AvatarUser, CommitAuthor} from 'sentry/types';
 
-type Props = {
+interface Props {
   filename: string;
   authors: CommitAuthor[];
   className?: string;
-};
+}
 
 const FileChange = ({filename, authors, className}: Props) => (
   <FileItem className={className}>

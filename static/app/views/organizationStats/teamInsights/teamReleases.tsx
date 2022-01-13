@@ -23,25 +23,25 @@ import {Color, Theme} from 'sentry/utils/theme';
 
 import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
 
-type Props = AsyncComponent['props'] & {
+interface Props extends DateTimeObject {
   theme: Theme;
   organization: Organization;
   teamSlug: string;
   projects: Project[];
-} & DateTimeObject;
+}
 
-type ProjectReleaseCount = {
+interface ProjectReleaseCount {
   project_avgs: Record<string, number>;
   release_counts: Record<string, number>;
   last_week_totals: Record<string, number>;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   /** weekly selected date range */
   periodReleases: ProjectReleaseCount | null;
   /** Locked to last 7 days */
   weekReleases: ProjectReleaseCount | null;
-};
+}
 
 class TeamReleases extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;

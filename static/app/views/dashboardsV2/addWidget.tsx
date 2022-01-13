@@ -17,11 +17,11 @@ const initialStyles = {
   scaleY: 1,
 };
 
-type Props = {
+interface Props {
   onOpenWidgetBuilder: () => void;
   onAddWidget: () => void;
   orgFeatures: Organization['features'];
-};
+}
 
 function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
   const onClick = orgFeatures.includes('metrics') ? onOpenWidgetBuilder : onAddWidget;

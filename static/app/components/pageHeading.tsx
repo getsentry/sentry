@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   className?: string;
   withMargins?: boolean;
-};
+}
 
 const PageHeading = styled('h1')<Props>`
   color: ${p => p.theme.textColor};

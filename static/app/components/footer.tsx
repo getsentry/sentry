@@ -9,9 +9,9 @@ import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-type Props = {
+interface Props {
   className?: string;
-};
+}
 
 function BaseFooter({className}: Props) {
   const config = ConfigStore.getConfig();

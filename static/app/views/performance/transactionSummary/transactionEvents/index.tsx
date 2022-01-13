@@ -40,11 +40,11 @@ import {
 
 type PercentileValues = Record<EventsDisplayFilterName, number>;
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   projects: Project[];
-};
+}
 
 function TransactionEvents(props: Props) {
   const {location, organization, projects} = props;

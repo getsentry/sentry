@@ -8,7 +8,7 @@ import {tn} from 'sentry/locale';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import {Theme} from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   platforms?: PlatformKey[];
   direction?: 'right' | 'left';
   /**
@@ -30,7 +30,7 @@ type Props = {
    */
   showCounter?: boolean;
   className?: string;
-};
+}
 
 type WrapperProps = Required<
   Pick<Props, 'showCounter' | 'size' | 'direction' | 'consistentWidth' | 'max'>

@@ -13,9 +13,9 @@ const Toasts = styled('div')`
   z-index: ${p => p.theme.zIndex.toast};
 `;
 
-type Props = {
+interface Props {
   className?: string;
-};
+}
 
 function Indicators(props: Props) {
   const items = useLegacyStore(IndicatorStore);

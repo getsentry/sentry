@@ -13,7 +13,7 @@ type FormFieldProps = Omit<
   'children' | 'help' | 'disabled' | 'required'
 >;
 
-type Props = {
+interface Props extends FormFieldProps {
   /**
    * The input name
    */
@@ -38,7 +38,7 @@ type Props = {
    * The control's `id` property
    */
   id?: string;
-} & FormFieldProps;
+}
 
 function CheckboxField(props: Props) {
   const {name, disabled, stacked, id, required, label, help} = props;

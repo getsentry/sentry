@@ -79,19 +79,18 @@ export function getProjectID(
   return project.id;
 }
 
-type Props = {
+interface Props {
   eventView: EventView;
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
   summaryConditions: string;
-
   projects: Project[];
-};
+}
 
-type State = {
+interface State {
   widths: number[];
-};
+}
 
 class Table extends React.Component<Props, State> {
   state: State = {

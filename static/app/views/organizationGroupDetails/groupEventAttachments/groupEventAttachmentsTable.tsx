@@ -2,14 +2,14 @@ import {t} from 'sentry/locale';
 import {IssueAttachment} from 'sentry/types';
 import GroupEventAttachmentsTableRow from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsTableRow';
 
-type Props = {
+interface Props {
   attachments: IssueAttachment[];
   orgId: string;
   projectId: string;
   groupId: string;
   onDelete: (attachmentId: string) => void;
   deletedAttachments: string[];
-};
+}
 
 const GroupEventAttachmentsTable = ({
   attachments,

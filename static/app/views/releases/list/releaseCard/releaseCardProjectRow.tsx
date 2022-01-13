@@ -43,7 +43,7 @@ import {
   ReleaseProjectsLayout,
 } from '.';
 
-type Props = {
+interface Props {
   index: number;
   organization: Organization;
   project: ReleaseProject;
@@ -55,7 +55,7 @@ type Props = {
   showReleaseAdoptionStages: boolean;
   isTopRelease: boolean;
   adoptionStages?: Release['adoptionStages'];
-};
+}
 
 function ReleaseCardProjectRow({
   index,

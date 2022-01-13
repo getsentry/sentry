@@ -22,14 +22,14 @@ function getView(view, data) {
   }
 }
 
-type Props = {
+interface Props {
   event: Event;
   data: Record<string, any>;
-};
+}
 
-type State = {
+interface State {
   view: string;
-};
+}
 
 class CspInterface extends Component<Props, State> {
   state: State = {view: 'report'};

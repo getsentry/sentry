@@ -32,7 +32,7 @@ const getAwsExternalId = () => {
 const accountNumberRegex = /^\d{12}$/;
 const testAccountNumber = (arn: string) => accountNumberRegex.test(arn);
 
-type Props = {
+interface Props {
   baseCloudformationUrl: string;
   templateUrl: string;
   stackName: string;
@@ -43,16 +43,16 @@ type Props = {
   region?: string;
   error?: string;
   awsExternalId?: string;
-};
+}
 
-type State = {
+interface State {
   awsExternalId?: string;
   accountNumber?: string;
   region?: string;
   accountNumberError?: string;
   submitting?: boolean;
   showInputs?: boolean;
-};
+}
 
 export default class AwsLambdaCloudformation extends React.Component<Props, State> {
   state: State = {

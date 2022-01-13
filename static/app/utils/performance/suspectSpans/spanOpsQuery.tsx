@@ -8,17 +8,16 @@ import withApi from 'sentry/utils/withApi';
 
 import {SpanOps} from './types';
 
-type SpanOpsProps = {};
-
-type RequestProps = DiscoverQueryProps & SpanOpsProps;
+interface SpanOpsProps {}
+interface RequestProps extends DiscoverQueryProps, SpanOpsProps {}
 
 type ChildrenProps = Omit<GenericChildrenProps<SpanOpsProps>, 'tableData'> & {
   spanOps: SpanOps | null;
 };
 
-type Props = RequestProps & {
+interface Props extends RequestProps {
   children: (props: ChildrenProps) => React.ReactNode;
-};
+}
 
 function SpanOpsQuery(props: Props) {
   return (

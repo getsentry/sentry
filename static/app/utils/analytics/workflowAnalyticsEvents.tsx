@@ -1,6 +1,6 @@
-export type TeamInsightsEventParameters = {
+export interface TeamInsightsEventParameters {
   'team_insights.viewed': {};
-};
+}
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
 

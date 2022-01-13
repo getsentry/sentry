@@ -14,10 +14,10 @@ type Props = AsyncView['props'] &
     organization: Organization;
   };
 
-type State = AsyncView['state'] & {
+interface State {
   providerList: AuthProvider[] | null;
   provider: AuthProvider | null;
-};
+}
 
 class OrganizationAuth extends AsyncView<Props, State> {
   UNSAFE_componentWillUpdate(_nextProps: Props, nextState: State) {

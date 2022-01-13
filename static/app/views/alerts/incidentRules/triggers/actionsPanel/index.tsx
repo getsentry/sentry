@@ -30,7 +30,7 @@ import {
 } from 'sentry/views/alerts/incidentRules/types';
 import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRuleModal';
 
-type Props = {
+interface Props {
   availableActions: MetricActionTemplate[] | null;
   currentProject: string;
   organization: Organization;
@@ -38,12 +38,11 @@ type Props = {
   disabled: boolean;
   loading: boolean;
   error: boolean;
-
   triggers: Trigger[];
   className?: string;
   onAdd: (triggerIndex: number, action: Action) => void;
   onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;
-};
+}
 
 /**
  * When a new action is added, all of it's settings should be set to their default values.

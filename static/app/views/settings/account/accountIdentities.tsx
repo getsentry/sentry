@@ -24,9 +24,9 @@ const ENDPOINT = '/users/me/user-identities/';
 
 type Props = RouteComponentProps<{}, {}>;
 
-type State = {
+interface State {
   identities: UserIdentityConfig[] | null;
-} & AsyncView['state'];
+}
 
 class AccountIdentities extends AsyncView<Props, State> {
   getDefaultState() {

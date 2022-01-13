@@ -32,21 +32,21 @@ const fieldErrorMessageMapping = {
   },
 };
 
-type ResponseJSONDetailed = {
+interface ResponseJSONDetailed {
   detail: Parameters<typeof getAppStoreValidationErrorMessage>[0] & {
     extra: Record<string, any>;
     message: string;
   };
-};
+}
 
 type AppStoreConnectField = keyof typeof fieldErrorMessageMapping;
 
 type ResponseJSON = Record<AppStoreConnectField, string[]>;
 
-type Error = {
+interface Error {
   status: number;
   responseJSON?: ResponseJSON | ResponseJSONDetailed;
-};
+}
 
 export function getAppStoreErrorMessage(
   error: Error | string

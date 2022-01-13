@@ -29,12 +29,12 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string; teamId: string}, {}>;
 
-type State = {
+interface State {
   loading: boolean;
   error: boolean;
   requesting: boolean;
   team: Team | null;
-};
+}
 
 class TeamDetails extends React.Component<Props, State> {
   state = this.getInitialState();

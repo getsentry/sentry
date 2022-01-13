@@ -25,16 +25,16 @@ import {
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
 import withApi from 'sentry/utils/withApi';
 
-export type Props = {
+export interface Props {
   api: Client;
   plugin: PluginNoProject;
   projectItem: PluginProjectItem;
   organization: Organization;
   onResetConfiguration: (projectId: string) => void;
   onPluginEnableStatusChange: (projectId: string, status: boolean) => void;
-  trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
+  trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback;
   className?: string;
-};
+}
 
 export class InstalledPlugin extends Component<Props> {
   get projectId() {

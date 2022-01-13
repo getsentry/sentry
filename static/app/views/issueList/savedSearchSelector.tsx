@@ -8,14 +8,14 @@ import {Organization, SavedSearch} from 'sentry/types';
 
 import SavedSearchMenu from './savedSearchMenu';
 
-type Props = {
+interface Props {
   organization: Organization;
   savedSearchList: SavedSearch[];
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
   sort: string;
   query?: string;
-};
+}
 
 function SavedSearchSelector({
   savedSearchList,

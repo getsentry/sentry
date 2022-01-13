@@ -40,14 +40,14 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
   },
 ];
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   step: string;
-};
+}
 
-type DefaultProps = {
+interface DefaultProps {
   steps: StepDescriptor[];
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> &
   DefaultProps & {

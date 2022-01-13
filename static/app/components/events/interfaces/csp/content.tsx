@@ -1,9 +1,9 @@
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 
-type Props = {
+interface Props {
   data: Record<string, any>;
-};
+}
 
 function Content({data}: Props) {
   return (

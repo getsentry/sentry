@@ -15,24 +15,24 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import Redirect from 'sentry/utils/redirect';
 import withApi from 'sentry/utils/withApi';
 
-type DetailsProps = {
+interface DetailsProps {
   api: Client;
   orgId: string;
   projectSlug: string;
   children: (props: ChildProps) => React.ReactNode;
-};
+}
 
-type DetailsState = {
+interface DetailsState {
   loading: boolean;
   error: null | ResponseMeta;
   project: null | Project;
-};
+}
 
-type ChildProps = DetailsState & {
+interface ChildProps extends DetailsState {
   projectId: null | string;
   organizationId: null | string;
   hasProjectId: boolean;
-};
+}
 
 class ProjectDetailsInner extends React.Component<DetailsProps, DetailsState> {
   state: DetailsState = {
@@ -109,13 +109,13 @@ type Params = {orgId: string; projectId: string} & Record<string, any>;
 
 type Props = RouteComponentProps<Params, {}>;
 
-type RedirectOptions = {
+interface RedirectOptions {
   orgId: string;
   projectId: null | string;
   router: {
     params: Params;
   };
-};
+}
 
 type RedirectCallback = (options: RedirectOptions) => string;
 

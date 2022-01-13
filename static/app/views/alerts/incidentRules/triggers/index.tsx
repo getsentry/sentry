@@ -16,7 +16,7 @@ import {
   UnsavedIncidentRule,
 } from '../types';
 
-type Props = {
+interface Props {
   organization: Organization;
   projects: Project[];
   ruleId?: string;
@@ -28,9 +28,7 @@ type Props = {
   currentProject: string;
   availableActions: MetricActionTemplate[] | null;
   disabled: boolean;
-
   errors: Map<number, {[fieldName: string]: string}>;
-
   onChange: (
     triggers: Trigger[],
     triggerIndex?: number,
@@ -40,7 +38,7 @@ type Props = {
   onResolveThresholdChange: (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => void;
-};
+}
 
 /**
  * A list of forms to add, edit, and delete triggers.

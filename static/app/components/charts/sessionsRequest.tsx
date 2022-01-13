@@ -12,14 +12,14 @@ const propNamesToIgnore = ['api', 'children', 'organization'];
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
-export type SessionsRequestRenderProps = {
+export interface SessionsRequestRenderProps {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
   response: SessionApiResponse | null;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   children: (renderProps: SessionsRequestRenderProps) => React.ReactNode;
@@ -34,13 +34,13 @@ type Props = {
   interval?: string;
   isDisabled?: boolean;
   shouldFilterSessionsInTimeWindow?: boolean;
-};
+}
 
-type State = {
+interface State {
   reloading: boolean;
   errored: boolean;
   response: SessionApiResponse | null;
-};
+}
 
 class SessionsRequest extends React.Component<Props, State> {
   state: State = {

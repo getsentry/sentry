@@ -18,18 +18,18 @@ import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   selection: PageFilters;
   isProjectStabilized: boolean;
   hasTransactions?: boolean;
   query?: string;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   currentApdex: TableData | null;
   previousApdex: TableData | null;
-};
+}
 
 class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;

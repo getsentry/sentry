@@ -45,7 +45,7 @@ const HookedCustomSymbolSources = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   projSlug: Project['slug'];
@@ -53,7 +53,7 @@ type Props = {
   router: InjectedRouter;
   location: Location;
   isLoading: boolean;
-};
+}
 
 function CustomRepositories({
   api,

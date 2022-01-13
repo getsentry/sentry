@@ -63,7 +63,7 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
-type State = {
+interface State {
   formData: object;
   loading: boolean;
   reprocessing: boolean;
@@ -71,7 +71,7 @@ type State = {
   error: boolean;
   processingIssues: null | ProcessingIssue;
   pageLinks: null | string;
-};
+}
 
 class ProjectProcessingIssues extends React.Component<Props, State> {
   state: State = {

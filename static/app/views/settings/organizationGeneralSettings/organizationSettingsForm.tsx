@@ -19,9 +19,9 @@ type Props = {
   onSave: (previous: Organization, updated: Record<string, any>) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type State = AsyncComponent['state'] & {
+interface State {
   authProvider: object;
-};
+}
 
 class OrganizationSettingsForm extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

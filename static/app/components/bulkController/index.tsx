@@ -30,7 +30,7 @@ type RenderProps = {
   renderBulkNotice: () => React.ReactNode;
 } & Pick<State, 'selectedIds' | 'isAllSelected'>;
 
-type State = {
+interface State {
   /**
    * Selected ids on the current page
    */
@@ -39,9 +39,9 @@ type State = {
    * Are all rows across all pages selected?
    */
   isAllSelected: boolean;
-};
+}
 
-type Props = {
+interface Props {
   /**
    * Array of ids on current page
    */
@@ -70,7 +70,7 @@ type Props = {
    * Array of default selected ids
    */
   defaultSelectedIds?: string[];
-};
+}
 
 class BulkController extends React.Component<Props, State> {
   state: State = this.getInitialState();

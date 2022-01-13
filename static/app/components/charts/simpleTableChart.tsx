@@ -11,7 +11,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import withOrganization from 'sentry/utils/withOrganization';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   location: Location;
   loading: boolean;
@@ -20,7 +20,7 @@ type Props = {
   metadata: TableData['meta'] | undefined;
   data: TableData['data'] | undefined;
   className?: string;
-};
+}
 
 class SimpleTableChart extends Component<Props> {
   renderRow(
@@ -78,9 +78,10 @@ const StyledPanelTable = styled(PanelTable)`
   }
 `;
 
-type HeadCellProps = {
+interface HeadCellProps {
   align: string | undefined;
-};
+}
+
 const HeadCell = styled('div')<HeadCellProps>`
   ${(p: HeadCellProps) => (p.align ? `text-align: ${p.align};` : '')}
   padding: ${space(1)} ${space(3)};

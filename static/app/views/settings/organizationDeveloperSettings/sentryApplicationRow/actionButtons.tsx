@@ -7,10 +7,9 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
 
-type Props = {
+interface Props {
   org: Organization;
   app: SentryApp;
-
   showPublish: boolean;
   showDelete: boolean;
   onPublish?: () => void;
@@ -18,7 +17,7 @@ type Props = {
   // If you want to disable the publish or delete buttons, pass in a reason to display to the user in a tooltip
   disablePublishReason?: string;
   disableDeleteReason?: string;
-};
+}
 
 const ActionButtons = ({
   org,

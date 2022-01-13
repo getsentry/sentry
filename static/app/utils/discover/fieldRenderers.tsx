@@ -55,14 +55,11 @@ import {
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
 
-/**
- * Types, functions and definitions for rendering fields in discover results.
- */
-type RenderFunctionBaggage = {
+interface RenderFunctionBaggage {
   organization: Organization;
   location: Location;
   eventView?: EventView;
-};
+}
 
 type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
 
@@ -71,12 +68,12 @@ type FieldFormatterRenderFunctionPartial = (
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
-type FieldFormatter = {
+interface FieldFormatter {
   isSortable: boolean;
   renderFunc: FieldFormatterRenderFunction;
-};
+}
 
-type FieldFormatters = {
+interface FieldFormatters {
   boolean: FieldFormatter;
   date: FieldFormatter;
   duration: FieldFormatter;
@@ -85,7 +82,7 @@ type FieldFormatters = {
   percentage: FieldFormatter;
   string: FieldFormatter;
   array: FieldFormatter;
-};
+}
 
 export type FieldTypes = keyof FieldFormatters;
 
@@ -193,12 +190,12 @@ type SpecialFieldRenderFunc = (
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
-type SpecialField = {
+interface SpecialField {
   sortField: string | null;
   renderFunc: SpecialFieldRenderFunc;
-};
+}
 
-type SpecialFields = {
+interface SpecialFields {
   id: SpecialField;
   trace: SpecialField;
   project: SpecialField;
@@ -214,7 +211,7 @@ type SpecialFields = {
   'timestamp.to_hour': SpecialField;
   'timestamp.to_day': SpecialField;
   assignee: SpecialField;
-};
+}
 
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
@@ -468,9 +465,9 @@ type SpecialFunctionFieldRenderer = (
   fieldName: string
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
-type SpecialFunctions = {
+interface SpecialFunctions {
   user_misery: SpecialFunctionFieldRenderer;
-};
+}
 
 /**
  * "Special functions" are functions whose values either do not map 1:1 to a single column,

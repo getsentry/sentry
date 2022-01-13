@@ -30,10 +30,10 @@ import TransactionThresholdButton from './transactionThresholdButton';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './utils';
 
-type AnalyticInfo = {
+interface AnalyticInfo {
   eventKey: string;
   eventName: string;
-};
+}
 
 const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
   [Tab.WebVitals]: {
@@ -54,7 +54,7 @@ const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
   },
 };
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -67,7 +67,7 @@ type Props = {
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
-};
+}
 
 class TransactionHeader extends React.Component<Props> {
   trackAlertClick(errors?: Record<string, boolean>) {

@@ -103,16 +103,16 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
     <DateTime date={date} format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'} />
   );
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   app: SentryApp;
-};
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   eventType: string;
   errorsOnly: boolean;
   currentPage: number;
   requests: SentryAppWebhookRequest[];
-};
+}
 
 export default class RequestLog extends AsyncComponent<Props, State> {
   shouldReload = true;

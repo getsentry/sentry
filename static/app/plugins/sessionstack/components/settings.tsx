@@ -6,9 +6,9 @@ import DefaultSettings from 'sentry/plugins/components/settings';
 
 type Props = DefaultSettings['props'];
 
-type State = DefaultSettings['state'] & {
+interface State {
   showOnPremisesConfiguration?: boolean;
-};
+}
 
 class Settings extends DefaultSettings<Props, State> {
   REQUIRED_FIELDS = ['account_email', 'api_token', 'website_id'];

@@ -8,14 +8,14 @@ import {Project, Scope, Team} from 'sentry/types';
 import ProjectCard from './projectCard';
 import TeamMembers from './teamMembers';
 
-type Props = {
+interface Props {
   team: Team;
   orgId: string;
   showBorder: boolean;
   access: Set<Scope>;
   title: React.ReactNode;
   projects: Project[];
-};
+}
 
 const TeamSection = ({team, projects, title, showBorder, orgId, access}: Props) => {
   const hasTeamAccess = access.has('team:read');

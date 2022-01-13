@@ -26,12 +26,12 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   project: Project;
 };
 
-type State = AsyncView['state'] & {
+interface State {
   debugFiles: DebugFile[] | null;
   showDetails: boolean;
   project: Project;
   builtinSymbolSources?: BuiltinSymbolSource[] | null;
-};
+}
 
 class ProjectDebugSymbols extends AsyncView<Props, State> {
   getTitle() {

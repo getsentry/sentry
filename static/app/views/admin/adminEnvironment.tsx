@@ -9,16 +9,18 @@ import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 
-type Data = {
+interface Data {
   environment: {
     config: string;
     start_date: string;
   };
   config: [key: string, value: string][];
   pythonVersion: string;
-};
+}
 
-type State = AsyncView['state'] & {data: Data};
+interface State {
+  data: Data;
+}
 
 export default class AdminEnvironment extends AsyncView<{}, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

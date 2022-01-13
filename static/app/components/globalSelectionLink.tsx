@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 import Link from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   /**
    * Location that is being linked to
    */
@@ -23,7 +23,7 @@ type Props = WithRouterProps & {
    */
   onClick?: React.ComponentProps<typeof Link>['onClick'];
   children?: React.ReactNode;
-};
+}
 
 /**
  * A modified link used for navigating between organization level pages that

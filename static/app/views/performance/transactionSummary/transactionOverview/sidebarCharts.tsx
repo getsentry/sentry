@@ -29,14 +29,14 @@ import {
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   organization: Organization;
   location: Location;
   eventView: EventView;
   isLoading: boolean;
   error: string | null;
   totals: Record<string, number> | null;
-};
+}
 
 function SidebarCharts({
   location,
@@ -260,11 +260,11 @@ function SidebarCharts({
   );
 }
 
-type ChartValueProps = {
+interface ChartValueProps {
   isLoading: boolean;
   error: string | null;
   value: React.ReactNode;
-};
+}
 
 function ChartSummaryValue({error, isLoading, value}: ChartValueProps) {
   if (error) {

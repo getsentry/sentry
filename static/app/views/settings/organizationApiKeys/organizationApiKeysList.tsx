@@ -18,9 +18,9 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {DeprecatedApiKey} from './types';
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   routes: PlainRoute[];

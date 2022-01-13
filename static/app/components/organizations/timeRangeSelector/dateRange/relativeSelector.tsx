@@ -4,11 +4,11 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 
 import SelectorItem from './selectorItem';
 
-type Props = {
+interface Props {
   onClick: (value: string, e?: React.MouseEvent) => void;
   selected: string;
   relativePeriods?: Record<string, React.ReactNode>;
-};
+}
 
 const RelativeSelector = ({onClick, selected, relativePeriods}: Props) => (
   <React.Fragment>

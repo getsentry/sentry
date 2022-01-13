@@ -4,13 +4,13 @@ import Role from 'sentry/components/acl/role';
 import {IssueAttachment, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = {
+interface Props {
   organization: Organization;
   projectId: string;
   eventId: string;
   attachment: IssueAttachment;
   children: (downloadUrl: string | null) => React.ReactNode;
-};
+}
 
 function AttachmentUrl({attachment, organization, eventId, projectId, children}: Props) {
   function getDownloadUrl() {

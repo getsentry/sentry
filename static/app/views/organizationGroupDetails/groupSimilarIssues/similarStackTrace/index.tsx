@@ -21,24 +21,25 @@ import List from './list';
 type ListProps = React.ComponentProps<typeof List>;
 
 type SimilarItems = ListProps['items'];
-type RouteParams = {
+
+interface RouteParams {
   orgId: string;
   groupId: string;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
   location: Location;
 };
 
-type State = {
+interface State {
   similarItems: SimilarItems;
   filteredSimilarItems: SimilarItems;
   similarLinks: string | null;
   loading: boolean;
   error: boolean;
   v2: boolean;
-};
+}
 
 class SimilarStackTrace extends React.Component<Props, State> {
   state: State = {

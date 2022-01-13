@@ -5,9 +5,9 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Config} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type InjectedConfigProps = {
+interface InjectedConfigProps {
   config: Config;
-};
+}
 
 /**
  * Higher order component that passes the config object to the wrapped

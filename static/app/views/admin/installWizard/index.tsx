@@ -14,9 +14,9 @@ import {ApiForm} from 'sentry/views/settings/components/forms';
 
 import {getForm, getOptionDefault, getOptionField} from '../options';
 
-type Props = AsyncView['props'] & {
+interface Props {
   onConfigured: () => void;
-};
+}
 
 type State = AsyncView['state'];
 

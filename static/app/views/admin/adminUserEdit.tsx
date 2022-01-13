@@ -73,14 +73,14 @@ const REMOVE_BUTTON_LABEL = {
 
 type DeleteType = 'disable' | 'delete';
 
-type RemoveModalProps = ModalRenderProps & {
+interface RemoveModalProps extends ModalRenderProps {
   user: User;
   onRemove: (type: DeleteType) => void;
-};
+}
 
-type RemoveModalState = {
+interface RemoveModalState {
   deleteType: DeleteType;
-};
+}
 
 class RemoveUserModal extends Component<RemoveModalProps, RemoveModalState> {
   state: RemoveModalState = {
@@ -120,9 +120,9 @@ class RemoveUserModal extends Component<RemoveModalProps, RemoveModalState> {
 
 type Props = AsyncView['props'] & RouteComponentProps<{id: string}, {}>;
 
-type State = AsyncView['state'] & {
+interface State {
   user: User | null;
-};
+}
 
 class AdminUserEdit extends AsyncView<Props, State> {
   get userEndpoint() {

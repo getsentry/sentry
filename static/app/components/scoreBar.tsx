@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import theme from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   score: number;
   size?: number;
   thickness?: number;
@@ -11,7 +11,7 @@ type Props = {
   className?: string;
   paletteClassNames?: string[];
   vertical?: boolean;
-};
+}
 
 const BaseScoreBar = ({
   score,
@@ -59,14 +59,14 @@ const ScoreBar = styled(BaseScoreBar)`
       : 'min-width: 80px;'};
 `;
 
-type BarProps = {
+interface BarProps {
   radius: number;
   size: number;
   thickness: number;
   color?: string;
   empty?: boolean;
   vertical?: boolean;
-};
+}
 
 const Bar = styled('div')<BarProps>`
   border-radius: ${p => p.radius}px;

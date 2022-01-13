@@ -10,11 +10,11 @@ import useApi from 'sentry/utils/useApi';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   eventView: EventView;
   savedQuery?: SavedQuery;
-};
+}
 
 const NAME_DEFAULT = t('Untitled query');
 

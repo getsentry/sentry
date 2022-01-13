@@ -10,14 +10,14 @@ import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
 
-export type ScrollbarManagerChildrenProps = {
+export interface ScrollbarManagerChildrenProps {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
   scrollBarAreaRef: React.RefObject<HTMLDivElement>;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
   updateScrollState: () => void;
-};
+}
 
 const ScrollbarManagerContext = React.createContext<ScrollbarManagerChildrenProps>({
   generateContentSpanBarRef: () => () => undefined,
@@ -52,19 +52,18 @@ const lerp = (start: number, end: number, needle: number) => {
   return start + needle * (end - start);
 };
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   dividerPosition: number;
   dragProps?: DragManagerChildrenProps;
-
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
-};
+}
 
-type State = {
+interface State {
   maxContentWidth: number | undefined;
-};
+}
 
 export class Provider extends React.Component<Props, State> {
   state: State = {
@@ -433,7 +432,7 @@ export const Consumer = ScrollbarManagerContext.Consumer;
 export const withScrollbarManager = <P extends ScrollbarManagerChildrenProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  (class extends React.Component<
     Omit<P, keyof ScrollbarManagerChildrenProps> & Partial<ScrollbarManagerChildrenProps>
   > {
     static displayName = `withScrollbarManager(${getDisplayName(WrappedComponent)})`;
@@ -452,4 +451,4 @@ export const withScrollbarManager = <P extends ScrollbarManagerChildrenProps>(
         </ScrollbarManagerContext.Consumer>
       );
     }
-  };
+  });

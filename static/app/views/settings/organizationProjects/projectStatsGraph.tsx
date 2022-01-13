@@ -6,10 +6,10 @@ import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 
-type Props = {
+interface Props {
   project: Project;
   stats?: Project['stats'];
-};
+}
 
 const ProjectStatsGraph = ({project, stats}: Props) => {
   stats = stats || project.stats || [];

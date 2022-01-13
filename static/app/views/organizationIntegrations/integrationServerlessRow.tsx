@@ -15,17 +15,17 @@ import {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/ty
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   serverlessFunction: ServerlessFunction;
   api: Client;
   integration: IntegrationWithConfig;
   organization: Organization;
   onUpdateFunction: (serverlessFunctionUpdate: Partial<ServerlessFunction>) => void;
-};
+}
 
-type State = {
+interface State {
   submitting: boolean;
-};
+}
 
 class IntegrationServerlessRow extends Component<Props, State> {
   state: State = {

@@ -29,7 +29,7 @@ import UsageChart, {
 import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   dataCategory: DataCategory;
   dataCategoryName: string;
@@ -40,11 +40,11 @@ type Props = {
     pagePeriod?: RelativePeriod;
     transform?: ChartDataTransform;
   }) => void;
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State {
   orgStats: UsageSeries | undefined;
-} & AsyncComponent['state'];
+}
 
 class UsageStatsOrganization extends AsyncComponent<Props, State> {
   componentDidUpdate(prevProps: Props) {

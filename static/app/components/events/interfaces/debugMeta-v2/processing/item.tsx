@@ -5,11 +5,11 @@ import * as Sentry from '@sentry/react';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   type: 'stack_unwinding' | 'symbolication';
   icon: React.ReactElement;
   className?: string;
-};
+}
 
 function Item({type, icon, className}: Props) {
   function getLabel() {

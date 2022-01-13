@@ -113,20 +113,19 @@ export function updateQuery(
   }
 }
 
-type Props = {
+interface Props {
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
   children: React.ReactNode;
   handleCellAction: (action: Actions, value: React.ReactText) => void;
-
   // allow list of actions to display on the context menu
   allowActions?: Actions[];
-};
+}
 
-type State = {
+interface State {
   isHovering: boolean;
   isOpen: boolean;
-};
+}
 
 class CellAction extends React.Component<Props, State> {
   constructor(props: Props) {

@@ -40,13 +40,13 @@ const ANALYTICS_VALUES = {
     }),
 };
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   eventView: EventView;
   setError: SetStateAction<string | undefined>;
   transactionName: string;
-};
+}
 
 function SpansContent(props: Props) {
   const {location, organization, eventView, setError, transactionName} = props;

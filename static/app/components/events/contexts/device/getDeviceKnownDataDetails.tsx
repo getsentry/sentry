@@ -11,10 +11,10 @@ import {getFullLanguageDescription, getRelativeTimeFromEventDateCreated} from '.
 import {DeviceData, DeviceKnownDataType} from './types';
 import {formatMemory, formatStorage} from './utils';
 
-type Output = {
+interface Output {
   subject: string;
   value?: React.ReactNode;
-};
+}
 
 function getDeviceKnownDataDetails(
   event: Event,

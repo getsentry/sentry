@@ -31,9 +31,9 @@ function isOutdatedSdk(event: Event): boolean {
   );
 }
 
-type Props = {
+interface Props {
   event: Event;
-};
+}
 
 export default function EventVitals({event}: Props) {
   return (
@@ -113,10 +113,10 @@ function MobileVitals({event}: Props) {
   );
 }
 
-type EventVitalProps = Props & {
+interface EventVitalProps extends Props {
   name: string;
   vital?: Vital;
-};
+}
 
 function EventVital({event, name, vital}: EventVitalProps) {
   const value = event.measurements?.[name].value ?? null;

@@ -19,7 +19,7 @@ import theme from 'sentry/utils/theme';
  */
 const MAX_SCORE = 5;
 
-type Props = {
+interface Props {
   /**
    * The password value.
    */
@@ -32,7 +32,7 @@ type Props = {
    * The color to make the progress bar for each strength level. 5 levels.
    */
   colors?: [string, string, string, string, string];
-};
+}
 
 const PasswordStrength = ({
   value,

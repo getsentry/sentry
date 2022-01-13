@@ -24,18 +24,18 @@ export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   async?: boolean;
 };
 
-export type SchemaFormConfig = {
+export interface SchemaFormConfig {
   uri: string;
   required_fields?: FieldFromSchema[];
   optional_fields?: FieldFromSchema[];
-};
+}
 
 // only need required_fields and optional_fields
 type State = Omit<SchemaFormConfig, 'uri'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
 };
 
-type Props = {
+interface Props {
   api: Client;
   sentryAppInstallationUuid: string;
   appName: string;
@@ -59,7 +59,7 @@ type Props = {
    */
   getFieldDefault?: (field: FieldFromSchema) => string;
   onSubmitSuccess: Function;
-};
+}
 
 /**
  *  This component is the result of a refactor of sentryAppExternalIssueForm.tsx.

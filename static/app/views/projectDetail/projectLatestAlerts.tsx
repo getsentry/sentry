@@ -24,18 +24,18 @@ import {didProjectOrEnvironmentChange} from './utils';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organization: Organization;
   projectSlug: string;
   location: Location;
   isProjectStabilized: boolean;
-};
+}
 
-type State = {
+interface State {
   unresolvedAlerts: Incident[] | null;
   resolvedAlerts: Incident[] | null;
   hasAlertRule?: boolean;
-} & AsyncComponent['state'];
+}
 
 class ProjectLatestAlerts extends AsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
@@ -237,10 +237,10 @@ const AlertRowLink = styled(Link)`
   }
 `;
 
-type StatusColorProps = {
+interface StatusColorProps {
   isResolved: boolean;
   isWarning: boolean;
-};
+}
 
 const getStatusColor = ({
   theme,

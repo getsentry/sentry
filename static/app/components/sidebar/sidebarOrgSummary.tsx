@@ -6,13 +6,13 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
 
-type Props = {
+interface Props {
   organization: OrganizationSummary;
   /**
    * Show the project count under the organization name.
    */
   projectCount?: number;
-};
+}
 
 const SidebarOrgSummary = ({organization, projectCount}: Props) => (
   <OrgSummary>

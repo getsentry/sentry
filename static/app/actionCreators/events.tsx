@@ -14,7 +14,7 @@ import {getPeriod} from 'sentry/utils/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
-type Options = {
+interface Options {
   organization: OrganizationSummary;
   project?: Readonly<number[]>;
   environment?: Readonly<string[]>;
@@ -35,7 +35,7 @@ type Options = {
   withoutZerofill?: boolean;
   referrer?: string;
   queryBatching?: QueryBatching;
-};
+}
 
 /**
  * Make requests to `events-stats` endpoint
@@ -118,7 +118,7 @@ export const doEventsRequest = (
   return api.requestPromise(pathname, queryObject);
 };
 
-export type EventQuery = {
+export interface EventQuery {
   field: string[];
   equation?: string[];
   team?: string | string[];
@@ -129,21 +129,21 @@ export type EventQuery = {
   referrer?: string;
   environment?: string[];
   noPagination?: boolean;
-};
+}
 
-export type TagSegment = {
+export interface TagSegment {
   count: number;
   name: string;
   value: string;
   url: LocationDescriptor;
   isOther?: boolean;
   key?: string;
-};
+}
 
-export type Tag = {
+export interface Tag {
   key: string;
   topValues: Array<TagSegment>;
-};
+}
 
 /**
  * Fetches tag facets for a query
@@ -174,9 +174,9 @@ export async function fetchTotalCount(
 
   const queryOption = {...urlParams, query: query.query};
 
-  type Response = {
+  interface Response {
     count: number;
-  };
+  }
 
   return api
     .requestPromise(`/organizations/${orgSlug}/events-meta/`, {

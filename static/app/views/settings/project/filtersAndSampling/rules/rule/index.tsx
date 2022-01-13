@@ -15,7 +15,7 @@ import Conditions from './conditions';
 import SampleRate from './sampleRate';
 import Type from './type';
 
-type Props = {
+interface Props {
   rule: DynamicSamplingRule;
   disabled: boolean;
   dragging: boolean;
@@ -24,11 +24,11 @@ type Props = {
   onEditRule: () => void;
   onDeleteRule: () => void;
   grabAttributes?: UseDraggableArguments['attributes'];
-};
+}
 
-type State = {
+interface State {
   isMenuActionsOpen: boolean;
-};
+}
 
 class Rule extends Component<Props, State> {
   state: State = {

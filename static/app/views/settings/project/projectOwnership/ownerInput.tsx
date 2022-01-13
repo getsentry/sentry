@@ -20,20 +20,20 @@ const defaultProps = {
   disabled: false,
 };
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
   initialText: string;
   onSave?: (text: string | null) => void;
-} & typeof defaultProps;
+}
 
-type State = {
+interface State {
   hasChanges: boolean;
   text: string | null;
   error: null | {
     raw: string[];
   };
-};
+}
 
 class OwnerInput extends React.Component<Props, State> {
   static defaultProps = defaultProps;
@@ -53,9 +53,7 @@ class OwnerInput extends React.Component<Props, State> {
     if (text.startsWith('Invalid rule owners:')) {
       return <InvalidOwners>{text}</InvalidOwners>;
     }
-    return (
-      <SyntaxOverlay line={parseInt(text.match(/line (\d*),/)?.[1] ?? '', 10) - 1} />
-    );
+    return <SyntaxOverlay line={parseInt(text.match(/line (\d*),/)?.[1] ?? '', 10) - 1} />;
   }
 
   handleUpdateOwnership = () => {

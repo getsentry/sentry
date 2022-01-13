@@ -36,13 +36,12 @@ import {
   handleUpdateQuery,
 } from './utils';
 
-type DefaultProps = {
+interface DefaultProps {
   disabled: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   api: Client;
-
   /**
    * DO NOT USE `Location` TO GENERATE `EventView` IN THIS COMPONENT.
    *
@@ -61,14 +60,13 @@ type Props = DefaultProps & {
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
   yAxis: string[];
-};
+}
 
-type State = {
+interface State {
   isNewQuery: boolean;
   isEditingQuery: boolean;
-
   queryName: string;
-};
+}
 
 class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {

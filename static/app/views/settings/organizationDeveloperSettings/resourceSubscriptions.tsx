@@ -12,15 +12,15 @@ import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings
 
 type Resource = typeof EVENT_CHOICES[number];
 
-type DefaultProps = {
+interface DefaultProps {
   webhookDisabled: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   permissions: Permissions;
   events: WebhookEvent[];
   onChange: (events: WebhookEvent[]) => void;
-};
+}
 
 export default class Subscriptions extends Component<Props> {
   static defaultProps: DefaultProps = {

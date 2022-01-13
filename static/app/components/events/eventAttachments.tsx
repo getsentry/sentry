@@ -20,7 +20,7 @@ import withApi from 'sentry/utils/withApi';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 
-type Props = {
+interface Props {
   api: Client;
   event: Event;
   orgId: string;
@@ -28,12 +28,12 @@ type Props = {
   location: Location;
   attachments: IssueAttachment[];
   onDeleteAttachment: (attachmentId: IssueAttachment['id']) => void;
-};
+}
 
-type State = {
+interface State {
   attachmentPreviews: Record<string, boolean>;
   expanded: boolean;
-};
+}
 
 class EventAttachments extends React.Component<Props, State> {
   state: State = {

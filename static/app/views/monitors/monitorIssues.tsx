@@ -3,10 +3,10 @@ import {t} from 'sentry/locale';
 
 import {Monitor} from './types';
 
-type Props = {
+interface Props {
   orgId: string;
   monitor: Monitor;
-};
+}
 
 const MonitorIssues = ({orgId, monitor}: Props) => (
   <IssueList

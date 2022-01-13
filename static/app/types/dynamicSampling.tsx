@@ -76,7 +76,7 @@ export enum LegacyBrowser {
   ANDROID_PRE_4 = 'android_pre_4',
 }
 
-type DynamicSamplingConditionLogicalInnerGlob = {
+interface DynamicSamplingConditionLogicalInnerGlob {
   op: DynamicSamplingInnerOperator.GLOB_MATCH;
   name:
     | DynamicSamplingInnerName.EVENT_RELEASE
@@ -84,9 +84,9 @@ type DynamicSamplingConditionLogicalInnerGlob = {
     | DynamicSamplingInnerName.EVENT_TRANSACTION
     | DynamicSamplingInnerName.TRACE_TRANSACTION;
   value: Array<string>;
-};
+}
 
-type DynamicSamplingConditionLogicalInnerEq = {
+interface DynamicSamplingConditionLogicalInnerEq {
   op: DynamicSamplingInnerOperator.EQUAL;
   name:
     | DynamicSamplingInnerName.EVENT_ENVIRONMENT
@@ -99,31 +99,31 @@ type DynamicSamplingConditionLogicalInnerEq = {
   options: {
     ignoreCase: boolean;
   };
-};
+}
 
-type DynamicSamplingConditionLogicalInnerEqBoolean = {
+interface DynamicSamplingConditionLogicalInnerEqBoolean {
   op: DynamicSamplingInnerOperator.EQUAL;
   name:
     | DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS
     | DynamicSamplingInnerName.EVENT_LOCALHOST
     | DynamicSamplingInnerName.EVENT_WEB_CRAWLERS;
   value: boolean;
-};
+}
 
-type DynamicSamplingConditionLogicalInnerCustom = {
+interface DynamicSamplingConditionLogicalInnerCustom {
   op: DynamicSamplingInnerOperator.CUSTOM;
   name:
     | DynamicSamplingInnerName.EVENT_CSP
     | DynamicSamplingInnerName.EVENT_ERROR_MESSAGES
     | DynamicSamplingInnerName.EVENT_IP_ADDRESSES;
   value: Array<string>;
-};
+}
 
-type DynamicSamplingConditionLogicalInnerCustomLegacyBrowser = {
+interface DynamicSamplingConditionLogicalInnerCustomLegacyBrowser {
   op: DynamicSamplingInnerOperator.CUSTOM;
   name: DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
   value: Array<LegacyBrowser>;
-};
+}
 
 export type DynamicSamplingConditionLogicalInner =
   | DynamicSamplingConditionLogicalInnerGlob
@@ -132,12 +132,12 @@ export type DynamicSamplingConditionLogicalInner =
   | DynamicSamplingConditionLogicalInnerCustom
   | DynamicSamplingConditionLogicalInnerCustomLegacyBrowser;
 
-export type DynamicSamplingCondition = {
+export interface DynamicSamplingCondition {
   op: DynamicSamplingConditionOperator.AND;
   inner: Array<DynamicSamplingConditionLogicalInner>;
-};
+}
 
-export type DynamicSamplingRule = {
+export interface DynamicSamplingRule {
   /**
    * This is a unique number within a project
    */
@@ -156,6 +156,6 @@ export type DynamicSamplingRule = {
    * It is the sampling rate that will be applied if the rule is selected
    */
   sampleRate: number;
-};
+}
 
 export type DynamicSamplingRules = Array<DynamicSamplingRule>;

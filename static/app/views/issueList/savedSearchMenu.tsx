@@ -82,14 +82,14 @@ function SavedSearchMenuItem({
   );
 }
 
-type Props = {
+interface Props {
   savedSearchList: SavedSearch[];
   organization: Organization;
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
   sort: string;
   query?: string;
-};
+}
 
 function SavedSearchMenu({savedSearchList, ...props}: Props) {
   const savedSearches = savedSearchList.filter(search => !search.isGlobal);

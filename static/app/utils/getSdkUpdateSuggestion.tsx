@@ -9,12 +9,12 @@ import space from 'sentry/styles/space';
 import {UpdateSdkSuggestion} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
-type Props = {
+interface Props {
   sdk: Event['sdk'];
   suggestion: NonNullable<Event['sdkUpdates']>[0];
   shortStyle?: boolean;
   capitalized?: boolean;
-};
+}
 
 function getSdkUpdateSuggestion({
   sdk,

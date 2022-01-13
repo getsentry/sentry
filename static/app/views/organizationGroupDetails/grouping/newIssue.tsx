@@ -9,11 +9,11 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
-type Props = {
+interface Props {
   sampleEvent: Event;
   eventCount: number;
   organization: Organization;
-};
+}
 
 function NewIssue({sampleEvent, eventCount, organization}: Props) {
   return (

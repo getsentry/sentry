@@ -13,14 +13,14 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 
 import SidebarSection from './sidebarSection';
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
   environments: Environment[];
   allEnvironments: Group | undefined;
   group: Group | undefined;
   currentRelease: CurrentRelease | undefined;
-};
+}
 
 const GroupReleaseStats = ({
   organization,

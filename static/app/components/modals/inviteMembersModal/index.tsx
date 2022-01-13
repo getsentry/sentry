@@ -20,19 +20,18 @@ import withLatestContext from 'sentry/utils/withLatestContext';
 import InviteRowControl from './inviteRowControl';
 import {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
-type Props = AsyncComponent['props'] &
-  ModalRenderProps & {
-    organization: Organization;
-    source?: string;
-    initialData?: Partial<InviteRow>[];
-  };
+interface Props extends ModalRenderProps {
+  organization: Organization;
+  source?: string;
+  initialData?: Partial<InviteRow>[];
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   pendingInvites: InviteRow[];
   sendingInvites: boolean;
   complete: boolean;
   inviteStatus: InviteStatus;
-};
+}
 
 const DEFAULT_ROLE = 'member';
 

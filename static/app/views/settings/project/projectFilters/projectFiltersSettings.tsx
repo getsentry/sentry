@@ -70,7 +70,7 @@ const LEGACY_BROWSER_KEYS = Object.keys(LEGACY_BROWSER_SUBFILTERS);
 
 type FormFieldProps = React.ComponentProps<typeof FormField>;
 
-type RowProps = {
+interface RowProps {
   data: {
     active: string[] | boolean;
   };
@@ -80,13 +80,13 @@ type RowProps = {
     event: React.MouseEvent
   ) => void;
   disabled?: boolean;
-};
+}
 
-type RowState = {
+interface RowState {
   loading: boolean;
   error: boolean | Error;
   subfilters: Set<string>;
-};
+}
 
 class LegacyBrowserFilterRow extends React.Component<RowProps, RowState> {
   constructor(props) {
@@ -177,18 +177,18 @@ class LegacyBrowserFilterRow extends React.Component<RowProps, RowState> {
   }
 }
 
-type Props = {
+interface Props {
   project: Project;
   features: Set<string>;
   params: {
     orgId: string;
     projectId: string;
   };
-};
+}
 
-type State = {
+interface State {
   hooksDisabled: ReturnType<typeof HookStore['get']>;
-} & AsyncComponent['state'];
+}
 
 class ProjectFiltersSettings extends AsyncComponent<Props, State> {
   getDefaultState() {

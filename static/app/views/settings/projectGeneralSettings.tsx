@@ -35,9 +35,9 @@ type Props = AsyncView['props'] &
     onChangeSlug: (slug: string) => void;
   };
 
-type State = AsyncView['state'] & {
+interface State {
   data: Project;
-};
+}
 
 class ProjectGeneralSettings extends AsyncView<Props, State> {
   private _form: Record<string, FieldValue> = {};

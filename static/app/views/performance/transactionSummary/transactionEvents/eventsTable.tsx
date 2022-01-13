@@ -74,18 +74,18 @@ class OperationTitle extends React.Component<TitleProps> {
   }
 }
 
-type Props = {
+interface Props {
   eventView: EventView;
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
   columnTitles?: string[];
   transactionName: string;
-};
+}
 
-type State = {
+interface State {
   widths: number[];
-};
+}
 
 class EventsTable extends React.Component<Props, State> {
   state: State = {

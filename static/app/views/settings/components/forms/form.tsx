@@ -14,9 +14,9 @@ import FormContext, {
 import FormModel, {FormOptions} from 'sentry/views/settings/components/forms/model';
 import {Data, OnSubmitCallback} from 'sentry/views/settings/components/forms/type';
 
-type RenderProps = {
+interface RenderProps {
   model: FormModel;
-};
+}
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 

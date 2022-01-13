@@ -20,17 +20,17 @@ import space from 'sentry/styles/space';
 import {Organization, Repository, RepositoryStatus} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type DefaultProps = {
+interface DefaultProps {
   showProvider?: boolean;
-};
+}
 
-type Props = DefaultProps & {
+interface Props extends DefaultProps {
   organization: Organization;
   repository: Repository;
   api: Client;
   orgId: string;
   onRepositoryChange?: (data: {id: string; status: RepositoryStatus}) => void;
-};
+}
 
 class RepositoryRow extends Component<Props> {
   static defaultProps: DefaultProps = {

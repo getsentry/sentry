@@ -28,18 +28,17 @@ import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
 type ImageCandidates = Image['candidates'];
 
-type Props = AsyncComponent['props'] &
-  ModalRenderProps & {
-    projSlug: Project['slug'];
-    organization: Organization;
-    event: Event;
-    image?: Image & {status: ImageStatus};
-    onReprocessEvent?: () => void;
-  };
+interface Props extends ModalRenderProps {
+  projSlug: Project['slug'];
+  organization: Organization;
+  event: Event;
+  image?: Image & {status: ImageStatus};
+  onReprocessEvent?: () => void;
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   debugFiles: Array<DebugFile> | null;
-};
+}
 
 class DebugImageDetails extends AsyncComponent<Props, State> {
   getDefaultState(): State {

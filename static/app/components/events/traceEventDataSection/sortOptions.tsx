@@ -20,11 +20,11 @@ const SORT_OPTIONS: SelectValue<string>[] = [
   },
 ];
 
-type Props = {
+interface Props {
   activeSortOption: SortOption;
   onChange: (sortOption: SortOption) => void;
   disabled: boolean;
-};
+}
 
 function SortOptions({activeSortOption, onChange, disabled}: Props) {
   const {label: currentLabel, value: currentValue} =

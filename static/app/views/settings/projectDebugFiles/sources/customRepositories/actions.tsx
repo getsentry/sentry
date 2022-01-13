@@ -15,7 +15,7 @@ import space from 'sentry/styles/space';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = {
+interface Props {
   repositoryName: string;
   repositoryType: string;
   isDetailsExpanded: boolean;
@@ -26,7 +26,7 @@ type Props = {
   showDetails: boolean;
   hasFeature: boolean;
   hasAccess: boolean;
-};
+}
 
 function Actions({
   repositoryName,

@@ -11,14 +11,14 @@ import FormField from 'sentry/components/forms/formField';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 
-type Props = Form['props'] & {
+interface Props {
   omitDisabled?: boolean;
   onSubmit?: (data: object) => void;
   apiEndpoint: string;
   apiMethod: APIRequestMethod;
   submitLoadingMessage?: string;
   submitErrorMessage?: string;
-};
+}
 
 export default class ApiForm extends Form<Props> {
   api = new Client();

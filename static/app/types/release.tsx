@@ -9,15 +9,15 @@ export enum ReleaseStatus {
   Archived = 'archived',
 }
 
-export type SourceMapsArchive = {
+export interface SourceMapsArchive {
   id: number;
   type: 'release';
   name: string;
   date: string;
   fileCount: number;
-};
+}
 
-export type Artifact = {
+export interface Artifact {
   dateCreated: string;
   dist: string | null;
   id: string;
@@ -25,9 +25,9 @@ export type Artifact = {
   sha1: string;
   size: number;
   headers: {'Content-Type': string};
-};
+}
 
-export type Deploy = {
+export interface Deploy {
   id: string;
   name: string;
   url: string;
@@ -35,16 +35,16 @@ export type Deploy = {
   dateStarted: string;
   dateFinished: string;
   version: string;
-};
+}
 
-export type VersionInfo = {
+export interface VersionInfo {
   buildHash: string | null;
   description: string;
   package: string | null;
   version: {raw: string};
-};
+}
 
-export type BaseRelease = {
+export interface BaseRelease {
   dateReleased: string;
   url: string;
   dateCreated: string;
@@ -52,19 +52,17 @@ export type BaseRelease = {
   shortVersion: string;
   ref: string;
   status: ReleaseStatus;
-};
+}
 
-export type Release = BaseRelease &
-  ReleaseData & {
-    projects: ReleaseProject[];
-  };
+export interface Release extends BaseRelease, ReleaseData {
+  projects: ReleaseProject[];
+}
 
-export type ReleaseWithHealth = BaseRelease &
-  ReleaseData & {
-    projects: Required<ReleaseProject>[];
-  };
+export interface ReleaseWithHealth extends BaseRelease, ReleaseData {
+  projects: Required<ReleaseProject>[];
+}
 
-type ReleaseData = {
+interface ReleaseData {
   commitCount: number;
   data: {};
   lastDeploy?: Deploy;
@@ -73,7 +71,7 @@ type ReleaseData = {
   firstEvent: string;
   lastCommit?: Commit;
   authors: User[];
-  owner?: any; // TODO(ts)
+  owner?: any; // TODO(ts);
   newGroups: number;
   versionInfo: VersionInfo;
   fileCount: number | null;
@@ -93,9 +91,9 @@ type ReleaseData = {
       unadopted: string | null;
     }
   >;
-};
+}
 
-export type CurrentRelease = {
+export interface CurrentRelease {
   environment: string;
   firstSeen: string;
   lastSeen: string;
@@ -105,9 +103,9 @@ export type CurrentRelease = {
     '24h': TimeseriesValue[];
     '30d': TimeseriesValue[];
   };
-};
+}
 
-export type ReleaseProject = {
+export interface ReleaseProject {
   slug: string;
   name: string;
   id: number;
@@ -116,9 +114,9 @@ export type ReleaseProject = {
   newGroups: number;
   hasHealthData: boolean;
   healthData?: Health;
-};
+}
 
-export type ReleaseMeta = {
+export interface ReleaseMeta {
   commitCount: number;
   commitFilesChanged: number;
   deployCount: number;
@@ -127,12 +125,12 @@ export type ReleaseMeta = {
   projects: ReleaseProject[];
   versionInfo: VersionInfo;
   released: string;
-};
+}
 
 /**
  * Release health
  */
-export type Health = {
+export interface Health {
   totalUsers: number;
   totalUsers24h: number | null;
   totalProjectUsers24h: number | null;
@@ -149,7 +147,7 @@ export type Health = {
   hasHealthData: boolean;
   durationP50: number | null;
   durationP90: number | null;
-};
+}
 
 export type HealthGraphData = Record<string, TimeseriesValue[]>;
 

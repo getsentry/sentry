@@ -28,14 +28,14 @@ import {FieldObject} from 'sentry/views/settings/components/forms/type';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = AsyncComponent['props'] & {
+interface Props {
   organizations: Organization[];
-};
+}
 
-type State = {
+interface State {
   notificationSettings: NotificationSettingsObject;
   legacyData: {[key: string]: string};
-} & AsyncComponent['state'];
+}
 
 class NotificationSettings extends AsyncComponent<Props, State> {
   getDefaultState(): State {

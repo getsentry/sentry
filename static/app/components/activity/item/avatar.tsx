@@ -5,12 +5,12 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconSentry} from 'sentry/icons';
 import {AvatarUser} from 'sentry/types';
 
-type Props = {
+interface Props {
   type: 'system' | 'user';
   user?: AvatarUser;
   className?: string;
   size?: number;
-};
+}
 
 function ActivityAvatar({className, type, user, size = 38}: Props) {
   if (user) {
@@ -38,9 +38,9 @@ function ActivityAvatar({className, type, user, size = 38}: Props) {
 
 export default ActivityAvatar;
 
-type SystemAvatarProps = {
+interface SystemAvatarProps {
   size: number;
-};
+}
 
 const SystemAvatar = styled('span')<SystemAvatarProps>`
   display: flex;

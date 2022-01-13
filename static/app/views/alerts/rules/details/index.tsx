@@ -35,14 +35,14 @@ type Props = {
   location: Location;
 } & RouteComponentProps<{ruleId: string; orgId: string}, {}>;
 
-type State = {
+interface State {
   isLoading: boolean;
   hasError: boolean;
   error: ResponseMeta | null;
   rule?: IncidentRule;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
-};
+}
 
 class AlertRuleDetails extends Component<Props, State> {
   state: State = {isLoading: false, hasError: false, error: null};

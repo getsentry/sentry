@@ -9,7 +9,7 @@ import {User} from './user';
  * Organization summaries are sent when you request a
  * list of all organizations
  */
-export type OrganizationSummary = {
+export interface OrganizationSummary {
   status: {
     // TODO(ts): Are these fields == `ObjectStatus`?
     id: string;
@@ -23,12 +23,12 @@ export type OrganizationSummary = {
   id: string;
   isEarlyAdopter: boolean;
   slug: string;
-};
+}
 
 /**
  * Detailed organization (e.g. when requesting details for a single org)
  */
-export type Organization = OrganizationSummary & {
+export interface Organization extends OrganizationSummary {
   relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
@@ -61,9 +61,9 @@ export type Organization = OrganizationSummary & {
   onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
   role?: string;
-};
+}
 
-export type Team = {
+export interface Team {
   id: string;
   name: string;
   slug: string;
@@ -73,19 +73,19 @@ export type Team = {
   memberCount: number;
   avatar: Avatar;
   externalTeams: ExternalTeam[];
-};
+}
 
-export type MemberRole = {
+export interface MemberRole {
   id: string;
   name: string;
   desc: string;
   allowed?: boolean;
-};
+}
 
 /**
  * Returned from /organizations/org/users/
  */
-export type Member = {
+export interface Member {
   dateCreated: string;
   email: string;
   expired: boolean;
@@ -104,21 +104,21 @@ export type Member = {
   projects: string[];
   role: string;
   roleName: string;
-  roles: MemberRole[]; // TODO(ts): This is not present from API call
+  roles: MemberRole[]; // TODO(ts): This is not present from API call;
   teams: string[];
   user: User;
-};
+}
 
 /**
  * Minimal organization shape used on shared issue views.
  */
-export type SharedViewOrganization = {
+export interface SharedViewOrganization {
   slug: string;
   id?: string;
   features?: Array<string>;
-};
+}
 
-export type AuditLog = {
+export interface AuditLog {
   id: string;
   actor: User;
   event: string;
@@ -128,9 +128,9 @@ export type AuditLog = {
   targetUser: Actor | null;
   data: any;
   dateCreated: string;
-};
+}
 
-export type AccessRequest = {
+export interface AccessRequest {
   id: string;
   team: Team;
   member: Member;
@@ -139,88 +139,84 @@ export type AccessRequest = {
     username: string;
     email: string;
   }>;
-};
+}
 
 /**
  * Discover queries and result sets.
  */
 export type SavedQueryVersions = 1 | 2;
 
-export type NewQuery = {
+export interface NewQuery {
   id: string | undefined;
   version: SavedQueryVersions;
   name: string;
   createdBy?: User;
-
   // Query and Table
   query?: string;
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;
   expired?: boolean;
-
   // GlobalSelectionHeader
   projects: Readonly<number[]>;
   environment?: Readonly<string[]>;
   range?: string;
   start?: string;
   end?: string;
-
   // Graph
   yAxis?: string[];
   display?: string;
   topEvents?: string;
-
   teams?: Readonly<('myteams' | number)[]>;
-};
+}
 
-export type SavedQuery = NewQuery & {
+export interface SavedQuery extends NewQuery {
   id: string;
   dateCreated: string;
   dateUpdated: string;
-};
+}
 
-export type SavedQueryState = {
+export interface SavedQueryState {
   savedQueries: SavedQuery[];
   hasError: boolean;
   isLoading: boolean;
-};
+}
 
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
 export type EventsGeoData = {'geo.country_code': string; count: number}[];
 
 // API response format for a single series
-export type EventsStats = {
+export interface EventsStats {
   data: EventsStatsData;
   totals?: {count: number};
   order?: number;
   start?: number;
   end?: number;
-};
+}
 
 // API response format for multiple series
-export type MultiSeriesEventsStats = {
+export interface MultiSeriesEventsStats {
   [seriesName: string]: EventsStats;
-};
+}
 
 /**
  * Session API types.
  */
 // Base type for series style API response
-export type SeriesApi = {
+export interface SeriesApi {
   intervals: string[];
   groups: {
     by: Record<string, string | number>;
     totals: Record<string, number>;
     series: Record<string, number[]>;
   }[];
-};
+}
 
-export type SessionApiResponse = SeriesApi & {
+export interface SessionApiResponse extends SeriesApi {
   start: DateString;
   end: DateString;
   query: string;
-};
+}
 
 export enum SessionField {
   SESSIONS = 'sum(session)',

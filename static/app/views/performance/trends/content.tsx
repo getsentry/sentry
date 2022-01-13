@@ -37,17 +37,17 @@ import {
   TRENDS_PARAMETERS,
 } from './utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   location: Location;
   eventView: EventView;
   selection: PageFilters;
-};
+}
 
-type State = {
+interface State {
   error?: string;
   previousTrendFunction?: TrendFunctionField;
-};
+}
 
 class TrendsContent extends React.Component<Props, State> {
   state: State = {};
@@ -296,11 +296,11 @@ class TrendsContent extends React.Component<Props, State> {
   }
 }
 
-type DefaultTrendsProps = {
+interface DefaultTrendsProps {
   children: React.ReactNode[];
   location: Location;
   eventView: EventView;
-};
+}
 
 class DefaultTrends extends React.Component<DefaultTrendsProps> {
   hasPushedDefaults = false;

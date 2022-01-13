@@ -4,7 +4,7 @@ import {Theme} from 'sentry/utils/theme';
 
 type Variant = 'small' | 'large';
 
-type Props = {
+interface Props {
   /**
    * The value of the progress indicator for the determinate variant. Value between 0 and 100
    */
@@ -17,7 +17,7 @@ type Props = {
    * Styles applied to the component's root
    */
   className?: string;
-};
+}
 
 const getVariantStyle = ({
   variant = 'small',

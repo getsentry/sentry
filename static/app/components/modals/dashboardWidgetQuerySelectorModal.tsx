@@ -19,17 +19,16 @@ import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
-export type DashboardWidgetQuerySelectorModalOptions = {
+export interface DashboardWidgetQuerySelectorModalOptions {
   organization: Organization;
   widget: Widget;
-};
+}
 
-type Props = ModalRenderProps &
-  DashboardWidgetQuerySelectorModalOptions & {
-    api: Client;
-    organization: Organization;
-    selection: PageFilters;
-  };
+interface Props extends ModalRenderProps, DashboardWidgetQuerySelectorModalOptions {
+  api: Client;
+  organization: Organization;
+  selection: PageFilters;
+}
 
 class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
   renderQueries() {

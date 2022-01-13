@@ -22,11 +22,11 @@ const providerPopularity = {
   auth0: 7,
 };
 
-type Props = {
+interface Props {
   organization: Organization;
   providerList: AuthProvider[];
   activeProvider?: AuthProvider;
-};
+}
 
 const OrganizationAuthList = ({organization, providerList, activeProvider}: Props) => {
   const features = organization.features;

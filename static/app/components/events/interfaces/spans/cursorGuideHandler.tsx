@@ -5,14 +5,13 @@ import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/util
 import {DragManagerChildrenProps} from './dragManager';
 import {ParsedTraceType} from './types';
 
-export type CursorGuideManagerChildrenProps = {
+export interface CursorGuideManagerChildrenProps {
   showCursorGuide: boolean;
   mouseLeft: number | undefined;
   traceViewMouseLeft: number | undefined;
-
   displayCursorGuide: (mousePageX: number) => void;
   hideCursorGuide: () => void;
-};
+}
 
 const CursorGuideManagerContext = React.createContext<CursorGuideManagerChildrenProps>({
   showCursorGuide: false,
@@ -23,21 +22,20 @@ const CursorGuideManagerContext = React.createContext<CursorGuideManagerChildren
   hideCursorGuide: () => {},
 });
 
-type PropType = {
+interface PropType {
   trace: ParsedTraceType;
   children: React.ReactNode;
   dragProps: DragManagerChildrenProps;
-
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
-};
+}
 
-type StateType = {
+interface StateType {
   showCursorGuide: boolean;
   mouseLeft: number | undefined;
   traceViewMouseLeft: number | undefined;
-};
+}
 
 export class Provider extends React.Component<PropType, StateType> {
   state: StateType = {

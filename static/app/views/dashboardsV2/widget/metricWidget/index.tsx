@@ -37,7 +37,7 @@ import Card from './card';
 import FiltersAndGroups from './filtersAndGroups';
 import Queries from './queries';
 
-type Props = AsyncView['props'] & {
+interface Props {
   dashboardTitle: DashboardDetails['title'];
   theme: Theme;
   organization: Organization;
@@ -48,7 +48,7 @@ type Props = AsyncView['props'] & {
   selection: PageFilters;
   goBackLocation: LocationDescriptor;
   onChangeDataSet: (dataSet: DataSet) => void;
-};
+}
 
 type State = AsyncView['state'] &
   Pick<React.ComponentProps<typeof FiltersAndGroups>, 'groupBy' | 'searchQuery'> & {

@@ -37,7 +37,7 @@ import {Tab} from './types';
 import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   currentTab: string;
   baseUrl: string;
   group: Group;
@@ -46,15 +46,15 @@ type Props = WithRouterProps & {
   api: Client;
   organization: Organization;
   event?: Event;
-};
+}
 
 type MemberList = NonNullable<
   React.ComponentProps<typeof AssigneeSelector>['memberList']
 >;
 
-type State = {
+interface State {
   memberList?: MemberList;
-};
+}
 
 class GroupHeader extends React.Component<Props, State> {
   state: State = {};

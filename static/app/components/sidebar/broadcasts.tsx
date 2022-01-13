@@ -19,16 +19,16 @@ import {CommonSidebarProps, SidebarPanelKey} from './types';
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
 
-type Props = CommonSidebarProps & {
+interface Props extends CommonSidebarProps {
   api: Client;
   organization: Organization;
-};
+}
 
-type State = {
+interface State {
   broadcasts: Broadcast[];
   loading: boolean;
   error: boolean;
-};
+}
 
 class Broadcasts extends Component<Props, State> {
   state: State = {

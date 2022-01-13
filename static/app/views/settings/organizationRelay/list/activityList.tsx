@@ -6,9 +6,9 @@ import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {RelayActivity} from 'sentry/types';
 
-type Props = {
+interface Props {
   activities: Array<RelayActivity>;
-};
+}
 
 const ActivityList = ({activities}: Props) => (
   <StyledPanelTable headers={[t('Version'), t('First Used'), t('Last Used')]}>

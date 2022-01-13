@@ -4,14 +4,14 @@ import Checkbox from 'sentry/components/checkbox';
 import {t} from 'sentry/locale';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 
-type Props = {
+interface Props {
   id: string;
   disabled: boolean;
-};
+}
 
-type State = {
+interface State {
   isSelected: boolean;
-};
+}
 
 class GroupCheckBox extends Component<Props, State> {
   state: State = {

@@ -9,17 +9,17 @@ import space from 'sentry/styles/space';
 import {GroupActivityReprocess, Organization} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 
-type Props = {
+interface Props {
   reprocessActivity: GroupActivityReprocess;
   groupCount: number;
   groupId: string;
   orgSlug: Organization['slug'];
   className?: string;
-};
+}
 
-type State = {
+interface State {
   isBannerHidden: boolean;
-};
+}
 
 class ReprocessedBox extends Component<Props, State> {
   state: State = {

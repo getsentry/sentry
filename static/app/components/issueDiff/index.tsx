@@ -23,7 +23,7 @@ const defaultProps = {
 
 type DefaultProps = typeof defaultProps;
 
-type Props = {
+interface Props {
   api: Client;
   baseIssueId: string;
   targetIssueId: string;
@@ -32,15 +32,15 @@ type Props = {
   baseEventId?: string;
   targetEventId?: string;
   className?: string;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
   groupingDiff: boolean;
   baseEvent: Array<string>;
   targetEvent: Array<string>;
   SplitDiffAsync?: typeof SplitDiff;
-};
+}
 
 class IssueDiff extends Component<Props, State> {
   static defaultProps: DefaultProps = defaultProps;

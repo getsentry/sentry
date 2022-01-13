@@ -6,13 +6,13 @@ import {createContext} from 'react';
  * This is a very different type than what is used on the 'settings'
  * forms which have MobX under the hood.
  */
-export type FormContextData = {
-  form?: {
-    errors: object;
-    data: object;
-    onFieldChange: (name: string, value: string | number) => void;
-  };
-};
+export interface FormContextData {
+ form?: {
+   errors: object;
+   data: object;
+   onFieldChange: (name: string, value: string | number) => void;
+ };
+}
 
 /**
  * Default to undefined to preserve backwards compatibility.

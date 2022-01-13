@@ -13,19 +13,19 @@ import {EventIdResponse, Group, Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useSessionStorage from 'sentry/utils/useSessionStorage';
 
-type StoredLinkedEvent = {
+interface StoredLinkedEvent {
   shortId: string;
   groupId: string;
   project: Project;
   orgSlug: Organization['slug'];
-};
+}
 
-type Props = {
+interface Props {
   orgSlug: Organization['slug'];
   eventId: string;
   router: InjectedRouter;
   route: PlainRoute;
-};
+}
 
 function LinkedEvent({orgSlug, eventId, route, router}: Props) {
   const [storedLinkedEvent, setStoredLinkedEvent, removeStoredLinkedEvent] =

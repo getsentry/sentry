@@ -20,13 +20,13 @@ import SpanOpsQuery from 'sentry/utils/performance/suspectSpans/spanOpsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-type Props = {
+interface Props {
   location: Location;
   eventView: EventView;
   organization: Organization;
   handleOpChange: (op: string | undefined) => void;
   transactionName: string;
-};
+}
 
 export default function OpsFilter(props: Props) {
   const {location, eventView, organization, handleOpChange, transactionName} = props;

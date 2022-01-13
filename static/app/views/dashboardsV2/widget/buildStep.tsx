@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import ListItem from 'sentry/components/list/listItem';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   title: string;
   description: string;
   children: React.ReactNode;
-};
+}
 
 function BuildStep({title, description, children}: Props) {
   return (

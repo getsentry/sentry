@@ -9,18 +9,18 @@ import {defined, toTitleCase} from 'sentry/utils';
 
 import {getContextComponent, getSourcePlugin} from './utils';
 
-type Props = {
+interface Props {
   alias: string;
   event: Event;
   type: string;
   value?: Record<string, any>;
   group?: Group;
-};
+}
 
-type State = {
+interface State {
   isLoading: boolean;
   pluginLoading?: boolean;
-};
+}
 
 class Chunk extends React.Component<Props, State> {
   state: State = {

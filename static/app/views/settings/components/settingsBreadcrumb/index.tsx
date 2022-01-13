@@ -20,13 +20,13 @@ const MENUS = {
   Team: TeamCrumb,
 } as const;
 
-type Props = {
+interface Props {
   className?: string;
   routes: RouteWithName[];
   pathMap: Record<string, string>;
   params: {[param: string]: string | undefined};
   route: any;
-};
+}
 
 class SettingsBreadcrumb extends Component<Props> {
   static defaultProps = {

@@ -15,21 +15,20 @@ import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 import withCommitters from 'sentry/utils/withCommitters';
 
-type Props = {
+interface Props {
   // injected by HoC
   api: Client;
   committers?: Committer[];
-
   // needed by HoC
   organization: Organization;
   project: AvatarProject;
   event: Event;
   group?: Group;
-};
+}
 
-type State = {
+interface State {
   expanded: boolean;
-};
+}
 
 class EventCause extends Component<Props, State> {
   state: State = {

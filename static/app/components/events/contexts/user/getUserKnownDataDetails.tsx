@@ -9,11 +9,11 @@ import {UserKnownDataType} from './types';
 
 const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
 
-type Output = {
+interface Output {
   subject: string;
   value: string | null;
   subjectIcon?: React.ReactNode;
-};
+}
 
 function getUserKnownDataDetails(
   data: UserType,

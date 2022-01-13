@@ -44,21 +44,20 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = WithRouterProps &
-  ViewProps & {
-    location: Location;
-    organization: OrganizationSummary;
-    trendChangeType: TrendChangeType;
-    trendFunctionField?: TrendFunctionField;
-    transaction?: NormalizedTrendsTransaction;
-    isLoading: boolean;
-    statsData: TrendsStats;
-    projects: Project[];
-    height?: number;
-    grid?: LineChart['props']['grid'];
-    disableXAxis?: boolean;
-    disableLegend?: boolean;
-  };
+interface Props extends WithRouterProps, ViewProps {
+  location: Location;
+  organization: OrganizationSummary;
+  trendChangeType: TrendChangeType;
+  trendFunctionField?: TrendFunctionField;
+  transaction?: NormalizedTrendsTransaction;
+  isLoading: boolean;
+  statsData: TrendsStats;
+  projects: Project[];
+  height?: number;
+  grid?: LineChart['props']['grid'];
+  disableXAxis?: boolean;
+  disableLegend?: boolean;
+}
 
 function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
   return [

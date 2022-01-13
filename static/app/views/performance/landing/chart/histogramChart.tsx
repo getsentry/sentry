@@ -31,7 +31,7 @@ import {getFieldOrBackup} from '../display/utils';
 const NUM_BUCKETS = 50;
 const PRECISION = 0;
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   eventView: EventView;
@@ -42,7 +42,7 @@ type Props = {
   didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
   backupField?: string;
   usingBackupAxis: boolean;
-};
+}
 
 export function HistogramChart(props: Props) {
   const {
@@ -112,7 +112,7 @@ export function HistogramChart(props: Props) {
   );
 }
 
-type ChartProps = {
+interface ChartProps {
   chartData?: HistogramData;
   isLoading: boolean;
   isErrored: boolean;
@@ -125,7 +125,7 @@ type ChartProps = {
   disableZoom?: boolean;
   disableChartPadding?: boolean;
   colors?: string[];
-};
+}
 
 export function Chart(props: ChartProps) {
   const {

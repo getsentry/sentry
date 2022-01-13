@@ -3,14 +3,14 @@ import {Component} from 'react';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Actor} from 'sentry/types';
 
-type Value = {
+interface Value {
   actor: Actor;
-};
+}
 
-type Props = {
+interface Props {
   value: Value;
   onRemove: (value: Value) => void;
-};
+}
 
 export default class ValueComponent extends Component<Props> {
   handleClick = () => {

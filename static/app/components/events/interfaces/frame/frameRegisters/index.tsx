@@ -9,10 +9,10 @@ import {defined} from 'sentry/utils';
 import {getSortedRegisters} from './utils';
 import Value from './value';
 
-type Props = {
+interface Props {
   registers: Record<string, string>;
   deviceArch?: string;
-};
+}
 
 function FrameRegisters({registers, deviceArch}: Props) {
   // make sure that clicking on the registers does not actually do

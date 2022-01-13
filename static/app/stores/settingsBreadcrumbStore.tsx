@@ -4,22 +4,22 @@ import Reflux from 'reflux';
 import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
-type UpdateData = {
+interface UpdateData {
   routes: PlainRoute<any>[];
   title: string;
-};
+}
 
-type SettingsBreadcrumbStoreInterface = {
+interface SettingsBreadcrumbStoreInterface {
   init(): void;
   reset(): void;
   onUpdateRouteMap(update: UpdateData): void;
   onTrimMappings(routes: PlainRoute<any>[]): void;
   getPathMap(): Internals['pathMap'];
-};
+}
 
-type Internals = {
+interface Internals {
   pathMap: Record<string, string>;
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & Internals & SettingsBreadcrumbStoreInterface =
   {

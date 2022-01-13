@@ -11,12 +11,12 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project, RepositoryProjectPathConfig} from 'sentry/types';
 
-type Props = {
+interface Props {
   pathConfig: RepositoryProjectPathConfig;
   project: Project;
   onEdit: (pathConfig: RepositoryProjectPathConfig) => void;
   onDelete: (pathConfig: RepositoryProjectPathConfig) => void;
-};
+}
 
 export default class RepositoryProjectPathConfigRow extends Component<Props> {
   render() {

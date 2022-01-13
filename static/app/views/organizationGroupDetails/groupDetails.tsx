@@ -42,7 +42,7 @@ type Props = {
   isGlobalSelectionReady: boolean;
 } & RouteComponentProps<{orgId: string; groupId: string; eventId?: string}, {}>;
 
-type State = {
+interface State {
   group: Group | null;
   loading: boolean;
   loadingEvent: boolean;
@@ -52,7 +52,7 @@ type State = {
   errorType: Error;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
   event?: Event;
-};
+}
 
 class GroupDetails extends React.Component<Props, State> {
   static childContextTypes = {

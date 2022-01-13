@@ -6,16 +6,16 @@ import slugify from 'sentry/utils/slugify';
 import Form from 'sentry/views/settings/components/forms/form';
 import TextField from 'sentry/views/settings/components/forms/textField';
 
-type Payload = {
+interface Payload {
   slug: string;
-};
+}
 
-type Props = {
+interface Props {
   organization: Organization;
   onSubmit?: (data: Payload, onSuccess: Function, onError: Function) => void;
   onSuccess?: (data: Payload) => void;
   formProps?: Partial<typeof Form>;
-};
+}
 
 function CreateTeamForm({organization, formProps, ...props}: Props) {
   return (

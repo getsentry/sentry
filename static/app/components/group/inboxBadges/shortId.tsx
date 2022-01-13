@@ -1,15 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-/**
- * Used in new inbox
- * Renders the project badge and short name
- */
-
-type Props = {
+interface Props {
   shortId: string;
   avatar?: React.ReactNode;
-};
+}
 
 const ShortId = ({shortId, avatar}: Props) => (
   <Wrapper>

@@ -11,16 +11,15 @@ import {ExternalActorMapping, Integration, Organization, Team} from 'sentry/type
 import withOrganization from 'sentry/utils/withOrganization';
 import FormModel from 'sentry/views/settings/components/forms/model';
 
-type Props = AsyncComponent['props'] &
-  WithRouterProps & {
-    integration: Integration;
-    organization: Organization;
-  };
+interface Props extends WithRouterProps {
+  integration: Integration;
+  organization: Organization;
+}
 
-type State = AsyncComponent['state'] & {
+interface State {
   teams: Team[];
   queryResults: Team[];
-};
+}
 
 class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   getDefaultState() {

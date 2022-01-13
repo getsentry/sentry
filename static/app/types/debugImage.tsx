@@ -24,14 +24,14 @@ export enum ImageFeature {
   has_symbols = 'has_symbols',
 }
 
-type CandidateProcessingInfoOkStatus = {
+interface CandidateProcessingInfoOkStatus {
   status: CandidateProcessingStatus.OK;
-};
+}
 
-type CandidateProcessingInfoOtherStatus = {
+interface CandidateProcessingInfoOtherStatus {
   status: CandidateProcessingStatus.MALFORMED | CandidateProcessingStatus.ERROR;
   details?: string;
-};
+}
 
 export type CandidateProcessingInfo =
   | CandidateProcessingInfoOkStatus
@@ -48,44 +48,44 @@ export enum CandidateDownloadStatus {
   UNAPPLIED = 'unapplied',
 }
 
-type ImageFeatures = {
+interface ImageFeatures {
   [ImageFeature.has_sources]: boolean;
   [ImageFeature.has_debug_info]: boolean;
   [ImageFeature.has_unwind_info]: boolean;
   [ImageFeature.has_symbols]: boolean;
-};
+}
 
 type CandidateFeatures = ImageFeatures;
 
-type CandidateDownloadOkStatus = {
+interface CandidateDownloadOkStatus {
   status: CandidateDownloadStatus.OK;
   features: CandidateFeatures;
   details?: string;
-};
+}
 
-type CandidateDownloadDeletedStatus = {
+interface CandidateDownloadDeletedStatus {
   status: CandidateDownloadStatus.DELETED;
   features: CandidateFeatures;
   details?: string;
-};
+}
 
-type CandidateDownloadNotFoundStatus = {
+interface CandidateDownloadNotFoundStatus {
   status: CandidateDownloadStatus.NOT_FOUND;
   details?: string;
-};
+}
 
-type CandidateDownloadUnAppliedStatus = {
+interface CandidateDownloadUnAppliedStatus {
   status: CandidateDownloadStatus.UNAPPLIED;
   features: CandidateFeatures;
-};
+}
 
-type CandidateDownloadOtherStatus = {
+interface CandidateDownloadOtherStatus {
   status:
     | CandidateDownloadStatus.MALFORMED
     | CandidateDownloadStatus.NO_PERMISSION
     | CandidateDownloadStatus.ERROR;
   details?: string;
-};
+}
 
 export type CandidateDownload =
   | CandidateDownloadNotFoundStatus
@@ -94,13 +94,13 @@ export type CandidateDownload =
   | CandidateDownloadUnAppliedStatus
   | CandidateDownloadOtherStatus;
 
-type ImageCandidateBase = {
+interface ImageCandidateBase {
   source: string;
   source_name?: string;
   location?: string;
-};
+}
 
-type InternalSource = {
+interface InternalSource {
   symbolType: SymbolType;
   fileType: string | null;
   cpuName: string;
@@ -108,29 +108,27 @@ type InternalSource = {
   dateCreated: string;
   location: string;
   filename: string;
-};
+}
 
-export type ImageCandidateOk = ImageCandidateBase & {
+export interface ImageCandidateOk extends ImageCandidateBase {
   download: CandidateDownloadOkStatus;
   unwind?: CandidateProcessingInfo;
   debug?: CandidateProcessingInfo;
-};
+}
 
-export type ImageCandidateInternalOk = ImageCandidateBase &
-  InternalSource & {
-    download: CandidateDownloadOkStatus;
-    unwind?: CandidateProcessingInfo;
-    debug?: CandidateProcessingInfo;
-  };
+export interface ImageCandidateInternalOk extends ImageCandidateBase, InternalSource {
+  download: CandidateDownloadOkStatus;
+  unwind?: CandidateProcessingInfo;
+  debug?: CandidateProcessingInfo;
+}
 
-export type ImageCandidateUnApplied = ImageCandidateBase &
-  InternalSource & {
-    download: CandidateDownloadUnAppliedStatus;
-    source: string;
-    source_name?: string;
-  };
+export interface ImageCandidateUnApplied extends ImageCandidateBase, InternalSource {
+  download: CandidateDownloadUnAppliedStatus;
+  source: string;
+  source_name?: string;
+}
 
-type ImageCandidateOthers = ImageCandidateBase & {
+interface ImageCandidateOthers extends ImageCandidateBase {
   download:
     | CandidateDownloadNotFoundStatus
     | CandidateDownloadDeletedStatus
@@ -138,7 +136,7 @@ type ImageCandidateOthers = ImageCandidateBase & {
   source: string;
   source_name?: string;
   location?: string;
-};
+}
 
 export type ImageCandidate =
   | ImageCandidateOk
@@ -157,7 +155,7 @@ export enum ImageStatus {
   OTHER = 'other',
 }
 
-export type Image = {
+export interface Image {
   type: string;
   features: ImageFeatures;
   candidates: Array<ImageCandidate>;
@@ -171,4 +169,4 @@ export type Image = {
   arch?: string;
   image_addr?: string;
   uuid?: string;
-};
+}

@@ -3,9 +3,9 @@ import Annotated from 'sentry/components/events/meta/annotated';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 
-type Props = {
+interface Props {
   sdk: NonNullable<Event['sdk']>;
-};
+}
 
 const EventSdk = ({sdk}: Props) => (
   <EventDataSection type="sdk" title={t('SDK')}>

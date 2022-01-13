@@ -8,10 +8,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
-type Props = {
+interface Props {
   organization: Organization;
   activeTab: 'stats' | 'team';
-};
+}
 
 function StatsHeader({organization, activeTab}: Props) {
   return (

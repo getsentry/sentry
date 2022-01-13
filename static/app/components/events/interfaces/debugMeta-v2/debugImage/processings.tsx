@@ -9,10 +9,10 @@ import ProcessingList from '../processing/list';
 
 import ProcessingIcon from './processingIcon';
 
-type Props = {
+interface Props {
   unwind_status?: ImageStatus | null;
   debug_status?: ImageStatus | null;
-};
+}
 
 function Processings({unwind_status, debug_status}: Props) {
   const items: React.ComponentProps<typeof ProcessingList>['items'] = [];

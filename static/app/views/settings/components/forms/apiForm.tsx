@@ -5,11 +5,11 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import Form from 'sentry/views/settings/components/forms/form';
 
-type Props = Form['props'] & {
+interface Props {
   onSubmit?: (data: Record<string, any>) => void;
   apiMethod: string;
   apiEndpoint: string;
-};
+}
 
 export default class ApiForm extends Component<Props> {
   componentWillUnmount() {

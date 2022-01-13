@@ -6,14 +6,14 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {AvatarUser} from 'sentry/types';
 
-type Props = {
+interface Props {
   avatarSize?: UserAvatar['props']['size'];
   displayName?: React.ReactNode;
   displayEmail?: string;
   user?: AvatarUser;
   hideEmail?: boolean;
   className?: string;
-};
+}
 
 const UserBadge = ({
   avatarSize = 24,

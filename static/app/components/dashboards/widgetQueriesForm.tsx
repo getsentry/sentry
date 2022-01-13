@@ -32,7 +32,7 @@ const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
   return options;
 };
 
-type Props = {
+interface Props {
   organization: Organization;
   selection: PageFilters;
   displayType: Widget['displayType'];
@@ -43,7 +43,7 @@ type Props = {
   handleAddSearchConditions: () => void;
   handleDeleteQuery: (queryIndex: number) => void;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
-};
+}
 
 /**
  * Contain widget queries interactions and signal changes via the onChange

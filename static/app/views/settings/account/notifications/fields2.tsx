@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import {t} from 'sentry/locale';
 
-export type NotificationSettingField = {
+export interface NotificationSettingField {
   name: string;
   type: 'select' | 'blank' | 'boolean';
   label: string;
@@ -11,7 +11,7 @@ export type NotificationSettingField = {
   defaultFieldName?: string;
   help?: string;
   confirm?: {[key: string]: React.ReactNode | string};
-};
+}
 
 export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingField> = {
   alerts: {

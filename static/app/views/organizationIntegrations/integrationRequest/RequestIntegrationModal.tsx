@@ -11,15 +11,14 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import RequestIntegrationButton from './RequestIntegrationButton';
 
-type Props = {
+interface Props extends ModalRenderProps {
   onSuccess: () => void;
-} & RequestIntegrationButton['props'] &
-  ModalRenderProps &
-  AsyncComponent['props'];
-type State = {
+}
+
+interface State {
   isSending: boolean;
   message: string;
-} & AsyncComponent['state'];
+}
 
 /**
  * This modal serves as a non-owner's confirmation step before sending

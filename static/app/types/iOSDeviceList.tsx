@@ -1,11 +1,9 @@
-// https://github.com/pbakondy/ios-device-list#readme
-
-type Options = {
+interface Options {
   caseInsensitive?: boolean;
   contains?: boolean;
-};
+}
 
-type Device = {
+interface Device {
   Type: string;
   Generation: string;
   ANumber: string | string[];
@@ -17,9 +15,9 @@ type Device = {
   Color: string;
   Storage: string;
   Model: string | string[];
-};
+}
 
-export type IOSDeviceList = {
+export interface IOSDeviceList {
   deviceTypes: () => string[];
   devices: (type?: string) => Device[];
   generations: (type?: string) => [];
@@ -38,4 +36,4 @@ export type IOSDeviceList = {
   deviceByStorage: (storage: string, type?: string, options?: Options) => Device[];
   deviceByModel: (model: string, type?: string, options?: Options) => Device[];
   generationByIdentifier: (id: string, type?: string) => string;
-};
+}

@@ -14,14 +14,14 @@ import {getFileName, getImageAddress} from '../utils';
 import Processings from './processings';
 import Status from './status';
 
-type Props = {
+interface Props {
   image: Image & {status: ImageStatus};
   onOpenImageDetailsModal: (
     code_id: Image['code_id'],
     debug_id: Image['debug_id']
   ) => void;
   style?: React.CSSProperties;
-};
+}
 
 function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
   const {unwind_status, debug_status, debug_file, debug_id, code_file, code_id, status} =

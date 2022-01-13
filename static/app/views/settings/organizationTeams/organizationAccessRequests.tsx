@@ -10,23 +10,23 @@ import space from 'sentry/styles/space';
 import {AccessRequest} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   orgId: string;
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
   requestList: AccessRequest[];
-};
+}
 
-type State = {
+interface State {
   accessRequestBusy: Record<string, boolean>;
-};
+}
 
-type HandleOpts = {
+interface HandleOpts {
   id: string;
   isApproved: boolean;
   successMessage: string;
   errorMessage: string;
-};
+}
 
 class OrganizationAccessRequests extends React.Component<Props, State> {
   state: State = {

@@ -11,14 +11,14 @@ const TIME_WINDOWS = ['1h', '1d', '1w'] as const;
 
 type TimeWindow = typeof TIME_WINDOWS[number];
 
-type State = AsyncView['state'] & {
+interface State {
   timeWindow: TimeWindow;
   since: number;
   resolution: string;
   taskName: string;
   activeTask: string;
   taskList: string[];
-};
+}
 
 export default class AdminQueue extends AsyncView<{}, State> {
   getDefaultState() {

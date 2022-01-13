@@ -1,11 +1,11 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {Organization, Project} from 'sentry/types';
 
-export type StepData = {
+export interface StepData {
   platform?: PlatformKey | null;
-};
+}
 
-export type StepProps = {
+export interface StepProps {
   active: boolean;
   orgId: string;
   project: Project | null;
@@ -13,11 +13,11 @@ export type StepProps = {
   onComplete: (data: StepData) => void;
   onUpdate: (data: StepData) => void;
   organization?: Organization;
-};
+}
 
-export type StepDescriptor = {
+export interface StepDescriptor {
   id: string;
   title: string;
   Component: React.ComponentType<StepProps>;
   centered?: boolean;
-};
+}

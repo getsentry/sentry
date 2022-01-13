@@ -12,7 +12,7 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProject from 'sentry/utils/withProject';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   organization: Organization;
   error: Error | undefined;
   /**
@@ -21,7 +21,7 @@ type Props = WithRouterProps & {
   disableLogSentry?: boolean;
   disableReport?: boolean;
   project?: Project;
-};
+}
 
 class RouteError extends Component<Props> {
   UNSAFE_componentWillMount() {

@@ -5,9 +5,9 @@ import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import {TimeRangeRoot} from 'sentry/components/organizations/timeRangeSelector/index';
 import {Theme} from 'sentry/utils/theme';
 
-type Props = {
+interface Props {
   isSpacer?: boolean;
-};
+}
 
 function getMediaQueryForSpacer(p: Props & {theme: Theme}) {
   return p.isSpacer

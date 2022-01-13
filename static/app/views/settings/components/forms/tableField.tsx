@@ -28,7 +28,7 @@ const defaultProps = {
 
 type DefaultProps = Readonly<typeof defaultProps>;
 type Props = InputField['props'];
-type RenderProps = Props & DefaultProps & TableType;
+interface RenderProps extends Props, DefaultProps, TableType {}
 
 export default class TableField extends React.Component<Props> {
   static defaultProps = defaultProps;

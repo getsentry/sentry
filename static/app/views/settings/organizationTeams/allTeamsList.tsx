@@ -10,13 +10,13 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import AllTeamsRow from './allTeamsRow';
 
-type Props = {
+interface Props {
   urlPrefix: string;
   access: Record<string, any>;
   organization: Organization;
   teamList: Array<Team>;
   openMembership: boolean;
-};
+}
 
 function AllTeamsList({
   organization,

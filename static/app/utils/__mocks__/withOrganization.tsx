@@ -5,7 +5,7 @@ import SentryTypes from 'sentry/sentryTypes';
 declare const TestStubs;
 
 const withOrganizationMock = WrappedComponent =>
-  class WithOrganizationMockWrapper extends Component {
+  (class WithOrganizationMockWrapper extends Component {
     static contextTypes = {
       organization: SentryTypes.Organization,
     };
@@ -17,6 +17,6 @@ const withOrganizationMock = WrappedComponent =>
         />
       );
     }
-  };
+  });
 
 export default withOrganizationMock;

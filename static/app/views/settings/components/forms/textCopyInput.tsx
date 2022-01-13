@@ -39,7 +39,7 @@ const StyledCopyButton = styled(Button)`
   box-shadow: none;
 `;
 
-type Props = {
+interface Props {
   /**
    * Text to copy
    */
@@ -50,7 +50,7 @@ type Props = {
    * Always show the ending of a long overflowing text in input
    */
   rtl?: boolean;
-};
+}
 
 class TextCopyInput extends React.Component<Props> {
   textRef = React.createRef<HTMLInputElement>();

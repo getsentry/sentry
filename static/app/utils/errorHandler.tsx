@@ -2,10 +2,10 @@ import * as React from 'react';
 
 import RouteError from 'sentry/views/routeError';
 
-type State = {
+interface State {
   hasError: boolean;
   error: Error | undefined;
-};
+}
 
 export default function errorHandler<P>(Component: React.ComponentType<P>) {
   class ErrorHandler extends React.Component<P, State> {

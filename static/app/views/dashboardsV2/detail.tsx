@@ -43,11 +43,11 @@ const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to le
 
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
-type RouteParams = {
+interface RouteParams {
   orgId: string;
   dashboardId?: string;
   widgetId?: number;
-};
+}
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   api: Client;
@@ -60,13 +60,13 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   newWidget?: Widget;
 };
 
-type State = {
+interface State {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetToBeUpdated?: Widget;
   layout: RGLLayout[];
   widgetLimitReached: boolean;
-};
+}
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {

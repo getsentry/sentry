@@ -3,7 +3,7 @@ import moment from 'moment';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {getUtcDateString} from 'sentry/utils/dates';
 
-type DateObject = {
+interface DateObject {
   /**
    * Relative period string in format "<int><unit>" (e.g. 4d for 4 days)
    */
@@ -16,14 +16,14 @@ type DateObject = {
    * Ending date object
    */
   end?: string | Date | null;
-};
+}
 
-type Options = {
+interface Options {
   /**
    * Doubles the given period (useful for getting previous period data)
    */
   shouldDoublePeriod?: boolean;
-};
+}
 
 /**
  * Gets the period to query with if we need to double the initial period in order

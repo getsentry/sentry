@@ -8,7 +8,7 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   withLeadHint: boolean;
   includeSystemFrames: boolean;
@@ -18,7 +18,7 @@ type Props = {
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
-};
+}
 
 class PackageLink extends React.Component<Props> {
   handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {

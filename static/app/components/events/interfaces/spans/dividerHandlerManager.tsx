@@ -21,17 +21,17 @@ const selectRefs = (
   });
 };
 
-export type DividerHandlerManagerChildrenProps = {
+export interface DividerHandlerManagerChildrenProps {
   dividerPosition: number;
   setHover: (nextHover: boolean) => void;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   addDividerLineRef: () => React.RefObject<HTMLDivElement>;
   addGhostDividerLineRef: () => React.RefObject<HTMLDivElement>;
-};
+}
 
-type StateType = {
-  dividerPosition: number; // between 0 and 1
-};
+interface StateType {
+  dividerPosition: number; // between 0 and 1;
+}
 
 const DividerManagerContext = React.createContext<DividerHandlerManagerChildrenProps>({
   dividerPosition: DEFAULT_DIVIDER_POSITION,
@@ -41,13 +41,12 @@ const DividerManagerContext = React.createContext<DividerHandlerManagerChildrenP
   addGhostDividerLineRef: () => React.createRef<HTMLDivElement>(),
 });
 
-type PropType = {
+interface PropType {
   children: React.ReactNode;
-
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
-};
+}
 
 export class Provider extends React.Component<PropType, StateType> {
   state: StateType = {

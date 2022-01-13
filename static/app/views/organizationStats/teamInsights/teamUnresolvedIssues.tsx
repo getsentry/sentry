@@ -23,21 +23,24 @@ import {
   groupByTrend,
 } from './utils';
 
-type Props = AsyncComponent['props'] & {
+interface Props extends DateTimeObject {
   organization: Organization;
   teamSlug: string;
   projects: Project[];
-} & DateTimeObject;
+}
 
-type UnresolvedCount = {unresolved: number};
+interface UnresolvedCount {
+  unresolved: number;
+}
+
 type ProjectReleaseCount = Record<string, Record<string, UnresolvedCount>>;
 
-type State = AsyncComponent['state'] & {
+interface State {
   /** weekly selected date range */
   periodIssues: ProjectReleaseCount | null;
   /** Locked to last 7 days */
   weekIssues: ProjectReleaseCount | null;
-};
+}
 
 class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;

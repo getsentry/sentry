@@ -2,9 +2,9 @@ import EventView, {ImmutableEventView} from 'sentry/utils/discover/eventView';
 
 import {createDefinedContext} from './utils';
 
-type usePerformanceEventViewContext = {
+interface usePerformanceEventViewContext {
   eventView: EventView;
-};
+}
 
 const [PerformanceEventViewProvider, _usePerformanceEventView] =
   createDefinedContext<usePerformanceEventViewContext>({

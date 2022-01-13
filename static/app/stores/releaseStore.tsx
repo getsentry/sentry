@@ -9,7 +9,7 @@ type StoreDeploys = Map<string, Array<Deploy>>;
 type StoreLoading = Map<string, boolean>;
 type StoreError = Map<string, Error>;
 
-type ReleaseStoreInterface = {
+interface ReleaseStoreInterface {
   get(
     projectSlug: string,
     releaseVersion: string
@@ -21,7 +21,6 @@ type ReleaseStoreInterface = {
     deploysLoading: boolean | undefined;
     deploysError: Error | undefined;
   };
-
   state: {
     orgSlug: string | undefined;
     release: StoreRelease;
@@ -31,7 +30,6 @@ type ReleaseStoreInterface = {
     deploysLoading: StoreLoading;
     deploysError: StoreError;
   };
-
   updateOrganization(org: Organization): void;
   loadRelease(orgSlug: string, projectSlug: string, releaseVersion: string): void;
   loadReleaseSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
@@ -39,7 +37,7 @@ type ReleaseStoreInterface = {
   loadDeploys(orgSlug: string, projectSlug: string, releaseVersion: string): void;
   loadDeploysSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
   loadDeploysError(projectSlug: string, releaseVersion: string, error: Error): void;
-};
+}
 
 export const getReleaseStoreKey = (projectSlug: string, releaseVersion: string) =>
   `${projectSlug}${releaseVersion}`;

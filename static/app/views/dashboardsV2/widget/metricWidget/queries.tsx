@@ -10,13 +10,13 @@ import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import MetricSelectField from './metricSelectField';
 
-type Props = {
+interface Props {
   metricMetas: MetricMeta[];
   queries: MetricQuery[];
   onRemoveQuery: (index: number) => void;
   onAddQuery: () => void;
   onChangeQuery: (queryIndex: number, query: MetricQuery) => void;
-};
+}
 
 function Queries({
   metricMetas,

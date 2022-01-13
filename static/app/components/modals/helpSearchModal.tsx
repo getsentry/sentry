@@ -9,10 +9,10 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   organization: Organization;
   placeholder?: string;
-};
+}
 
 function HelpSearchModal({
   Body,

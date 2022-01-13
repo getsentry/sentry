@@ -5,10 +5,10 @@ import Highlight from 'sentry/components/highlight';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   searchTerm: string;
   category?: string | null;
-};
+}
 
 const Category = memo(function Category({category, searchTerm}: Props) {
   const title = !defined(category) ? t('generic') : category;

@@ -55,7 +55,7 @@ type ParameterDescription =
       placeholder?: string;
     };
 
-type Props = {
+interface Props {
   className?: string;
   takeFocus?: boolean;
   fieldValue: QueryFieldValue;
@@ -92,13 +92,12 @@ type Props = {
   hidePrimarySelector?: boolean;
   hideParameterSelector?: boolean;
   otherColumns?: Column[];
-};
+}
 
-// Type for completing generics in react-select
-type OptionType = {
+interface OptionType {
   label: string;
   value: FieldValue;
-};
+}
 
 class QueryField extends React.Component<Props> {
   FieldSelectComponents = {
@@ -647,7 +646,10 @@ type InputProps = React.HTMLProps<HTMLInputElement> & {
   onUpdate: (value: string) => void;
   value: string;
 };
-type InputState = {value: string};
+
+interface InputState {
+  value: string;
+}
 
 /**
  * Because controlled inputs fire onChange on every key stroke,

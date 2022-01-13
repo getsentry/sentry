@@ -32,10 +32,10 @@ const PanelBodyLineItem = styled(PanelBody)`
   }
 `;
 
-type ANBPProps = {
+interface ANBPProps {
   projects: Project[];
   field: FineTuneField;
-};
+}
 
 const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
   const projectsByOrg = groupByOrganization(projects);
@@ -76,10 +76,10 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
   );
 };
 
-type ANBOProps = {
+interface ANBOProps {
   organizations: Organization[];
   field: FineTuneField;
-};
+}
 
 const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -119,12 +119,12 @@ type Props = AsyncView['props'] &
     organizations: Organization[];
   };
 
-type State = AsyncView['state'] & {
+interface State {
   emails: UserEmail[] | null;
   projects: Project[] | null;
   notifications: Record<string, any> | null;
   fineTuneData: Record<string, any> | null;
-};
+}
 
 class AccountNotificationFineTuning extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

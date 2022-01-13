@@ -28,10 +28,10 @@ function getView(view: View, data: State['data']) {
   }
 }
 
-type Props = {
+interface Props {
   type: string;
   data: Record<string, any>;
-};
+}
 
 type View = 'report' | 'raw';
 

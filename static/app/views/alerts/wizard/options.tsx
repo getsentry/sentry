@@ -54,11 +54,12 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_users: t('Crash Free User Rate'),
 };
 
-type AlertWizardCategory = {
+interface AlertWizardCategory {
   categoryHeading: string;
   options: AlertType[];
   featureBadgeType?: React.ComponentProps<typeof FeatureBadge>['type'];
-};
+}
+
 export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
   {
     categoryHeading: t('Errors'),
@@ -91,12 +92,12 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
   },
 ];
 
-type PanelContent = {
+interface PanelContent {
   description: string;
   docsLink?: string;
   examples: string[];
   illustration?: string;
-};
+}
 
 export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   issues: {
@@ -224,11 +225,11 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   },
 };
 
-export type WizardRuleTemplate = {
+export interface WizardRuleTemplate {
   aggregate: string;
   dataset: Dataset;
   eventTypes: EventTypes;
-};
+}
 
 export const AlertWizardRuleTemplates: Record<
   Exclude<AlertType, 'issues'>,

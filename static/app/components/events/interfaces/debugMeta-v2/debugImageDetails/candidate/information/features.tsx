@@ -10,9 +10,9 @@ import {
 
 import {getImageFeatureDescription} from '../utils';
 
-type Props = {
+interface Props {
   download: CandidateDownload;
-};
+}
 
 function Features({download}: Props) {
   let features: string[] = [];

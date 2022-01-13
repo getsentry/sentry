@@ -35,7 +35,7 @@ type VisitorFn = (opts: {
   skipToken: typeof skipTokenMarker;
 }) => null | TokenResultFound | typeof skipTokenMarker;
 
-type TreeResultLocatorOpts = {
+interface TreeResultLocatorOpts {
   /**
    * The tree to visit
    */
@@ -51,7 +51,7 @@ type TreeResultLocatorOpts = {
    * search tree were visited.
    */
   noResultValue: any;
-};
+}
 
 /**
  * Utility function to visit every Token node within an AST tree (in DFS order)
@@ -130,7 +130,7 @@ export function treeResultLocator<T>({
   return noResultValue;
 }
 
-type TreeTransformerOpts = {
+interface TreeTransformerOpts {
   /**
    * The tree to transform
    */
@@ -139,7 +139,7 @@ type TreeTransformerOpts = {
    * The function used to transform each node
    */
   transform: (token: TokenResult<Token>) => any;
-};
+}
 
 /**
  * Utility function to visit every Token node within an AST tree and apply
@@ -197,12 +197,12 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
   return tree.map(nodeVisitor);
 }
 
-type GetKeyNameOpts = {
+interface GetKeyNameOpts {
   /**
    * Include arguments in aggregate key names
    */
   aggregateWithArgs?: boolean;
-};
+}
 
 /**
  * Utility to get the string name of any type of key.

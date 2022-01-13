@@ -57,13 +57,13 @@ export type MetaType = Record<string, ColumnType>;
 // Data in discover results.
 export type EventData = Record<string, any>;
 
-export type LocationQuery = {
+export interface LocationQuery {
   start?: string | string[];
   end?: string | string[];
   utc?: string | string[];
   statsPeriod?: string | string[];
   cursor?: string | string[];
-};
+}
 
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
 

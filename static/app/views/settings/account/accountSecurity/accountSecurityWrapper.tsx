@@ -14,11 +14,11 @@ type Props = {
 } & RouteComponentProps<{authId: string}, {}> &
   AsyncComponent['props'];
 
-type State = {
+interface State {
   authenticators?: Authenticator[] | null;
   organizations?: OrganizationSummary[];
   emails: UserEmail[];
-} & AsyncComponent['state'];
+}
 
 class AccountSecurityWrapper extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

@@ -18,15 +18,15 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
-type Props = {
+interface Props {
   api: Client;
   app: ApiApplication;
   onRemove: (app: ApiApplication) => void;
-};
+}
 
-type State = {
+interface State {
   loading: boolean;
-};
+}
 
 class Row extends Component<Props, State> {
   state: State = {

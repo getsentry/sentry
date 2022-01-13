@@ -49,14 +49,14 @@ const DEFAULT_ERRORS_VISIBLE = 5;
 
 const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
 
-type TransactionResult = {
+interface TransactionResult {
   'project.name': string;
   transaction: string;
   'trace.span': string;
   id: string;
-};
+}
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   api: Client;
   organization: Organization;
   event: Readonly<EventTransaction>;
@@ -66,11 +66,11 @@ type Props = WithRouterProps & {
   childTransactions: QuickTraceEvent[] | null;
   relatedErrors: TraceError[] | null;
   scrollToHash: (hash: string) => void;
-};
+}
 
-type State = {
+interface State {
   errorsOpened: boolean;
-};
+}
 
 class SpanDetail extends React.Component<Props, State> {
   state: State = {

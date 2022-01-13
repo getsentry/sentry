@@ -5,14 +5,14 @@ import styled from '@emotion/styled';
 import space from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = {
+interface Props {
   title?: React.ReactNode;
   description?: React.ReactNode;
   icon?: React.ReactNode;
   action?: React.ReactElement;
   size?: 'large' | 'medium';
   leftAligned?: boolean;
-};
+}
 
 type EmptyMessageProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
 type WrapperProps = Pick<EmptyMessageProps, 'size'>;

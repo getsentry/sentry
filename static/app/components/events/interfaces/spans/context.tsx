@@ -1,18 +1,18 @@
 import {createContext} from 'react';
 import {LocationDescriptor} from 'history';
 
-type ChildTransaction = {
+interface ChildTransaction {
   'project.name': string;
   transaction: string;
   id: string;
   eventSlug: string;
-};
+}
 
-export type SpanEntryContextChildrenProps = {
+export interface SpanEntryContextChildrenProps {
   getViewChildTransactionTarget: (
     props: ChildTransaction
   ) => LocationDescriptor | undefined;
-};
+}
 
 const SpanEntryContext = createContext<SpanEntryContextChildrenProps>({
   getViewChildTransactionTarget: () => undefined,

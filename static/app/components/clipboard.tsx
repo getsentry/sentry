@@ -5,20 +5,20 @@ import copy from 'copy-text-to-clipboard';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 
-type DefaultProps = {
+interface DefaultProps {
   successMessage: string;
   errorMessage: string;
   hideMessages: boolean;
-};
+}
 
-type Props = {
+interface Props extends DefaultProps {
   /** Text to be copied on click */
   value: string;
   /** Hide children if browser does not support copy */
   hideUnsupported?: boolean;
   onSuccess?: () => void;
   onError?: () => void;
-} & DefaultProps;
+}
 
 /**
  * copy-text-to-clipboard relies on `document.execCommand('copy')`
