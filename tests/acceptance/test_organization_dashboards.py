@@ -319,6 +319,54 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.wait_until_loaded()
             self.browser.snapshot("dashboards - resize new and existing widgets (refresh)")
 
+    def test_delete_existing_widget_does_not_trigger_new_widget_layout_reset(self):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Existing Widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+            self.page.visit_dashboard_detail()
+            self.page.enter_edit_state()
+
+            # Add new widget
+            self.page.click_dashboard_add_widget_button()
+            title_input = self.browser.element('input[data-test-id="widget-title-input"]')
+            title_input.send_keys("New Widget")
+            button = self.browser.element('[data-test-id="add-widget"]')
+            button.click()
+
+            # Drag it to the bottom left
+            dragHandle = self.browser.element(".react-grid-item:nth-of-type(2n) .widget-drag")
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(dragHandle, -500, 500).perform()
+
+            # Resize new widget, get the 2nd element instead of the "last" because the "last" is
+            # the add widget button
+            resizeHandle = self.browser.element(
+                ".react-grid-item:nth-of-type(2n) .react-resizable-handle"
+            )
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(resizeHandle, 500, 0).perform()
+
+            # Delete first existing widget
+            delete_widget_button = self.browser.element(
+                '.react-grid-item:first-of-type [data-test-id="widget-delete"]'
+            )
+            delete_widget_button.click()
+
+            self.page.save_dashboard()
+
+            self.browser.snapshot("dashboards - resize new and existing widgets")
+            self.browser.refresh()
+            self.page.wait_until_loaded()
+            self.browser.snapshot("dashboards - resize new and existing widgets (refresh)")
+
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
