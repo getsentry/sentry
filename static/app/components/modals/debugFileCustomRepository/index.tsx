@@ -3,8 +3,10 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {getDebugSourceName} from 'sentry/data/debugFileSources';
 import {tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
 import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromConfig';
 import Form from 'sentry/views/settings/components/forms/form';
@@ -25,6 +27,8 @@ type RouteParams = {
 };
 
 type Props = WithRouterProps<RouteParams, {}> & {
+  organization: Organization;
+  appStoreConnectSourcesQuantity: number;
   /**
    * Callback invoked with the updated config value.
    */
@@ -41,6 +45,16 @@ type Props = WithRouterProps<RouteParams, {}> & {
   sourceConfig?: Record<string, any>;
 } & Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer' | 'closeModal'>;
 
+const HookedAppStoreConnectMultiple = HookOrDefault({
+  hookName: 'component:disabled-app-store-connect-multiple',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
+
+const HookedCustomSymbolSources = HookOrDefault({
+  hookName: 'component:disabled-custom-symbol-sources',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
+
 function DebugFileCustomRepository({
   Header,
   Body,
@@ -51,6 +65,8 @@ function DebugFileCustomRepository({
   params: {orgId, projectId: projectSlug},
   appStoreConnectStatusData,
   closeModal,
+  organization,
+  appStoreConnectSourcesQuantity,
 }: Props) {
   function handleSave(data?: Record<string, any>) {
     if (!data) {
@@ -66,54 +82,74 @@ function DebugFileCustomRepository({
 
   if (sourceType === CustomRepoType.APP_STORE_CONNECT) {
     return (
-      <AppStoreConnect
-        Header={Header}
-        Body={Body}
-        Footer={Footer}
-        orgSlug={orgId}
-        projectSlug={projectSlug}
-        onSubmit={handleSave}
-        initialData={sourceConfig as AppStoreConnectInitialData}
-        appStoreConnectStatusData={appStoreConnectStatusData}
-      />
+      <HookedAppStoreConnectMultiple
+        organization={organization}
+        appStoreConnectSingleSource={
+          sourceConfig ? true : appStoreConnectSourcesQuantity === 0
+        }
+      >
+        <AppStoreConnect
+          Header={Header}
+          Body={Body}
+          Footer={Footer}
+          orgSlug={orgId}
+          projectSlug={projectSlug}
+          onSubmit={handleSave}
+          initialData={sourceConfig as AppStoreConnectInitialData}
+          appStoreConnectStatusData={appStoreConnectStatusData}
+        />
+      </HookedAppStoreConnectMultiple>
     );
   }
 
-  if (sourceType === CustomRepoType.HTTP) {
+  function renderOtherCustomSymbolSources() {
+    if (sourceType === CustomRepoType.HTTP) {
+      return (
+        <Http
+          Header={Header}
+          Body={Body}
+          Footer={Footer}
+          onSubmit={handleSave}
+          initialData={sourceConfig as HttpInitialData}
+        />
+      );
+    }
+
+    const {initialData, fields} = getFormFieldsAndInitialData(sourceType, sourceConfig);
+
     return (
-      <Http
-        Header={Header}
-        Body={Body}
-        Footer={Footer}
-        onSubmit={handleSave}
-        initialData={sourceConfig as HttpInitialData}
-      />
+      <Fragment>
+        <Header closeButton>
+          {sourceConfig
+            ? tct('Update [name] Repository', {name: getDebugSourceName(sourceType)})
+            : tct('Add [name] Repository', {name: getDebugSourceName(sourceType)})}
+        </Header>
+        {fields && (
+          <Form
+            allowUndo
+            requireChanges
+            initialData={initialData}
+            onSubmit={handleSave}
+            footerClass="modal-footer"
+          >
+            {fields.map((field, i) => (
+              <FieldFromConfig
+                key={field.name || i}
+                field={field}
+                inline={false}
+                stacked
+              />
+            ))}
+          </Form>
+        )}
+      </Fragment>
     );
   }
-
-  const {initialData, fields} = getFormFieldsAndInitialData(sourceType, sourceConfig);
 
   return (
-    <Fragment>
-      <Header closeButton>
-        {sourceConfig
-          ? tct('Update [name] Repository', {name: getDebugSourceName(sourceType)})
-          : tct('Add [name] Repository', {name: getDebugSourceName(sourceType)})}
-      </Header>
-      {fields && (
-        <Form
-          allowUndo
-          requireChanges
-          initialData={initialData}
-          onSubmit={handleSave}
-          footerClass="modal-footer"
-        >
-          {fields.map((field, i) => (
-            <FieldFromConfig key={field.name || i} field={field} inline={false} stacked />
-          ))}
-        </Form>
-      )}
-    </Fragment>
+    <HookedCustomSymbolSources organization={organization}>
+      {renderOtherCustomSymbolSources()}
+    </HookedCustomSymbolSources>
   );
 }
 

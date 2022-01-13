@@ -66,15 +66,14 @@ type MemberListHeaderProps = {
   organization: Organization;
 };
 
-type DisabledAppStoreConnectItem = {
-  disabled: boolean;
-  onTrialStarted: () => void;
-  children: React.ReactElement;
+type DisabledAppStoreConnectMultiple = {
+  appStoreConnectSingleSource: boolean;
+  organization: Organization;
+  children: React.ReactNode;
 };
 
 type DisabledCustomSymbolSources = {
   organization: Organization;
-  disabled: boolean;
   children: React.ReactNode;
 };
 
@@ -102,6 +101,7 @@ type FirstPartyIntegrationAdditionalCTAProps = {
  */
 export type ComponentHooks = {
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
+  'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
@@ -109,7 +109,6 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
-  'component:disabled-app-store-connect-item': () => React.ComponentType<DisabledAppStoreConnectItem>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
