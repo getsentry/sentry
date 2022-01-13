@@ -1,11 +1,13 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -17,6 +19,7 @@ import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -213,6 +216,12 @@ type SpecialFields = {
   'timestamp.to_hour': SpecialField;
   'timestamp.to_day': SpecialField;
   assignee: SpecialField;
+  lifetimeCount: SpecialField;
+  lifetimeUserCount: SpecialField;
+  count: SpecialField;
+  userCount: SpecialField;
+  firstSeen: SpecialField;
+  lastSeen: SpecialField;
 };
 
 /**
@@ -441,7 +450,113 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
+  lifetimeCount: {
+    sortField: null,
+    renderFunc: ({lifetimeCount, count, selectionDateString}) =>
+      issuesCountRenderer(lifetimeCount, count, lifetimeCount, selectionDateString),
+  },
+  lifetimeUserCount: {
+    sortField: null,
+    renderFunc: ({lifetimeUserCount, userCount, selectionDateString}) =>
+      issuesCountRenderer(
+        lifetimeUserCount,
+        userCount,
+        lifetimeUserCount,
+        selectionDateString
+      ),
+  },
+  count: {
+    sortField: null,
+    renderFunc: ({lifetimeCount, count, selectionDateString}) =>
+      issuesCountRenderer(count, count, lifetimeCount, selectionDateString),
+  },
+  userCount: {
+    sortField: null,
+    renderFunc: ({lifetimeUserCount, userCount, selectionDateString}) =>
+      issuesCountRenderer(userCount, userCount, lifetimeUserCount, selectionDateString),
+  },
+  firstSeen: {
+    sortField: null,
+    renderFunc: ({firstSeen}) => <StyledDateTime date={firstSeen} />,
+  },
+  lastSeen: {
+    sortField: null,
+    renderFunc: ({lastSeen}) => <StyledDateTime date={lastSeen} />,
+  },
 };
+
+const issuesCountRenderer = (
+  primaryCount,
+  currentCount,
+  lifetimeCount,
+  selectionDateString
+) => {
+  return (
+    <Container>
+      <Tooltip
+        isHoverable
+        skipWrapper
+        popperStyle={{padding: 0}}
+        title={
+          <div>
+            <Item>
+              <StyledContent>
+                {t(`Total in ${selectionDateString}`)}
+                <ItemCount value={currentCount} />
+              </StyledContent>
+            </Item>
+            <Divider />
+            <Item>
+              <StyledContent>
+                {t('Since issue began')}
+                <ItemCount value={lifetimeCount} />
+              </StyledContent>
+            </Item>
+          </div>
+        }
+      >
+        {primaryCount}
+      </Tooltip>
+    </Container>
+  );
+};
+
+const Item = styled('li')`
+  list-style: none;
+`;
+
+const contentStyle = css`
+  width: 100%;
+  justify-content: space-between;
+  display: flex;
+  padding: 6px 10px;
+`;
+
+const StyledContent = styled('div')`
+  ${contentStyle};
+`;
+
+const ItemCount = styled(({value, ...p}) => (
+  <div {...p}>
+    <Count value={value} />
+  </div>
+))`
+  text-align: right;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  padding-left: ${space(2)};
+  color: ${p => p.theme.subText};
+`;
+
+const Divider = styled('li')`
+  height: 1px;
+  overflow: hidden;
+  background-color: ${p => p.theme.innerBorder};
+`;
+
+const StyledDateTime = styled(DateTime)`
+  white-space: nowrap;
+`;
 
 const ActorContainer = styled('div')`
   display: flex;

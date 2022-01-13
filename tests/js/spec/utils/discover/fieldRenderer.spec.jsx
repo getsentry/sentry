@@ -50,6 +50,9 @@ describe('getFieldRenderer', function () {
       'spans.total.time': 75,
       'transaction.duration': 75,
       'timestamp.to_day': '2021-09-05T00:00:00+00:00',
+      lifetimeCount: 10,
+      count: 6,
+      selectionDateString: 'last 7 days',
     };
 
     MockApiClient.addMockResponse({
@@ -329,6 +332,24 @@ describe('getFieldRenderer', function () {
       expect(await screen.findByText('Test User')).toBeInTheDocument();
       expect(await screen.findByText('Based on')).toBeInTheDocument();
       expect(await screen.findByText('commit data')).toBeInTheDocument();
+    });
+
+    it('can render counts', async function () {
+      const renderer = getFieldRenderer('count', {
+        count: 'string',
+      });
+
+      rtlMountWithTheme(
+        renderer(data, {
+          location,
+          organization,
+        })
+      );
+      expect(screen.getByText('6')).toBeInTheDocument();
+      userEvent.hover(screen.getByText('6'));
+      expect(await screen.findByText('Total in last 7 days')).toBeInTheDocument();
+      expect(screen.getByText('Since issue began')).toBeInTheDocument();
+      expect(screen.getByText('10')).toBeInTheDocument();
     });
   });
 });
