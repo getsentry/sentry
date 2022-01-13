@@ -3,6 +3,7 @@ from django.conf.urls import url
 from sentry.web.frontend.vercel_extension_configuration import VercelExtensionConfigurationView
 
 from .generic_webhook import VercelGenericWebhookEndpoint
+from .redirect import VercelConfigurationRedirect
 from .webhook import VercelWebhookEndpoint
 
 urlpatterns = [
@@ -18,5 +19,10 @@ urlpatterns = [
         r"^delete/$",
         VercelGenericWebhookEndpoint.as_view(),
         name="sentry-extensions-vercel-generic-webhook",
+    ),
+    url(
+        r"^redirect/$",
+        VercelConfigurationRedirect.as_view(),
+        name="sentry-extensions-vercel-redirect",
     ),
 ]
