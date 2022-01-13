@@ -20,9 +20,9 @@ enum FieldKey {
   IS_HANDLED = 'isHandled',
   LAST_SEEN = 'lastSeen',
   FIRST_SEEN = 'firstSeen',
-  COUNT = 'count',
+  EVENT_COUNT = 'eventCount',
   USER_COUNT = 'userCount',
-  LIFETIME_COUNT = 'lifetimeCount',
+  LIFETIME_EVENT_COUNT = 'lifetimeEventCount',
   LIFETIME_USER_COUNT = 'lifetimeUserCount',
 }
 
@@ -37,10 +37,10 @@ export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.IS_BOOKMARKED]: 'boolean',
   [FieldKey.IS_SUBSCRIBED]: 'boolean',
   [FieldKey.IS_HANDLED]: 'boolean',
-  [FieldKey.COUNT]: 'string',
+  [FieldKey.EVENT_COUNT]: 'string',
   [FieldKey.USER_COUNT]: 'string',
   [FieldKey.LAST_SEEN]: 'string',
   [FieldKey.FIRST_SEEN]: 'string',
-  [FieldKey.LIFETIME_COUNT]: 'string',
+  [FieldKey.LIFETIME_EVENT_COUNT]: 'string',
   [FieldKey.LIFETIME_USER_COUNT]: 'string',
 };

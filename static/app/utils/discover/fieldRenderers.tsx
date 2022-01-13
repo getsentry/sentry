@@ -216,9 +216,9 @@ type SpecialFields = {
   'timestamp.to_hour': SpecialField;
   'timestamp.to_day': SpecialField;
   assignee: SpecialField;
-  lifetimeCount: SpecialField;
+  lifetimeEventCount: SpecialField;
   lifetimeUserCount: SpecialField;
-  count: SpecialField;
+  eventCount: SpecialField;
   userCount: SpecialField;
   firstSeen: SpecialField;
   lastSeen: SpecialField;
@@ -450,7 +450,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
-  lifetimeCount: {
+  lifetimeEventCount: {
     sortField: null,
     renderFunc: data => issuesCountRenderer(data, 'lifetimeCount'),
   },
@@ -458,7 +458,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: null,
     renderFunc: data => issuesCountRenderer(data, 'lifetimeUserCount'),
   },
-  count: {
+  eventCount: {
     sortField: null,
     renderFunc: data => issuesCountRenderer(data, 'count'),
   },
