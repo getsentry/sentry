@@ -21,6 +21,7 @@ const config: StorybookConfig = {
     },
     '@storybook/addon-a11y',
     '@storybook/addon-links',
+    'storybook-dark-mode',
   ],
 
   // For whatever reason the `babel` config override is not present in
