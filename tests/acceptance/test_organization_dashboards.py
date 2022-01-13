@@ -112,6 +112,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def capture_screenshots(self, screenshot_name):
+        """
+        Captures screenshots in both a pre and post refresh state.
+
+        Necessary for verifying that the layout persists after saving.
+        """
         self.page.wait_until_loaded()
         self.browser.snapshot(screenshot_name)
         self.browser.refresh()
