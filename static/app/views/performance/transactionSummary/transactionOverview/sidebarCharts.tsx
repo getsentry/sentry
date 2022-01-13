@@ -186,7 +186,9 @@ function SidebarChartsContainer({
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
-  const {utc} = normalizeDateTimeParams(location.query);
+  const project = eventView.project;
+  const environment = eventView.environment;
+  const utc = normalizeDateTimeParams(location.query).utc === 'true';
 
   const axisLineConfig = {
     scale: true,
