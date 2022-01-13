@@ -46,6 +46,11 @@ class NotificationSettingTypes(Enum):
     # Notifications that require approval like a request to invite a member
     APPROVAL = 40
 
+    # Notifications about overages
+    OVERAGE = 50
+
+    OVERAGE_ERRORS = 51
+
 
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
@@ -53,6 +58,8 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.ISSUE_ALERTS: "alerts",
     NotificationSettingTypes.WORKFLOW: "workflow",
     NotificationSettingTypes.APPROVAL: "approval",
+    NotificationSettingTypes.OVERAGE: "overage",
+    NotificationSettingTypes.OVERAGE_ERRORS: "overageErrors",
 }
 
 
@@ -111,6 +118,7 @@ class FineTuningAPIKey(Enum):
     REPORTS = "reports"
     WORKFLOW = "workflow"
     APPROVAL = "approval"
+    OVERAGE = "overage"
 
 
 class UserOptionsSettingsKey(Enum):
@@ -120,6 +128,7 @@ class UserOptionsSettingsKey(Enum):
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
     APPROVAL = "approvalNotifications"
+    OVERAGE = "overageNotifications"
 
 
 VALID_VALUES_FOR_KEY = {
@@ -133,6 +142,14 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.APPROVAL: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.OVERAGE: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.OVERAGE_ERRORS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },

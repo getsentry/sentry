@@ -1,19 +1,7 @@
-import * as React from 'react';
-
 import {t} from 'sentry/locale';
+import {Field} from 'sentry/views/settings/components/forms/type';
 
-export type NotificationSettingField = {
-  name: string;
-  type: 'select' | 'blank' | 'boolean';
-  label: string;
-  choices?: string[][];
-  defaultValue?: string;
-  defaultFieldName?: string;
-  help?: string;
-  confirm?: {[key: string]: React.ReactNode | string};
-};
-
-export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingField> = {
+export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   alerts: {
     name: 'alerts',
     type: 'select',
@@ -65,6 +53,16 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
       ['never', t('Off')],
     ],
     help: t('Notifications from teammates that require review or approval.'),
+  },
+  overage: {
+    name: 'overage',
+    type: 'select',
+    label: t('Overages'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t('Overage notifications'),
   },
   reports: {
     name: 'weekly reports',

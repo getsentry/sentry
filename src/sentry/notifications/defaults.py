@@ -13,6 +13,8 @@ NOTIFICATION_SETTINGS_ALL_SOMETIMES = {
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
     NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
     NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.OVERAGE: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.OVERAGE_ERRORS: NotificationSettingOptionValues.ALWAYS,
 }
 
 NOTIFICATION_SETTINGS_SLACK = {
@@ -20,6 +22,8 @@ NOTIFICATION_SETTINGS_SLACK = {
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.OVERAGE: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.OVERAGE_ERRORS: NotificationSettingOptionValues.ALWAYS,
 }
 
 NOTIFICATION_SETTING_DEFAULTS = {

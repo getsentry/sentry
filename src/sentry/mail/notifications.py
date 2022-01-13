@@ -137,6 +137,11 @@ def get_builder_args(
     # TODO: move context logic to single notification class method
     extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
     context = get_context(notification, recipient, shared_context or {}, extra_context)
+    return get_builder_args_from_context(notification, context)
+
+
+def get_builder_args_from_context(notification: BaseNotification, context: Mapping[str, Any]):
+    # TODO: might need to add in a from_email
     return {
         "subject": get_subject_with_prefix(notification, context),
         "context": context,

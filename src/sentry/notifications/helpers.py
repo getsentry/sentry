@@ -223,15 +223,22 @@ def validate(type: NotificationSettingTypes, value: NotificationSettingOptionVal
     return value in VALID_VALUES_FOR_KEY.get(type, {})
 
 
-def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
+def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType | None:
     """In which scope (proj or org) can a user set more specific settings?"""
-    if type in [NotificationSettingTypes.DEPLOY, NotificationSettingTypes.APPROVAL]:
+    if type in [
+        NotificationSettingTypes.DEPLOY,
+        NotificationSettingTypes.APPROVAL,
+        NotificationSettingTypes.OVERAGE,
+    ]:
         return NotificationScopeType.ORGANIZATION
 
     if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
         return NotificationScopeType.PROJECT
 
-    raise Exception(f"type {type}, must be alerts, deploy, workflow, or approval")
+    if type in [NotificationSettingTypes.OVERAGE_ERRORS]:
+        return None
+
+    raise Exception(f"type {type}, must be alerts, deploy, workflow, approval, overage")
 
 
 def get_scope(
@@ -400,17 +407,25 @@ def get_fallback_settings(
     # Set the application-wide defaults in case they aren't set.
     for type_enum in types_to_serialize:
         scope_type = get_scope_type(type_enum)
-        scope_str = NOTIFICATION_SCOPE_TYPE[scope_type]
+
+        if scope_type:
+            scope_str = NOTIFICATION_SCOPE_TYPE[scope_type]
+        else:
+            scope_str = ""
+
         type_str = NOTIFICATION_SETTING_TYPES[type_enum]
 
         for provider in NOTIFICATION_SETTING_DEFAULTS.keys():
             provider_str = EXTERNAL_PROVIDERS[provider]
 
-            parent_ids = (
-                project_ids if scope_type == NotificationScopeType.PROJECT else organization_ids
-            )
-            for parent_id in parent_ids:
-                data[type_str][scope_str][parent_id][provider_str] = parent_independent_value_str
+            if scope_type:
+                parent_ids = (
+                    project_ids if scope_type == NotificationScopeType.PROJECT else organization_ids
+                )
+                for parent_id in parent_ids:
+                    data[type_str][scope_str][parent_id][
+                        provider_str
+                    ] = parent_independent_value_str
 
             if recipient:
                 # Each provider has it's own defaults by type.

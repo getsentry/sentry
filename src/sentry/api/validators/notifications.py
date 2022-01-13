@@ -64,8 +64,22 @@ def validate_projects(
     return intersect_dict_set(projects_by_id, project_ids_to_look_up)
 
 
-def validate_type_option(type: Optional[str]) -> Optional[NotificationSettingTypes]:
-    return validate_type(type) if type else None
+def validate_type_option(type: Optional[str]) -> Optional[List[NotificationSettingTypes]]:
+    return validate_types(type) if type else None
+
+
+def validate_types(
+    type: str, context: Optional[List[str]] = None
+) -> List[NotificationSettingTypes]:
+    try:
+        types_split = type.split(",")
+        out = []
+        for type in types_split:
+            notifiication_type = {v: k for k, v in NOTIFICATION_SETTING_TYPES.items()}[type]
+            out.append(notifiication_type)
+        return out
+    except KeyError:
+        raise ParameterValidationError(f"Unknown type: {type}", context)
 
 
 def validate_type(type: str, context: Optional[List[str]] = None) -> NotificationSettingTypes:

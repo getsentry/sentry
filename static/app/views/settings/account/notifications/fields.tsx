@@ -77,6 +77,13 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     // No choices here because it's going to have dynamic content
     // Component will create choices,
   },
+  overage: {
+    title: t('Overages'),
+    description: t('Overage notifications'),
+    type: 'select',
+    // No choices here because it's going to have dynamic content
+    // Component will create choices,
+  },
   email: {
     title: t('Email Routing'),
     description: t(

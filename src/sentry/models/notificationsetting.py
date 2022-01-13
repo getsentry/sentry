@@ -73,6 +73,8 @@ class NotificationSetting(Model):
             (NotificationSettingTypes.ISSUE_ALERTS, "issue"),
             (NotificationSettingTypes.WORKFLOW, "workflow"),
             (NotificationSettingTypes.APPROVAL, "approval"),
+            (NotificationSettingTypes.OVERAGE, "overage"),
+            (NotificationSettingTypes.OVERAGE_ERRORS, "overageErrors"),
         ),
         null=False,
     )
