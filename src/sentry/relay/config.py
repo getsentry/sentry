@@ -54,10 +54,11 @@ def get_public_key_configs(project, full_config, project_keys=None):
     public_keys = []
 
     for project_key in project_keys or ():
+        if project_key.status != ProjectKeyStatus.ACTIVE:
+            continue
         key = {
             "publicKey": project_key.public_key,
             "numericId": project_key.id,
-            "isEnabled": project_key.status == ProjectKeyStatus.ACTIVE,
         }
 
         if full_config:
