@@ -105,10 +105,6 @@ class IntegrationFormError(IntegrationError):
         self.field_errors = field_errors
 
 
-class IgnorableSentryAppError(RequestException):
-    pass
-
-
 class ClientError(RequestException):
     """4xx Error Occurred"""
 

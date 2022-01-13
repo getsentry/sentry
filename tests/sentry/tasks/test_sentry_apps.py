@@ -10,7 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.models import Rule, SentryApp, SentryAppInstallation
 from sentry.receivers.sentry_apps import *  # NOQA
-from sentry.shared_integrations.exceptions import ClientError, IgnorableSentryAppError
+from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
     installation_webhook,
@@ -572,40 +572,3 @@ class TestWebhookRequests(TestCase):
         assert first_request["organization_id"] == self.install.organization.id
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert first_request["project_id"] == "1"
-
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponse404)
-    def test_raises_ignorable_error_for_internal_apps(self, safe_urlopen):
-        data = {"issue": serialize(self.issue)}
-        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
-        with self.assertRaises(IgnorableSentryAppError):
-            send_webhooks(
-                installation=self.install, event="issue.assigned", data=data, actor=self.user
-            )
-
-        requests = self.buffer.get_requests()
-        requests_count = len(requests)
-        first_request = requests[0]
-
-        assert safe_urlopen.called
-        assert requests_count == 1
-        assert first_request["response_code"] == 404
-        assert first_request["event_type"] == "issue.assigned"
-
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponse404)
-    def test_raises_ignorable_error_for_unpublished_apps(self, safe_urlopen):
-        data = {"issue": serialize(self.issue)}
-        self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
-        with self.assertRaises(IgnorableSentryAppError):
-            send_webhooks(
-                installation=self.install, event="issue.assigned", data=data, actor=self.user
-            )
-
-        requests = self.buffer.get_requests()
-        requests_count = len(requests)
-        first_request = requests[0]
-
-        assert safe_urlopen.called
-        assert requests_count == 1
-        assert first_request["response_code"] == 404
-        assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization.id
