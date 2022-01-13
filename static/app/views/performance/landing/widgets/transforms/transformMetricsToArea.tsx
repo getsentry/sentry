@@ -8,7 +8,7 @@ import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MetricsRequestRenderProps} from 'sentry/utils/metrics/metricsRequest';
 
-import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
+import {WidgetDataConstraint, WidgetPropUnion} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 // Sentry treats transactions with a status other than “ok,” “cancelled”, and “unknown” as failures.
@@ -16,12 +16,13 @@ import {PerformanceWidgetSetting} from '../widgetDefinitions';
 const TRANSACTION_SUCCESS_STATUS = ['ok', 'unknown', 'cancelled'];
 
 export function transformMetricsToArea<T extends WidgetDataConstraint>(
-  widgetProps: WidgetPropUnion<T>,
-  results: MetricsRequestRenderProps,
-  _: QueryDefinitionWithKey<T>
+  widgetProps: Pick<WidgetPropUnion<T>, 'location' | 'fields' | 'chartSetting'>,
+  results: MetricsRequestRenderProps
 ) {
+  const {location, fields, chartSetting} = widgetProps;
+
   const {start, end, utc, interval, statsPeriod} = normalizeDateTimeParams(
-    widgetProps.location.query
+    location.query
   );
 
   const {errored, loading, reloading, response, responsePrevious} = results;
@@ -43,16 +44,15 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     return {
       ...commonChildData,
       hasData: false,
-      data: [],
+      data: [] as Series[],
       dataMean: undefined,
       previousData: undefined,
     };
   }
 
-  const metricsField = widgetProps.fields[0];
+  const metricsField = fields[0];
 
-  const isFailureRateWidget =
-    widgetProps.chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA;
+  const isFailureRateWidget = chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA;
 
   const groups = isFailureRateWidget
     ? response.groups.filter(

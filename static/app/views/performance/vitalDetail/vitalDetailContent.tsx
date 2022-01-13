@@ -30,6 +30,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
+import {transformMetricsToArea} from 'sentry/views/performance/landing/widgets/transforms/transformMetricsToArea';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 import Breadcrumb from '../breadcrumb';
 import MetricsSearchBar from '../metricsSearchBar';
@@ -222,11 +224,18 @@ class VitalDetailContent extends Component<Props, State> {
             query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
             interval={interval}
           >
-            {({loading: isLoading, response, reloading, errored}) => {
-              const p75AllTransactions = response?.groups.reduce(
-                (acc, group) => acc + (group.totals[field] ?? 0),
-                0
+            {p75RequestProps => {
+              const {loading, errored, response, reloading} = p75RequestProps;
+
+              const p75Data = transformMetricsToArea(
+                {
+                  location,
+                  fields: [field],
+                  chartSetting: PerformanceWidgetSetting.P75_DURATION_AREA,
+                },
+                p75RequestProps
               );
+
               return (
                 <Fragment>
                   <VitalChartMetrics
@@ -235,7 +244,7 @@ class VitalDetailContent extends Component<Props, State> {
                     statsPeriod={statsPeriod}
                     project={project}
                     environment={environment}
-                    loading={isLoading}
+                    loading={loading}
                     response={response}
                     errored={errored}
                     reloading={reloading}
@@ -253,7 +262,8 @@ class VitalDetailContent extends Component<Props, State> {
                       end={end}
                       statsPeriod={statsPeriod}
                       isMetricsData={isMetricsData}
-                      p75AllTransactions={p75AllTransactions}
+                      isLoading={loading}
+                      p75AllTransactions={p75Data.dataMean?.[0].mean}
                     />
                   </StyledVitalInfo>
                   <div>TODO</div>
