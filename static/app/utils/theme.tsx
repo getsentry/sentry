@@ -24,6 +24,13 @@ export const lightColors = {
   gray200: '#DBD6E1',
   gray100: '#EBE6EF',
 
+  /**
+   * Alternative version of gray200 that's translucent.
+   * Useful for borders on tooltips, popovers, and dialogs.
+   */
+  translucentGray200: 'rgba(58, 17, 95, 0.18)',
+  translucentGray100: 'rgba(45, 0, 85, 0.1)',
+
   purple400: '#584AC0',
   purple300: '#6C5FC7',
   purple200: 'rgba(108, 95, 199, 0.5)',
@@ -73,6 +80,13 @@ export const darkColors = {
   gray300: '#998DA5',
   gray200: '#43384C',
   gray100: '#342B3B',
+
+  /**
+   * Alternative version of gray200 that's translucent.
+   * Useful for borders on tooltips, popovers, and dialogs.
+   */
+  translucentGray200: 'rgba(218, 184, 245, 0.18)',
+  translucentGray100: 'rgba(208, 168, 240, 0.1)',
 
   purple400: '#6859CF',
   purple300: '#7669D3',
@@ -169,11 +183,13 @@ const generateAliases = (colors: BaseColors) => ({
    * Primary border color
    */
   border: colors.gray200,
+  translucentBorder: colors.translucentGray200,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
   innerBorder: colors.gray100,
+  translucentInnerBorder: colors.translucentGray100,
 
   /**
    * Border around modals
