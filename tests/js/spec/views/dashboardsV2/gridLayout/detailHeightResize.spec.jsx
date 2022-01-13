@@ -64,6 +64,11 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/events-stats/',
         body: TestStubs.EventsStats(),
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {

@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MultipleCheckbox from 'sentry/views/settings/components/forms/controls/multipleCheckbox';
 
 describe('MultipleCheckbox', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <MultipleCheckbox
         choices={[
           [0, 'Choice A'],
@@ -15,12 +15,12 @@ describe('MultipleCheckbox', function () {
       />
     );
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('unselects a checked input', function () {
     const onChange = jest.fn();
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <MultipleCheckbox
         choices={[
           [0, 'Choice A'],
@@ -32,16 +32,13 @@ describe('MultipleCheckbox', function () {
       />
     );
 
-    wrapper
-      .find('input')
-      .at(1)
-      .simulate('change', {target: {checked: false}});
+    userEvent.click(screen.getByLabelText('Choice B'));
     expect(onChange).toHaveBeenCalledWith([], expect.anything());
   });
 
   it('selects an unchecked input', function () {
     const onChange = jest.fn();
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <MultipleCheckbox
         choices={[
           [0, 'Choice A'],
@@ -53,10 +50,7 @@ describe('MultipleCheckbox', function () {
       />
     );
 
-    wrapper
-      .find('input')
-      .at(0)
-      .simulate('change', {target: {checked: true}});
+    userEvent.click(screen.getByLabelText('Choice A'));
     expect(onChange).toHaveBeenCalledWith([1, 0], expect.anything());
   });
 });

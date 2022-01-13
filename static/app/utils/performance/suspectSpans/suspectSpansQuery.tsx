@@ -46,7 +46,6 @@ function SuspectSpansQuery(props: Props) {
     <GenericDiscoverQuery<SuspectSpans, SuspectSpansProps>
       route="events-spans-performance"
       getRequestPayload={getSuspectSpanPayload}
-      limit={4}
       {...omit(props, 'children')}
     >
       {({tableData, ...rest}) => {

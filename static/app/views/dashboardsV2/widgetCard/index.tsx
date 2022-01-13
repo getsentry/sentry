@@ -54,6 +54,7 @@ type Props = WithRouterProps & {
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
+  isPreview?: boolean;
   hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -121,8 +122,11 @@ class WidgetCard extends React.Component<Props> {
       selection,
       organization,
       showContextMenu,
+      isPreview,
       widgetLimitReached,
+      onEdit,
       onDuplicate,
+      onDelete,
     } = this.props;
 
     return (
@@ -131,8 +135,11 @@ class WidgetCard extends React.Component<Props> {
         widget={widget}
         selection={selection}
         showContextMenu={showContextMenu}
+        isPreview={isPreview}
         widgetLimitReached={widgetLimitReached}
         onDuplicate={onDuplicate}
+        onEdit={onEdit}
+        onDelete={onDelete}
       />
     );
   }

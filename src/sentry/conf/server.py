@@ -960,8 +960,10 @@ SENTRY_FEATURES = {
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Enable metrics widget (prototype) on Dashboards
+    # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Enable metrics widget (prototype) on Dashboards
+    "organizations:metrics-dashboards-ui": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1079,10 +1081,6 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
-    # Enable the adoption chart in the releases page
-    "organizations:release-adoption-chart": True,
-    # Enable the release adoption stage labels and sorting+filtering by them
-    "organizations:release-adoption-stage": True,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
     # Enable the release details performance section
@@ -1928,7 +1926,7 @@ SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
-SENTRY_ONPREMISE = True
+SENTRY_SELF_HOSTED = True
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2188,8 +2186,8 @@ JS_SDK_LOADER_SDK_VERSION = ""
 # This should be the url pointing to the JS SDK
 JS_SDK_LOADER_DEFAULT_SDK_URL = ""
 
-# block domains which are generally used by spammers -- keep this configurable in case an onpremise
-# install wants to allow it
+# block domains which are generally used by spammers -- keep this configurable
+# in case a self-hosted install wants to allow it
 INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive

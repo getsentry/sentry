@@ -531,6 +531,37 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             assert totals == {"p50(sentry.transactions.measurements.lcp)": expected_count}
 
     @with_feature(FEATURE_FLAG)
+    def test_groupby_project(self):
+        self.store_session(self.build_session(project_id=self.project2.id))
+        for _ in range(2):
+            self.store_session(self.build_session(project_id=self.project.id))
+
+        response = self.get_response(
+            self.organization.slug,
+            statsPeriod="1h",
+            interval="1h",
+            field="sum(sentry.sessions.session)",
+            groupBy=["project_id", "session.status"],
+            datasource="snuba",
+        )
+
+        assert response.status_code == 200
+
+        groups = response.data["groups"]
+        assert len(groups) >= 2 and all(
+            group["by"].keys() == {"project_id", "session.status"} for group in groups
+        )
+
+        expected = [
+            ({"project_id": self.project2.id, "session.status": "init"}, 1),
+            ({"project_id": self.project.id, "session.status": "init"}, 2),
+        ]
+        for (expected_groupby, expected_count), group in zip(expected, groups):
+            assert group["by"] == expected_groupby
+            totals = group["totals"]
+            assert totals == {"sum(sentry.sessions.session)": expected_count}
+
+    @with_feature(FEATURE_FLAG)
     def test_unknown_groupby(self):
         """Use a tag name in groupby that does not exist in the indexer"""
         # Insert session metrics:
@@ -576,7 +607,6 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             datasource="snuba",
             query="foo:123",  # Unknown tag key
         )
-        print(response.data)
         assert response.status_code == 400
 
         response = self.get_success_response(

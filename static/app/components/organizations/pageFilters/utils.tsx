@@ -8,61 +8,31 @@ import pickBy from 'lodash/pickBy';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {Environment, PageFilters} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import localStorage from 'sentry/utils/localStorage';
 
-import {getParams} from './getParams';
+import {normalizeDateTimeParams} from './parse';
 
-const DEFAULT_PARAMS = getParams({});
+const DEFAULT_DATETIME_PARAMS = normalizeDateTimeParams({});
 
 const LOCAL_STORAGE_KEY = 'global-selection';
 
-// Parses URL query parameters for values relevant to page filters
-type GetStateFromQueryOptions = {
-  allowEmptyPeriod?: boolean;
-  allowAbsoluteDatetime?: boolean;
-};
+/**
+ * Make a default page filters object
+ */
+export function getDefaultSelection(): PageFilters {
+  const {utc, start, end, statsPeriod} = DEFAULT_DATETIME_PARAMS;
 
-export function getStateFromQuery(
-  query: Location['query'],
-  {allowEmptyPeriod = false, allowAbsoluteDatetime = true}: GetStateFromQueryOptions = {}
-) {
-  const parsedParams = getParams(query, {allowEmptyPeriod, allowAbsoluteDatetime});
-
-  const projectFromQuery = query[URL_PARAM.PROJECT];
-  const environmentFromQuery = query[URL_PARAM.ENVIRONMENT];
-  const period = parsedParams.statsPeriod;
-  const utc = parsedParams.utc;
-
-  const hasAbsolute = allowAbsoluteDatetime && !!parsedParams.start && !!parsedParams.end;
-
-  let project: number[] | null | undefined;
-  if (defined(projectFromQuery) && Array.isArray(projectFromQuery)) {
-    project = projectFromQuery.map(p => parseInt(p, 10));
-  } else if (defined(projectFromQuery)) {
-    const projectFromQueryIdInt = parseInt(projectFromQuery, 10);
-    project = isNaN(projectFromQueryIdInt) ? [] : [projectFromQueryIdInt];
-  } else {
-    project = projectFromQuery;
-  }
-
-  const environment =
-    defined(environmentFromQuery) && !Array.isArray(environmentFromQuery)
-      ? [environmentFromQuery]
-      : environmentFromQuery;
-
-  const start = hasAbsolute ? getUtcToLocalDateObject(parsedParams.start) : null;
-  const end = hasAbsolute ? getUtcToLocalDateObject(parsedParams.end) : null;
-
-  return {
-    project,
-    environment,
-    period: period || null,
+  const datetime = {
     start: start || null,
     end: end || null,
-    // params from URL will be a string
+    period: statsPeriod || '',
     utc: typeof utc !== 'undefined' ? utc === 'true' : null,
+  };
+
+  return {
+    projects: [],
+    environments: [],
+    datetime,
   };
 }
 
@@ -71,29 +41,15 @@ export function getStateFromQuery(
  * Useful for extracting page filter properties from the current URL
  * when building another URL.
  */
-export function extractSelectionParameters(query) {
+export function extractSelectionParameters(query: Location['query']) {
   return pickBy(pick(query, Object.values(URL_PARAM)), identity);
 }
 
 /**
  * Extract the page filter datetime parameters from an object.
  */
-export function extractDatetimeSelectionParameters(query) {
+export function extractDatetimeSelectionParameters(query: Location['query']) {
   return pickBy(pick(query, Object.values(DATE_TIME_KEYS)), identity);
-}
-
-export function getDefaultSelection(): PageFilters {
-  const utc = DEFAULT_PARAMS.utc;
-  return {
-    projects: [],
-    environments: [],
-    datetime: {
-      start: DEFAULT_PARAMS.start || null,
-      end: DEFAULT_PARAMS.end || null,
-      period: DEFAULT_PARAMS.statsPeriod || '',
-      utc: typeof utc !== 'undefined' ? utc === 'true' : null,
-    },
-  };
 }
 
 /**
@@ -124,12 +80,13 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
   return true;
 }
 
-type ProjectId = string | number;
-type EnvironmentId = Environment['id'];
+function makeLocalStorageKey(orgSlug: string) {
+  return `${LOCAL_STORAGE_KEY}:${orgSlug}`;
+}
 
 type UpdateData = {
-  project?: ProjectId[] | null;
-  environment?: EnvironmentId[] | null;
+  project?: Array<string | number> | string | number | null;
+  environment?: Environment['id'][] | null;
 };
 
 /**
@@ -172,7 +129,7 @@ export function setPageFiltersStorage(
     environments: validatedEnvironment || current.environments,
   };
 
-  const localStorageKey = `${LOCAL_STORAGE_KEY}:${org.slug}`;
+  const localStorageKey = makeLocalStorageKey(org.slug);
 
   try {
     localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
@@ -185,7 +142,7 @@ export function setPageFiltersStorage(
  * Retrives the page filters from local storage
  */
 export function getPageFilterStorage(orgSlug: string) {
-  const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgSlug}`;
+  const localStorageKey = makeLocalStorageKey(orgSlug);
   const value = localStorage.getItem(localStorageKey);
 
   if (!value) {
@@ -207,6 +164,5 @@ export function getPageFilterStorage(orgSlug: string) {
  * Removes page filters from localstorage
  */
 export function removePageFiltersStorage(orgSlug: string) {
-  const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgSlug}`;
-  localStorage.removeItem(localStorageKey);
+  localStorage.removeItem(makeLocalStorageKey(orgSlug));
 }

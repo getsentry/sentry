@@ -124,6 +124,7 @@ class DashboardDetail extends Component<Props, State> {
   updateModifiedDashboard(dashboardState: DashboardState) {
     const {dashboard} = this.props;
     switch (dashboardState) {
+      case DashboardState.PREVIEW:
       case DashboardState.CREATE:
       case DashboardState.EDIT:
         return cloneDashboard(dashboard);
@@ -131,6 +132,11 @@ class DashboardDetail extends Component<Props, State> {
         return null;
       }
     }
+  }
+
+  get isPreview() {
+    const {dashboardState} = this.state;
+    return DashboardState.PREVIEW === dashboardState;
   }
 
   get isEditing() {
@@ -282,9 +288,9 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  handleAddLibraryWidgets = (widgets: Widget[]) => {
+  handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
-    const {dashboardState, modifiedDashboard} = this.state;
+    const {modifiedDashboard} = this.state;
     const newModifiedDashboard = {
       ...cloneDashboard(modifiedDashboard || dashboard),
       widgets: widgets.map(assignTempId),
@@ -293,7 +299,7 @@ class DashboardDetail extends Component<Props, State> {
       modifiedDashboard: newModifiedDashboard,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
     });
-    if ([DashboardState.CREATE, DashboardState.EDIT].includes(dashboardState)) {
+    if (this.isEditing || this.isPreview) {
       return;
     }
     updateDashboard(api, organization.slug, newModifiedDashboard).then(
@@ -336,7 +342,7 @@ class DashboardDetail extends Component<Props, State> {
       organization,
       dashboard,
       onAddWidget: (widget: Widget) => this.handleAddCustomWidget(widget),
-      onAddLibraryWidget: (widgets: Widget[]) => this.handleAddLibraryWidgets(widgets),
+      onAddLibraryWidget: (widgets: Widget[]) => this.handleUpdateWidgetList(widgets),
       source: DashboardWidgetSource.LIBRARY,
     });
   };
@@ -362,7 +368,7 @@ class DashboardDetail extends Component<Props, State> {
       i: constructGridItemKey(newWidgets[index]),
     }));
     saveDashboardLayout(organizationId, dashboardId, newLayout);
-    this.setState({layout: newLayout});
+    return newLayout;
   };
 
   onCommit = () => {
@@ -370,11 +376,14 @@ class DashboardDetail extends Component<Props, State> {
     const {layout, modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
+      case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
-          createDashboard(api, organization.slug, modifiedDashboard).then(
+          // Allow duplicate dashboard names when in preview mode
+          createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
             (newDashboard: DashboardDetails) => {
               if (organization.features.includes('dashboard-grid-layout')) {
+                // Redirect occurs so no need to update layout state
                 this.saveLayoutWithNewWidgets(
                   organization.id,
                   newDashboard.id,
@@ -426,8 +435,9 @@ class DashboardDetail extends Component<Props, State> {
                 onDashboardUpdate(newDashboard);
               }
 
+              let newLayout;
               if (organization.features.includes('dashboard-grid-layout')) {
-                this.saveLayoutWithNewWidgets(
+                newLayout = this.saveLayoutWithNewWidgets(
                   organization.id,
                   newDashboard.id,
                   newDashboard.widgets
@@ -442,6 +452,7 @@ class DashboardDetail extends Component<Props, State> {
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
+                layout: newLayout ?? layout,
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
@@ -564,8 +575,9 @@ class DashboardDetail extends Component<Props, State> {
               widgetLimitReached={widgetLimitReached}
               onUpdate={this.onUpdateWidget}
               onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-              handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+              handleUpdateWidgetList={this.handleUpdateWidgetList}
               handleAddCustomWidget={this.handleAddCustomWidget}
+              isPreview={this.isPreview}
               router={router}
               location={location}
               layout={layout}
@@ -575,6 +587,24 @@ class DashboardDetail extends Component<Props, State> {
         </PageContent>
       </PageFiltersContainer>
     );
+  }
+
+  getBreadcrumbLabel() {
+    const {organization, dashboard} = this.props;
+    const {dashboardState} = this.state;
+
+    let label = this.dashboardTitle;
+    if (dashboardState === DashboardState.CREATE) {
+      label = t('Create Dashboard');
+    } else if (this.isPreview) {
+      label = t('Preview Dashboard');
+    } else if (
+      organization.features.includes('dashboards-edit') &&
+      dashboard.id === 'default-overview'
+    ) {
+      label = t('Default Dashboard');
+    }
+    return label;
   }
 
   renderDashboardDetail() {
@@ -606,13 +636,7 @@ class DashboardDetail extends Component<Props, State> {
                       to: `/organizations/${organization.slug}/dashboards/`,
                     },
                     {
-                      label:
-                        dashboardState === DashboardState.CREATE
-                          ? t('Create Dashboard')
-                          : organization.features.includes('dashboards-edit') &&
-                            dashboard.id === 'default-overview'
-                          ? 'Default Dashboard'
-                          : this.dashboardTitle,
+                      label: this.getBreadcrumbLabel(),
                     },
                   ]}
                 />
@@ -647,7 +671,7 @@ class DashboardDetail extends Component<Props, State> {
                   isEditing={this.isEditing}
                   widgetLimitReached={widgetLimitReached}
                   onUpdate={this.onUpdateWidget}
-                  handleAddLibraryWidgets={this.handleAddLibraryWidgets}
+                  handleUpdateWidgetList={this.handleUpdateWidgetList}
                   handleAddCustomWidget={this.handleAddCustomWidget}
                   onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
                   router={router}
@@ -655,6 +679,7 @@ class DashboardDetail extends Component<Props, State> {
                   newWidget={newWidget}
                   layout={layout}
                   onLayoutChange={this.onLayoutChange}
+                  isPreview={this.isPreview}
                 />
               </Layout.Main>
             </Layout.Body>

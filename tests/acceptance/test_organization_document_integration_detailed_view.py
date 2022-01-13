@@ -17,7 +17,7 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
     def load_page(self, slug):
         url = f"/settings/{self.organization.slug}/document-integrations/{slug}/"
         self.browser.get(url)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_view_doc(self):
         self.load_page(self.doc.slug)

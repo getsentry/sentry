@@ -677,6 +677,9 @@ class MockDataSource(IndexMockingDataSource):
         }
 
 
+_ALLOWED_GROUPBY_COLUMNS = ("project_id",)
+
+
 class SnubaQueryBuilder:
 
     #: Datasets actually implemented in snuba:
@@ -714,7 +717,10 @@ class SnubaQueryBuilder:
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
         return [Column("metric_id")] + [
-            Column(resolve_tag_key(field)) for field in query_definition.groupby
+            Column(resolve_tag_key(field))
+            if field not in _ALLOWED_GROUPBY_COLUMNS
+            else Column(field)
+            for field in query_definition.groupby
         ]
 
     def _build_orderby(
@@ -827,7 +833,11 @@ class SnubaResultConverter:
         return reverse_resolve(tag_key)
 
     def _extract_data(self, entity, data, groups):
-        tags = tuple((key, data[key]) for key in sorted(data.keys()) if key.startswith("tags["))
+        tags = tuple(
+            (key, data[key])
+            for key in sorted(data.keys())
+            if (key.startswith("tags[") or key in _ALLOWED_GROUPBY_COLUMNS)
+        )
 
         metric_name = reverse_resolve(data["metric_id"])
         ops = self._ops_by_metric[metric_name]
@@ -876,7 +886,12 @@ class SnubaResultConverter:
 
         groups = [
             dict(
-                by={self._parse_tag(key): reverse_resolve_groupby(value) for key, value in tags},
+                by=dict(
+                    (self._parse_tag(key), reverse_resolve_groupby(value))
+                    if key not in _ALLOWED_GROUPBY_COLUMNS
+                    else (key, value)
+                    for key, value in tags
+                ),
                 **data,
             )
             for tags, data in groups.items()
