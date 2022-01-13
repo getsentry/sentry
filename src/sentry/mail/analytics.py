@@ -2,7 +2,7 @@ from sentry import analytics
 
 
 # TODO: should have same base class as SlackIntegrationNotificationSent
-class EmailNotificationSent(analytics.Event):  # type: ignore
+class EmailNotificationSent(analytics.Event):
     type = "integrations.email.notification_sent"
 
     attributes = (
