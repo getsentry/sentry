@@ -10,7 +10,7 @@ import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingTriangle from 'sentry/components/loadingTriangle';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
@@ -339,7 +339,9 @@ class OrganizationContextContainer extends React.Component<Props, State> {
   render() {
     if (this.isLoading()) {
       return (
-        <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>
+        <LoadingIndicator triangle>
+          {t('Loading data for your organization.')}
+        </LoadingIndicator>
       );
     }
 

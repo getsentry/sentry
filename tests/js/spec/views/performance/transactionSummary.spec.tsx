@@ -6,6 +6,10 @@ import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {Organization, Project} from 'sentry/types';
+import {TransactionMetric} from 'sentry/utils/metrics/fields';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {MetricsSwitchContext} from 'sentry/views/performance/metricsSwitch';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -16,9 +20,10 @@ const teams = [
 function initializeData({
   features: additionalFeatures = [],
   query = {},
-}: {features?: string[]; query?: Record<string, any>} = {}) {
+  project: prj,
+}: {features?: string[]; query?: Record<string, any>; project?: Project} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const project = TestStubs.Project({teams});
+  const project = prj ?? TestStubs.Project({teams});
   const organization = TestStubs.Organization({
     features,
     projects: [project],
@@ -31,7 +36,7 @@ function initializeData({
       location: {
         query: {
           transaction: '/performance',
-          project: '2',
+          project: project.id,
           transactionCursor: '1:0:0',
           ...query,
         },
@@ -44,6 +49,23 @@ function initializeData({
 
   return initialData;
 }
+
+const TestComponent = ({
+  organization,
+  isMetricsData = false,
+  ...props
+}: Omit<React.ComponentProps<typeof TransactionSummary>, 'organization'> & {
+  organization: Organization;
+  isMetricsData?: boolean;
+}) => {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <MetricsSwitchContext.Provider value={{isMetricsData, setIsMetricsData: jest.fn()}}>
+        <TransactionSummary organization={organization} {...props} />
+      </MetricsSwitchContext.Provider>
+    </OrganizationContext.Provider>
+  );
+};
 
 describe('Performance > TransactionSummary', function () {
   enforceActOnUseLegacyStoreHook();
@@ -271,7 +293,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -312,7 +334,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -320,6 +342,107 @@ describe('Performance > TransactionSummary', function () {
 
     // Ensure create alert from discover is shown with metric alerts
     expect(screen.queryByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
+  });
+
+  it('renders Web Vitals widget', async function () {
+    const {organization, router, routerContext} = initializeData({
+      project: TestStubs.Project({teams, platform: 'javascript'}),
+      query: {
+        query:
+          'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
+      },
+    });
+
+    mountWithTheme(
+      <TestComponent organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
+    );
+
+    // It renders the web vitals widget
+    await screen.findByRole('heading', {name: 'Web Vitals'});
+
+    const vitalStatues = screen.getAllByTestId('vital-status');
+    expect(vitalStatues).toHaveLength(3);
+
+    expect(vitalStatues[0]).toHaveTextContent('31%');
+    expect(vitalStatues[1]).toHaveTextContent('65%');
+    expect(vitalStatues[2]).toHaveTextContent('3%');
+  });
+
+  it('renders Web Vitals widget - metrics based', async function () {
+    const fields = [
+      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FCP})`,
+      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP})`,
+      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID})`,
+      `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS})`,
+    ];
+
+    const metricsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsFieldsByMeasurementRating({fields}),
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/tags/`,
+      body: [],
+    });
+
+    const {organization, router, routerContext} = initializeData({
+      project: TestStubs.Project({teams, platform: 'javascript'}),
+      query: {
+        query: 'transaction:/organizations/:orgId/issues/',
+      },
+    });
+
+    mountWithTheme(
+      <TestComponent
+        organization={organization}
+        location={router.location}
+        isMetricsData
+      />,
+      {
+        context: routerContext,
+      }
+    );
+
+    // It renders the web vitals widget
+    await screen.findByRole('heading', {name: 'Web Vitals'});
+
+    expect(metricsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [2],
+          environment: [],
+          field: [
+            'count(sentry.transactions.measurements.fcp)',
+            'count(sentry.transactions.measurements.lcp)',
+            'count(sentry.transactions.measurements.fid)',
+            'count(sentry.transactions.measurements.cls)',
+          ],
+          query: 'transaction:/organizations/:orgId/issues/',
+          groupBy: ['measurement_rating'],
+          orderBy: undefined,
+          limit: undefined,
+          interval: '1h',
+          datasource: undefined,
+          statsPeriod: '14d',
+          start: undefined,
+          end: undefined,
+        }),
+      })
+    );
+
+    const vitalStatues = screen.getAllByTestId('vital-status');
+    expect(vitalStatues).toHaveLength(3);
+
+    expect(vitalStatues[0]).toHaveTextContent('78%');
+    expect(vitalStatues[1]).toHaveTextContent('6%');
+    expect(vitalStatues[2]).toHaveTextContent('17%');
   });
 
   it('fetches transaction threshold', function () {
@@ -344,7 +467,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -373,7 +496,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -389,7 +512,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -416,7 +539,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -443,7 +566,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -472,7 +595,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -507,7 +630,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -535,7 +658,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -557,7 +680,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -570,7 +693,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }
@@ -594,7 +717,7 @@ describe('Performance > TransactionSummary', function () {
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
+      <TestComponent organization={organization} location={router.location} />,
       {
         context: routerContext,
       }

@@ -39,7 +39,11 @@ export default function SpanDetails(props: Props) {
   const {projects} = useProjects();
 
   const project = projects.find(p => p.id === projectId);
-  const eventView = generateSpansEventView(location, transactionName);
+  const eventView = generateSpansEventView({
+    location,
+    transactionName,
+    isMetricsData: false,
+  });
 
   return (
     <SentryDocumentTitle
