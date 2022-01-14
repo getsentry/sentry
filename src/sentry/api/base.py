@@ -419,27 +419,30 @@ class _VersionedMethodBody:
         return self.wrapped(*args, **kwargs)
 
 
-def method_version(http_method: str, version: int = 0):
+def method_version(http_method: str, version: int = 1):
     """Decorate an endpoint method to handle versioned requests.
 
     This decorator should be used only on endpoint classes that extend
-    `VersionedEndpoint`. The default version (0) should be applied to methods
+    `VersionedEndpoint`. The default version (1) should be applied to methods
     that existed before the platform supported versioning.
 
     Example usage:
 
         class AnEndpoint(VersionedEndpoint):
             @method_version("get")
-            def get_v0(self, request):
+            def get_v1(self, request):
                 return get_stuff(request)
 
-            @method_version("get", 1)
-            def get_v1(self, request):
+            @method_version("get", 2)
+            def get_v2(self, request):
                 return get_other_stuff(request)
     """
 
     if http_method not in APIView.http_method_names:
         raise ValueError(f"http_method must be one of: {APIView.http_method_names}")
+
+    if version < 0:
+        raise ValueError("version must be positive")
 
     def decorator(wrapped: Callable) -> _VersionedMethodBody:
         if wrapped.__name__ in APIView.http_method_names:
