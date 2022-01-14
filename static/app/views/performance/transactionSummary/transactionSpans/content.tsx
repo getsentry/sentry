@@ -4,13 +4,10 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -18,14 +15,20 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useProjects from 'sentry/utils/useProjects';
 
 import {SetStateAction} from '../types';
 
 import OpsFilter from './opsFilter';
 import {Actions} from './styles';
-import SuspectSpanCard from './suspectSpanCard';
-import {SpanSort, SpanSortOthers, SpanSortPercentiles, SpansTotalValues} from './types';
-import {getSuspectSpanSortFromEventView, getTotalsView, SPAN_SORT_OPTIONS} from './utils';
+import SuspectSpansTable from './suspectSpansTable';
+import {SpanSort, SpansTotalValues} from './types';
+import {
+  getSuspectSpanSortFromEventView,
+  getTotalsView,
+  SPAN_SORT_OPTIONS,
+  SPAN_SORT_TO_FIELDS,
+} from './utils';
 
 const ANALYTICS_VALUES = {
   spanOp: (organization: Organization, value: string | undefined) =>
@@ -44,19 +47,20 @@ type Props = {
   location: Location;
   organization: Organization;
   eventView: EventView;
+  projectId: string;
   setError: SetStateAction<string | undefined>;
   transactionName: string;
 };
 
 function SpansContent(props: Props) {
-  const {location, organization, eventView, setError, transactionName} = props;
+  const {location, organization, eventView, projectId, transactionName} = props;
   const query = decodeScalar(location.query.query, '');
 
   function handleChange(key: string) {
     return function (value: string | undefined) {
       ANALYTICS_VALUES[key]?.(organization, value);
 
-      const queryParams = getParams({
+      const queryParams = normalizeDateTimeParams({
         ...(location.query || {}),
         [key]: value,
       });
@@ -80,6 +84,8 @@ function SpansContent(props: Props) {
   const sort = getSuspectSpanSortFromEventView(eventView);
   const spansView = getSpansEventView(eventView, sort.field);
   const totalsView = getTotalsView(eventView);
+
+  const {projects} = useProjects();
 
   return (
     <Layout.Main fullWidth>
@@ -121,55 +127,31 @@ function SpansContent(props: Props) {
       >
         {({tableData}) => {
           const totals: SpansTotalValues | null = tableData?.data?.[0] ?? null;
-
           return (
             <SuspectSpansQuery
               location={location}
               orgSlug={organization.slug}
               eventView={spansView}
-              perSuspect={10}
+              limit={10}
+              perSuspect={0}
               spanOps={defined(spanOp) ? [spanOp] : []}
               spanGroups={defined(spanGroup) ? [spanGroup] : []}
             >
-              {({suspectSpans, isLoading, error, pageLinks}) => {
-                if (error) {
-                  setError(error);
-                  return null;
-                }
-
-                // make sure to clear the clear the error message
-                setError(undefined);
-
-                if (isLoading) {
-                  return <LoadingIndicator />;
-                }
-
-                if (!suspectSpans?.length) {
-                  return (
-                    <EmptyStateWarning>
-                      <p>{t('No span data found')}</p>
-                    </EmptyStateWarning>
-                  );
-                }
-
-                return (
-                  <Fragment>
-                    {suspectSpans.map(suspectSpan => (
-                      <SuspectSpanCard
-                        key={`${suspectSpan.op}-${suspectSpan.group}`}
-                        location={location}
-                        organization={organization}
-                        suspectSpan={suspectSpan}
-                        transactionName={transactionName}
-                        eventView={eventView}
-                        totals={totals}
-                        preview={2}
-                      />
-                    ))}
-                    <Pagination pageLinks={pageLinks} />
-                  </Fragment>
-                );
-              }}
+              {({suspectSpans, isLoading, pageLinks}) => (
+                <Fragment>
+                  <SuspectSpansTable
+                    location={location}
+                    organization={organization}
+                    transactionName={transactionName}
+                    project={projects.find(p => p.id === projectId)}
+                    isLoading={isLoading}
+                    suspectSpans={suspectSpans ?? []}
+                    totals={totals}
+                    sort={sort.field}
+                  />
+                  <Pagination pageLinks={pageLinks ?? null} />
+                </Fragment>
+              )}
             </SuspectSpansQuery>
           );
         }}
@@ -177,46 +159,6 @@ function SpansContent(props: Props) {
     </Layout.Main>
   );
 }
-
-const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
-  [SpanSortOthers.SUM_EXCLUSIVE_TIME]: [
-    'percentileArray(spans_exclusive_time, 0.75)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortOthers.AVG_OCCURRENCE]: [
-    'percentileArray(spans_exclusive_time, 0.75)',
-    'count()',
-    'count_unique(id)',
-    'equation|count()/count_unique(id)',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortOthers.COUNT]: [
-    'percentileArray(spans_exclusive_time, 0.75)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: [
-    'percentileArray(spans_exclusive_time, 0.5)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: [
-    'percentileArray(spans_exclusive_time, 0.75)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: [
-    'percentileArray(spans_exclusive_time, 0.95)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-  [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: [
-    'percentileArray(spans_exclusive_time, 0.99)',
-    'count()',
-    'sumArray(spans_exclusive_time)',
-  ],
-};
 
 function getSpansEventView(eventView: EventView, sort: SpanSort): EventView {
   eventView = eventView.clone();

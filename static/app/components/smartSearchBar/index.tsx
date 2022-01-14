@@ -11,7 +11,7 @@ import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/saved
 import {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownLink from 'sentry/components/dropdownLink';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {
   FilterType,
   ParseResult,
@@ -37,7 +37,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearchType, Tag, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -402,11 +402,8 @@ class SmartSearchBar extends React.Component<Props, State> {
       savedSearchType,
       searchSource,
     } = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'search.searched',
-      eventName: 'Search: Performed search',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('search.searched', {
+      organization,
       query,
       search_type: savedSearchType === 0 ? 'issues' : 'events',
       search_source: searchSource,
@@ -782,7 +779,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       }
 
       const {location} = this.props;
-      const endpointParams = getParams(location.query);
+      const endpointParams = normalizeDateTimeParams(location.query);
 
       this.setState({loading: true});
       let values: string[] = [];
@@ -1208,10 +1205,8 @@ class SmartSearchBar extends React.Component<Props, State> {
     let replaceToken = replaceText;
     if (cursorToken.type === Token.Filter) {
       if (item.type === ItemType.TAG_OPERATOR) {
-        trackAnalyticsEvent({
-          eventKey: 'search.operator_autocompleted',
-          eventName: 'Search: Operator Autocompleted',
-          organization_id: this.props.organization.id,
+        trackAdvancedAnalyticsEvent('search.operator_autocompleted', {
+          organization: this.props.organization,
           query: removeSpace(query),
           search_operator: replaceText,
           search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
@@ -1281,12 +1276,10 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   onAutoComplete = (replaceText: string, item: SearchItem) => {
     if (item.type === ItemType.RECENT_SEARCH) {
-      trackAnalyticsEvent({
-        eventKey: 'search.searched',
-        eventName: 'Search: Performed search',
-        organization_id: this.props.organization.id,
+      trackAdvancedAnalyticsEvent('search.searched', {
+        organization: this.props.organization,
         query: replaceText,
-        source: this.props.savedSearchType === 0 ? 'issues' : 'events',
+        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
         search_source: 'recent_search',
       });
 
@@ -1368,7 +1361,11 @@ class SmartSearchBar extends React.Component<Props, State> {
     const cursor = this.cursorPosition;
 
     return (
-      <Container ref={this.containerRef} className={className} isOpen={inputHasFocus}>
+      <Container
+        ref={this.containerRef}
+        className={className}
+        inputHasFocus={inputHasFocus}
+      >
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
           {inlineLabel}
@@ -1457,7 +1454,7 @@ export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
 
 export {SmartSearchBar};
 
-const Container = styled('div')<{isOpen: boolean}>`
+const Container = styled('div')<{inputHasFocus: boolean}>`
   border: 1px solid ${p => p.theme.border};
   box-shadow: inset ${p => p.theme.dropShadowLight};
   background: ${p => p.theme.background};
@@ -1465,17 +1462,21 @@ const Container = styled('div')<{isOpen: boolean}>`
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: start;
 
-  border-radius: ${p =>
-    p.isOpen
-      ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
-      : p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadius};
 
   .show-sidebar & {
     background: ${p => p.theme.backgroundSecondary};
   }
+
+  ${p =>
+    p.inputHasFocus &&
+    `
+    border-color: ${p.theme.focusBorder};
+    box-shadow: 0 0 0 1px ${p.theme.focusBorder};
+  `}
 `;
 
 const SearchLabel = styled('label')`

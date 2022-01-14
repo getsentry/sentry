@@ -11,12 +11,12 @@ import TransactionsList, {
 import SearchBar from 'sentry/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {generateQueryWithTag} from 'sentry/utils';
+import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -37,6 +37,7 @@ import {
   VITAL_GROUPS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
+import MetricsSearchBar from '../../metricsSearchBar';
 import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
 import Filter, {
   decodeFilterFromLocation,
@@ -71,13 +72,14 @@ type Props = {
   projects: Project[];
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  isMetricsData?: boolean;
 };
 
 class SummaryContent extends React.Component<Props> {
   handleSearch = (query: string) => {
     const {location} = this.props;
 
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });
@@ -132,6 +134,7 @@ class SummaryContent extends React.Component<Props> {
       pathname: location.pathname,
       query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
+
     browserHistory.push(target);
   };
 
@@ -191,6 +194,7 @@ class SummaryContent extends React.Component<Props> {
       totalValues,
       onChangeFilter,
       spanOperationBreakdownFilter,
+      isMetricsData,
     } = this.props;
     const hasPerformanceEventsPage = organization.features.includes(
       'performance-events-page'
@@ -301,15 +305,28 @@ class SummaryContent extends React.Component<Props> {
               currentFilter={spanOperationBreakdownFilter}
               onChangeFilter={onChangeFilter}
             />
-            <StyledSearchBar
-              searchSource="transaction_summary"
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={this.handleSearch}
-              maxQueryLength={MAX_QUERY_LENGTH}
-            />
+            <SearchBarContainer>
+              {isMetricsData ? (
+                <MetricsSearchBar
+                  searchSource="transaction_summary_metrics"
+                  orgSlug={organization.slug}
+                  projectIds={eventView.project}
+                  query={query}
+                  onSearch={this.handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              ) : (
+                <SearchBar
+                  searchSource="transaction_summary"
+                  organization={organization}
+                  projectIds={eventView.project}
+                  query={query}
+                  fields={eventView.fields}
+                  onSearch={this.handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              )}
+            </SearchBarContainer>
           </Search>
           <TransactionSummaryCharts
             organization={organization}
@@ -352,6 +369,7 @@ class SummaryContent extends React.Component<Props> {
               location={location}
               organization={organization}
               eventView={eventView}
+              totals={defined(totalValues?.count) ? {count: totalValues!.count} : null}
               projectId={projectId}
               transactionName={transactionName}
             />
@@ -382,6 +400,8 @@ class SummaryContent extends React.Component<Props> {
             error={error}
             totals={totalValues}
             transactionName={transactionName}
+            eventView={eventView}
+            isMetricsData={isMetricsData}
           />
           {!isFrontendView && (
             <StatusBreakdown
@@ -397,6 +417,7 @@ class SummaryContent extends React.Component<Props> {
             error={error}
             totals={totalValues}
             eventView={eventView}
+            isMetricsData={isMetricsData}
           />
           <SidebarSpacer />
           <Tags
@@ -492,7 +513,7 @@ const Search = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const SearchBarContainer = styled('div')`
   flex-grow: 1;
 `;
 

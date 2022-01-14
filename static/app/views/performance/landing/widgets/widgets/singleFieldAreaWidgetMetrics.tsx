@@ -31,13 +31,14 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
     fields,
   } = props;
 
-  const globalSelection = eventView.getGlobalSelection();
+  const globalSelection = eventView.getPageFilters();
 
   if (fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${fields})`);
   }
 
   const field = fields[0];
+  const isFailureRateWidget = chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA;
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -53,7 +54,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
       }) => (
         <MetricsRequest
           api={api}
-          organization={organization}
+          orgSlug={organization.slug}
           start={start}
           end={end}
           statsPeriod={period}
@@ -61,11 +62,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
           environment={environment}
           query={new MutableSearch(eventView.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
           field={decodeList(chartFields)}
-          groupBy={
-            chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA
-              ? ['transaction.status']
-              : undefined
-          }
+          groupBy={isFailureRateWidget ? ['transaction.status'] : undefined}
           includePrevious
         >
           {children}
@@ -106,9 +103,10 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
             <DurationChart
               {...provided.widgetData.chart}
               {...provided}
+              aggregation={isFailureRateWidget ? 'failure_rate()' : undefined}
+              chartColors={chartColor ? [chartColor] : undefined}
               disableMultiAxis
               disableXAxis
-              chartColors={chartColor ? [chartColor] : undefined}
             />
           ),
           height: chartHeight,

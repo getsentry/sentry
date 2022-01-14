@@ -14,13 +14,13 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
-  GlobalSelection,
   HealthStatsPeriodOption,
   Organization,
+  PageFilters,
   SessionApiResponse,
   SessionField,
 } from 'sentry/types';
@@ -92,7 +92,7 @@ type Props = {
   releases: string[];
   organization: Organization;
   children: (renderProps: ReleasesRequestRenderProps) => React.ReactNode;
-  selection: GlobalSelection;
+  selection: PageFilters;
   location: Location;
   display: ReleasesDisplayOption[];
   defaultStatsPeriod?: string;
@@ -159,7 +159,7 @@ class ReleasesRequest extends React.Component<Props, State> {
         }, [] as string[])
       ).formatString(),
       interval: getInterval(selection.datetime),
-      ...getParams(pick(location.query, Object.values(URL_PARAM)), {
+      ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM)), {
         defaultStatsPeriod,
       }),
     };

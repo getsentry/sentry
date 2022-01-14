@@ -1,6 +1,9 @@
 from django.conf.urls import include, url
 
 from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
+from sentry.api.endpoints.organization_codeowners_associations import (
+    OrganizationCodeOwnersAssociationsEndpoint,
+)
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -181,14 +184,14 @@ from .endpoints.organization_events_has_measurements import (
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
-    OrganizationEventBaseline,
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_performance import (
-    OrganizationEventsSpansEndpoint,
+    OrganizationEventsSpansExamplesEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
+    OrganizationEventsSpansStatsEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_trace import (
@@ -440,10 +443,14 @@ from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_permission_details import UserPermissionDetailsEndpoint
 from .endpoints.user_permissions import UserPermissionsEndpoint
 from .endpoints.user_permissions_config import UserPermissionsConfigEndpoint
+from .endpoints.user_role_details import UserUserRoleDetailsEndpoint
+from .endpoints.user_roles import UserUserRolesEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
+from .endpoints.userroles_details import UserRoleDetailsEndpoint
+from .endpoints.userroles_index import UserRolesEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -718,6 +725,16 @@ urlpatterns = [
                     name="sentry-api-0-user-permission-details",
                 ),
                 url(
+                    r"^(?P<user_id>[^\/]+)/roles/$",
+                    UserUserRolesEndpoint.as_view(),
+                    name="sentry-api-0-user-userroles",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/roles/(?P<role_name>[^\/]+)/$",
+                    UserUserRoleDetailsEndpoint.as_view(),
+                    name="sentry-api-0-user-userrole-details",
+                ),
+                url(
                     r"^(?P<user_id>[^\/]+)/social-identities/$",
                     UserSocialIdentitiesIndexEndpoint.as_view(),
                     name="sentry-api-0-user-social-identities-index",
@@ -746,6 +763,24 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/user-identities/(?P<category>[\w-]+)/(?P<identity_id>[^\/]+)/$",
                     UserIdentityConfigDetailsEndpoint.as_view(),
                     name="sentry-api-0-user-identity-config-details",
+                ),
+            ]
+        ),
+    ),
+    # UserRoles
+    url(
+        r"^userroles/",
+        include(
+            [
+                url(
+                    r"^$",
+                    UserRolesEndpoint.as_view(),
+                    name="sentry-api-0-userroles",
+                ),
+                url(
+                    r"^(?P<role_name>[^\/]+)/$",
+                    UserRoleDetailsEndpoint.as_view(),
+                    name="sentry-api-0-userroles-details",
                 ),
             ]
         ),
@@ -845,10 +880,16 @@ urlpatterns = [
                     OrganizationCodeMappingDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-code-mapping-details",
                 ),
+                # Codeowners
                 url(
                     r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/codeowners/$",
                     OrganizationCodeMappingCodeOwnersEndpoint.as_view(),
                     name="sentry-api-0-organization-code-mapping-codeowners",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/codeowners-associations/$",
+                    OrganizationCodeOwnersAssociationsEndpoint.as_view(),
+                    name="sentry-api-0-organization-codeowners-associations",
                 ),
                 # Discover
                 url(
@@ -1045,13 +1086,18 @@ urlpatterns = [
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-spans/$",
-                    OrganizationEventsSpansEndpoint.as_view(),
+                    OrganizationEventsSpansExamplesEndpoint.as_view(),
                     name="sentry-api-0-organization-events-spans",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-spans-performance/$",
                     OrganizationEventsSpansPerformanceEndpoint.as_view(),
                     name="sentry-api-0-organization-events-spans-performance",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-spans-stats/$",
+                    OrganizationEventsSpansStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
@@ -1082,11 +1128,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-trends-stats/$",
                     OrganizationEventsTrendsStatsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trends-stats",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/event-baseline/$",
-                    OrganizationEventBaseline.as_view(),
-                    name="sentry-api-0-organization-event-baseline",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

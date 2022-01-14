@@ -19,7 +19,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -48,7 +48,7 @@ type WidgetCardChartProps = Pick<
   organization: Organization;
   location: Location;
   widget: Widget;
-  selection: GlobalSelection;
+  selection: PageFilters;
   router: InjectedRouter;
 };
 
@@ -164,8 +164,15 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
   }
 
   render() {
-    const {theme, tableResults, timeseriesResults, errorMessage, loading, widget} =
-      this.props;
+    const {
+      theme,
+      tableResults,
+      timeseriesResults,
+      errorMessage,
+      loading,
+      widget,
+      organization,
+    } = this.props;
 
     if (widget.displayType === 'table') {
       return (
@@ -196,6 +203,12 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     const {location, router, selection} = this.props;
     const {start, end, period, utc} = selection.datetime;
 
+    // Only allow height resizing for widgets that are on a dashboard
+    const autoHeightResize = Boolean(
+      organization.features.includes('dashboard-grid-layout') &&
+        (widget.id || widget.tempId)
+    );
+
     if (widget.displayType === 'world_map') {
       const {data, title} = processTableResults(tableResults);
       const series = [
@@ -208,10 +221,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          <ChartWrapper>
+          <ChartWrapper autoHeightResize={autoHeightResize}>
             {getDynamicText({
               value: this.chartComponent({
                 series,
+                autoHeightResize,
               }),
               fixed: <Placeholder height="200px" testId="skeleton-ui" />,
             })}
@@ -241,6 +255,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
+      autoHeightResize,
       grid: {
         left: 4,
         right: 0,
@@ -296,7 +311,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
-              <ChartWrapper>
+              <ChartWrapper autoHeightResize={autoHeightResize}>
                 {getDynamicText({
                   value: this.chartComponent({
                     ...zoomRenderProps,
@@ -339,13 +354,15 @@ const LoadingPlaceholder = styled(Placeholder)`
 
 const BigNumber = styled('div')`
   font-size: 32px;
+  line-height: 1;
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
   * {
     text-align: left !important;
   }
 `;
 
-const ChartWrapper = styled('div')`
+const ChartWrapper = styled('div')<{autoHeightResize: boolean}>`
+  ${p => p.autoHeightResize && 'height: 100%;'}
   padding: 0 ${space(3)} ${space(3)};
 `;
 

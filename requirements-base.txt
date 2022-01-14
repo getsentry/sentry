@@ -11,6 +11,7 @@ croniter==0.3.37
 datadog==0.29.3
 django-crispy-forms==1.8.1
 django-picklefield==2.1.0
+django-pg-zero-downtime-migrations==0.10
 Django==2.2.24
 djangorestframework==3.11.2
 email-reply-parser==0.5.12

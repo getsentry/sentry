@@ -22,6 +22,7 @@ from sentry.search.events.constants import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_not_arm64
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
@@ -1355,6 +1356,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             ],
             "query": "event.type:transaction",
             "project": [project.id],
+            "sort": "count_miserable_user",
         }
 
         response = self.do_request(
@@ -1365,8 +1367,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 3
         data = response.data["data"]
         assert data[0]["count_miserable_user"] == 0
-        assert data[1]["count_miserable_user"] == 2
-        assert data[2]["count_miserable_user"] == 1
+        assert data[1]["count_miserable_user"] == 1
+        assert data[2]["count_miserable_user"] == 2
 
         query["query"] = "event.type:transaction count_miserable(user):>0"
 
@@ -1377,8 +1379,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert abs(data[0]["count_miserable_user"]) == 2
-        assert abs(data[1]["count_miserable_user"]) == 1
+        assert abs(data[0]["count_miserable_user"]) == 1
+        assert abs(data[1]["count_miserable_user"]) == 2
 
     def test_user_misery_alias_field(self):
         project = self.create_project()
@@ -1445,6 +1447,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             ],
             "query": "event.type:transaction",
             "project": [project.id],
+            "sort": "-apdex",
         }
 
         response = self.do_request(
@@ -3011,6 +3014,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["corr_transaction_duration_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
 
+    @requires_not_arm64
     def test_null_user_misery_returns_zero(self):
         project = self.create_project()
         data = load_data(
@@ -3035,6 +3039,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["user_misery_300"] == 0
 
+    @requires_not_arm64
     def test_null_user_misery_new_returns_zero(self):
         project = self.create_project()
         data = load_data(
@@ -3311,14 +3316,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         event2.group.delete()
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        query = {"field": ["issue", "count()"], "sort": "count()"}
+        query = {"field": ["issue", "count()"], "sort": "issue.id"}
         response = self.do_request(query, features=features)
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["issue"] == "unknown"
-        assert data[1]["issue"] == event1.group.qualified_short_id
+        assert data[0]["issue"] == event1.group.qualified_short_id
+        assert data[1]["issue"] == "unknown"
 
     def test_last_seen_negative_duration(self):
         project = self.create_project()

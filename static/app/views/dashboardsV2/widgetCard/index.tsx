@@ -4,7 +4,6 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -13,18 +12,17 @@ import {HeaderTitle} from 'sentry/components/charts/styles';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {isSelectionEqual} from 'sentry/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {Widget, WidgetType} from '../types';
@@ -47,13 +45,14 @@ type Props = WithRouterProps & {
   location: Location;
   isEditing: boolean;
   widget: Widget;
-  selection: GlobalSelection;
+  selection: PageFilters;
   onDelete: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
   isSorting: boolean;
   currentWidgetDragging: boolean;
   showContextMenu?: boolean;
+  isPreview?: boolean;
   hideToolbar?: boolean;
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -63,21 +62,6 @@ type Props = WithRouterProps & {
 };
 
 class WidgetCard extends React.Component<Props> {
-  shouldComponentUpdate(nextProps: Props): boolean {
-    if (
-      !isEqual(nextProps.widget, this.props.widget) ||
-      !isSelectionEqual(nextProps.selection, this.props.selection) ||
-      this.props.isEditing !== nextProps.isEditing ||
-      this.props.isSorting !== nextProps.isSorting ||
-      this.props.hideToolbar !== nextProps.hideToolbar ||
-      this.props.widgetLimitReached !== nextProps.widgetLimitReached ||
-      this.props.hideDragHandle !== nextProps.hideDragHandle
-    ) {
-      return true;
-    }
-    return false;
-  }
-
   isAllowWidgetsToDiscover() {
     const {organization} = this.props;
     return organization.features.includes('connect-discover-and-dashboards');
@@ -121,8 +105,11 @@ class WidgetCard extends React.Component<Props> {
       selection,
       organization,
       showContextMenu,
+      isPreview,
       widgetLimitReached,
+      onEdit,
       onDuplicate,
+      onDelete,
     } = this.props;
 
     return (
@@ -131,8 +118,11 @@ class WidgetCard extends React.Component<Props> {
         widget={widget}
         selection={selection}
         showContextMenu={showContextMenu}
+        isPreview={isPreview}
         widgetLimitReached={widgetLimitReached}
         onDuplicate={onDuplicate}
+        onEdit={onEdit}
+        onDelete={onDelete}
       />
     );
   }
@@ -261,7 +251,7 @@ class WidgetCard extends React.Component<Props> {
   }
 }
 
-export default withApi(withOrganization(withGlobalSelection(withRouter(WidgetCard))));
+export default withApi(withOrganization(withPageFilters(withRouter(WidgetCard))));
 
 const ErrorCard = styled(Placeholder)`
   display: flex;

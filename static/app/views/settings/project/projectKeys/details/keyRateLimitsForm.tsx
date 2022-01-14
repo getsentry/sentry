@@ -222,7 +222,7 @@ const RateLimitRow = styled('div')`
   display: grid;
   grid-template-columns: 2fr 1fr 2fr;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const EventsIn = styled('small')`

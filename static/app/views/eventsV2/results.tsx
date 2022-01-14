@@ -18,15 +18,15 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {GlobalSelection, Organization, SavedQuery} from 'sentry/types';
+import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -38,8 +38,8 @@ import {
 import localStorage from 'sentry/utils/localStorage';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {addRoutePerformanceContext} from '../performance/utils';
 
@@ -55,7 +55,7 @@ type Props = {
   router: InjectedRouter;
   location: Location;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   savedQuery?: SavedQuery;
   loading: boolean;
 };
@@ -301,7 +301,7 @@ class Results extends React.Component<Props, State> {
   handleSearch = (query: string) => {
     const {router, location} = this.props;
 
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });
@@ -620,12 +620,12 @@ function ResultsContainer(props: Props) {
    */
 
   return (
-    <GlobalSelectionHeader
+    <PageFiltersContainer
       skipLoadLastUsed={props.organization.features.includes('global-views')}
     >
       <SavedQueryAPI {...props} />
-    </GlobalSelectionHeader>
+    </PageFiltersContainer>
   );
 }
 
-export default withApi(withOrganization(withGlobalSelection(ResultsContainer)));
+export default withApi(withOrganization(withPageFilters(ResultsContainer)));

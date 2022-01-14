@@ -149,6 +149,8 @@ const fixedStyle = css`
 `;
 
 const Pattern = styled('div')`
+  z-index: -1;
+
   &::before {
     ${fixedStyle}
     content: '';
@@ -171,7 +173,7 @@ const Pattern = styled('div')`
 
 const Heading = styled('h1')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-content: space-between;
   grid-auto-flow: column;
   line-height: 36px;

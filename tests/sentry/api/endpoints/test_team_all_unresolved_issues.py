@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.utils.timezone import now
 from freezegun import freeze_time
 
-from sentry.models import GroupAssignee, GroupHistory, GroupHistoryStatus
+from sentry.models import GroupAssignee, GroupHistory, GroupHistoryStatus, GroupStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -24,11 +24,16 @@ class TeamIssueBreakdownTest(APITestCase):
             project=project1, first_seen=before_now(days=40), resolved_at=before_now(days=9)
         )
         group1_5 = self.create_group(project=project1, first_seen=before_now(days=40))
+        # Should be excluded from counts even though it has no group history row
+        group1_6 = self.create_group(
+            project=project1, first_seen=before_now(days=41), status=GroupStatus.IGNORED
+        )
         GroupAssignee.objects.assign(group1_1, self.user)
         GroupAssignee.objects.assign(group1_2, self.user)
         GroupAssignee.objects.assign(group1_3, self.user)
         GroupAssignee.objects.assign(group1_4, self.user)
         GroupAssignee.objects.assign(group1_5, self.user)
+        GroupAssignee.objects.assign(group1_6, self.user)
         GroupHistory.objects.all().delete()
 
         self.create_group_history(
@@ -137,3 +142,16 @@ class TeamIssueBreakdownTest(APITestCase):
         compare_response(response, project1, [2, 2, 2, 3, 3, 3, 3])
         compare_response(response, project2, [0, 1, 0, 1, 0, 1, 0])
         compare_response(response, project3, [0, 1, 0, 0, 0, 0, 0])
+
+    def test_no_projects(self):
+        self.login_as(user=self.user)
+        self.get_success_response(self.team.organization.slug, self.team.slug, statsPeriod="7d")
+
+    def test_no_group_history(self):
+        project1 = self.create_project(teams=[self.team])
+        group1_1 = self.create_group(project=project1, first_seen=before_now(days=40))
+        GroupAssignee.objects.assign(group1_1, self.user)
+        GroupHistory.objects.all().delete()
+
+        self.login_as(user=self.user)
+        self.get_success_response(self.team.organization.slug, self.team.slug, statsPeriod="7d")

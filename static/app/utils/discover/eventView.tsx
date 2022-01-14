@@ -9,11 +9,11 @@ import moment from 'moment';
 
 import {EventQuery} from 'sentry/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'sentry/types';
+import {NewQuery, PageFilters, SavedQuery, SelectValue, User} from 'sentry/types';
 import {
   aggregateOutputType,
   Column,
@@ -347,7 +347,7 @@ class EventView {
   }
 
   static fromLocation(location: Location): EventView {
-    const {start, end, statsPeriod} = getParams(location.query);
+    const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
 
     return new EventView({
       id: decodeScalar(location.query.id),
@@ -411,7 +411,7 @@ class EventView {
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
     const fields = EventView.getFields(saved);
     // normalize datetime selection
-    const {start, end, statsPeriod} = getParams({
+    const {start, end, statsPeriod} = normalizeDateTimeParams({
       start: saved.start,
       end: saved.end,
       statsPeriod: saved.range,
@@ -449,7 +449,7 @@ class EventView {
     location: Location
   ): EventView {
     let fields = decodeFields(location);
-    const {start, end, statsPeriod} = getParams(location.query);
+    const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
     const id = decodeScalar(location.query.id);
     const teams = decodeTeams(location);
     const projects = decodeProjects(location);
@@ -573,7 +573,7 @@ class EventView {
     return newQuery;
   }
 
-  getGlobalSelection(): GlobalSelection {
+  getPageFilters(): PageFilters {
     return {
       projects: this.project as number[],
       environments: this.environment as string[],
@@ -589,12 +589,12 @@ class EventView {
     };
   }
 
-  getGlobalSelectionQuery(): Query {
+  getPageFiltersQuery(): Query {
     const {
       environments: environment,
       projects,
       datetime: {start, end, period, utc},
-    } = this.getGlobalSelection();
+    } = this.getPageFilters();
     return {
       project: projects.map(proj => proj.toString()),
       environment,
@@ -1083,7 +1083,7 @@ class EventView {
         };
 
     // normalize datetime selection
-    return getParams({
+    return normalizeDateTimeParams({
       ...dateSelection,
       utc: decodeScalar(query.utc),
     });

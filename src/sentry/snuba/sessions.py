@@ -173,8 +173,11 @@ def _get_project_releases_by_stability(
         "users": ["-users"],
     }[scope]
 
-    # Tiebreaker
-    orderby.extend(["-project_id", "-release"])
+    # Partial tiebreaker to make comparisons in the release-health duplex
+    # backend more likely to succeed. A perfectly stable sorting would need to
+    # additionally sort by `release`, however in the metrics backend we can't
+    # sort by that the same way as in the sessions backend.
+    orderby.extend(["-project_id"])
 
     conditions = []
     if environments is not None:

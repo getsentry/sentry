@@ -4,7 +4,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/globalSelectionHeader/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -43,7 +43,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/time-to-resolution/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -96,6 +96,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
               seriesName: t('Time to Resolution'),
               data: seriesData,
               silent: true,
+              barCategoryGap: '5%',
             },
           ]}
         />

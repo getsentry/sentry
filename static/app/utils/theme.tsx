@@ -24,6 +24,13 @@ export const lightColors = {
   gray200: '#DBD6E1',
   gray100: '#EBE6EF',
 
+  /**
+   * Alternative version of gray200 that's translucent.
+   * Useful for borders on tooltips, popovers, and dialogs.
+   */
+  translucentGray200: 'rgba(58, 17, 95, 0.18)',
+  translucentGray100: 'rgba(45, 0, 85, 0.1)',
+
   purple400: '#584AC0',
   purple300: '#6C5FC7',
   purple200: 'rgba(108, 95, 199, 0.5)',
@@ -74,6 +81,13 @@ export const darkColors = {
   gray200: '#43384C',
   gray100: '#342B3B',
 
+  /**
+   * Alternative version of gray200 that's translucent.
+   * Useful for borders on tooltips, popovers, and dialogs.
+   */
+  translucentGray200: 'rgba(218, 184, 245, 0.18)',
+  translucentGray100: 'rgba(208, 168, 240, 0.1)',
+
   purple400: '#6859CF',
   purple300: '#7669D3',
   purple200: 'rgba(108, 95, 199, 0.6)',
@@ -115,6 +129,16 @@ const darkShadows = {
   dropShadowLightest: '0 0 2px rgba(10, 8, 12, 0.2)',
   dropShadowLight: '0 1px 4px rgba(10, 8, 12, 0.2)',
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
+};
+
+/**
+ * Background used in the theme-color meta tag
+ * The colors below are an approximation of the colors used in the sidebar (sidebarGradient).
+ * Unfortunately the exact colors cannot be used, as the theme-color tag does not support linear-gradient()
+ */
+const sidebarBackground = {
+  light: '#2f1937',
+  dark: '#181622',
 };
 
 type BaseColors = typeof lightColors;
@@ -159,21 +183,13 @@ const generateAliases = (colors: BaseColors) => ({
    * Primary border color
    */
   border: colors.gray200,
+  translucentBorder: colors.translucentGray200,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
   innerBorder: colors.gray100,
-
-  /**
-   * Border around modals
-   */
-  modalBorder: 'none',
-
-  /**
-   * Box shadow on the modal
-   */
-  modalBoxShadow: 'none',
+  translucentInnerBorder: colors.translucentGray100,
 
   /**
    * A color that denotes a "success", or something good
@@ -201,6 +217,7 @@ const generateAliases = (colors: BaseColors) => ({
    * Indicates that something is "active" or "selected"
    */
   active: colors.purple300,
+  activeHover: colors.purple400,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -389,39 +406,48 @@ const generateBadgeTheme = (colors: BaseColors) => ({
 
 const generateTagTheme = (colors: BaseColors) => ({
   default: {
-    background: colors.gray200,
-    iconColor: colors.purple300,
+    background: colors.surface400,
+    border: colors.gray200,
+    iconColor: colors.gray300,
   },
   promotion: {
-    background: colors.pink200,
+    background: colors.pink100,
+    border: colors.pink200,
     iconColor: colors.pink300,
   },
   highlight: {
-    background: colors.purple200,
+    background: colors.purple100,
+    border: colors.purple200,
     iconColor: colors.purple300,
   },
   warning: {
-    background: colors.yellow200,
+    background: colors.yellow100,
+    border: colors.yellow200,
     iconColor: colors.yellow300,
   },
   success: {
-    background: colors.green200,
+    background: colors.green100,
+    border: colors.green200,
     iconColor: colors.green300,
   },
   error: {
-    background: colors.red200,
+    background: colors.red100,
+    border: colors.red200,
     iconColor: colors.red300,
   },
   info: {
-    background: colors.blue200,
-    iconColor: colors.blue300,
+    background: colors.purple100,
+    border: colors.purple200,
+    iconColor: colors.purple300,
   },
   white: {
-    background: colors.surface200,
-    iconColor: colors.gray500,
+    background: colors.white,
+    border: colors.white,
+    iconColor: colors.black,
   },
   black: {
-    background: colors.gray500,
+    background: colors.black,
+    border: colors.black,
     iconColor: colors.white,
   },
 });
@@ -439,7 +465,7 @@ const generateLevelTheme = (colors: BaseColors) => ({
 });
 
 const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
-  borderRadius: '3px',
+  borderRadius: '4px',
 
   default: {
     color: alias.textColor,
@@ -606,6 +632,9 @@ const commonTheme = {
   borderRadius: '4px',
   borderRadiusBottom: '0 0 4px 4px',
   borderRadiusTop: '4px 4px 0 0',
+  borderRadiusLeft: '4px 0 0 4px',
+  borderRadiusRight: '0 4px 4px 0',
+
   headerSelectorRowHeight: 44,
   headerSelectorLabelHeight: 28,
 
@@ -630,7 +659,7 @@ const commonTheme = {
   },
 
   sidebar: {
-    background: '#2f2936',
+    boxShadow: '0 3px 3px #2f2936',
     color: '#9586a5',
     divider: '#493e54',
     badgeSize: '22px',
@@ -703,8 +732,11 @@ export const lightTheme = {
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
-  sidebarGradient:
-    'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+  sidebar: {
+    ...commonTheme.sidebar,
+    background: sidebarBackground.light,
+  },
+  sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,#452650 92.42%,#452650 92.42%)`,
   sidebarBorder: 'transparent',
 };
 
@@ -722,7 +754,11 @@ export const darkTheme: Theme = {
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
-  sidebarGradient: 'linear-gradient(180deg, #181622 0%, #1B1825 100%)',
+  sidebar: {
+    ...commonTheme.sidebar,
+    background: sidebarBackground.dark,
+  },
+  sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
   sidebarBorder: darkAliases.border,
 };
 

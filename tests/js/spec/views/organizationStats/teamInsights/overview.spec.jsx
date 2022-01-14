@@ -60,6 +60,38 @@ describe('TeamInsightsOverview', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/sessions/`,
+      body: {
+        start: '2021-10-30T00:00:00Z',
+        end: '2021-12-24T00:00:00Z',
+        query: '',
+        intervals: [],
+        groups: [
+          {
+            by: {project: 1, 'session.status': 'healthy'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'crashed'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'errored'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'abnormal'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
@@ -90,6 +122,10 @@ describe('TeamInsightsOverview', () => {
       body: TestStubs.TeamAlertsTriggered(),
     });
     MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/alerts-triggered-index/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
       body: TestStubs.TeamResolutionTime(),
     });
@@ -105,6 +141,10 @@ describe('TeamInsightsOverview', () => {
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered/`,
       body: TestStubs.TeamAlertsTriggered(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
@@ -128,6 +168,34 @@ describe('TeamInsightsOverview', () => {
       method: 'GET',
       url: `/teams/org-slug/${team2.slug}/unresolved-issue-age/`,
       body: [],
+    });
+    const unresolvedStats = {
+      '2021-12-10T00:00:00+00:00': {unresolved: 45},
+      '2021-12-11T00:00:00+00:00': {unresolved: 45},
+      '2021-12-12T00:00:00+00:00': {unresolved: 45},
+      '2021-12-13T00:00:00+00:00': {unresolved: 49},
+      '2021-12-14T00:00:00+00:00': {unresolved: 50},
+      '2021-12-15T00:00:00+00:00': {unresolved: 45},
+      '2021-12-16T00:00:00+00:00': {unresolved: 44},
+      '2021-12-17T00:00:00+00:00': {unresolved: 44},
+      '2021-12-18T00:00:00+00:00': {unresolved: 44},
+      '2021-12-19T00:00:00+00:00': {unresolved: 43},
+      '2021-12-20T00:00:00+00:00': {unresolved: 40},
+      '2021-12-21T00:00:00+00:00': {unresolved: 37},
+      '2021-12-22T00:00:00+00:00': {unresolved: 36},
+      '2021-12-23T00:00:00+00:00': {unresolved: 37},
+    };
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/all-unresolved-issues/`,
+      body: {
+        2: unresolvedStats,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team2.slug}/all-unresolved-issues/`,
+      body: {
+        3: unresolvedStats,
+      },
     });
   });
 

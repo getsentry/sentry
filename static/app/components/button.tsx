@@ -255,6 +255,7 @@ const StyledButton = styled(
   ${p => getBoxShadow(p.theme)};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
+  transition: background 0.1s, border 0.1s, box-shadow 0.1s;
 
   &:focus {
     outline: none;
@@ -292,6 +293,7 @@ const ButtonLabel = styled('span', {
     typeof prop === 'string' && isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
 })<ButtonLabelProps>`
   display: grid;
+  height: 100%;
   grid-auto-flow: column;
   align-items: center;
   justify-content: ${p => p.align};

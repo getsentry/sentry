@@ -5,6 +5,7 @@ from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpResponse
 from rest_framework.request import Request
 
+from sentry import analytics
 from sentry.models import (
     ExternalActor,
     Identity,
@@ -134,6 +135,13 @@ class SlackLinkTeamView(BaseView):  # type: ignore
                 external_name=channel_name,
                 external_id=channel_id,
             ),
+        )
+
+        analytics.record(
+            "integrations.identity_linked",
+            provider="slack",
+            actor_id=team.actor_id,
+            actor_type="team",
         )
 
         if not created:

@@ -5,14 +5,13 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import GlobalSelectionHeader from 'sentry/components/organizations/globalSelectionHeader';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
@@ -28,8 +27,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {
-  GlobalSelection,
   Organization,
+  PageFilters,
   Project,
   Release,
   ReleaseStatus,
@@ -39,8 +38,8 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import Projects from 'sentry/utils/projects';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import withGlobalSelection from 'sentry/utils/withGlobalSelection';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -62,7 +61,7 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   projects: Project[];
-  selection: GlobalSelection;
+  selection: PageFilters;
 };
 
 type State = {
@@ -437,15 +436,13 @@ class ReleasesList extends AsyncView<Props, State> {
           return (
             <Fragment>
               {singleProjectSelected && this.projectHasSessions && isMobileProject && (
-                <Feature features={['organizations:release-adoption-chart']}>
-                  <ReleasesAdoptionChart
-                    organization={organization}
-                    selection={selection}
-                    location={location}
-                    router={router}
-                    activeDisplay={activeDisplay}
-                  />
-                </Feature>
+                <ReleasesAdoptionChart
+                  organization={organization}
+                  selection={selection}
+                  location={location}
+                  router={router}
+                  activeDisplay={activeDisplay}
+                />
               )}
 
               {releases.map((release, index) => (
@@ -480,17 +477,16 @@ class ReleasesList extends AsyncView<Props, State> {
     const activeDisplay = this.getDisplay();
 
     const hasSemver = organization.features.includes('semver');
-    const hasReleaseStages = organization.features.includes('release-adoption-stage');
     const hasAnyMobileProject = selection.projects
       .map(id => `${id}`)
       .map(ProjectsStore.getById)
       .some(project => project?.platform && isMobileRelease(project.platform));
     const showReleaseAdoptionStages =
-      hasReleaseStages && hasAnyMobileProject && selection.environments.length === 1;
+      hasAnyMobileProject && selection.environments.length === 1;
     const hasReleasesSetup = releases && releases.length > 0;
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         showAbsolute={false}
         timeRangeHint={t(
           'Changing this date range will recalculate the release metrics.'
@@ -570,7 +566,7 @@ class ReleasesList extends AsyncView<Props, State> {
               : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
           </NoProjectMessage>
         </PageContent>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 }
@@ -653,5 +649,5 @@ const DropdownsWrapper = styled('div')`
   }
 `;
 
-export default withProjects(withOrganization(withGlobalSelection(ReleasesList)));
+export default withProjects(withOrganization(withPageFilters(ReleasesList)));
 export {ReleasesList};

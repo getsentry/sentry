@@ -7,6 +7,8 @@ class StringIndexer(Service):  # type: ignore
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
+
+    Check `sentry.snuba.metrics` for convenience functions.
     """
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
