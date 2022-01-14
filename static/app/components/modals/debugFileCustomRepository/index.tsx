@@ -52,6 +52,11 @@ const HookedAppStoreConnectMultiple = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
+const HookedCustomSymbolSources = HookOrDefault({
+  hookName: 'component:disabled-custom-symbol-sources',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
+
 function DebugFileCustomRepository({
   Header,
   Body,
@@ -119,68 +124,72 @@ function DebugFileCustomRepository({
     );
   }
 
-  function renderOtherCustomSymbolSources() {
-    if (sourceType === CustomRepoType.HTTP) {
-      return (
-        <Http
-          Header={Header}
-          Body={Body}
-          Footer={Footer}
-          onSubmit={handleSave}
-          initialData={sourceConfig as HttpInitialData}
-        />
-      );
-    }
-
-    const {initialData, fields} = getFormFieldsAndInitialData(sourceType, sourceConfig);
-
-    return (
-      <Fragment>
-        <Header closeButton>
-          {sourceConfig
-            ? tct('Update [name] Repository', {name: getDebugSourceName(sourceType)})
-            : tct('Add [name] Repository', {name: getDebugSourceName(sourceType)})}
-        </Header>
-        {fields && (
-          <Form
-            allowUndo
-            requireChanges
-            initialData={initialData}
-            onSubmit={handleSave}
-            footerClass="modal-footer"
-          >
-            {fields.map((field, i) => (
-              <FieldFromConfig
-                key={field.name || i}
-                field={field}
-                inline={false}
-                stacked
-              />
-            ))}
-          </Form>
-        )}
-      </Fragment>
-    );
-  }
-
   return (
-    <Feature
-      organization={organization}
-      features={['custom-symbol-sources']}
-      hookName="feature-disabled:custom-symbol-sources"
-      renderDisabled={({features}) => (
-        <Fragment>
-          <CloseButton />
-          <FeatureDisabled
-            features={features}
-            message={t('This feature is not enabled on your Sentry installation.')}
-            featureName={t('Custom Symbol Sources')}
-            hideHelpToggle
-          />
-        </Fragment>
-      )}
-    >
-      {renderOtherCustomSymbolSources()}
+    <Feature organization={organization} features={['custom-symbol-sources']}>
+      {({hasFeature, features}) => {
+        if (hasFeature) {
+          if (sourceType === CustomRepoType.HTTP) {
+            return (
+              <Http
+                Header={Header}
+                Body={Body}
+                Footer={Footer}
+                onSubmit={handleSave}
+                initialData={sourceConfig as HttpInitialData}
+              />
+            );
+          }
+
+          const {initialData, fields} = getFormFieldsAndInitialData(
+            sourceType,
+            sourceConfig
+          );
+
+          return (
+            <Fragment>
+              <Header closeButton>
+                {sourceConfig
+                  ? tct('Update [name] Repository', {
+                      name: getDebugSourceName(sourceType),
+                    })
+                  : tct('Add [name] Repository', {name: getDebugSourceName(sourceType)})}
+              </Header>
+              {fields && (
+                <Form
+                  allowUndo
+                  requireChanges
+                  initialData={initialData}
+                  onSubmit={handleSave}
+                  footerClass="modal-footer"
+                >
+                  {fields.map((field, i) => (
+                    <FieldFromConfig
+                      key={field.name || i}
+                      field={field}
+                      inline={false}
+                      stacked
+                    />
+                  ))}
+                </Form>
+              )}
+            </Fragment>
+          );
+        }
+
+        return (
+          <Fragment>
+            <CloseButton />
+            <HookedCustomSymbolSources organization={organization}>
+              <FeatureDisabled
+                features={features}
+                message={t('This feature is not enabled on your Sentry installation.')}
+                featureName={t('Custom Symbol Sources')}
+                hideHelpToggle
+              />
+            </HookedCustomSymbolSources>
+          </Fragment>
+        );
+      }}
     </Feature>
   );
 }

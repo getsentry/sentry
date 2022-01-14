@@ -67,6 +67,7 @@ type MemberListHeaderProps = {
 };
 
 type DisabledAppStoreConnectMultiple = {organization: Organization};
+type DisabledCustomSymbolSources = {organization: Organization};
 
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
@@ -92,6 +93,7 @@ type FirstPartyIntegrationAdditionalCTAProps = {
  */
 export type ComponentHooks = {
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
+  'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
@@ -139,7 +141,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:configure-distributed-tracing': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
-  'feature-disabled:custom-symbol-sources': FeatureDisabledHook;
   'feature-disabled:data-forwarding': FeatureDisabledHook;
   'feature-disabled:discard-groups': FeatureDisabledHook;
   'feature-disabled:discover-page': FeatureDisabledHook;
