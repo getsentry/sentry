@@ -28,6 +28,7 @@ from sentry.app import tsdb
 from sentry.constants import DataCategory
 from sentry.models import (
     Activity,
+    Group,
     GroupStatus,
     Organization,
     OrganizationStatus,
@@ -507,8 +508,8 @@ def build_key_events(interval, project):
         limit=Limit(3),
     )
     query_result = raw_snql_query(query)
-    print(query_result)
-    return {"hello": "Hello World"}
+    key_errors = query_result["data"]
+    return [(e["group_id"], e["count()"]) for e in key_errors]
 
 
 def build_report(fields):
@@ -741,7 +742,7 @@ def build_message(timestamp, duration, organization, user, reports):
             date_format(stop),
         ),
         template="sentry/emails/reports/body.txt",
-        html_template="sentry/emails/reports/body.html",
+        html_template="sentry/emails/reports/new.html",
         type="report.organization",
         context={
             "duration": duration_spec,
@@ -1002,6 +1003,9 @@ def build_project_breakdown_series(reports):
             (to_datetime(timestamp), value) for timestamp, value in transaction_series
         ],  # array of (timestamp, [(key, count)])
         "maximum": max(sum(count for key, count in value) for timestamp, value in series),
+        "transaction_maximum": max(
+            sum(count for key, count in value) for timestamp, value in transaction_series
+        ),
         "legend": {
             "rows": legend,
             "total": Key(
@@ -1009,6 +1013,19 @@ def build_project_breakdown_series(reports):
             ),
         },
     }
+
+
+def build_key_errors(key_events):
+    # Join with DB
+    groups = Group.objects.filter(
+        id__in=map(lambda i: i[0], key_events),
+    ).all()
+
+    group_id_to_group = {}
+    for group in groups:
+        group_id_to_group[group.id] = group
+
+    return [{"group": group_id_to_group[e[0]], "count": e[1]} for e in key_events]
 
 
 def to_context(organization, interval, reports):
@@ -1053,6 +1070,7 @@ def to_context(organization, interval, reports):
         ],
         "projects": {"series": build_project_breakdown_series(reports)},
         "calendar": to_calendar(organization, interval, report.calendar_series),
+        "key_errors": build_key_errors(report.key_events),
     }
 
 

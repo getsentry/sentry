@@ -433,7 +433,7 @@
               <table class="bar">
                 {% for key, count in values %}
                   <tr>
-                    <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                    <td height="{% widthratio count series.transaction_maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
                   </tr>
                 {% empty %}
                   <tr>
@@ -612,6 +612,22 @@
     </table>
     {% endwith %}
 
+  </div>
+
+  <div id="key-errors">
+    {% with report.key_errors as errors %}
+    <h4>Key Errors</h4>
+    {% for a in errors %}
+    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
+      <div style="width: 10%; font-size: 17px;">{{a.count}}</div>
+      <div style="width: 65%;">
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="{% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug %}">{{a.group.message}}</a>
+        <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
+      </div>
+      <span style="background-color: rgba(245, 176, 0, 0.55); border-radius: 8px; font-size: 14px; align-self: center; padding: 2px 10px; margin-left: auto;">Regression</span>
+    </div>
+    {% endfor %}
+    {% endwith %}
   </div>
 
   {% if report.calendar %}

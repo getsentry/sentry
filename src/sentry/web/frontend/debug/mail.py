@@ -519,6 +519,7 @@ def report(request):
             build_issue_summaries(),
             build_usage_outcomes(),
             build_calendar_data(project),
+            key_events=[(g.id, random.randint(0, 1000)) for g in Group.objects.all()[:3]],
         )
 
     if random.random() < 0.85:
@@ -526,8 +527,13 @@ def report(request):
     else:
         personal = {"resolved": 0, "users": 0}
 
+    if request.GET.get("new"):
+        html_template = "sentry/emails/reports/new.html"
+    else:
+        html_template = "sentry/emails/reports/body.html"
+
     return MailPreview(
-        html_template="sentry/emails/reports/body.html",
+        html_template=html_template,
         text_template="sentry/emails/reports/body.txt",
         context={
             "duration": reports.durations[duration],
