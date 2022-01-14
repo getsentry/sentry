@@ -549,7 +549,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["text"] == "You don't have access to the organization for the invitation."
+        assert resp.data["text"] == "You do not have access to the organization for the invitation."
 
     def test_no_member_admin(self):
         OrganizationMember.objects.filter(user=self.user).update(role="admin")
@@ -566,4 +566,4 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["text"] == "You don't have permission to approve member invitations."
+        assert resp.data["text"] == "You do not have permission to approve member invitations."
