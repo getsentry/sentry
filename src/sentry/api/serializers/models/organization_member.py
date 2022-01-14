@@ -5,6 +5,7 @@ from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.types.scim import SCIMMeta
 from sentry.models import (
     ExternalActor,
     OrganizationMember,
@@ -203,10 +204,6 @@ class SCIMEmail(TypedDict):
     primary: bool
     value: str
     type: str
-
-
-class SCIMMeta(TypedDict):
-    resourceType: str
 
 
 class OrganizationMemberSCIMSerializerRequired(TypedDict):
