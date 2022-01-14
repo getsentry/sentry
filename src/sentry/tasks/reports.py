@@ -278,13 +278,13 @@ def build_project_series(start__stop, project):
     )
     outcome_series = raw_snql_query(outcomes_query, referrer="reports.series")
     total_error_series = [
-        (int(to_timestamp(parse_snuba_datetime(v["time"]))) - 60 * 60 * 24, v["total"])
+        (int(to_timestamp(parse_snuba_datetime(v["time"]))), v["total"])
         for v in outcome_series["data"]
         if v["category"] in DataCategory.error_categories()
     ]
     total_error_series = zerofill_clean(total_error_series)
     transaction_series = [
-        (int(to_timestamp(parse_snuba_datetime(v["time"]))) - 60 * 60 * 24, v["total"])
+        (int(to_timestamp(parse_snuba_datetime(v["time"]))), v["total"])
         for v in outcome_series["data"]
         if v["category"] == DataCategory.TRANSACTION
     ]
