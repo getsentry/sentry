@@ -23,12 +23,7 @@ import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import {defined} from 'sentry/utils';
 
 import Repository from './repository';
-import {
-  customRepoTypeLabel,
-  dropDownItems,
-  expandKeys,
-  getRequestMessages,
-} from './utils';
+import {dropDownItems, expandKeys, getRequestMessages} from './utils';
 
 const SECTION_TITLE = t('Custom Repositories');
 
@@ -61,19 +56,6 @@ function CustomRepositories({
   const appStoreConnectSourcesQuantity = repositories.filter(
     repository => repository.type === CustomRepoType.APP_STORE_CONNECT
   ).length;
-
-  if (
-    !appStoreConnectContext &&
-    !dropDownItems.find(
-      dropDownItem => dropDownItem.value === CustomRepoType.APP_STORE_CONNECT
-    )
-  ) {
-    dropDownItems.push({
-      value: CustomRepoType.APP_STORE_CONNECT,
-      label: customRepoTypeLabel[CustomRepoType.APP_STORE_CONNECT],
-      searchKey: t('apple store connect itunes ios'),
-    });
-  }
 
   function openDebugFileSourceDialog() {
     const {customRepository} = location.query;

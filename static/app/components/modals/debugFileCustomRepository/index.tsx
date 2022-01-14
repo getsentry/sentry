@@ -45,7 +45,7 @@ type Props = WithRouterProps<RouteParams, {}> & {
    * The sourceConfig. May be empty to create a new one.
    */
   sourceConfig?: Record<string, any>;
-} & Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer' | 'closeModal'>;
+} & Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer' | 'closeModal' | 'CloseButton'>;
 
 const HookedAppStoreConnectMultiple = HookOrDefault({
   hookName: 'component:disabled-app-store-connect-multiple',
@@ -56,6 +56,7 @@ function DebugFileCustomRepository({
   Header,
   Body,
   Footer,
+  CloseButton,
   onSave,
   sourceConfig,
   sourceType,
@@ -101,13 +102,17 @@ function DebugFileCustomRepository({
           }
 
           return (
-            <HookedAppStoreConnectMultiple organization={organization}>
-              <FeatureDisabled
-                features={features}
-                message={t('This feature is not enabled on your Sentry installation.')}
-                hideHelpToggle
-              />
-            </HookedAppStoreConnectMultiple>
+            <Fragment>
+              <CloseButton />
+              <HookedAppStoreConnectMultiple organization={organization}>
+                <FeatureDisabled
+                  features={features}
+                  message={t('This feature is not enabled on your Sentry installation.')}
+                  featureName={t('App Store Connect Multiple')}
+                  hideHelpToggle
+                />
+              </HookedAppStoreConnectMultiple>
+            </Fragment>
           );
         }}
       </Feature>
@@ -164,12 +169,15 @@ function DebugFileCustomRepository({
       features={['custom-symbol-sources']}
       hookName="feature-disabled:custom-symbol-sources"
       renderDisabled={({features}) => (
-        <FeatureDisabled
-          features={features}
-          message={t('This feature is not enabled on your Sentry installation.')}
-          featureName={t('Custom Symbol Sources')}
-          hideHelpToggle
-        />
+        <Fragment>
+          <CloseButton />
+          <FeatureDisabled
+            features={features}
+            message={t('This feature is not enabled on your Sentry installation.')}
+            featureName={t('Custom Symbol Sources')}
+            hideHelpToggle
+          />
+        </Fragment>
       )}
     >
       {renderOtherCustomSymbolSources()}

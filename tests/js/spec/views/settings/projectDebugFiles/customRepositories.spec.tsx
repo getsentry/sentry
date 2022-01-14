@@ -1,8 +1,14 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {closeModal} from 'sentry/actionCreators/modal';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import {
@@ -127,6 +133,15 @@ describe('Custom Repositories', function () {
       )
     ).toBeInTheDocument();
 
+    // Close Modal
+    userEvent.click(screen.getByLabelText('Close Modal'));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('This feature is not enabled on your Sentry installation.')
+      ).not.toBeInTheDocument();
+    });
+
     // Renders disabled repository list
     rerender(
       <TestComponent
@@ -148,6 +163,24 @@ describe('Custom Repositories', function () {
     expect(screen.getByText(appStoreConnectRepository.name)).toBeInTheDocument();
     expect(screen.getByText(DEBUG_SOURCE_TYPES.appStoreConnect)).toBeInTheDocument();
     expect(actions[1]).toBeEnabled();
+
+    // A new App Store Connect instance is not available on free plans
+    // Choose an App Store Connect source
+    userEvent.click(screen.getByText('Add Repository'));
+
+    userEvent.click(screen.getByRole('button', {name: 'App Store Connect'}));
+
+    // Feature disabled warning
+    expect(
+      await screen.findByText('This feature is not enabled on your Sentry installation.')
+    ).toBeInTheDocument();
+
+    // Help content
+    expect(
+      screen.getByText(
+        "# Enables the App Store Connect Multiple feature SENTRY_FEATURES['app-store-connect-multiple'] = True"
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders with custom-symbol-sources feature enabled', async function () {
@@ -203,5 +236,72 @@ describe('Custom Repositories', function () {
     expect(actions[1]).toBeEnabled();
   });
 
-  it('renders with app-store-connect-multiple feature enabled', async function () {});
+  it('renders with app-store-connect-multiple feature enabled', async function () {
+    const newOrganization = {...organization, features: ['app-store-connect-multiple']};
+
+    mountWithTheme(
+      <TestComponent
+        {...props}
+        organization={newOrganization}
+        customRepositories={[httpRepository, appStoreConnectRepository]}
+      />
+    );
+
+    // Section title
+    expect(screen.getByText('Custom Repositories')).toBeInTheDocument();
+
+    // Content
+    const actions = screen.queryAllByLabelText('Actions');
+    expect(actions).toHaveLength(2);
+
+    // HTTP Repository
+    expect(screen.getByText(httpRepository.name)).toBeInTheDocument();
+    expect(screen.getByText(DEBUG_SOURCE_TYPES.http)).toBeInTheDocument();
+    expect(actions[0]).toBeDisabled();
+
+    // App Store Connect Repository
+    expect(screen.getByText(appStoreConnectRepository.name)).toBeInTheDocument();
+    expect(screen.getByText(DEBUG_SOURCE_TYPES.appStoreConnect)).toBeInTheDocument();
+    expect(actions[1]).toBeEnabled();
+
+    // Enabled button
+    expect(screen.getByText('Add Repository').closest('button')).toBeEnabled();
+
+    userEvent.click(screen.getByText('Add Repository'));
+
+    userEvent.click(screen.getByRole('button', {name: 'App Store Connect'}));
+
+    // Display modal content
+    // A new App Store Connect instance is available
+    expect(await screen.findByText('App Store Connect credentials')).toBeInTheDocument();
+  });
+
+  it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', async function () {
+    const newOrganization = {
+      ...organization,
+      features: ['custom-symbol-sources', 'app-store-connect-multiple'],
+    };
+
+    mountWithTheme(
+      <TestComponent
+        {...props}
+        organization={newOrganization}
+        customRepositories={[httpRepository, appStoreConnectRepository]}
+      />
+    );
+
+    // Content
+    const actions = screen.queryAllByLabelText('Actions');
+    expect(actions).toHaveLength(2);
+
+    // HTTP Repository
+    expect(screen.getByText(httpRepository.name)).toBeInTheDocument();
+    expect(screen.getByText(DEBUG_SOURCE_TYPES.http)).toBeInTheDocument();
+    expect(actions[0]).toBeEnabled();
+
+    // App Store Connect Repository
+    expect(screen.getByText(appStoreConnectRepository.name)).toBeInTheDocument();
+    expect(screen.getByText(DEBUG_SOURCE_TYPES.appStoreConnect)).toBeInTheDocument();
+    expect(actions[1]).toBeEnabled();
+  });
 });

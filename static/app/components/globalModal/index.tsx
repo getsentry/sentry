@@ -252,6 +252,7 @@ const Content = styled('div')`
   border-radius: 8px;
   border: ${p => p.theme.modalBorder};
   box-shadow: ${p => p.theme.modalBoxShadow};
+  position: relative;
 `;
 
 type State = {
