@@ -533,7 +533,7 @@ class VersionedEndpoint(Endpoint):
             return self.http_method_not_allowed(request)
 
         try:
-            version = 0 if request.version is None else int(request.version)
+            version = 1 if request.version is None else int(request.version)
         except ValueError:
             raise Http404("Version must be an integer")
 
