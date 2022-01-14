@@ -1,13 +1,13 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import Hook from 'sentry/components/hook';
 import HookStore from 'sentry/stores/hookStore';
 
 describe('Hook', function () {
   const Wrapper = function Wrapper(props) {
-    return <div {...props} />;
+    return <div data-test-id="wrapper" {...props} />;
   };
-  const routerContext = TestStubs.routerContext();
+  const context = TestStubs.routerContext();
 
   beforeEach(function () {
     HookStore.add('footer', ({organization} = {}) => (
@@ -23,39 +23,40 @@ describe('Hook', function () {
   });
 
   it('renders component from a hook', function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
       </div>,
-      routerContext
+      {context}
     );
 
     expect(HookStore.hooks.footer).toHaveLength(1);
-    expect(wrapper.find('Wrapper')).toHaveLength(1);
-    expect(wrapper.find('Wrapper').prop('organization').slug).toBe('org-slug');
+    expect(screen.getByTestId('wrapper')).toBeInTheDocument();
+    expect(screen.getByTestId('wrapper')).toHaveTextContent('org-slug');
   });
 
   it('renders an invalid hook', function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <div>
         <Hook name="invalid-hook" organization={TestStubs.Organization()} />
+        invalid
       </div>,
-      routerContext
+      {context}
     );
 
-    expect(wrapper.find('Wrapper')).toHaveLength(0);
-    expect(wrapper.find('div')).toHaveLength(1);
+    expect(screen.queryByText('org-slug')).not.toBeInTheDocument();
+    expect(screen.getByText('invalid')).toBeInTheDocument();
   });
 
   it('can re-render when hooks get after initial render', function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
       </div>,
-      routerContext
+      {context}
     );
 
-    expect(wrapper.find('Wrapper')).toHaveLength(1);
+    expect(screen.getByTestId('wrapper')).toBeInTheDocument();
 
     HookStore.add('footer', () => (
       <Wrapper key="new" organization={null}>
@@ -63,21 +64,19 @@ describe('Hook', function () {
       </Wrapper>
     ));
 
-    wrapper.update();
-
     expect(HookStore.hooks.footer).toHaveLength(2);
-    expect(wrapper.find('Wrapper')).toHaveLength(2);
-    expect(wrapper.find('Wrapper').at(1).prop('organization')).toEqual(null);
+    expect(screen.getAllByTestId('wrapper')).toHaveLength(2);
+    expect(screen.getAllByTestId('wrapper')[1]).toHaveTextContent('New Hook');
   });
 
   it('can use children as a render prop', function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()}>
           {({hooks}) => hooks.map((hook, i) => <Wrapper key={i}>{hook}</Wrapper>)}
         </Hook>
       </div>,
-      routerContext
+      {context}
     );
 
     HookStore.add('footer', () => (
@@ -86,9 +85,7 @@ describe('Hook', function () {
       </Wrapper>
     ));
 
-    wrapper.update();
-
     // Has 2 Wrappers from store, and each is wrapped by another Wrapper
-    expect(wrapper.find('Wrapper')).toHaveLength(4);
+    expect(screen.getAllByTestId('wrapper')).toHaveLength(4);
   });
 });

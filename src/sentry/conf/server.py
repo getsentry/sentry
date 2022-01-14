@@ -960,8 +960,10 @@ SENTRY_FEATURES = {
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Enable metrics widget (prototype) on Dashboards
+    # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Enable metrics widget (prototype) on Dashboards
+    "organizations:metrics-dashboards-ui": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -998,8 +1000,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-custom-scm": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
-    # Allow orgs to debug internal/unpublished sentry apps with logging
-    "organizations:sentry-app-debugging": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable react-grid-layout dashboards
