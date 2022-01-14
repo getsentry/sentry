@@ -1,0 +1,46 @@
+name: Issue Routing Helper
+on:
+  issues:
+    types: [labeled]
+env:
+  # Use GH_RELEASE_PAT as github-actions bot is not allowed to ping teams
+  GH_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+  GH_REPO: ${{ github.repository }}
+jobs:
+  route:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.issue.state == 'open'
+      &&
+      startsWith(github.event.label.name, 'Team: ')
+      &&
+      !contains(github.event.issue.labels.*.name, 'Status: Backlog')
+      &&
+      !contains(github.event.issue.labels.*.name, 'Status: In Progress')
+    steps:
+      - name: "Ensure a single 'Team: *' label with 'Status: Untriaged'"
+        run: |
+          labels_to_remove=$(gh api --paginate "/repos/$GH_REPO/labels" -q '[.[].name | select((startswith("Team: ") or startswith("Status: ")) and . != "${{ github.event.label.name }}" and . != "Status: Untriaged")] | join(",")')
+          gh issue edit ${{ github.event.issue.number }} --remove-label "$labels_to_remove" --add-label '${{ github.event.label.name }},Status: Untriaged'
+      - name: "Mention/ping assigned team for triage"
+        run: |
+          # Get team label mention name:
+          team_label='${{ github.event.label.name }}'
+          team_name="${team_label:6}" # Strip the first 6 chars, which is the 'Team: ' part
+          team_slug="${team_name// /-}" # Replace spaces with hyphens for url/slug friendliness
+          mention_slug=$(gh api "/orgs/getsentry/teams/$team_slug" -q .slug || true)
+
+          if [[ -z "$mention_slug" ]]; then
+            echo "Couldn't find team mention from slug, trying the label description"
+            team_slug=$(gh api "/repos/$GH_REPO/labels/$team_label" -q '.description')
+            mention_slug=$(gh api "/orgs/getsentry/teams/$team_slug" -q .slug || true)
+          fi
+
+          if [[ -n "$mention_slug" ]]; then
+            echo "Routing to @getsentry/$mention_slug for [triage](https://develop.sentry.dev/processing-tickets/#3-triage). ⏲️" > comment_body
+          else
+            echo "[Failed]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) to route to \`${{ github.event.label.name }}\`.  😕" > comment_body
+            echo "" >> comment_body
+            echo "Defaulting to @getsentry/open-source for [triage](https://develop.sentry.dev/processing-tickets/#3-triage). ⏲️" >> comment_body
+          fi
+          gh issue comment ${{ github.event.issue.number }} --body-file comment_body
