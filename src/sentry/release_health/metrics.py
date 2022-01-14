@@ -855,7 +855,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             "sessions": Function("sum", [Column("value")], "value"),
         }[stat]
 
-        metric_name = resolve({"sessions": MetricKey.SESSION, "users": MetricKey.USER}[stat])
+        metric_name = resolve({"sessions": MetricKey.SESSION, "users": MetricKey.USER}[stat].value)
 
         for row in raw_snql_query(
             Query(
