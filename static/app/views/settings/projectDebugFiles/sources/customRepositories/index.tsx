@@ -198,7 +198,16 @@ function CustomRepositories({
                       onSelect={item => handleAddRepository(item.value)}
                       items={dropDownItems.map(dropDownItem => ({
                         ...dropDownItem,
-                        label: <DropDownLabel>{dropDownItem.label}</DropDownLabel>,
+                        label: (
+                          <DropDownLabel
+                            aria-label={t(
+                              'Open %s custom repository modal',
+                              dropDownItem.label
+                            )}
+                          >
+                            {dropDownItem.label}
+                          </DropDownLabel>
+                        ),
                       }))}
                     >
                       {({isOpen}) => (
@@ -206,6 +215,7 @@ function CustomRepositories({
                           isOpen={isOpen}
                           disabled={addRepositoryButtonDisabled}
                           size="small"
+                          label={t('Add Repository')}
                         >
                           {t('Add Repository')}
                         </DropdownButton>
