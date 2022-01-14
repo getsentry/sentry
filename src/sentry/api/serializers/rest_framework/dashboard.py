@@ -49,6 +49,34 @@ def is_table_display_type(display_type):
     )
 
 
+class LayoutField(serializers.Field):
+    STORE_KEYS = {
+        "x",
+        "y",
+        "w",
+        "h",
+        "min_w",
+        "max_w",
+        "min_h",
+        "max_h",
+    }
+
+    def to_internal_value(self, data):
+        if data is None:
+            return None
+
+        layout_to_store = {}
+        for key in self.STORE_KEYS:
+            value = data.get(key)
+            if value is None:
+                continue
+
+            if not isinstance(value, int):
+                raise serializers.ValidationError(f"Expected number for: {key}")
+            layout_to_store[key] = value
+        return layout_to_store
+
+
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -152,7 +180,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
-    layout = serializers.JSONField(required=False, allow_null=True)
+    layout = LayoutField(required=False, allow_null=True)
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -166,38 +194,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         if parse_stats_period(interval) is None:
             raise serializers.ValidationError("Invalid interval")
         return interval
-
-    def validate_layout(self, layout):
-        if layout is None:
-            return None
-
-        STORE_KEYS = {
-            "x",
-            "y",
-            "w",
-            "h",
-            "min_w",
-            "max_w",
-            "min_h",
-            "max_h",
-        }
-        IGNORE_KEYS = {
-            "i",
-            "static",
-            "moved",
-        }
-        invalid_keys = set(layout.keys()) - (STORE_KEYS.union(IGNORE_KEYS))
-        if invalid_keys:
-            invalid_keys_str = ", ".join(invalid_keys)
-            raise serializers.ValidationError(f"Contains invalid keys: {invalid_keys_str}")
-
-        layout_to_store = {}
-        for key in layout.keys():
-            if key in STORE_KEYS:
-                if not isinstance(layout[key], int):
-                    raise serializers.ValidationError(f"Expected number for: {key}")
-                layout_to_store[key] = layout[key]
-        return layout_to_store
 
     def validate(self, data):
         query_errors = []
@@ -322,7 +318,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             if "widget_type" in widget_data
             else DashboardWidgetTypes.DISCOVER,
             order=order,
-            detail={"layout": widget_data.get("layout", None)},
+            detail={"layout": widget_data.get("layout")},
         )
         new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
