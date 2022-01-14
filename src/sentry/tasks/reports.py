@@ -29,6 +29,7 @@ from sentry.constants import DataCategory
 from sentry.models import (
     Activity,
     Group,
+    GroupHistory,
     GroupStatus,
     Organization,
     OrganizationStatus,
@@ -1021,18 +1022,29 @@ def build_project_breakdown_series(reports):
     }
 
 
-def build_key_errors(key_events):
+def build_key_errors(key_events, organization):
     # Join with DB
     groups = Group.objects.filter(
         id__in=map(lambda i: i[0], key_events),
     ).all()
+
+    group_id_to_group_history = {}
+    group_history = GroupHistory.objects.filter(
+        group__id__in=map(lambda i: i[0], key_events), organization=organization
+    ).all()
+    for g in group_history:
+        group_id_to_group_history[g.group.id] = g.get_status_display()
 
     group_id_to_group = {}
     for group in groups:
         group_id_to_group[group.id] = group
 
     return [
-        {"group": group_id_to_group[e[0]], "count": e[1]}
+        {
+            "group": group_id_to_group[e[0]],
+            "count": e[1],
+            "status": group_id_to_group_history.get(e[0], "Unresolved"),
+        }
         for e in filter(lambda e: e[0] in group_id_to_group, key_events)
     ]
 
@@ -1079,7 +1091,7 @@ def to_context(organization, interval, reports):
         ],
         "projects": {"series": build_project_breakdown_series(reports)},
         "calendar": to_calendar(organization, interval, report.calendar_series),
-        "key_errors": build_key_errors(report.key_events),
+        "key_errors": build_key_errors(report.key_events, organization),
     }
 
 

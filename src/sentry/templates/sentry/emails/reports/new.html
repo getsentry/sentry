@@ -538,6 +538,7 @@
 
   </div>
 
+  {%if report.key_errors|length > 0 %}
   <div id="key-errors">
     {% with report.key_errors as errors %}
     <h4>Key Errors</h4>
@@ -548,10 +549,11 @@
         <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="{% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug %}">{{a.group.message}}</a>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
-      <span style="background-color: rgba(245, 176, 0, 0.55); border-radius: 8px; font-size: 14px; align-self: center; padding: 2px 10px; margin-left: auto;">Regression</span>
+      <span style="background-color: rgba(245, 176, 0, 0.55); border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto;">{{a.status}}</span>
     </div>
     {% endfor %}
     {% endwith %}
   </div>
+  {% endif %}
 </div>
 {% endblock %}
