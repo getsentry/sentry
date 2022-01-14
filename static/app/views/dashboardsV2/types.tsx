@@ -39,7 +39,7 @@ export type Widget = {
   queries: WidgetQuery[];
   widgetType?: WidgetType;
   tempId?: string;
-  layout?: Layout;
+  layout?: Partial<Layout>;
 };
 
 /**

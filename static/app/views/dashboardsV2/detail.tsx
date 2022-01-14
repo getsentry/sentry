@@ -3,6 +3,7 @@ import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 
 import {
   createDashboard,
@@ -388,7 +389,7 @@ class DashboardDetail extends Component<Props, State> {
         if (modifiedDashboard) {
           if (
             isEqual(dashboard, modifiedDashboard) &&
-            isEqual(layout, getDashboardLayout(modifiedDashboard.widgets))
+            isLayoutEqual(getDashboardLayout(modifiedDashboard.widgets), layout)
           ) {
             this.setState({
               dashboardState: DashboardState.VIEW,
@@ -688,6 +689,9 @@ const StyledPageContent = styled(PageContent)`
 
 export default withApi(withOrganization(DashboardDetail));
 
+/**
+ * Reads the layout from an array of widgets.
+ */
 function getDashboardLayout(widgets: Widget[]): RGLLayout[] {
   return widgets
     .filter(({layout}) => !!layout)
@@ -697,12 +701,34 @@ function getDashboardLayout(widgets: Widget[]): RGLLayout[] {
     }));
 }
 
-function constructDashboardWidgetsWithLayout(dashboard, layout) {
+const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
+
+/**
+ * Associate the layouts with the widgets for outgoing requests.
+ */
+function constructDashboardWidgetsWithLayout(
+  dashboard: DashboardDetails,
+  layout: RGLLayout[]
+): DashboardDetails {
   return {
     ...dashboard,
     widgets: dashboard.widgets.map(widget => {
       const matchingLayout = layout.find(({i}) => i === constructGridItemKey(widget));
-      return {...widget, layout: matchingLayout};
+      return {...widget, layout: pick(matchingLayout, STORE_KEYS)};
     }),
   };
+}
+
+function isLayoutEqual(prevLayouts: RGLLayout[], newLayouts: RGLLayout[]): boolean {
+  // Compares only keys we care about for now
+  const collectDesiredComparisonValues = layout => {
+    const definedKeys = Object.keys(layout).filter(
+      key => STORE_KEYS.includes(key) && layout[key] !== undefined
+    );
+    return pick(layout, definedKeys);
+  };
+
+  const prevLayoutsFinal = prevLayouts.map(collectDesiredComparisonValues);
+  const newLayoutsFinal = newLayouts.map(collectDesiredComparisonValues);
+  return isEqual(prevLayoutsFinal, newLayoutsFinal);
 }
