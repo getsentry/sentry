@@ -127,11 +127,6 @@ class WebHooksPlugin(notify.NotificationPlugin):
         client = self.get_client(payload)
         for url in self.get_webhook_urls(group.project):
             try:
-                client.request(
-                    url,
-                )
-            except Exception as exc:
-                if isinstance(exc, (ReadTimeout, ConnectionError)):
-                    pass
-                else:
-                    raise (exc)
+                client.request(url)
+            except (ReadTimeout, ConnectionError):
+                pass
