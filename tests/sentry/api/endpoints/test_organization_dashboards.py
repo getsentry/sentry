@@ -322,21 +322,50 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1},
-                },
-                {
-                    "displayType": "bar",
-                    "interval": "5m",
-                    "title": "Error count()",
-                    "queries": [
-                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
-                    ],
-                    "layout": {"babablooey": 5, "potato": 3},
+                    "layout": {"x": False, "y": "this is incorrect", "w": 1, "h": 1},
                 },
             ],
         }
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
+
+    def test_extra_keys_in_widget_layout_are_ignored(self):
+        expected_widget = {
+            "displayType": "line",
+            "interval": "5m",
+            "title": "Transaction count()",
+            "queries": [
+                {
+                    "name": "Transactions",
+                    "fields": ["count()"],
+                    "conditions": "event.type:transaction",
+                }
+            ],
+            "layout": {"x": 0, "y": 0, "w": 1, "h": 1},
+        }
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    **expected_widget,
+                    "layout": {
+                        **expected_widget["layout"],
+                        "totally unexpected": "but ignored",
+                        "no matter the type": True,
+                    },
+                }
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard from Post"
+        )
+        widgets = self.get_widgets(dashboard.id)
+
+        assert len(widgets) == 1
+        assert "layout" in data["widgets"][0]
+        self.assert_serialized_widget(expected_widget, widgets[0])
 
     def test_post_widgets_with_valid_layout_keys_but_non_int_values(self):
         data = {

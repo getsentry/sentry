@@ -50,39 +50,31 @@ def is_table_display_type(display_type):
 
 
 class LayoutField(serializers.Field):
-    def to_representation(self, value):
-        return value
+    STORE_KEYS = {
+        "x",
+        "y",
+        "w",
+        "h",
+        "min_w",
+        "max_w",
+        "min_h",
+        "max_h",
+    }
 
     def to_internal_value(self, data):
         if data is None:
             return None
 
-        STORE_KEYS = {
-            "x",
-            "y",
-            "w",
-            "h",
-            "min_w",
-            "max_w",
-            "min_h",
-            "max_h",
-        }
-        IGNORE_KEYS = {
-            "i",
-            "static",
-            "moved",
-        }
-        invalid_keys = set(data.keys()) - (STORE_KEYS.union(IGNORE_KEYS))
-        if invalid_keys:
-            invalid_keys_str = ", ".join(invalid_keys)
-            raise serializers.ValidationError(f"Contains invalid keys: {invalid_keys_str}")
-
         layout_to_store = {}
-        for key in data.keys():
-            if key in STORE_KEYS:
-                if not isinstance(data[key], int):
-                    raise serializers.ValidationError(f"Expected number for: {key}")
-                layout_to_store[key] = data[key]
+        for key in self.STORE_KEYS:
+            value = data.get(key)
+            if value is None:
+                # The key wasn't provided or it was explicitly None
+                # We don't need to store it
+                continue
+            if not isinstance(value, int):
+                raise serializers.ValidationError(f"Expected number for: {key}")
+            layout_to_store[key] = value
         return layout_to_store
 
 

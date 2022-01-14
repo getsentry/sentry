@@ -648,7 +648,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             self.url(self.dashboard.id),
             data={
                 "widgets": [
-                    {"id": self.widget_1.id, "layout": {"invalidKey": 0, "y": 0, "w": 2, "h": 5}}
+                    {
+                        "id": self.widget_1.id,
+                        "layout": {"x": "this type is unexpected", "y": 0, "w": 2, "h": 5},
+                    }
                 ]
             },
         )
