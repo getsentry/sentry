@@ -20,7 +20,7 @@ type Internals = {
   organization: Organization | null;
 };
 
-type PageFiltersStoreInterface = CommonStoreInterface<State> & {
+export type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   reset(selection?: PageFilters): void;
   onReset(): void;
   onSetOrganization(organization: Organization): void;
