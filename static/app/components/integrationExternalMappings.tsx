@@ -11,6 +11,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconArrow, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {ExternalActorMapping, Integration, Organization} from 'sentry/types';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
@@ -69,15 +70,19 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    this.getUnassociatedMappings();
     const {integration, mappings, type, onCreateOrEdit, onDelete, pageLinks} = this.props;
-    const newMappings = [...this.getUnassociatedMappings(), ...mappings];
+    const allMappings = [
+      // ...this.getUnassociatedMappings(),
+      ...mappings,
+    ];
     return (
       <Fragment>
         <Panel>
           <PanelHeader disablePadding hasButtons>
             <HeaderLayout>
-              <ExternalNameColumn>{tct('External [type]', {type})}</ExternalNameColumn>
+              <ExternalNameColumn header>
+                {tct('External [type]', {type})}
+              </ExternalNameColumn>
               <ArrowColumn>
                 <IconArrow direction="right" size="md" />
               </ArrowColumn>
@@ -113,12 +118,15 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
                 {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
               </EmptyMessage>
             )}
-            {newMappings.map((item, index) => (
+            {allMappings.map((item, index) => (
               <Access access={['org:integrations']} key={index}>
                 {({hasAccess}) => (
                   <ConfigPanelItem>
                     <Layout>
-                      <ExternalNameColumn>{item.externalName}</ExternalNameColumn>
+                      <ExternalNameColumn>
+                        <StyledPluginIcon pluginId={integration.provider.key} size={19} />
+                        <span>{item.externalName}</span>
+                      </ExternalNameColumn>
                       <ArrowColumn>
                         <IconArrow direction="right" size="md" />
                       </ArrowColumn>
@@ -175,6 +183,7 @@ const AddButton = styled(Button)`
 const Layout = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
+  padding: ${space(1)};
   width: 100%;
   align-items: center;
   grid-template-columns: 2.5fr 50px 2.5fr 1fr;
@@ -183,15 +192,20 @@ const Layout = styled('div')`
 
 const HeaderLayout = styled(Layout)`
   align-items: center;
-  margin: 0;
-  margin-left: ${space(2)};
+  padding: 0 ${space(1)} 0 ${space(2)};
   text-transform: uppercase;
 `;
 
-const ConfigPanelItem = styled(PanelItem)``;
+const ConfigPanelItem = styled(PanelItem)`
+  padding: 0 ${space(1)};
+`;
 
 const StyledButton = styled(Button)`
   margin: ${space(0.5)};
+`;
+
+const StyledPluginIcon = styled(PluginIcon)`
+  margin-right: ${space(2)};
 `;
 
 // Columns below
@@ -200,8 +214,11 @@ const Column = styled('span')`
   overflow-wrap: break-word;
 `;
 
-const ExternalNameColumn = styled(Column)`
+const ExternalNameColumn = styled(Column)<{header?: boolean}>`
   grid-area: external-name;
+  display: flex;
+  align-items: center;
+  font-family: ${p => (p.header ? 'inherit' : p.theme.text.familyMono)};
 `;
 
 const ArrowColumn = styled(Column)`
