@@ -1,6 +1,6 @@
 import abc
 from dataclasses import dataclass
-from typing import Iterable, Optional, Sequence, Tuple
+from typing import Iterable, Optional, Sequence, Tuple, Type
 
 from sentry.models import Organization, OrganizationMember, User, UserEmail
 from sentry.utils import metrics
@@ -36,7 +36,8 @@ class _EmailResolver:
             (unique_email,) = candidates
             return unique_email.user
 
-        for step in self.get_steps():
+        for step_cls in self.get_steps():
+            step = step_cls(self)
             last_candidates = candidates
             candidates = tuple(step.apply(candidates))
             if len(candidates) == 1:
@@ -47,21 +48,24 @@ class _EmailResolver:
             if len(candidates) == 0:
                 # If the step eliminated all, ignore it and go to the next step
                 candidates = last_candidates
-            step.if_inconclusive(candidates)
 
+        self.if_inconclusive(candidates)
         raise AmbiguousUserFromEmail(self.email, [ue.user for ue in candidates])
 
+    def if_inconclusive(self, remaining_candidates: Sequence[UserEmail]) -> None:
+        """Hook to call if no step resolves to a single user."""
+        metrics.incr("auth.email_resolution.no_resolution", sample_rate=1.0)
+
+    @dataclass
     class ResolutionStep(abc.ABC):
+        parent: "_EmailResolver"
+
         @abc.abstractmethod
         def apply(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
             raise NotImplementedError
 
         def if_conclusive(self, candidates: Sequence[UserEmail], choice: UserEmail) -> None:
             """Hook to call if this step resolves to a single user."""
-            pass
-
-        def if_inconclusive(self, remaining_candidates: Sequence[UserEmail]) -> None:
-            """Hook to call if this step doesn't resolve to a single user."""
             pass
 
     class IsVerified(ResolutionStep):
@@ -73,17 +77,14 @@ class _EmailResolver:
         def if_conclusive(self, candidates: Sequence[UserEmail], choice: UserEmail) -> None:
             metrics.incr("auth.email_resolution.by_verification", sample_rate=1.0)
 
-    @dataclass
     class HasOrgMembership(ResolutionStep):
         """Prefer users who belong to the organization."""
 
-        organization: Optional[Organization]
-
         def apply(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
-            if not self.organization:
+            if not self.parent.organization:
                 return ()
             query = OrganizationMember.objects.filter(
-                organization=self.organization, user__in=[ue.user for ue in candidates]
+                organization=self.parent.organization, user__in=[ue.user for ue in candidates]
             )
             users_in_org = {user_id for (user_id,) in query.values_list("user")}
             return (ue for ue in candidates if ue.user.id in users_in_org)
@@ -91,11 +92,18 @@ class _EmailResolver:
         def if_conclusive(self, candidates: Sequence[UserEmail], choice: UserEmail) -> None:
             metrics.incr("auth.email_resolution.by_org_membership", sample_rate=1.0)
 
-        def if_inconclusive(self, remaining_candidates: Sequence[UserEmail]) -> None:
-            metrics.incr("auth.email_resolution.no_resolution", sample_rate=1.0)
+    class IsPrimary(ResolutionStep):
+        """Prefer users whose primary address matches the address in question."""
 
-    def get_steps(self) -> Iterable[ResolutionStep]:
+        def apply(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
+            return (ue for ue in candidates if ue.user.email == self.parent.email)
+
+        def if_conclusive(self, candidates: Sequence[UserEmail], choice: UserEmail) -> None:
+            metrics.incr("auth.email_resolution.by_primary_email", sample_rate=1.0)
+
+    def get_steps(self) -> Iterable[Type]:
         return (
-            self.IsVerified(),
-            self.HasOrgMembership(self.organization),
+            self.IsVerified,
+            self.HasOrgMembership,
+            self.IsPrimary,
         )

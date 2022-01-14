@@ -31,31 +31,32 @@ class EmailResolverTest(TestCase):
     @mock.patch("sentry.auth.email.metrics")
     def test_prefers_verified_email(self, mock_metrics):
         org = self.create_organization()
-
-        user1 = self.create_user()
-        UserEmail.objects.create(user=user1, email="me@example.com", is_verified=True)
-
-        user2 = self.create_user()
-        UserEmail.objects.create(user=user2, email="me@example.com", is_verified=False)
-        OrganizationMember.objects.create(organization=org, user=user2)
+        UserEmail.objects.create(user=self.user1, email="me@example.com", is_verified=True)
+        UserEmail.objects.create(user=self.user2, email="me@example.com", is_verified=False)
+        OrganizationMember.objects.create(organization=org, user=self.user2)
 
         result = resolve_email_to_user("me@example.com", organization=org)
-        assert result == user1
+        assert result == self.user1
 
         assert mock_metrics.incr.call_args.args == ("auth.email_resolution.by_verification",)
 
     @mock.patch("sentry.auth.email.metrics")
     def test_prefers_org_member(self, mock_metrics):
         org = self.create_organization()
-
-        user1 = self.create_user()
-        UserEmail.objects.create(user=user1, email="me@example.com", is_verified=True)
-
-        user2 = self.create_user()
-        UserEmail.objects.create(user=user2, email="me@example.com", is_verified=True)
-        OrganizationMember.objects.create(organization=org, user=user2)
+        UserEmail.objects.create(user=self.user1, email="me@example.com", is_verified=True)
+        UserEmail.objects.create(user=self.user2, email="me@example.com", is_verified=True)
+        OrganizationMember.objects.create(organization=org, user=self.user2)
 
         result = resolve_email_to_user("me@example.com", organization=org)
-        assert result == user2
+        assert result == self.user2
 
         assert mock_metrics.incr.call_args.args == ("auth.email_resolution.by_org_membership",)
+
+    @mock.patch("sentry.auth.email.metrics")
+    def test_prefers_primary_email(self, mock_metrics):
+        UserEmail.objects.create(user=self.user1, email=self.user2.email, is_verified=True)
+
+        result = resolve_email_to_user(self.user2.email)
+        assert result == self.user2
+
+        assert mock_metrics.incr.call_args.args == ("auth.email_resolution.by_primary_email",)
