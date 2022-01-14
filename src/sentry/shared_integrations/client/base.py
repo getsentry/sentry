@@ -16,6 +16,9 @@ from ..exceptions.base import ApiError
 from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
 
+# TODO(mgaeta): HACK Fix the line where _request() returns "{}".
+BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any]]
+
 
 class BaseApiClient(TrackResponseMixin):
     base_url: str | None = None
@@ -77,8 +80,7 @@ class BaseApiClient(TrackResponseMixin):
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
-    ) -> BaseApiResponse:
-
+    ) -> BaseApiResponseX:
         if allow_text is None:
             allow_text = self.allow_text
 
@@ -152,50 +154,50 @@ class BaseApiClient(TrackResponseMixin):
             self.track_response_data(resp.status_code, span, None, resp)
 
             if resp.status_code == 204:
-                return {}  # type: ignore
+                return {}
 
             return BaseApiResponse.from_response(
                 resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
             )
 
     # subclasses should override ``request``
-    def request(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def request(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self._request(*args, **kwargs)
 
-    def delete(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def delete(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("DELETE", *args, **kwargs)
 
-    def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         query = ""
         if kwargs.get("params", None):
             query = json.dumps(kwargs.get("params"), sort_keys=True)
         key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
 
-        result: BaseApiResponse | None = cache.get(key)
+        result: BaseApiResponseX | None = cache.get(key)
         if result is None:
             result = self.request(method, path, *args, **kwargs)
             cache.set(key, result, self.cache_time)
         return result
 
-    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self._get_cached(path, "GET", *args, **kwargs)
 
-    def get(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def get(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("GET", *args, **kwargs)
 
-    def patch(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def patch(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("PATCH", *args, **kwargs)
 
-    def post(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def post(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("POST", *args, **kwargs)
 
-    def put(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def put(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("PUT", *args, **kwargs)
 
-    def head(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def head(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("HEAD", *args, **kwargs)
 
-    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self._get_cached(path, "HEAD", *args, **kwargs)
 
     def get_with_pagination(
