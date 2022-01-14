@@ -323,6 +323,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       const newState = cloneDeep(prevState);
       const displayType = prevState.displayType as Widget['displayType'];
       const normalized = normalizeQueries(displayType, prevState.queries);
+      if (displayType === DisplayType.TOP_N) {
+        // TOP N display should only allow a single query
+        normalized.splice(1);
+      }
 
       if (!prevState.userHasModified) {
         // If the Widget is an issue widget,
@@ -333,10 +337,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           set(newState, 'queries', widget.queries);
           set(newState, 'widgetType', WidgetType.ISSUE);
           return {...newState, errors: undefined};
-        }
-        if (displayType === DisplayType.TOP_N) {
-          // TOP N display should only allow a single query
-          normalized.splice(1);
         }
 
         // Default widget provided by Add to Dashboard from Discover
