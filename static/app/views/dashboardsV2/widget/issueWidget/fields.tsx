@@ -20,9 +20,9 @@ enum FieldKey {
   IS_HANDLED = 'isHandled',
   LAST_SEEN = 'lastSeen',
   FIRST_SEEN = 'firstSeen',
-  EVENT_COUNT = 'eventCount',
+  COUNT = 'count',
   USER_COUNT = 'userCount',
-  LIFETIME_EVENT_COUNT = 'lifetimeEventCount',
+  LIFETIME_COUNT = 'lifetimeCount',
   LIFETIME_USER_COUNT = 'lifetimeUserCount',
 }
 
@@ -39,8 +39,8 @@ export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.IS_HANDLED]: 'boolean',
   [FieldKey.LAST_SEEN]: 'string',
   [FieldKey.FIRST_SEEN]: 'string',
-  [FieldKey.EVENT_COUNT]: 'string',
+  [FieldKey.COUNT]: 'string',
   [FieldKey.USER_COUNT]: 'string',
-  [FieldKey.LIFETIME_EVENT_COUNT]: 'string',
+  [FieldKey.LIFETIME_COUNT]: 'string',
   [FieldKey.LIFETIME_USER_COUNT]: 'string',
 };

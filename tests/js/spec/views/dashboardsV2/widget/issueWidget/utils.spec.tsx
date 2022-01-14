@@ -5,7 +5,7 @@ describe('generateIssueWidgetFieldOptions', function () {
     const issueFields = generateIssueWidgetFieldOptions();
     expect(Object.keys(issueFields)).toEqual([
       'field:assignee',
-      'field:eventCount',
+      'field:count',
       'field:firstSeen',
       'field:isBookmarked',
       'field:isHandled',
@@ -13,7 +13,7 @@ describe('generateIssueWidgetFieldOptions', function () {
       'field:issue',
       'field:lastSeen',
       'field:level',
-      'field:lifetimeEventCount',
+      'field:lifetimeCount',
       'field:lifetimeUserCount',
       'field:permalink',
       'field:platform',

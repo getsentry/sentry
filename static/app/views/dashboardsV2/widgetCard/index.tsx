@@ -19,6 +19,7 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {Source} from 'sentry/utils/discover/charts';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -127,7 +128,7 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  tableResultComponent({
+  issueTableResultComponent({
     loading,
     errorMessage,
     transformedResults,
@@ -154,6 +155,7 @@ class WidgetCard extends React.Component<Props> {
         metadata={ISSUE_FIELDS}
         data={transformedResults}
         organization={organization}
+        source={Source.ISSUES}
       />
     );
   }
@@ -174,7 +176,11 @@ class WidgetCard extends React.Component<Props> {
                 ? renderErrorMessage(errorMessage)
                 : null}
               <LoadingScreen loading={loading} />
-              {this.tableResultComponent({transformedResults, loading, errorMessage})}
+              {this.issueTableResultComponent({
+                transformedResults,
+                loading,
+                errorMessage,
+              })}
               {this.renderToolbar()}
             </React.Fragment>
           );

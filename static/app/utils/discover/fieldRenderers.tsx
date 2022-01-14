@@ -1,13 +1,10 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
-import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -18,8 +15,6 @@ import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -103,7 +98,7 @@ const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
  *
  * This mapping should match the output sentry.utils.snuba:get_json_type
  */
-const FIELD_FORMATTERS: FieldFormatters = {
+export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
     renderFunc: (field, data) => {
@@ -215,13 +210,6 @@ type SpecialFields = {
   'trend_percentage()': SpecialField;
   'timestamp.to_hour': SpecialField;
   'timestamp.to_day': SpecialField;
-  assignee: SpecialField;
-  lifetimeEventCount: SpecialField;
-  lifetimeUserCount: SpecialField;
-  eventCount: SpecialField;
-  userCount: SpecialField;
-  firstSeen: SpecialField;
-  lastSeen: SpecialField;
 };
 
 /**
@@ -439,156 +427,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       </Container>
     ),
   },
-  assignee: {
-    sortField: 'assignee.name',
-    renderFunc: data => {
-      const memberList = MemberListStore.getAll();
-      return (
-        <ActorContainer>
-          <AssigneeSelector id={data.id} memberList={memberList} noDropdown />
-        </ActorContainer>
-      );
-    },
-  },
-  lifetimeEventCount: {
-    sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'lifetimeCount'),
-  },
-  lifetimeUserCount: {
-    sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'lifetimeUserCount'),
-  },
-  eventCount: {
-    sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'count'),
-  },
-  userCount: {
-    sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'userCount'),
-  },
-  firstSeen: {
-    sortField: null,
-    renderFunc: ({firstSeen}) => <StyledDateTime date={firstSeen} />,
-  },
-  lastSeen: {
-    sortField: null,
-    renderFunc: ({lastSeen}) => <StyledDateTime date={lastSeen} />,
-  },
 };
-
-const issuesCountRenderer = (
-  data: EventData,
-  field: 'count' | 'userCount' | 'lifetimeCount' | 'lifetimeUserCount'
-) => {
-  const {selectionDateString} = data;
-  const isUserField = field.includes('user');
-  const primaryCount = data[field];
-  const count = data[isUserField ? 'userCount' : 'count'];
-  const lifetimeCount = data[isUserField ? 'lifetimeUserCount' : 'lifetimeCount'];
-  const filteredCount = data[isUserField ? 'filteredUserCount' : 'filteredCount'];
-  return (
-    <Container>
-      <Tooltip
-        isHoverable
-        skipWrapper
-        popperStyle={{padding: 0}}
-        title={
-          <div>
-            {filteredCount ? (
-              <React.Fragment>
-                <Item>
-                  <StyledContent>
-                    {t('Matching search filters')}
-                    <ItemCount value={filteredCount} />
-                  </StyledContent>
-                </Item>
-                <Divider />
-              </React.Fragment>
-            ) : null}
-            <Item>
-              <StyledContent>
-                {t(`Total in ${selectionDateString}`)}
-                <ItemCount value={count} />
-              </StyledContent>
-            </Item>
-            <Divider />
-            <Item>
-              <StyledContent>
-                {t('Since issue began')}
-                <ItemCount value={lifetimeCount} />
-              </StyledContent>
-            </Item>
-          </div>
-        }
-      >
-        <span>
-          {['count', 'userCount'].includes(field) && filteredCount ? (
-            <React.Fragment>
-              <Count value={filteredCount} />
-              <SecondaryCount value={primaryCount} />
-            </React.Fragment>
-          ) : (
-            <Count value={primaryCount} />
-          )}
-        </span>
-      </Tooltip>
-    </Container>
-  );
-};
-
-const Item = styled('li')`
-  list-style: none;
-`;
-
-const contentStyle = css`
-  width: 100%;
-  justify-content: space-between;
-  display: flex;
-  padding: 6px 10px;
-`;
-
-const StyledContent = styled('div')`
-  ${contentStyle};
-`;
-
-const SecondaryCount = styled(Count)`
-  :before {
-    content: '/';
-    padding-left: ${space(0.25)};
-    padding-right: 2px;
-  }
-`;
-
-const ItemCount = styled(({value, ...p}) => (
-  <div {...p}>
-    <Count value={value} />
-  </div>
-))`
-  text-align: right;
-  font-weight: bold;
-  font-variant-numeric: tabular-nums;
-  padding-left: ${space(2)};
-  color: ${p => p.theme.subText};
-`;
-
-const Divider = styled('li')`
-  height: 1px;
-  overflow: hidden;
-  background-color: ${p => p.theme.innerBorder};
-`;
-
-const StyledDateTime = styled(DateTime)`
-  white-space: nowrap;
-`;
-
-const ActorContainer = styled('div')`
-  display: flex;
-  justify-content: left;
-  margin-left: 18px;
-  :hover {
-    cursor: default;
-  }
-`;
 
 type SpecialFunctionFieldRenderer = (
   fieldName: string

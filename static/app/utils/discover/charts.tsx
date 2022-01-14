@@ -12,6 +12,11 @@ import {
   WEEK,
 } from 'sentry/utils/formatters';
 
+export enum Source {
+  DISCOVER = 'discover',
+  ISSUES = 'issues',
+}
+
 /**
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.
  * If the result is metric values, the value can be of type number or null
