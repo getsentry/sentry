@@ -7,7 +7,7 @@ const makeEmptyEventedTrace = (): EventedProfile => {
     name: 'profile',
     startValue: 0,
     endValue: 0,
-    unit: 'milliseconds',
+    unit: 'microseconds',
     type: 'evented',
     events: [],
     shared: {
@@ -252,9 +252,11 @@ describe('flamegraph', () => {
       Flamegraph.From(flamegraph, false, false).configSpace.equals(flamegraph.configSpace)
     ).toBe(true);
   });
+
   it('Empty', () => {
-    expect(Flamegraph.Empty().configSpace.width).toEqual(1_000_000);
-    expect(Flamegraph.Empty().configSpace.height).toEqual(0);
+    expect(Flamegraph.Empty().configSpace.equals(new Rect(0, 0, 1_000_000, 0))).toBe(
+      true
+    );
   });
 
   it('withOffset', () => {
