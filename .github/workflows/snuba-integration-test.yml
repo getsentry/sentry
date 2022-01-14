@@ -24,11 +24,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
+
+      - name: Download a previous pytest report
+        uses: ./.github/actions/pytest-report
+        with:
+          action: 'download'
 
       # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
       # creates a status check in the "pending" state. This means that the workflow needs to run
@@ -62,12 +66,14 @@ jobs:
         run: |
           make test-snuba
 
-      - name: Save junit report
+      - name: Save pytest report
         uses: ./.github/actions/pytest-report
         with:
           action: 'upload'
           src: .artifacts/snuba.junit.xml
-          dest: report-${{ matrix.instance }}.yml
+          # Make sure to save with instance here otherwise the reports will
+          # clobber each other
+          dest: report-${{ matrix.instance }}.xml
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts

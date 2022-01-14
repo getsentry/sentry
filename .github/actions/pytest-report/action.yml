@@ -5,6 +5,18 @@ inputs:
     description: "The action to take with the report (download / upload)"
     default: download
     required: true
+  artifact:
+    description: "The artifact name that will be used when uploading to GHA"
+    default: pytest-report
+    required: true
+  branch:
+    description: "The main branch"
+    default: master
+    required: true
+  path:
+    description: "The download path for reports"
+    default: '.pytest-reference-reports'
+    required: true
   src:
     description: "The report to upload. This will need to be renamed"
     required: true
@@ -15,15 +27,21 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - shell: bash
-      run: mkdir .pytest_report
-
-    - name: Download report
+    - name: Get report artifact URL
       if: inputs.action != 'upload'
-      uses: actions/download-artifact@v2
+      id: 'get-artifact'
+      uses: getsentry/action-download-workflow-artifact@v0
       with:
-        name: pytest-report
-        path: .pytest_report
+        branch: ${{ inputs.branch }}
+        artifact: ${{ inputs.artifact }}
+        path: ${{ github.workspace }}/${{ inputs.path }}
+
+    - name: Debug
+      if: inputs.action != 'upload'
+      shell: bash
+      run: |
+        ls ${{ github.workspace }}/${{ inputs.path }}
+        echo $(pwd)
 
     # Need to rename so if we have multiple test instances, the reports do not overwrite each other
     - name: Rename report
@@ -31,7 +49,7 @@ runs:
       shell: bash
       run: mv ${{ inputs.src }} ${{ inputs.dest }}
 
-    - name: Upload report
+    - name: Upload rport
       if: inputs.action == 'upload'
       uses: actions/upload-artifact@v2
       with:
