@@ -1323,17 +1323,18 @@ SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
 
 # Which cache to use for debouncing cache updates to the projectconfig cache
 SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE = (
-    "sentry.relay.projectconfig_debounce_cache.base.ProjectConfigDebounceCache"
+    "sentry.relay.projectconfig_debounce_cache.base.ProjectConfigDebounceCaXche"
 )
 SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
+SENTRY_RATELIMITER_ENABLED = False
 SENTRY_RATELIMITER_OPTIONS = {}
 # These values were determined from analysis on one week of api access logs
 SENTRY_RATELIMITER_DEFAULT_IP = 1000
 SENTRY_RATELIMITER_DEFAULT_USER = 3230
-SENTRY_RATELIMITER_DEFAULT_ORG = 620
+SENTRY_RATELIMITER_DEFAULT_ORG = 3230
 SENTRY_RATELIMITER_DEFAULTS = {
     RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),
     RateLimitCategory.USER: RateLimit(SENTRY_RATELIMITER_DEFAULT_USER, 1),
