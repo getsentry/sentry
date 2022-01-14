@@ -80,7 +80,7 @@ class AccountConfirmLink:
             context=context,
         )
         msg.send_async([self.email])
-        metrics.incr("idpmigration.confirm_link_sent")
+        metrics.incr("idpmigration.confirm_link_sent", sample_rate=1.0)
 
     def store_in_redis(self) -> None:
         cluster = get_redis_cluster()
@@ -114,7 +114,8 @@ def get_verification_value_from_key(key: str) -> Dict[str, Any]:
         metrics.incr(
             "idpmigration.confirmation_success",
             tags={key: verification_value.get(key) for key in ("provider", "organization_id")},
+            sample_rate=1.0,
         )
     else:
-        metrics.incr("idpmigration.confirmation_failure")
+        metrics.incr("idpmigration.confirmation_failure", sample_rate=1.0)
     return verification_value
