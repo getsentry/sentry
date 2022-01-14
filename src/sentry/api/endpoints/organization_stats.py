@@ -16,13 +16,13 @@ class OrganizationStatsEndpoint(
 ):
     _V2_DELEGATE = OrganizationStatsEndpointV2()
 
-    @method_version("get", 1)
+    @method_version("get", 2)
     @rate_limit_endpoint(limit=20, window=1)
-    def get_v1(self, request: Request, organization) -> Response:
+    def get_v2(self, request: Request, organization) -> Response:
         return self._V2_DELEGATE.get(request, organization)
 
     @method_version("get")
-    def get_v0(self, request: Request, organization) -> Response:
+    def get_v1(self, request: Request, organization) -> Response:
         """
         Retrieve Event Counts for an Organization
         `````````````````````````````````````````
