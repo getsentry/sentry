@@ -8,9 +8,6 @@ class EndpointRegistryType(TypedDict):
 
 PUBLIC_ENDPOINTS: Dict[str, EndpointRegistryType] = {}
 
-# need to import extensions here so preprocessor knows they exist when ran
-from sentry.apidocs.extensions import *  # NOQA
-
 
 def custom_preprocessing_hook(endpoints):  # TODO: organize method, rename
     filtered = []

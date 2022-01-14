@@ -25,3 +25,6 @@ def inline_sentry_response_serializer(name: str, t: type) -> type:
 
     serializer_class = type(name, (RawSchema,), {"typeSchema": t})
     return serializer_class
+
+
+# TODO: extend schema wrapper method here

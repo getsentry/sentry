@@ -47,22 +47,22 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):  # type: ig
         return resolve_type_hint(serializer_signature.return_annotation)
 
 
-# class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):  # type: ignore
-#     """
-#     This extension is used for the `inline_sentry_response_serializer` utils function
-#     and will simply resolve the type passed into the function to an OpenAPI schema.
-#     """
+class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):  # type: ignore
+    """
+    This extension is used for the `inline_sentry_response_serializer` utils function
+    and will simply resolve the type passed into the function to an OpenAPI schema.
+    """
 
-#     priority = 0
-#     target_class = "sentry.apidocs.schemaserializer.RawSchema"
-#     match_subclasses = True
+    priority = 0
+    target_class = "sentry.apidocs.extensions.RawSchema"
+    match_subclasses = True
 
-#     def get_name(self) -> Optional[str]:
-#         name: str = self.target.__name__
-#         return name
+    def get_name(self) -> Optional[str]:
+        name: str = self.target.__name__
+        return name
 
-#     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
-#         return resolve_type_hint(self.target.typeSchema)
+    def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
+        return resolve_type_hint(self.target.typeSchema)
 
 
 class RawSchema:

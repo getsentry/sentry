@@ -42,6 +42,7 @@ def _get_type_hint_origin(hint):
 def resolve_type_hint(hint) -> Any:
     """drf-spectacular library method modified to add descriptions to TypedDict"""
     origin, args = _get_type_hint_origin(hint)
+    excluded_fields = get_override(hint, "exclude_fields", [])
 
     if origin is None and is_basic_type(hint, allow_none=False):
         return build_basic_type(hint)
@@ -89,10 +90,10 @@ def resolve_type_hint(hint) -> Any:
             properties={
                 k: resolve_type_hint(v)
                 for k, v in get_type_hints(hint).items()
-                if k not in get_override(hint, "exclude_fields", [])
+                if k not in excluded_fields
             },
             description=inspect.cleandoc(hint.__doc__ or ""),
-            required=hint.__required_keys__,
+            required=[h for h in hint.__required_keys__ if h not in excluded_fields],
         )
     elif origin is Union:
         type_args = [arg for arg in args if arg is not type(None)]  # noqa: E721
