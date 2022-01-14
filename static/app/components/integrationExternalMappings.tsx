@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
+import pick from 'lodash/pick';
 
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -16,6 +17,9 @@ import space from 'sentry/styles/space';
 import {ExternalActorMapping, Integration, Organization} from 'sentry/types';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import {FieldFromConfig} from 'sentry/views/settings/components/forms';
+import Form from 'sentry/views/settings/components/forms/form';
+import {Field} from 'sentry/views/settings/components/forms/type';
 
 type CodeOwnersAssociationMappings = {
   [projectSlug: string]: {
@@ -36,6 +40,7 @@ type Props = AsyncComponent['props'] & {
   onCreateOrEdit: (mapping?: ExternalActorMapping) => void;
   onDelete: (mapping: ExternalActorMapping) => void;
   pageLinks?: string;
+  sentryNamesMapper: (v: any) => {id: string; name: string}[];
 };
 
 type State = AsyncComponent['state'] & {
@@ -69,8 +74,49 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     }));
   }
 
+  getInitialData(mapping: ExternalActorMapping) {
+    const {integration} = this.props;
+
+    return {
+      provider: integration.provider.key,
+      integrationId: integration.id,
+      ...pick(mapping, ['sentryName', 'userId', 'teamId']),
+    };
+  }
+
+  getField(mapping: ExternalActorMapping): Field {
+    const {sentryNamesMapper, type, organization} = this.props;
+    const optionMapper = sentryNames =>
+      sentryNames.map(({name, id}) => ({value: id, label: name}));
+    return {
+      name: `${type}Id`,
+      type: 'select_async',
+      required: true,
+      placeholder: t(`Select Sentry ${capitalize(type)}`),
+      url: `/organizations/${organization.slug}/members/`,
+      onResults: result => {
+        // For organizations with >100 users, we want to make sure their
+        // saved mapping gets populated in the results if it wouldn't have
+        // been in the initial 100 API results, which is why we add it here
+        if (mapping && !result.find(({user}) => user.id === mapping.userId)) {
+          result = [{id: mapping.userId, name: mapping.sentryName}, ...result];
+        }
+        return optionMapper(sentryNamesMapper(result));
+      },
+    };
+  }
+
   renderBody() {
-    const {integration, mappings, type, onCreateOrEdit, onDelete, pageLinks} = this.props;
+    const {
+      organization,
+      integration,
+      mappings,
+      type,
+      onCreateOrEdit,
+      onDelete,
+      pageLinks,
+    } = this.props;
+    // TODO(Leander): Figure out how to add these to the list without TS getting mad
     const allMappings = [
       // ...this.getUnassociatedMappings(),
       ...mappings,
@@ -118,19 +164,40 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
                 {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
               </EmptyMessage>
             )}
-            {allMappings.map((item, index) => (
+            {allMappings.map((mapping, index) => (
               <Access access={['org:integrations']} key={index}>
                 {({hasAccess}) => (
                   <ConfigPanelItem>
                     <Layout>
                       <ExternalNameColumn>
                         <StyledPluginIcon pluginId={integration.provider.key} size={19} />
-                        <span>{item.externalName}</span>
+                        <span>{mapping.externalName}</span>
                       </ExternalNameColumn>
                       <ArrowColumn>
                         <IconArrow direction="right" size="md" />
                       </ArrowColumn>
-                      <SentryNameColumn>{item.sentryName}</SentryNameColumn>
+                      <SentryNameColumn>
+                        {mapping.sentryName}
+                        <Form
+                          requireChanges
+                          apiEndpoint={`/organizations/${organization.slug}/external-users/${mapping.id}/`}
+                          apiMethod="PUT"
+                          onSubmitSuccess={() => {
+                            // TODO(Leander): Decide if there should be an action here
+                          }}
+                          saveOnBlur
+                          allowUndo
+                          initialData={this.getInitialData(mapping)}
+                        >
+                          <FieldFromConfig
+                            key={`${type}Id`}
+                            field={this.getField(mapping)}
+                            inline={false}
+                            stacked
+                            flexibleControlStateSize
+                          />
+                        </Form>
+                      </SentryNameColumn>
                       <ButtonColumn>
                         <Tooltip
                           title={t(
@@ -143,11 +210,11 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
                             icon={<IconEdit size="sm" />}
                             aria-label={t('edit')}
                             disabled={!hasAccess}
-                            onClick={() => onCreateOrEdit(item)}
+                            onClick={() => onCreateOrEdit(mapping)}
                           />
                           <Confirm
                             disabled={!hasAccess}
-                            onConfirm={() => onDelete(item)}
+                            onConfirm={() => onDelete(mapping)}
                             message={t(
                               'Are you sure you want to remove this external user mapping?'
                             )}
@@ -227,6 +294,7 @@ const ArrowColumn = styled(Column)`
 
 const SentryNameColumn = styled(Column)`
   grid-area: sentry-name;
+  overflow: visible;
 `;
 
 const ButtonColumn = styled(Column)`

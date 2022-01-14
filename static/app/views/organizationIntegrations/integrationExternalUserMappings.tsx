@@ -120,6 +120,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
           organization={organization}
           type="user"
           mappings={this.mappings}
+          sentryNamesMapper={this.sentryNamesMapper}
           onCreateOrEdit={this.openModal}
           onDelete={this.handleDelete}
           pageLinks={membersPageLinks}
