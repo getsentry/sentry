@@ -65,11 +65,16 @@ export const HeaderActions = styled('div')`
 export const Title = styled('h1')`
   ${p => p.theme.text.pageTitle};
   color: ${p => p.theme.headingColor};
+  margin-top: ${space(2)};
   /* TODO(bootstrap) Remove important when bootstrap headings are removed */
   margin-bottom: 0 !important;
   min-height: 30px;
   align-self: center;
   ${overflowEllipsis};
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    margin-top: ${space(1)};
+  }
 `;
 
 /**
