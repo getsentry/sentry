@@ -32,6 +32,7 @@ type Props = {
     changedData: NotificationSettingsByProviderObject,
     parentId: string
   ) => NotificationSettingsObject;
+  onSubmitSuccess: () => void;
 } & AsyncComponent['props'];
 
 type State = {
@@ -74,7 +75,8 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {notificationType, notificationSettings, onChange} = this.props;
+    const {notificationType, notificationSettings, onChange, onSubmitSuccess} =
+      this.props;
     const {projects, projectsPageLinks} = this.state;
 
     const canSearch = this.getProjectCount() >= MIN_PROJECTS_FOR_SEARCH;
@@ -98,6 +100,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
           apiMethod="PUT"
           apiEndpoint="/users/me/notification-settings/"
           initialData={getParentData(notificationType, notificationSettings, projects)}
+          onSubmitSuccess={onSubmitSuccess}
         >
           {projects.length === 0 ? (
             <EmptyMessage>{t('No projects found')}</EmptyMessage>
