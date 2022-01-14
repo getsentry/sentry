@@ -21,4 +21,4 @@ class TransitionalSerializerTest(TestCase):
         assert self.transitional_serializer.loads(self.pickle_obj) == self.obj
 
     def test_write(self):
-        assert self.transitional_serializer.dumps(self.obj) == self.pickle_obj
+        assert self.transitional_serializer.dumps(self.obj) == self.json_obj
