@@ -109,3 +109,6 @@ class IntegrationNudgeNotification(BaseNotification):
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         pass
+
+    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+        return {"seed": self.seed, **super().get_log_params(recipient)}
