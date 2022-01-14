@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Any, Mapping
 from urllib.parse import urlparse
 
 from requests.exceptions import RequestException
@@ -71,7 +71,7 @@ class DuplicateDisplayNameError(IntegrationError):
 
 
 class IntegrationFormError(IntegrationError):
-    def __init__(self, field_errors: Sequence[Exception]):
+    def __init__(self, field_errors: Mapping[str, Any]) -> None:
         super().__init__("Invalid integration action")
         self.field_errors = field_errors
 

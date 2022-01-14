@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from random import random
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence, Type, Union
 
 import sentry_sdk
 from django.core.cache import cache
@@ -47,7 +47,7 @@ class BaseApiClient(TrackResponseMixin):
     def __enter__(self) -> BaseApiClient:
         return self
 
-    def __exit__(self, exc_type: str, exc_value: str, traceback: Any) -> None:
+    def __exit__(self, exc_type: Type[Exception], exc_value: Exception, traceback: Any) -> None:
         # TODO(joshuarli): Look into reusing a SafeSession, and closing it here.
         #  Don't want to make the change until I completely understand urllib3
         #  machinery + how we override it, possibly do this along with urllib3
