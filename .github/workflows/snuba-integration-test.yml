@@ -30,6 +30,7 @@ jobs:
           fetch-depth: '2'
 
       - name: Download a previous pytest report
+        continue-on-error: true
         uses: ./.github/actions/pytest-report
         with:
           action: 'download'
