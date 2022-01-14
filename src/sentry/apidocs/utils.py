@@ -3,7 +3,7 @@ from sentry.api.serializers import Serializer
 
 class _RawSchema:
     """
-    Basic class that simply stores a type that is parsed into OpenAPISchema.
+    Basic class that simply stores a type that is parsed into Open API Schema.
     Used by `utils.inline_sentry_response_serializer`
     """
 
