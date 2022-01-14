@@ -686,6 +686,11 @@ const commonTheme = {
       letterSpacing: '-0.01em',
       lineHeight: 1.2,
     },
+    cardTitle: {
+      fontSize: '1rem',
+      fontWeight: 600,
+      lineHeight: 1.2,
+    },
   },
 
   dataCategory,

@@ -311,6 +311,9 @@ const HeaderRow = styled('div')`
   grid-template-columns: 1fr auto;
   justify-content: space-between;
   align-items: center;
+
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
 `;
 
 const StyledProjectCard = styled('div')`

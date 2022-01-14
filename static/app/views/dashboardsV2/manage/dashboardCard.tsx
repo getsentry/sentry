@@ -95,7 +95,8 @@ const CardHeader = styled('div')`
 `;
 
 const Title = styled('div')`
-  color: ${p => p.theme.textColor};
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
   ${overflowEllipsis};
 `;
 

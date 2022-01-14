@@ -54,8 +54,8 @@ export const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.textColor};
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
   align-items: center;
 `;
 
