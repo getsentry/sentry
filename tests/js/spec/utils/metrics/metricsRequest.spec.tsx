@@ -8,7 +8,7 @@ describe('MetricsRequest', () => {
   const childrenMock = jest.fn(() => null);
   const props = {
     api: new MockApiClient(),
-    organization,
+    orgSlug: organization.slug,
     field: ['fieldA'],
     project: [project.id],
     environment: ['prod'],

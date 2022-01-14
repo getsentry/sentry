@@ -62,6 +62,9 @@ type TestStubFixtures = {
   JiraIntegrationProvider: OverridableStub;
   Member: OverridableStub;
   Members: OverridableStubList;
+  MetricsField: OverridableStub;
+  MetricsFieldByMeasurementRating: OverridableStub;
+  MetricsFieldsByMeasurementRating: OverridableStub;
   OrgOwnedApps: SimpleStub;
   Organization: OverridableStub;
   OrganizationEvent: OverridableStub;

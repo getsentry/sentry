@@ -43,6 +43,10 @@ type Options = {
    * Persist changes to the page filter selection into local storage
    */
   save?: boolean;
+  /**
+   * Use Location.replace instead of push when updating the URL query state
+   */
+  replace?: boolean;
 };
 
 /**
@@ -143,16 +147,19 @@ export function initializeUrlState({
       [DATE_TIME.UTC as 'utc']: parsed.utc || customizedDefaultDateTime?.utc || null,
     },
   };
+
   if (pageFilters.datetime.start && pageFilters.datetime.end) {
     pageFilters.datetime.period = null;
   }
 
-  // We only save environment and project, so if those exist in
-  // URL, do not touch local storage
   if (hasProjectOrEnvironmentInUrl) {
     pageFilters.projects = parsed.project || [];
     pageFilters.environments = parsed.environment || [];
-  } else if (!skipLoadLastUsed) {
+  }
+
+  // We only save environment and project, so if those exist in URL, do not
+  // touch local storage
+  if (!hasProjectOrEnvironmentInUrl && !skipLoadLastUsed) {
     const storedPageFilters = getPageFilterStorage(orgSlug);
 
     if (storedPageFilters !== null) {
@@ -164,29 +171,31 @@ export function initializeUrlState({
   let newProject: number[] | null = null;
   let project = projects;
 
-  /**
-   * Skip enforcing a single project if `shouldForceProject` is true,
-   * since a component is controlling what that project needs to be.
-   * This is true regardless if user has access to multi projects
-   */
+  // Skip enforcing a single project if `shouldForceProject` is true, since a
+  // component is controlling what that project needs to be. This is true
+  // regardless if user has access to multi projects
   if (shouldForceProject && forceProject) {
     newProject = [getProjectIdFromProject(forceProject)];
   } else if (shouldEnforceSingleProject && !shouldForceProject) {
-    /**
-     * If user does not have access to `global-views` (e.g. multi project select) *and* there is no
-     * `project` URL parameter, then we update URL params with:
-     * 1) the first project from the list of requested projects from URL params,
-     * 2) first project user is a member of from org
-     *
-     * Note this is intentionally skipped if `shouldForceProject == true` since we want to initialize store
-     * and wait for the forced project
-     */
+    // If user does not have access to `global-views` (e.g. multi project
+    // select) *and* there is no `project` URL parameter, then we update URL
+    // params with:
+    //
+    //  1) the first project from the list of requested projects from URL params
+    //  2) first project user is a member of from org
+    //
+    // Note this is intentionally skipped if `shouldForceProject == true` since
+    // we want to initialize store and wait for the forced project
+    //
     if (projects && projects.length > 0) {
-      // If there is a list of projects from URL params, select first project from that list
+      // If there is a list of projects from URL params, select first project
+      // from that list
       newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]];
     } else {
-      // When we have finished loading the organization into the props,  i.e. the organization slug is consistent with
-      // the URL param--Sentry will get the first project from the organization that the user is a member of.
+      // When we have finished loading the organization into the props,  i.e.
+      // the organization slug is consistent with the URL param--Sentry will
+      // get the first project from the organization that the user is a member
+      // of.
       newProject = [...memberProjects].slice(0, 1).map(getProjectIdFromProject);
     }
   }
@@ -199,23 +208,14 @@ export function initializeUrlState({
   PageFiltersActions.initializeUrlState(pageFilters);
   PageFiltersActions.setOrganization(organization);
 
-  // To keep URLs clean, don't push default period if url params are empty
-  const parsedWithNoDefaultPeriod = getStateFromQuery(queryParams, {
-    allowEmptyPeriod: true,
-    allowAbsoluteDatetime: showAbsolute,
-  });
-
   const newDatetime = {
     ...datetime,
-    period:
-      !parsedWithNoDefaultPeriod.start &&
-      !parsedWithNoDefaultPeriod.end &&
-      !parsedWithNoDefaultPeriod.period
-        ? null
-        : datetime.period,
-    utc: !parsedWithNoDefaultPeriod.utc ? null : datetime.utc,
+    period: !parsed.start && !parsed.end && !parsed.period ? null : datetime.period,
+    utc: !parsed.utc ? null : datetime.utc,
   };
-  replaceParams({project, environment, ...newDatetime}, router, {
+
+  updateParams({project, environment, ...newDatetime}, router, {
+    replace: true,
     keepCursor: true,
   });
 }
@@ -311,37 +311,9 @@ export function updateParams(obj: UrlParams, router?: Router, options?: Options)
     setPageFiltersStorage(orgSlug, selection, newQuery);
   }
 
-  router.push({
-    pathname: router.location.pathname,
-    query: newQuery,
-  });
-}
+  const routerAction = options?.replace ? router.replace : router.push;
 
-/**
- * Like updateParams but just replaces the current URL and does not create a
- * new browser history entry
- *
- * @param obj New query params
- * @param [router] React router object
- * @param [options] Options object
- */
-export function replaceParams(obj: UrlParams, router?: Router, options?: Options) {
-  // Allow another component to handle routing
-  if (!router) {
-    return;
-  }
-
-  const newQuery = getNewQueryParams(obj, router.location.query, options);
-
-  // Only push new location if query params have changed because this will cause a heavy re-render
-  if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
-    return;
-  }
-
-  router.replace({
-    pathname: router.location.pathname,
-    query: newQuery,
-  });
+  routerAction({pathname: router.location.pathname, query: newQuery});
 }
 
 /**

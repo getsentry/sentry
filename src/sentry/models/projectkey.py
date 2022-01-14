@@ -34,12 +34,12 @@ class ProjectKeyStatus:
 class ProjectKeyManager(BaseManager):
     def post_save(self, instance, **kwargs):
         schedule_update_config_cache(
-            project_id=instance.project_id, generate=True, update_reason="projectkey.post_save"
+            public_key=instance.public_key, generate=True, update_reason="projectkey.post_save"
         )
 
     def post_delete(self, instance, **kwargs):
         schedule_update_config_cache(
-            project_id=instance.project_id, generate=True, update_reason="projectkey.post_delete"
+            public_key=instance.public_key, generate=True, update_reason="projectkey.post_delete"
         )
 
 

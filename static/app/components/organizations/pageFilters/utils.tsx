@@ -12,9 +12,29 @@ import localStorage from 'sentry/utils/localStorage';
 
 import {normalizeDateTimeParams} from './parse';
 
-const DEFAULT_PARAMS = normalizeDateTimeParams({});
+const DEFAULT_DATETIME_PARAMS = normalizeDateTimeParams({});
 
 const LOCAL_STORAGE_KEY = 'global-selection';
+
+/**
+ * Make a default page filters object
+ */
+export function getDefaultSelection(): PageFilters {
+  const {utc, start, end, statsPeriod} = DEFAULT_DATETIME_PARAMS;
+
+  const datetime = {
+    start: start || null,
+    end: end || null,
+    period: statsPeriod || '',
+    utc: typeof utc !== 'undefined' ? utc === 'true' : null,
+  };
+
+  return {
+    projects: [],
+    environments: [],
+    datetime,
+  };
+}
 
 /**
  * Extract the page filter parameters from an object
@@ -30,20 +50,6 @@ export function extractSelectionParameters(query: Location['query']) {
  */
 export function extractDatetimeSelectionParameters(query: Location['query']) {
   return pickBy(pick(query, Object.values(DATE_TIME_KEYS)), identity);
-}
-
-export function getDefaultSelection(): PageFilters {
-  const utc = DEFAULT_PARAMS.utc;
-  return {
-    projects: [],
-    environments: [],
-    datetime: {
-      start: DEFAULT_PARAMS.start || null,
-      end: DEFAULT_PARAMS.end || null,
-      period: DEFAULT_PARAMS.statsPeriod || '',
-      utc: typeof utc !== 'undefined' ? utc === 'true' : null,
-    },
-  };
 }
 
 /**
@@ -78,12 +84,9 @@ function makeLocalStorageKey(orgSlug: string) {
   return `${LOCAL_STORAGE_KEY}:${orgSlug}`;
 }
 
-type ProjectId = string | number;
-type EnvironmentId = Environment['id'];
-
 type UpdateData = {
-  project?: ProjectId | ProjectId[] | null;
-  environment?: EnvironmentId[] | null;
+  project?: Array<string | number> | string | number | null;
+  environment?: Environment['id'][] | null;
 };
 
 /**

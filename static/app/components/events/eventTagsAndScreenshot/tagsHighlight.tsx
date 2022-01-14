@@ -1,6 +1,6 @@
 import {Event} from 'sentry/types/event';
 
-import ContextSummary from '../contextSummary/contextSummary';
+import ContextSummary from '../contextSummary';
 
 type Props = {
   event: Event;
