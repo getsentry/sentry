@@ -334,6 +334,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           set(newState, 'widgetType', WidgetType.ISSUE);
           return {...newState, errors: undefined};
         }
+        if (displayType === DisplayType.TOP_N) {
+          // TOP N display should only allow a single query
+          normalized.splice(1);
+        }
 
         // Default widget provided by Add to Dashboard from Discover
         if (defaultWidgetQuery && defaultTableColumns) {
