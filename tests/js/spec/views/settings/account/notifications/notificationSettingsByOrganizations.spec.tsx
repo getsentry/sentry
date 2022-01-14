@@ -12,6 +12,7 @@ const createWrapper = (notificationSettings: NotificationSettingsObject) => {
       notificationSettings={notificationSettings}
       organizations={[organization]}
       onChange={jest.fn()}
+      onSubmitSuccess={jest.fn()}
     />,
     routerContext
   );
