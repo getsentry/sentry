@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -30,6 +30,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
+import {transformMetricsToArea} from 'sentry/views/performance/landing/widgets/transforms/transformMetricsToArea';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 import Breadcrumb from '../breadcrumb';
 import MetricsSearchBar from '../metricsSearchBar';
@@ -41,7 +43,6 @@ import {vitalDescription, vitalMap, vitalToMetricsField} from './utils';
 import VitalChart from './vitalChart';
 import VitalChartMetrics from './vitalChartMetrics';
 import VitalInfo from './vitalInfo';
-import VitalInfoMetrics from './vitalInfoMetrics';
 
 const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
@@ -68,7 +69,7 @@ function getSummaryConditions(query: string) {
   return parsed.formatString();
 }
 
-class VitalDetailContent extends React.Component<Props, State> {
+class VitalDetailContent extends Component<Props, State> {
   state: State = {
     incompatibleAlertNotice: null,
     error: undefined,
@@ -187,9 +188,11 @@ class VitalDetailContent extends React.Component<Props, State> {
 
   renderContent(vital: WebVital) {
     const {isMetricsData, location, organization, eventView, api, projects} = this.props;
+
+    const {fields, start, end, statsPeriod, environment, project} = eventView;
+
     const query = decodeScalar(location.query.query, '');
     const orgSlug = organization.slug;
-    const {fields, start, end, statsPeriod, environment, project: projectIds} = eventView;
     const localDateStart = start ? getUtcToLocalDateObject(start) : null;
     const localDateEnd = end ? getUtcToLocalDateObject(end) : null;
     const interval = getInterval(
@@ -201,11 +204,11 @@ class VitalDetailContent extends React.Component<Props, State> {
       const field = `p75(${vitalToMetricsField[vital]})`;
 
       return (
-        <React.Fragment>
+        <Fragment>
           <StyledMetricsSearchBar
             searchSource="performance_vitals_metrics"
             orgSlug={orgSlug}
-            projectIds={projectIds}
+            projectIds={project}
             query={query}
             onSearch={this.handleSearch}
           />
@@ -215,26 +218,33 @@ class VitalDetailContent extends React.Component<Props, State> {
             start={start}
             end={end}
             statsPeriod={statsPeriod}
-            project={projectIds}
+            project={project}
             environment={environment}
             field={[field]}
             query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
             interval={interval}
           >
-            {({loading: isLoading, response, reloading, errored}) => {
-              const p75AllTransactions = response?.groups.reduce(
-                (acc, group) => acc + (group.totals[field] ?? 0),
-                0
+            {p75RequestProps => {
+              const {loading, errored, response, reloading} = p75RequestProps;
+
+              const p75Data = transformMetricsToArea(
+                {
+                  location,
+                  fields: [field],
+                  chartSetting: PerformanceWidgetSetting.P75_DURATION_AREA,
+                },
+                p75RequestProps
               );
+
               return (
-                <React.Fragment>
+                <Fragment>
                   <VitalChartMetrics
                     start={localDateStart}
                     end={localDateEnd}
                     statsPeriod={statsPeriod}
-                    project={projectIds}
+                    project={project}
                     environment={environment}
-                    loading={isLoading}
+                    loading={loading}
                     response={response}
                     errored={errored}
                     reloading={reloading}
@@ -242,26 +252,26 @@ class VitalDetailContent extends React.Component<Props, State> {
                     vital={vital}
                   />
                   <StyledVitalInfo>
-                    <VitalInfoMetrics
-                      api={api}
+                    <VitalInfo
                       orgSlug={orgSlug}
+                      location={location}
+                      vital={vital}
+                      project={project}
+                      environment={environment}
                       start={start}
                       end={end}
                       statsPeriod={statsPeriod}
-                      project={projectIds}
-                      environment={environment}
-                      vital={vital}
-                      query={query}
-                      p75AllTransactions={p75AllTransactions}
-                      isLoading={isLoading}
+                      isMetricsData={isMetricsData}
+                      isLoading={loading}
+                      p75AllTransactions={p75Data.dataMean?.[0].mean}
                     />
                   </StyledVitalInfo>
                   <div>TODO</div>
-                </React.Fragment>
+                </Fragment>
               );
             }}
           </MetricsRequest>
-        </React.Fragment>
+        </Fragment>
       );
     }
 
@@ -269,11 +279,11 @@ class VitalDetailContent extends React.Component<Props, State> {
     const summaryConditions = getSummaryConditions(filterString);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledSearchBar
           searchSource="performance_vitals"
           organization={organization}
-          projectIds={projectIds}
+          projectIds={project}
           query={query}
           fields={fields}
           onSearch={this.handleSearch}
@@ -281,7 +291,7 @@ class VitalDetailContent extends React.Component<Props, State> {
         <VitalChart
           organization={organization}
           query={query}
-          project={projectIds}
+          project={project}
           environment={environment}
           start={localDateStart}
           end={localDateEnd}
@@ -289,8 +299,18 @@ class VitalDetailContent extends React.Component<Props, State> {
           interval={interval}
         />
         <StyledVitalInfo>
-          <VitalInfo location={location} vital={vital} />
+          <VitalInfo
+            orgSlug={orgSlug}
+            location={location}
+            vital={vital}
+            project={project}
+            environment={environment}
+            start={start}
+            end={end}
+            statsPeriod={statsPeriod}
+          />
         </StyledVitalInfo>
+
         <Teams provideUserTeams>
           {({teams, initiallyLoaded}) =>
             initiallyLoaded ? (
@@ -298,7 +318,7 @@ class VitalDetailContent extends React.Component<Props, State> {
                 organization={organization}
                 teams={teams}
                 selectedTeams={['myteams']}
-                selectedProjects={eventView.project.map(String)}
+                selectedProjects={project.map(String)}
               >
                 <Table
                   eventView={eventView}
@@ -314,7 +334,7 @@ class VitalDetailContent extends React.Component<Props, State> {
             )
           }
         </Teams>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -323,10 +343,9 @@ class VitalDetailContent extends React.Component<Props, State> {
     const {incompatibleAlertNotice} = this.state;
 
     const vital = vitalName || WebVital.LCP;
-    const description = vitalDescription[vitalName];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumb
@@ -352,11 +371,11 @@ class VitalDetailContent extends React.Component<Props, State> {
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main fullWidth>
-            <StyledDescription>{description}</StyledDescription>
+            <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
             {this.renderContent(vital)}
           </Layout.Main>
         </Layout.Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
