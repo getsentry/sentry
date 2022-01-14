@@ -38,7 +38,7 @@ class WebHooksPluginTest(TestCase):
 
     def test_webhook_validation(self):
         # Test that you can't sneak a bad domain into the list of webhooks
-        # without it being validated by delmiting with \r instead of \n
+        # without it being validated by delimiting with \r instead of \n
         bad_urls = "http://example.com\rftp://baddomain.com"
         form = WebHooksOptionsForm(data={"urls": bad_urls})
         form.is_valid()
