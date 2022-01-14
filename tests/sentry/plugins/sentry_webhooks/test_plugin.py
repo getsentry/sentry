@@ -15,26 +15,76 @@ class WebHooksPluginTest(TestCase):
     def plugin(self):
         return WebHooksPlugin()
 
-    @responses.activate
-    def test_simple_notification(self):
-        responses.add(responses.POST, "http://example.com")
-        event = self.store_event(
+    def setUp(self):
+        self.event = self.store_event(
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
         rule = Rule.objects.create(project=self.project, label="my rule")
-        notification = Notification(event=event, rule=rule)
+        self.notification = Notification(event=self.event, rule=rule)
         self.project.update_option("webhooks:urls", "http://example.com")
 
-        self.plugin.notify(notification)
+    @responses.activate
+    def test_simple_notification(self):
+        responses.add(responses.POST, "http://example.com")
+
+        self.plugin.notify(self.notification)
 
         assert len(responses.calls) == 1
 
         payload = json.loads(responses.calls[0].request.body)
         assert payload["level"] == "warning"
         assert payload["message"] == "Hello world"
-        assert payload["event"]["id"] == event.event_id
-        assert payload["event"]["event_id"] == event.event_id
+        assert payload["event"]["id"] == self.event.event_id
+        assert payload["event"]["event_id"] == self.event.event_id
         assert payload["triggering_rules"] == ["my rule"]
+
+    @responses.activate
+    def test_unsupported_text_response(self):
+        """Test that a response of just text doesn't raise an error"""
+        responses.add(
+            responses.POST,
+            "http://example.com",
+            body='"some text"',
+            content_type="application/json",
+        )
+
+        try:
+            self.plugin.notify(self.notification)
+        except Exception as exc:
+            assert False, f"'self.plugin.notify' raised an exception {exc}"
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == 200
+
+    @responses.activate
+    def test_unsupported_null_response(self):
+        """Test that a response of null doesn't raise an error"""
+        responses.add(
+            responses.POST, "http://example.com", body="null", content_type="application/json"
+        )
+
+        try:
+            self.plugin.notify(self.notification)
+        except Exception as exc:
+            assert False, f"'self.plugin.notify' raised an exception {exc}"
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == 200
+
+    @responses.activate
+    def test_unsupported_int_response(self):
+        """Test that a response of an integer doesn't raise an error"""
+        responses.add(
+            responses.POST, "http://example.com", body="1", content_type="application/json"
+        )
+
+        try:
+            self.plugin.notify(self.notification)
+        except Exception as exc:
+            assert False, f"'self.plugin.notify' raised an exception {exc}"
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == 200
 
     def test_webhook_validation(self):
         # Test that you can't sneak a bad domain into the list of webhooks
