@@ -25,10 +25,8 @@ export const PageHeader = styled('div')`
 `;
 
 export const HeaderTitle = styled('h4')`
+  ${p => p.theme.text.pageTitle};
+  color: ${p => p.theme.headingColor};
   flex: 1;
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.textColor};
   margin: 0;
 `;

@@ -9,10 +9,8 @@ type Props = {
 };
 
 const PageHeading = styled('h1')<Props>`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
+  ${p => p.theme.text.pageTitle};
+  color: ${p => p.theme.headingColor};
   margin: 0;
   margin-bottom: ${p => p.withMargins && space(3)};
   margin-top: ${p => p.withMargins && space(1)};
