@@ -1031,7 +1031,10 @@ def build_key_errors(key_events):
     for group in groups:
         group_id_to_group[group.id] = group
 
-    return [{"group": group_id_to_group[e[0]], "count": e[1]} for e in key_events]
+    return [
+        {"group": group_id_to_group[e[0]], "count": e[1]}
+        for e in filter(lambda e: e[0] in group_id_to_group, key_events)
+    ]
 
 
 def to_context(organization, interval, reports):
