@@ -265,6 +265,7 @@ def pytest_runtest_teardown(item):
 def find_smallest_group(groups):
     return min(range(len(groups)), key=groups.__getitem__)
 
+
 def pytest_collection_modifyitems(config, items):
     """
     After collection, we need to:
@@ -285,6 +286,7 @@ def pytest_collection_modifyitems(config, items):
 
     import glob
     import xml.etree.ElementTree as ET
+
     reports = glob.glob(".pytest-reference-reports/*.xml")
 
     for report in reports:
@@ -294,17 +296,18 @@ def pytest_collection_modifyitems(config, items):
         for testsuite in root:
             if testsuite.attrib["errors"] != "0":
                 break
-            for testcase in testsuite.findall('testcase'):
-                test_durations[f"{testcase.attrib['classname']}.{testcase.attrib['name']}"] = float(testcase.attrib["time"])
+            for testcase in testsuite.findall("testcase"):
+                test_durations[f"{testcase.attrib['classname']}.{testcase.attrib['name']}"] = float(
+                    testcase.attrib["time"]
+                )
 
     total_group_durations = [0] * total_groups
     tests_by_groups = {}
 
     # Using the junit xml, create a hash table of <test.casename + test.name, time>
     #  for test, duration in test_durations:
-        #  group_index = find_smallest_group(total_group_durations)
-        #  tests_by_groups[test] = group_index
-
+    #  group_index = find_smallest_group(total_group_durations)
+    #  tests_by_groups[test] = group_index
 
     # {k: v for k, v in sorted(x.items(), key=lambda item: item[1])}
 
@@ -336,12 +339,21 @@ def pytest_collection_modifyitems(config, items):
             # Split tests in different groups
             group_num = item_to_group % total_groups
         else:
-            full_name = '.'.join((item.parent.obj.__module__ if hasattr(item.parent.obj, "__module__") else item.parent.obj.__name__, item.obj.__qualname__))
+            full_name = ".".join(
+                (
+                    item.parent.obj.__module__
+                    if hasattr(item.parent.obj, "__module__")
+                    else item.parent.obj.__name__,
+                    item.obj.__qualname__,
+                )
+            )
             group_num = find_smallest_group(total_group_durations)
             tests_by_groups[full_name] = group_num
 
             if full_name in test_durations:
-                total_group_durations[group_num] = total_group_durations[group_num] + test_durations[full_name]
+                total_group_durations[group_num] = (
+                    total_group_durations[group_num] + test_durations[full_name]
+                )
 
         if group_num == current_group:
             keep.append(item)
