@@ -20,9 +20,17 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import Group, Identity, IdentityProvider, InviteStatus, OrganizationMember
+from sentry.models import (
+    Group,
+    Identity,
+    IdentityProvider,
+    InviteStatus,
+    NotificationSetting,
+    OrganizationMember,
+)
 from sentry.notifications.utils.actions import MessageAction
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
@@ -42,6 +50,7 @@ UNLINK_IDENTITY_MESSAGE = (
 NO_ACCESS_MESSAGE = "You do not have access to the organization for the invitation."
 NO_PERMISSION_MESSAGE = "You do not have permission to approve member invitations."
 NO_IDENTITY_MESSAGE = "Identity not linked for user."
+ENABLE_SLACK_SUCCESS_MESSAGE = "Slack notifications have been enabled."
 
 DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 SUCCESS_MESSAGE = (
@@ -383,7 +392,23 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if action_option in ["approve_member", "reject_member"]:
             return self.handle_member_approval(slack_request, action_option)
 
+        if action_list and action_list[0].name == "enable_notifications":
+            return self.handle_enable_notifications(slack_request)
+
         return self._handle_group_actions(slack_request, request, action_list)
+
+    def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:
+        try:
+            identity = slack_request.get_identity()
+        except IdentityProvider.DoesNotExist:
+            identity = None
+        if not identity:
+            return self.respond(status=403)
+
+        NotificationSetting.objects.enable_settings_for_user(
+            recipient=identity.user, provider=ExternalProviders.SLACK
+        )
+        return self.respond_with_text(ENABLE_SLACK_SUCCESS_MESSAGE)
 
     def handle_member_approval(self, slack_request: SlackActionRequest, action: str) -> Response:
         try:
