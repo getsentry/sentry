@@ -206,6 +206,7 @@ class Chart extends React.Component<ChartProps, State> {
     const {seriesSelection} = this.state;
 
     let Component = this.getChartComponent();
+
     if (typeof Component === typeof WorldMapChart) {
       return this.renderWorldMap();
     }
