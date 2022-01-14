@@ -9,5 +9,5 @@ class OrganizationIntegrationDirectoryTest(AcceptanceTestCase):
     def test_all_integrations_list(self):
         path = f"/settings/{self.organization.slug}/integrations/"
         self.browser.get(path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.snapshot("integrations - integration directory")

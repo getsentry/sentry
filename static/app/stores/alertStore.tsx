@@ -10,6 +10,7 @@ import {CommonStoreInterface} from './types';
 type Alert = {
   message: React.ReactNode;
   type: keyof Theme['alert'];
+  opaque?: boolean;
   expireAfter?: number;
   key?: number;
   id?: string;

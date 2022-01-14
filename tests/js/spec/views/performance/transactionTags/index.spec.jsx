@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
 function initializeData({query} = {query: {}}) {
@@ -28,6 +29,14 @@ function initializeData({query} = {query: {}}) {
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
+
+const WrappedComponent = ({organization, ...props}) => {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <TransactionTags organization={organization} {...props} />
+    </OrganizationContext.Provider>
+  );
+};
 
 describe('Performance > Transaction Tags', function () {
   enforceActOnUseLegacyStoreHook();
@@ -126,7 +135,7 @@ describe('Performance > Transaction Tags', function () {
   it('renders basic UI elements', async function () {
     const initialData = initializeData();
     wrapper = mountWithTheme(
-      <TransactionTags
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -165,7 +174,7 @@ describe('Performance > Transaction Tags', function () {
   it('Default tagKey is set when loading the page without one', async function () {
     const initialData = initializeData();
     wrapper = mountWithTheme(
-      <TransactionTags
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -205,7 +214,7 @@ describe('Performance > Transaction Tags', function () {
     const initialData = initializeData({query: {tagKey: 'effectiveConnectionType'}});
 
     wrapper = mountWithTheme(
-      <TransactionTags
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
