@@ -320,7 +320,7 @@ def _get_snuba_query(
             continue
 
         try:
-            groupby[field] = resolve_tag_key(field)
+            groupby[field] = Column(resolve_tag_key(field))
         except MetricIndexNotFound:
             # exclude unresolved keys from groupby
             pass
