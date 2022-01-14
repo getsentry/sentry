@@ -69,9 +69,8 @@ class LayoutField(serializers.Field):
         for key in self.STORE_KEYS:
             value = data.get(key)
             if value is None:
-                # The key wasn't provided or it was explicitly None
-                # We don't need to store it
                 continue
+
             if not isinstance(value, int):
                 raise serializers.ValidationError(f"Expected number for: {key}")
             layout_to_store[key] = value
@@ -319,7 +318,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             if "widget_type" in widget_data
             else DashboardWidgetTypes.DISCOVER,
             order=order,
-            detail={"layout": widget_data.get("layout", None)},
+            detail={"layout": widget_data.get("layout")},
         )
         new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
