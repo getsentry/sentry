@@ -535,6 +535,12 @@ def build_report(fields):
     return cls, prepare, merge
 
 
+def take_max_n(x, y, n):
+    series = x + y
+    series.sort(key=lambda group_id__count: group_id__count[1], reverse=True)
+    return series[:3]
+
+
 Report, build_project_report, merge_reports = build_report(
     [
         (
@@ -554,7 +560,7 @@ Report, build_project_report, merge_reports = build_report(
             build_project_calendar_series,
             partial(merge_series, function=safe_add),
         ),
-        ("key_events", build_key_events, lambda x, y: y),
+        ("key_events", build_key_events, partial(take_max_n, n=3)),
     ],
 )
 
