@@ -65,7 +65,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
           if (mapping && !result.find(({user}) => user.id === mapping.userId)) {
             result = [{id: mapping.userId, name: mapping.sentryName}, ...result];
           }
-          this.props.onResults?.(result);
+          // this.props.onResults?.(result);
           return optionMapper(sentryNamesMapper(result));
         },
       });
