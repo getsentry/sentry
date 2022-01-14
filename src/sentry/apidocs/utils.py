@@ -1,5 +1,14 @@
 from sentry.api.serializers import Serializer
-from sentry.apidocs.extensions import RawSchema
+
+
+class _RawSchema:
+    """
+    Basic class that simply stores a type that is parsed into OpenAPISchema.
+    Used by `utils.inline_sentry_response_serializer`
+    """
+
+    def __init__(self, t: type) -> None:
+        self.typeSchema = t
 
 
 def inline_sentry_response_serializer(name: str, t: type) -> type:
@@ -23,8 +32,8 @@ def inline_sentry_response_serializer(name: str, t: type) -> type:
             "Please use the type of the `serialize` function instead of the serializer itself."
         )
 
-    serializer_class = type(name, (RawSchema,), {"typeSchema": t})
+    serializer_class = type(name, (_RawSchema,), {"typeSchema": t})
     return serializer_class
 
 
-# TODO: extend schema wrapper method here
+# TODO: extend schema wrapper method here?

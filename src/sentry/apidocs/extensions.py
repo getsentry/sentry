@@ -9,12 +9,16 @@ from sentry.apidocs.spectacular_ports import resolve_type_hint
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):  # type: ignore
+    """
+    Extension that adds what permissions are needed to access the endpoint to the
+    OpenAPI Schema.
+    """
+
     target_class = "sentry.api.authentication.TokenAuthentication"
     name = "auth_token"
 
     def get_security_requirement(self, auto_schema: AutoSchema) -> Dict[str, List[Any]]:
         permissions = set()
-        # TODO: resolve duplicates
         for permission in auto_schema.view.get_permissions():
             for p in permission.scope_map.get(auto_schema.method, []):
                 permissions.add(p)
@@ -54,7 +58,7 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):  # ty
     """
 
     priority = 0
-    target_class = "sentry.apidocs.extensions.RawSchema"
+    target_class = "sentry.apidocs.utils._RawSchema"
     match_subclasses = True
 
     def get_name(self) -> Optional[str]:
@@ -63,8 +67,3 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):  # ty
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
         return resolve_type_hint(self.target.typeSchema)
-
-
-class RawSchema:
-    def __init__(self, t: type) -> None:
-        self.typeSchema = t

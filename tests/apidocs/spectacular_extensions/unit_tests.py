@@ -36,9 +36,6 @@ class BasicSerializer(Serializer):
         return {"a": 1, "b": "test", "c": True, "d": [1], "e": {"zz": "test"}}
 
 
-inline_serializer = inline_sentry_response_serializer("BasicStuff", List[BasicSerializerResponse])
-
-
 def test_sentry_response_serializer_extension():
     seralizer_extension = SentryResponseSerializerExtension(BasicSerializer)
     schema = seralizer_extension.map_serializer(None, None)
@@ -59,8 +56,12 @@ def test_sentry_response_serializer_extension():
 
 
 def test_sentry_inline_response_serializer_extension():
+    inline_serializer = inline_sentry_response_serializer(
+        "BasicStuff", List[BasicSerializerResponse]
+    )
     seralizer_extension = SentryInlineResponseSerializerExtension(inline_serializer)
     schema = seralizer_extension.map_serializer(None, None)
+
     assert schema == {
         "type": "array",
         "items": {
@@ -82,8 +83,3 @@ def test_sentry_inline_response_serializer_extension():
             "required": ["b", "c", "d", "e", "f", "g", "h"],
         },
     }
-
-
-# TODO: test token stuff
-# declare public decorator
-#
