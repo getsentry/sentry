@@ -28,7 +28,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         name: Checkout sentry
-
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -170,6 +169,14 @@ jobs:
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
+      - name: Download a previous pytest report
+        uses: ./.github/actions/pytest-report
+        with:
+          action: 'download'
+          # testing
+          branch: 'feat/ci/balance-pytest-test-durations'
+
+
       - name: Wait for frontend build
         uses: getsentry/action-wait-for-check@v1.0.0
         id: wait-for-frontend
@@ -196,6 +203,15 @@ jobs:
         env:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
           USE_SNUBA: 1
+
+      - name: Save pytest report
+        uses: ./.github/actions/pytest-report
+        with:
+          action: 'upload'
+          src: .artifacts/acceptance.junit.xml
+          # Make sure to save with instance here otherwise the reports will
+          # clobber each other
+          dest: report-${{ matrix.instance }}.xml
 
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@v2

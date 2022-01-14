@@ -33,6 +33,8 @@ jobs:
         uses: ./.github/actions/pytest-report
         with:
           action: 'download'
+          # testing
+          branch: 'feat/ci/balance-pytest-test-durations'
 
       # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
       # creates a status check in the "pending" state. This means that the workflow needs to run
