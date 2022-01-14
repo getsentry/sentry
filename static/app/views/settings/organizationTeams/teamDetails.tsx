@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
-import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
@@ -14,23 +13,21 @@ import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization, Team} from 'sentry/types';
+import {Team} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import Teams from 'sentry/utils/teams';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import useTeams from 'sentry/utils/useTeams';
 
 type Props = {
-  api: Client;
   children: React.ReactNode;
-  organization: Organization;
 } & RouteComponentProps<{orgId: string; teamId: string}, {}>;
 
-function TeamDetails({api, children, ...props}: Props) {
+function TeamDetails({children, ...props}: Props) {
+  const api = useApi();
   const [currentTeam, setCurrentTeam] = useState(
     TeamStore.getBySlug(props.params.teamId)
   );
-  const [requesting, setRequesting] = useState<boolean>(false);
+  const [requesting, setRequesting] = useState(false);
 
   function handleRequestAccess(team: Team) {
     if (!team) {
@@ -97,70 +94,68 @@ function TeamDetails({api, children, ...props}: Props) {
     </ListLink>,
   ];
 
+  const {teams, initiallyLoaded} = useTeams({slugs: [props.params.teamId]});
+
   return (
-    <Teams slugs={[props.params.teamId]}>
-      {({teams, initiallyLoaded}) => (
-        <div>
-          {initiallyLoaded ? (
-            teams.length ? (
-              teams.map((team, i) => {
-                if (!team || !team.hasAccess) {
-                  return (
-                    <Alert type="warning">
-                      {team ? (
-                        <RequestAccessWrapper>
-                          {tct('You do not have access to the [teamSlug] team.', {
-                            teamSlug: <strong>{`#${team.slug}`}</strong>,
-                          })}
-                          <Button
-                            disabled={requesting || team.isPending}
-                            size="small"
-                            onClick={() => handleRequestAccess(team)}
-                          >
-                            {team.isPending ? t('Request Pending') : t('Request Access')}
-                          </Button>
-                        </RequestAccessWrapper>
-                      ) : (
-                        <div>{t('You do not have access to this team.')}</div>
-                      )}
-                    </Alert>
-                  );
-                }
-                return (
-                  <div key={i}>
-                    <SentryDocumentTitle
-                      title={t('Team Details')}
-                      orgSlug={props.params.orgId}
-                    />
-                    <h3>
-                      <IdBadge hideAvatar team={team} avatarSize={36} />
-                    </h3>
-
-                    <NavTabs underlined>{navigationTabs}</NavTabs>
-
-                    {isValidElement(children) &&
-                      cloneElement(children, {
-                        team,
-                        onTeamChange: () => onTeamChange(team),
+    <div>
+      {initiallyLoaded ? (
+        teams.length ? (
+          teams.map((team, i) => {
+            if (!team || !team.hasAccess) {
+              return (
+                <Alert type="warning">
+                  {team ? (
+                    <RequestAccessWrapper>
+                      {tct('You do not have access to the [teamSlug] team.', {
+                        teamSlug: <strong>{`#${team.slug}`}</strong>,
                       })}
-                  </div>
-                );
-              })
-            ) : (
-              <Alert type="warning">
-                <div>{t('You do not have access to this team.')}</div>
-              </Alert>
-            )
-          ) : (
-            <LoadingIndicator />
-          )}
-        </div>
+                      <Button
+                        disabled={requesting || team.isPending}
+                        size="small"
+                        onClick={() => handleRequestAccess(team)}
+                      >
+                        {team.isPending ? t('Request Pending') : t('Request Access')}
+                      </Button>
+                    </RequestAccessWrapper>
+                  ) : (
+                    <div>{t('You do not have access to this team.')}</div>
+                  )}
+                </Alert>
+              );
+            }
+            return (
+              <div key={i}>
+                <SentryDocumentTitle
+                  title={t('Team Details')}
+                  orgSlug={props.params.orgId}
+                />
+                <h3>
+                  <IdBadge hideAvatar team={team} avatarSize={36} />
+                </h3>
+
+                <NavTabs underlined>{navigationTabs}</NavTabs>
+
+                {isValidElement(children) &&
+                  cloneElement(children, {
+                    team,
+                    onTeamChange: () => onTeamChange(team),
+                  })}
+              </div>
+            );
+          })
+        ) : (
+          <Alert type="warning">
+            <div>{t('You do not have access to this team.')}</div>
+          </Alert>
+        )
+      ) : (
+        <LoadingIndicator />
       )}
-    </Teams>
+    </div>
   );
 }
 
-export default withApi(withOrganization(TeamDetails));
+export default TeamDetails;
 
 const RequestAccessWrapper = styled('div')`
   display: flex;
