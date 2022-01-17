@@ -1000,8 +1000,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-custom-scm": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
-    # Allow orgs to debug internal/unpublished sentry apps with logging
-    "organizations:sentry-app-debugging": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable react-grid-layout dashboards
@@ -1041,6 +1039,8 @@ SENTRY_FEATURES = {
     "organizations:performance-mobile-vitals": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
+    # Enable views for anomaly detection
+    "organizations:performance-anomaly-detection-ui": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1331,10 +1331,11 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
+SENTRY_RATELIMITER_ENABLED = False
 SENTRY_RATELIMITER_OPTIONS = {}
 # These values were determined from analysis on one week of api access logs
-SENTRY_RATELIMITER_DEFAULT_IP = 1000
-SENTRY_RATELIMITER_DEFAULT_USER = 3230
+SENTRY_RATELIMITER_DEFAULT_IP = 620
+SENTRY_RATELIMITER_DEFAULT_USER = 620
 SENTRY_RATELIMITER_DEFAULT_ORG = 620
 SENTRY_RATELIMITER_DEFAULTS = {
     RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),

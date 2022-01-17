@@ -144,6 +144,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
                 seriesName: t('Alerts Triggered'),
                 data: seriesData,
                 silent: true,
+                barCategoryGap: '5%',
               },
             ]}
           />
@@ -186,7 +187,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
               <Fragment key={rule.id}>
                 <div>
                   <Link
-                    to={`/organizations/${organization.id}/alerts/rules/details/${rule.id}/`}
+                    to={`/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`}
                   >
                     {rule.name}
                   </Link>
