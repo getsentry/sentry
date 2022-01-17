@@ -251,6 +251,7 @@ const Content = styled('div')`
   background: ${p => p.theme.background};
   border-radius: 8px;
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
+  position: relative;
 `;
 
 type State = {
