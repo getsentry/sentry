@@ -183,7 +183,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
 
                 return (
                   <Fragment>
-                    <GrowLink to={transactionTarget}>
+                    <GrowLink to={transactionTarget} className="truncate">
                       <Truncate value={transaction} maxLength={40} />
                     </GrowLink>
                     <RightAlignedCell>
