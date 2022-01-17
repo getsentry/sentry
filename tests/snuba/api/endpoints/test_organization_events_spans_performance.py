@@ -491,7 +491,18 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": self.project.id},
+                data={
+                    "project": self.project.id,
+                    "field": [
+                        "percentileArray(spans_exclusive_time, 0.50)",
+                        "percentileArray(spans_exclusive_time, 0.75)",
+                        "percentileArray(spans_exclusive_time, 0.95)",
+                        "percentileArray(spans_exclusive_time, 0.99)",
+                        "count()",
+                        "count_unique(id)",
+                        "sumArray(spans_exclusive_time)",
+                    ],
+                },
                 format="json",
             )
 
