@@ -121,10 +121,12 @@ function TransactionSummaryCharts({
   );
 
   let display = decodeScalar(location.query.display, DisplayModes.DURATION);
+
   let trendFunction = decodeScalar(
     location.query.trendFunction,
     TREND_FUNCTIONS_OPTIONS[0].value
   ) as TrendFunctionField;
+
   let trendColumn = decodeScalar(
     location.query.trendColumn,
     TREND_PARAMETERS_OPTIONS[0].value
@@ -133,9 +135,11 @@ function TransactionSummaryCharts({
   if (!Object.values(DisplayModes).includes(display as DisplayModes)) {
     display = DisplayModes.DURATION;
   }
+
   if (!Object.values(TrendFunctionField).includes(trendFunction)) {
     trendFunction = TrendFunctionField.P50;
   }
+
   if (!Object.values(TrendColumnField).includes(trendColumn as TrendColumnField)) {
     trendColumn = TrendColumnField.DURATION;
   }
