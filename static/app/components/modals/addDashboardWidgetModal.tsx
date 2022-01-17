@@ -368,6 +368,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
   handleFieldChange = (field: string) => (value: string) => {
     const {organization, source} = this.props;
+    const {displayType} = this.state;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
@@ -383,7 +384,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       return {...newState, errors: undefined};
     });
 
-    if (field === 'displayType') {
+    if (field === 'displayType' && value !== displayType) {
       this.handleDefaultFields();
     }
   };
