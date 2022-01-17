@@ -354,6 +354,7 @@ const LoadingPlaceholder = styled(Placeholder)`
 
 const BigNumber = styled('div')`
   font-size: 32px;
+  line-height: 1;
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
   * {
     text-align: left !important;
