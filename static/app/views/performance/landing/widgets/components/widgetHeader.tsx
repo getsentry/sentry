@@ -18,7 +18,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
     <WidgetHeaderContainer>
       <TitleContainer>
         <StyledHeaderTitleLegend data-test-id="performance-widget-title">
-          <div className="truncate">{title}</div>
+          <div>{title}</div>
           <QuestionTooltip position="top" size="sm" title={titleTooltip} />
         </StyledHeaderTitleLegend>
         {Subtitle ? <Subtitle {...props} /> : null}

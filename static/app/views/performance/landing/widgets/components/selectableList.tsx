@@ -57,6 +57,7 @@ export const RightAlignedCell = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 ${space(1)};
 `;
 
 export const Subtitle = styled('span')`
