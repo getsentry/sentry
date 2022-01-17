@@ -78,6 +78,7 @@ type Props = {
   totalValues: number | null;
   currentFilter: SpanOperationBreakdownFilter;
   withoutZerofill: boolean;
+  isMetricsData?: boolean;
 };
 
 function TransactionSummaryCharts({
