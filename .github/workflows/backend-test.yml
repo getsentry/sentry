@@ -72,7 +72,7 @@ jobs:
         uses: ./.github/actions/pytest-report
         with:
           action: 'upload'
-          src: .artifacts/snuba.junit.xml
+          src: .artifacts/python.junit.xml
           # Make sure to save with instance here otherwise the reports will
           # clobber each other
           dest: report-${{ matrix.instance }}.xml
