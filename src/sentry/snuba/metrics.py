@@ -424,16 +424,12 @@ _SESSION_TAGS = dict(
 
 _TRANSACTION_TAGS = dict(
     _BASE_TAGS,
-    **{
-        "transaction": ["/foo/:orgId/", "/bar/:orgId/"],
-    },
+    transaction=["/foo/:orgId/", "/bar/:orgId/"],
 )
 
 _MEASUREMENT_TAGS = dict(
     _TRANSACTION_TAGS,
-    **{
-        "measurement_rating": ["good", "meh", "poor"],
-    },
+    measurement_rating=["good", "meh", "poor"],
 )
 
 _METRICS = {
