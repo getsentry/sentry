@@ -42,6 +42,7 @@ class DashboardWidgetSerializer(Serializer):
             # Default to discover type if null
             "widgetType": DashboardWidgetTypes.get_type_name(obj.widget_type)
             or DashboardWidgetTypes.TYPE_NAMES[0],
+            "layout": obj.detail.get("layout") if obj.detail else None,
         }
 
 
