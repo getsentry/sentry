@@ -117,6 +117,7 @@ class Truncate extends React.Component<Props, State> {
 }
 
 const Wrapper = styled('span')`
+  display: block;
   position: relative;
 `;
 
