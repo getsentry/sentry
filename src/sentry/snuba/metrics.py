@@ -422,11 +422,17 @@ _SESSION_TAGS = dict(
     },
 )
 
-_MEASUREMENT_TAGS = dict(
+_TRANSACTION_TAGS = dict(
     _BASE_TAGS,
     **{
-        "measurement_rating": ["good", "meh", "poor"],
         "transaction": ["/foo/:orgId/", "/bar/:orgId/"],
+    },
+)
+
+_MEASUREMENT_TAGS = dict(
+    _TRANSACTION_TAGS,
+    **{
+        "measurement_rating": ["good", "meh", "poor"],
     },
 )
 
@@ -456,7 +462,7 @@ _METRICS = {
         "type": "distribution",
         "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
         "tags": {
-            **_MEASUREMENT_TAGS,
+            **_TRANSACTION_TAGS,
             "transaction.status": [
                 # Subset of possible states:
                 # https://develop.sentry.dev/sdk/event-payloads/transaction/
@@ -465,6 +471,11 @@ _METRICS = {
                 "aborted",
             ],
         },
+    },
+    "sentry.transactions.user": {
+        "type": "set",
+        "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
+        "tags": _TRANSACTION_TAGS,
     },
 }
 
