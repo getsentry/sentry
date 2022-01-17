@@ -339,7 +339,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
     def update_widget(self, widget, data, order):
-        prev_layout = widget.detail.get("layout", None) if widget.detail else None
+        prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
