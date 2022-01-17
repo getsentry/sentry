@@ -9,7 +9,8 @@ export function generateSpanDetailsRoute({
   orgSlug: String;
   spanSlug: SpanSlug;
 }): string {
-  return `/organizations/${orgSlug}/performance/summary/spans/${spanSlug.op}:${spanSlug.group}/`;
+  const spanComponent = `${encodeURIComponent(spanSlug.op)}:${spanSlug.group}`;
+  return `/organizations/${orgSlug}/performance/summary/spans/${spanComponent}/`;
 }
 
 export function spanDetailsRouteWithQuery({
