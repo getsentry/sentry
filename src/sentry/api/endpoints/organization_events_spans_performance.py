@@ -449,30 +449,15 @@ def query_suspect_span_groups(
     ] + [
         "array_join(spans_op)",
         "array_join(spans_group)",
-        "count()",
-        "count_unique(id)",
         # want a single event id to fetch from nodestore for the span description
         "any(id)",
     ]
 
     equations: List[str] = [
         strip_equation(column)
-        for column in suspect_span_columns.suspect_op_group_columns
+        for column in suspect_span_columns.suspect_op_group_columns + fields
         if is_equation(column)
     ]
-
-    # TODO: This adds all the possible fields to the query by default. However,
-    # due to the way shards aggregate the rows, this can be slow. As an
-    # optimization, allow the fields to be user specified to only get the
-    # necessary aggregations.
-    #
-    # As part of the transition, continue to add all possible fields when its
-    # not specified, but this should be removed in the future.
-    if not fields:
-        for column in SPAN_PERFORMANCE_COLUMNS.values():
-            for col in column.suspect_op_group_sort:
-                if not col.startswith("equation["):
-                    selected_columns.append(col)
 
     builder = QueryBuilder(
         dataset=Dataset.Discover,
