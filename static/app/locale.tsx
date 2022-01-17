@@ -271,7 +271,7 @@ export function renderTemplate(
  * NOTE: This is a no-op and will return the node if LOCALE_DEBUG is not
  * currently enabled. See setLocaleDebug and toggleLocaleDebug.
  */
-function mark(node: string | React.ReactNode): string {
+function mark(node: React.ReactNode): string {
   if (!LOCALE_DEBUG) {
     return node as string;
   }
@@ -279,7 +279,7 @@ function mark(node: string | React.ReactNode): string {
   // TODO(epurkhiser): Explain why we manually create a react node and assign
   // the toString function. This could likely also use better typing, but will
   // require some understanding of reacts internal types.
-  const proxy: React.ReactNode = {
+  const proxy = {
     $$typeof: Symbol.for('react.element'),
     type: 'span',
     key: null,
@@ -293,7 +293,7 @@ function mark(node: string | React.ReactNode): string {
   };
 
   proxy.toString = () => '✅' + node + '✅';
-  return proxy as string;
+  return proxy as unknown as string;
 }
 
 /**
@@ -304,10 +304,7 @@ function mark(node: string | React.ReactNode): string {
  *
  * [0]: https://github.com/alexei/sprintf.js
  */
-export function format(
-  formatString: string,
-  args: FormatArg[]
-): string | React.ReactNode {
+export function format(formatString: string, args: FormatArg[]): React.ReactNode {
   if (argsInvolveReact(args)) {
     return formatForReact(formatString, args);
   }
@@ -386,9 +383,9 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
 export function gettextComponentTemplate(
   template: string,
   components: ComponentMap
-): React.ReactNode {
-  const tmpl = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(tmpl, components));
+): string {
+  const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
+  return mark(renderTemplate(parsedTemplate, components));
 }
 
 /**
