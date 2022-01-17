@@ -6,6 +6,7 @@ import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibra
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 function initializeData(settings) {
   const data = _initializeData(settings);
@@ -256,5 +257,24 @@ describe('Performance > Transaction Spans > Span Details', function () {
       expect(await screen.findByText('Count')).toBeInTheDocument();
       expect(await screen.findByText('Cumulative Duration')).toBeInTheDocument();
     });
+  });
+});
+
+describe('spanDetailsRouteWithQuery', function () {
+  it('should encode slashes in span op', function () {
+    const target = spanDetailsRouteWithQuery({
+      orgSlug: 'org-slug',
+      transaction: 'transaction',
+      query: {},
+      spanSlug: {op: 'o/p', group: 'aaaaaaaaaaaaaaaa'},
+      projectID: '1',
+    });
+
+    expect(target).toEqual(
+      expect.objectContaining({
+        pathname:
+          '/organizations/org-slug/performance/summary/spans/o%2Fp:aaaaaaaaaaaaaaaa/',
+      })
+    );
   });
 });

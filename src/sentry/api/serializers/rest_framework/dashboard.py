@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns, resolve_equation_list
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -74,7 +75,10 @@ class LayoutField(serializers.Field):
             if not isinstance(value, int):
                 raise serializers.ValidationError(f"Expected number for: {key}")
             layout_to_store[key] = value
-        return layout_to_store
+
+        # Store the layout with camel case dict keys because they'll be
+        # served as camel case in outgoing responses anyways
+        return convert_dict_key_case(layout_to_store, snake_to_camel_case)
 
 
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
@@ -335,7 +339,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
     def update_widget(self, widget, data, order):
-        prev_layout = widget.detail.get("layout", None) if widget.detail else None
+        prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)

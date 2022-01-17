@@ -552,12 +552,12 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             group["by"].keys() == {"project_id", "session.status"} for group in groups
         )
 
-        expected = [
-            ({"project_id": self.project2.id, "session.status": "init"}, 1),
-            ({"project_id": self.project.id, "session.status": "init"}, 2),
-        ]
-        for (expected_groupby, expected_count), group in zip(expected, groups):
-            assert group["by"] == expected_groupby
+        expected = {
+            self.project2.id: 1,
+            self.project.id: 2,
+        }
+        for group in groups:
+            expected_count = expected[group["by"]["project_id"]]
             totals = group["totals"]
             assert totals == {"sum(sentry.sessions.session)": expected_count}
 

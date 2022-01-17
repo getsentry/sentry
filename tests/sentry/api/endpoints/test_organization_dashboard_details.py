@@ -21,7 +21,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
-            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1}},
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -30,7 +30,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
-            detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1}},
+            detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
         self.widget_1_data_1 = DashboardWidgetQuery.objects.create(
             widget=self.widget_1,
@@ -659,8 +659,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_update_without_specifying_layout_does_not_change_saved_layout(self):
         expected_layouts = {
-            self.widget_1.id: {"x": 0, "y": 0, "w": 1, "h": 1},
-            self.widget_2.id: {"x": 1, "y": 0, "w": 1, "h": 1},
+            self.widget_1.id: {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+            self.widget_2.id: {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2},
             self.widget_3.id: None,
             self.widget_4.id: None,
         }
