@@ -66,6 +66,7 @@ type State = {
   modifiedDashboard: DashboardDetails | null;
   widgetToBeUpdated?: Widget;
   layout: RGLLayout[];
+  layoutModified: boolean;
   widgetLimitReached: boolean;
 };
 
@@ -74,6 +75,7 @@ class DashboardDetail extends Component<Props, State> {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     layout: getDashboardLayout(this.props.dashboard.widgets),
+    layoutModified: false,
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
   };
 
@@ -274,6 +276,7 @@ class DashboardDetail extends Component<Props, State> {
         dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
         layout: getDashboardLayout(this.props.dashboard.widgets),
+        layoutModified: false,
       });
       return;
     }
@@ -348,7 +351,7 @@ class DashboardDetail extends Component<Props, State> {
 
   onCommit = () => {
     const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
-    const {layout, modifiedDashboard, dashboardState} = this.state;
+    const {layout, layoutModified, modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
       case DashboardState.PREVIEW:
@@ -387,10 +390,7 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.EDIT: {
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
-          if (
-            isEqual(dashboard, modifiedDashboard) &&
-            isLayoutEqual(getDashboardLayout(modifiedDashboard.widgets), layout)
-          ) {
+          if (isEqual(dashboard, modifiedDashboard) && !layoutModified) {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
@@ -416,6 +416,7 @@ class DashboardDetail extends Component<Props, State> {
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
                 layout: getDashboardLayout(newDashboard.widgets),
+                layoutModified: false,
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
@@ -461,7 +462,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onLayoutChange = (layout: RGLLayout[]) => {
-    this.setState({layout});
+    this.setState({layout, layoutModified: true});
   };
 
   onUpdateWidget = (widgets: Widget[]) => {
@@ -717,18 +718,4 @@ function constructDashboardWidgetsWithLayout(
       return {...widget, layout: pick(matchingLayout, STORE_KEYS)};
     }),
   };
-}
-
-function isLayoutEqual(prevLayouts: RGLLayout[], newLayouts: RGLLayout[]): boolean {
-  // Compares only keys we care about for now
-  const collectDesiredComparisonValues = layout => {
-    const definedKeys = Object.keys(layout).filter(
-      key => STORE_KEYS.includes(key) && layout[key] !== undefined
-    );
-    return pick(layout, definedKeys);
-  };
-
-  const prevLayoutsFinal = prevLayouts.map(collectDesiredComparisonValues);
-  const newLayoutsFinal = newLayouts.map(collectDesiredComparisonValues);
-  return isEqual(prevLayoutsFinal, newLayoutsFinal);
 }
