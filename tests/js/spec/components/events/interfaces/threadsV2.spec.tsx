@@ -257,7 +257,7 @@ describe('ThreadsV2', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
@@ -279,7 +279,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             'puma (3.12.6) lib/puma/server.rb'
           )
         ).toBeInTheDocument();
@@ -914,7 +914,7 @@ describe('ThreadsV2', function () {
         mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             '-[SentryClient crash]'
           )
         ).toBeInTheDocument();
@@ -936,7 +936,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
+          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
         ).toBeInTheDocument();
 
         userEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
@@ -1003,7 +1003,7 @@ describe('ThreadsV2', function () {
 
         // Check Verbose Function Names
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
             'ViewController.causeCrash'
           )
         ).toBeInTheDocument();
@@ -1012,14 +1012,14 @@ describe('ThreadsV2', function () {
         expect(within(displayOption3).getByRole('checkbox')).toBeChecked();
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
             'ViewController.causeCrash(Any) -> ()'
           )
         ).toBeInTheDocument();
 
         // Check Absolute Path Names
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
+          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
         ).toBeInTheDocument();
 
         userEvent.click(screen.queryAllByLabelText('Display option')[1]);
@@ -1028,7 +1028,7 @@ describe('ThreadsV2', function () {
         ).toBeChecked();
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
+          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 
         // Check Full Stack Trace

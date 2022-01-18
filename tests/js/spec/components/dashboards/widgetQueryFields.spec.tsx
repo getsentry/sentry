@@ -100,7 +100,7 @@ describe('WidgetQueryFields', function () {
     const organization = TestStubs.Organization();
     let fields: QueryFieldValue[];
 
-    const rerender = () =>
+    const mountComponent = () =>
       reactMountWithTheme(
         <WidgetQueryFields
           widgetType={WidgetType.ISSUE}
@@ -146,7 +146,7 @@ describe('WidgetQueryFields', function () {
           field: 'assignee',
         },
       ];
-      rerender();
+      mountComponent();
     });
     it('renders issue and assignee columns', function () {
       expect(screen.getByText('issue')).toBeInTheDocument();
@@ -162,12 +162,12 @@ describe('WidgetQueryFields', function () {
       expect(screen.queryByText('assignee')).not.toBeInTheDocument();
       expect(screen.getByText('Add a Column')).toBeInTheDocument();
       userEvent.click(screen.getByText('Add a Column'));
-      rerender();
+      mountComponent();
       expect(screen.getByText('(Required)')).toBeInTheDocument();
       userEvent.click(screen.getByText('(Required)'));
-      rerender();
+      mountComponent();
       userEvent.click(screen.getByText('assignee'));
-      rerender();
+      mountComponent();
       expect(screen.getByText('assignee')).toBeInTheDocument();
     });
   });

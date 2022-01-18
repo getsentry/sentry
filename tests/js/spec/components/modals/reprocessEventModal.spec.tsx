@@ -15,7 +15,7 @@ const organization = TestStubs.Organization({
   features: ['reprocessing-v2'],
 });
 
-async function renderComponent() {
+async function mountComponent() {
   const modal = await mountGlobalModal();
 
   openReprocessEventModal({organization, groupId: group.id});
@@ -31,7 +31,7 @@ describe('ReprocessEventModal', function () {
   let wrapper: any;
 
   beforeEach(async function () {
-    wrapper = await renderComponent();
+    wrapper = await mountComponent();
   });
 
   it('modal is open', () => {

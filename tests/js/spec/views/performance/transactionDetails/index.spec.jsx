@@ -27,7 +27,7 @@ describe('EventDetails', () => {
       />,
       {context: routerContext}
     );
-    expect(screen.queryByText(alertText)).toBeInTheDocument();
+    expect(screen.getByText(alertText)).toBeInTheDocument();
   });
 
   it('does not reender alert if already received transaction', () => {

@@ -211,7 +211,7 @@ describe('Avatar', function () {
       avatar2.unmount();
 
       mountWithTheme(<AvatarComponent sentryApp={sentryApp} isDefault />);
-      expect(screen.queryByTestId('default-sentry-app-avatar')).toBeInTheDocument();
+      expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
     });
 
     it('renders the correct fallbacks for SentryAppAvatars', async function () {
@@ -220,7 +220,7 @@ describe('Avatar', function () {
 
       // No existing avatars
       const avatar1 = mountWithTheme(<AvatarComponent sentryApp={sentryApp} isColor />);
-      expect(screen.queryByTestId('default-sentry-app-avatar')).toBeInTheDocument();
+      expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
       avatar1.unmount();
 
       // No provided `isColor` attribute
@@ -235,7 +235,7 @@ describe('Avatar', function () {
       // avatarType of `default`
       sentryApp.avatars[0].avatarType = 'default';
       mountWithTheme(<AvatarComponent sentryApp={sentryApp} isColor />);
-      expect(screen.queryByTestId('default-sentry-app-avatar')).toBeInTheDocument();
+      expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
     });
   });
 });
