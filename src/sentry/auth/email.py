@@ -96,7 +96,7 @@ class _EmailResolver:
         """Prefer users whose primary address matches the address in question."""
 
         def apply(self, candidates: Sequence[UserEmail]) -> Iterable[UserEmail]:
-            return (ue for ue in candidates if ue.user.email == self.parent.email)
+            return (ue for ue in candidates if ue.is_primary())
 
         def if_conclusive(self, candidates: Sequence[UserEmail], choice: UserEmail) -> None:
             metrics.incr("auth.email_resolution.by_primary_email", sample_rate=1.0)
