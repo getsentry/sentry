@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import TextOverflow from 'sentry/components/textOverflow';
 import space from 'sentry/styles/space';
 
 import {
@@ -18,7 +19,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
     <WidgetHeaderContainer>
       <TitleContainer>
         <StyledHeaderTitleLegend data-test-id="performance-widget-title">
-          {title}
+          <TextOverflow>{title}</TextOverflow>
           <QuestionTooltip position="top" size="sm" title={titleTooltip} />
         </StyledHeaderTitleLegend>
         {Subtitle ? <Subtitle {...props} /> : null}
