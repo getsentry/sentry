@@ -57,16 +57,18 @@ export const RightAlignedCell = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 ${space(1)};
 `;
 
 export const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
-  min-height: 24px;
   display: inline-block;
 `;
+
 export const GrowLink = styled(Link)`
   flex-grow: 1;
+  display: inherit;
 `;
 
 export const WidgetEmptyStateWarning = () => {
@@ -78,16 +80,14 @@ export function ListClose(props: {
   setSelectListIndex: (n: number) => void;
 }) {
   return (
-    <CloseContainer>
-      <StyledTooltip title={t('Exclude this transaction from the search filter.')}>
-        <StyledIconClose
-          onClick={() => {
-            props.onClick();
-            props.setSelectListIndex(0);
-          }}
-        />
-      </StyledTooltip>
-    </CloseContainer>
+    <StyledTooltip title={t('Exclude this transaction from the search filter.')}>
+      <StyledIconClose
+        onClick={() => {
+          props.onClick();
+          props.setSelectListIndex(0);
+        }}
+      />
+    </StyledTooltip>
   );
 }
 
@@ -97,20 +97,9 @@ const StyledTooltip = styled(Tooltip)`
   justify-content: center;
 `;
 
-const CloseContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-left: ${space(1)};
-`;
-
 const StyledIconClose = styled(IconClose)`
   cursor: pointer;
   color: ${p => p.theme.gray200};
-
-  &:hover {
-    color: ${p => p.theme.gray300};
-  }
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
@@ -120,7 +109,6 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 
 const ListItemContainer = styled('div')`
   display: flex;
-
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
