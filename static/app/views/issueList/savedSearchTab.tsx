@@ -129,9 +129,8 @@ const TitleTextOverflow = styled('span')`
 const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
   position: relative;
   display: block;
-  padding: ${space(1)} 0;
+  padding: ${space(0.5)} 0;
   /* Important to override a media query from .nav-tabs */
-  font-size: ${p => p.theme.fontSizeLarge} !important;
   text-align: center;
   text-transform: capitalize;
   /* TODO(scttcper): Replace hex color when nav-tabs is replaced */

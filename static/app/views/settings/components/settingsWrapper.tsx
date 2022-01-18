@@ -25,10 +25,9 @@ export default SettingsWrapper;
 const StyledSettingsWrapper = styled('div')`
   display: flex;
   flex: 1;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
   margin-bottom: -${space(3)}; /* to account for footer margin top */
-  line-height: 1;
 
   .messages-container {
     margin: 0;

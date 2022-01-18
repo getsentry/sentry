@@ -188,12 +188,13 @@ const SubscriptionDetails = styled('div')`
 `;
 
 const SubscriptionName = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-top: ${space(0.75)};
   color: ${p => p.theme.subText};
+  line-height: 1.2;
+  margin-top: ${space(0.5)};
 `;
 
 const SubscribedDescription = styled(Description)`

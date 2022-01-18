@@ -44,7 +44,7 @@ const alertStyles = ({
     flex-direction: column;
     margin: 0 0 ${space(3)};
     padding: ${space(1.5)} ${space(2)};
-    font-size: ${theme.fontSizeLarge};
+    font-size: ${theme.fontSizeMedium};
     box-shadow: ${theme.dropShadowLight};
     border-radius: ${theme.borderRadius};
     border: 1px solid ${alertColors.border};

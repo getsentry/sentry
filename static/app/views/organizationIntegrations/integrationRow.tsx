@@ -172,13 +172,13 @@ const Container = styled('div')`
 `;
 
 const IntegrationName = styled(Link)`
+  font-size: ${p => p.theme.fontSizeLarge};
   font-weight: bold;
 `;
 
 const IntegrationDetails = styled('div')`
   display: flex;
   align-items: center;
-  margin-top: 6px;
   font-size: 0.8em;
 `;
 

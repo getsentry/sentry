@@ -180,7 +180,7 @@ type MenuListItemProps = {
 function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   const common = `
     display: block;
-    padding: ${space(0.5)} ${space(2)};
+    padding: ${space(1)} ${space(2)};
     &:focus {
       outline: none;
     }

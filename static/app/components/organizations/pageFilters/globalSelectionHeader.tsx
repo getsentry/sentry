@@ -423,14 +423,14 @@ const Header = styled('div')`
   position: relative;
   display: flex;
   width: 100%;
-  height: 60px;
+  height: 54px;
 
   border-bottom: 1px solid ${p => p.theme.border};
   box-shadow: ${p => p.theme.dropShadowLight};
   z-index: ${p => p.theme.zIndex.globalSelectionHeader};
 
   background: ${p => p.theme.headerBackground};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSizeLarge};
   @media (min-width: ${p => p.theme.breakpoints[0]} and max-width: ${p =>
       p.theme.breakpoints[1]}) {
     margin-top: 54px;

@@ -6,7 +6,7 @@ const Crumb = styled('div')`
   display: flex;
   align-items: center;
   position: relative;
-  font-size: 18px;
+  font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.subText};
   padding-right: ${space(1)};
   cursor: pointer;

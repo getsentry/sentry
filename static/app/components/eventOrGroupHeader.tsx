@@ -162,12 +162,12 @@ const getMargin = ({size}: {size: Size}) => {
 };
 
 const Title = styled('div')<{size: Size; hasGroupingTreeUI: boolean}>`
-  line-height: 1;
+  font-size: ${p => p.theme.fontSizeLarge};
   ${getMargin};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
-    font-weight: 300;
+    font-weight: 400;
     color: ${p => p.theme.subText};
   }
   ${p =>

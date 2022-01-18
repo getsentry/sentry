@@ -675,7 +675,7 @@ const GroupCheckBoxWrapper = styled('div')`
 `;
 
 const primaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
+  font-size: ${theme.fontSizeMedium};
   font-variant-numeric: tabular-nums;
 `;
 
@@ -688,7 +688,7 @@ const PrimaryPercent = styled('div')`
 `;
 
 const secondaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
+  font-size: ${theme.fontSizeMedium};
   font-variant-numeric: tabular-nums;
 
   :before {

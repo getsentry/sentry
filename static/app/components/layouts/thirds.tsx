@@ -112,7 +112,7 @@ export const HeaderNavTabs = styled(NavTabs)`
     margin-right: ${space(3)};
   }
   & > li > a {
-    padding: ${space(1)} 0;
+    padding: ${space(0.5)} 0;
     margin-bottom: 4px;
   }
   & > li.active > a {

@@ -144,7 +144,7 @@ class AccountSecurity extends AsyncView<Props> {
                     <AuthenticatorHeader>
                       <AuthenticatorTitle>
                         <AuthenticatorStatus enabled={isEnrolled} />
-                        <AuthenticatorName>{name}</AuthenticatorName>
+                        <span>{name}</span>
                       </AuthenticatorTitle>
 
                       <Actions>
@@ -214,10 +214,6 @@ class AccountSecurity extends AsyncView<Props> {
   }
 }
 
-const AuthenticatorName = styled('span')`
-  font-size: 1.2em;
-`;
-
 const AuthenticatorPanelItem = styled(PanelItem)`
   flex-direction: column;
 `;
@@ -230,6 +226,8 @@ const AuthenticatorHeader = styled('div')`
 
 const AuthenticatorTitle = styled('div')`
   flex: 1;
+  display: flex;
+  align-items: center;
 `;
 
 const Actions = styled('div')`
@@ -243,7 +241,9 @@ const AuthenticatorStatus = styled(CircleIndicator)`
 `;
 
 const Description = styled(TextBlock)`
-  margin-top: ${space(2)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin-top: ${space(1)};
   margin-bottom: 0;
 `;
 

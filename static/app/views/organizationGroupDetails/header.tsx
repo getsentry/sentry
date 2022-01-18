@@ -148,9 +148,9 @@ class GroupHeader extends React.Component<Props, State> {
         <div className="row">
           <div className="col-sm-7">
             <TitleWrapper>
-              <h3>
+              <Title>
                 <EventOrGroupTitle hasGuideAnchor data={group} />
-              </h3>
+              </Title>
               {group.inbox && (
                 <InboxReasonWrapper>
                   <InboxReason inbox={group.inbox} fontSize="md" />
@@ -347,6 +347,11 @@ export default withApi(withRouter(withOrganization(GroupHeader)));
 const TitleWrapper = styled('div')`
   display: flex;
   line-height: 24px;
+`;
+
+const Title = styled('h3')`
+  ${p => p.theme.text.pageTitle};
+  color: ${p => p.theme.headingColor};
 `;
 
 const InboxReasonWrapper = styled('div')`

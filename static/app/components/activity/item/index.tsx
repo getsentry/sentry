@@ -140,7 +140,7 @@ const ActivityItemWrapper = styled('div')`
 `;
 
 const HeaderAndFooter = styled('div')`
-  padding: 6px ${space(2)};
+  padding: ${space(1)} ${space(2)};
 `;
 
 const ActivityHeader = styled(HeaderAndFooter)`
