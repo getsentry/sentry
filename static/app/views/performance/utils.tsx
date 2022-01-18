@@ -23,6 +23,15 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {DEFAULT_MAX_DURATION} from './trends/utils';
 
+export const QUERY_KEYS = [
+  'environment',
+  'project',
+  'query',
+  'start',
+  'end',
+  'statsPeriod',
+] as const;
+
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
  * where we don't want to wait for transaction data to return to determine how to display aspects of a page.

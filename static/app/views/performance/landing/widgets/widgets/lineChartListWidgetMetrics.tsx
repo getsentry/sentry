@@ -24,7 +24,12 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformMetricsToArea} from '../transforms/transformMetricsToArea';
 import {transformMetricsToList} from '../transforms/transformMetricsToList';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -129,7 +134,8 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
           </MetricsRequest>
         );
       },
-      transform: transformMetricsToArea,
+      transform: (data: GenericPerformanceWidgetProps<DataType>, result) =>
+        transformMetricsToArea(data, result),
     };
   }, [chartSetting, selectedListIndex]);
 

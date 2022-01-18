@@ -20,8 +20,8 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {MetricsRequestRenderProps} from 'sentry/utils/metrics/metricsRequest';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
+import {ViewProps} from '../types';
 
-import {ViewProps} from './types';
 import {getMaxOfSeries, getVitalChartDefinitions} from './utils';
 
 type Props = Omit<MetricsRequestRenderProps, 'responsePrevious'> &

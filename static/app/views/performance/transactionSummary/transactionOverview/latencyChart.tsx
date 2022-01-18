@@ -30,16 +30,7 @@ export const ZOOM_START = 'startDuration';
 export const ZOOM_END = 'endDuration';
 
 const NUM_BUCKETS = 50;
-const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
-
-type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
+import {ViewProps} from '../../types';
 
 type Props = ViewProps & {
   organization: OrganizationSummary;
