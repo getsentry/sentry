@@ -191,7 +191,7 @@ function TransactionSummaryCharts({
         {display === DisplayModes.TREND && (
           <TrendChart
             trendFunction={trendFunction}
-            trendColumn={trendColumn}
+            trendParameter={trendColumn}
             organization={organization}
             query={eventView.query}
             queryExtra={releaseQueryExtra}
