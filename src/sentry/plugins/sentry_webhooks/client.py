@@ -18,4 +18,5 @@ class WebhookApiClient(ApiClient):
             json=True,
             timeout=5,
             allow_text=True,
+            ignore_webhook_errors=True,
         )

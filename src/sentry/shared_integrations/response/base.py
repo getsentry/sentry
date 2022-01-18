@@ -31,7 +31,7 @@ class BaseApiResponse:
         return {item["rel"]: item["url"] for item in requests.utils.parse_header_links(link_header)}
 
     @classmethod
-    def from_response(self, response, allow_text=False):
+    def from_response(self, response, allow_text=False, ignore_webhook_errors=False):
         from sentry.shared_integrations.response import (
             MappingApiResponse,
             SequenceApiResponse,
@@ -74,4 +74,6 @@ class BaseApiResponse:
         elif isinstance(data, (list, tuple)):
             return SequenceApiResponse(data, response.headers, response.status_code)
         else:
+            if ignore_webhook_errors:
+                return
             raise NotImplementedError
