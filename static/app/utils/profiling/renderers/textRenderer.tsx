@@ -12,22 +12,32 @@ import {
   trimTextCenter,
 } from '../gl/utils';
 
-function isOutsideView(frame: Rect, configView: Rect, inverted: boolean): boolean {
-  if (frame.right < configView.left) {
-    return true;
-  }
-  if (frame.left > configView.right) {
+export function isOutsideView(frame: Rect, view: Rect, inverted: boolean): boolean {
+  // Frame is outside of the view on the left
+  if (frame.right <= view.left) {
     return true;
   }
 
+  // Frame is outside of the view on the right
+  if (frame.left >= view.right) {
+    return true;
+  }
+
+  // Frame is above the view
+  if (frame.bottom <= view.top) {
+    return true;
+  }
+
+  // Frame is below the view
+  if (frame.top >= view.bottom) {
+    return true;
+  }
+
+  // @TODO check if we still need this
   if (inverted) {
-    if (frame.top - 1 > configView.bottom) {
+    if (frame.top - 1 >= view.bottom) {
       return true;
     }
-  }
-
-  if (frame.bottom < configView.top - 1) {
-    return true;
   }
 
   return false;
@@ -82,12 +92,11 @@ class TextRenderer {
     // would improve our best case performance (e.g. when users) zoom into the flamegraph
     for (i = 0; i < length; i++) {
       frame = this.flamegraph.frames[i];
-      const text = frame.frame.name;
 
       // This rect gets discarded after each render which is wasteful
       const frameInConfigSpace = new Rect(
         frame.start,
-        this.flamegraph.inverted ? configSpace.height - frame.depth + 1 : frame.depth + 1,
+        this.flamegraph.inverted ? configSpace.height - frame.depth + 1 : frame.depth,
         frame.end - frame.start,
         1
       );
@@ -116,38 +125,37 @@ class TextRenderer {
 
       // Since the text is not exactly aligned to the left/right bounds of the frame, we need to subtract the padding
       // from the total width, so that we can truncate the center of the text accurately.
-      const paddedWidth =
+      const paddedRectangleWidth =
         frameInPhysicalSpace.width -
         2 * (this.theme.SIZES.BAR_PADDING * window.devicePixelRatio);
 
+      // We want to draw the text in the vertical center of the frame, so we substract half the height of the text
       const y =
         frameInPhysicalSpace.y -
         (this.theme.SIZES.BAR_FONT_SIZE / 2) * window.devicePixelRatio;
 
+      // Offset x by 1x the padding
       const x =
         frameInPhysicalSpace.x + this.theme.SIZES.BAR_PADDING * window.devicePixelRatio;
 
       // If the width of the text is greater than the minimum width to render, we should render it
-      if (paddedWidth >= minWidth) {
-        const width = this.measureText(this.context, text);
+      if (paddedRectangleWidth >= minWidth) {
+        let text = frame.frame.name;
+        const textWidth = this.measureText(this.context, text);
 
-        if (width < paddedWidth) {
-          this.context.fillText(text, x, y);
-          continue;
-        } else {
-          this.context.fillText(
-            trimTextCenter(
-              text,
-              findRangeBinarySearch(
-                {low: 0, high: text.length},
-                n => this.measureText(this.context, text.substring(0, n)),
-                paddedWidth
-              )[0]
-            ),
-            x,
-            y
+        // If text width is smaller than rectangle, just draw the text
+        if (textWidth > paddedRectangleWidth) {
+          text = trimTextCenter(
+            text,
+            findRangeBinarySearch(
+              {low: 0, high: text.length},
+              n => this.measureText(this.context, text.substring(0, n)),
+              paddedRectangleWidth
+            )[0]
           );
         }
+
+        this.context.fillText(text, x, y);
       }
     }
   }
