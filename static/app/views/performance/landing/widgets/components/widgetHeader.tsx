@@ -45,6 +45,7 @@ const TitleContainer = styled('div')`
 const WidgetHeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
+  gap: ${space(1)};
 `;
 
 const HeaderActionsContainer = styled('div')`
