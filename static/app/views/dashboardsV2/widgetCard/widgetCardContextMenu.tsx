@@ -91,6 +91,9 @@ function WidgetCardContextMenu({
           case DisplayType.BAR:
             discoverLocation.query.display = DisplayModes.BAR;
             break;
+          case DisplayType.TOP_N:
+            discoverLocation.query.display = DisplayModes.TOP5;
+            break;
           default:
             break;
         }

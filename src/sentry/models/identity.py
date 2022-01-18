@@ -8,6 +8,7 @@ from django.db import IntegrityError, models
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
+from sentry import analytics
 from sentry.db.models import (
     ArrayField,
     BaseManager,
@@ -95,6 +96,13 @@ class IdentityManager(BaseManager):
             if not should_reattach:
                 raise e
             return self.reattach(idp, external_id, user, defaults)
+
+        analytics.record(
+            "integrations.identity_linked",
+            provider="slack",
+            actor_id=user.actor_id,
+            actor_type="user",
+        )
         return identity
 
     def delete_identity(self, user: User, idp: IdentityProvider, external_id: str) -> None:

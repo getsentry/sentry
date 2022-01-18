@@ -17,20 +17,15 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
-        <div>
-          <StyledHeaderTitleLegend data-test-id="performance-widget-title">
-            <div className="truncate">{title}</div>
-            <QuestionTooltip position="top" size="sm" title={titleTooltip} />
-          </StyledHeaderTitleLegend>
-        </div>
-        <div>{Subtitle ? <Subtitle {...props} /> : null}</div>
+        <StyledHeaderTitleLegend data-test-id="performance-widget-title">
+          {title}
+          <QuestionTooltip position="top" size="sm" title={titleTooltip} />
+        </StyledHeaderTitleLegend>
+        {Subtitle ? <Subtitle {...props} /> : null}
       </TitleContainer>
-
-      {HeaderActions && (
-        <HeaderActionsContainer>
-          {HeaderActions && <HeaderActions {...props} />}
-        </HeaderActionsContainer>
-      )}
+      <HeaderActionsContainer>
+        {HeaderActions && <HeaderActions {...props} />}
+      </HeaderActionsContainer>
     </WidgetHeaderContainer>
   );
 }
@@ -43,12 +38,14 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
 const TitleContainer = styled('div')`
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
 `;
 
 const WidgetHeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
 `;
+
 const HeaderActionsContainer = styled('div')`
   display: flex;
   gap: ${space(1)};

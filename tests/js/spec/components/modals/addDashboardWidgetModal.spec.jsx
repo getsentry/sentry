@@ -1064,6 +1064,35 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
+  it('limits TopN display to one query when switching from another visualization', async () => {
+    reactMountWithTheme(
+      <AddDashboardWidgetModal
+        Header={stubEl}
+        Body={stubEl}
+        Footer={stubEl}
+        CloseButton={stubEl}
+        organization={initialData.organization}
+        onAddWidget={() => undefined}
+        onUpdateWidget={() => undefined}
+        widget={initialData.widget}
+        closeModal={() => void 0}
+        source={types.DashboardWidgetSource.DASHBOARDS}
+      />
+    );
+    userEvent.click(screen.getByText('Table'));
+    userEvent.click(await screen.findByText('Bar Chart'));
+    userEvent.click(screen.getByText('Add Query'));
+    userEvent.click(screen.getByText('Add Query'));
+    expect(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more').length
+    ).toEqual(3);
+    userEvent.click(screen.getByText('Bar Chart'));
+    userEvent.click(await screen.findByText('Top 5 Events'));
+    expect(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more').length
+    ).toEqual(1);
+  });
+
   describe('Issue Widgets', function () {
     function mountModalWithRtl({onAddWidget, onUpdateWidget, widget, source}) {
       return reactMountWithTheme(

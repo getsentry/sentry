@@ -195,6 +195,39 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
+  it('Opens in Discover with Top N', async function () {
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TOP_N,
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+
+    await tick();
+
+    userEvent.click(screen.getByTestId('context-menu'));
+    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
+    );
+  });
+
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
     mountWithTheme(

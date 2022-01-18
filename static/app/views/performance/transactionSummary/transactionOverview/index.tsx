@@ -104,6 +104,7 @@ function OverviewContentWrapper(props: ChildProps) {
     if (newFilter === SpanOperationBreakdownFilter.None) {
       delete nextQuery.breakdown;
     }
+
     browserHistory.push({
       pathname: location.pathname,
       query: nextQuery,
