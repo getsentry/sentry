@@ -9,7 +9,7 @@ import BarChart from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -65,7 +65,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/alerts-triggered/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -74,7 +74,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/alerts-triggered-index/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -144,6 +144,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
                 seriesName: t('Alerts Triggered'),
                 data: seriesData,
                 silent: true,
+                barCategoryGap: '5%',
               },
             ]}
           />
@@ -186,7 +187,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
               <Fragment key={rule.id}>
                 <div>
                   <Link
-                    to={`/organizations/${organization.id}/alerts/rules/details/${rule.id}/`}
+                    to={`/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`}
                   >
                     {rule.name}
                   </Link>

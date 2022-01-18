@@ -22,8 +22,3 @@ export type SpanSortOption = {
 export type SpansTotalValues = {
   count: number;
 };
-
-export type SpanSlug = {
-  op: string;
-  group: string;
-};

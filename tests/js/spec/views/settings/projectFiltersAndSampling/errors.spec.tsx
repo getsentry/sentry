@@ -180,7 +180,7 @@ describe('Filters and Sampling - Error rule', function () {
     userEvent.click(saveRuleButtonEnabled);
 
     // Modal will close
-    await waitForElementToBeRemoved(() => screen.getByText('Edit Error Sampling Rule'));
+    await waitForElementToBeRemoved(() => screen.queryByText('Edit Error Sampling Rule'));
 
     // Error rules panel is updated
     expect(screen.getByText('Errors only')).toBeInTheDocument();
@@ -298,7 +298,7 @@ describe('Filters and Sampling - Error rule', function () {
 
     // Confirmation modal will close
     await waitForElementToBeRemoved(() =>
-      screen.getByText('Are you sure you wish to delete this dynamic sampling rule?')
+      screen.queryByText('Are you sure you wish to delete this dynamic sampling rule?')
     );
 
     // Error rules panel is updated
@@ -335,7 +335,9 @@ describe('Filters and Sampling - Error rule', function () {
 
       // Close Modal
       userEvent.click(screen.getByLabelText('Close Modal'));
-      await waitForElementToBeRemoved(() => screen.getByText('Add Error Sampling Rule'));
+      await waitForElementToBeRemoved(() =>
+        screen.queryByText('Add Error Sampling Rule')
+      );
     });
 
     it('condition options', async function () {
@@ -363,7 +365,9 @@ describe('Filters and Sampling - Error rule', function () {
 
       // Close Modal
       userEvent.click(screen.getByLabelText('Close Modal'));
-      await waitForElementToBeRemoved(() => screen.getByText('Add Error Sampling Rule'));
+      await waitForElementToBeRemoved(() =>
+        screen.queryByText('Add Error Sampling Rule')
+      );
     });
 
     it('save rule', async function () {
@@ -452,7 +456,9 @@ describe('Filters and Sampling - Error rule', function () {
       userEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
-      await waitForElementToBeRemoved(() => screen.getByText('Add Error Sampling Rule'));
+      await waitForElementToBeRemoved(() =>
+        screen.queryByText('Add Error Sampling Rule')
+      );
 
       // Error rules panel is updated
       expect(

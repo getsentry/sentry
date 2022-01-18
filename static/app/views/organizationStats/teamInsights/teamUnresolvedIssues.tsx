@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -61,7 +61,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/all-unresolved-issues/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -172,6 +172,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
                   seriesName: t('Unresolved Issues'),
                   silent: true,
                   data: seriesData,
+                  barCategoryGap: '5%',
                 },
               ]}
             />

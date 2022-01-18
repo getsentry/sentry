@@ -60,6 +60,11 @@ describe('Dashboards > Detail', function () {
         body: [],
         statusCode: 200,
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -225,6 +230,11 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
         method: 'GET',
         body: [],
       });

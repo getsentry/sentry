@@ -15,6 +15,7 @@ import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -66,6 +67,7 @@ type Props = {
   router: InjectedRouter;
   location: Location;
   widgetLimitReached: boolean;
+  isPreview?: boolean;
   /**
    * Fired when widgets are added/removed/sorted.
    */
@@ -121,6 +123,9 @@ class Dashboard extends Component<Props, State> {
       this.fetchTags();
     }
     this.addNewWidget();
+
+    // Get member list data for issue widgets
+    this.fetchMemberList();
   }
 
   async componentDidUpdate(prevProps: Props) {
@@ -134,6 +139,19 @@ class Dashboard extends Component<Props, State> {
     if (newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
+    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+      this.fetchMemberList();
+    }
+  }
+
+  fetchMemberList() {
+    const {api, selection} = this.props;
+    // Stores MemberList in MemberListStore for use in modals and sets state for use is child components
+    fetchOrgMembers(
+      api,
+      this.props.organization.slug,
+      selection.projects?.map(projectId => String(projectId))
+    );
   }
 
   async addNewWidget() {
@@ -273,7 +291,10 @@ class Dashboard extends Component<Props, State> {
       handleAddCustomWidget,
     } = this.props;
 
-    if (organization.features.includes('metrics')) {
+    if (
+      organization.features.includes('metrics') &&
+      organization.features.includes('metrics-dashboards-ui')
+    ) {
       onSetWidgetToBeUpdated(widget);
 
       if (paramDashboardId) {
@@ -323,7 +344,7 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile} = this.state;
-    const {isEditing, organization, widgetLimitReached} = this.props;
+    const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
     const widgetProps = {
       widget,
@@ -332,6 +353,7 @@ class Dashboard extends Component<Props, State> {
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      isPreview,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {
@@ -504,6 +526,8 @@ const GridItem = styled('div')`
 
 // HACK: to stack chart tooltips above other grid items
 const GridLayout = styled(WidthProvider(Responsive))`
+  margin: -${space(2)};
+
   .react-grid-item:hover {
     z-index: 10;
   }

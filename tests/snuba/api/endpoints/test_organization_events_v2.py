@@ -475,6 +475,31 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert len(response.data["data"]) == 1
             assert response.data["data"][0]["user"] == "ip:{}".format(data["user"]["ip_address"])
 
+    def test_team_param_no_access(self):
+        org = self.create_organization(
+            owner=self.user,  # use other user as owner
+            name="foo",
+            flags=0,  # disable default allow_joinleave
+        )
+        project = self.create_project(name="baz", organization=org)
+
+        user = self.create_user()
+        self.login_as(user=user, superuser=False)
+
+        team = self.create_team(organization=org, name="Team Bar")
+        project.add_team(team)
+
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=project.id,
+        )
+
+        query = {"field": ["id", "project.id"], "project": [project.id], "team": [team.id]}
+        response = self.do_request(query)
+        assert response.status_code == 403, response.content
+
+        assert response.data["detail"] == "You do not have permission to perform this action."
+
     def test_comparison_operators_on_numeric_field(self):
         project = self.create_project()
         event = self.store_event(

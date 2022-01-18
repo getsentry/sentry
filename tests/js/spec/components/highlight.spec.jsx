@@ -1,50 +1,41 @@
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {HighlightComponent} from 'sentry/components/highlight';
 
 describe('Highlight', function () {
   it('highlights text', function () {
-    // shallow because `mount` and React Fragments don't work when accessing children
-    // it will only return first child
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <HighlightComponent text="ILL">billy@sentry.io</HighlightComponent>,
-      TestStubs.routerContext()
+      {context: TestStubs.routerContext()}
     );
-    expect(wrapper.children().at(0).text()).toBe('b');
-    expect(wrapper.find('span').text()).toBe('ill');
-    expect(wrapper.children().at(2).text()).toBe('y@sentry.io');
+    expect(wrapper.container.childNodes).toHaveLength(3);
+    expect(wrapper.container.childNodes[0]).toHaveTextContent('b');
+    expect(wrapper.container.childNodes[1]).toHaveTextContent('ill');
+    expect(wrapper.container.childNodes[2]).toHaveTextContent('y@sentry.io');
   });
 
   it('does not have highlighted text if `text` prop is not found in main text', function () {
-    // shallow because `mount` and React Fragments don't work when accessing children
-    // it will only return first child
-    const wrapper = shallow(
+    mountWithTheme(
       <HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>,
-      TestStubs.routerContext()
+      {context: TestStubs.routerContext()}
     );
 
-    expect(wrapper.text()).toBe('billy@sentry.io');
+    expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });
 
   it('does not have highlighted text if `text` prop is empty', function () {
-    // shallow because `mount` and React Fragments don't work when accessing children
-    // it will only return first child
-    const wrapper = shallow(
-      <HighlightComponent text="">billy@sentry.io</HighlightComponent>,
-      TestStubs.routerContext()
-    );
+    mountWithTheme(<HighlightComponent text="">billy@sentry.io</HighlightComponent>, {
+      context: TestStubs.routerContext(),
+    });
 
-    expect(wrapper.text()).toBe('billy@sentry.io');
+    expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });
 
   it('does not have highlighted text if `disabled` prop is true', function () {
-    // shallow because `mount` and React Fragments don't work when accessing children
-    // it will only return first child
-    const wrapper = shallow(
-      <HighlightComponent text="">billy@sentry.io</HighlightComponent>,
-      TestStubs.routerContext()
-    );
+    mountWithTheme(<HighlightComponent text="">billy@sentry.io</HighlightComponent>, {
+      context: TestStubs.routerContext(),
+    });
 
-    expect(wrapper.text()).toBe('billy@sentry.io');
+    expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });
 });

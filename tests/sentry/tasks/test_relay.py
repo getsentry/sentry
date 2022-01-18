@@ -2,14 +2,13 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.models import ProjectKey, ProjectOption
+from sentry.models import ProjectKey, ProjectKeyStatus, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 from sentry.tasks.relay import schedule_update_config_cache
 
 
 def _cache_keys_for_project(project):
-    yield project.id
     for key in ProjectKey.objects.filter(project_id=project.id):
         yield key.public_key
 
@@ -73,12 +72,14 @@ def test_debounce(monkeypatch, default_project, default_organization, redis_cach
             "generate": True,
             "project_id": default_project.id,
             "organization_id": None,
+            "public_key": None,
             "update_reason": None,
         },
         {
             "generate": True,
             "project_id": None,
             "organization_id": default_organization.id,
+            "public_key": None,
             "update_reason": None,
         },
     ]
@@ -95,7 +96,7 @@ def test_generate(
     entire_organization,
     redis_cache,
 ):
-    assert not redis_cache.get(default_project.id)
+    assert not redis_cache.get(default_projectkey.public_key)
 
     if not entire_organization:
         kwargs = {"project_id": default_project.id}
@@ -105,14 +106,14 @@ def test_generate(
     with task_runner():
         schedule_update_config_cache(generate=True, **kwargs)
 
-    cfg = redis_cache.get(default_project.id)
+    cfg = redis_cache.get(default_projectkey.public_key)
 
     assert cfg["organizationId"] == default_organization.id
     assert cfg["projectId"] == default_project.id
     assert cfg["publicKeys"] == [
         {
-            "publicKey": default_projectkey.public_key,
             "isEnabled": True,
+            "publicKey": default_projectkey.public_key,
             "numericId": default_projectkey.id,
             "quotas": [],
         }
@@ -124,6 +125,7 @@ def test_generate(
 def test_invalidate(
     monkeypatch,
     default_project,
+    default_projectkey,
     default_organization,
     task_runner,
     entire_organization,
@@ -131,8 +133,8 @@ def test_invalidate(
 ):
 
     cfg = {"foo": "bar"}
-    redis_cache.set_many({default_project.id: cfg})
-    assert redis_cache.get(default_project.id) == cfg
+    redis_cache.set_many({default_projectkey.public_key: cfg})
+    assert redis_cache.get(default_projectkey.public_key) == cfg
 
     if not entire_organization:
         kwargs = {"project_id": default_project.id}
@@ -147,13 +149,13 @@ def test_invalidate(
 
 
 @pytest.mark.django_db
-def test_project_update_option(default_project, task_runner, redis_cache):
+def test_project_update_option(default_projectkey, default_project, task_runner, redis_cache):
     with task_runner():
         default_project.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
         )
 
-    assert redis_cache.get(default_project.id)["config"]["piiConfig"] == {
+    assert redis_cache.get(default_projectkey.public_key)["config"]["piiConfig"] == {
         "applications": {"$string": ["@creditcard:mask"]}
     }
 
@@ -203,20 +205,24 @@ def test_projectkeys(default_project, task_runner, redis_cache):
         pk.save()
 
     for key in deleted_pks:
-        # XXX: Ideally we would write `{"disabled": False}` into Redis, however
+        # XXX: Ideally we would write `{"disabled": True}` into Redis, however
         # it's fine if we don't and instead Relay starts hitting the endpoint
         # which will write this for us.
         assert not redis_cache.get(key.public_key)
 
-    for cache_key in (default_project.id, pk.public_key):
-        (pk_json,) = redis_cache.get(cache_key)["publicKeys"]
-        assert pk_json["publicKey"] == pk.public_key
-        assert pk_json["isEnabled"]
+    (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
+    assert pk_json["publicKey"] == pk.public_key
+
+    with task_runner():
+        pk.status = ProjectKeyStatus.INACTIVE
+        pk.save()
+
+    assert redis_cache.get(pk.public_key)["disabled"]
 
     with task_runner():
         pk.delete()
 
-    assert not redis_cache.get(default_project.id)["publicKeys"]
+    assert not redis_cache.get(pk.public_key)
 
     for key in ProjectKey.objects.filter(project_id=default_project.id):
-        assert not redis_cache.get(default_project.id)
+        assert not redis_cache.get(key.public_key)

@@ -214,7 +214,7 @@ const fullPageCss = css`
 const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.modal};
-  background: ${p => p.theme.gray500};
+  background: ${p => p.theme.black};
   will-change: opacity;
   transition: opacity 200ms;
   pointer-events: none;
@@ -250,8 +250,8 @@ const Content = styled('div')`
   padding: ${space(4)};
   background: ${p => p.theme.background};
   border-radius: 8px;
-  border: ${p => p.theme.modalBorder};
-  box-shadow: ${p => p.theme.modalBoxShadow};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
+  position: relative;
 `;
 
 type State = {

@@ -256,6 +256,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       onAddWidget: data => (widget = data),
     });
 
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+
     // Click the add button
     const add = wrapper.find('button[aria-label="Add Overlay"]');
     add.simulate('click');
@@ -279,6 +282,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: data => (widget = data),
     });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
 
     // Click the add button
     const add = wrapper.find('button[aria-label="Add an Equation"]');
@@ -316,6 +322,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: data => (widget = data),
     });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
 
     // Click the add button
     const add = wrapper.find('button[aria-label="Add Overlay"]');
@@ -379,6 +388,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: data => (widget = data),
     });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
 
     // Set first query search conditions
     await setSearchConditions(
@@ -717,6 +729,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: data => (widget = data),
     });
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
+
     // No delete button as there is only one field.
     expect(wrapper.find('IconDelete')).toHaveLength(0);
 
@@ -1049,6 +1064,35 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
+  it('limits TopN display to one query when switching from another visualization', async () => {
+    reactMountWithTheme(
+      <AddDashboardWidgetModal
+        Header={stubEl}
+        Body={stubEl}
+        Footer={stubEl}
+        CloseButton={stubEl}
+        organization={initialData.organization}
+        onAddWidget={() => undefined}
+        onUpdateWidget={() => undefined}
+        widget={initialData.widget}
+        closeModal={() => void 0}
+        source={types.DashboardWidgetSource.DASHBOARDS}
+      />
+    );
+    userEvent.click(screen.getByText('Table'));
+    userEvent.click(await screen.findByText('Bar Chart'));
+    userEvent.click(screen.getByText('Add Query'));
+    userEvent.click(screen.getByText('Add Query'));
+    expect(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more').length
+    ).toEqual(3);
+    userEvent.click(screen.getByText('Bar Chart'));
+    userEvent.click(await screen.findByText('Top 5 Events'));
+    expect(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more').length
+    ).toEqual(1);
+  });
+
   describe('Issue Widgets', function () {
     function mountModalWithRtl({onAddWidget, onUpdateWidget, widget, source}) {
       return reactMountWithTheme(
@@ -1073,8 +1117,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         onAddWidget: onAdd,
         onUpdateWidget: () => undefined,
       });
-      userEvent.click(screen.getByText('Line Chart'));
-      userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.click(screen.getByTestId('add-widget'));
 
@@ -1105,8 +1147,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DISCOVERV2,
       });
       await tick();
-      userEvent.click(screen.getByText('Line Chart'));
       userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
       expect(screen.queryByText('Data Set')).not.toBeInTheDocument();
       wrapper.unmount();
     });
@@ -1117,8 +1159,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
-      userEvent.click(screen.getByText('Line Chart'));
-      userEvent.click(screen.getByText('Table'));
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
       wrapper.unmount();

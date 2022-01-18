@@ -77,12 +77,12 @@ export type QueryDefinition<
 > = {
   component: QueryFC<T>;
   fields: string | string[];
-  enabled?: (data: T) => boolean;
   transform: (
     props: GenericPerformanceWidgetProps<T>,
     results: any,
     queryDefinition: QueryDefinitionWithKey<T>
   ) => S; // TODO(k-fish): Fix any type.
+  enabled?: (data: T) => boolean;
 };
 export type Queries<T extends WidgetDataConstraint> = Record<
   string,
@@ -158,9 +158,9 @@ export type QueryDefinitionWithKey<T extends WidgetDataConstraint> = QueryDefini
 export type QueryHandlerProps<T extends WidgetDataConstraint> = {
   api: Client;
   queries: QueryDefinitionWithKey<T>[];
-  children?: React.ReactNode;
   eventView: EventView;
   queryProps: WidgetPropUnion<T>;
+  children?: React.ReactNode;
 } & WidgetDataProps<T>;
 
 export type WidgetPropUnion<T extends WidgetDataConstraint> =

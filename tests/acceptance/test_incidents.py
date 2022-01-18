@@ -18,7 +18,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
     def test_empty_incidents(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.snapshot("incidents - empty state")
 
     def test_incidents_list(self):
@@ -35,14 +35,14 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
         features = {feature: True for feature in FEATURE_NAME}
         with self.feature(features):
             self.browser.get(self.path)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.snapshot("incidents - list")
 
             details_url = f'[href="/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.id}'
             self.browser.wait_until(details_url)
             self.browser.click(details_url)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_test_id("incident-rule-title")
 
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')

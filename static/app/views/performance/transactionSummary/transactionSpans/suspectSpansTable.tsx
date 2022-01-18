@@ -44,8 +44,7 @@ export default function SuspectSpansTable(props: Props) {
   const data: TableDataRowWithExtras[] = suspectSpans.map(suspectSpan => ({
     operation: suspectSpan.op,
     group: suspectSpan.group,
-    // TODO: currently the descriptions are only retrieved with examples
-    description: suspectSpan.group,
+    description: suspectSpan.description,
     totalCount: suspectSpan.count,
     frequency:
       defined(suspectSpan.frequency) && defined(totals?.count)
@@ -111,7 +110,7 @@ function renderBodyCellWithMeta(
       });
       return (
         <TableCellContainer>
-          <Link to={target}>{dataRow[column.key]}</Link>
+          <Link to={target}>{dataRow[column.key] ?? t('(unnamed span)')}</Link>
         </TableCellContainer>
       );
     }
@@ -202,12 +201,12 @@ const COLUMN_ORDER: Record<SpanSort, TableColumnKey[]> = {
 const COLUMNS: Record<TableColumnKey, TableColumn> = {
   operation: {
     key: 'operation',
-    name: t('Operation'),
+    name: t('Span Operation'),
     width: COL_WIDTH_UNDEFINED,
   },
   description: {
     key: 'description',
-    name: t('Description'),
+    name: t('Span Name'),
     width: COL_WIDTH_UNDEFINED,
   },
   totalCount: {

@@ -81,6 +81,7 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionName,
     transactionThreshold,
     transactionThresholdMetric,
+    isMetricsData,
   } = props;
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
@@ -103,6 +104,7 @@ function OverviewContentWrapper(props: ChildProps) {
     if (newFilter === SpanOperationBreakdownFilter.None) {
       delete nextQuery.breakdown;
     }
+
     browserHistory.push({
       pathname: location.pathname,
       query: nextQuery,
@@ -132,6 +134,7 @@ function OverviewContentWrapper(props: ChildProps) {
             totalValues={totals}
             onChangeFilter={onChangeFilter}
             spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+            isMetricsData={isMetricsData}
           />
         );
       }}
@@ -150,14 +153,27 @@ function getDocumentTitle(transactionName: string): string {
   return [t('Summary'), t('Performance')].join(' - ');
 }
 
-function generateEventView(location: Location, transactionName: string): EventView {
+function generateEventView({
+  location,
+  transactionName,
+  isMetricsData,
+}: {
+  location: Location;
+  transactionName: string;
+  isMetricsData: boolean;
+}): EventView {
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-  conditions
-    .setFilterValues('event.type', ['transaction'])
-    .setFilterValues('transaction', [transactionName]);
+
+  // event.type is not a valid metric tag, so it will be added to the query only
+  // in case the metric switch is disabled (for now).
+  if (!isMetricsData) {
+    conditions.setFilterValues('event.type', ['transaction']);
+  }
+
+  conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
     if (isAggregateField(field)) {

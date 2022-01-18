@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(name="sentry.tasks.relay.update_config_cache", queue="relay_config")
-def update_config_cache(generate, organization_id=None, project_id=None, update_reason=None):
+def update_config_cache(
+    generate, organization_id=None, project_id=None, public_key=None, update_reason=None
+):
     """
     Update the Redis cache for the Relay projectconfig. This task is invoked
     whenever a project/org option has been saved or smart quotas potentially
@@ -38,6 +40,9 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
         # model and don't want to fetch one
         sentry_sdk.set_tag("organization_id", organization_id)
 
+    if public_key:
+        sentry_sdk.set_tag("public_key", public_key)
+
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
 
@@ -47,55 +52,53 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
     # If this was running at the end of the task, it would be more effective
     # against bursts of updates, but introduces a different race where an
     # outdated cache may be used.
-    projectconfig_debounce_cache.mark_task_done(project_id, organization_id)
+    projectconfig_debounce_cache.mark_task_done(public_key, project_id, organization_id)
 
-    if project_id:
-        projects = [Project.objects.get_from_cache(id=project_id)]
-    elif organization_id:
-        # XXX(markus): I feel like we should be able to cache this but I don't
-        # want to add another method to src/sentry/db/models/manager.py
-        projects = Project.objects.filter(organization_id=organization_id)
+    if organization_id:
+        projects = list(Project.objects.filter(organization_id=organization_id))
+        keys = list(ProjectKey.objects.filter(project__in=projects))
+    elif project_id:
+        projects = [Project.objects.get(id=project_id)]
+        keys = list(ProjectKey.objects.filter(project__in=projects))
+    elif public_key:
+        try:
+            keys = [ProjectKey.objects.get(public_key=public_key)]
+        except ProjectKey.DoesNotExist:
+            # In this particular case, where a project key got deleted and
+            # triggered an update, we at least know the public key that needs
+            # to be deleted from cache.
+            #
+            # In other similar cases, like an org being deleted, we potentially
+            # cannot find any keys anymore, so we don't know which cache keys
+            # to delete.
+            projectconfig_cache.delete_many([public_key])
+            return
 
-    project_keys = {}
-    for key in ProjectKey.objects.filter(project_id__in=[project.id for project in projects]):
-        project_keys.setdefault(key.project_id, []).append(key)
+    else:
+        assert False
 
     if generate:
         config_cache = {}
-        for project in projects:
-            project_config = get_project_config(
-                project, project_keys=project_keys.get(project.id, []), full_config=True
-            )
-            config_cache[project.id] = project_config.to_dict()
-
-            for key in project_keys.get(project.id) or ():
-                # XXX(markus): This is currently the cleanest way to get only
-                # state for a single projectkey (considering quotas and
-                # everything)
-                if key.status != ProjectKeyStatus.ACTIVE:
-                    continue
-
-                project_config = get_project_config(project, project_keys=[key], full_config=True)
-                config_cache[key.public_key] = project_config.to_dict()
+        for key in keys:
+            if key.status != ProjectKeyStatus.ACTIVE:
+                project_config = {"disabled": True}
+            else:
+                project_config = get_project_config(
+                    key.project, project_keys=[key], full_config=True
+                ).to_dict()
+            config_cache[key.public_key] = project_config
 
         projectconfig_cache.set_many(config_cache)
     else:
         cache_keys_to_delete = []
-        for project in projects:
-            cache_keys_to_delete.append(project.id)
-            for key in project_keys.get(project.id) or ():
-                cache_keys_to_delete.append(key.public_key)
+        for key in keys:
+            cache_keys_to_delete.append(key.public_key)
 
         projectconfig_cache.delete_many(cache_keys_to_delete)
 
-    metrics.incr(
-        "relay.projectconfig_cache.done",
-        tags={"generate": generate, "update_reason": update_reason},
-    )
-
 
 def schedule_update_config_cache(
-    generate, project_id=None, organization_id=None, update_reason=None
+    generate, project_id=None, organization_id=None, public_key=None, update_reason=None
 ):
     """
     Schedule the `update_config_cache` with debouncing applied.
@@ -115,10 +118,13 @@ def schedule_update_config_cache(
         )
         return
 
-    if bool(organization_id) == bool(project_id):
-        raise TypeError("One of organization_id and project_id has to be provided, not both.")
+    bools = sorted((bool(organization_id), bool(project_id), bool(public_key)))
+    if bools != [False, False, True]:
+        raise TypeError(
+            "One of organization_id, project_id, public_key has to be provided, not many."
+        )
 
-    if projectconfig_debounce_cache.check_is_debounced(project_id, organization_id):
+    if projectconfig_debounce_cache.check_is_debounced(public_key, project_id, organization_id):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
             tags={"reason": "debounce", "update_reason": update_reason},
@@ -137,5 +143,6 @@ def schedule_update_config_cache(
         generate=generate,
         project_id=project_id,
         organization_id=organization_id,
+        public_key=public_key,
         update_reason=update_reason,
     )

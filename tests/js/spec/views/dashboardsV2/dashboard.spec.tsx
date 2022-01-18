@@ -38,6 +38,11 @@ describe('Dashboards > Dashboard', () => {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      method: 'GET',
+      body: [],
+    });
   });
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
