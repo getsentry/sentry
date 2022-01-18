@@ -22,6 +22,7 @@ export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   depends_on?: string[];
   choices?: Array<[any, string]>;
   async?: boolean;
+  skip_load_on_open?: boolean;
 };
 
 export type SchemaFormConfig = {
@@ -252,10 +253,16 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     if (fieldToPass.type === 'select') {
       // find the options from state to pass down
-      const defaultOptions = (field.choices || []).map(([value, label]) => ({
+      let defaultOptions = (field.choices || []).map(([value, label]) => ({
         value,
         label,
       }));
+      // there are no choices if skip_load_on_open is set, just use what's in the defaultResetValue
+      if (field.skip_load_on_open === true) {
+        defaultOptions = [
+          {value: defaultResetValues[field.name], label: defaultResetValues[field.name]},
+        ];
+      }
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
       const allowClear = !required;
       // filter by what the user is typing
@@ -295,7 +302,6 @@ export class SentryAppExternalForm extends Component<Props, State> {
         fieldToPass = {...fieldToPass, disabled: true};
       }
     }
-
     // if we have a uri, we need to set extra parameters
     const extraProps = field.uri
       ? {
