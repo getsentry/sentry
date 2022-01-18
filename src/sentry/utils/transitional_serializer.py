@@ -1,3 +1,4 @@
+from json.decoder import JSONDecodeError
 from typing import Any, Dict
 
 from django.contrib.sessions.serializers import PickleSerializer
@@ -15,5 +16,5 @@ class TransitionalSerializer:
     def loads(self, data: bytes) -> Dict[str, Any]:
         try:
             return self.json_serializer.loads(data)
-        except BaseException:
+        except JSONDecodeError:
             return self.pickle_serializer.loads(data)
