@@ -326,7 +326,13 @@ class DataSource(ABC):
         """Get metadata for a single metric, without tag values"""
 
     @abstractmethod
-    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
+    def get_series(
+        self,
+        projects: Sequence[Project],
+        query: QueryDefinition,
+        offset: Optional[int],
+        limit: Optional[int],
+    ) -> dict:
         """Get time series for the given query"""
 
     @abstractmethod
@@ -589,7 +595,13 @@ class MockDataSource(IndexMockingDataSource):
             "series": series,
         }
 
-    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
+    def get_series(
+        self,
+        projects: Sequence[Project],
+        query: QueryDefinition,
+        offset: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> dict:
         """Get time series for the given query"""
 
         intervals = list(get_intervals(query))
@@ -1073,9 +1085,16 @@ class SnubaDataSource(DataSource):
         meta = MetaFromSnuba(projects)
         return meta.get_tag_values(tag_name, metric_names)
 
-    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
+    def get_series(
+        self,
+        projects: Sequence[Project],
+        query: QueryDefinition,
+        offset: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> dict:
         """Get time series for the given query"""
         intervals = list(get_intervals(query))
+        offset = offset or 0
 
         if query.orderby is not None and len(query.fields) > 1:
             # Multi-field select with order by functionality. Currently only supports the
@@ -1117,9 +1136,8 @@ class SnubaDataSource(DataSource):
             # This query contains an order by clause, and so we are only interested in the
             # "totals" query
             initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
-            # ToDo(ahmed): Change this to accept the limit from the api request with a fallback to
-            #  50 elements if more than 50 elements are to be requested
-            initial_snuba_query = initial_snuba_query.set_limit(50)
+            initial_snuba_query = initial_snuba_query.set_limit(limit)
+            initial_snuba_query = initial_snuba_query.set_offset(offset)
 
             initial_query_results = raw_snql_query(
                 initial_snuba_query, use_cache=False, referrer="api.metrics.totals.initial_query"
@@ -1229,15 +1247,19 @@ class SnubaDataSource(DataSource):
                         results[entity]["totals"]["data"] += snuba_query_data_dict[group_tuple]
         else:
             snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
-            results = {
-                entity: {
-                    # TODO: Should we use cache?
-                    key: raw_snql_query(query, use_cache=False, referrer=f"api.metrics.{key}")
-                    for key, query in queries.items()
-                    if query is not None
-                }
-                for entity, queries in snuba_queries.items()
-            }
+            results = {}
+            for entity, queries in snuba_queries.items():
+                results.setdefault(entity, {})
+                for key, snuba_query in queries.items():
+                    if snuba_query is None:
+                        continue
+
+                    snuba_query = snuba_query.set_limit(limit)
+                    snuba_query = snuba_query.set_offset(offset)
+
+                    results[entity][key] = raw_snql_query(
+                        snuba_query, use_cache=False, referrer=f"api.metrics.{key}"
+                    )
 
         assert projects
         converter = SnubaResultConverter(projects[0].organization_id, query, intervals, results)
