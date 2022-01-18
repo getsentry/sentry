@@ -64,12 +64,8 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     expect(screen.getByText('Top Unhandled Error Types')).toBeInTheDocument();
     expect(screen.getByText('Users Affected by Errors')).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('button', {name: 'Widget Library beta', current: true})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Custom Widget', current: false})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Widget Library beta'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Custom Widget'})).toBeInTheDocument();
 
     const button = screen.getByRole('button', {name: 'Custom Widget'});
     userEvent.click(button);
