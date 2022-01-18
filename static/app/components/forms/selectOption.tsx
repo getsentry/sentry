@@ -8,43 +8,46 @@ import {defined} from 'sentry/utils';
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
 function SelectOption(props: Props) {
-  const {data} = props;
+  const {label, data, selectProps, isMulti, isSelected, isFocused} = props;
+  const {showDividers, verticallyCenterCheckWrap} = selectProps;
+  const {
+    details,
+    leadingItems,
+    trailingItems,
+    leadingItemsSpanFullHeight,
+    trailingItemsSpanFullHeight,
+  } = data;
 
   return (
     <selectComponents.Option {...props} className="select-option">
-      <InnerWrap isFocused={props.isFocused}>
-        <Indent
-          isMulti={props.isMulti}
-          centerCheckWrap={props.selectProps.verticallyCenterCheckWrap}
-        >
-          <CheckWrap isMulti={props.isMulti} isSelected={props.isSelected}>
-            {props.isSelected && (
+      <InnerWrap isFocused={isFocused}>
+        <Indent isMulti={isMulti} centerCheckWrap={verticallyCenterCheckWrap}>
+          <CheckWrap isMulti={isMulti} isSelected={isSelected}>
+            {isSelected && (
               <IconCheckmark
-                size={props.isMulti ? 'xs' : 'sm'}
-                color={props.isMulti ? 'white' : undefined}
+                size={isMulti ? 'xs' : 'sm'}
+                color={isMulti ? 'white' : undefined}
               />
             )}
           </CheckWrap>
-          {data.leadingItems && (
-            <LeadingItems spanFullHeight={data.leadingItemsSpanFullHeight}>
-              {data.leadingItems}
+          {leadingItems && (
+            <LeadingItems spanFullHeight={leadingItemsSpanFullHeight}>
+              {leadingItems}
             </LeadingItems>
           )}
         </Indent>
         <ContentWrap
-          isFocused={props.isFocused}
-          showDividers={props.selectProps.showDividers}
-          addRightMargin={!defined(data.trailingItems)}
+          isFocused={isFocused}
+          showDividers={showDividers}
+          addRightMargin={!defined(trailingItems)}
         >
           <div>
-            <Label as={typeof props.label === 'string' ? 'p' : 'div'}>
-              {props.label}
-            </Label>
-            {data.details && <Details>{data.details}</Details>}
+            <Label as={typeof label === 'string' ? 'p' : 'div'}>{label}</Label>
+            {details && <Details>{details}</Details>}
           </div>
-          {data.trailingItems && (
-            <TrailingItems spanFullHeight={data.trailingItemsSpanFullHeight}>
-              {data.trailingItems}
+          {trailingItems && (
+            <TrailingItems spanFullHeight={trailingItemsSpanFullHeight}>
+              {trailingItems}
             </TrailingItems>
           )}
         </ContentWrap>
