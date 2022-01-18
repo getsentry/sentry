@@ -37,7 +37,7 @@ describe('Tooltip', function () {
     expect(screen.getByText('bar')).toBeInTheDocument();
 
     userEvent.unhover(screen.getByText('My Button'));
-    await waitForElementToBeRemoved(() => screen.getByText('bar'));
+    await waitForElementToBeRemoved(() => screen.queryByText('bar'));
   });
 
   it('disables and does not render', function () {

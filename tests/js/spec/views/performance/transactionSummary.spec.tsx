@@ -341,7 +341,7 @@ describe('Performance > TransactionSummary', function () {
     );
 
     // Ensure create alert from discover is shown with metric alerts
-    expect(screen.queryByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
   });
 
   it('renders Web Vitals widget', async function () {
