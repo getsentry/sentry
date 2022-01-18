@@ -68,6 +68,7 @@ class BaseApiClient(TrackResponseMixin):
         allow_text=None,
         allow_redirects=None,
         timeout=None,
+        ignore_webhook_errors=False,
     ):
 
         if allow_text is None:
@@ -141,7 +142,9 @@ class BaseApiClient(TrackResponseMixin):
             if resp.status_code == 204:
                 return {}
 
-            return BaseApiResponse.from_response(resp, allow_text=allow_text)
+            return BaseApiResponse.from_response(
+                resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
+            )
 
     # subclasses should override ``request``
     def request(self, *args, **kwargs):
