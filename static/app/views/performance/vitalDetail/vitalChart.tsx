@@ -21,8 +21,8 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
+import {ViewProps} from '../types';
 
-import {ViewProps} from './types';
 import {
   getMaxOfSeries,
   getVitalChartDefinitions,

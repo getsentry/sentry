@@ -12,27 +12,20 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
+import {TransactionMetric} from 'sentry/utils/metrics/fields';
+import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
 
+import {transformMetricsToArea} from '../../../landing/widgets/transforms/transformMetricsToArea';
+import {ViewProps} from '../../../types';
 import {
   SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
   SpanOperationBreakdownFilter,
 } from '../../filter';
 
 import Content from './content';
-
-const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
-
-type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = WithRouterProps &
   ViewProps & {
@@ -43,15 +36,12 @@ type Props = WithRouterProps &
     withoutZerofill: boolean;
   };
 
-function generateYAxisValues(currentFilter: SpanOperationBreakdownFilter) {
-  const field = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter] ?? '';
-  return [
-    `p50(${field})`,
-    `p75(${field})`,
-    `p95(${field})`,
-    `p99(${field})`,
-    `p100(${field})`,
-  ];
+enum DurationFunctionField {
+  P50 = 'p50',
+  P75 = 'p75',
+  P95 = 'p95',
+  P99 = 'p99',
+  p100 = 'p100',
 }
 
 /**
@@ -97,31 +87,23 @@ function DurationChart({
 
   const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
   const end = propsEnd ? getUtcToLocalDateObject(propsEnd) : null;
-  const utc = normalizeDateTimeParams(location.query)?.utc === 'true';
+  const utc = normalizeDateTimeParams(location.query).utc === 'true';
+  const period = statsPeriod;
 
-  const legend = {
-    right: 10,
-    top: 5,
-    selected: getSeriesSelection(location),
-  };
-
-  const datetimeSelection = {
-    start,
-    end,
-    period: statsPeriod,
-  };
+  const legend = {right: 10, top: 5, selected: getSeriesSelection(location)};
+  const datetimeSelection = {start, end, period};
 
   const contentCommonProps = {
     theme,
     router,
-    projects: project,
-    environments: environment,
     start,
     end,
-    period: statsPeriod,
     utc,
     legend,
     queryExtra,
+    period,
+    projects: project,
+    environments: environment,
     onLegendSelectChanged: handleLegendSelectChanged,
   };
 
@@ -129,12 +111,14 @@ function DurationChart({
     api,
     start,
     end,
-    statsPeriod,
     project,
     environment,
     query,
+    period,
     interval: getInterval(datetimeSelection, 'high'),
   };
+
+  const parameter = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter] ?? '';
 
   const header = (
     <HeaderTitleLegend>
@@ -154,13 +138,64 @@ function DurationChart({
   );
 
   if (isMetricsData) {
+    // TODO(metrics): Update this logic as soon as the metrics API supports spans
+    if (!!parameter) {
+      return (
+        <Fragment>
+          {header}
+          <ErrorPanel>{`TODO: P* ${parameter}`}</ErrorPanel>
+        </Fragment>
+      );
+    }
+
+    const fields = Object.values([
+      DurationFunctionField.P50,
+      DurationFunctionField.P75,
+      DurationFunctionField.P95,
+      DurationFunctionField.P99,
+      'max',
+    ]).map(v => `${v}(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`);
+
     return (
       <Fragment>
         {header}
-        <ErrorPanel>TODO: P* Duration</ErrorPanel>
+        <MetricsRequest
+          {...requestCommonProps}
+          query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
+          orgSlug={organization.slug}
+          field={fields}
+        >
+          {durationRequestResponseProps => {
+            const {errored, loading, reloading} = durationRequestResponseProps;
+
+            const series = fields.map(field => {
+              const {data} = transformMetricsToArea(
+                {
+                  location,
+                  fields: [field],
+                },
+                durationRequestResponseProps
+              );
+
+              return data[0];
+            });
+
+            return (
+              <Content
+                series={series}
+                errored={errored}
+                loading={loading}
+                reloading={reloading}
+                {...contentCommonProps}
+              />
+            );
+          }}
+        </MetricsRequest>
       </Fragment>
     );
   }
+
+  const yAxis = Object.values(DurationFunctionField).map(v => `${v}(${parameter})`);
 
   return (
     <Fragment>
@@ -170,7 +205,7 @@ function DurationChart({
         organization={organization}
         showLoading={false}
         includePrevious={false}
-        yAxis={generateYAxisValues(currentFilter)}
+        yAxis={yAxis}
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.duration-chart"

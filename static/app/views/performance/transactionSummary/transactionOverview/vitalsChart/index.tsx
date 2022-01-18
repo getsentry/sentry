@@ -11,7 +11,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
 import {
   getAggregateArg,
   getMeasurementSlug,
@@ -20,24 +19,13 @@ import {
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
 
 import {transformMetricsToArea} from '../../../landing/widgets/transforms/transformMetricsToArea';
+import {ViewProps} from '../../../types';
 import {vitalToMetricsField} from '../../../vitalDetail/utils';
 
 import Content from './content';
-
-const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
-
-type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = WithRouterProps &
   ViewProps & {
@@ -164,7 +152,6 @@ function VitalsChart({
                 {
                   location,
                   fields: [field],
-                  chartSetting: PerformanceWidgetSetting.TPM_AREA,
                 },
                 vitalRequestResponseProps
               );

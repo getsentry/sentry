@@ -11,6 +11,12 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
+import {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {excludeTransaction} from '../../utils';
@@ -24,7 +30,6 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformMetricsToArea} from '../transforms/transformMetricsToArea';
 import {transformMetricsToList} from '../transforms/transformMetricsToList';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -129,7 +134,8 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
           </MetricsRequest>
         );
       },
-      transform: transformMetricsToArea,
+      transform: (data: GenericPerformanceWidgetProps<DataType>, result) =>
+        transformMetricsToArea(data, result),
     };
   }, [chartSetting, selectedListIndex]);
 

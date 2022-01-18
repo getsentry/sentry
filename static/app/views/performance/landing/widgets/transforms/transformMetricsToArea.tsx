@@ -9,17 +9,17 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MetricsRequestRenderProps} from 'sentry/utils/metrics/metricsRequest';
 
 import {WidgetDataConstraint, WidgetPropUnion} from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 // Sentry treats transactions with a status other than “ok,” “cancelled”, and “unknown” as failures.
 // For more details, see https://docs.sentry.io/product/performance/metrics/#failure-rate
 const TRANSACTION_SUCCESS_STATUS = ['ok', 'unknown', 'cancelled'];
 
 export function transformMetricsToArea<T extends WidgetDataConstraint>(
-  widgetProps: Pick<WidgetPropUnion<T>, 'location' | 'fields' | 'chartSetting'>,
-  results: MetricsRequestRenderProps
+  widgetProps: Pick<WidgetPropUnion<T>, 'location' | 'fields'>,
+  results: MetricsRequestRenderProps,
+  failureRate = false
 ) {
-  const {location, fields, chartSetting} = widgetProps;
+  const {location, fields} = widgetProps;
 
   const {start, end, utc, interval, statsPeriod} = normalizeDateTimeParams(
     location.query
@@ -52,15 +52,13 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
   const metricsField = fields[0];
 
-  const isFailureRateWidget = chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA;
-
-  const groups = isFailureRateWidget
+  const groups = failureRate
     ? response.groups.filter(
         group => !TRANSACTION_SUCCESS_STATUS.includes(group.by['transaction.status'])
       )
     : response.groups;
 
-  const totalPerBucket = isFailureRateWidget
+  const totalPerBucket = failureRate
     ? response.intervals.map((_intervalValue, intervalIndex) =>
         response.groups.reduce(
           (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
@@ -92,7 +90,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     };
   });
 
-  const seriesTotal = isFailureRateWidget
+  const seriesTotal = failureRate
     ? response.groups.reduce((acc, group) => acc + (group.totals[metricsField] ?? 0), 0)
     : undefined;
 
@@ -125,13 +123,13 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     };
   });
 
-  const previousGroups = isFailureRateWidget
+  const previousGroups = failureRate
     ? responsePrevious?.groups.filter(
         group => !TRANSACTION_SUCCESS_STATUS.includes(group.by['transaction.status'])
       )
     : responsePrevious?.groups;
 
-  const previousTotalPerBucket = isFailureRateWidget
+  const previousTotalPerBucket = failureRate
     ? responsePrevious?.intervals.map((_intervalValue, intervalIndex) =>
         responsePrevious?.groups.reduce(
           (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
