@@ -354,10 +354,13 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
-          const newModifiedDashboard = constructDashboardWidgetsWithLayout(
-            modifiedDashboard,
-            layout
-          );
+          let newModifiedDashboard = modifiedDashboard;
+          if (organization.features.includes('dashboard-grid-layout')) {
+            newModifiedDashboard = constructDashboardWidgetsWithLayout(
+              modifiedDashboard,
+              layout
+            );
+          }
           createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
@@ -387,20 +390,26 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.EDIT: {
         // only update the dashboard if there are changes
         if (modifiedDashboard) {
-          if (
-            isEqual(dashboard, modifiedDashboard) &&
-            isLayoutEqual(getDashboardLayout(dashboard.widgets), layout)
-          ) {
+          let dashboardIsEqual = isEqual(dashboard, modifiedDashboard);
+          if (organization.features.includes('dashboard-grid-layout')) {
+            dashboardIsEqual =
+              dashboardIsEqual &&
+              isLayoutEqual(getDashboardLayout(dashboard.widgets), layout);
+          }
+          if (dashboardIsEqual) {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
             });
             return;
           }
-          const newModifiedDashboard = constructDashboardWidgetsWithLayout(
-            modifiedDashboard,
-            layout
-          );
+          let newModifiedDashboard = modifiedDashboard;
+          if (organization.features.includes('dashboard-grid-layout')) {
+            newModifiedDashboard = constructDashboardWidgetsWithLayout(
+              modifiedDashboard,
+              layout
+            );
+          }
           updateDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
@@ -705,7 +714,8 @@ function getDashboardLayout(widgets: Widget[]): RGLLayout[] {
 const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
 /**
- * Associate the layouts with the widgets for outgoing requests.
+ * Creates a new DashboardDetails object with the layouts associated with
+ * widgets for outgoing requests.
  */
 function constructDashboardWidgetsWithLayout(
   dashboard: DashboardDetails,
