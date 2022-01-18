@@ -11,7 +11,6 @@ type Props = {
   onTap: U2fSign['props']['onTap'];
   displayMode?: U2fSign['props']['displayMode'];
   className?: string;
-  isWebauthnSigninFFEnabled: boolean;
 };
 type State = {
   authenticators: Array<Authenticator>;
