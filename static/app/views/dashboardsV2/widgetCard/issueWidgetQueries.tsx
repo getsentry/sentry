@@ -19,7 +19,6 @@ import {Widget, WidgetQuery} from '../types';
 const MAX_ITEMS = 5;
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
-const DEFAULT_COLLAPSE = [];
 const DEFAULT_EXPAND = ['owners'];
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
@@ -170,7 +169,6 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       query: query.conditions,
       sort: query.orderby || DEFAULT_SORT,
       display: DEFAULT_DISPLAY,
-      collapse: DEFAULT_COLLAPSE,
       expand: DEFAULT_EXPAND,
     };
 
