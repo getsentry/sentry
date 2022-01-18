@@ -1,3 +1,4 @@
+from datetime import datetime
 from json.decoder import JSONDecodeError
 from typing import Any, Dict
 
@@ -11,6 +12,10 @@ class TransitionalSerializer:
         self.json_serializer = JSONSerializer()
 
     def dumps(self, obj: Dict[str, Any]) -> bytes:
+        for key in obj:
+            if type(obj[key]) == datetime:
+                formatted_time = obj[key].isoformat()
+                obj[key] = formatted_time
         return self.json_serializer.dumps(obj)
 
     def loads(self, data: bytes) -> Dict[str, Any]:
