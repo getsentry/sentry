@@ -25,6 +25,7 @@ export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): s
 function cleanTransactionSummaryFilter(query: string): string {
   const filterParams = new MutableSearch(query);
   filterParams.removeFilter('transaction');
+  filterParams.removeFilter('event.type');
   return filterParams.formatString();
 }
 
