@@ -186,6 +186,7 @@ class BaseNotification(abc.ABC):
         }
 
     def send(self) -> None:
+        """The default way to send notifications that respects Notification Settings."""
         from sentry.notifications.notify import notify
 
         participants_by_provider = self.get_participants()

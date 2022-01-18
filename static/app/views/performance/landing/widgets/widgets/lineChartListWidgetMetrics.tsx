@@ -51,6 +51,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
     chartHeight,
   } = props;
   const field = fields[0];
+  const orgSlug = organization.slug;
 
   if (fields.length !== 1) {
     throw new Error(`Line chart list widget can only accept a single field (${fields})`);
@@ -68,7 +69,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
       component: ({start, end, period, project, environment, children, eventView}) => (
         <MetricsRequest
           api={api}
-          orgSlug={organization.slug}
+          orgSlug={orgSlug}
           start={start}
           end={end}
           statsPeriod={period}
@@ -110,7 +111,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
         return (
           <MetricsRequest
             api={api}
-            orgSlug={organization.slug}
+            orgSlug={orgSlug}
             start={start}
             end={end}
             statsPeriod={period}
@@ -174,7 +175,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
                 }
 
                 const transactionTarget = transactionSummaryRouteWithQuery({
-                  orgSlug: organization.slug,
+                  orgSlug,
                   projectID: decodeList(location.query.project), // TODO(metrics): filter by project once api supports it (listItem['project.id'])
                   transaction,
                   query: props.eventView.getPageFiltersQuery(),
@@ -182,7 +183,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
 
                 return (
                   <Fragment>
-                    <GrowLink to={transactionTarget} className="truncate">
+                    <GrowLink to={transactionTarget}>
                       <Truncate value={transaction} maxLength={40} />
                     </GrowLink>
                     <RightAlignedCell>
