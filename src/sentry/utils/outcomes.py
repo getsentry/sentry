@@ -27,9 +27,15 @@ class Outcome(IntEnum):
     def parse(cls, name: str) -> "Outcome":
         return Outcome[name.upper()]
 
+    def is_billing(self) -> bool:
+        return self in (Outcome.ACCEPTED, Outcome.RATE_LIMITED)
+
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None
+
+outcomes_billing = settings.KAFKA_TOPICS.get(settings.KAFKA_OUTCOMES_BILLING)
+outcomes_billing_publisher = None
 
 
 def track_outcome(
@@ -54,11 +60,7 @@ def track_outcome(
     events.
     """
     global outcomes_publisher
-    if outcomes_publisher is None:
-        cluster_name = outcomes["cluster"]
-        outcomes_publisher = KafkaPublisher(
-            kafka_config.get_kafka_producer_cluster_options(cluster_name)
-        )
+    global outcomes_billing_publisher
 
     if quantity is None:
         quantity = 1
@@ -71,10 +73,33 @@ def track_outcome(
     assert isinstance(category, (type(None), DataCategory))
     assert isinstance(quantity, int)
 
+    # Send billing outcomes to a dedicated topic or even cluster if there is a
+    # separate configuration for it. Otherwise, fall back to the regular
+    # outcomes topic.
+    #
+    # In Sentry, there is no significant difference between the classes of
+    # outcome. In Sentry SaaS, they have elevated stability requirements as they
+    # are used for spike protection and quota enforcement.
+    if outcome.is_billing() and outcomes_billing is not None:
+        if outcomes_billing_publisher is None:
+            cluster_name = outcomes_billing["cluster"]
+            outcomes_billing_publisher = KafkaPublisher(
+                kafka_config.get_kafka_producer_cluster_options(cluster_name)
+            )
+        publisher = outcomes_billing_publisher
+
+    else:
+        if outcomes_publisher is None:
+            cluster_name = outcomes["cluster"]
+            outcomes_publisher = KafkaPublisher(
+                kafka_config.get_kafka_producer_cluster_options(cluster_name)
+            )
+        publisher = outcomes_publisher
+
     timestamp = timestamp or to_datetime(time.time())
 
     # Send a snuba metrics payload.
-    outcomes_publisher.publish(
+    publisher.publish(
         outcomes["topic"],
         json.dumps(
             {
@@ -98,5 +123,6 @@ def track_outcome(
             "outcome": outcome.name.lower(),
             "reason": reason,
             "category": category.api_name() if category is not None else "null",
+            "target": "default" if publisher == outcomes_publisher else "billing",
         },
     )
