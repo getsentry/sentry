@@ -5,8 +5,6 @@ import {Location} from 'history';
 import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
-import {Source} from 'sentry/utils/discover/charts';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
@@ -22,7 +20,7 @@ type Props = {
   metadata: TableData['meta'] | undefined;
   data: TableData['data'] | undefined;
   className?: string;
-  source?: Source;
+  getCustomFieldRenderer?: typeof getFieldRenderer;
 };
 
 class SimpleTableChart extends Component<Props> {
@@ -32,18 +30,12 @@ class SimpleTableChart extends Component<Props> {
     tableMeta: NonNullable<TableData['meta']>,
     columns: ReturnType<typeof decodeColumnOrder>
   ) {
-    const {location, organization, source} = this.props;
+    const {location, organization, getCustomFieldRenderer} = this.props;
 
     return columns.map(column => {
-      let fieldRenderer;
-      switch (source) {
-        case Source.ISSUES:
-          fieldRenderer = getIssueFieldRenderer(column.name, tableMeta);
-          break;
-        case Source.DISCOVER:
-        default:
-          fieldRenderer = getFieldRenderer(column.name, tableMeta);
-      }
+      const fieldRenderer =
+        getCustomFieldRenderer?.(column.name, tableMeta) ??
+        getFieldRenderer(column.name, tableMeta);
       const rendered = fieldRenderer(row, {organization, location});
       return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
     });

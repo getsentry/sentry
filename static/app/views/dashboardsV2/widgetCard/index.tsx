@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {Source} from 'sentry/utils/discover/charts';
+import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -155,7 +155,7 @@ class WidgetCard extends React.Component<Props> {
         metadata={ISSUE_FIELDS}
         data={transformedResults}
         organization={organization}
-        source={Source.ISSUES}
+        getCustomFieldRenderer={getIssueFieldRenderer}
       />
     );
   }

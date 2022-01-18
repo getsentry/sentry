@@ -125,7 +125,7 @@ const issuesCountRenderer = (
   field: 'count' | 'userCount' | 'lifetimeCount' | 'lifetimeUserCount'
 ) => {
   const {selectionDateString} = data;
-  const isUserField = field.includes('user');
+  const isUserField = !!/user/i.exec(field.toLowerCase());
   const primaryCount = data[field];
   const count = data[isUserField ? 'userCount' : 'count'];
   const lifetimeCount = data[isUserField ? 'lifetimeUserCount' : 'lifetimeCount'];
@@ -140,28 +140,22 @@ const issuesCountRenderer = (
           <div>
             {filteredCount ? (
               <React.Fragment>
-                <Item>
-                  <StyledContent>
-                    {t('Matching search filters')}
-                    <ItemCount value={filteredCount} />
-                  </StyledContent>
-                </Item>
+                <StyledContent>
+                  {t('Matching search filters')}
+                  <WrappedCount value={filteredCount} />
+                </StyledContent>
                 <Divider />
               </React.Fragment>
             ) : null}
-            <Item>
-              <StyledContent>
-                {t(`Total in ${selectionDateString}`)}
-                <ItemCount value={count} />
-              </StyledContent>
-            </Item>
+            <StyledContent>
+              {t(`Total in ${selectionDateString}`)}
+              <WrappedCount value={count} />
+            </StyledContent>
             <Divider />
-            <Item>
-              <StyledContent>
-                {t('Since issue began')}
-                <ItemCount value={lifetimeCount} />
-              </StyledContent>
-            </Item>
+            <StyledContent>
+              {t('Since issue began')}
+              <WrappedCount value={lifetimeCount} />
+            </StyledContent>
           </div>
         }
       >
@@ -179,10 +173,6 @@ const issuesCountRenderer = (
     </Container>
   );
 };
-
-const Item = styled('li')`
-  list-style: none;
-`;
 
 const contentStyle = css`
   width: 100%;
@@ -203,7 +193,7 @@ const SecondaryCount = styled(Count)`
   }
 `;
 
-const ItemCount = styled(({value, ...p}) => (
+const WrappedCount = styled(({value, ...p}) => (
   <div {...p}>
     <Count value={value} />
   </div>
