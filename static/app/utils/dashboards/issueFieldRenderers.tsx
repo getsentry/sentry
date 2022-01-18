@@ -205,7 +205,7 @@ const WrappedCount = styled(({value, ...p}) => (
   color: ${p => p.theme.subText};
 `;
 
-const Divider = styled('li')`
+const Divider = styled('div')`
   height: 1px;
   overflow: hidden;
   background-color: ${p => p.theme.innerBorder};
