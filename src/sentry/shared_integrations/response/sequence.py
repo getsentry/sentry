@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import Any, Sequence
 
 from sentry.shared_integrations.response.base import BaseApiResponse
 
@@ -11,5 +11,5 @@ class SequenceApiResponse(list, BaseApiResponse):  # type: ignore
         BaseApiResponse.__init__(self, *args, **kwargs)
 
     @property
-    def json(self) -> Mapping[str, Any]:
-        return self  # type: ignore
+    def json(self) -> Any:
+        return self

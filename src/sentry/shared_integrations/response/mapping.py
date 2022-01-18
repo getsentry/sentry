@@ -11,5 +11,5 @@ class MappingApiResponse(dict, BaseApiResponse):  # type: ignore
         BaseApiResponse.__init__(self, *args, **kwargs)
 
     @property
-    def json(self) -> Mapping[str, Any]:
+    def json(self) -> Any:
         return self

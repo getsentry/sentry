@@ -27,10 +27,10 @@ class BaseApiResponse:
         return f"<{type(self).__name__}: code={self.status_code}, content_type={content_type}>"
 
     @property
-    def json(self) -> Mapping[str, Any]:
+    def json(self) -> Any:
         raise NotImplementedError
 
-    @cached_property  # type: ignore
+    @cached_property
     def rel(self) -> Mapping[str, str]:
         link_header = (self.headers or {}).get("Link", "")
         parsed_links = requests.utils.parse_header_links(link_header)  # type: ignore

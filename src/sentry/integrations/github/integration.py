@@ -151,8 +151,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             message = ""
         else:
             message = API_ERRORS.get(exc.code, "")
-        if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
-            message += f" Please also confirm that the commits associated with the following URL have been pushed to GitHub: {exc.url}"
+
+        if exc.code == 404 and exc.url and re.search(r"/repos/.*/(compare|commits)", exc.url):
+            message += (
+                " Please also confirm that the commits associated with "
+                f"the following URL have been pushed to GitHub: {exc.url}"
+            )
 
         if not message:
             message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
