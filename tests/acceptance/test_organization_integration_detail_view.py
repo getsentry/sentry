@@ -1,7 +1,5 @@
 from exam import mock
 
-from sentry import features
-from sentry.features import OrganizationFeature
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
 from tests.acceptance.page_objects.organization_integration_settings import (
@@ -17,7 +15,6 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
     def setUp(self):
         super().setUp()
-        features.add("organizations:integrations-feature-flag-integration", OrganizationFeature)
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
