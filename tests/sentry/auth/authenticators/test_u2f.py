@@ -26,7 +26,7 @@ class U2FInterfaceTest(TestCase):
 
     def test_start_enrollment_webauthn(self):
         self.u2f.webauthn_registration_server = self.test_registration_server
-        encoded_challenge, state = self.u2f.start_enrollment(self.user, True)
+        encoded_challenge, state = self.u2f.start_enrollment(self.user)
 
         challenge = cbor.decode(encoded_challenge)
         assert len(state) == 2
@@ -52,7 +52,7 @@ class U2FInterfaceTest(TestCase):
 
         assert len(self.u2f.config.setdefault("devices", [])) == 0
 
-        self.u2f.try_enroll("enrollment_data", data, True, state=state)
+        self.u2f.try_enroll("enrollment_data", data, state=state)
 
         assert len(self.u2f.config.setdefault("devices", [])) == 1
 
@@ -64,6 +64,6 @@ class U2FInterfaceTest(TestCase):
     def test_activate_webauthn(self):
         self.test_try_enroll_webauthn()
         request = self.make_request(user=self.user)
-        result = self.u2f.activate(request, True)
+        result = self.u2f.activate(request)
         assert type(result) == ActivationChallengeResult
         assert len(request.session["webauthn_authentication_state"]["challenge"]) == 43
