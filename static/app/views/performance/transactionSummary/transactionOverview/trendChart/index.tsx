@@ -3,6 +3,7 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location, Query} from 'history';
 
+import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
@@ -12,19 +13,18 @@ import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  getAggregateArg,
-  getMeasurementSlug,
-  WebVital,
-} from 'sentry/utils/discover/fields';
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
 
 import {transformMetricsToArea} from '../../../landing/widgets/transforms/transformMetricsToArea';
-import {vitalToMetricsField} from '../../../vitalDetail/utils';
+import {PerformanceWidgetSetting} from '../../../landing/widgets/widgetDefinitions';
+import {TrendFunctionField} from '../../../trends/types';
+import {
+  generateTrendFunctionAsString,
+  trendParameterToMetricsField,
+} from '../../../trends/utils';
 
 import Content from './content';
 
@@ -44,10 +44,12 @@ type Props = WithRouterProps &
     location: Location;
     organization: OrganizationSummary;
     queryExtra: Query;
+    trendFunction: TrendFunctionField;
+    trendParameter: string;
     withoutZerofill: boolean;
   };
 
-function VitalsChart({
+function TrendChart({
   project,
   environment,
   location,
@@ -55,6 +57,8 @@ function VitalsChart({
   query,
   statsPeriod,
   router,
+  trendFunction,
+  trendParameter,
   queryExtra,
   withoutZerofill,
   start: propsStart,
@@ -64,11 +68,11 @@ function VitalsChart({
   const theme = useTheme();
   const {isMetricsData} = useMetricsSwitch();
 
-  const handleLegendSelectChanged = (legendChange: {
+  function handleLegendSelectChanged(legendChange: {
     name: string;
     type: string;
     selected: Record<string, boolean>;
-  }) => {
+  }) {
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);
 
@@ -76,32 +80,21 @@ function VitalsChart({
       ...location,
       query: {
         ...location.query,
-        unselectedSeries: unselected,
+        trendsUnselectedSeries: unselected,
       },
     };
     browserHistory.push(to);
-  };
+  }
 
-  const vitals = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
   const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
   const end = propsEnd ? getUtcToLocalDateObject(propsEnd) : null;
-  const utc = normalizeDateTimeParams(location.query).utc === 'true';
+  const utc = normalizeDateTimeParams(location.query)?.utc === 'true';
   const period = statsPeriod;
 
   const legend = {
     right: 10,
     top: 0,
-    selected: getSeriesSelection(location),
-    formatter: (seriesName: string) => {
-      const arg = getAggregateArg(seriesName);
-      if (arg !== null) {
-        const slug = getMeasurementSlug(arg);
-        if (slug !== null) {
-          seriesName = slug.toUpperCase();
-        }
-      }
-      return seriesName;
-    },
+    selected: getSeriesSelection(location, 'trendsUnselectedSeries'),
   };
 
   const datetimeSelection = {start, end, period};
@@ -133,19 +126,30 @@ function VitalsChart({
 
   const header = (
     <HeaderTitleLegend>
-      {t('Web Vitals Breakdown')}
+      {t('Trend')}
       <QuestionTooltip
         size="sm"
         position="top"
-        title={t(
-          `Web Vitals Breakdown reflects the 75th percentile of web vitals over time.`
-        )}
+        title={t(`Trends shows the smoothed value of an aggregate over time.`)}
       />
     </HeaderTitleLegend>
   );
 
+  const trendDisplay = generateTrendFunctionAsString(trendFunction, trendParameter);
+
   if (isMetricsData) {
-    const fields = vitals.map(v => `p75(${vitalToMetricsField[v]})`);
+    const parameter = trendParameterToMetricsField[trendParameter];
+
+    if (!parameter) {
+      return (
+        <Fragment>
+          {header}
+          <ErrorPanel>{`TODO: ${trendDisplay}`}</ErrorPanel>
+        </Fragment>
+      );
+    }
+
+    const field = `${trendFunction}(${parameter})`;
 
     return (
       <Fragment>
@@ -154,27 +158,23 @@ function VitalsChart({
           {...requestCommonProps}
           query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
           orgSlug={organization.slug}
-          field={fields}
+          field={[field]}
         >
-          {vitalRequestResponseProps => {
-            const {errored, loading, reloading} = vitalRequestResponseProps;
+          {trendRequestResponseProps => {
+            const {errored, loading, reloading} = trendRequestResponseProps;
 
-            const series = fields.map(field => {
-              const {data} = transformMetricsToArea(
-                {
-                  location,
-                  fields: [field],
-                  chartSetting: PerformanceWidgetSetting.TPM_AREA,
-                },
-                vitalRequestResponseProps
-              );
-
-              return data[0];
-            });
+            const trendData = transformMetricsToArea(
+              {
+                location,
+                fields: [field],
+                chartSetting: PerformanceWidgetSetting.P75_DURATION_AREA,
+              },
+              trendRequestResponseProps
+            );
 
             return (
               <Content
-                series={series}
+                series={trendData.data}
                 errored={errored}
                 loading={loading}
                 reloading={reloading}
@@ -187,8 +187,6 @@ function VitalsChart({
     );
   }
 
-  const yAxis = vitals.map(v => `p75(${v})`);
-
   return (
     <Fragment>
       {header}
@@ -197,14 +195,15 @@ function VitalsChart({
         organization={organization}
         showLoading={false}
         includePrevious={false}
-        yAxis={yAxis}
+        yAxis={trendDisplay}
+        currentSeriesNames={[trendDisplay]}
         partial
         withoutZerofill={withoutZerofill}
-        referrer="api.performance.transaction-summary.vitals-chart"
+        referrer="api.performance.transaction-summary.trends-chart"
       >
-        {({results, errored, loading, reloading, timeframe: timeFrame}) => (
+        {({errored, loading, reloading, timeseriesData, timeframe: timeFrame}) => (
           <Content
-            series={results}
+            series={timeseriesData}
             errored={errored}
             loading={loading}
             reloading={reloading}
@@ -217,4 +216,4 @@ function VitalsChart({
   );
 }
 
-export default withRouter(VitalsChart);
+export default withRouter(TrendChart);

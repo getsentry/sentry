@@ -3,28 +3,23 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location, Query} from 'history';
 
+import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  getAggregateArg,
-  getMeasurementSlug,
-  WebVital,
-} from 'sentry/utils/discover/fields';
-import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
 
-import {transformMetricsToArea} from '../../../landing/widgets/transforms/transformMetricsToArea';
-import {vitalToMetricsField} from '../../../vitalDetail/utils';
+import {
+  SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
+  SpanOperationBreakdownFilter,
+} from '../../filter';
 
 import Content from './content';
 
@@ -44,10 +39,26 @@ type Props = WithRouterProps &
     location: Location;
     organization: OrganizationSummary;
     queryExtra: Query;
+    currentFilter: SpanOperationBreakdownFilter;
     withoutZerofill: boolean;
   };
 
-function VitalsChart({
+function generateYAxisValues(currentFilter: SpanOperationBreakdownFilter) {
+  const field = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter] ?? '';
+  return [
+    `p50(${field})`,
+    `p75(${field})`,
+    `p95(${field})`,
+    `p99(${field})`,
+    `p100(${field})`,
+  ];
+}
+
+/**
+ * Fetch and render a stacked area chart that shows duration percentiles over
+ * the past 7 days
+ */
+function DurationChart({
   project,
   environment,
   location,
@@ -56,6 +67,7 @@ function VitalsChart({
   statsPeriod,
   router,
   queryExtra,
+  currentFilter,
   withoutZerofill,
   start: propsStart,
   end: propsEnd,
@@ -64,11 +76,11 @@ function VitalsChart({
   const theme = useTheme();
   const {isMetricsData} = useMetricsSwitch();
 
-  const handleLegendSelectChanged = (legendChange: {
+  function handleLegendSelectChanged(legendChange: {
     name: string;
     type: string;
     selected: Record<string, boolean>;
-  }) => {
+  }) {
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);
 
@@ -79,44 +91,37 @@ function VitalsChart({
         unselectedSeries: unselected,
       },
     };
-    browserHistory.push(to);
-  };
 
-  const vitals = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
+    browserHistory.push(to);
+  }
+
   const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
   const end = propsEnd ? getUtcToLocalDateObject(propsEnd) : null;
-  const utc = normalizeDateTimeParams(location.query).utc === 'true';
-  const period = statsPeriod;
+  const utc = normalizeDateTimeParams(location.query)?.utc === 'true';
 
   const legend = {
     right: 10,
-    top: 0,
+    top: 5,
     selected: getSeriesSelection(location),
-    formatter: (seriesName: string) => {
-      const arg = getAggregateArg(seriesName);
-      if (arg !== null) {
-        const slug = getMeasurementSlug(arg);
-        if (slug !== null) {
-          seriesName = slug.toUpperCase();
-        }
-      }
-      return seriesName;
-    },
   };
 
-  const datetimeSelection = {start, end, period};
+  const datetimeSelection = {
+    start,
+    end,
+    period: statsPeriod,
+  };
 
   const contentCommonProps = {
     theme,
     router,
+    projects: project,
+    environments: environment,
     start,
     end,
+    period: statsPeriod,
     utc,
     legend,
     queryExtra,
-    period,
-    projects: project,
-    environments: environment,
     onLegendSelectChanged: handleLegendSelectChanged,
   };
 
@@ -124,70 +129,38 @@ function VitalsChart({
     api,
     start,
     end,
+    statsPeriod,
     project,
     environment,
     query,
-    period,
     interval: getInterval(datetimeSelection, 'high'),
   };
 
   const header = (
     <HeaderTitleLegend>
-      {t('Web Vitals Breakdown')}
+      {currentFilter === SpanOperationBreakdownFilter.None
+        ? t('Duration Breakdown')
+        : tct('Span Operation Breakdown - [operationName]', {
+            operationName: currentFilter,
+          })}
       <QuestionTooltip
         size="sm"
         position="top"
         title={t(
-          `Web Vitals Breakdown reflects the 75th percentile of web vitals over time.`
+          `Duration Breakdown reflects transaction durations by percentile over time.`
         )}
       />
     </HeaderTitleLegend>
   );
 
   if (isMetricsData) {
-    const fields = vitals.map(v => `p75(${vitalToMetricsField[v]})`);
-
     return (
       <Fragment>
         {header}
-        <MetricsRequest
-          {...requestCommonProps}
-          query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
-          orgSlug={organization.slug}
-          field={fields}
-        >
-          {vitalRequestResponseProps => {
-            const {errored, loading, reloading} = vitalRequestResponseProps;
-
-            const series = fields.map(field => {
-              const {data} = transformMetricsToArea(
-                {
-                  location,
-                  fields: [field],
-                  chartSetting: PerformanceWidgetSetting.TPM_AREA,
-                },
-                vitalRequestResponseProps
-              );
-
-              return data[0];
-            });
-
-            return (
-              <Content
-                series={series}
-                errored={errored}
-                loading={loading}
-                reloading={reloading}
-                {...contentCommonProps}
-              />
-            );
-          }}
-        </MetricsRequest>
+        <ErrorPanel>TODO: P* Duration</ErrorPanel>
       </Fragment>
     );
   }
-
-  const yAxis = vitals.map(v => `p75(${v})`);
 
   return (
     <Fragment>
@@ -197,10 +170,10 @@ function VitalsChart({
         organization={organization}
         showLoading={false}
         includePrevious={false}
-        yAxis={yAxis}
+        yAxis={generateYAxisValues(currentFilter)}
         partial
         withoutZerofill={withoutZerofill}
-        referrer="api.performance.transaction-summary.vitals-chart"
+        referrer="api.performance.transaction-summary.duration-chart"
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content
@@ -217,4 +190,4 @@ function VitalsChart({
   );
 }
 
-export default withRouter(VitalsChart);
+export default withRouter(DurationChart);

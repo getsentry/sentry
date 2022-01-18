@@ -1,6 +1,7 @@
 import {InjectedRouter} from 'react-router';
 import {Query} from 'history';
 
+import AreaChart from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LineChart from 'sentry/components/charts/lineChart';
@@ -13,7 +14,6 @@ import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
-import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
 type Props = {
   loading: boolean;
@@ -79,8 +79,8 @@ function Content({
     yAxis: {
       axisLabel: {
         color: theme.chartLabel,
-        // p75(measurements.fcp) coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, 'p75(measurements.fcp)'),
+        // p50() coerces the axis to be time based
+        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
       },
     },
   };
@@ -88,11 +88,19 @@ function Content({
   const colors = (data && theme.charts.getColorPalette(data.length - 2)) || [];
 
   // Create a list of series based on the order of the fields,
+  // We need to flip it at the end to ensure the series stack right.
   const series = data
-    ? data.map((values, i: number) => ({
-        ...values,
-        color: colors[i],
-      }))
+    ? data
+        .map((values, i: number) => {
+          return {
+            ...values,
+            color: colors[i],
+            lineStyle: {
+              opacity: 0,
+            },
+          };
+        })
+        .reverse()
     : [];
 
   return (
@@ -101,10 +109,7 @@ function Content({
         <ReleaseSeries
           start={start}
           end={end}
-          queryExtra={{
-            ...queryExtra,
-            showTransactions: TransactionsListOption.SLOW_LCP,
-          }}
+          queryExtra={queryExtra}
           period={period}
           utc={utc}
           projects={projects}
@@ -115,7 +120,7 @@ function Content({
               <TransparentLoadingMask visible={reloading} />
               {getDynamicText({
                 value: (
-                  <LineChart
+                  <AreaChart
                     {...zoomRenderProps}
                     {...chartOptions}
                     legend={legend}

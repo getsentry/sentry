@@ -71,7 +71,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
   const data = groups.map(group => {
     const series = response.intervals.map((intervalValue, intervalIndex) => {
-      const serieBucket = group.series[metricsField][intervalIndex];
+      const serieBucket = group.series[metricsField]?.[intervalIndex];
       const totalSerieBucket = totalPerBucket?.[intervalIndex];
       return {
         name: moment(intervalValue).valueOf(),

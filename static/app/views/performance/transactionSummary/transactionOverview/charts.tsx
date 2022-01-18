@@ -19,11 +19,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
 import {TrendColumnField, TrendFunctionField} from '../../trends/types';
-import {
-  generateTrendFunctionAsString,
-  TRENDS_FUNCTIONS,
-  TRENDS_PARAMETERS,
-} from '../../trends/utils';
+import {TRENDS_FUNCTIONS, TRENDS_PARAMETERS} from '../../trends/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 
 import DurationChart from './durationChart';
@@ -78,7 +74,6 @@ type Props = {
   totalValues: number | null;
   currentFilter: SpanOperationBreakdownFilter;
   withoutZerofill: boolean;
-  isMetricsData?: boolean;
 };
 
 function TransactionSummaryCharts({
@@ -199,7 +194,8 @@ function TransactionSummaryCharts({
         )}
         {display === DisplayModes.TREND && (
           <TrendChart
-            trendDisplay={generateTrendFunctionAsString(trendFunction, trendColumn)}
+            trendFunction={trendFunction}
+            trendParameter={trendColumn}
             organization={organization}
             query={eventView.query}
             queryExtra={releaseQueryExtra}

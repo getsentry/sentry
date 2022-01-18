@@ -9,11 +9,13 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
-import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
+
+import {transformEventStatsSmoothed} from '../../../trends/utils';
 
 type Props = {
   loading: boolean;
@@ -68,7 +70,7 @@ function Content({
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: tooltipFormatter,
+      valueFormatter: (value: number | null) => tooltipFormatter(value, 'p50()'),
     },
     xAxis: timeFrame
       ? {
@@ -77,22 +79,42 @@ function Content({
         }
       : undefined,
     yAxis: {
+      min: 0,
       axisLabel: {
         color: theme.chartLabel,
-        // p75(measurements.fcp) coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, 'p75(measurements.fcp)'),
+        // p50() coerces the axis to be time based
+        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
       },
     },
   };
 
-  const colors = (data && theme.charts.getColorPalette(data.length - 2)) || [];
-
-  // Create a list of series based on the order of the fields,
   const series = data
-    ? data.map((values, i: number) => ({
-        ...values,
-        color: colors[i],
-      }))
+    ? data
+        .map(values => {
+          return {
+            ...values,
+            color: theme.purple300,
+            lineStyle: {
+              opacity: 0.75,
+              width: 1,
+            },
+          };
+        })
+        .reverse()
+    : [];
+
+  const {smoothedResults} = transformEventStatsSmoothed(data, t('Smoothed'));
+
+  const smoothedSeries = smoothedResults
+    ? smoothedResults.map(values => {
+        return {
+          ...values,
+          color: theme.purple300,
+          lineStyle: {
+            opacity: 1,
+          },
+        };
+      })
     : [];
 
   return (
@@ -101,10 +123,7 @@ function Content({
         <ReleaseSeries
           start={start}
           end={end}
-          queryExtra={{
-            ...queryExtra,
-            showTransactions: TransactionsListOption.SLOW_LCP,
-          }}
+          queryExtra={queryExtra}
           period={period}
           utc={utc}
           projects={projects}
@@ -120,7 +139,7 @@ function Content({
                     {...chartOptions}
                     legend={legend}
                     onLegendSelectChanged={onLegendSelectChanged}
-                    series={[...series, ...releaseSeries]}
+                    series={[...series, ...smoothedSeries, ...releaseSeries]}
                   />
                 ),
                 fixed: <Placeholder height="200px" testId="skeleton-ui" />,
