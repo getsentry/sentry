@@ -1,0 +1,27 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+stages:
+  - build
+
+builder-image:
+  stage: build
+  image: docker-reg.devops.xiaohongshu.com/library/docker:v1.0
+  script:
+    - export BRANCH_PREFIX=${CI_COMMIT_REF_NAME//[\/|_]/-}
+    - docker build --rm --pull -t $REGISTRY_NAME/infra/sentry-builder:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8} .
+    - ddocker push $REGISTRY_NAME/infra/sentry-builder:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8}
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "release"'
+    - if: '$CI_COMMIT_BRNACH == "develop"'
+
+sentry-image:
+  stage: build
+  image: docker-reg.devops.xiaohongshu.com/infra/sentry-builder:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8}
+  script:
+    - export BRANCH_PREFIX=${CI_COMMIT_REF_NAME//[\/|_]/-}
+    - docker build --rm --pull -t $REGISTRY_NAME/red-sentry/$CI_PROJECT_NAME:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8} .
+    - docker push $REGISTRY_NAME/infra/sentry-builder:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8}
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "release"'
+    - if: '$CI_COMMIT_BRNACH == "develop"'
