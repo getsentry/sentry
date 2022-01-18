@@ -1,3 +1,61 @@
+22.1.0
+------
+
+### Frontend Deploys (ongoing)
+
+By: @billyvg (#28878)
+
+### Python: Add support for Apple arm64 development (ongoing)
+
+Apple started moving away from their Intel based chipset to arm64 chipsets (aka as Apple Silicon).
+In order to do Sentry development on this new architecture we need to do various changes to Sentry's development environment. Some of these changes include using a different Python version (arm64 support was added on Python 3.8.10), upgrading Python packages and hosting some Python wheels that third-party maintainers are not yet releasing.
+
+By: @armenzg (#30071, #29739, #29449, #29315, #29013, #28769, #28607)
+
+### Docker: Add support for Apple arm64 development (ongoing)
+
+In order to do development for Sentry, we need to spin up various Docker containers.
+Apple is moving away from Intel based chipset to arm64 chipsets (aka Apple Silicon).
+
+This milestones track all work required to make sure we can still use these development services on Apple's arm64 architecture.
+
+By: @armenzg (#29494, #29293, #29284, #29157, #29081, #29117, #29084, #28672, #28724)
+
+### Connecting Dashboards and Discover (ongoing)
+
+Open a Dashboard widget in Discover. Add a Discover Query to a Dashboard.
+
+By: @edwardgou-sentry (#28699, #28827, #28745, #28637)
+
+### Various fixes & improvements
+
+- ref(ratelimit): Added a config and changed a default (#31141) by @AniketDas-Tekky
+- feat(dev): Fix `jest --watch` (#31138) by @billyvg
+- ref(auth): Increase sample rate to 1.0 on idpmigration.* metrics (#31139) by @RyanSkonnord
+- ref(pageFilters): Constrict types on updateParams better (#31073) by @evanpurkhiser
+- feat(notifications): Nudge Notifications (#30409) by @mgaeta
+- fix(ui): Team details doesn't load depending on navigation (#31081) by @mikellykels
+- fix(snuba-tests): wrap tag key in Column (#31137) by @MeredithAnya
+- test(ui): Convert globalSelectionLink to RTL (#31007) by @scttcper
+- fix(suspect-spans): Make sure to query for frequency column (#31134) by @Zylphrex
+- fix(echarts): Remove type casting from MapSeries (#31130) by @scttcper
+- ref(webhooks): Use ApiClient (#31127) by @ceorourke
+- fix(dashboard): Set line height on BigNumber to avoid clipping (#31136) by @narsaynorath
+- fix(echarts): Use default echarts bar series type (#31129) by @scttcper
+- fix(teamStats): Adjust gap between bar charts (#31119) by @scttcper
+- fix(dashboards): TopN widgets Open in Discover opens with TopN display type (#31120) by @edwardgou-sentry
+- ref(metrics): Consolidate wrappers around string indexer (#31051) by @untitaker
+- ref(performance-metrics): Port failure Rate sidebar widget - Summary to metrics (#31014) by @priscilawebdev
+- feat(profiling): move flamegraph and differential flamegraph (#30910) by @JonasBa
+- ref(ui): Extract LoadingTriangle from LoadingIndicator (#31118) by @evanpurkhiser
+- ref(notifications): Prepare Slack for sending Nudges. (#30765) by @mgaeta
+- ref(integrations): Split up large file (#30786) by @mgaeta
+- ref(analytics): Analytics Refactor + Types (#30555) by @mgaeta
+- fix(teamStats): Fix link to alert details from triggered (#31124) by @scttcper
+- ref(sentry apps): Don't raise IgnoreableSentryAppError (#31033) by @ceorourke
+
+_Plus 2051 more_
+
 21.12.0
 -------
 
