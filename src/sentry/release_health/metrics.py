@@ -1714,7 +1714,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             "data"
         ]
 
-        ret_val: int = rows[0]["value"] if rows else 0
+        ret_val: int = int(rows[0]["value"]) if rows else 0
         return ret_val
 
     def get_num_sessions_per_project(
