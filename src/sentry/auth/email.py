@@ -86,7 +86,7 @@ class _EmailResolver:
             query = OrganizationMember.objects.filter(
                 organization=self.parent.organization, user__in=[ue.user for ue in candidates]
             )
-            users_in_org = {user_id for (user_id,) in query.values_list("user")}
+            users_in_org = set(query.values_list("user", flat=True))
             return (ue for ue in candidates if ue.user.id in users_in_org)
 
         def if_conclusive(self, candidates: Sequence[UserEmail], choice: UserEmail) -> None:
