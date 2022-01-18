@@ -417,6 +417,7 @@ class SummaryContent extends React.Component<Props> {
             error={error}
             totals={totalValues}
             eventView={eventView}
+            isMetricsData={isMetricsData}
           />
           <SidebarSpacer />
           <Tags

@@ -39,8 +39,8 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.models import Integration
-from sentry.release_health.metrics import tag_key, tag_value
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_weak
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -1848,9 +1848,9 @@ class MetricsCrashRateAlertProcessUpdateTest(
                 else:
                     denominator = count
                     numerator = int(value * denominator)
-            session_status = tag_key(self.project.organization.id, "session.status")
-            tag_value_init = tag_value(self.project.organization.id, "init")
-            tag_value_crashed = tag_value(self.project.organization.id, "crashed")
+            session_status = resolve_tag_key("session.status")
+            tag_value_init = resolve_weak("init")
+            tag_value_crashed = resolve_weak("crashed")
             processor.process_update(
                 {
                     "subscription_id": subscription.subscription_id

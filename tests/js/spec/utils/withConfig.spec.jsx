@@ -13,6 +13,6 @@ describe('withConfig HoC', function () {
 
     act(() => void ConfigStore.set('test', 'foo'));
 
-    expect(screen.queryByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
   });
 });

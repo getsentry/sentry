@@ -526,6 +526,8 @@ const GridItem = styled('div')`
 
 // HACK: to stack chart tooltips above other grid items
 const GridLayout = styled(WidthProvider(Responsive))`
+  margin: -${space(2)};
+
   .react-grid-item:hover {
     z-index: 10;
   }

@@ -125,6 +125,7 @@ default_manager.add("organizations:performance-landing-widgets", OrganizationFea
 default_manager.add("organizations:performance-mobile-vitals", OrganizationFeature, True)
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)
 default_manager.add("organizations:performance-suspect-spans-view", OrganizationFeature, True)
+default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-snql", OrganizationFeature, True)
 default_manager.add("organizations:trends-use-snql", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
@@ -154,8 +155,6 @@ default_manager.add("organizations:transaction-events", OrganizationFeature, Tru
 default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, True)
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
-default_manager.add("organizations:webauthn-login", OrganizationFeature, True)
-default_manager.add("organizations:webauthn-register", OrganizationFeature, True)
 default_manager.add("organizations:weekly-report-debugging", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 

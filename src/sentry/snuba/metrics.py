@@ -31,6 +31,12 @@ from sentry.relay.config import ALL_MEASUREMENT_METRICS
 from sentry.search.events.filter import QueryFilter
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.sentry_metrics.utils import (
+    resolve_tag_key,
+    resolve_weak,
+    reverse_resolve,
+    reverse_resolve_weak,
+)
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     ONE_DAY,
@@ -66,41 +72,6 @@ MAX_POINTS = 10000
 
 TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
-
-
-def reverse_resolve(index: int) -> str:
-    resolved = indexer.reverse_resolve(index)
-    # The indexer should never return None for integers > 0:
-    assert resolved is not None
-
-    return resolved
-
-
-def reverse_resolve_groupby(index: int) -> Optional[str]:
-    if index == 0:
-        # When a groupBy is requested with a tag that does not exist for the given
-        # metric, tags[i] == 0. In this case, return None
-        return None
-
-    return reverse_resolve(index)
-
-
-def resolve_tag_key(string: str) -> str:
-    resolved = indexer.resolve(string)
-    if resolved is None:
-        raise InvalidParams(f"Unknown tag key: '{string}'")
-
-    return f"tags[{resolved}]"
-
-
-def resolve_tag_value(string: str) -> int:
-    resolved = indexer.resolve(string)
-    if resolved is None:
-        # This delegates the problem of dealing with missing tag values to
-        # snuba
-        return 0
-
-    return resolved
 
 
 def parse_field(field: str) -> Tuple[str, str]:
@@ -151,7 +122,7 @@ def _resolve_tags(input_: Any) -> Any:
             name = input_.name
         return Column(name=resolve_tag_key(name))
     if isinstance(input_, str):
-        return resolve_tag_value(input_)
+        return resolve_weak(input_)
 
     return input_
 
@@ -451,12 +422,14 @@ _SESSION_TAGS = dict(
     },
 )
 
-_MEASUREMENT_TAGS = dict(
+_TRANSACTION_TAGS = dict(
     _BASE_TAGS,
-    **{
-        "measurement_rating": ["good", "meh", "poor"],
-        "transaction": ["/foo/:orgId/", "/bar/:orgId/"],
-    },
+    transaction=["/foo/:orgId/", "/bar/:orgId/"],
+)
+
+_MEASUREMENT_TAGS = dict(
+    _TRANSACTION_TAGS,
+    measurement_rating=["good", "meh", "poor"],
 )
 
 _METRICS = {
@@ -485,7 +458,7 @@ _METRICS = {
         "type": "distribution",
         "operations": _AVAILABLE_OPERATIONS["metrics_distributions"],
         "tags": {
-            **_MEASUREMENT_TAGS,
+            **_TRANSACTION_TAGS,
             "transaction.status": [
                 # Subset of possible states:
                 # https://develop.sentry.dev/sdk/event-payloads/transaction/
@@ -494,6 +467,11 @@ _METRICS = {
                 "aborted",
             ],
         },
+    },
+    "sentry.transactions.user": {
+        "type": "set",
+        "operations": _AVAILABLE_OPERATIONS["metrics_sets"],
+        "tags": _TRANSACTION_TAGS,
     },
 }
 
@@ -704,7 +682,7 @@ class SnubaQueryBuilder:
             Condition(
                 Column("metric_id"),
                 Op.IN,
-                [resolve_tag_value(name) for _, name in query_definition.fields.values()],
+                [resolve_weak(name) for _, name in query_definition.fields.values()],
             ),
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
@@ -887,7 +865,7 @@ class SnubaResultConverter:
         groups = [
             dict(
                 by=dict(
-                    (self._parse_tag(key), reverse_resolve_groupby(value))
+                    (self._parse_tag(key), reverse_resolve_weak(value))
                     if key not in _ALLOWED_GROUPBY_COLUMNS
                     else (key, value)
                     for key, value in tags

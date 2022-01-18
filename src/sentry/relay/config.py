@@ -16,7 +16,7 @@ from sentry.ingest.inbound_filters import (
     get_filter_key,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.models import Project, ProjectKeyStatus
+from sentry.models import Project
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
@@ -54,8 +54,6 @@ def get_public_key_configs(project, full_config, project_keys=None):
     public_keys = []
 
     for project_key in project_keys or ():
-        if project_key.status != ProjectKeyStatus.ACTIVE:
-            continue
         key = {
             "publicKey": project_key.public_key,
             "numericId": project_key.id,
