@@ -14,6 +14,8 @@ import HookStore from 'sentry/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
   DocIntegration,
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
   Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
@@ -146,6 +148,12 @@ export function isDocIntegration(
   integration: AppOrProviderOrPlugin
 ): integration is DocIntegration {
   return integration.hasOwnProperty('isDraft');
+}
+
+export function isExternalActorMapping(
+  mapping: ExternalActorMappingOrSuggestion
+): mapping is ExternalActorMapping {
+  return mapping.hasOwnProperty('id') && mapping.hasOwnProperty('sentryName');
 }
 
 export const getIntegrationType = (

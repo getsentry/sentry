@@ -3,19 +3,27 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 import pick from 'lodash/pick';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
-import Confirm from 'sentry/components/confirm';
+import DropdownLink from 'sentry/components/dropdownLink';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
-import {IconAdd, IconArrow, IconDelete, IconEdit} from 'sentry/icons';
+import {IconAdd, IconArrow, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
-import {ExternalActorMapping, Integration, Organization} from 'sentry/types';
-import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
+  ExternalActorSuggestion,
+  Integration,
+  Organization,
+} from 'sentry/types';
+import {getIntegrationIcon, isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import {FieldFromConfig} from 'sentry/views/settings/components/forms';
 import Form from 'sentry/views/settings/components/forms/form';
@@ -35,9 +43,9 @@ type CodeOwnersAssociationMappings = {
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   integration: Integration;
-  mappings: ExternalActorMapping[];
+  mappings: ExternalActorMappingOrSuggestion[];
   type: 'team' | 'user';
-  onCreateOrEdit: (mapping?: ExternalActorMapping) => void;
+  onCreateOrEdit: (mapping?: ExternalActorMappingOrSuggestion) => void;
   onDelete: (mapping: ExternalActorMapping) => void;
   pageLinks?: string;
   sentryNamesMapper: (v: any) => {id: string; name: string}[];
@@ -58,7 +66,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     ];
   }
 
-  getUnassociatedMappings() {
+  getUnassociatedMappings(): ExternalActorSuggestion[] {
     const {type} = this.props;
     const {associationMappings} = this.state;
     const errorKey = `missing_external_${type}s`;
@@ -68,13 +76,10 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
       },
       new Set<string>()
     );
-    return Array.from(unassociatedMappings).map(externalName => ({
-      externalName,
-      sentryName: '',
-    }));
+    return Array.from(unassociatedMappings).map(externalName => ({externalName}));
   }
 
-  getInitialData(mapping: ExternalActorMapping) {
+  getInitialData(mapping: ExternalActorMappingOrSuggestion) {
     const {integration} = this.props;
 
     return {
@@ -84,7 +89,8 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     };
   }
 
-  getField(mapping: ExternalActorMapping): Field {
+  getField(mapping: ExternalActorMappingOrSuggestion): Field {
+    // TODO(Leander): Make type agnostic
     const {sentryNamesMapper, type, organization} = this.props;
     const optionMapper = sentryNames =>
       sentryNames.map(({name, id}) => ({value: id, label: name}));
@@ -98,7 +104,11 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
         // For organizations with >100 users, we want to make sure their
         // saved mapping gets populated in the results if it wouldn't have
         // been in the initial 100 API results, which is why we add it here
-        if (mapping && !result.find(({user}) => user.id === mapping.userId)) {
+        if (
+          mapping &&
+          isExternalActorMapping(mapping) &&
+          !result.find(({user}) => user.id === mapping.userId)
+        ) {
           result = [{id: mapping.userId, name: mapping.sentryName}, ...result];
         }
         return optionMapper(sentryNamesMapper(result));
@@ -106,21 +116,84 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     };
   }
 
+  renderMappingName(mapping: ExternalActorMappingOrSuggestion, hasAccess: boolean) {
+    // TODO(Leander): Make type agnostic
+    const {organization, type} = this.props;
+    const mappingName = isExternalActorMapping(mapping) ? mapping.sentryName : '';
+    return hasAccess ? (
+      <Form
+        requireChanges
+        apiEndpoint={`/organizations/${organization.slug}/external-users/${mapping.id}/`}
+        apiMethod="PUT"
+        onSubmitSuccess={() => addSuccessMessage(t(`External ${type} updated`))}
+        onSubmitError={() => addErrorMessage(t(`Couldn't update external ${type}`))}
+        saveOnBlur
+        allowUndo
+        initialData={this.getInitialData(mapping)}
+      >
+        <FieldFromConfig
+          key={`${type}Id`}
+          field={this.getField(mapping)}
+          inline={false}
+          stacked
+        />
+      </Form>
+    ) : (
+      mappingName
+    );
+  }
+
+  renderMappingOptions(mapping: ExternalActorMappingOrSuggestion, hasAccess: boolean) {
+    const {type, onCreateOrEdit, onDelete} = this.props;
+
+    return (
+      isExternalActorMapping(mapping) && (
+        <Tooltip
+          title={t(
+            `You must be an organization owner, manager or admin to make changes to an external ${type} mapping.`
+          )}
+          disabled={hasAccess}
+        >
+          <DropdownLink
+            anchorRight
+            customTitle={
+              <EditButton
+                borderless
+                size="small"
+                icon={<IconEllipsis size="sm" />}
+                aria-label={t('edit')}
+                disabled={!hasAccess}
+                onClick={() => {}}
+              />
+            }
+          >
+            <MenuItemActionLink
+              disabled={!hasAccess}
+              onAction={() => onCreateOrEdit(mapping)}
+              title={t(`Edit External ${capitalize(type)}`)}
+            >
+              {t('Edit')}
+            </MenuItemActionLink>
+            <MenuItemActionLink
+              shouldConfirm
+              message={t(
+                `Are you sure you want to remove this external ${type} mapping?`
+              )}
+              disabled={!hasAccess}
+              onAction={() => onDelete(mapping)}
+              title={t(`Delete External ${capitalize(type)}`)}
+            >
+              <RedText>{t('Delete')}</RedText>
+            </MenuItemActionLink>
+          </DropdownLink>
+        </Tooltip>
+      )
+    );
+  }
+
   renderBody() {
-    const {
-      organization,
-      integration,
-      mappings,
-      type,
-      onCreateOrEdit,
-      onDelete,
-      pageLinks,
-    } = this.props;
-    // TODO(Leander): Figure out how to add these to the list without TS getting mad
-    const allMappings = [
-      // ...this.getUnassociatedMappings(),
-      ...mappings,
-    ];
+    const {integration, mappings, type, onCreateOrEdit, pageLinks} = this.props;
+    const allMappings = [...this.getUnassociatedMappings(), ...mappings];
     return (
       <Fragment>
         <Panel>
@@ -177,56 +250,10 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
                         <IconArrow direction="right" size="md" />
                       </ArrowColumn>
                       <SentryNameColumn>
-                        {mapping.sentryName}
-                        <Form
-                          requireChanges
-                          apiEndpoint={`/organizations/${organization.slug}/external-users/${mapping.id}/`}
-                          apiMethod="PUT"
-                          onSubmitSuccess={() => {
-                            // TODO(Leander): Decide if there should be an action here
-                          }}
-                          saveOnBlur
-                          allowUndo
-                          initialData={this.getInitialData(mapping)}
-                        >
-                          <FieldFromConfig
-                            key={`${type}Id`}
-                            field={this.getField(mapping)}
-                            inline={false}
-                            stacked
-                            flexibleControlStateSize
-                          />
-                        </Form>
+                        {this.renderMappingName(mapping, hasAccess)}
                       </SentryNameColumn>
                       <ButtonColumn>
-                        <Tooltip
-                          title={t(
-                            'You must be an organization owner, manager or admin to edit or remove an external user mapping.'
-                          )}
-                          disabled={hasAccess}
-                        >
-                          <StyledButton
-                            size="small"
-                            icon={<IconEdit size="sm" />}
-                            aria-label={t('edit')}
-                            disabled={!hasAccess}
-                            onClick={() => onCreateOrEdit(mapping)}
-                          />
-                          <Confirm
-                            disabled={!hasAccess}
-                            onConfirm={() => onDelete(mapping)}
-                            message={t(
-                              'Are you sure you want to remove this external user mapping?'
-                            )}
-                          >
-                            <StyledButton
-                              size="small"
-                              icon={<IconDelete size="sm" />}
-                              aria-label={t('delete')}
-                              disabled={!hasAccess}
-                            />
-                          </Confirm>
-                        </Tooltip>
+                        {this.renderMappingOptions(mapping, hasAccess)}
                       </ButtonColumn>
                     </Layout>
                   </ConfigPanelItem>
@@ -271,6 +298,10 @@ const StyledButton = styled(Button)`
   margin: ${space(0.5)};
 `;
 
+const EditButton = styled(StyledButton)`
+  transform: rotate(90deg);
+`;
+
 const StyledPluginIcon = styled(PluginIcon)`
   margin-right: ${space(2)};
 `;
@@ -300,4 +331,9 @@ const SentryNameColumn = styled(Column)`
 const ButtonColumn = styled(Column)`
   grid-area: button;
   text-align: right;
+  overflow: visible;
+`;
+
+const RedText = styled('span')`
+  color: ${p => p.theme.red300};
 `;

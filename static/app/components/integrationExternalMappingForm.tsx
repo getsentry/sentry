@@ -4,7 +4,8 @@ import capitalize from 'lodash/capitalize';
 import pick from 'lodash/pick';
 
 import {t, tct} from 'sentry/locale';
-import {ExternalActorMapping, Integration, Organization} from 'sentry/types';
+import {ExternalActorMappingOrSuggestion, Integration, Organization} from 'sentry/types';
+import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {FieldFromConfig} from 'sentry/views/settings/components/forms';
 import Form from 'sentry/views/settings/components/forms/form';
 import {Field} from 'sentry/views/settings/components/forms/type';
@@ -13,7 +14,7 @@ type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> &
   Partial<Pick<Form['props'], 'onSubmit'>> & {
     organization: Organization;
     integration: Integration;
-    mapping?: ExternalActorMapping;
+    mapping?: ExternalActorMappingOrSuggestion;
     type: 'user' | 'team';
     baseEndpoint?: string;
     sentryNamesMapper: (v: any) => {id: string; name: string}[];
@@ -62,7 +63,11 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
           // For organizations with >100 users, we want to make sure their
           // saved mapping gets populated in the results if it wouldn't have
           // been in the initial 100 API results, which is why we add it here
-          if (mapping && !result.find(({user}) => user.id === mapping.userId)) {
+          if (
+            mapping &&
+            isExternalActorMapping(mapping) &&
+            !result.find(({user}) => user.id === mapping.userId)
+          ) {
             result = [{id: mapping.userId, name: mapping.sentryName}, ...result];
           }
           // this.props.onResults?.(result);
@@ -82,7 +87,11 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
           // For organizations with >100 teams, we want to make sure their
           // saved mapping gets populated in the results if it wouldn't have
           // been in the initial 100 API results, which is why we add it here
-          if (mapping && !result.find(({id}) => id === mapping.teamId)) {
+          if (
+            mapping &&
+            isExternalActorMapping(mapping) &&
+            !result.find(({id}) => id === mapping.teamId)
+          ) {
             result = [{id: mapping.teamId, name: mapping.sentryName}, ...result];
           }
           // The team needs `this.props.onResults` so that we have team slug
@@ -102,10 +111,14 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
     // endpoint changes if we are making a new row or updating an existing one
     const endpoint = !baseEndpoint
       ? undefined
-      : mapping
+      : mapping && isExternalActorMapping(mapping)
       ? `${baseEndpoint}${mapping.id}/`
       : baseEndpoint;
-    const apiMethod = !baseEndpoint ? undefined : mapping ? 'PUT' : 'POST';
+    const apiMethod = !baseEndpoint
+      ? undefined
+      : mapping && isExternalActorMapping(mapping)
+      ? 'PUT'
+      : 'POST';
 
     return (
       <FormWrapper>
