@@ -446,7 +446,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ):
         self.sessions = SessionsReleaseHealthBackend()
         self.metrics = MetricsReleaseHealthBackend()
-        self.metrics_start = min(
+        self.metrics_start = max(
             metrics_start,
             # The sessions backend never returns data beyond 90 days, so any
             # query beyond 90 days will return truncated results.
