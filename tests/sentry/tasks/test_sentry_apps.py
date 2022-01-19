@@ -307,6 +307,7 @@ class TestProcessResourceChange(TestCase):
         assert data["action"] == "created"
         assert data["installation"]["uuid"] == install.uuid
         assert data["data"]["error"]["event_id"] == event.event_id
+        assert data["data"]["error"]["issue_id"] == event.group_id
         assert faux(safe_urlopen).kwargs_contain("headers.Content-Type")
         assert faux(safe_urlopen).kwargs_contain("headers.Request-ID")
         assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Resource")
