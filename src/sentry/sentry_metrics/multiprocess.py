@@ -168,6 +168,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         self.__closed = True
 
     def join(self, timeout: Optional[float] = None) -> None:
+        self.__flush()
         self.__next_step.join(timeout)
 
 
@@ -239,6 +240,8 @@ class ProduceStep(ProcessingStep[MessageBatch]):
     def terminate(self) -> None:
         self.__closed = True
 
+        self.__producer.close()
+
     def join(self, timeout: Optional[float] = None) -> None:
         start = time.time()
         while self.__futures:
@@ -252,6 +255,7 @@ class ProduceStep(ProcessingStep[MessageBatch]):
             future.result(remaining)
 
             self.__commit_function({message.partition: Position(message.offset, message.timestamp)})
+        self.__producer.close()
 
 
 def process_messages(
