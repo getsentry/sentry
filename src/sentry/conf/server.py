@@ -998,8 +998,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
-    # Allow orgs to use the new user/team mappings interface
-    "organizations:integrations-new-map-interface": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.

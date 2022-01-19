@@ -96,7 +96,6 @@ default_manager.add("organizations:integrations-event-hooks", OrganizationFeatur
 default_manager.add("organizations:integrations-incident-management", OrganizationFeature)
 default_manager.add("organizations:integrations-issue-basic", OrganizationFeature)
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)
-default_manager.add("organizations:integrations-new-map-interface", OrganizationFeature, True)
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature, True)
 default_manager.add("organizations:invite-members", OrganizationFeature)
