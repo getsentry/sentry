@@ -402,6 +402,23 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
         assert count_sessions(project_id=self.project2.id) == 1
 
     @with_feature(FEATURE_FLAG)
+    def test_pagination_without_orderby(self):
+        """
+        Test that ensures an exception is raised when pagination
+        """
+        response = self.get_response(
+            self.organization.slug,
+            field="count(sentry.transactions.measurements.lcp)",
+            datasource="snuba",
+            groupBy="transaction",
+            per_page=2,
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "'per_page' is only supported in combination with 'orderBy'"
+        )
+
+    @with_feature(FEATURE_FLAG)
     def test_orderby(self):
         # Record some strings
         metric_id = indexer.record("sentry.transactions.measurements.lcp")

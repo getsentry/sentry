@@ -179,6 +179,12 @@ class QueryDefinition:
     def _parse_orderby(self, query_params):
         orderby = query_params.getlist("orderBy", [])
         if not orderby:
+            per_page = query_params.get("per_page")
+            if per_page is not None:
+                # If order by is not None, it means we will have a `series` query which cannot be
+                # paginated, and passing a `per_page` url param to paginate the results is not
+                # possible
+                raise InvalidParams("'per_page' is only supported in combination with 'orderBy'")
             return None
         elif len(orderby) > 1:
             raise InvalidParams("Only one 'orderBy' is supported")
@@ -1242,8 +1248,12 @@ class SnubaDataSource(DataSource):
                     if snuba_query is None:
                         continue
 
-                    snuba_query = snuba_query.set_limit(limit)
-                    snuba_query = snuba_query.set_offset(offset)
+                    if query.orderby is not None:
+                        # Case when you have one field in select and one field in order by so you
+                        # only get a totals query. We add this check because we do not want to
+                        # paginate queries that have `series` keys
+                        snuba_query = snuba_query.set_limit(limit)
+                        snuba_query = snuba_query.set_offset(offset)
 
                     results[entity][key] = raw_snql_query(
                         snuba_query, use_cache=False, referrer=f"api.metrics.{key}"
