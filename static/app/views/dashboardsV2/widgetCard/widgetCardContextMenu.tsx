@@ -81,9 +81,11 @@ function WidgetCardContextMenu({
       if (isAllowWidgetsToDiscover()) {
         // Pull a max of 3 valid Y-Axis from the widget
         const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-        discoverLocation.query.yAxis = widget.queries[0].fields
-          .filter(field => yAxisOptions.includes(field))
-          .slice(0, 3);
+        discoverLocation.query.yAxis = [
+          ...new Set(
+            widget.queries[0].fields.filter(field => yAxisOptions.includes(field))
+          ),
+        ].slice(0, 3);
         switch (widget.displayType) {
           case DisplayType.WORLD_MAP:
             discoverLocation.query.display = DisplayModes.WORLDMAP;
@@ -114,9 +116,6 @@ function WidgetCardContextMenu({
           fields.unshift(term);
         }
       });
-
-      // Deduplicate yAxis
-      discoverLocation.query.yAxis = [...new Set(discoverLocation.query.yAxis)];
 
       const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
         ...discoverLocation.query,
