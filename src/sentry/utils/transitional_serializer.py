@@ -26,7 +26,7 @@ class TransitionalSerializer:
                 timestamp = float(data[key].replace("timestamp:", ""))
                 data[key] = datetime.fromtimestamp(timestamp, timezone.utc)
             elif type(data[key]) == dict:
-                self._convert_datetime_to_timestamp(data[key])
+                self._convert_timestamp_to_datetime(data[key])
         return data
 
     def dumps(self, obj: Dict[str, Any]) -> bytes:
