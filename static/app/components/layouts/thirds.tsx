@@ -13,12 +13,15 @@ export const Body = styled('div')`
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    padding: ${space(3)} ${space(4)};
+  }
+
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     display: grid;
+    grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
     gap: ${space(3)};
-    padding: ${space(3)} ${space(4)};
-    grid-template-columns: minmax(100px, auto) 325px;
   }
 `;
 
