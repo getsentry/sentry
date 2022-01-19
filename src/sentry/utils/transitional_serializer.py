@@ -14,7 +14,7 @@ class TransitionalSerializer:
     def dumps(self, obj: Dict[str, Any]) -> bytes:
         for key in obj:
             if type(obj[key]) == datetime:
-                formatted_time = obj[key].isoformat()
+                formatted_time = obj[key].timestamp()
                 obj[key] = formatted_time
         return self.json_serializer.dumps(obj)
 
