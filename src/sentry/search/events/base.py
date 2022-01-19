@@ -7,6 +7,7 @@ from snuba_sdk.function import CurriedFunction
 from snuba_sdk.orderby import OrderBy
 
 from sentry.models import Project
+from sentry.search.events.dataset import DiscoverDatasetConfig
 from sentry.search.events.types import ParamsType, SelectType, WhereType
 from sentry.utils.snuba import Dataset, resolve_column
 
@@ -36,6 +37,9 @@ class QueryBase:
         self.projects_to_filter: Set[int] = set()
 
         self.resolve_column_name = resolve_column(self.dataset)
+        self.config = DiscoverDatasetConfig(self.dataset, self.params, self.column)
+        self.field_alias_map_new = self.config.field_alias_converter()
+        self.function_converter_new = self.config.function_converter(self.field_alias_map_new)
 
     @cached_property  # type: ignore
     def project_slugs(self) -> Mapping[str, int]:
