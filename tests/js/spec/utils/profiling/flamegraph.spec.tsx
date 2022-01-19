@@ -25,6 +25,29 @@ describe('flamegraph', () => {
     expect(flamegraph.leftHeavy).toBe(false);
   });
 
+  it('initializes formatter', () => {
+    const trace: Profiling.EventedProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      type: 'evented',
+      events: [
+        {type: 'O', at: 0, frame: 0},
+        {type: 'O', at: 500, frame: 1},
+        {type: 'C', at: 600, frame: 1},
+        {type: 'C', at: 1000, frame: 0},
+      ],
+      shared: {
+        frames: [{name: 'f0'}, {name: 'f1'}],
+      },
+    };
+
+    const flamegraph = new Flamegraph(EventedProfile.FromProfile(trace), 10, true, true);
+    expect(flamegraph.formatter(1000)).toBe('1.00s');
+    expect(flamegraph.formatter(500)).toBe('500.00ms');
+  });
+
   it('stores profile properties', () => {
     const trace: Profiling.EventedProfile = {
       name: 'profile',
