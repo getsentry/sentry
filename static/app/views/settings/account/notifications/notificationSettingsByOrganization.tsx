@@ -22,13 +22,20 @@ type Props = {
     changedData: NotificationSettingsByProviderObject,
     parentId: string
   ) => NotificationSettingsObject;
+  onSubmitSuccess: () => void;
 };
 
 type State = {};
 
 class NotificationSettingsByOrganization extends Component<Props, State> {
   render() {
-    const {notificationType, notificationSettings, onChange, organizations} = this.props;
+    const {
+      notificationType,
+      notificationSettings,
+      onChange,
+      onSubmitSuccess,
+      organizations,
+    } = this.props;
 
     return (
       <Form
@@ -36,6 +43,7 @@ class NotificationSettingsByOrganization extends Component<Props, State> {
         apiMethod="PUT"
         apiEndpoint="/users/me/notification-settings/"
         initialData={getParentData(notificationType, notificationSettings, organizations)}
+        onSubmitSuccess={onSubmitSuccess}
       >
         <JsonForm
           title={t('Organizations')}

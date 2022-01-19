@@ -4,6 +4,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
@@ -72,6 +73,21 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         {query: {provider: 'slack'}},
       ],
     ];
+  }
+
+  componentDidMount() {
+    trackAdvancedAnalyticsEvent('notification_settings.tuning_page_viewed', {
+      organization: null,
+      notification_type: this.props.notificationType,
+    });
+  }
+
+  trackTuningUpdated(tuningFieldType: string) {
+    trackAdvancedAnalyticsEvent('notification_settings.updated_tuning_setting', {
+      organization: null,
+      notification_type: this.props.notificationType,
+      tuning_field_type: tuningFieldType,
+    });
   }
 
   /* Methods responsible for updating state and hitting the API. */
@@ -238,6 +254,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
           apiMethod="PUT"
           apiEndpoint="/users/me/notification-settings/"
           initialData={this.getInitialData()}
+          onSubmitSuccess={() => this.trackTuningUpdated('general')}
         >
           <JsonForm
             title={
@@ -254,12 +271,14 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
               notificationType={notificationType}
               notificationSettings={notificationSettings}
               onChange={this.getStateToPutForParent}
+              onSubmitSuccess={() => this.trackTuningUpdated('project')}
             />
           ) : (
             <NotificationSettingsByOrganization
               notificationType={notificationType}
               notificationSettings={notificationSettings}
               onChange={this.getStateToPutForParent}
+              onSubmitSuccess={() => this.trackTuningUpdated('organization')}
             />
           ))}
       </Fragment>
