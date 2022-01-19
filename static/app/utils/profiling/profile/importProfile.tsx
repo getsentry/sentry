@@ -1,3 +1,5 @@
+import {isEventedProfile, isJSProfile, isSampledProfile} from '../guards/profile';
+
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
@@ -19,18 +21,6 @@ interface Schema {
   name: string;
   activeProfileIndex: number;
   profiles: ProfileType[];
-}
-
-function isEventedProfile(profile: ProfileType): profile is Profiling.EventedProfile {
-  return 'type' in profile && profile.type === 'evented';
-}
-
-function isSampledProfile(profile: ProfileType): profile is Profiling.SampledProfile {
-  return 'type' in profile && profile.type === 'sampled';
-}
-
-function isJSProfile(profile: ProfileType): profile is JSSelfProfiling.Trace {
-  return 'resources' in profile && Array.isArray(profile.resources);
 }
 
 export function importProfile(input: Schema, traceID: string): ProfileGroup {
