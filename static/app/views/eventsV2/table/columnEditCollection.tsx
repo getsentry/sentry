@@ -503,10 +503,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
           </RowContainer>
         )}
         {columns.map((col: Column, i: number) => {
-          // Issue column in Issue widgets are fixed (cannot be moved or deleted)
+          // Issue column in Issue widgets are fixed (cannot be changed or deleted)
           if (this.isFixedIssueColumn(i)) {
             return this.renderItem(col, i, {
               canDelete: false,
+              canDrag,
               gridColumns,
               disabled: true,
             });
