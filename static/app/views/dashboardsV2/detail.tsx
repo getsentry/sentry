@@ -17,6 +17,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -613,78 +614,80 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboardId} = params;
 
     return (
-      <PageFiltersContainer
-        skipLoadLastUsed={organization.features.includes('global-views')}
-        defaultSelection={{
-          datetime: {
-            start: null,
-            end: null,
-            utc: false,
-            period: DEFAULT_STATS_PERIOD,
-          },
-        }}
-      >
-        <StyledPageContent>
-          <NoProjectMessage organization={organization}>
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      label: t('Dashboards'),
-                      to: `/organizations/${organization.slug}/dashboards/`,
-                    },
-                    {
-                      label: this.getBreadcrumbLabel(),
-                    },
-                  ]}
-                />
-                <Layout.Title>
-                  <DashboardTitle
-                    dashboard={modifiedDashboard ?? dashboard}
-                    onUpdate={this.setModifiedDashboard}
-                    isEditing={this.isEditing}
+      <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
+        <PageFiltersContainer
+          skipLoadLastUsed={organization.features.includes('global-views')}
+          defaultSelection={{
+            datetime: {
+              start: null,
+              end: null,
+              utc: false,
+              period: DEFAULT_STATS_PERIOD,
+            },
+          }}
+        >
+          <StyledPageContent>
+            <NoProjectMessage organization={organization}>
+              <Layout.Header>
+                <Layout.HeaderContent>
+                  <Breadcrumbs
+                    crumbs={[
+                      {
+                        label: t('Dashboards'),
+                        to: `/organizations/${organization.slug}/dashboards/`,
+                      },
+                      {
+                        label: this.getBreadcrumbLabel(),
+                      },
+                    ]}
                   />
-                </Layout.Title>
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <Controls
-                  organization={organization}
-                  dashboards={dashboards}
-                  onEdit={this.onEdit}
-                  onCancel={this.onCancel}
-                  onCommit={this.onCommit}
-                  onAddWidget={this.onAddWidget}
-                  onDelete={this.onDelete(dashboard)}
-                  dashboardState={dashboardState}
-                  widgetLimitReached={widgetLimitReached}
-                />
-              </Layout.HeaderActions>
-            </Layout.Header>
-            <Layout.Body>
-              <Layout.Main fullWidth>
-                <Dashboard
-                  paramDashboardId={dashboardId}
-                  dashboard={modifiedDashboard ?? dashboard}
-                  organization={organization}
-                  isEditing={this.isEditing}
-                  widgetLimitReached={widgetLimitReached}
-                  onUpdate={this.onUpdateWidget}
-                  handleUpdateWidgetList={this.handleUpdateWidgetList}
-                  handleAddCustomWidget={this.handleAddCustomWidget}
-                  onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-                  router={router}
-                  location={location}
-                  newWidget={newWidget}
-                  layout={layout}
-                  onLayoutChange={this.onLayoutChange}
-                  isPreview={this.isPreview}
-                />
-              </Layout.Main>
-            </Layout.Body>
-          </NoProjectMessage>
-        </StyledPageContent>
-      </PageFiltersContainer>
+                  <Layout.Title>
+                    <DashboardTitle
+                      dashboard={modifiedDashboard ?? dashboard}
+                      onUpdate={this.setModifiedDashboard}
+                      isEditing={this.isEditing}
+                    />
+                  </Layout.Title>
+                </Layout.HeaderContent>
+                <Layout.HeaderActions>
+                  <Controls
+                    organization={organization}
+                    dashboards={dashboards}
+                    onEdit={this.onEdit}
+                    onCancel={this.onCancel}
+                    onCommit={this.onCommit}
+                    onAddWidget={this.onAddWidget}
+                    onDelete={this.onDelete(dashboard)}
+                    dashboardState={dashboardState}
+                    widgetLimitReached={widgetLimitReached}
+                  />
+                </Layout.HeaderActions>
+              </Layout.Header>
+              <Layout.Body>
+                <Layout.Main fullWidth>
+                  <Dashboard
+                    paramDashboardId={dashboardId}
+                    dashboard={modifiedDashboard ?? dashboard}
+                    organization={organization}
+                    isEditing={this.isEditing}
+                    widgetLimitReached={widgetLimitReached}
+                    onUpdate={this.onUpdateWidget}
+                    handleUpdateWidgetList={this.handleUpdateWidgetList}
+                    handleAddCustomWidget={this.handleAddCustomWidget}
+                    onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+                    router={router}
+                    location={location}
+                    newWidget={newWidget}
+                    layout={layout}
+                    onLayoutChange={this.onLayoutChange}
+                    isPreview={this.isPreview}
+                  />
+                </Layout.Main>
+              </Layout.Body>
+            </NoProjectMessage>
+          </StyledPageContent>
+        </PageFiltersContainer>
+      </SentryDocumentTitle>
     );
   }
 
