@@ -82,13 +82,13 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     });
   }
 
-  trackTuningUpdated = (tuningFieldType: string) => {
+  trackTuningUpdated(tuningFieldType: string) {
     trackAdvancedAnalyticsEvent('notification_settings.updated_tuning_setting', {
       organization: null,
       notification_type: this.props.notificationType,
       tuning_field_type: tuningFieldType,
     });
-  };
+  }
 
   /* Methods responsible for updating state and hitting the API. */
 
