@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from random import random
+from typing import Any, Callable, Mapping, Sequence, Type, Union
 
 import sentry_sdk
 from django.core.cache import cache
@@ -8,23 +11,27 @@ from sentry.http import build_session
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
 
-from ..exceptions import ApiError, ApiHostError, ApiTimeoutError
+from ..exceptions import ApiHostError, ApiTimeoutError
+from ..exceptions.base import ApiError
 from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
 
+# TODO(mgaeta): HACK Fix the line where _request() returns "{}".
+BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any]]
+
 
 class BaseApiClient(TrackResponseMixin):
-    base_url = None
+    base_url: str | None = None
 
     allow_text = False
 
-    allow_redirects = None
+    allow_redirects: bool | None = None
 
-    integration_type = None
+    integration_type: str | None = None
 
-    log_path = None
+    log_path: str | None = None
 
-    datadog_prefix = None
+    datadog_prefix: str | None = None
 
     cache_time = 900
 
@@ -32,24 +39,28 @@ class BaseApiClient(TrackResponseMixin):
 
     page_number_limit = 10
 
-    def __init__(self, verify_ssl=True, logging_context=None):
+    def __init__(
+        self,
+        verify_ssl: bool = True,
+        logging_context: Mapping[str, Any] | None = None,
+    ) -> None:
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
 
-    def __enter__(self):
+    def __enter__(self) -> BaseApiClient:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type: Type[Exception], exc_value: Exception, traceback: Any) -> None:
         # TODO(joshuarli): Look into reusing a SafeSession, and closing it here.
-        #                  Don't want to make the change until I completely understand
-        #                  urllib3 machinery + how we override it, possibly do this
-        #                  along with urllib3 upgrade.
+        #  Don't want to make the change until I completely understand urllib3
+        #  machinery + how we override it, possibly do this along with urllib3
+        #  upgrade.
         pass
 
-    def get_cache_prefix(self):
+    def get_cache_prefix(self) -> str:
         return f"{self.integration_type}.{self.name}.client:"
 
-    def build_url(self, path):
+    def build_url(self, path: str) -> str:
         if path.startswith("/"):
             if not self.base_url:
                 raise ValueError(f"Invalid URL: {path}")
@@ -58,19 +69,18 @@ class BaseApiClient(TrackResponseMixin):
 
     def _request(
         self,
-        method,
-        path,
-        headers=None,
-        data=None,
-        params=None,
-        auth=None,
-        json=True,
-        allow_text=None,
-        allow_redirects=None,
-        timeout=None,
-        ignore_webhook_errors=False,
-    ):
-
+        method: str,
+        path: str,
+        headers: Mapping[str, str] | None = None,
+        data: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
+        auth: str | None = None,
+        json: bool = True,
+        allow_text: bool | None = None,
+        allow_redirects: bool | None = None,
+        timeout: int | None = None,
+        ignore_webhook_errors: bool = False,
+    ) -> BaseApiResponseX:
         if allow_text is None:
             allow_text = self.allow_text
 
@@ -130,9 +140,13 @@ class BaseApiClient(TrackResponseMixin):
                 resp = e.response
                 if resp is None:
                     self.track_response_data("unknown", span, e)
-                    self.logger.exception(
-                        "request.error", extra={self.integration_type: self.name, "url": full_url}
-                    )
+
+                    # It shouldn't be possible for integration_type to be null.
+                    extra = {"url": full_url}
+                    if self.integration_type:
+                        extra[self.integration_type] = self.name
+                    self.logger.exception("request.error", extra=extra)
+
                     raise ApiError("Internal Error", url=full_url)
                 self.track_response_data(resp.status_code, span, e)
                 raise ApiError.from_response(resp, url=full_url)
@@ -147,46 +161,53 @@ class BaseApiClient(TrackResponseMixin):
             )
 
     # subclasses should override ``request``
-    def request(self, *args, **kwargs):
+    def request(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self._request(*args, **kwargs)
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("DELETE", *args, **kwargs)
 
-    def _get_cached(self, path: str, method: str, *args, **kwargs):
+    def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         query = ""
         if kwargs.get("params", None):
             query = json.dumps(kwargs.get("params"), sort_keys=True)
         key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
 
-        result = cache.get(key)
+        result: BaseApiResponseX | None = cache.get(key)
         if result is None:
             result = self.request(method, path, *args, **kwargs)
             cache.set(key, result, self.cache_time)
         return result
 
-    def get_cached(self, path, *args, **kwargs):
+    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self._get_cached(path, "GET", *args, **kwargs)
 
-    def get(self, *args, **kwargs):
+    def get(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("GET", *args, **kwargs)
 
-    def patch(self, *args, **kwargs):
+    def patch(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("PATCH", *args, **kwargs)
 
-    def post(self, *args, **kwargs):
+    def post(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("POST", *args, **kwargs)
 
-    def put(self, *args, **kwargs):
+    def put(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("PUT", *args, **kwargs)
 
-    def head(self, *args, **kwargs):
+    def head(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("HEAD", *args, **kwargs)
 
-    def head_cached(self, path, *args, **kwargs):
+    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self._get_cached(path, "HEAD", *args, **kwargs)
 
-    def get_with_pagination(self, path, gen_params, get_results, *args, **kwargs):
+    def get_with_pagination(
+        self,
+        path: str,
+        gen_params: Callable[..., Any],
+        get_results: Callable[..., Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Sequence[BaseApiResponse]:
         page_size = self.page_size
         offset = 0
         output = []

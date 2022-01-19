@@ -4,5 +4,6 @@ __all__ = (
     "BaseApiResponse",
 )
 
-from .base import BaseApiClient, BaseApiResponse
+from ..response import BaseApiResponse
+from .base import BaseApiClient
 from .internal import BaseInternalApiClient
