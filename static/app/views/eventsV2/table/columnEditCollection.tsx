@@ -299,11 +299,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     });
 
     // Issue column in Issue widgets are fixed (cannot be moved or deleted)
-    if (
-      targetIndex >= 0 &&
-      targetIndex !== draggingTargetIndex &&
-      !this.isFixedIssueColumn(targetIndex)
-    ) {
+    if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       this.setState({draggingTargetIndex: targetIndex});
     }
   };
@@ -311,8 +307,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
   isFixedIssueColumn = (columnIndex: number) => {
     const {source, columns} = this.props;
     const column = columns[columnIndex];
+    const issueFieldColumnCount = columns.filter(
+      col => col.kind === 'field' && col.field === FieldKey.ISSUE
+    ).length;
     return (
-      columnIndex === 0 &&
+      issueFieldColumnCount <= 1 &&
       source === WidgetType.ISSUE &&
       column.kind === 'field' &&
       column.field === FieldKey.ISSUE
@@ -508,7 +507,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
           if (this.isFixedIssueColumn(i)) {
             return this.renderItem(col, i, {
               canDelete: false,
-              canDrag: false,
               gridColumns,
               disabled: true,
             });
