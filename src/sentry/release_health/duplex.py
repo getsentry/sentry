@@ -911,11 +911,18 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
-        schema = {
-            "duration_p50": ComparatorType.Quantile,
-            "duration_p90": ComparatorType.Quantile,
-            "*": ComparatorType.Counter,
-        }
+        schema = (
+            [
+                {
+                    "duration_p50": ComparatorType.Quantile,
+                    "duration_p90": ComparatorType.Quantile,
+                    "*": ComparatorType.Counter,
+                }
+            ],
+            {
+                "*": ComparatorType.Counter,
+            },
+        )
         should_compare = lambda _: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects([project_id])
         return self._dispatch_call(  # type: ignore
