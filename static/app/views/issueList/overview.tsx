@@ -101,6 +101,9 @@ type Props = {
 
 type State = {
   groupIds: string[];
+  reviewedIds: string[];
+  forReviewGroupIds: string[];
+  forReview: boolean;
   selectAllActive: boolean;
   realtimeActive: boolean;
   pageLinks: string;
@@ -156,6 +159,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
     return {
       groupIds: [],
+      reviewedIds: [],
+      forReviewGroupIds: [],
+      forReview: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -514,13 +520,22 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   fetchData = (fetchAllCounts = false) => {
-    GroupStore.loadInitialData([]);
-    this._streamManager.reset();
+    if (!this.state.forReview) {
+      GroupStore.loadInitialData([]);
+      this._streamManager.reset();
+
+      this.setState({
+        issuesLoading: true,
+        queryCount: 0,
+        itemsRemoved: 0,
+        error: null,
+      });
+    }
+
     const transaction = getCurrentSentryReactTransaction();
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
-      issuesLoading: true,
       queryCount: 0,
       itemsRemoved: 0,
       error: null,
@@ -619,6 +634,8 @@ class IssueListOverview extends React.Component<Props, State> {
         this._lastRequest = null;
 
         this.resumePolling();
+
+        this.setState({forReview: false});
       },
     });
   };
@@ -681,8 +698,14 @@ class IssueListOverview extends React.Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
 
   onGroupChange() {
+    const {reviewedIds} = this.state;
+    const query = this.getQuery();
+
     const groupIds = this._streamManager.getAllItems().map(item => item.id) ?? [];
-    if (!isEqual(groupIds, this.state.groupIds)) {
+    const notReviewedGroupIds = groupIds.filter(id => !reviewedIds.includes(id));
+    if (isForReviewQuery(query) && reviewedIds.length > 0) {
+      this.setState({groupIds: notReviewedGroupIds});
+    } else if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
     }
   }
@@ -927,9 +950,7 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onMarkReviewed = (itemIds: string[]) => {
-    const {groupIds} = this.state;
     const query = this.getQuery();
-    const notReviewedGroupIds = groupIds.filter(id => !itemIds.includes(id));
 
     if (!isForReviewQuery(query)) {
       return;
@@ -946,7 +967,8 @@ class IssueListOverview extends React.Component<Props, State> {
           [query as Query]: currentQueryCount,
         },
         itemsRemoved: itemsRemoved + inInboxCount,
-        groupIds: notReviewedGroupIds,
+        reviewedIds: [...this.state.reviewedIds, ...itemIds],
+        forReview: true,
       });
     }
   };
