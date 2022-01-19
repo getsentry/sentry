@@ -1,7 +1,7 @@
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
-from sentry.release_health.metrics import get_tag_values_list, metric_id, tag_key
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -99,8 +99,7 @@ class EntitySubscriptionTestCase(TestCase):
         )
         assert isinstance(entity_subscription, MetricsSetsEntitySubscription)
         assert entity_subscription.aggregate == aggregate
-        org_id = self.organization.id
-        groupby = [tag_key(org_id, "session.status")]
+        groupby = [resolve_tag_key("session.status")]
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id,
             "groupby": groupby,
@@ -109,13 +108,13 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.entity_key == EntityKey.MetricsSets
         assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsSets]
         assert entity_subscription.dataset == QueryDatasets.METRICS
-        session_status = tag_key(org_id, "session.status")
-        session_status_tag_values = get_tag_values_list(org_id, ["crashed", "init"])
+        session_status = resolve_tag_key("session.status")
+        session_status_tag_values = resolve_many_weak(["crashed", "init"])
         snuba_filter = entity_subscription.build_snuba_filter("", None, None)
         assert snuba_filter
         assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", metric_id(org_id, SessionMetricKey.USER)],
+            ["metric_id", "=", resolve(SessionMetricKey.USER.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == groupby
@@ -131,8 +130,7 @@ class EntitySubscriptionTestCase(TestCase):
         )
         assert isinstance(entity_subscription, MetricsCountersEntitySubscription)
         assert entity_subscription.aggregate == aggregate
-        org_id = self.organization.id
-        groupby = [tag_key(org_id, "session.status")]
+        groupby = [resolve_tag_key("session.status")]
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id,
             "groupby": groupby,
@@ -141,13 +139,13 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.entity_key == EntityKey.MetricsCounters
         assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsCounters]
         assert entity_subscription.dataset == QueryDatasets.METRICS
-        session_status = tag_key(org_id, "session.status")
-        session_status_tag_values = get_tag_values_list(org_id, ["crashed", "init"])
+        session_status = resolve_tag_key("session.status")
+        session_status_tag_values = resolve_many_weak(["crashed", "init"])
         snuba_filter = entity_subscription.build_snuba_filter("", None, None)
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", metric_id(org_id, SessionMetricKey.SESSION)],
+            ["metric_id", "=", resolve(SessionMetricKey.SESSION.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == groupby

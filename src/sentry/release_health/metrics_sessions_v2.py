@@ -37,6 +37,12 @@ from sentry.release_health.base import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey as MetricKey
+from sentry.sentry_metrics.utils import (
+    MetricIndexNotFound,
+    resolve_tag_key,
+    reverse_resolve,
+    reverse_resolve_weak,
+)
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import TS_COL_GROUP, TS_COL_QUERY, get_intervals
 from sentry.snuba.sessions_v2 import QueryDefinition, finite_or_none
@@ -62,30 +68,6 @@ REFERRERS = {
         "totals": "release_health.metrics.sessions_v2.session.error.totals",
     },
 }
-
-
-def _resolve(name: str) -> Optional[int]:
-    """Wrapper for typing"""
-    return indexer.resolve(name)  # type: ignore
-
-
-def _resolve_ensured(name: str) -> int:
-    """Assume the index entry exists"""
-    index = _resolve(name)
-    assert index is not None
-    return index
-
-
-def _reverse_resolve(index: int) -> Optional[str]:
-    """Wrapper for typing"""
-    return indexer.reverse_resolve(index)  # type: ignore
-
-
-def _reverse_resolve_ensured(index: int) -> str:
-    """Assume the index entry exists"""
-    string = _reverse_resolve(index)
-    assert string is not None
-    return string
 
 
 _SessionStatus = Literal[
@@ -331,17 +313,17 @@ def _get_snuba_query(
     conditions += _get_filter_conditions(org_id, query.conditions)
     conditions += extra_conditions
 
-    groupby_tags = [field for field in query.raw_groupby if field != "project"]
+    groupby = {}
+    for field in query.raw_groupby:
+        if field == "project":
+            groupby["project"] = Column("project_id")
+            continue
 
-    tag_keys = {field: _resolve(field) for field in groupby_tags}
-    groupby = {
-        field: Column(f"tags[{tag_id}]")
-        for field, tag_id in tag_keys.items()
-        if tag_id is not None  # exclude unresolved keys from groupby
-    }
-
-    if "project" in query.raw_groupby:
-        groupby["project"] = Column("project_id")
+        try:
+            groupby[field] = Column(resolve_tag_key(field))
+        except MetricIndexNotFound:
+            # exclude unresolved keys from groupby
+            pass
 
     full_groupby = set(groupby.values()) - remove_groupby
     if series:
@@ -399,7 +381,7 @@ def _fetch_data(
 
     # It greatly simplifies code if we just assume that these two tags exist:
     # TODO: Can we get away with that assumption?
-    tag_key_session_status = _resolve_ensured("session.status")
+    tag_key_session_status = resolve_tag_key("session.status")
 
     data: List[Tuple[MetricKey, _SnubaData]] = []
 
@@ -407,7 +389,7 @@ def _fetch_data(
     metric_to_output_field: MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField] = {}
 
     if "count_unique(user)" in query.raw_fields:
-        metric_id = _resolve(MetricKey.USER.value)
+        metric_id = indexer.resolve(MetricKey.USER.value)
         if metric_id is not None:
             data.extend(
                 _get_snuba_query_data(
@@ -423,7 +405,7 @@ def _fetch_data(
 
     duration_fields = [field for field in query.raw_fields if "session.duration" in field]
     if duration_fields:
-        metric_id = _resolve(MetricKey.SESSION_DURATION.value)
+        metric_id = indexer.resolve(MetricKey.SESSION_DURATION.value)
         if metric_id is not None:
 
             def get_virtual_column(field: SessionsQueryFunction) -> _VirtualColumnName:
@@ -440,11 +422,9 @@ def _fetch_data(
                     seen_fields.add(column.alias)
 
             # sessions_v2 only exposes healthy session's durations
-            healthy = _resolve("exited")
-            extra_conditions = [
-                Condition(Column(f"tags[{tag_key_session_status}]"), Op.EQ, healthy)
-            ]
-            remove_groupby = {Column(f"tags[{tag_key_session_status}]")}
+            healthy = indexer.resolve("exited")
+            extra_conditions = [Condition(Column(tag_key_session_status), Op.EQ, healthy)]
+            remove_groupby = {Column(tag_key_session_status)}
 
             if tag_key_session_status is not None and healthy is not None:
                 data.extend(
@@ -467,7 +447,7 @@ def _fetch_data(
                     ] = _SessionDurationField(field, col, group_by_status)
 
     if "sum(session)" in query.raw_fields:
-        metric_id = _resolve(MetricKey.SESSION.value)
+        metric_id = indexer.resolve(MetricKey.SESSION.value)
         if metric_id is not None:
             if "session.status" in query.raw_groupby:
                 # We need session counters grouped by status, as well as the number of errored sessions
@@ -485,9 +465,9 @@ def _fetch_data(
                 )
 
                 # 2: session.error
-                error_metric_id = _resolve(MetricKey.SESSION_ERROR.value)
+                error_metric_id = indexer.resolve(MetricKey.SESSION_ERROR.value)
                 if error_metric_id is not None:
-                    remove_groupby = {Column(f"tags[{tag_key_session_status}]")}
+                    remove_groupby = {Column(tag_key_session_status)}
                     data.extend(
                         _get_snuba_query_data(
                             org_id,
@@ -501,11 +481,9 @@ def _fetch_data(
                     )
             else:
                 # Simply count the number of started sessions:
-                init = _resolve("init")
+                init = indexer.resolve("init")
                 if tag_key_session_status is not None and init is not None:
-                    extra_conditions = [
-                        Condition(Column(f"tags[{tag_key_session_status}]"), Op.EQ, init)
-                    ]
+                    extra_conditions = [Condition(Column(tag_key_session_status), Op.EQ, init)]
                     data.extend(
                         _get_snuba_query_data(
                             org_id,
@@ -529,20 +507,20 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
 
     # It greatly simplifies code if we just assume that these two tags exist:
     # TODO: Can we get away with that assumption?
-    tag_key_release = _resolve_ensured("release")
-    tag_key_environment = _resolve_ensured("environment")
-    tag_key_session_status = _resolve_ensured("session.status")
+    tag_key_release = resolve_tag_key("release")
+    tag_key_environment = resolve_tag_key("environment")
+    tag_key_session_status = resolve_tag_key("session.status")
 
     for metric_key, metric_data in data:
         for row in metric_data:
-            raw_session_status = row.pop(f"tags[{tag_key_session_status}]", None)
+            raw_session_status = row.pop(tag_key_session_status, None)
             if raw_session_status is not None:
-                raw_session_status = _reverse_resolve_ensured(raw_session_status)
+                raw_session_status = reverse_resolve(raw_session_status)
             flat_key = _DataPointKey(
                 metric_key=metric_key,
                 raw_session_status=raw_session_status,
-                release=row.pop(f"tags[{tag_key_release}]", None),
-                environment=row.pop(f"tags[{tag_key_environment}]", None),
+                release=row.pop(tag_key_release, None),
+                environment=row.pop(tag_key_environment, None),
                 bucketed_time=row.pop("bucketed_time", None),
                 project_id=row.pop("project_id", None),
             )
@@ -601,10 +579,12 @@ def run_sessions_query(
 
         by: MutableMapping[GroupByFieldName, Union[str, int]] = {}
         if key.release is not None:
-            # Note: If the tag value reverse-resolves to None here, it's a bug in the tag indexer
-            by["release"] = _reverse_resolve_ensured(key.release)
+            # Every session has a release, so this should not throw
+            by["release"] = reverse_resolve(key.release)
         if key.environment is not None:
-            by["environment"] = _reverse_resolve_ensured(key.environment)
+            # To match behavior of the old sessions backend, session data
+            # without environment is grouped under the empty string.
+            by["environment"] = reverse_resolve_weak(key.environment) or ""
         if key.project_id is not None:
             by["project"] = key.project_id
 
@@ -663,16 +643,14 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
         # Alternative would be:
         #   * if tag key or value does not exist in AND-clause, return no data
         #   * if tag key or value does not exist in OR-clause, remove condition
-        tag_key = _resolve_ensured(input_.name)
-
-        return Column(f"tags[{tag_key}]")
+        return Column(resolve_tag_key(input_.name))
 
     if isinstance(input_, str):
         # Assuming this is the right-hand side, we need to fetch a tag value.
         # It's OK if the tag value resolves to None, the snuba query will then
         # return no results, as is intended behavior
 
-        return _resolve(input_)
+        return indexer.resolve(input_)
 
     if isinstance(input_, Function):
         return Function(

@@ -341,7 +341,7 @@ describe('Performance > TransactionSummary', function () {
     );
 
     // Ensure create alert from discover is shown with metric alerts
-    expect(screen.queryByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
   });
 
   it('renders Web Vitals widget', async function () {
@@ -379,6 +379,14 @@ describe('Performance > TransactionSummary', function () {
       `count(${TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS})`,
     ];
 
+    const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/tags/`,
+      body: [],
+    });
+
     const metricsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
@@ -387,8 +395,16 @@ describe('Performance > TransactionSummary', function () {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics/tags/`,
-      body: [],
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsFieldByTransactionStatus({field}),
+      match: [MockApiClient.matchQuery({groupBy: ['transaction.status']})],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsField({field}),
+      match: [MockApiClient.matchQuery({groupBy: undefined})],
     });
 
     const {organization, router, routerContext} = initializeData({
@@ -443,6 +459,119 @@ describe('Performance > TransactionSummary', function () {
     expect(vitalStatues[0]).toHaveTextContent('78%');
     expect(vitalStatues[1]).toHaveTextContent('6%');
     expect(vitalStatues[2]).toHaveTextContent('17%');
+  });
+
+  it('renders sidebar widgets', async function () {
+    const {organization, router, routerContext} = initializeData();
+
+    mountWithTheme(
+      <TestComponent organization={organization} location={router.location} />,
+      {
+        context: routerContext,
+      }
+    );
+
+    // Renders Apdex widget
+    await screen.findByRole('heading', {name: 'Apdex'});
+    expect(screen.getByTestId('apdex-summary-value')).toHaveTextContent('0.6');
+
+    // Renders Failure Rate widget
+    expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
+    expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
+
+    // Renders TPM widget
+    expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
+    expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('1 tpm');
+  });
+
+  it('renders sidebar widgets - metrics based', async function () {
+    const field = `count(${TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION})`;
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/tags/`,
+      body: [],
+    });
+
+    const failureRateRequestMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsFieldByTransactionStatus({field}),
+      match: [MockApiClient.matchQuery({groupBy: ['transaction.status']})],
+    });
+
+    const tpmRequestMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsField({field}),
+      match: [MockApiClient.matchQuery({groupBy: undefined})],
+    });
+
+    const {organization, router, routerContext} = initializeData();
+
+    mountWithTheme(
+      <TestComponent
+        organization={organization}
+        location={router.location}
+        isMetricsData
+      />,
+      {
+        context: routerContext,
+      }
+    );
+
+    // Renders Apdex widget
+    await screen.findByRole('heading', {name: 'Apdex'});
+    expect(screen.queryByTestId('apdex-summary-value')).not.toBeInTheDocument();
+
+    // Renders Failure Rate widget
+    expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
+    expect(failureRateRequestMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: {
+          datasource: undefined,
+          end: undefined,
+          environment: [],
+          field: ['count(sentry.transactions.transaction.duration)'],
+          groupBy: ['transaction.status'],
+          interval: '1h',
+          limit: undefined,
+          orderBy: undefined,
+          project: [2],
+          query: 'transaction:/performance',
+          start: undefined,
+          statsPeriod: '14d',
+        },
+      })
+    );
+
+    expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('39.16%');
+
+    // Renders TPM widget
+    expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
+
+    expect(tpmRequestMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: {
+          datasource: undefined,
+          end: undefined,
+          environment: [],
+          field: ['count(sentry.transactions.transaction.duration)'],
+          groupBy: undefined,
+          interval: '1h',
+          limit: undefined,
+          orderBy: undefined,
+          project: [2],
+          query: 'transaction:/performance',
+          start: undefined,
+          statsPeriod: '14d',
+        },
+      })
+    );
+
+    expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('534.3016 tpm');
   });
 
   it('fetches transaction threshold', function () {

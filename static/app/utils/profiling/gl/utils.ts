@@ -12,7 +12,6 @@ export function createShader(
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-
   if (success) {
     return shader;
   }
