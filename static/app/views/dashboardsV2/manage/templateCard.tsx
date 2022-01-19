@@ -26,12 +26,20 @@ function TemplateCard({title, widgetCount, onPreview, onAdd}: Props) {
         </div>
       </Header>
       <ButtonContainer>
-        <Button onClick={onAdd} icon={<IconAdd isCircled />} label={t('Add Dashboard')}>
+        <StyledButton
+          onClick={onAdd}
+          icon={<IconAdd isCircled />}
+          label={t('Add Dashboard')}
+        >
           <TextOverflow>{t('Add Dashboard')}</TextOverflow>
-        </Button>
-        <Button priority="primary" onClick={onPreview} label={t('Preview Dashboard')}>
+        </StyledButton>
+        <StyledButton
+          priority="primary"
+          onClick={onPreview}
+          label={t('Preview Dashboard')}
+        >
           <TextOverflow>{t('Preview Dashboard')}</TextOverflow>
-        </Button>
+        </StyledButton>
       </ButtonContainer>
     </StyledCard>
   );
@@ -56,6 +64,10 @@ const Header = styled('div')`
 const ButtonContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
+`;
+
+const StyledButton = styled(Button)`
+  flex-grow: 1;
 `;
 
 export default TemplateCard;
