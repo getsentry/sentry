@@ -24,7 +24,9 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateArg,
+  getEquation,
   getMeasurementSlug,
+  isEquation,
   maybeEquationAlias,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
@@ -254,6 +256,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     };
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
+    const axisLabel = isEquation(axisField) ? getEquation(axisField) : axisField;
     const chartOptions = {
       autoHeightResize,
       grid: {
@@ -272,7 +275,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
-          formatter: (value: number) => axisLabelFormatter(value, axisField),
+          formatter: (value: number) => axisLabelFormatter(value, axisLabel),
         },
       },
     };
@@ -302,10 +305,16 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults
-            ? timeseriesResults.map((values, i: number) => ({
-                ...values,
-                color: colors[i],
-              }))
+            ? timeseriesResults.map((values, i: number) => {
+                const seriesName = isEquation(values.seriesName)
+                  ? getEquation(values.seriesName)
+                  : values.seriesName;
+                return {
+                  ...values,
+                  seriesName,
+                  color: colors[i],
+                };
+              })
             : [];
 
           return (

@@ -20,6 +20,7 @@ import {
   Field,
   FIELDS,
   getAggregateAlias,
+  getEquation,
   isAggregateEquation,
   isEquation,
   isMeasurement,
@@ -62,13 +63,15 @@ export function decodeColumnOrder(
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field);
-    let columnName = f.field;
+    const columnName = f.field;
     if (isEquation(f.field)) {
-      columnName = `equation[${equations}]`;
+      column.name = `equation[${equations}]`;
+      column.key = getEquation(columnName);
       equations += 1;
+    } else {
+      column.key = columnName;
+      column.name = columnName;
     }
-    column.key = columnName;
-    column.name = columnName;
     column.width = f.width || COL_WIDTH_UNDEFINED;
 
     if (col.kind === 'function') {
