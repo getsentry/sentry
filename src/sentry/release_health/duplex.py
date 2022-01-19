@@ -446,7 +446,16 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ):
         self.sessions = SessionsReleaseHealthBackend()
         self.metrics = MetricsReleaseHealthBackend()
-        self.metrics_start = metrics_start
+        self.metrics_start = max(
+            metrics_start,
+            # The sessions backend never returns data beyond 90 days, so any
+            # query beyond 90 days will return truncated results.
+            # We assume that the release health duplex backend is sufficiently
+            # often reinstantiated, at least once per day, not only due to
+            # deploys but also because uwsgi/celery are routinely restarting
+            # processes
+            datetime.now(timezone.utc) - timedelta(days=89),
+        )
 
     @staticmethod
     def _org_from_projects(projects_list: Sequence[ProjectOrRelease]) -> Optional[Organization]:
