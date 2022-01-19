@@ -2311,6 +2311,9 @@ class QueryFields(QueryBase):
     ):
         super().__init__(dataset, params, auto_fields, functions_acl, equation_config)
 
+        self.field_alias_converter_new = self.config.field_alias_converter()
+        self.function_converter_new = self.config.function_converter(self.field_alias_map_new)
+
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
             # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing

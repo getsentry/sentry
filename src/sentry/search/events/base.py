@@ -38,8 +38,6 @@ class QueryBase:
 
         self.resolve_column_name = resolve_column(self.dataset)
         self.config = DiscoverDatasetConfig(self.dataset, self.params, self.column)
-        self.field_alias_map_new = self.config.field_alias_converter()
-        self.function_converter_new = self.config.function_converter(self.field_alias_map_new)
 
     @cached_property  # type: ignore
     def project_slugs(self) -> Mapping[str, int]:
