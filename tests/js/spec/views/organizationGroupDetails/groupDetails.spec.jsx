@@ -185,10 +185,10 @@ describe('groupDetails', () => {
     expect(screen.queryByText('Group Details Mock')).not.toBeInTheDocument();
     await waitFor(() => {
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        '/organizations/org-slug/issues/new-id/?foo=bar#hash'
-      );
     });
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/new-id/?foo=bar#hash'
+    );
   });
 
   it('renders issue event error', async function () {

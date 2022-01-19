@@ -1060,6 +1060,8 @@ SENTRY_FEATURES = {
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
     "organizations:semver": True,
+    # Enable the UI for the overage alert settings
+    "organizations:slack-overage-notifications": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1090,10 +1092,6 @@ SENTRY_FEATURES = {
     # Enable team insights page
     "organizations:team-insights": True,
     "organizations:team-insights-v2": False,
-    # Enable login with WebAuthn
-    "organizations:webauthn-login": False,
-    # Enable registering new key with WebAuthn
-    "organizations:webauthn-register": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

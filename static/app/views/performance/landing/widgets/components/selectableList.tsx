@@ -68,6 +68,7 @@ export const Subtitle = styled('span')`
 
 export const GrowLink = styled(Link)`
   flex-grow: 1;
+  display: inherit;
 `;
 
 export const WidgetEmptyStateWarning = () => {
@@ -79,7 +80,7 @@ export function ListClose(props: {
   setSelectListIndex: (n: number) => void;
 }) {
   return (
-    <StyledTooltip title={t('Exclude from search filter')}>
+    <StyledTooltip title={t('Exclude this transaction from the search filter.')}>
       <StyledIconClose
         onClick={() => {
           props.onClick();

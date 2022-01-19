@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import TextOverflow from 'sentry/components/textOverflow';
 import space from 'sentry/styles/space';
 
 import {
@@ -18,16 +19,14 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
     <WidgetHeaderContainer>
       <TitleContainer>
         <StyledHeaderTitleLegend data-test-id="performance-widget-title">
-          <div>{title}</div>
+          <TextOverflow>{title}</TextOverflow>
           <QuestionTooltip position="top" size="sm" title={titleTooltip} />
         </StyledHeaderTitleLegend>
         {Subtitle ? <Subtitle {...props} /> : null}
       </TitleContainer>
-      {HeaderActions && (
-        <HeaderActionsContainer>
-          <HeaderActions {...props} />
-        </HeaderActionsContainer>
-      )}
+      <HeaderActionsContainer>
+        {HeaderActions && <HeaderActions {...props} />}
+      </HeaderActionsContainer>
     </WidgetHeaderContainer>
   );
 }
@@ -46,6 +45,7 @@ const TitleContainer = styled('div')`
 const WidgetHeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
+  gap: ${space(1)};
 `;
 
 const HeaderActionsContainer = styled('div')`
