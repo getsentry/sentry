@@ -181,7 +181,7 @@ describe('Performance > Table', function () {
         statsPeriod: '14d',
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
-        query: 'event.type:transaction', // drops 'transaction:/api*' from the query
+        query: '', // drops 'transaction:/api*' and 'event.type:transaction' from the query
         unselectedSeries: 'p100()',
         showTransactions: undefined,
         display: undefined,
