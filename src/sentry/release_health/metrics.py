@@ -1066,7 +1066,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             conditions.append(Condition(Column(environment_key), Op.IN, environment_values))
 
         def query_stats(end: datetime) -> CrashFreeBreakdown:
-            def _get_data(entity_key: EntityKey, metric_key: MetricKey) -> Tuple[int, int]:
+            def _get_data(
+                entity_key: EntityKey, metric_key: MetricKey, referrer: str
+            ) -> Tuple[int, int]:
                 total = 0
                 crashed = 0
                 metric_id = indexer.resolve(metric_key.value)
@@ -1092,7 +1094,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                             where=where,
                             groupby=[Column(status_key)],
                         ),
-                        referrer="release_health.metrics.crash-free-breakdown.session",
+                        referrer=referrer,
                     )["data"]
                     for row in data:
                         if row[status_key] == status_init:
@@ -1103,9 +1105,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 return total, crashed
 
             sessions_total, sessions_crashed = _get_data(
-                EntityKey.MetricsCounters, MetricKey.SESSION
+                EntityKey.MetricsCounters,
+                MetricKey.SESSION,
+                referrer="release_health.metrics.crash-free-breakdown.session",
             )
-            users_total, users_crashed = _get_data(EntityKey.MetricsSets, MetricKey.USER)
+            users_total, users_crashed = _get_data(
+                EntityKey.MetricsSets,
+                MetricKey.USER,
+                referrer="release_health.metrics.crash-free-breakdown.users",
+            )
 
             return {
                 "date": end,
