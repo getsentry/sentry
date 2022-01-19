@@ -374,6 +374,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     return (
       <Button
         key="add-dashboard-widget-from-discover"
+        data-test-id="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
         {t('Add to Dashboard')}
