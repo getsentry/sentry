@@ -438,7 +438,13 @@ def process_snoozes(group):
     Return True if the group is transitioning from "resolved" to "unresolved",
     otherwise return False.
     """
-    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, add_group_to_inbox
+    from sentry.models import (
+        Activity,
+        GroupInboxReason,
+        GroupSnooze,
+        GroupStatus,
+        add_group_to_inbox,
+    )
     from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 
     key = GroupSnooze.get_cache_key(group.id)
@@ -463,6 +469,12 @@ def process_snoozes(group):
         }
         add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
         record_group_history(group, GroupHistoryStatus.UNIGNORED)
+        Activity.objects.create(
+            project=group.project,
+            group=group,
+            type=Activity.SET_UNRESOLVED,
+            user=None,
+        )
 
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
