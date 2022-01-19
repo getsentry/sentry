@@ -74,7 +74,9 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
     else:
         metric_and_agg_text = f"{metric_value} {agg_text}"
 
-    text = f"{metric_and_agg_text} in the last {time_window} minutes"
+    interval = "minute" if time_window == 1 else "minutes"
+
+    text = f"{metric_and_agg_text} in the last {time_window} {interval}"
     if alert_rule.snuba_query.query != "":
         text += f"\nFilter: {alert_rule.snuba_query.query}"
 
