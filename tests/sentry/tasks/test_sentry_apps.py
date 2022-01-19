@@ -153,6 +153,7 @@ class TestSendAlertEvent(TestCase):
                         )
                     ),
                     issue_url=absolute_uri(f"/api/0/issues/{group.id}/"),
+                    issue_id=group.id,
                 ),
                 "triggered_rule": self.rule.label,
             },
