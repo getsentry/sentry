@@ -62,7 +62,7 @@ function Actions({
                 caret={false}
                 customTitle={
                   <ActionButton
-                    label={t('Actions')}
+                    aria-label={t('Actions')}
                     disabled={deleted}
                     icon={<IconEllipsis size="sm" />}
                   />

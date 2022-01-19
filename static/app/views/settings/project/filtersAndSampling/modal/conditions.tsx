@@ -90,7 +90,7 @@ function Conditions({conditions, orgSlug, projectId, onDelete, onChange}: Props)
               <Button
                 onClick={() => onDelete(index)}
                 icon={<IconDelete />}
-                label={t('Delete Condition')}
+                aria-label={t('Delete Condition')}
               />
             </RightCell>
             {displayLegacyBrowsers && (

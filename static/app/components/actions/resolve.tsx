@@ -105,7 +105,7 @@ class ResolveActions extends React.Component<Props> {
         <ActionButton
           priority="primary"
           icon={<IconCheckmark size="xs" />}
-          label={t('Unresolve')}
+          aria-label={t('Unresolve')}
           disabled={isAutoResolved}
           onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
         />
@@ -145,7 +145,7 @@ class ResolveActions extends React.Component<Props> {
       <DropdownLink
         customTitle={
           <StyledActionButton
-            label={t('More resolve options')}
+            aria-label={t('More resolve options')}
             disabled={!projectSlug ? disabled : disableDropdown}
             icon={<IconChevron direction="down" size="xs" />}
           />

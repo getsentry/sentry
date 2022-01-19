@@ -109,7 +109,7 @@ class RepositoryRow extends Component<Props> {
           <StyledButton
             size="xsmall"
             icon={<IconDelete size="xs" />}
-            label={t('delete')}
+            aria-label={t('delete')}
             disabled={!hasAccess}
           />
         </Confirm>
@@ -178,7 +178,7 @@ class RepositoryRow extends Component<Props> {
                 <StyledButton
                   size="xsmall"
                   icon={<IconEdit size="xs" />}
-                  label={t('edit')}
+                  aria-label={t('edit')}
                   disabled={
                     !hasAccess ||
                     (!isActive && repository.status !== RepositoryStatus.DISABLED)

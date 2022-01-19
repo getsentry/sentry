@@ -161,7 +161,7 @@ class WidgetQueriesForm extends React.Component<Props> {
                     }}
                     icon={<IconDelete />}
                     title={t('Remove query')}
-                    label={t('Remove query')}
+                    aria-label={t('Remove query')}
                   />
                 )}
               </SearchConditionsWrapper>

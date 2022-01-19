@@ -120,7 +120,7 @@ class SearchBar extends React.PureComponent<Props, State> {
                 onClick={this.clearSearch}
                 size="xsmall"
                 icon={<IconClose />}
-                label={t('Clear')}
+                aria-label={t('Clear')}
               />
             )}
           </div>

@@ -91,7 +91,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
           disabled={disabled}
           title={t('Deletes the issue. A new issue will be created if it happens again.')}
           tooltipProps={{delay: 300}}
-          label={t('Delete issue')}
+          aria-label={t('Delete issue')}
           icon={<IconDelete size="xs" />}
         />
       </Confirm>
@@ -101,7 +101,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
         customTitle={
           <ActionButton
             disabled={disabled}
-            label={t('More delete options')}
+            aria-label={t('More delete options')}
             icon={<IconChevron direction="down" size="xs" />}
           />
         }

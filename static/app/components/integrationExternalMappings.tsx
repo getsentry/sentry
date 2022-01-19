@@ -85,7 +85,7 @@ class IntegrationExternalMappings extends Component<Props, State> {
                           <StyledButton
                             size="small"
                             icon={<IconEdit size="sm" />}
-                            label={t('edit')}
+                            aria-label={t('edit')}
                             disabled={!hasAccess}
                             onClick={() => onCreateOrEdit(item)}
                           />
@@ -99,7 +99,7 @@ class IntegrationExternalMappings extends Component<Props, State> {
                             <StyledButton
                               size="small"
                               icon={<IconDelete size="sm" />}
-                              label={t('delete')}
+                              aria-label={t('delete')}
                               disabled={!hasAccess}
                             />
                           </Confirm>

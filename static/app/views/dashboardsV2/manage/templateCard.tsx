@@ -26,14 +26,14 @@ function TemplateCard({title, widgetCount, onPreview, onAdd}: Props) {
         </CardText>
       </Header>
       <ButtonContainer>
-        <StyledButton priority="default" onClick={onPreview} label={t('Preview')}>
+        <StyledButton priority="default" onClick={onPreview} aria-label={t('Preview')}>
           {t('Preview')}
         </StyledButton>
         <StyledButton
           priority="primary"
           onClick={onAdd}
           icon={<IconAdd size="xs" isCircled />}
-          label={t('Add Dashboard')}
+          aria-label={t('Add Dashboard')}
         >
           {t('Add Dashboard')}
         </StyledButton>
