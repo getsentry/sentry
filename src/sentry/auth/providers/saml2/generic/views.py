@@ -28,7 +28,7 @@ class SAML2ConfigureView(ConfigureView):
 
             if saml_form.is_valid() and attr_mapping_form.is_valid():
                 provider.config["idp"] = saml_form.cleaned_data
-                provider.config["attr_mapping_form"] = attr_mapping_form.cleaned_data
+                provider.config["attribute_mapping"] = attr_mapping_form.cleaned_data
                 provider.save()
 
         return self.render(
