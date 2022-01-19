@@ -41,8 +41,9 @@ class AlertRuleActionRequester(Mediator):
                 method=self.http_method,
                 data=self.body,
             )
-            body = safe_urlread(req)
-            response = {"success": True, "message": "", "body": json.loads(body)}
+            body = safe_urlread(req).decode() if safe_urlread(req) else None
+            message = f"{self.sentry_app.name}: {body or 'Success!'}"
+            return {"success": True, "message": message}
         except Exception as e:
             logger.info(
                 "alert_rule_action.error",
@@ -53,10 +54,9 @@ class AlertRuleActionRequester(Mediator):
                     "error_message": str(e),
                 },
             )
+            message = f"{self.sentry_app.name}: {str(e.response.text) or 'Something went wrong!'}"
             # Bubble up error message from Sentry App to the UI for the user.
-            response = {"success": False, "message": str(e.response.text), "body": {}}
-
-        return response
+            return {"success": False, "message": message}
 
     def _build_headers(self):
         request_uuid = uuid4().hex
