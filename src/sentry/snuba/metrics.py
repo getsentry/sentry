@@ -1194,8 +1194,8 @@ class SnubaDataSource(DataSource):
                         ]
                     snuba_query = snuba_query.set_where(where)
                     # Set the limit of the second query to be the provided limits multiplied by
-                    # the number of the metrics requested in the query
-                    snuba_query = snuba_query.set_limit(limit * len(query.fields))
+                    # the number of the metrics requested in the query in this specific entity
+                    snuba_query = snuba_query.set_limit(limit * len(snuba_query.select))
 
                     snuba_query_res = raw_snql_query(
                         snuba_query, use_cache=False, referrer="api.metrics.totals.second_query"
