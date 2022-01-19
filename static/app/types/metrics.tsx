@@ -1,5 +1,3 @@
-import {DateString} from './core';
-
 export type MetricsApiResponse = {
   intervals: string[];
   groups: {
@@ -7,8 +5,8 @@ export type MetricsApiResponse = {
     totals: Record<string, number | null>;
     series: Record<string, Array<number | null>>;
   }[];
-  start: DateString;
-  end: DateString;
+  start: string;
+  end: string;
   query: string;
 };
 
