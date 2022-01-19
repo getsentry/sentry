@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from json.decoder import JSONDecodeError
 from typing import Any, Dict
 
@@ -11,15 +11,31 @@ class TransitionalSerializer:
         self.pickle_serializer = PickleSerializer()
         self.json_serializer = JSONSerializer()
 
-    def dumps(self, obj: Dict[str, Any]) -> bytes:
+    def _convert_datetime_to_timestamp(self, obj):
         for key in obj:
             if type(obj[key]) == datetime:
                 formatted_time = obj[key].timestamp()
-                obj[key] = formatted_time
-        return self.json_serializer.dumps(obj)
+                obj[key] = f"timestamp:{formatted_time}"
+            elif type(obj[key]) == dict:
+                self._convert_datetime_to_timestamp(obj[key])
+        return obj
+
+    def _convert_timestamp_to_datetime(self, data):
+        for key in data:
+            if type(data[key]) is str and "timestamp:" in data[key]:
+                timestamp = float(data[key].replace("timestamp:", ""))
+                data[key] = datetime.fromtimestamp(timestamp, timezone.utc)
+            elif type(data[key]) == dict:
+                self._convert_datetime_to_timestamp(data[key])
+        return data
+
+    def dumps(self, obj: Dict[str, Any]) -> bytes:
+        serializable_obj = self._convert_datetime_to_timestamp(obj)
+        return self.json_serializer.dumps(serializable_obj)
 
     def loads(self, data: bytes) -> Dict[str, Any]:
         try:
-            return self.json_serializer.loads(data)
+            data_obj = self._convert_timestamp_to_datetime(self.json_serializer.loads(data))
+            return data_obj
         except JSONDecodeError:
             return self.pickle_serializer.loads(data)
