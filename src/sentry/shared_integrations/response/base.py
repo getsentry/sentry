@@ -80,11 +80,12 @@ class BaseApiResponse:
             return TextApiResponse(response.text, response.headers, response.status_code)
         else:
             data = json.loads(response.text, object_pairs_hook=OrderedDict)
+
         if isinstance(data, dict):
             return MappingApiResponse(data, response.headers, response.status_code)
         elif isinstance(data, (list, tuple)):
             return SequenceApiResponse(data, response.headers, response.status_code)
+        elif ignore_webhook_errors:
+            return BaseApiResponse(response.headers, response.status_code)
         else:
-            if ignore_webhook_errors:
-                return
             raise NotImplementedError
