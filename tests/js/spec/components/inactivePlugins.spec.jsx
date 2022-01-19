@@ -7,7 +7,7 @@ describe('InactivePlugins', function () {
     const {container} = mountWithTheme(
       <InactivePlugins plugins={[]} onEnablePlugin={() => {}} />
     );
-    expect(container).toSnapshot();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('renders plugins list', function () {
