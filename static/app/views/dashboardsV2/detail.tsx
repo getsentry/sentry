@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -39,6 +40,9 @@ import {
   Widget,
 } from './types';
 import {cloneDashboard} from './utils';
+
+// Keys for grid layout values we track in the server
+const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
@@ -361,7 +365,12 @@ class DashboardDetail extends Component<Props, State> {
               layout
             );
           }
-          createDashboard(api, organization.slug, newModifiedDashboard).then(
+          createDashboard(
+            api,
+            organization.slug,
+            newModifiedDashboard,
+            this.isPreview
+          ).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
@@ -703,15 +712,12 @@ export default withApi(withOrganization(DashboardDetail));
  */
 function getDashboardLayout(widgets: Widget[]): RGLLayout[] {
   return widgets
-    .filter(({layout}) => !!layout)
+    .filter(({layout}) => defined(layout))
     .map(({layout, ...widget}) => ({
       ...(layout as RGLLayout),
       i: constructGridItemKey(widget),
     }));
 }
-
-// Keys for grid layout values we track in the server
-const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
 /**
  * Creates a new DashboardDetails object with the layouts associated with
@@ -734,7 +740,7 @@ function isLayoutEqual(prevLayouts: RGLLayout[], newLayouts: RGLLayout[]): boole
   // Compares only defined keys we care about storing
   const normalizeLayout = layout => {
     const definedKeys = Object.keys(layout).filter(
-      key => STORE_KEYS.includes(key) && layout[key] !== undefined
+      key => STORE_KEYS.includes(key) && defined(layout[key])
     );
     return pick(layout, definedKeys);
   };
