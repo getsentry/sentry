@@ -115,6 +115,9 @@ function WidgetCardContextMenu({
         }
       });
 
+      // Deduplicate yAxis
+      discoverLocation.query.yAxis = [...new Set(discoverLocation.query.yAxis)];
+
       const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
         ...discoverLocation.query,
       })}`;
