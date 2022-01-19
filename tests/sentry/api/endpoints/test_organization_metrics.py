@@ -423,7 +423,8 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
     @with_feature(FEATURE_FLAG)
     def test_pagination_without_orderby(self):
         """
-        Test that ensures an exception is raised when pagination
+        Test that ensures an exception is raised when pagination `per_page` parameter is sent
+        without order by being set
         """
         response = self.get_response(
             self.organization.slug,
@@ -607,7 +608,11 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
         assert groups[0]["totals"] == {"p50(sentry.transactions.measurements.lcp)": 5}
 
     @with_feature(FEATURE_FLAG)
-    def test_limit_with_orderby_is_overridden_by_paginator(self):
+    def test_limit_with_orderby_is_overridden_by_paginator_limit(self):
+        """
+        Test that ensures when an `orderBy` clause is set, then the paginator limit overrides the
+        `limit` parameter
+        """
         metric_id = indexer.record("sentry.transactions.measurements.lcp")
         tag1 = indexer.record("tag1")
         value1 = indexer.record("value1")
@@ -645,45 +650,6 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
         )
         groups = response.data["groups"]
         assert len(groups) == 1
-
-    @with_feature(FEATURE_FLAG)
-    def test_limit_without_orderby_is_not_overridden_by_paginator(self):
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        tag1 = indexer.record("tag1")
-        value1 = indexer.record("value1")
-        value2 = indexer.record("value2")
-
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": metric_id,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (tag1, value1, [4, 5, 6]),
-                    (tag1, value2, [1, 2, 3]),
-                )
-            ],
-            entity="metrics_distributions",
-        )
-        response = self.get_success_response(
-            self.organization.slug,
-            field="p50(sentry.transactions.measurements.lcp)",
-            statsPeriod="1h",
-            interval="1h",
-            datasource="snuba",
-            groupBy="tag1",
-            per_page=1,
-            limit=2,
-        )
-        groups = response.data["groups"]
-        assert len(groups) == 2
 
     @with_feature(FEATURE_FLAG)
     def test_orderby_percentile_with_many_fields_non_transactions_supported_fields(self):

@@ -117,8 +117,10 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
 
         def data_fn(offset: int, limit: int):
             try:
-                query = QueryDefinition(request.GET)
-                data = get_datasource(request).get_series(projects, query, offset, limit)
+                query = QueryDefinition(
+                    request.GET, paginator_kwargs={"limit": limit, "offset": offset}
+                )
+                data = get_datasource(request).get_series(projects, query)
             except (InvalidField, InvalidParams) as exc:
                 raise (ParseError(detail=str(exc)))
             return data

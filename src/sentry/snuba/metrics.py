@@ -10,6 +10,7 @@ from operator import itemgetter
 from typing import (
     Any,
     Collection,
+    Dict,
     List,
     Literal,
     Mapping,
@@ -156,7 +157,8 @@ class QueryDefinition:
 
     """
 
-    def __init__(self, query_params):
+    def __init__(self, query_params, paginator_kwargs: Optional[Dict] = None):
+        paginator_kwargs = paginator_kwargs or {}
 
         self.query = query_params.get("query", "")
         self.parsed_query = parse_query(self.query) if self.query else None
@@ -169,7 +171,8 @@ class QueryDefinition:
         self.fields = {key: parse_field(key) for key in raw_fields}
 
         self.orderby = self._parse_orderby(query_params)
-        self.limit = self._parse_limit(query_params)
+        self.limit = self._parse_limit(query_params, paginator_kwargs)
+        self.offset = self._parse_offset(query_params, paginator_kwargs)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -202,7 +205,12 @@ class QueryDefinition:
 
         return (op, metric_name), direction
 
-    def _parse_limit(self, query_params):
+    def _parse_limit(self, query_params, paginator_kwargs):
+        if self.orderby:
+            paginator_limit = paginator_kwargs.get("limit")
+            if paginator_limit is not None:
+                return paginator_limit
+
         limit = query_params.get("limit", None)
         if not self.orderby and limit:
             raise InvalidParams("'limit' is only supported in combination with 'orderBy'")
@@ -216,6 +224,11 @@ class QueryDefinition:
                 raise InvalidParams("'limit' must be integer >= 1")
 
         return limit
+
+    def _parse_offset(self, query_params, paginator_kwargs):
+        if not self.orderby:
+            return None
+        return paginator_kwargs.get("offset")
 
 
 class TimeRange(Protocol):
@@ -332,13 +345,7 @@ class DataSource(ABC):
         """Get metadata for a single metric, without tag values"""
 
     @abstractmethod
-    def get_series(
-        self,
-        projects: Sequence[Project],
-        query: QueryDefinition,
-        offset: Optional[int],
-        limit: Optional[int],
-    ) -> dict:
+    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
     @abstractmethod
@@ -601,13 +608,7 @@ class MockDataSource(IndexMockingDataSource):
             "series": series,
         }
 
-    def get_series(
-        self,
-        projects: Sequence[Project],
-        query: QueryDefinition,
-        offset: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> dict:
+    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
         intervals = list(get_intervals(query))
@@ -724,7 +725,7 @@ class SnubaQueryBuilder:
             select=list(self._build_select(entity, fields)),
             where=where,
             limit=Limit(query_definition.limit or MAX_POINTS),
-            offset=Offset(0),
+            offset=Offset(query_definition.offset or 0),
             granularity=Granularity(query_definition.rollup),
             orderby=self._build_orderby(query_definition, entity),
         )
@@ -1091,16 +1092,9 @@ class SnubaDataSource(DataSource):
         meta = MetaFromSnuba(projects)
         return meta.get_tag_values(tag_name, metric_names)
 
-    def get_series(
-        self,
-        projects: Sequence[Project],
-        query: QueryDefinition,
-        offset: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> dict:
+    def get_series(self, projects: Sequence[Project], query: QueryDefinition) -> dict:
         """Get time series for the given query"""
         intervals = list(get_intervals(query))
-        offset = offset or 0
 
         if query.orderby is not None and len(query.fields) > 1:
             # Multi-field select with order by functionality. Currently only supports the
@@ -1142,8 +1136,6 @@ class SnubaDataSource(DataSource):
             # This query contains an order by clause, and so we are only interested in the
             # "totals" query
             initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
-            initial_snuba_query = initial_snuba_query.set_limit(limit)
-            initial_snuba_query = initial_snuba_query.set_offset(offset)
 
             initial_query_results = raw_snql_query(
                 initial_snuba_query, use_cache=False, referrer="api.metrics.totals.initial_query"
@@ -1216,7 +1208,8 @@ class SnubaDataSource(DataSource):
                     snuba_query = snuba_query.set_where(where)
                     # Set the limit of the second query to be the provided limits multiplied by
                     # the number of the metrics requested in the query in this specific entity
-                    snuba_query = snuba_query.set_limit(limit * len(snuba_query.select))
+                    snuba_query = snuba_query.set_limit(query.limit * len(snuba_query.select))
+                    snuba_query = snuba_query.set_offset(0)
 
                     snuba_query_res = raw_snql_query(
                         snuba_query, use_cache=False, referrer="api.metrics.totals.second_query"
@@ -1262,13 +1255,6 @@ class SnubaDataSource(DataSource):
                 for key, snuba_query in queries.items():
                     if snuba_query is None:
                         continue
-
-                    if query.orderby is not None:
-                        # Case when you have one field in select and one field in order by so you
-                        # only get a totals query. We add this check because we do not want to
-                        # paginate queries that have `series` keys
-                        snuba_query = snuba_query.set_limit(limit)
-                        snuba_query = snuba_query.set_offset(offset)
 
                     results[entity][key] = raw_snql_query(
                         snuba_query, use_cache=False, referrer=f"api.metrics.{key}"
