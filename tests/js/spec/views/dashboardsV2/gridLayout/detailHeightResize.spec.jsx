@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import * as utils from 'sentry/views/dashboardsV2/gridLayout/utils';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
 jest.mock('echarts-for-react/lib/core', () => {
@@ -77,10 +76,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('renders charts with the full height of the widget', async () => {
-      jest.spyOn(utils, 'getDashboardLayout').mockReturnValueOnce([
-        {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
-        {i: 'grid-item-2', x: 2, y: 0, w: 2, h: 2},
-      ]);
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(
@@ -91,6 +86,7 @@ describe('Dashboards > Detail', function () {
                 title: 'Tall Errors',
                 interval: '1d',
                 id: '1',
+                layout: {x: 0, y: 0, w: 2, h: 6},
               }
             ),
             TestStubs.Widget(
@@ -99,6 +95,7 @@ describe('Dashboards > Detail', function () {
                 title: 'Short Errors',
                 interval: '1d',
                 id: '2',
+                layout: {x: 2, y: 0, w: 2, h: 2},
               }
             ),
           ],
