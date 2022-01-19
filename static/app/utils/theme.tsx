@@ -677,6 +677,31 @@ const commonTheme = {
     lineHeightBody: '1.4',
   },
 
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    default: {
+      height: '40px',
+      padding: '10px 16px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    small: {
+      height: '34px',
+      padding: '8px 12px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    xsmall: {
+      height: '28px',
+      padding: '6px 8px',
+      fontSize: '0.75rem',
+      lineHeight: '0.875rem',
+    },
+  },
+
   dataCategory,
 
   tag: generateTagTheme(lightColors),

@@ -18,7 +18,7 @@ type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type Props = {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
-  size?: 'zero' | 'xsmall' | 'small';
+  size?: 'zero' | 'xsmall' | 'small' | 'default';
   align?: 'center' | 'left' | 'right';
   disabled?: boolean;
   busy?: boolean;
@@ -101,7 +101,7 @@ function BaseButton({
       onClick={handleClick}
       role="button"
     >
-      <ButtonLabel align={align} size={size} priority={priority} borderless={borderless}>
+      <ButtonLabel align={align} size={size} borderless={borderless}>
         {icon && (
           <Icon size={size} hasChildren={!!children}>
             {icon}
@@ -134,20 +134,6 @@ export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
 
-const getFontSize = ({size, priority, theme}: StyledButtonProps) => {
-  if (priority === 'link') {
-    return 'font-size: inherit';
-  }
-
-  switch (size) {
-    case 'xsmall':
-    case 'small':
-      return `font-size: ${theme.fontSizeSmall}`;
-    default:
-      return `font-size: ${theme.fontSizeMedium}`;
-  }
-};
-
 const getFontWeight = ({priority, borderless}: StyledButtonProps) =>
   `font-weight: ${priority === 'link' || borderless ? 'inherit' : 600};`;
 
@@ -166,7 +152,7 @@ const getBoxShadow =
     `;
   };
 
-const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) => {
+const getColors = ({size, priority, disabled, borderless, theme}: StyledButtonProps) => {
   const themeName = disabled ? 'disabled' : priority || 'default';
   const {
     color,
@@ -188,13 +174,15 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
       color: ${color};
     }
 
+    ${size !== 'zero' &&
+    `
     &:hover,
     &:focus,
     &:active {
       color: ${colorActive || color};
       background: ${backgroundActive};
       border-color: ${borderless ? 'transparent' : borderActive};
-    }
+    }`}
 
     &.focus-visible {
       border: 1px solid ${focusBorder};
@@ -245,59 +233,36 @@ const StyledButton = styled(
   }
 )<Props>`
   display: inline-block;
-  line-height: 1;
   border-radius: ${p => p.theme.button.borderRadius};
-  padding: 0;
   text-transform: none;
   ${getFontWeight};
-  ${getFontSize};
   ${getColors};
   ${p => getBoxShadow(p.theme)};
+  ${p => p.theme.form[p.size ?? 'default']};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
   transition: background 0.1s, border 0.1s, box-shadow 0.1s;
+
+  ${p => p.priority === 'link' && `font-size: inherit; padding: 0;`}
+  ${p => p.size === 'zero' && `padding: 2px;`}
 
   &:focus {
     outline: none;
   }
 `;
 
-/**
- * Get label padding determined by size
- */
-const getLabelPadding = ({
-  size,
-  priority,
-}: Pick<StyledButtonProps, 'size' | 'priority' | 'borderless'>) => {
-  if (priority === 'link') {
-    return '0';
-  }
-
-  switch (size) {
-    case 'zero':
-      return '0';
-    case 'xsmall':
-      return '5px 8px';
-    case 'small':
-      return '9px 12px';
-    default:
-      return '12px 16px';
-  }
-};
-
-const buttonLabelPropKeys = ['size', 'priority', 'borderless', 'align'];
-type ButtonLabelProps = Pick<ButtonProps, 'size' | 'priority' | 'borderless' | 'align'>;
+const buttonLabelPropKeys = ['size', 'borderless', 'align'];
+type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless' | 'align'>;
 
 const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
     typeof prop === 'string' && isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
 })<ButtonLabelProps>`
-  display: grid;
   height: 100%;
-  grid-auto-flow: column;
+  display: flex;
   align-items: center;
   justify-content: ${p => p.align};
-  padding: ${getLabelPadding};
+  white-space: nowrap;
 `;
 
 type IconProps = {
@@ -311,14 +276,13 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
     return '0';
   }
 
-  return size && size.endsWith('small') ? '6px' : '8px';
+  return size === 'xsmall' ? '6px' : '8px';
 };
 
 const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
   display: flex;
   align-items: center;
   margin-right: ${getIconMargin};
-  height: ${getFontSize};
 `;
 
 /**
