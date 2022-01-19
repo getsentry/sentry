@@ -97,9 +97,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
     def _get_organization_slug(self, request: Request):
         organization_slug = request.json_body.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
-            error_message = """
-                Please provide a valid value for the 'organization' field.
-            """
+            error_message = "Please provide a valid value for the 'organization' field."
             raise ValidationError({"organization": to_single_line_str(error_message)})
         return organization_slug
 
@@ -107,18 +105,14 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         try:
             return Organization.objects.get(slug=organization_slug)
         except Organization.DoesNotExist:
-            error_message = f"""
-                Organization '{organization_slug}' does not exist.
-            """
+            error_message = f"Organization '{organization_slug}' does not exist."
             raise ValidationError({"organization": to_single_line_str(error_message)})
 
     def _get_organization_for_user(self, user, organization_slug):
         try:
             return user.get_orgs().get(slug=organization_slug)
         except Organization.DoesNotExist:
-            error_message = f"""
-                User does not belong to the '{organization_slug}' organization.
-            """
+            error_message = f"User does not belong to the '{organization_slug}' organization."
             raise PermissionDenied(to_single_line_str(error_message))
 
     def _get_organization(self, request: Request):
@@ -130,24 +124,25 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
             return self._get_organization_for_user(user, organization_slug)
 
     def convert_args(self, request: Request, *args, **kwargs):
-        # This baseclass is the the SentryApp collection endpoints:
-        #
-        #       [GET, POST] /sentry-apps
-        #
-        # The GET endpoint is public and doesn't require (or handle) any query
-        # params or request body.
-        #
-        # The POST endpoint is for creating a Sentry App. Part of that creation
-        # is associating it with the Organization that it's created within.
-        #
-        # So in the case of POST requests, we want to pull the Organization out
-        # of the request body so that we can ensure the User making the request
-        # has access to it.
-        #
-        # Since ``convert_args`` is conventionally where you materialize model
-        # objects from URI params, we're applying the same logic for a param in
-        # the request body.
-        #
+        """
+        This baseclass is the the SentryApp collection endpoints:
+
+              [GET, POST] /sentry-apps
+
+        The GET endpoint is public and doesn't require (or handle) any query
+        params or request body.
+
+        The POST endpoint is for creating a Sentry App. Part of that creation
+        is associating it with the Organization that it's created within.
+
+        So in the case of POST requests, we want to pull the Organization out
+        of the request body so that we can ensure the User making the request
+        has access to it.
+
+        Since ``convert_args`` is conventionally where you materialize model
+        objects from URI params, we're applying the same logic for a param in
+        the request body.
+        """
         if not request.json_body:
             return (args, kwargs)
 

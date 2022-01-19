@@ -185,4 +185,4 @@ class CombinedRuleSerializer(Serializer):
             attrs["type"] = "rule"
             return attrs
         else:
-            raise AssertionError("Invalid rule to serialize: %r" % type(obj))
+            raise AssertionError(f"Invalid rule to serialize: {type(obj)}")
