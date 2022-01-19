@@ -356,25 +356,6 @@ class OrganizationMetricDataTest(APITestCase):
         assert response.status_code == 400
 
     @with_feature(FEATURE_FLAG)
-    def test_limit_without_orderby(self):
-        response = self.get_response(
-            self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
-            limit=3,
-        )
-        assert response.status_code == 400
-
-    @with_feature(FEATURE_FLAG)
-    def test_limit_invalid(self):
-        for limit in (-1, 0, "foo"):
-            response = self.get_response(
-                self.project.organization.slug,
-                field="sum(sentry.sessions.session)",
-                limit=limit,
-            )
-            assert response.status_code == 400
-
-    @with_feature(FEATURE_FLAG)
     def test_statsperiod_invalid(self):
         response = self.get_response(
             self.project.organization.slug,
