@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import MenuItem from 'sentry/components/menuItem';
@@ -209,17 +208,8 @@ export const WidgetContainerActions = ({
     );
   }
 
-  return (
-    <ChartActionContainer>
-      <ContextMenu>{menuOptions}</ContextMenu>
-    </ChartActionContainer>
-  );
+  return <ContextMenu>{menuOptions}</ContextMenu>;
 };
-
-const ChartActionContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
 
 const WidgetContainer = withOrganization(_WidgetContainer);
 

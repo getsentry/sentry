@@ -4,7 +4,7 @@ import {shallow} from 'sentry-test/enzyme';
 
 import BulkController from 'sentry/components/bulkController';
 
-function renderedComponent(
+function mountComponent(
   renderProp: Function,
   pageIds: string[],
   defaultSelectedIds?: string[]
@@ -54,7 +54,7 @@ describe('BulkController', function () {
 
   describe('renders', function () {
     beforeEach(function () {
-      wrapper = renderedComponent(renderProp, pageIds);
+      wrapper = mountComponent(renderProp, pageIds);
       toggleRow = wrapper.find('[data-test-id="toggleRow"]');
       selectPage = wrapper.find('[data-test-id="selectPage"]');
       deselectPage = wrapper.find('[data-test-id="deselectPage"]');
@@ -101,18 +101,18 @@ describe('BulkController', function () {
 
   describe('with default selectIds', function () {
     it('sets the defaults', function () {
-      wrapper = renderedComponent(renderProp, pageIds, ['2']);
+      wrapper = mountComponent(renderProp, pageIds, ['2']);
       expect(renderProp).toHaveBeenLastCalledWith(false, false, ['2']);
     });
 
     it('page is selected by default', function () {
-      wrapper = renderedComponent(renderProp, pageIds, pageIds);
+      wrapper = mountComponent(renderProp, pageIds, pageIds);
       expect(renderProp).toHaveBeenLastCalledWith(false, true, pageIds);
     });
 
     it('toggle the last unchecked option, should change button selectAll to true', function () {
       const defaultSelectedIds = ['1', '3'];
-      wrapper = renderedComponent(renderProp, pageIds, defaultSelectedIds);
+      wrapper = mountComponent(renderProp, pageIds, defaultSelectedIds);
       expect(renderProp).toHaveBeenLastCalledWith(false, false, defaultSelectedIds);
       toggleRow.simulate('click');
       expect(renderProp).toHaveBeenLastCalledWith(false, true, [

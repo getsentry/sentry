@@ -101,22 +101,19 @@ class AuthVerifyEndpointTest(APITestCase):
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
         self.get_auth(user)
-        self.features = {"organizations:webauthn-login": True}
-        with self.feature(self.features):
-            response = self.client.put(
-                self.path,
-                user=user,
-                data={
-                    "password": "admin",
-                    "challenge": """{"challenge":"challenge"}""",
-                    "response": """{"response":"response"}""",
-                },
-            )
-            assert response.status_code == 200
-            assert validate_response.call_count == 1
-            assert {"challenge": "challenge"} in validate_response.call_args[0]
-            assert {"response": "response"} in validate_response.call_args[0]
-            assert True in validate_response.call_args[0]
+        response = self.client.put(
+            self.path,
+            user=user,
+            data={
+                "password": "admin",
+                "challenge": """{"challenge":"challenge"}""",
+                "response": """{"response":"response"}""",
+            },
+        )
+        assert response.status_code == 200
+        assert validate_response.call_count == 1
+        assert {"challenge": "challenge"} in validate_response.call_args[0]
+        assert {"response": "response"} in validate_response.call_args[0]
 
 
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):

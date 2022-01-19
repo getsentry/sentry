@@ -55,21 +55,17 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     // Checking initial modal states
     container = mountModal({initialData});
 
-    expect(screen.queryByText('Duration Distribution')).toBeInTheDocument();
-    expect(screen.queryByText('High Throughput Transactions')).toBeInTheDocument();
-    expect(screen.queryByText('LCP by Country')).toBeInTheDocument();
-    expect(screen.queryByText('Miserable Users')).toBeInTheDocument();
-    expect(screen.queryByText('Slow vs Fast Transactions')).toBeInTheDocument();
-    expect(screen.queryByText('Latest Unresolved Issues')).toBeInTheDocument();
-    expect(screen.queryByText('Top Unhandled Error Types')).toBeInTheDocument();
-    expect(screen.queryByText('Users Affected by Errors')).toBeInTheDocument();
+    expect(screen.getByText('Duration Distribution')).toBeInTheDocument();
+    expect(screen.getByText('High Throughput Transactions')).toBeInTheDocument();
+    expect(screen.getByText('LCP by Country')).toBeInTheDocument();
+    expect(screen.getByText('Miserable Users')).toBeInTheDocument();
+    expect(screen.getByText('Slow vs Fast Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Latest Unresolved Issues')).toBeInTheDocument();
+    expect(screen.getByText('Top Unhandled Error Types')).toBeInTheDocument();
+    expect(screen.getByText('Users Affected by Errors')).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('button', {name: 'Widget Library beta', current: true})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Custom Widget', current: false})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Widget Library beta'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Custom Widget'})).toBeInTheDocument();
 
     const button = screen.getByRole('button', {name: 'Custom Widget'});
     userEvent.click(button);

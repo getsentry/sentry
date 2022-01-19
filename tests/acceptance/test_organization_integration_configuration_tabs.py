@@ -33,7 +33,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_external_user_mappings(self):
         # create `auth_user` records to differentiate `user_id` and `organization_member_id`
@@ -65,9 +65,9 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             self.browser.get(
                 f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
             )
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.click(".nav-tabs li:nth-child(3) a")
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             # Empty state
             self.browser.snapshot("integrations - empty external user mappings")
@@ -85,7 +85,8 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
 
             # List View
             self.browser.click('[aria-label="Save Changes"]')
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[aria-label="Save Changes"]')
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.snapshot("integrations - one external user mapping")
 
     def test_external_team_mappings(self):
@@ -99,9 +100,9 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             self.browser.get(
                 f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
             )
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.click(".nav-tabs li:nth-child(4) a")
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             # Empty state
             self.browser.snapshot("integrations - empty external team mappings")
@@ -119,7 +120,8 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
 
             # List View
             self.browser.click('[aria-label="Save Changes"]')
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[aria-label="Save Changes"]')
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.snapshot("integrations - one external team mapping")
 
     def test_settings_tab(self):
@@ -143,9 +145,9 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             self.browser.get(
                 f"/settings/{self.organization.slug}/integrations/{provider}/{integration.id}/"
             )
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.click(".nav-tabs li:nth-child(1) a")
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             name = self.browser.find_element_by_name("name")
             name.clear()

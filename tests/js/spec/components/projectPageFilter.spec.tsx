@@ -56,7 +56,7 @@ describe('ProjectPageFilter', function () {
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {environment: [], project: [2]}})
+      expect.objectContaining({query: {environment: [], project: ['2']}})
     );
   });
 });
