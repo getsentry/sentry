@@ -1,21 +1,28 @@
+from __future__ import annotations
+
+from typing import Any, Mapping
 from urllib.parse import urlparse
 
 from requests.exceptions import RequestException
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from .base import ApiError
+
+__all__ = ("ApiError",)
 
 
 class ApiHostError(ApiError):
     code = 503
 
     @classmethod
-    def from_exception(cls, exception):
+    def from_exception(cls, exception: RequestException) -> ApiHostError:
         if getattr(exception, "request"):
             return cls.from_request(exception.request)
         return cls("Unable to reach host")
 
     @classmethod
-    def from_request(cls, request):
+    def from_request(cls, request: Request) -> ApiHostError:
         host = urlparse(request.url).netloc
         return cls(f"Unable to reach host: {host}")
 
@@ -24,13 +31,13 @@ class ApiTimeoutError(ApiError):
     code = 504
 
     @classmethod
-    def from_exception(cls, exception):
+    def from_exception(cls, exception: RequestException) -> ApiTimeoutError:
         if getattr(exception, "request"):
             return cls.from_request(exception.request)
         return cls("Timed out reaching host")
 
     @classmethod
-    def from_request(cls, request):
+    def from_request(cls, request: Request) -> ApiTimeoutError:
         host = urlparse(request.url).netloc
         return cls(f"Timed out attempting to reach host: {host}")
 
@@ -45,7 +52,7 @@ class ApiRateLimitedError(ApiError):
 
 class UnsupportedResponseType(ApiError):
     @property
-    def content_type(self):
+    def content_type(self) -> str:
         return self.text
 
 
@@ -64,7 +71,7 @@ class DuplicateDisplayNameError(IntegrationError):
 
 
 class IntegrationFormError(IntegrationError):
-    def __init__(self, field_errors):
+    def __init__(self, field_errors: Mapping[str, Any]) -> None:
         super().__init__("Invalid integration action")
         self.field_errors = field_errors
 
@@ -72,6 +79,6 @@ class IntegrationFormError(IntegrationError):
 class ClientError(RequestException):
     """4xx Error Occurred"""
 
-    def __init__(self, status_code, url, response=None):
+    def __init__(self, status_code: str, url: str, response: Response | None = None) -> None:
         http_error_msg = f"{status_code} Client Error: for url: {url}"
         super().__init__(http_error_msg, response=response)
