@@ -441,7 +441,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         savedQuery,
         yAxis
       );
-      wrapper.find('AddToDashboardButton').first().simulate('click');
+      wrapper.find('Button').first().simulate('click');
       await tick();
       await tick();
       const modal = await mountGlobalModal();
@@ -458,7 +458,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         savedQuery,
         yAxis
       );
-      wrapper.find('AddToDashboardButton').first().simulate('click');
+      wrapper.find('Button').first().simulate('click');
       await tick();
       await tick();
       const modal = await mountGlobalModal();
@@ -479,7 +479,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         savedQuery,
         [...yAxis, 'equation|count() + failure_count()']
       );
-      wrapper.find('AddToDashboardButton').first().simulate('click');
+      wrapper.find('Button').first().simulate('click');
       await tick();
       await tick();
       const modal = await mountGlobalModal();
