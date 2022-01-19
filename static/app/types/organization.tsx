@@ -1,4 +1,4 @@
-import {Actor, Avatar, DateString, Scope} from './core';
+import {Actor, Avatar, Scope} from './core';
 import {OrgExperiments} from './experiments';
 import {ExternalTeam} from './integrations';
 import {OnboardingTaskStatus} from './onboarding';
@@ -217,8 +217,8 @@ export type SeriesApi = {
 };
 
 export type SessionApiResponse = SeriesApi & {
-  start: DateString;
-  end: DateString;
+  start: string;
+  end: string;
   query: string;
 };
 
