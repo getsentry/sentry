@@ -1364,6 +1364,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                         Function("quantiles(0.5, 0.90)", [Column("value")], alias="quantiles"),
                     ],
                     groupby=[Column("bucketed_time")],
+                    referrer="release_health.metrics.get_project_release_stats_durations",
                 )
             )["data"]
             for row in duration_series_data:
