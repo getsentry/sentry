@@ -169,7 +169,7 @@ class QueryDefinition:
         self.fields = {key: parse_field(key) for key in raw_fields}
 
         self.orderby = self._parse_orderby(query_params)
-        self.limit = MAX_POINTS
+        self.limit = self._parse_limit(query_params)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -201,6 +201,21 @@ class QueryDefinition:
             raise InvalidParams("'orderBy' must be one of the provided 'fields'")
 
         return (op, metric_name), direction
+
+    def _parse_limit(self, query_params):
+        limit = query_params.get("limit", None)
+        if not self.orderby and limit:
+            raise InvalidParams("'limit' is only supported in combination with 'orderBy'")
+
+        if limit is not None:
+            try:
+                limit = int(limit)
+                if limit < 1:
+                    raise ValueError
+            except (ValueError, TypeError):
+                raise InvalidParams("'limit' must be integer >= 1")
+
+        return limit
 
 
 class TimeRange(Protocol):
@@ -708,7 +723,7 @@ class SnubaQueryBuilder:
             groupby=groupby,
             select=list(self._build_select(entity, fields)),
             where=where,
-            limit=Limit(query_definition.limit),
+            limit=Limit(query_definition.limit or MAX_POINTS),
             offset=Offset(0),
             granularity=Granularity(query_definition.rollup),
             orderby=self._build_orderby(query_definition, entity),
