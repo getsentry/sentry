@@ -1,7 +1,9 @@
+import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
 import {Rect, Transform} from 'sentry/utils/profiling/gl/utils';
 import {
   computeInterval,
   getIntervalTimeAtX,
+  GridRenderer,
 } from 'sentry/utils/profiling/renderers/gridRenderer';
 
 describe('getIntervalTimeAtX', () => {
@@ -94,5 +96,54 @@ describe('computeInterval', () => {
     expect(computeInterval(configView, configToPhysical)).toEqual([
       0, 0.5, 1, 1.5, 2, 2.5, 3,
     ]);
+  });
+});
+
+describe('gridRenderer', () => {
+  it('draws each interval line and ', () => {
+    // Mock the width of the measured text, we dont actually care if this is accurate or not
+    const WIDTH = 20;
+
+    const context: Partial<CanvasRenderingContext2D> = {
+      fillText: jest.fn(),
+      fillRect: jest.fn(),
+      strokeRect: jest.fn(),
+      measureText: jest.fn().mockReturnValue({width: WIDTH}),
+    };
+    const canvas: Partial<HTMLCanvasElement> = {
+      getContext: jest.fn().mockReturnValue(context),
+    };
+
+    const renderer = new GridRenderer(
+      canvas as HTMLCanvasElement,
+      LightFlamegraphTheme,
+      jest.fn().mockImplementation(n => n + 'ms')
+    );
+
+    const configView = new Rect(0, 0, 10, 100);
+    const physicalSpace = new Rect(0, 0, 1000, 1000);
+
+    const configToPhysical = Transform.transformMatrixBetweenRect(
+      configView,
+      physicalSpace
+    );
+
+    renderer.draw(configView, physicalSpace, configToPhysical);
+
+    // Labels should be 0 - 10
+    expect(context.fillRect).toHaveBeenCalledTimes(3);
+
+    // @ts-ignore this is a mock
+    for (let i = 0; i < context.fillText.mock.calls.length; i++) {
+      // @ts-ignore this is a mock
+      expect(context.fillText.mock.calls[i][0]).toEqual(i + 'ms');
+      // @ts-ignore this is a mock
+      expect(context.fillText.mock.calls[i][1]).toEqual(
+        i * 100 - LightFlamegraphTheme.SIZES.LABEL_FONT_PADDING - WIDTH
+      );
+      // @ts-ignore this is a mock
+      // First 3 draw calls are for the horizontal line, the rest are verticals
+      expect(context.strokeRect.mock.calls[i][0]).toEqual(i * 100 - 0.5);
+    }
   });
 });

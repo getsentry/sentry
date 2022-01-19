@@ -48,7 +48,7 @@ export function computeInterval(configView: Rect, configToPhysicalSpace: mat3): 
   return intervals;
 }
 
-class FlamegraphGridRenderer {
+class GridRenderer {
   canvas: HTMLCanvasElement;
   context: CanvasRenderingContext2D;
   theme: FlamegraphTheme;
@@ -78,51 +78,61 @@ class FlamegraphGridRenderer {
     }`;
     context.textBaseline = 'top';
 
-    const intervals = computeInterval(configViewSpace, configToPhysicalSpace);
+    const LINE_WIDTH = 1 * window.devicePixelRatio;
 
-    context.fillStyle = this.theme.COLORS.GRID_LINE_COLOR;
-    context.fillRect(0, 0, physicalViewRect.width, 1 * window.devicePixelRatio);
-    context.fillRect(
-      0,
-      this.theme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio,
-      physicalViewRect.width,
-      1 * window.devicePixelRatio
-    );
-
+    // Draw the background of the top timeline
     context.fillStyle = this.theme.COLORS.GRID_FRAME_BACKGROUND_COLOR;
     context.fillRect(
       0,
-      1 * window.devicePixelRatio,
+      LINE_WIDTH,
       physicalViewRect.width,
       this.theme.SIZES.LABEL_FONT_SIZE * window.devicePixelRatio +
         this.theme.SIZES.LABEL_FONT_PADDING * window.devicePixelRatio * 2 -
         this.theme.SIZES.LABEL_FONT_PADDING
     );
 
+    // Draw top timeline lines
+    context.fillStyle = this.theme.COLORS.GRID_LINE_COLOR;
+    context.fillRect(0, 0, physicalViewRect.width, LINE_WIDTH);
+    context.fillRect(
+      0,
+      this.theme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio,
+      physicalViewRect.width,
+      LINE_WIDTH
+    );
+
+    const intervals = computeInterval(configViewSpace, configToPhysicalSpace);
+
     for (let i = 0; i < intervals.length; i++) {
-      const intervalVector = vec2.fromValues(intervals[i], 1);
-      const pos = Math.round(
-        vec2.transformMat3(vec2.create(), intervalVector, configToPhysicalSpace)[0]
+      // Compute the x position of our interval from config space to physical
+      const configSpaceInterval = vec2.fromValues(intervals[i], 1);
+      const physicalIntervalPosition = Math.round(
+        vec2.transformMat3(vec2.create(), configSpaceInterval, configToPhysicalSpace)[0]
       );
+
+      // Format the label text
       const labelText = this.formatter(intervals[i]);
 
       context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
+      // Subtract width of the text and padding so that the text is align to the left of our interval
       context.fillText(
         labelText,
-        pos -
+        physicalIntervalPosition -
           measureText(labelText, context).width -
           this.theme.SIZES.LABEL_FONT_PADDING * window.devicePixelRatio,
         this.theme.SIZES.LABEL_FONT_PADDING * window.devicePixelRatio
       );
-      context.fillStyle = this.theme.COLORS.GRID_LINE_COLOR;
-      context.fillRect(
-        pos - 1 * window.devicePixelRatio,
+
+      // Draw the vertical grid line
+      context.strokeStyle = this.theme.COLORS.GRID_LINE_COLOR;
+      context.strokeRect(
+        physicalIntervalPosition - LINE_WIDTH / 2,
         0,
-        1 * window.devicePixelRatio,
+        LINE_WIDTH,
         physicalViewRect.height
       );
     }
   }
 }
 
-export {FlamegraphGridRenderer};
+export {GridRenderer};
