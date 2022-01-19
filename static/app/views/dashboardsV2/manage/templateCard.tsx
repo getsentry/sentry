@@ -26,16 +26,16 @@ function TemplateCard({title, widgetCount, onPreview, onAdd}: Props) {
         </CardText>
       </Header>
       <ButtonContainer>
-        <StyledButton priority="default" onClick={onPreview} label={t('Preview')}>
-          {t('Preview')}
-        </StyledButton>
         <StyledButton
-          priority="primary"
+          priority="default"
           onClick={onAdd}
           icon={<IconAdd size="xs" isCircled />}
           label={t('Add Dashboard')}
         >
           {t('Add Dashboard')}
+        </StyledButton>
+        <StyledButton priority="primary" onClick={onPreview} label={t('Preview')}>
+          {t('Preview')}
         </StyledButton>
       </ButtonContainer>
     </StyledCard>
@@ -80,7 +80,7 @@ const StyledButton = styled(Button)<{priority: string}>`
 
   ${p =>
     p.priority === 'default' &&
-    `width: 50%;
+    `width: 100%;
     margin-right: ${space(2)};`};
 `;
 
