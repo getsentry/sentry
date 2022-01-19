@@ -201,7 +201,9 @@ export type SentryAppDetailsModalOptions = {
 };
 
 type DebugFileSourceModalOptions = {
+  organization: Organization;
   sourceType: CustomRepoType;
+  appStoreConnectSourcesQuantity: number;
   onSave: (data: Record<string, any>) => Promise<void>;
   appStoreConnectStatusData?: AppStoreConnectStatusData;
   onClose?: () => void;

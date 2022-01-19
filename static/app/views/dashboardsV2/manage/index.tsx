@@ -355,6 +355,9 @@ const TemplateContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: repeat(2, 1fr);
   }
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(1, 1fr);
+  }
   gap: ${space(2)};
   padding-bottom: ${space(4)};
 `;
