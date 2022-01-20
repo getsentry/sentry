@@ -1772,7 +1772,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Condition(Column("project_id"), Op.IN, project_ids),
         ]
 
-        if environment_ids is not None:
+        if environment_ids:
             # convert the PosgreSQL environmentID into the clickhouse string index
             # for the environment name
             env_names_dict = _model_environment_ids_to_environment_names(environment_ids)
