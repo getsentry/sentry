@@ -200,15 +200,8 @@ class QueryDefinition:
         return (op, metric_name), direction
 
     def _parse_limit(self, query_params, paginator_kwargs):
-        limit = query_params.get("limit", None)
-        if self.orderby:
-            paginator_limit = paginator_kwargs.get("limit")
-            if paginator_limit is not None:
-                return paginator_limit
-        else:
-            if limit is not None:
-                raise InvalidParams("'limit' is only supported in combination with 'orderBy'")
-
+        limit = paginator_kwargs.get("limit")
+        if not self.orderby:
             per_page = query_params.get("per_page")
             if per_page is not None:
                 # If order by is not None, it means we will have a `series` query which cannot be
