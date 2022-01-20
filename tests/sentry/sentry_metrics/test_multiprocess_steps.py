@@ -1,10 +1,14 @@
-from datetime import datetime
-from unittest.mock import Mock, call
+from datetime import datetime, timezone
+from typing import Dict, List, Union
+from unittest.mock import Mock, call, patch
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message, Partition, Topic
 
-from sentry.sentry_metrics.multiprocess import BatchMessages
+from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.multiprocess import BatchMessages, process_messages
+from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.utils import json
 
 
 def test_batch_messages() -> None:
@@ -52,3 +56,119 @@ def test_batch_messages() -> None:
     )
 
     assert batch_messages_step._BatchMessages__batch is None
+
+
+ts = int(datetime.now(tz=timezone.utc).timestamp())
+counter_payload = {
+    "name": SessionMetricKey.SESSION.value,
+    "tags": {
+        "environment": "production",
+        "session.status": "init",
+    },
+    "timestamp": ts,
+    "type": "c",
+    "value": 1.0,
+    "org_id": 1,
+    "project_id": 3,
+}
+distribution_payload = {
+    "name": SessionMetricKey.SESSION_DURATION.value,
+    "tags": {
+        "environment": "production",
+        "session.status": "healthy",
+    },
+    "timestamp": ts,
+    "type": "d",
+    "value": [4, 5, 6],
+    "unit": "seconds",
+    "org_id": 1,
+    "project_id": 3,
+}
+
+set_payload = {
+    "name": SessionMetricKey.SESSION_ERROR.value,
+    "tags": {
+        "environment": "production",
+        "session.status": "errored",
+    },
+    "timestamp": ts,
+    "type": "s",
+    "value": [3],
+    "org_id": 1,
+    "project_id": 3,
+}
+
+
+def __translated_payload(
+    payload, slim_version: bool = False
+) -> Dict[str, Union[str, int, List[int], None]]:
+    """
+    Translates strings to ints using the MockIndexer
+    in addition to adding the retention_days
+
+    If `slim_version` is True, we just need the tags,
+    name, and org_id. This is what (currently) gets
+    forwarded to the metrics data model.*
+
+    *Nothing is actually forwarded at the moment, the task
+    just emits metrics. This will probably move from
+    celery to kafka later.
+    """
+    indexer = MockIndexer()
+    payload = payload.copy()
+
+    new_tags = {indexer.resolve(k): indexer.resolve(v) for k, v in payload["tags"].items()}
+    payload["metric_id"] = indexer.resolve(payload["name"])
+    payload["retention_days"] = 90
+    payload["tags"] = new_tags
+
+    if slim_version:
+        slim_payload = {
+            "name": payload["name"],
+            "tags": payload["tags"],
+            "org_id": payload["org_id"],
+        }
+        return slim_payload
+    return payload
+
+
+@patch("sentry.sentry_metrics.indexer.tasks.process_indexed_metrics")
+@patch("sentry.sentry_metrics.multiprocess.get_indexer", return_value=MockIndexer())
+def test_process_messages(mock_indexer, mock_task) -> None:
+    message_payloads = [counter_payload, distribution_payload, set_payload]
+    message_batch = [
+        Message(
+            Partition(Topic("topic"), 0),
+            i + 1,
+            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+            datetime.now(),
+        )
+        for i, payload in enumerate(message_payloads)
+    ]
+    # the outer message uses the last message's partition, offset, and timestamp
+    last = message_batch[-1]
+    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+
+    new_batch = process_messages(outer_message=outer_message)
+    expected_new_batch = [
+        Message(
+            m.partition,
+            m.offset,
+            KafkaPayload(
+                None,
+                json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
+                [],
+            ),
+            m.timestamp,
+        )
+        for i, m in enumerate(message_batch)
+    ]
+
+    assert new_batch == expected_new_batch
+
+    expected_task_args = {
+        "messages": [
+            __translated_payload(payload, slim_version=True) for payload in message_payloads
+        ]
+    }
+    assert mock_task.apply_async.call_args == call(kwargs=expected_task_args)

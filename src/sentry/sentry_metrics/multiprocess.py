@@ -340,7 +340,7 @@ def process_messages(
         # TODO(meredith): Need to add kickin off the celery task in here, eventually
         # we will use kafka to forward messages to the product data model
         celery_messages.append(
-            {"tags": new_tags, "name": metric_name, "org_id": parsed_payload_value["org_id"]}
+            {"name": metric_name, "tags": new_tags, "org_id": parsed_payload_value["org_id"]}
         )
 
     task.apply_async(kwargs={"messages": celery_messages})
