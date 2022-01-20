@@ -191,6 +191,15 @@ const getColors = ({size, priority, disabled, borderless, theme}: StyledButtonPr
   `;
 };
 
+const getSizeStyles = ({size, theme}: StyledButtonProps) => {
+  const buttonSize = size === 'small' || size === 'xsmall' ? size : 'default';
+
+  return {
+    ...theme.form[buttonSize],
+    ...theme.buttonPadding[buttonSize],
+  };
+};
+
 const StyledButton = styled(
   reactForwardRef<any, ButtonProps>(
     (
@@ -237,14 +246,14 @@ const StyledButton = styled(
   text-transform: none;
   ${getFontWeight};
   ${getColors};
+  ${getSizeStyles}
   ${p => getBoxShadow(p.theme)};
-  ${p => p.theme.form[p.size ?? 'default']};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
   transition: background 0.1s, border 0.1s, box-shadow 0.1s;
 
   ${p => p.priority === 'link' && `font-size: inherit; padding: 0;`}
-  ${p => p.size === 'zero' && `padding: 2px;`}
+  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: 2px;`}
 
   &:focus {
     outline: none;

@@ -683,22 +683,46 @@ const commonTheme = {
    */
   form: {
     default: {
-      height: '40px',
-      padding: '10px 16px',
+      height: 40,
+      minHeight: 40,
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
     small: {
-      height: '34px',
-      padding: '8px 12px',
+      height: 34,
+      minHeight: 34,
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
     xsmall: {
-      height: '28px',
-      padding: '6px 8px',
+      height: 28,
+      minHeight: 28,
       fontSize: '0.75rem',
       lineHeight: '0.875rem',
+    },
+  },
+
+  /**
+   * Padding for form inputs
+   */
+  buttonPadding: {
+    default: {
+      paddingTop: 10,
+      paddingBottom: 10,
+      paddingLeft: 16,
+      paddingRight: 16,
+    },
+    small: {
+      paddingTop: 8,
+      paddingBottom: 8,
+      paddingLeft: 12,
+      paddingRight: 12,
+    },
+    xsmall: {
+      paddingTop: 6,
+      paddingBottom: 6,
+      paddingLeft: 8,
+      paddingRight: 8,
     },
   },
 
