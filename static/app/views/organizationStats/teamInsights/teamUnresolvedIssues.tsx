@@ -146,7 +146,7 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
               useShortDate
               legend={{right: 3, top: 0}}
               yAxis={{minInterval: 1}}
-              xAxis={barAxisLabel(seriesData.length)}
+              xAxis={barAxisLabel(Math.round(seriesData.length / 7))}
               series={[
                 {
                   seriesName: t('Unresolved Issues'),
