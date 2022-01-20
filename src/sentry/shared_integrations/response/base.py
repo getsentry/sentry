@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from collections import OrderedDict
+from typing import Any, Mapping
 
 import requests
 from django.utils.functional import cached_property
+from requests import Response
 
 from sentry.shared_integrations.exceptions import UnsupportedResponseType
 from sentry.utils import json
@@ -10,28 +14,35 @@ from sentry.utils import json
 class BaseApiResponse:
     text = ""
 
-    def __init__(self, headers=None, status_code=None):
+    def __init__(
+        self,
+        headers: Mapping[str, str] | None = None,
+        status_code: int | None = None,
+    ) -> None:
         self.headers = headers
         self.status_code = status_code
 
-    def __repr__(self):
-        return "<{}: code={}, content_type={}>".format(
-            type(self).__name__,
-            self.status_code,
-            self.headers.get("Content-Type", "") if self.headers else "",
-        )
+    def __repr__(self) -> str:
+        content_type = (self.headers or {}).get("Content-Type", "")
+        return f"<{type(self).__name__}: code={self.status_code}, content_type={content_type}>"
 
-    @cached_property
-    def rel(self):
-        if not self.headers:
-            return {}
-        link_header = self.headers.get("Link")
-        if not link_header:
-            return {}
-        return {item["rel"]: item["url"] for item in requests.utils.parse_header_links(link_header)}
+    @property
+    def json(self) -> Any:
+        raise NotImplementedError
+
+    @cached_property  # type: ignore
+    def rel(self) -> Mapping[str, str]:
+        link_header = (self.headers or {}).get("Link", "")
+        parsed_links = requests.utils.parse_header_links(link_header)  # type: ignore
+        return {item["rel"]: item["url"] for item in parsed_links}
 
     @classmethod
-    def from_response(self, response, allow_text=False):
+    def from_response(
+        cls,
+        response: Response,
+        allow_text: bool = False,
+        ignore_webhook_errors: bool = False,
+    ) -> BaseApiResponse:
         from sentry.shared_integrations.response import (
             MappingApiResponse,
             SequenceApiResponse,
@@ -69,9 +80,12 @@ class BaseApiResponse:
             return TextApiResponse(response.text, response.headers, response.status_code)
         else:
             data = json.loads(response.text, object_pairs_hook=OrderedDict)
+
         if isinstance(data, dict):
             return MappingApiResponse(data, response.headers, response.status_code)
         elif isinstance(data, (list, tuple)):
             return SequenceApiResponse(data, response.headers, response.status_code)
+        elif ignore_webhook_errors:
+            return BaseApiResponse(response.headers, response.status_code)
         else:
             raise NotImplementedError

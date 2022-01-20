@@ -8,6 +8,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import {Title} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
@@ -269,7 +270,7 @@ class ManageDashboards extends AsyncView<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  {t('Dashboards')}
+                  <Title>{t('Dashboards')}</Title>
                   <ButtonContainer>
                     <Feature
                       organization={organization}
@@ -316,8 +317,6 @@ const StyledPageContent = styled(PageContent)`
 const StyledPageHeader = styled('div')`
   display: flex;
   align-items: flex-end;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.textColor};
   justify-content: space-between;
   margin-bottom: ${space(2)};
 `;
@@ -347,6 +346,7 @@ const TemplateSwitch = styled(Switch)`
 
 const ButtonContainer = styled('div')`
   display: inline;
+  flex-shrink: 0;
 `;
 
 const TemplateContainer = styled('div')`
@@ -354,6 +354,9 @@ const TemplateContainer = styled('div')`
   grid-template-columns: repeat(4, 1fr);
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(1, 1fr);
   }
   gap: ${space(2)};
   padding-bottom: ${space(4)};

@@ -313,6 +313,7 @@ describe('GlobalSelectionHeader', function () {
     expect(PageFiltersStore.getState()).toEqual({
       organization,
       isReady: true,
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '14d',
@@ -341,6 +342,7 @@ describe('GlobalSelectionHeader', function () {
     expect(PageFiltersStore.getState()).toEqual({
       organization,
       isReady: true,
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '14d',
@@ -368,6 +370,7 @@ describe('GlobalSelectionHeader', function () {
     expect(PageFiltersStore.getState()).toEqual({
       organization,
       isReady: true,
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '14d',
@@ -414,6 +417,7 @@ describe('GlobalSelectionHeader', function () {
     expect(PageFiltersStore.getState()).toEqual({
       organization,
       isReady: true,
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '7d',
