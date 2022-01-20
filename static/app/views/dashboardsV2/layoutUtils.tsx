@@ -1,11 +1,17 @@
 import {Layout} from 'react-grid-layout';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
 
+import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 
 import {DEFAULT_WIDGET_WIDTH, NUM_DESKTOP_COLS} from './dashboard';
-import {DisplayType, Widget} from './types';
+import {DashboardDetails, DisplayType, Widget} from './types';
+
+// Keys for grid layout values we track in the server
+const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
 const WIDGET_PREFIX = 'grid-item';
 
@@ -65,4 +71,47 @@ export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
   }));
 
   return mobileLayout;
+}
+
+/**
+ * Reads the layout from an array of widgets.
+ */
+export function getDashboardLayout(widgets: Widget[]): Layout[] {
+  return widgets
+    .filter(({layout}) => defined(layout))
+    .map(({layout, ...widget}) => ({
+      ...(layout as Layout),
+      i: constructGridItemKey(widget),
+    }));
+}
+
+/**
+ * Creates a new DashboardDetails object with the layouts associated with
+ * widgets for outgoing requests.
+ */
+export function constructDashboardWidgetsWithLayout(
+  dashboard: DashboardDetails,
+  layout: Layout[]
+): DashboardDetails {
+  return {
+    ...dashboard,
+    widgets: dashboard.widgets.map(widget => {
+      const matchingLayout = layout.find(({i}) => i === constructGridItemKey(widget));
+      return {...widget, layout: pick(matchingLayout, STORE_KEYS)};
+    }),
+  };
+}
+
+export function isLayoutEqual(prevLayouts: Layout[], newLayouts: Layout[]): boolean {
+  // Compares only defined keys we care about storing
+  const normalizeLayout = layout => {
+    const definedKeys = Object.keys(layout).filter(
+      key => STORE_KEYS.includes(key) && defined(layout[key])
+    );
+    return pick(layout, definedKeys);
+  };
+
+  const prevLayoutNormalized = prevLayouts.map(normalizeLayout);
+  const newLayoutNormalized = newLayouts.map(normalizeLayout);
+  return isEqual(prevLayoutNormalized, newLayoutNormalized);
 }
