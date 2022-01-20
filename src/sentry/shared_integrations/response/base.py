@@ -23,8 +23,10 @@ class BaseApiResponse:
         self.status_code = status_code
 
     def __repr__(self) -> str:
+        name = type(self).__name__
+        code = self.status_code
         content_type = (self.headers or {}).get("Content-Type", "")
-        return f"<{type(self).__name__}: code={self.status_code}, content_type={content_type}>"
+        return f"<{name}: code={code}, content_type={content_type}>"
 
     @property
     def json(self) -> Any:

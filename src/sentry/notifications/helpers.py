@@ -41,6 +41,15 @@ def _get_notification_setting_default(
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
 
+def _get_default_value_by_provider(
+    type: NotificationSettingTypes,
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    return {
+        provider: _get_notification_setting_default(provider, type)
+        for provider in NOTIFICATION_SETTING_DEFAULTS.keys()
+    }
+
+
 def _get_setting_mapping_from_mapping(
     notification_settings_by_recipient: Mapping[
         Team | User,
@@ -54,7 +63,7 @@ def _get_setting_mapping_from_mapping(
      email but we'll worry about that later since we don't have a FE for it yet.
     """
     return merge_notification_settings_up(
-        get_default_value_by_provider(type),
+        _get_default_value_by_provider(type),
         *(
             notification_settings_by_recipient.get(recipient, {}).get(scope, {})
             for scope in (
@@ -529,19 +538,10 @@ def merge_notification_settings_up(
     Given a list of notification settings by provider ordered by increasing
     specificity, get the most specific value by provider.
     """
-    value_by_provider = {}
+    value_by_provider: MutableMapping[ExternalProviders, NotificationSettingOptionValues] = {}
     for notification_settings_by_provider in settings_mappings:
         value_by_provider.update(notification_settings_by_provider)
     return value_by_provider
-
-
-def get_default_value_by_provider(
-    type: NotificationSettingTypes,
-) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
-    return {
-        provider: _get_notification_setting_default(provider, type)
-        for provider in NOTIFICATION_SETTING_DEFAULTS.keys()
-    }
 
 
 def get_values_by_provider(
@@ -559,7 +559,7 @@ def get_values_by_provider(
     setting by provider?
     """
     return merge_notification_settings_up(
-        get_default_value_by_provider(type),
+        _get_default_value_by_provider(type),
         get_value_for_actor(notification_settings_by_scope, recipient),
         get_value_for_parent(notification_settings_by_scope, parent_id, type),
     )
