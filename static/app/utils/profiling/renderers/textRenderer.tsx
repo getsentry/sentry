@@ -14,22 +14,7 @@ import {
 
 export function isOutsideView(frame: Rect, view: Rect, inverted: boolean): boolean {
   // Frame is outside of the view on the left
-  if (frame.right <= view.left) {
-    return true;
-  }
-
-  // Frame is outside of the view on the right
-  if (frame.left >= view.right) {
-    return true;
-  }
-
-  // Frame is above the view
-  if (frame.bottom <= view.top) {
-    return true;
-  }
-
-  // Frame is below the view
-  if (frame.top >= view.bottom) {
+  if (!frame.overlaps(view)) {
     return true;
   }
 
@@ -74,14 +59,14 @@ class TextRenderer {
   }
 
   draw(configViewSpace: Rect, configSpace: Rect, configToPhysicalSpace: mat3): void {
-    this.context.font = `${
-      this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio
-    }px "Source Code Pro", Courier, monospace`;
+    this.context.font = `${this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio}px ${
+      this.theme.FONTS.FRAME_FONT
+    }`;
 
     this.context.textBaseline = 'alphabetic';
     this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
 
-    const minWidth = this.measureText(this.context, `${ELLIPSIS}`);
+    const minWidth = this.measureText(this.context, ELLIPSIS);
 
     let frame: FlamegraphFrame;
     let i: number;

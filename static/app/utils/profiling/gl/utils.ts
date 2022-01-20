@@ -198,13 +198,13 @@ export class Rect {
     return this.x;
   }
   get right(): number {
-    return this.x + this.width;
+    return this.left + this.width;
   }
   get top(): number {
     return this.y;
   }
   get bottom(): number {
-    return this.y + this.height;
+    return this.top + this.height;
   }
 
   toMatrix(): mat3 {

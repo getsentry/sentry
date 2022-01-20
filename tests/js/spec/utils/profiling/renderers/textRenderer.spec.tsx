@@ -31,10 +31,10 @@ describe('TextRenderer', () => {
   it('skips drawing if the text is outside the view', () => {
     const view = new Rect(0, 0, 1, 1);
 
-    const frameLeftOutsideOfView = new Rect(-1, 0, 1, 1);
-    const frameRightOutsideOfView = new Rect(1, 1, 1, 1);
-    const frameAboveView = new Rect(0, -1, 1, 1);
-    const frameBelowView = new Rect(0, 1, 1, 1);
+    const frameLeftOutsideOfView = new Rect(-1.1, 0, 1, 1);
+    const frameRightOutsideOfView = new Rect(1, 1.1, 1, 1);
+    const frameAboveView = new Rect(0, -1.1, 1, 1);
+    const frameBelowView = new Rect(0, 1.1, 1, 1);
 
     expect(isOutsideView(frameLeftOutsideOfView, view, false)).toBe(true);
     expect(isOutsideView(frameRightOutsideOfView, view, false)).toBe(true);
