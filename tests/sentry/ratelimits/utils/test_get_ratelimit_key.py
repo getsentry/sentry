@@ -1,6 +1,7 @@
 from django.test import RequestFactory
 
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
+from sentry.auth.system import SystemToken
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.models import User
 from sentry.ratelimits import get_rate_limit_key
@@ -28,6 +29,10 @@ class GetRateLimitKeyTest(TestCase):
             get_rate_limit_key(self.view, self.request)
             == "ip:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
+
+    def test_system_token(self):
+        self.request.auth = SystemToken()
+        assert get_rate_limit_key(self.view, self.request) is None
 
     def test_users(self):
         user = User(id=1)
