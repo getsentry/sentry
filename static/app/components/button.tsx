@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
+import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {Theme} from 'sentry/utils/theme';
 
@@ -18,7 +19,7 @@ type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type Props = {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
-  size?: 'zero' | 'xsmall' | 'small' | 'default';
+  size?: 'zero' | 'xsmall' | 'small';
   align?: 'center' | 'left' | 'right';
   disabled?: boolean;
   busy?: boolean;
@@ -253,7 +254,7 @@ const StyledButton = styled(
   transition: background 0.1s, border 0.1s, box-shadow 0.1s;
 
   ${p => p.priority === 'link' && `font-size: inherit; padding: 0;`}
-  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: 2px;`}
+  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
 
   &:focus {
     outline: none;
