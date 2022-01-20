@@ -99,23 +99,23 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   }
 
   openModal = (mapping?: ExternalActorMappingOrSuggestion) => {
-    const {organization, integration} = this.props;
+    const {integration} = this.props;
     openModal(({Body, Header, closeModal}) => (
       <Fragment>
         <Header closeButton>{t('Configure External User Mapping')}</Header>
         <Body>
           <IntegrationExternalMappingForm
-            organization={organization}
+            type="user"
             integration={integration}
+            dataEndpoint={this.dataEndpoint}
+            getBaseFormEndpoint={() => this.baseFormEndpoint}
+            mapping={mapping}
+            sentryNamesMapper={this.sentryNamesMapper}
+            onCancel={closeModal}
             onSubmitSuccess={() => {
               this.handleSubmitSuccess();
               closeModal();
             }}
-            mapping={mapping}
-            sentryNamesMapper={this.sentryNamesMapper}
-            type="user"
-            url={this.dataEndpoint}
-            onCancel={closeModal}
           />
         </Body>
       </Fragment>

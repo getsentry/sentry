@@ -4,132 +4,141 @@ import capitalize from 'lodash/capitalize';
 import pick from 'lodash/pick';
 
 import {t, tct} from 'sentry/locale';
-import {ExternalActorMappingOrSuggestion, Integration, Organization} from 'sentry/types';
-import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
+import {ExternalActorMappingOrSuggestion, Integration} from 'sentry/types';
+import {
+  getExternalActorEndpointDetails,
+  isExternalActorMapping,
+} from 'sentry/utils/integrationUtil';
 import {FieldFromConfig} from 'sentry/views/settings/components/forms';
 import Form from 'sentry/views/settings/components/forms/form';
+import FormModel from 'sentry/views/settings/components/forms/model';
 import {Field} from 'sentry/views/settings/components/forms/type';
 
-type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> &
-  Partial<Pick<Form['props'], 'onSubmit'>> & {
-    organization: Organization;
-    integration: Integration;
-    mapping?: ExternalActorMappingOrSuggestion;
-    type: 'user' | 'team';
-    baseEndpoint?: string;
-    sentryNamesMapper: (v: any) => {id: string; name: string}[];
-    url: string;
-    onResults?: (data: any) => void;
-  };
+type Props = Pick<Form['props'], 'onCancel' | 'onSubmitError' | 'onSubmitSuccess'> & {
+  type: 'team' | 'user';
+  integration: Integration;
+  dataEndpoint: string;
+  getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
+  mapping?: ExternalActorMappingOrSuggestion;
+  sentryNamesMapper: (v: any) => {id: string; name: string}[];
+  onResults?: (data: any, mappingKey?: string) => void;
+  isInline?: boolean;
+  mappingKey?: string;
+};
 
 export default class IntegrationExternalMappingForm extends Component<Props> {
+  model = new FormModel();
+
   get initialData() {
     const {integration, mapping} = this.props;
-
     return {
-      externalName: '',
-      userId: '',
-      teamId: '',
-      sentryName: '',
       provider: integration.provider.key,
       integrationId: integration.id,
-      ...pick(mapping, ['externalName', 'userId', 'sentryName', 'teamId']),
+      ...pick(mapping, ['externalName', 'sentryName', 'userId', 'teamId']),
     };
   }
 
   get formFields(): Field[] {
-    const {type, sentryNamesMapper, url, mapping} = this.props;
+    const {
+      dataEndpoint,
+      isInline,
+      mapping,
+      mappingKey,
+      onResults,
+      sentryNamesMapper,
+      type,
+    } = this.props;
     const optionMapper = sentryNames =>
       sentryNames.map(({name, id}) => ({value: id, label: name}));
-
-    const fields: any[] = [
+    const fields: Field[] = [
       {
+        name: `${type}Id`,
+        type: 'select_async',
+        required: true,
+        label: isInline ? undefined : tct('Sentry [type]', {type: capitalize(type)}),
+        placeholder: t(`Select Sentry ${capitalize(type)}`),
+        url: dataEndpoint,
+        onResults: result => {
+          // For organizations with >100 entries, we want to make sure their
+          // saved mapping gets populated in the results if it wouldn't have
+          // been in the initial 100 API results, which is why we add it here
+          if (
+            mapping &&
+            isExternalActorMapping(mapping) &&
+            !result.find(entry => {
+              const id = type === 'user' ? entry.user.id : entry.id;
+              return id === mapping[`${type}Id`];
+            })
+          ) {
+            result = [{id: mapping[`${type}Id`], name: mapping.sentryName}, ...result];
+          }
+          onResults?.(result, isInline ? mapping?.externalName : mappingKey);
+          return optionMapper(sentryNamesMapper(result));
+        },
+      },
+    ];
+    // We only add the field for externalName if it's not an inline form
+    if (!isInline) {
+      fields.unshift({
         name: 'externalName',
         type: 'string',
         required: true,
-        label: tct('External [type]', {type: capitalize(type)}),
-        placeholder: t(`${type === 'team' ? '@org/teamname' : '@username'}`),
-      },
-    ];
-    if (type === 'user') {
-      fields.push({
-        name: 'userId',
-        type: 'select_async',
-        required: true,
-        label: tct('Sentry [type]', {type: capitalize(type)}),
-        placeholder: t(`Choose your Sentry User`),
-        url,
-        onResults: result => {
-          // For organizations with >100 users, we want to make sure their
-          // saved mapping gets populated in the results if it wouldn't have
-          // been in the initial 100 API results, which is why we add it here
-          if (
-            mapping &&
-            isExternalActorMapping(mapping) &&
-            !result.find(({user}) => user.id === mapping.userId)
-          ) {
-            result = [{id: mapping.userId, name: mapping.sentryName}, ...result];
-          }
-          // this.props.onResults?.(result);
-          return optionMapper(sentryNamesMapper(result));
-        },
-      });
-    }
-    if (type === 'team') {
-      fields.push({
-        name: 'teamId',
-        type: 'select_async',
-        required: true,
-        label: tct('Sentry [type]', {type: capitalize(type)}),
-        placeholder: t(`Choose your Sentry Team`),
-        url,
-        onResults: result => {
-          // For organizations with >100 teams, we want to make sure their
-          // saved mapping gets populated in the results if it wouldn't have
-          // been in the initial 100 API results, which is why we add it here
-          if (
-            mapping &&
-            isExternalActorMapping(mapping) &&
-            !result.find(({id}) => id === mapping.teamId)
-          ) {
-            result = [{id: mapping.teamId, name: mapping.sentryName}, ...result];
-          }
-          // The team needs `this.props.onResults` so that we have team slug
-          // when a user submits a team mapping, the endpoint needs the slug
-          // as a path param: /teams/${organization.slug}/${team.slug}/external-teams/
-          this.props.onResults?.(result);
-          return optionMapper(sentryNamesMapper(result));
-        },
+        label: isInline ? undefined : tct('External [type]', {type: capitalize(type)}),
+        placeholder: t(`${type === 'user' ? '@username' : '@org/teamname'}`),
       });
     }
     return fields;
   }
 
+  get extraFormFieldProps() {
+    const {isInline, mapping, type} = this.props;
+    return isInline
+      ? {
+          // We need to submit the entire model since it could be a new one or an update
+          getData: () => this.model.getData(),
+          // We need to update the model onBlur for inline forms since the model's 'onPreSubmit' hook
+          // does NOT run when using `saveOnBlur`.
+          onBlur: value => {
+            const updatedMapping: ExternalActorMappingOrSuggestion = {
+              externalName: '',
+              ...mapping,
+              [`${type}Id`]: value,
+            };
+            this.updateModelFromMapping(updatedMapping);
+          },
+        }
+      : {flexibleControlStateSize: true};
+  }
+
+  // This function is necessary since the endpoint we submit to changes depending on the value selected
+  updateModelFromMapping(mapping?: ExternalActorMappingOrSuggestion) {
+    const {getBaseFormEndpoint} = this.props;
+    if (mapping) {
+      const endpointDetails = getExternalActorEndpointDetails(
+        getBaseFormEndpoint(mapping),
+        mapping
+      );
+      this.model.setFormOptions({...this.model.options, ...endpointDetails});
+    }
+  }
+
   render() {
-    const {onSubmitSuccess, onCancel, mapping, baseEndpoint, onSubmit} = this.props;
-
-    // endpoint changes if we are making a new row or updating an existing one
-    const endpoint = !baseEndpoint
-      ? undefined
-      : mapping && isExternalActorMapping(mapping)
-      ? `${baseEndpoint}${mapping.id}/`
-      : baseEndpoint;
-    const apiMethod = !baseEndpoint
-      ? undefined
-      : mapping && isExternalActorMapping(mapping)
-      ? 'PUT'
-      : 'POST';
-
+    const {isInline, onCancel, onSubmitError, onSubmitSuccess} = this.props;
     return (
       <FormWrapper>
         <Form
           requireChanges
-          onSubmitSuccess={onSubmitSuccess}
+          model={this.model}
           initialData={this.initialData}
-          apiEndpoint={endpoint}
-          apiMethod={apiMethod}
           onCancel={onCancel}
-          onSubmit={onSubmit}
+          onSubmitSuccess={onSubmitSuccess}
+          onSubmitError={onSubmitError}
+          saveOnBlur={isInline}
+          allowUndo={isInline}
+          onPreSubmit={() => {
+            const finalMapping = this.model.getData();
+            this.updateModelFromMapping(finalMapping as ExternalActorMappingOrSuggestion);
+          }}
         >
           {this.formFields.map(field => (
             <FieldFromConfig
@@ -137,7 +146,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
               field={field}
               inline={false}
               stacked
-              flexibleControlStateSize
+              {...this.extraFormFieldProps}
             />
           ))}
         </Form>
