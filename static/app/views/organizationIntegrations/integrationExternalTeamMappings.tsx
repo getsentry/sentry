@@ -25,7 +25,9 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   teams: Team[];
-  queryResults: Team[];
+  queryResults: {
+    [externalName: string]: Team[];
+  };
 };
 
 class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
@@ -33,7 +35,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       teams: [],
-      queryResults: [],
+      queryResults: {},
     };
   }
 
@@ -87,6 +89,19 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
       return acc;
     }, [] as ExternalActorMapping[]);
     return externalTeamMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
+  }
+
+  get dataEndpoint() {
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/teams/`;
+  }
+
+  getBaseFormEndpoint(mapping: ExternalActorMappingOrSuggestion) {
+    const {organization} = this.props;
+    const {queryResults} = this.state;
+    const mappingResults = queryResults[mapping.externalName];
+    const team = mappingResults?.find(item => item.id === mapping.teamId);
+    return `/teams/${organization.slug}/${team?.slug ?? ''}/external-teams/`;
   }
 
   sentryNamesMapper(teams: Team[]) {
@@ -160,14 +175,24 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     const {teamsPageLinks} = this.state;
     return (
       <IntegrationExternalMappings
+        type="team"
         integration={integration}
         organization={organization}
-        type="team"
         mappings={this.mappings}
+        dataEndpoint={this.dataEndpoint}
+        getBaseFormEndpoint={mapping => this.getBaseFormEndpoint(mapping)}
         sentryNamesMapper={this.sentryNamesMapper}
-        onCreateOrEdit={this.openModal}
+        onCreate={this.openModal}
         onDelete={this.handleDelete}
         pageLinks={teamsPageLinks}
+        onResults={({externalName}, results) =>
+          this.setState({
+            queryResults: {
+              ...this.state.queryResults,
+              [externalName]: results,
+            },
+          })
+        }
       />
     );
   }
