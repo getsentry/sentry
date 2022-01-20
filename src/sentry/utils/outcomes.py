@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from enum import IntEnum
+from typing import Optional
 
 from django.conf import settings
 
@@ -31,24 +32,21 @@ class Outcome(IntEnum):
         return self in (Outcome.ACCEPTED, Outcome.RATE_LIMITED)
 
 
-outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None
-
-outcomes_billing = settings.KAFKA_TOPICS.get(settings.KAFKA_OUTCOMES_BILLING)
-outcomes_billing_publisher = None
+billing_publisher = None
 
 
 def track_outcome(
-    org_id,
-    project_id,
-    key_id,
-    outcome,
-    reason=None,
-    timestamp=None,
-    event_id=None,
-    category=None,
-    quantity=None,
-):
+    org_id: int,
+    project_id: int,
+    key_id: Optional[int],
+    outcome: Outcome,
+    reason: Optional[str] = None,
+    timestamp: Optional[datetime] = None,
+    event_id: Optional[str] = None,
+    category: Optional[DataCategory] = None,
+    quantity: Optional[int] = None,
+) -> None:
     """
     This is a central point to track org/project counters per incoming event.
     NB: This should only ever be called once per incoming event, which means
@@ -60,7 +58,7 @@ def track_outcome(
     events.
     """
     global outcomes_publisher
-    global outcomes_billing_publisher
+    global billing_publisher
 
     if quantity is None:
         quantity = 1
@@ -73,36 +71,37 @@ def track_outcome(
     assert isinstance(category, (type(None), DataCategory))
     assert isinstance(quantity, int)
 
-    use_billing = outcome.is_billing() and outcomes_billing is not None
-
-    # Send billing outcomes to a dedicated topic or even cluster if there is a
-    # separate configuration for it. Otherwise, fall back to the regular
-    # outcomes topic.
-    #
-    # In Sentry, there is no significant difference between the classes of
-    # outcome. In Sentry SaaS, they have elevated stability requirements as they
-    # are used for spike protection and quota enforcement.
-    topic_name = outcomes_billing["topic"] if use_billing else outcomes["topic"]
+    outcomes_config = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
+    billing_config = settings.KAFKA_TOPICS.get(settings.KAFKA_OUTCOMES_BILLING) or outcomes_config
 
     # Create a second producer instance only if the cluster differs. Otherwise,
     # reuse the same producer and just send to the other topic.
-    if use_billing and outcomes_billing["cluster"] != outcomes["cluster"]:
-        if outcomes_billing_publisher is None:
-            cluster_name = outcomes_billing["cluster"]
-            outcomes_billing_publisher = KafkaPublisher(
+    if outcome.is_billing() and billing_config["cluster"] != outcomes_config["cluster"]:
+        if billing_publisher is None:
+            cluster_name = billing_config["cluster"]
+            billing_publisher = KafkaPublisher(
                 kafka_config.get_kafka_producer_cluster_options(cluster_name)
             )
-        publisher = outcomes_billing_publisher
+        publisher = billing_publisher
 
     else:
         if outcomes_publisher is None:
-            cluster_name = outcomes["cluster"]
+            cluster_name = outcomes_config["cluster"]
             outcomes_publisher = KafkaPublisher(
                 kafka_config.get_kafka_producer_cluster_options(cluster_name)
             )
         publisher = outcomes_publisher
 
     timestamp = timestamp or to_datetime(time.time())
+
+    # Send billing outcomes to a dedicated topic if there is a separate
+    # configuration for it. Otherwise, fall back to the regular outcomes topic.
+    # This does NOT switch the producer, if both topics are on the same cluster.
+    #
+    # In Sentry, there is no significant difference between the classes of
+    # outcome. In Sentry SaaS, they have elevated stability requirements as they
+    # are used for spike protection and quota enforcement.
+    topic_name = billing_config["topic"] if outcome.is_billing() else outcomes_config["topic"]
 
     # Send a snuba metrics payload.
     publisher.publish(
