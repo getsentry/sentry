@@ -5,6 +5,7 @@ import {
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
 
+import {MutableSearch} from '../tokenizeSearch';
 import withApi from '../withApi';
 
 import DiscoverQuery, {DiscoverQueryPropsWithThresholds} from './discoverQuery';
@@ -26,7 +27,7 @@ function DiscoverOrMetricsQuery(props: DiscoverQueryPropsWithThresholds) {
         statsPeriod={statsPeriod}
         project={project}
         environment={environment}
-        // query={eventView.getQueryWithAdditionalConditions()} TODO(metrics)
+        query={new MutableSearch(eventView.query).formatString()}
         field={convertDiscoverFieldsToMetrics(fields)}
         groupBy={convertDiscoverFieldsToMetricsGroupBys(fields)}
         orderBy={undefined} // TODO(metrics): waiting for api team_key_transactions sorting
