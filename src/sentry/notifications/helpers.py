@@ -4,6 +4,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
+from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -336,7 +337,7 @@ def get_user_subscriptions_for_groups(
     """Takes collected data and returns a mapping of group IDs to a three-tuple of values."""
     results = {}
     for project, groups in groups_by_project.items():
-        value = get_most_specific_notification_setting_value(
+        has_some_settings = has_any_non_never_settings(
             notification_settings_by_scope,
             recipient=user,
             parent_id=project.id,
@@ -348,11 +349,11 @@ def get_user_subscriptions_for_groups(
             is_disabled = False
             if subscription:
                 is_active = subscription.is_active
-            elif value == NotificationSettingOptionValues.NEVER:
+            elif not has_some_settings:
                 is_active = False
                 is_disabled = True
             else:
-                is_active = value == NotificationSettingOptionValues.ALWAYS
+                is_active = has_some_settings
 
             results[group.id] = (is_disabled, is_active, subscription)
 
@@ -446,6 +447,39 @@ def get_highest_notification_setting_value(
     return max(notification_settings_by_provider.values(), key=lambda v: v.value)
 
 
+def get_value_for_parent(
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType,
+        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ],
+    parent_id: int,
+    type: NotificationSettingTypes,
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    """
+    Given notification settings by scope, an organization or project, and a
+    notification type, get the notification settings by provider.
+    """
+    return notification_settings_by_scope.get(get_scope_type(type), {}).get(parent_id, {})
+
+
+def get_value_for_actor(
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType,
+        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ],
+    recipient: Team | User,
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    """
+    Instead of checking the DB to see if `recipient` is a Team or User, just
+    `get()` both since only one of them can have a value.
+    """
+    return (
+        notification_settings_by_scope.get(NotificationScopeType.USER)
+        or notification_settings_by_scope.get(NotificationScopeType.TEAM)
+        or {}
+    ).get(recipient.id, {})
+
+
 def get_most_specific_notification_setting_value(
     notification_settings_by_scope: Mapping[
         NotificationScopeType,
@@ -461,14 +495,76 @@ def get_most_specific_notification_setting_value(
     """
     return (
         get_highest_notification_setting_value(
-            notification_settings_by_scope.get(get_scope_type(type), {}).get(parent_id, {})
+            get_value_for_parent(notification_settings_by_scope, parent_id, type)
         )
         or get_highest_notification_setting_value(
-            (
-                notification_settings_by_scope.get(NotificationScopeType.USER)
-                or notification_settings_by_scope.get(NotificationScopeType.TEAM)
-                or {}
-            ).get(recipient.id, {})
+            get_value_for_actor(notification_settings_by_scope, recipient)
         )
         or _get_notification_setting_default(ExternalProviders.EMAIL, type)
+    )
+
+
+def has_any_non_never_settings(
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType,
+        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ],
+    recipient: Team | User,
+    parent_id: int,
+    type: NotificationSettingTypes,
+) -> bool:
+    """
+    Given notification settings by scope, an organization or project, and a
+    notification type, will a recipient receive any notifications?
+    """
+    highest_value_by_provider = get_highest_values_by_provider(
+        notification_settings_by_scope, recipient, parent_id, type
+    )
+    return any(
+        [
+            value != NotificationSettingOptionValues.NEVER
+            for value in highest_value_by_provider.values()
+        ]
+    )
+
+
+def merge_notification_settings_up(
+    *settings_mappings: Mapping[ExternalProviders, NotificationSettingOptionValues],
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    """
+    Given a list of notification settings by provider, get the "highest" value
+    for each provider. Note: This is a HACK but if we put an explicit ordering
+    here It'd match the implicit ordering.
+    """
+    highest_value_by_provider = {}
+    for notification_settings_by_provider in settings_mappings:
+        for provider, value in notification_settings_by_provider.items():
+            old_value_option = highest_value_by_provider.get(provider)
+            if not (old_value_option and value.value <= old_value_option.value):
+                highest_value_by_provider[provider] = value
+    return highest_value_by_provider
+
+
+def get_highest_values_by_provider(
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType,
+        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ],
+    recipient: Team | User,
+    parent_id: int,
+    type: NotificationSettingTypes,
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    """
+    Given notification settings by scope, an organization or project, a
+    recipient, and a notification type, what is the non-never notification
+    setting by provider?
+    """
+    default_value_by_provider = {
+        provider: _get_notification_setting_default(provider, type)
+        for provider in notification_providers()
+    }
+    return merge_notification_settings_up(
+        default_value_by_provider,
+        get_value_for_parent(notification_settings_by_scope, parent_id, type),
+        get_value_for_actor(notification_settings_by_scope, recipient),
     )
