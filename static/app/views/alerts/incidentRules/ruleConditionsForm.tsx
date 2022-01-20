@@ -319,6 +319,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     'release.stage',
                     'release.package',
                     'release.build',
+                    'project',
                   ]}
                   disabled={disabled}
                   useFormWrapper={false}
