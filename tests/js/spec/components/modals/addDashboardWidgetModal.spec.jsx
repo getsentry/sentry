@@ -1177,7 +1177,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(screen.getByText('assignee')).toBeInTheDocument();
       expect(screen.getByText('title')).toBeInTheDocument();
       expect(screen.getAllByRole('button', {name: 'Remove column'}).length).toEqual(2);
-      expect(screen.getAllByRole('button', {name: 'Drag to reorder'}).length).toEqual(2);
+      expect(screen.getAllByRole('button', {name: 'Drag to reorder'}).length).toEqual(3);
       userEvent.click(screen.getAllByRole('button', {name: 'Remove column'})[1]);
       userEvent.click(screen.getAllByRole('button', {name: 'Remove column'})[0]);
       await tick();
