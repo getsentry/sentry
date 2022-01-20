@@ -20,7 +20,7 @@ class CursorRenderer {
   draw(configSpaceCursor: vec2, physicalSpace: Rect, configToPhysicalSpace: mat3): void {
     const physicalSpaceCursor = vec2.transformMat3(
       vec2.create(),
-     configSpaceCursor,
+      configSpaceCursor,
       configToPhysicalSpace
     );
 
