@@ -27,6 +27,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
 
+    # Relay requests are internal and shouldn't be rate limited
+    enforce_rate_limit = False
+
     def post(self, request: Request) -> Response:
         with start_transaction(
             op="http.server", name="RelayProjectConfigsEndpoint", sampled=_sample_apm()
