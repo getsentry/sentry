@@ -153,7 +153,7 @@ export function isDocIntegration(
 export function isExternalActorMapping(
   mapping: ExternalActorMappingOrSuggestion
 ): mapping is ExternalActorMapping {
-  return mapping.hasOwnProperty('id') && mapping.hasOwnProperty('sentryName');
+  return mapping.hasOwnProperty('id');
 }
 
 export const getIntegrationType = (
