@@ -7,7 +7,7 @@ import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import DropdownLink from 'sentry/components/dropdownLink';
-import IntegrationExternalMappingInlineForm from 'sentry/components/integrationExternalMappingInlineForm';
+import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
@@ -36,19 +36,19 @@ type CodeOwnersAssociationMappings = {
   };
 };
 
-type Props = AsyncComponent['props'] & {
-  organization: Organization;
-  integration: Integration;
-  dataEndpoint: string;
-  getBaseFormEndpoint: (mapping: ExternalActorMappingOrSuggestion) => string;
-  mappings: ExternalActorMappingOrSuggestion[];
-  type: 'team' | 'user';
-  onCreate: (mapping?: ExternalActorMappingOrSuggestion) => void;
-  onDelete: (mapping: ExternalActorMapping) => void;
-  pageLinks?: string;
-  sentryNamesMapper: (v: any) => {id: string; name: string}[];
-  onResults?: (mapping: ExternalActorMappingOrSuggestion, data: any) => void;
-};
+type Props = AsyncComponent['props'] &
+  Pick<
+    IntegrationExternalMappingForm['props'],
+    'dataEndpoint' | 'getBaseFormEndpoint' | 'sentryNamesMapper' | 'onResults'
+  > & {
+    organization: Organization;
+    integration: Integration;
+    mappings: ExternalActorMappingOrSuggestion[];
+    type: 'team' | 'user';
+    onCreate: (mapping?: ExternalActorMappingOrSuggestion) => void;
+    onDelete: (mapping: ExternalActorMapping) => void;
+    pageLinks?: string;
+  };
 
 type State = AsyncComponent['state'] & {
   associationMappings: CodeOwnersAssociationMappings;
@@ -89,7 +89,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     } = this.props;
     const mappingName = isExternalActorMapping(mapping) ? mapping.sentryName : '';
     return hasAccess ? (
-      <IntegrationExternalMappingInlineForm
+      <IntegrationExternalMappingForm
         type={type}
         integration={integration}
         dataEndpoint={dataEndpoint}
@@ -97,6 +97,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
         mapping={mapping}
         sentryNamesMapper={sentryNamesMapper}
         onResults={onResults}
+        isInline
       />
     ) : (
       mappingName
