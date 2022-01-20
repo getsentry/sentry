@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, MutableMapping
 
 from django.utils.encoding import force_text
 
@@ -122,7 +122,6 @@ def send_notification_as_email(
         add_users_kwargs = {}
         if isinstance(notification, ProjectNotification):
             add_users_kwargs["project"] = notification.project
-
         msg.add_users([recipient.id], **add_users_kwargs)
         msg.send_async()
         notification.record_notification_sent(recipient, ExternalProviders.EMAIL)
@@ -137,7 +136,13 @@ def get_builder_args(
     # TODO: move context logic to single notification class method
     extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
     context = get_context(notification, recipient, shared_context or {}, extra_context)
-    return {
+    return get_builder_args_from_context(notification, context)
+
+
+def get_builder_args_from_context(
+    notification: BaseNotification, context: Mapping[str, Any]
+) -> MutableMapping[str, Any]:
+    output = {
         "subject": get_subject_with_prefix(notification, context),
         "context": context,
         "template": notification.get_template(),
@@ -147,3 +152,8 @@ def get_builder_args(
         "reply_reference": notification.get_reply_reference(),
         "type": notification.get_type(),
     }
+    # add in optinal fields
+    from_email = notification.from_email
+    if from_email:
+        output["from_email"] = from_email
+    return output

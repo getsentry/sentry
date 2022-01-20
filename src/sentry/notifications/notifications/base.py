@@ -44,6 +44,10 @@ class BaseNotification(abc.ABC):
             return None
         return get_notification_setting_type_name(self.notification_setting_type)
 
+    @property
+    def from_email(self) -> str | None:
+        return None
+
     def get_filename(self) -> str:
         raise NotImplementedError
 
