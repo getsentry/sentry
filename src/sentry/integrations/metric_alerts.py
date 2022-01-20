@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.urls import reverse
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, get_incident_aggregates
@@ -76,7 +77,7 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
 
     interval = "minute" if time_window == 1 else "minutes"
 
-    text = f"{metric_and_agg_text} in the last {time_window} {interval}"
+    text = _(f"{metric_and_agg_text} in the last {time_window} {interval}")
     if alert_rule.snuba_query.query != "":
         text += f"\nFilter: {alert_rule.snuba_query.query}"
 
