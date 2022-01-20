@@ -135,7 +135,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
           dataEndpoint={this.dataEndpoint}
           getBaseFormEndpoint={() => this.baseFormEndpoint}
           sentryNamesMapper={this.sentryNamesMapper}
-          onCreateOrEdit={this.openModal}
+          onCreate={this.openModal}
           onDelete={this.handleDelete}
           pageLinks={membersPageLinks}
         />
