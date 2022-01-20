@@ -30,6 +30,7 @@ import {
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Measurements from 'sentry/utils/measurements/measurements';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
@@ -563,6 +564,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         organization,
         tagKeys: Object.values(tags).map(({key}) => key),
         measurementKeys,
+        spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
       });
 
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
