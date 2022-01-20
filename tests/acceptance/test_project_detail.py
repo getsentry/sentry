@@ -69,11 +69,11 @@ class ProjectDetailTest(AcceptanceTestCase):
     def test_simple(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.snapshot("project detail")
 
     def test_no_feature(self):
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.snapshot("project detail no feature")

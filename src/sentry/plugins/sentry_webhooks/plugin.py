@@ -7,11 +7,12 @@ from requests.exceptions import ConnectionError, ReadTimeout
 
 import sentry
 from sentry.exceptions import PluginError
-from sentry.http import is_valid_url, safe_urlopen
+from sentry.http import is_valid_url
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases import notify
 from sentry.utils.compat import filter
-from sentry.utils.safe import safe_execute
+
+from .client import WebhookApiClient
 
 DESCRIPTION = """
 Trigger outgoing HTTP POST requests from Sentry.
@@ -118,17 +119,14 @@ class WebHooksPlugin(notify.NotificationPlugin):
     def get_webhook_urls(self, project):
         return split_urls(self.get_option("urls", project))
 
-    def send_webhook(self, url, payload):
-        return safe_urlopen(url=url, json=payload, timeout=self.timeout, verify_ssl=False)
+    def get_client(self, payload):
+        return WebhookApiClient(payload)
 
     def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
         payload = self.get_group_data(group, event, triggering_rules)
+        client = self.get_client(payload)
         for url in self.get_webhook_urls(group.project):
-            # TODO: Use API client with raise_error
-            safe_execute(
-                self.send_webhook,
-                url,
-                payload,
-                _with_transaction=False,
-                expected_errors=(ReadTimeout, ConnectionError),
-            )
+            try:
+                client.request(url)
+            except (ReadTimeout, ConnectionError):
+                pass

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import Card from 'sentry/components/card';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconAdd, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 type Props = {
@@ -20,22 +20,25 @@ function TemplateCard({title, widgetCount, onPreview, onAdd}: Props) {
     <StyledCard>
       <Header>
         <IconGeneric size="48" />
-        <CardText>
-          <Title>{title}</Title>
+        <div>
+          {title}
           <Detail>{t('%s Starter Widgets', widgetCount)}</Detail>
-        </CardText>
+        </div>
       </Header>
       <ButtonContainer>
-        <StyledButton priority="default" onClick={onPreview} label={t('Preview')}>
-          {t('Preview')}
+        <StyledButton
+          onClick={onAdd}
+          icon={<IconAdd isCircled />}
+          label={t('Add Dashboard')}
+        >
+          <TextOverflow>{t('Add Dashboard')}</TextOverflow>
         </StyledButton>
         <StyledButton
           priority="primary"
-          onClick={onAdd}
-          icon={<IconAdd size="xs" isCircled />}
-          label={t('Add Dashboard')}
+          onClick={onPreview}
+          label={t('Preview Dashboard')}
         >
-          {t('Add Dashboard')}
+          <TextOverflow>{t('Preview Dashboard')}</TextOverflow>
         </StyledButton>
       </ButtonContainer>
     </StyledCard>
@@ -43,45 +46,28 @@ function TemplateCard({title, widgetCount, onPreview, onAdd}: Props) {
 }
 
 const StyledCard = styled(Card)`
+  gap: ${space(1)};
   padding: ${space(2)};
-  display: inline;
 `;
 
-const Title = styled('div')`
-  color: ${p => p.theme.textColor};
-  ${overflowEllipsis};
-`;
-
-const Detail = styled('div')`
+const Detail = styled(TextOverflow)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
-  ${overflowEllipsis};
-  line-height: 1.5;
 `;
 
 const Header = styled('div')`
   display: flex;
-  padding-bottom: ${space(2)};
-`;
-
-const CardText = styled('div')`
-  padding-left: ${space(2)};
+  gap: ${space(2)};
 `;
 
 const ButtonContainer = styled('div')`
   display: flex;
+  gap: ${space(1)};
 `;
 
-const StyledButton = styled(Button)<{priority: string}>`
-  display: block;
-  width: auto;
-  ${overflowEllipsis};
-
-  ${p =>
-    p.priority === 'default' &&
-    `width: 50%;
-    margin-right: ${space(2)};`};
+const StyledButton = styled(Button)`
+  flex-grow: 1;
 `;
 
 export default TemplateCard;

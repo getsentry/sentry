@@ -427,7 +427,7 @@ discoverCharts.push({
       itemStyle: {
         areaColor: theme.gray200,
         borderColor: theme.backgroundSecondary,
-      } as any, // TODO(ts): Echarts types aren't correct for these colors as they don't allow for basic strings
+      },
     });
 
     // For absolute values, we want min/max to based on min/max of series

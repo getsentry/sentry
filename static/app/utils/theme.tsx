@@ -19,7 +19,7 @@ export const lightColors = {
   surface400: '#F5F3F7',
 
   gray500: '#2B2233',
-  gray400: '#4D4158',
+  gray400: '#3E3446',
   gray300: '#80708F',
   gray200: '#DBD6E1',
   gray100: '#EBE6EF',
@@ -145,9 +145,14 @@ type BaseColors = typeof lightColors;
 
 const generateAliases = (colors: BaseColors) => ({
   /**
+   * Heading text color
+   */
+  headingColor: colors.gray500,
+
+  /**
    * Primary text color
    */
-  textColor: colors.gray500,
+  textColor: colors.gray400,
 
   /**
    * Text that should not have as much emphasis
@@ -190,16 +195,6 @@ const generateAliases = (colors: BaseColors) => ({
    */
   innerBorder: colors.gray100,
   translucentInnerBorder: colors.translucentGray100,
-
-  /**
-   * Border around modals
-   */
-  modalBorder: 'none',
-
-  /**
-   * Box shadow on the modal
-   */
-  modalBoxShadow: 'none',
 
   /**
    * A color that denotes a "success", or something good
@@ -683,8 +678,19 @@ const commonTheme = {
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
     familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
-    lineHeightHeading: '1.15',
-    lineHeightBody: '1.4',
+    lineHeightHeading: 1.2,
+    lineHeightBody: 1.4,
+    pageTitle: {
+      fontSize: '1.625rem',
+      fontWeight: 600,
+      letterSpacing: '-0.01em',
+      lineHeight: 1.2,
+    },
+    cardTitle: {
+      fontSize: '1rem',
+      fontWeight: 600,
+      lineHeight: 1.2,
+    },
   },
 
   dataCategory,

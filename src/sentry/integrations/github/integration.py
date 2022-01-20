@@ -144,17 +144,23 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         self.reinstall_repositories()
 
     def message_from_error(self, exc: Exception) -> str:
-        # TODO(mgaeta): Clean up the conditional flow.
-        if isinstance(exc, ApiError):
-            message = API_ERRORS.get(exc.code, "")
-            if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
-                message += f" Please also confirm that the commits associated with the following URL have been pushed to GitHub: {exc.url}"
-
-            if not message:
-                message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
-            return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
-        else:
+        if not isinstance(exc, ApiError):
             return ERR_INTERNAL
+
+        if not exc.code:
+            message = ""
+        else:
+            message = API_ERRORS.get(exc.code, "")
+
+        if exc.code == 404 and exc.url and re.search(r"/repos/.*/(compare|commits)", exc.url):
+            message += (
+                " Please also confirm that the commits associated with "
+                f"the following URL have been pushed to GitHub: {exc.url}"
+            )
+
+        if not message:
+            message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
+        return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
 
     def has_repo_access(self, repo: Repository) -> bool:
         client = self.get_client()

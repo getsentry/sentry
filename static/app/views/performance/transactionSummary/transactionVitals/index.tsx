@@ -49,13 +49,27 @@ function getDocumentTitle(transactionName: string): string {
   return [t('Summary'), t('Vitals')].join(' \u2014 ');
 }
 
-function generateEventView(location: Location, transactionName: string): EventView {
+function generateEventView({
+  location,
+  transactionName,
+  isMetricsData,
+}: {
+  location: Location;
+  transactionName: string;
+  isMetricsData: boolean;
+}): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-  conditions
-    .setFilterValues('event.type', ['transaction'])
-    .setFilterValues('transaction.op', ['pageload'])
-    .setFilterValues('transaction', [transactionName]);
+
+  // event.type and transaction.op are not valid metric tags, so they will be added to the query only
+  // in case the metric switch is disabled (for now).
+  if (!isMetricsData) {
+    conditions
+      .setFilterValues('event.type', ['transaction'])
+      .setFilterValues('transaction.op', ['pageload']);
+  }
+
+  conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
     if (isAggregateField(field)) {

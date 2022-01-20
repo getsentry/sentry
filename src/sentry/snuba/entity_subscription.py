@@ -8,17 +8,17 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_
 from sentry.eventstore import Filter
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models import Environment
-from sentry.release_health.metrics import (
-    MetricIndexNotFound,
-    get_tag_values_list,
-    metric_id,
-    reverse_tag_value,
-    tag_key,
-    tag_value,
-)
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.sentry_metrics.utils import (
+    MetricIndexNotFound,
+    resolve,
+    resolve_many_weak,
+    resolve_tag_key,
+    resolve_weak,
+    reverse_resolve,
+)
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.utils import metrics
@@ -260,7 +260,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 "building snuba filter for a metrics subscription"
             )
         self.org_id = extra_fields["org_id"]
-        self.session_status = tag_key(self.org_id, "session.status")
+        self.session_status = resolve_tag_key("session.status")
         self.time_window = time_window
 
     def get_query_groupby(self) -> List[str]:
@@ -290,12 +290,12 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     ) -> Filter:
         snuba_filter = get_filter(query, params=params)
         conditions = copy(snuba_filter.conditions)
-        session_status_tag_values = get_tag_values_list(self.org_id, ["crashed", "init"])
+        session_status_tag_values = resolve_many_weak(["crashed", "init"])
         snuba_filter.update_with(
             {
                 "aggregations": [[f"{self.aggregation_func}(value)", None, "value"]],
                 "conditions": [
-                    ["metric_id", "=", metric_id(self.org_id, self.metric_key)],
+                    ["metric_id", "=", resolve(self.metric_key.value)],
                     [self.session_status, "IN", session_status_tag_values],
                 ],
                 "groupby": self.get_query_groupby(),
@@ -304,7 +304,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         )
         if environment:
             snuba_filter.conditions.append(
-                [tag_key(self.org_id, "environment"), "=", tag_value(self.org_id, environment.name)]
+                [resolve_tag_key("environment"), "=", resolve_weak(environment.name)]
             )
         if query and len(conditions) > 0:
             release_conditions = [
@@ -314,9 +314,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             for release_condition in release_conditions:
                 snuba_filter.conditions.append(
                     [
-                        tag_key(self.org_id, release_condition[0]),
+                        resolve_tag_key(release_condition[0]),
                         release_condition[1],
-                        tag_value(self.org_id, release_condition[2]),
+                        resolve_weak(release_condition[2]),
                     ]
                 )
 
@@ -336,9 +336,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         value_col_name = alias if alias else "value"
         try:
             translated_data: Dict[str, Any] = {}
-            session_status = tag_key(org_id, "session.status")
+            session_status = resolve_tag_key("session.status")
             for row in data:
-                tag_value = reverse_tag_value(org_id, row[session_status])
+                tag_value = reverse_resolve(row[session_status])
                 translated_data[tag_value] = row[value_col_name]
 
             total_session_count = translated_data.get("init", 0)
