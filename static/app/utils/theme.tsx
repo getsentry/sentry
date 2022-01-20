@@ -703,7 +703,7 @@ const commonTheme = {
   },
 
   /**
-   * Padding for form inputs
+   * Padding for buttons
    */
   buttonPadding: {
     default: {
