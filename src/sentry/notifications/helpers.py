@@ -4,7 +4,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
-from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -54,19 +53,17 @@ def _get_setting_mapping_from_mapping(
     XXX(CEO): may not respect granularity of a setting for Slack a setting for
      email but we'll worry about that later since we don't have a FE for it yet.
     """
-    from sentry.notifications.notify import notification_providers
-
-    # Fill in with the fallback values.
-    notification_setting_option = {
-        provider: _get_notification_setting_default(provider, type)
-        for provider in notification_providers()
-    }
-
-    notification_settings_mapping = notification_settings_by_recipient.get(recipient, {})
-    for scope in [NotificationScopeType.USER, NotificationScopeType.TEAM, get_scope_type(type)]:
-        notification_setting_option.update(notification_settings_mapping.get(scope, {}))
-
-    return notification_setting_option
+    return merge_notification_settings_up(
+        get_default_value_by_provider(type),
+        *(
+            notification_settings_by_recipient.get(recipient, {}).get(scope, {})
+            for scope in (
+                NotificationScopeType.USER,
+                NotificationScopeType.TEAM,
+                get_scope_type(type),
+            )
+        ),
+    )
 
 
 def where_should_recipient_be_notified(
@@ -517,14 +514,11 @@ def has_any_non_never_settings(
     Given notification settings by scope, an organization or project, and a
     notification type, will a recipient receive any notifications?
     """
-    highest_value_by_provider = get_highest_values_by_provider(
-        notification_settings_by_scope, recipient, parent_id, type
-    )
     return any(
-        [
-            value != NotificationSettingOptionValues.NEVER
-            for value in highest_value_by_provider.values()
-        ]
+        value != NotificationSettingOptionValues.NEVER
+        for value in get_values_by_provider(
+            notification_settings_by_scope, recipient, parent_id, type
+        ).values()
     )
 
 
@@ -532,20 +526,25 @@ def merge_notification_settings_up(
     *settings_mappings: Mapping[ExternalProviders, NotificationSettingOptionValues],
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
-    Given a list of notification settings by provider, get the "highest" value
-    for each provider. Note: This is a HACK but if we put an explicit ordering
-    here It'd match the implicit ordering.
+    Given a list of notification settings by provider ordered by increasing
+    specificity, get the most specific value by provider.
     """
-    highest_value_by_provider = {}
+    value_by_provider = {}
     for notification_settings_by_provider in settings_mappings:
-        for provider, value in notification_settings_by_provider.items():
-            old_value_option = highest_value_by_provider.get(provider)
-            if not (old_value_option and value.value <= old_value_option.value):
-                highest_value_by_provider[provider] = value
-    return highest_value_by_provider
+        value_by_provider.update(notification_settings_by_provider)
+    return value_by_provider
 
 
-def get_highest_values_by_provider(
+def get_default_value_by_provider(
+    type: NotificationSettingTypes,
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    return {
+        provider: _get_notification_setting_default(provider, type)
+        for provider in NOTIFICATION_SETTING_DEFAULTS.keys()
+    }
+
+
+def get_values_by_provider(
     notification_settings_by_scope: Mapping[
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
@@ -559,12 +558,8 @@ def get_highest_values_by_provider(
     recipient, and a notification type, what is the non-never notification
     setting by provider?
     """
-    default_value_by_provider = {
-        provider: _get_notification_setting_default(provider, type)
-        for provider in notification_providers()
-    }
     return merge_notification_settings_up(
-        default_value_by_provider,
-        get_value_for_parent(notification_settings_by_scope, parent_id, type),
+        get_default_value_by_provider(type),
         get_value_for_actor(notification_settings_by_scope, recipient),
+        get_value_for_parent(notification_settings_by_scope, parent_id, type),
     )
