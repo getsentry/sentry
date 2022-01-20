@@ -360,7 +360,6 @@ export class Rect {
     if (this.height !== rect.height) {
       return false;
     }
-
     return true;
   }
 
