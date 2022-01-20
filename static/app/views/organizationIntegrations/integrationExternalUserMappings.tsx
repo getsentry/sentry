@@ -41,11 +41,13 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
 
   handleDelete = async (mapping: ExternalActorMapping) => {
     const {organization} = this.props;
-    const endpoint = `/organizations/${organization.slug}/external-users/${mapping.id}/`;
     try {
-      await this.api.requestPromise(endpoint, {
-        method: 'DELETE',
-      });
+      await this.api.requestPromise(
+        `/organizations/${organization.slug}/external-users/${mapping.id}/`,
+        {
+          method: 'DELETE',
+        }
+      );
       // remove config and update state
       addSuccessMessage(t('Deletion successful'));
       this.fetchData();
@@ -77,6 +79,16 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
     return externalUserMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 
+  get dataEndpoint() {
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/members/`;
+  }
+
+  get baseFormEndpoint() {
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/external-users/`;
+  }
+
   sentryNamesMapper(members: Member[]) {
     return members
       .filter(member => member.user)
@@ -102,9 +114,8 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
             mapping={mapping}
             sentryNamesMapper={this.sentryNamesMapper}
             type="user"
-            url={`/organizations/${organization.slug}/members/`}
+            url={this.dataEndpoint}
             onCancel={closeModal}
-            baseEndpoint={`/organizations/${organization.slug}/external-users/`}
           />
         </Body>
       </Fragment>
@@ -117,10 +128,12 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
     return (
       <Fragment>
         <IntegrationExternalMappings
+          type="user"
           integration={integration}
           organization={organization}
-          type="user"
           mappings={this.mappings}
+          dataEndpoint={this.dataEndpoint}
+          getBaseFormEndpoint={() => this.baseFormEndpoint}
           sentryNamesMapper={this.sentryNamesMapper}
           onCreateOrEdit={this.openModal}
           onDelete={this.handleDelete}

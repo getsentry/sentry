@@ -23,10 +23,15 @@ import {
   Integration,
   Organization,
 } from 'sentry/types';
-import {getIntegrationIcon, isExternalActorMapping} from 'sentry/utils/integrationUtil';
+import {
+  getExternalActorEndpointDetails,
+  getIntegrationIcon,
+  isExternalActorMapping,
+} from 'sentry/utils/integrationUtil';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import {FieldFromConfig} from 'sentry/views/settings/components/forms';
 import Form from 'sentry/views/settings/components/forms/form';
+import FormModel from 'sentry/views/settings/components/forms/model';
 import {Field} from 'sentry/views/settings/components/forms/type';
 
 type CodeOwnersAssociationMappings = {
@@ -43,6 +48,8 @@ type CodeOwnersAssociationMappings = {
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   integration: Integration;
+  dataEndpoint: string;
+  getBaseFormEndpoint: (mapping: ExternalActorMappingOrSuggestion) => string;
   mappings: ExternalActorMappingOrSuggestion[];
   type: 'team' | 'user';
   onCreateOrEdit: (mapping?: ExternalActorMappingOrSuggestion) => void;
@@ -81,35 +88,37 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
 
   getInitialData(mapping: ExternalActorMappingOrSuggestion) {
     const {integration} = this.props;
-
     return {
       provider: integration.provider.key,
       integrationId: integration.id,
-      ...pick(mapping, ['sentryName', 'userId', 'teamId']),
+      ...pick(mapping, ['externalName', 'sentryName', 'userId', 'teamId']),
     };
   }
 
   getField(mapping: ExternalActorMappingOrSuggestion): Field {
-    // TODO(Leander): Make type agnostic
-    const {sentryNamesMapper, type, organization} = this.props;
+    const {sentryNamesMapper, type, dataEndpoint} = this.props;
     const optionMapper = sentryNames =>
       sentryNames.map(({name, id}) => ({value: id, label: name}));
+
     return {
       name: `${type}Id`,
       type: 'select_async',
       required: true,
       placeholder: t(`Select Sentry ${capitalize(type)}`),
-      url: `/organizations/${organization.slug}/members/`,
+      url: dataEndpoint,
       onResults: result => {
-        // For organizations with >100 users, we want to make sure their
+        // For organizations with >100 entries, we want to make sure their
         // saved mapping gets populated in the results if it wouldn't have
         // been in the initial 100 API results, which is why we add it here
         if (
           mapping &&
           isExternalActorMapping(mapping) &&
-          !result.find(({user}) => user.id === mapping.userId)
+          !result.find(entry => {
+            const id = type === 'user' ? entry.user.id : entry.id;
+            return id === mapping[`${type}Id`];
+          })
         ) {
-          result = [{id: mapping.userId, name: mapping.sentryName}, ...result];
+          result = [{id: mapping[`${type}Id`], name: mapping.sentryName}, ...result];
         }
         return optionMapper(sentryNamesMapper(result));
       },
@@ -117,25 +126,41 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
   }
 
   renderMappingName(mapping: ExternalActorMappingOrSuggestion, hasAccess: boolean) {
-    // TODO(Leander): Make type agnostic
-    const {organization, type} = this.props;
+    const {type, getBaseFormEndpoint} = this.props;
     const mappingName = isExternalActorMapping(mapping) ? mapping.sentryName : '';
+    const {apiEndpoint, apiMethod} = getExternalActorEndpointDetails(
+      getBaseFormEndpoint(mapping),
+      mapping
+    );
+    const model = new FormModel();
     return hasAccess ? (
       <Form
         requireChanges
-        apiEndpoint={`/organizations/${organization.slug}/external-users/${mapping.id}/`}
-        apiMethod="PUT"
+        apiEndpoint={apiEndpoint}
+        apiMethod={apiMethod}
         onSubmitSuccess={() => addSuccessMessage(t(`External ${type} updated`))}
         onSubmitError={() => addErrorMessage(t(`Couldn't update external ${type}`))}
         saveOnBlur
         allowUndo
         initialData={this.getInitialData(mapping)}
+        model={model}
       >
         <FieldFromConfig
           key={`${type}Id`}
           field={this.getField(mapping)}
           inline={false}
           stacked
+          // We need to submit the entire model since it could be a new one or an update
+          getData={() => model.getData()}
+          onBlur={value => {
+            const updatedMapping = {...mapping, [`${type}Id`]: value};
+            const endpointDetails = getExternalActorEndpointDetails(
+              getBaseFormEndpoint(updatedMapping),
+              updatedMapping
+            );
+            model.options.apiEndpoint = endpointDetails.apiEndpoint;
+            model.options.apiMethod = endpointDetails.apiMethod;
+          }}
         />
       </Form>
     ) : (
@@ -163,7 +188,6 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
                 icon={<IconEllipsis size="sm" />}
                 aria-label={t('edit')}
                 disabled={!hasAccess}
-                onClick={() => {}}
               />
             }
           >
@@ -193,7 +217,11 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {integration, mappings, type, onCreateOrEdit, pageLinks} = this.props;
-    const allMappings = [...this.getUnassociatedMappings(), ...mappings];
+    const allMappings = [
+      ...this.getUnassociatedMappings(),
+      // ,
+      ...mappings,
+    ];
     return (
       <Fragment>
         <Panel>

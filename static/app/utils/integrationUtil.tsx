@@ -236,3 +236,14 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
         'Update to the latest version of our Slack app to get access to personal and team notifications.'
       );
 };
+
+export const getExternalActorEndpointDetails = (
+  baseEndpoint: string,
+  mapping?: ExternalActorMappingOrSuggestion
+): {apiMethod: 'POST' | 'PUT'; apiEndpoint: string} => {
+  const isValidMapping = mapping && isExternalActorMapping(mapping);
+  return {
+    apiMethod: isValidMapping ? 'PUT' : 'POST',
+    apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
+  };
+};
