@@ -254,7 +254,7 @@ class ContextPickerModal extends Component<Props> {
     }
     return (
       <components.Option label={label} {...props}>
-        <IdBadge
+        <ProjectBadgeOption
           project={project}
           avatarSize={20}
           displayName={label}
@@ -546,6 +546,10 @@ export default ContextPickerModalContainer;
 
 const StyledSelectControl = styled(SelectControl)`
   margin-top: ${space(1)};
+`;
+
+const ProjectBadgeOption = styled(IdBadge)`
+  margin: ${space(1)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
