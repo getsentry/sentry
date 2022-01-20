@@ -196,6 +196,7 @@ export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
   [SpanSortOthers.SUM_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.75)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortOthers.AVG_OCCURRENCE]: [
@@ -208,26 +209,31 @@ export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
   [SpanSortOthers.COUNT]: [
     'percentileArray(spans_exclusive_time, 0.75)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.5)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.75)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.95)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.99)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
 };

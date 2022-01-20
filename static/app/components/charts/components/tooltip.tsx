@@ -274,6 +274,7 @@ export default function Tooltip({
     show: true,
     trigger: 'item',
     backgroundColor: `${theme.backgroundElevated}`,
+    borderWidth: 0,
     extraCssText: `box-shadow: 0 0 0 1px ${theme.translucentBorder}, ${theme.dropShadowHeavy}`,
     transitionDuration: 0,
     padding: 0,

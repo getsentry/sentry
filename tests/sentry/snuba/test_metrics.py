@@ -91,12 +91,11 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
         ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[17]"), Op.EQ, rhs=18)]),
     ],
 )
-@mock.patch("sentry.snuba.metrics.indexer")
-def test_parse_query(mock_indexer, query_string, expected):
+def test_parse_query(monkeypatch, query_string, expected):
     local_indexer = MockIndexer()
     for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
         local_indexer.record(s)
-    mock_indexer.resolve = local_indexer.resolve
+    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
     parsed = _resolve_tags(parse_query(query_string))
     assert parsed == expected
 
@@ -166,12 +165,10 @@ def test_timestamps():
     assert interval == 12 * 60 * 60
 
 
-@mock.patch("sentry.snuba.metrics.indexer")
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
-
-    mock_indexer.resolve = MockIndexer().resolve
+def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
+    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
     # Your typical release health query querying everything
     query_params = MultiValueDict(
         {
@@ -238,12 +235,10 @@ def test_build_snuba_query(mock_now, mock_now2, mock_indexer):
     }
 
 
-@mock.patch("sentry.snuba.metrics.indexer")
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
-
-    mock_indexer.resolve = MockIndexer().resolve
+def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
+    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
     query_params = MultiValueDict(
         {
             "query": [
@@ -254,10 +249,9 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
                 "sum(sentry.sessions.session)",
             ],
             "orderBy": ["-sum(sentry.sessions.session)"],
-            "limit": [3],
         }
     )
-    query_definition = QueryDefinition(query_params)
+    query_definition = QueryDefinition(query_params, paginator_kwargs={"limit": 3})
     snuba_queries = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition).get_snuba_queries()
 
     counter_queries = snuba_queries.pop("metrics_counters")
@@ -288,11 +282,12 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, mock_indexer):
     )
 
 
-@mock.patch("sentry.snuba.metrics.indexer")
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results(_1, _2, mock_indexer):
-    mock_indexer.reverse_resolve = MockIndexer().reverse_resolve
+def test_translate_results(_1, _2, monkeypatch):
+    monkeypatch.setattr(
+        "sentry.sentry_metrics.indexer.reverse_resolve", MockIndexer().reverse_resolve
+    )
 
     query_params = MultiValueDict(
         {
@@ -447,11 +442,12 @@ def test_translate_results(_1, _2, mock_indexer):
     ]
 
 
-@mock.patch("sentry.snuba.metrics.indexer")
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results_missing_slots(_1, _2, mock_indexer):
-    mock_indexer.reverse_resolve = MockIndexer().reverse_resolve
+def test_translate_results_missing_slots(_1, _2, monkeypatch):
+    monkeypatch.setattr(
+        "sentry.sentry_metrics.indexer.reverse_resolve", MockIndexer().reverse_resolve
+    )
     query_params = MultiValueDict(
         {
             "field": [

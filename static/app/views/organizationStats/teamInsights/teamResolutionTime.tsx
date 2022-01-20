@@ -96,6 +96,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
               seriesName: t('Time to Resolution'),
               data: seriesData,
               silent: true,
+              barCategoryGap: '5%',
             },
           ]}
         />
