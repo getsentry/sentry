@@ -182,12 +182,6 @@ class QueryDefinition:
     def _parse_orderby(self, query_params):
         orderby = query_params.getlist("orderBy", [])
         if not orderby:
-            per_page = query_params.get("per_page")
-            if per_page is not None:
-                # If order by is not None, it means we will have a `series` query which cannot be
-                # paginated, and passing a `per_page` url param to paginate the results is not
-                # possible
-                raise InvalidParams("'per_page' is only supported in combination with 'orderBy'")
             return None
         elif len(orderby) > 1:
             raise InvalidParams("Only one 'orderBy' is supported")
@@ -206,14 +200,21 @@ class QueryDefinition:
         return (op, metric_name), direction
 
     def _parse_limit(self, query_params, paginator_kwargs):
+        limit = query_params.get("limit", None)
         if self.orderby:
             paginator_limit = paginator_kwargs.get("limit")
             if paginator_limit is not None:
                 return paginator_limit
+        else:
+            if limit is not None:
+                raise InvalidParams("'limit' is only supported in combination with 'orderBy'")
 
-        limit = query_params.get("limit", None)
-        if not self.orderby and limit:
-            raise InvalidParams("'limit' is only supported in combination with 'orderBy'")
+            per_page = query_params.get("per_page")
+            if per_page is not None:
+                # If order by is not None, it means we will have a `series` query which cannot be
+                # paginated, and passing a `per_page` url param to paginate the results is not
+                # possible
+                raise InvalidParams("'per_page' is only supported in combination with 'orderBy'")
 
         if limit is not None:
             try:
