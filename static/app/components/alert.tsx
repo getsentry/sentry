@@ -27,7 +27,7 @@ const IconWrapper = styled('span')`
 
   /* Give the wrapper an explicit height so icons are line height with the
    * (common) line height. */
-  height: 22px;
+  height: 19px;
   align-items: center;
 `;
 
@@ -70,7 +70,7 @@ const alertStyles = ({
 };
 
 const StyledTextBlock = styled('span')`
-  line-height: 1.5;
+  line-height: ${p => p.theme.text.lineHeightBody};
   position: relative;
   flex: 1;
 `;
@@ -91,7 +91,7 @@ const DetailsContainer = styled('div')`
 `;
 
 const ExpandIcon = styled(props => (
-  <IconWrapper {...props}>{<IconChevron size="md" />}</IconWrapper>
+  <IconWrapper {...props}>{<IconChevron size="sm" />}</IconWrapper>
 ))`
   transform: ${props => (props.isExpanded ? 'rotate(0deg)' : 'rotate(180deg)')};
   cursor: pointer;
