@@ -242,29 +242,17 @@ def check_each_element_for_error(instance, element_types=None):
 
 
 def validate_text_component_defaults(element, found_type):
-    optional_fields = (
-        element["settings"].get("optional_fields")
-        if found_type == "alert-rule-action"
-        else element.get("optional_fields")
-    )
-    required_fields = (
-        element["settings"].get("required_fields")
-        if found_type == "alert-rule-action"
-        else element.get("required_fields")
-    )
-    all_fields = (
-        optional_fields + required_fields
-        if optional_fields and required_fields
-        else optional_fields or required_fields
-    )
-    if all_fields:
-        for field in all_fields:
-            if field.get("type") in TEXT_COMPONENTS:
-                default = field.get("default")
-                if default and default not in DEFAULT_TEXT_TYPES:
-                    raise SchemaValidationError(
-                        f"Elements of type {TEXT_COMPONENTS} may only have a default value of the following: {DEFAULT_TEXT_TYPES}, but {default} was found."
-                    )
+    data = element["settings"] if found_type == "alert-rule-action" else element
+    optional_fields = data.get("optional_fields", [])
+    required_fields = data.get("required_fields", [])
+
+    for field in optional_fields + required_fields:
+        if field.get("type") in TEXT_COMPONENTS:
+            default = field.get("default")
+            if default and default not in DEFAULT_TEXT_TYPES:
+                raise SchemaValidationError(
+                    f"Elements of type {TEXT_COMPONENTS} may only have a default value of the following: {DEFAULT_TEXT_TYPES}, but {default} was found."
+                )
 
 
 def check_only_one_of_each_element(instance):
