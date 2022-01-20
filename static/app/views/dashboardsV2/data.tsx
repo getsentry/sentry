@@ -181,14 +181,14 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Issues assigned to Me or My Team'),
+        title: t('Issues Assigned to Me or My Teams'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
           {
             name: '',
             fields: ['assignee', 'issue', 'title'],
-            conditions: 'assigned:me is:unresolved',
+            conditions: 'assigned_or_suggested:me is:unresolved',
             orderby: 'priority',
           },
         ],
@@ -253,14 +253,14 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Issues assigned to Me or My Team'),
+        title: t('Issues Assigned to Me or My Teams'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
           {
             name: '',
             fields: ['issue', 'assignee', 'title'],
-            conditions: 'assigned:me',
+            conditions: 'assigned_or_suggested:me is:unresolved',
             orderby: 'priority',
           },
         ],
@@ -283,7 +283,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Urls grouped by issue'),
+        title: t('Urls grouped by Issue'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
@@ -506,14 +506,14 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Issues assigned to Me or My Team'),
+        title: t('Issues Assigned to Me or My Teams'),
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [
           {
             name: '',
             fields: ['assignee', 'issue', 'title'],
-            conditions: 'assigned:me',
+            conditions: 'assigned_or_suggested:me is:unresolved',
             orderby: 'priority',
           },
         ],
@@ -551,7 +551,7 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
         tempId: uniqueId(),
       },
       {
-        title: t('Throughput (Transactions Per Minute)'),
+        title: t('Throughput (Events Per Minute)'),
         displayType: DisplayType.LINE,
         interval: '5m',
         queries: [
