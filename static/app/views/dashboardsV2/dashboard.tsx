@@ -10,8 +10,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import sortBy from 'lodash/sortBy';
-import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -22,27 +20,25 @@ import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {uniqueId} from 'sentry/utils/guid';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
-import SortableWidget from './sortableWidget';
 import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  DisplayType,
-  Widget,
-  WidgetType,
-} from './types';
+  constructGridItemKey,
+  generateWidgetId,
+  getDefaultPosition,
+  getMobileLayout,
+} from './layoutUtils';
+import SortableWidget from './sortableWidget';
+import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
-const WIDGET_PREFIX = 'grid-item';
 const DESKTOP = 'desktop';
 const MOBILE = 'mobile';
-const NUM_DESKTOP_COLS = 6;
+export const NUM_DESKTOP_COLS = 6;
 const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
@@ -53,7 +49,7 @@ const ADD_BUTTON_POSITION = {
   h: 1,
   isResizable: false,
 };
-const DEFAULT_WIDGET_WIDTH = 2;
+export const DEFAULT_WIDGET_WIDTH = 2;
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
@@ -532,61 +528,3 @@ const GridLayout = styled(WidthProvider(Responsive))`
     z-index: 10;
   }
 `;
-
-function generateWidgetId(widget: Widget, index: number) {
-  return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
-}
-
-export function constructGridItemKey(widget: Widget) {
-  return `${WIDGET_PREFIX}-${widget.id ?? widget.tempId}`;
-}
-
-export function assignTempId(widget: Widget) {
-  if (widget.id ?? widget.tempId) {
-    return widget;
-  }
-
-  return {...widget, tempId: uniqueId()};
-}
-
-/**
- * Naive positioning for widgets assuming no resizes.
- */
-function getDefaultPosition(index: number, displayType: DisplayType) {
-  return {
-    x: (DEFAULT_WIDGET_WIDTH * index) % NUM_DESKTOP_COLS,
-    y: Number.MAX_VALUE,
-    w: DEFAULT_WIDGET_WIDTH,
-    h: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
-    minH: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
-  };
-}
-
-function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
-  if (desktopLayout.length === 0) {
-    // Initial case where the user has no layout saved, but
-    // dashboard has widgets
-    return [];
-  }
-
-  // If there's a layout but no matching widget, then the widget was deleted
-  // in a separate session and should be ignored
-  // TODO(nar): Can remove once layouts are stored in the DB
-  const widgetGridKeys = new Set(widgets.map(constructGridItemKey));
-  const filteredLayouts = desktopLayout.filter(({i}) => widgetGridKeys.has(i));
-
-  const layoutWidgetPairs = zip(filteredLayouts, widgets) as [Layout, Widget][];
-
-  // Sort by y and then subsort by x
-  const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);
-
-  const mobileLayout = sorted.map(([layout, widget], index) => ({
-    ...layout,
-    x: 0,
-    y: index * 2,
-    w: 2,
-    h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
-  }));
-
-  return mobileLayout;
-}

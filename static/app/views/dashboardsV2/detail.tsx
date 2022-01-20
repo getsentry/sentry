@@ -29,8 +29,9 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Controls from './controls';
-import Dashboard, {assignTempId, constructGridItemKey} from './dashboard';
+import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
+import {assignTempId, constructGridItemKey} from './layoutUtils';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
