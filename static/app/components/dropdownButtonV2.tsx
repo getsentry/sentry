@@ -72,7 +72,7 @@ const StyledChevron = styled(IconChevron)`
 `;
 
 const StyledButton = styled(Button)<
-  Required<Pick<Props, 'isOpen' | 'disabled' | 'priority'>>
+  Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'priority'>>
 >`
   position: relative;
   z-index: 2;
@@ -88,6 +88,6 @@ const LabelText = styled('span')`
   padding-right: ${space(0.75)};
 `;
 
-export default React.forwardRef<typeof Button, Props>((props, ref) => (
+export default React.forwardRef<typeof Button, DropdownButtonProps>((props, ref) => (
   <DropdownButton forwardedRef={ref} {...props} />
 ));
