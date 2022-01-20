@@ -69,6 +69,16 @@ from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
 
 SMALLEST_METRICS_BUCKET = 10
 
+# Whenever a snuba query agains the old sessions table is done without both 1)
+# an explicit rollup 2) a groupby some timestamp/bucket, Snuba will pick a
+# default rollup of 3600 and pick sessions_hourly_dist over sessions_raw_dist,
+# regardless of the timerange chosen.
+#
+# In order to make functional comparison easier, the metrics implementation
+# (explicitly) chooses the same rollup in the equivalent queries, and uses this
+# constant to denote that case.
+LEGACY_SESSIONS_DEFAULT_ROLLUP = 3600
+
 
 logger = logging.getLogger(__name__)
 
@@ -295,6 +305,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     Condition(Column("metric_id"), Op.EQ, resolve(MetricKey.SESSION.value)),
                 ],
                 groupby=_get_common_groupby(total),
+                granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             )
 
             return _convert_results(
@@ -316,6 +327,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     Condition(Column("metric_id"), Op.EQ, resolve(MetricKey.USER.value)),
                 ],
                 groupby=_get_common_groupby(total),
+                granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             )
 
             return _convert_results(
@@ -459,6 +471,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                         Column(resolve_tag_key("session.status")), Op.EQ, resolve_weak("init")
                     ),
                 ],
+                granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             )
 
             rows = raw_snql_query(
@@ -486,6 +499,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                         Column("metric_id"), Op.EQ, resolve(MetricKey.SESSION_DURATION.value)
                     ),
                 ],
+                granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
             )
             rows.extend(
                 raw_snql_query(
@@ -587,6 +601,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_cols,
             where=where_clause,
             groupby=group_by_clause,
+            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
         )
 
         result = raw_snql_query(
@@ -901,7 +916,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             stat = "sessions"
         assert stat in ("sessions", "users")
         now = datetime.now(pytz.utc)
-        rollup, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
+        _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
+        rollup = LEGACY_SESSIONS_DEFAULT_ROLLUP
 
         org_id = self._get_org_id([x for x, _ in project_releases])
 
@@ -1093,6 +1109,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                             select=columns,
                             where=where,
                             groupby=[Column(status_key)],
+                            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
                         ),
                         referrer=referrer,
                     )["data"]
@@ -1199,6 +1216,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_cols,
             where=where_clause,
             groupby=query_cols,
+            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
         )
         result = raw_snql_query(
             query,
@@ -1217,6 +1235,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Mapping[ProjectRelease, str]:
 
         now = datetime.now(pytz.utc)
+        # TODO: assumption about retention?
         start = now - timedelta(days=90)
 
         project_ids: List[ProjectId] = [x[0] for x in project_releases]
@@ -1251,7 +1270,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_cols,
             where=where_clause,
             groupby=group_by,
-            granularity=Granularity(3600),
+            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
         )
         rows = raw_snql_query(
             query,
@@ -1372,8 +1391,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                         Function("quantiles(0.5, 0.90)", [Column("value")], alias="quantiles"),
                     ],
                     groupby=[Column("bucketed_time")],
-                    referrer="release_health.metrics.get_project_release_stats_durations",
-                )
+                ),
+                referrer="release_health.metrics.get_project_release_stats_durations",
             )["data"]
             for row in duration_series_data:
                 dt = parse_snuba_datetime(row["bucketed_time"])
@@ -1510,7 +1529,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 dataset=Dataset.Metrics.value,
                 where=where
                 + [Condition(Column("metric_id"), Op.EQ, resolve(MetricKey.USER.value))],
-                granularity=Granularity(rollup),
+                granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
                 match=Entity(EntityKey.MetricsSets.value),
                 select=[
                     Function("uniq", [Column("value")], alias="value"),
@@ -1943,7 +1962,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             groupby=query_cols,
             offset=Offset(offset) if offset is not None else None,
             limit=Limit(limit) if limit is not None else None,
-            granularity=Granularity(granularity),
+            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
         )
 
         rows = raw_snql_query(
