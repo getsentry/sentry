@@ -103,7 +103,8 @@ const QueryCardHeader = styled('div')`
 `;
 
 const QueryTitle = styled('div')`
-  color: ${p => p.theme.textColor};
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
   ${overflowEllipsis};
 `;
 
