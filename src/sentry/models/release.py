@@ -465,6 +465,13 @@ class Release(Model):
             ("organization", "date_added"),
             ("organization", "status"),
         )
+        indexes = [
+            models.Index(
+                fields=["organization", "version"],
+                opclasses=["", "text_pattern_ops"],
+                name="version_btree_idx",
+            )
+        ]
 
     __repr__ = sane_repr("organization_id", "version")
 
