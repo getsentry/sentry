@@ -95,8 +95,10 @@ function WidgetCardContextMenu({
             break;
           case DisplayType.TOP_N:
             discoverLocation.query.display = DisplayModes.TOP5;
+            // Last field is used as the yAxis
             discoverLocation.query.yAxis =
               widget.queries[0].fields[widget.queries[0].fields.length - 1];
+            discoverLocation.query.field = widget.queries[0].fields.slice(0, -1);
             break;
           default:
             break;

@@ -203,7 +203,9 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [
+            {...multipleQueryWidget.queries[0], fields: ['transaction', 'count()']},
+          ],
         }}
         selection={selection}
         isEditing={false}
@@ -224,7 +226,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
