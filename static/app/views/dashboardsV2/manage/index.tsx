@@ -292,7 +292,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                         this.onCreate();
                       }}
                       priority="primary"
-                      icon={<IconAdd size="xs" isCircled />}
+                      icon={<IconAdd isCircled />}
                     >
                       {t('Create Dashboard')}
                     </Button>
@@ -351,15 +351,16 @@ const ButtonContainer = styled('div')`
 
 const TemplateContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: repeat(1, 1fr);
-  }
   gap: ${space(2)};
-  padding-bottom: ${space(4)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: repeat(4, minmax(200px, 1fr));
+  }
 `;
 
 export default withApi(withOrganization(ManageDashboards));
