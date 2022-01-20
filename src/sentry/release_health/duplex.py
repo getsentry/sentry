@@ -115,7 +115,7 @@ def _compare_basic(
     If the first value in the return tuple is true the comparison is finished the the second
     value can be returned as a result
     """
-    if sessions is None and metrics is None:
+    if sessions is None is metrics:
         return True, None
     if sessions is None:
         return True, f"field {path} only present in metrics implementation"
