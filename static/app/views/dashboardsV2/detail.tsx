@@ -693,8 +693,6 @@ const StyledPageHeader = styled('div')`
   grid-template-columns: minmax(0, 1fr);
   grid-row-gap: ${space(2)};
   align-items: center;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.textColor};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
