@@ -53,13 +53,7 @@ export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     return [];
   }
 
-  // If there's a layout but no matching widget, then the widget was deleted
-  // in a separate session and should be ignored
-  // TODO(nar): Can remove once layouts are stored in the DB
-  const widgetGridKeys = new Set(widgets.map(constructGridItemKey));
-  const filteredLayouts = desktopLayout.filter(({i}) => widgetGridKeys.has(i));
-
-  const layoutWidgetPairs = zip(filteredLayouts, widgets) as [Layout, Widget][];
+  const layoutWidgetPairs = zip(desktopLayout, widgets) as [Layout, Widget][];
 
   // Sort by y and then subsort by x
   const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);
