@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union, cast
 
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -58,9 +58,9 @@ class QueryBuilder(QueryFilter):  # type: ignore
 
         self.columns = self.resolve_select(selected_columns, equations)
         self.orderby = self.resolve_orderby(orderby)
-        self.array_join = None if array_join is None else self.resolve_column(array_join)
+        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
-    def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[LimitBy]:
+    def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[Sequence[LimitBy]]:
         if limitby is None:
             return None
 
