@@ -24,7 +24,7 @@ class ProjectKeysTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path = f"/{self.org.slug}/{self.project.slug}/settings/keys/"
+        self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/keys/"
 
     def test_simple(self):
         self.browser.get(self.path)
