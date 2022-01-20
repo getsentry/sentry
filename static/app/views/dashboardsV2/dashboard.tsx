@@ -49,7 +49,6 @@ const ADD_BUTTON_POSITION = {
   h: 1,
   isResizable: false,
 };
-export const DEFAULT_WIDGET_WIDTH = 2;
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};

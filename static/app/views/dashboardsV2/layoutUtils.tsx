@@ -7,8 +7,10 @@ import zip from 'lodash/zip';
 import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 
-import {DEFAULT_WIDGET_WIDTH, NUM_DESKTOP_COLS} from './dashboard';
+import {NUM_DESKTOP_COLS} from './dashboard';
 import {DashboardDetails, DisplayType, Widget} from './types';
+
+const DEFAULT_WIDGET_WIDTH = 2;
 
 // Keys for grid layout values we track in the server
 const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
