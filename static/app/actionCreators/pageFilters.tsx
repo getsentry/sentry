@@ -21,6 +21,7 @@ import {
   MinimalProject,
   Organization,
   PageFilters,
+  PinnedPageFilter,
   Project,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -292,6 +293,12 @@ export function updateEnvironments(
 ) {
   PageFiltersActions.updateEnvironments(environment);
   updateParams({environment}, router, options);
+}
+
+export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
+  PageFiltersActions.pin(filter, pin);
+
+  // TODO: Persist into storage
 }
 
 /**
