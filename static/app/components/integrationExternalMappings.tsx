@@ -52,9 +52,18 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   associationMappings: CodeOwnersAssociationMappings;
+  newlyAssociatedMappings: ExternalActorMapping[];
 };
 
 class IntegrationExternalMappings extends AsyncComponent<Props, State> {
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
+      associationMappings: {},
+      newlyAssociatedMappings: [],
+    };
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     return [
@@ -65,7 +74,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     ];
   }
 
-  getUnassociatedMappings(): ExternalActorSuggestion[] {
+  get unassociatedMappings(): ExternalActorSuggestion[] {
     const {type} = this.props;
     const {associationMappings} = this.state;
     const errorKey = `missing_external_${type}s`;
@@ -76,6 +85,21 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
       new Set<string>()
     );
     return Array.from(unassociatedMappings).map(externalName => ({externalName}));
+  }
+
+  get allMappings(): ExternalActorMappingOrSuggestion[] {
+    const {mappings} = this.props;
+    const {newlyAssociatedMappings} = this.state;
+    const inlineMappings = this.unassociatedMappings.map(mapping => {
+      // If this mapping has been changed, replace it with the new version from its change
+      // The new version will be used in IntegrationExternalMappingForm to update the apiMethod and apiEndpoint
+      const newlyAssociatedMapping = newlyAssociatedMappings.find(
+        ({externalName}) => externalName === mapping.externalName
+      );
+
+      return newlyAssociatedMapping ?? mapping;
+    });
+    return [...inlineMappings, ...mappings];
   }
 
   renderMappingName(mapping: ExternalActorMappingOrSuggestion, hasAccess: boolean) {
@@ -97,6 +121,16 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
         mapping={mapping}
         sentryNamesMapper={sentryNamesMapper}
         onResults={onResults}
+        onSubmitSuccess={(newMapping: ExternalActorMapping) => {
+          this.setState({
+            newlyAssociatedMappings: [
+              ...this.state.newlyAssociatedMappings.filter(
+                map => map.externalName === newMapping.externalName
+              ),
+              newMapping as ExternalActorMapping,
+            ],
+          });
+        }}
         isInline
       />
     ) : (
@@ -146,11 +180,6 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {integration, mappings, type, onCreate, pageLinks} = this.props;
-    const allMappings = [
-      ...this.getUnassociatedMappings(),
-      // ,
-      ...mappings,
-    ];
     return (
       <Fragment>
         <Panel>
@@ -194,7 +223,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
                 {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
               </EmptyMessage>
             )}
-            {allMappings.map((mapping, index) => (
+            {this.allMappings.map((mapping, index) => (
               <Access access={['org:integrations']} key={index}>
                 {({hasAccess}) => (
                   <ConfigPanelItem>
