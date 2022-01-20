@@ -1,11 +1,12 @@
 import {Component, Fragment} from 'react';
 import ReactDOM from 'react-dom';
-import {components, StylesConfig} from 'react-select';
+import {StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import SelectControl from 'sentry/components/forms/selectControl';
+import SelectOption from 'sentry/components/forms/selectOption';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -253,14 +254,17 @@ class ContextPickerModal extends Component<Props> {
       return null;
     }
     return (
-      <components.Option label={label} {...props}>
-        <IdBadge
-          project={project}
-          avatarSize={20}
-          displayName={label}
-          avatarProps={{consistentWidth: true}}
-        />
-      </components.Option>
+      <SelectOption
+        label={
+          <IdBadge
+            project={project}
+            avatarSize={20}
+            displayName={label}
+            avatarProps={{consistentWidth: true}}
+          />
+        }
+        {...props}
+      />
     );
   };
 
@@ -334,6 +338,7 @@ class ContextPickerModal extends Component<Props> {
         components={{Option: this.customOptionProject, DropdownIndicator: null}}
         styles={selectStyles}
         menuIsOpen
+        hideCheckmarks
       />
     );
   }

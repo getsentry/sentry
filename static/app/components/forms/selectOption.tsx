@@ -9,7 +9,7 @@ type Props = React.ComponentProps<typeof selectComponents.Option>;
 
 function SelectOption(props: Props) {
   const {label, data, selectProps, isMulti, isSelected, isFocused} = props;
-  const {showDividers, verticallyCenterCheckWrap} = selectProps;
+  const {showDividers, hideCheckmarks, verticallyCenterCheckWrap} = selectProps;
   const {
     details,
     leadingItems,
@@ -21,21 +21,23 @@ function SelectOption(props: Props) {
   return (
     <selectComponents.Option {...props} className="select-option">
       <InnerWrap isFocused={isFocused}>
-        <Indent isMulti={isMulti} centerCheckWrap={verticallyCenterCheckWrap}>
-          <CheckWrap isMulti={isMulti} isSelected={isSelected}>
-            {isSelected && (
-              <IconCheckmark
-                size={isMulti ? 'xs' : 'sm'}
-                color={isMulti ? 'white' : undefined}
-              />
+        {!hideCheckmarks && (
+          <Indent isMulti={isMulti} centerCheckWrap={verticallyCenterCheckWrap}>
+            <CheckWrap isMulti={isMulti} isSelected={isSelected}>
+              {isSelected && (
+                <IconCheckmark
+                  size={isMulti ? 'xs' : 'sm'}
+                  color={isMulti ? 'white' : undefined}
+                />
+              )}
+            </CheckWrap>
+            {leadingItems && (
+              <LeadingItems spanFullHeight={leadingItemsSpanFullHeight}>
+                {leadingItems}
+              </LeadingItems>
             )}
-          </CheckWrap>
-          {leadingItems && (
-            <LeadingItems spanFullHeight={leadingItemsSpanFullHeight}>
-              {leadingItems}
-            </LeadingItems>
-          )}
-        </Indent>
+          </Indent>
+        )}
         <ContentWrap
           isFocused={isFocused}
           showDividers={showDividers}

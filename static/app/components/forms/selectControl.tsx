@@ -78,6 +78,12 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    */
   multiple?: boolean;
   /**
+   * Optionally hide checkmarks/checkboxes. Be careful when using this prop:
+   * if a component shouldn't have checkmarks/boxes, then it's likely that
+   * a dropdown menu would be a better option.
+   */
+  hideCheckmarks?: boolean;
+  /**
    * Show line dividers between options
    */
   showDividers?: boolean;
