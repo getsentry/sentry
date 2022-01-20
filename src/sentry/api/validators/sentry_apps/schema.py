@@ -196,6 +196,8 @@ SCHEMA = {
 }
 
 ELEMENT_TYPES = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-link"]
+DEFAULT_TEXT_TYPES = ["issue.title", "issue.description"]
+TEXT_COMPONENTS = ["text", "textarea"]
 
 
 def validate_component(schema):
@@ -217,6 +219,7 @@ def check_elements_is_array(instance):
 
 def check_each_element_for_error(instance, element_types=None):
     element_types = element_types or ELEMENT_TYPES
+
     if "elements" not in instance:
         return
 
@@ -228,6 +231,7 @@ def check_each_element_for_error(instance, element_types=None):
             raise SchemaValidationError(
                 f"Element has type '{found_type}'. Type must be one of the following: {element_types}"
             )
+        validate_text_component_defaults(element, found_type)
         try:
             validate_component(element)
         except SchemaValidationError as e:
@@ -235,6 +239,32 @@ def check_each_element_for_error(instance, element_types=None):
             raise SchemaValidationError(
                 f"{e.message} for element of type '{found_type}'"  # noqa: B306
             )
+
+
+def validate_text_component_defaults(element, found_type):
+    optional_fields = (
+        element["settings"].get("optional_fields")
+        if found_type == "alert-rule-action"
+        else element.get("optional_fields")
+    )
+    required_fields = (
+        element["settings"].get("required_fields")
+        if found_type == "alert-rule-action"
+        else element.get("required_fields")
+    )
+    all_fields = (
+        optional_fields + required_fields
+        if optional_fields and required_fields
+        else optional_fields or required_fields
+    )
+    if all_fields:
+        for field in all_fields:
+            if field.get("type") in TEXT_COMPONENTS:
+                default = field.get("default")
+                if default and default not in DEFAULT_TEXT_TYPES:
+                    raise SchemaValidationError(
+                        f"Elements of type {TEXT_COMPONENTS} may only have a default value of the following: {DEFAULT_TEXT_TYPES}, but {default} was found."
+                    )
 
 
 def check_only_one_of_each_element(instance):
