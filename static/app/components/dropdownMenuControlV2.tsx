@@ -104,7 +104,9 @@ function MenuControl({
   );
 
   const renderTrigger = isOpen => {
-    if (trigger) return trigger({props: buttonProps, ref});
+    if (trigger) {
+      return trigger({props: buttonProps, ref});
+    }
     return (
       <DropdownButton ref={ref} isOpen={isOpen} {...triggerProps} {...buttonProps}>
         {triggerLabel}
@@ -113,7 +115,9 @@ function MenuControl({
   };
 
   const renderMenu = isOpen => {
-    if (!isOpen) return null;
+    if (!isOpen) {
+      return null;
+    }
 
     return (
       <Menu
