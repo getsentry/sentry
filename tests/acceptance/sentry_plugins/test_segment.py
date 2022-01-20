@@ -10,7 +10,7 @@ class SegmentTest(AcceptanceTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
-        self.path = f"/{self.org.slug}/{self.project.slug}/settings/plugins/segment/"
+        self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/plugins/segment/"
 
     def test_simple(self):
         self.browser.get(self.path)
