@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
-from snuba_sdk.conditions import And, Condition, Op, Or
+from snuba_sdk.conditions import And, BooleanCondition, Condition, Op, Or
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity, Limit, Offset, Turbo
 from snuba_sdk.function import CurriedFunction, Function
@@ -108,24 +108,58 @@ class QueryBuilder(QueryFilter):  # type: ignore
                     f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): {function_msg}"
                 )
 
+    @property
+    def flattened_having(self) -> List[Condition]:
+        """Return self.having as a flattened list ignoring boolean operators
+        This is because self.having can have a mix of BooleanConditions and Conditions. And each BooleanCondition can in
+        turn be a mix of either type.
+        """
+        flattened: List[Condition] = []
+        boolean_conditions: List[BooleanCondition] = []
+
+        for condition in self.having:
+            if isinstance(condition, Condition):
+                flattened.append(condition)
+            elif isinstance(condition, BooleanCondition):
+                boolean_conditions.append(condition)
+
+        while len(boolean_conditions) > 0:
+            boolean_condition = boolean_conditions.pop()
+            for condition in boolean_condition.conditions:
+                if isinstance(condition, Condition):
+                    flattened.append(condition)
+                elif isinstance(condition, BooleanCondition):
+                    boolean_conditions.append(condition)
+
+        return flattened
+
     def validate_having_clause(self) -> None:
         """Validate that the functions in having are selected columns
 
         Skipped if auto_aggregations are enabled, and at least one other aggregate is selected
         This is so we don't change grouping suddenly
         """
+
+        conditions = self.flattened_having
         if self.auto_aggregations and self.aggregates:
+            for condition in conditions:
+                lhs = condition.lhs
+                if isinstance(lhs, CurriedFunction) and lhs not in self.columns:
+                    self.columns.append(lhs)
+                    self.aggregates.append(lhs)
             return
-        error_extra = ", and could not be automatically added" if self.auto_aggregations else ""
-        for condition in self.having:
-            lhs = condition.lhs
-            if lhs not in self.columns:
-                raise InvalidSearchQuery(
-                    "Aggregate {} used in a condition but is not a selected column{}.".format(
-                        lhs.alias,
-                        error_extra,
+        # If auto aggregations is disabled or aggregations aren't present in the first place we throw an error
+        else:
+            error_extra = ", and could not be automatically added" if self.auto_aggregations else ""
+            for condition in conditions:
+                lhs = condition.lhs
+                if isinstance(lhs, CurriedFunction) and lhs not in self.columns:
+                    raise InvalidSearchQuery(
+                        "Aggregate {} used in a condition but is not a selected column{}.".format(
+                            lhs.alias,
+                            error_extra,
+                        )
                     )
-                )
 
     def get_snql_query(self) -> Query:
         self.validate_having_clause()

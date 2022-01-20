@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/getParams';
+import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import {DataCategory, IntervalPeriod} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 

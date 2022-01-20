@@ -1,7 +1,10 @@
+import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 
@@ -44,6 +47,17 @@ function initialize(project, query, additionalFeatures: string[] = []) {
     eventView,
   };
 }
+
+const WrappedComponent = ({
+  organization,
+  ...props
+}: React.ComponentProps<typeof SummaryContent>) => {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <SummaryContent organization={organization} {...props} />
+    </OrganizationContext.Provider>
+  );
+};
 
 describe('Transaction Summary Content', function () {
   beforeEach(function () {
@@ -106,7 +120,7 @@ describe('Transaction Summary Content', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(
-      <SummaryContent
+      <WrappedComponent
         location={location}
         organization={organization}
         eventView={eventView}
@@ -125,7 +139,7 @@ describe('Transaction Summary Content', function () {
     wrapper.update();
 
     expect(wrapper.find('Filter')).toHaveLength(1);
-    expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
+    expect(wrapper.find('SearchBar')).toHaveLength(1);
     expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
     expect(wrapper.find('TransactionsList')).toHaveLength(1);
     expect(wrapper.find('UserStats')).toHaveLength(1);
@@ -152,7 +166,7 @@ describe('Transaction Summary Content', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(
-      <SummaryContent
+      <WrappedComponent
         location={location}
         organization={organization}
         eventView={eventView}
@@ -171,7 +185,7 @@ describe('Transaction Summary Content', function () {
     wrapper.update();
 
     expect(wrapper.find('Filter')).toHaveLength(1);
-    expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
+    expect(wrapper.find('SearchBar')).toHaveLength(1);
     expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
     expect(wrapper.find('TransactionsList')).toHaveLength(1);
     expect(wrapper.find('UserStats')).toHaveLength(1);
@@ -201,7 +215,7 @@ describe('Transaction Summary Content', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     const wrapper = mountWithTheme(
-      <SummaryContent
+      <WrappedComponent
         location={location}
         organization={organization}
         eventView={eventView}

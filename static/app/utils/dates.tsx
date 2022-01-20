@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/getParams';
+import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import ConfigStore from 'sentry/stores/configStore';
 import {DateString} from 'sentry/types';
 

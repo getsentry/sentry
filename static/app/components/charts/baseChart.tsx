@@ -593,14 +593,14 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     border-top: 8px solid ${p => p.theme.backgroundElevated};
     margin-left: -8px;
     &:before {
-      border-left: 9px solid transparent;
-      border-right: 9px solid transparent;
-      border-top: 9px solid ${p => p.theme.border};
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid ${p => p.theme.translucentBorder};
       content: '';
       display: block;
       position: absolute;
-      top: -8px;
-      left: -9px;
+      top: -7px;
+      left: -8px;
       z-index: -1;
     }
   }

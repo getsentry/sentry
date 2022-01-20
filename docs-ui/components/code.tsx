@@ -17,7 +17,7 @@ import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
 type Props = {
-  theme: Theme;
+  theme?: Theme;
   /**
    * Main code content gets passed as the children prop
    */

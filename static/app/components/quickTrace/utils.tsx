@@ -1,6 +1,6 @@
 import {Location, LocationDescriptor} from 'history';
 
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -143,7 +143,7 @@ export function generateTraceTarget(
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
-  const dateSelection = getParams(getTraceTimeRangeFromEvent(event));
+  const dateSelection = normalizeDateTimeParams(getTraceTimeRangeFromEvent(event));
 
   if (organization.features.includes('performance-view')) {
     // TODO(txiao): Should this persist the current query when going to trace view?

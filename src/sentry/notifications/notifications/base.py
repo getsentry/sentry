@@ -44,6 +44,10 @@ class BaseNotification(abc.ABC):
             return None
         return get_notification_setting_type_name(self.notification_setting_type)
 
+    @property
+    def from_email(self) -> str | None:
+        return None
+
     def get_filename(self) -> str:
         raise NotImplementedError
 
@@ -186,6 +190,7 @@ class BaseNotification(abc.ABC):
         }
 
     def send(self) -> None:
+        """The default way to send notifications that respects Notification Settings."""
         from sentry.notifications.notify import notify
 
         participants_by_provider = self.get_participants()

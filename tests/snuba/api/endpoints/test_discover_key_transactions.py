@@ -730,8 +730,10 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
                 format="json",
             )
 
-        assert response.status_code == 400, response.content
-        assert response.data == f"Error: You do not have permission to access {other_team.name}"
+        assert response.status_code == 403, response.content
+        assert response.data == {
+            "detail": f"Error: You do not have permission to access {other_team.name}"
+        }
 
     def test_get_key_transaction_list_my_teams(self):
         with self.feature(self.features):

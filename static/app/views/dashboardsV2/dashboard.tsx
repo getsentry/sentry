@@ -291,7 +291,10 @@ class Dashboard extends Component<Props, State> {
       handleAddCustomWidget,
     } = this.props;
 
-    if (organization.features.includes('metrics')) {
+    if (
+      organization.features.includes('metrics') &&
+      organization.features.includes('metrics-dashboards-ui')
+    ) {
       onSetWidgetToBeUpdated(widget);
 
       if (paramDashboardId) {
@@ -523,6 +526,8 @@ const GridItem = styled('div')`
 
 // HACK: to stack chart tooltips above other grid items
 const GridLayout = styled(WidthProvider(Responsive))`
+  margin: -${space(2)};
+
   .react-grid-item:hover {
     z-index: 10;
   }

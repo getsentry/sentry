@@ -9,10 +9,11 @@ import BarChart from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -65,7 +66,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/alerts-triggered/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -74,7 +75,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/alerts-triggered-index/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -144,6 +145,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
                 seriesName: t('Alerts Triggered'),
                 data: seriesData,
                 silent: true,
+                barCategoryGap: '5%',
               },
             ]}
           />
@@ -184,13 +186,13 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
 
             return (
               <Fragment key={rule.id}>
-                <div>
+                <AlertNameContainer>
                   <Link
-                    to={`/organizations/${organization.id}/alerts/rules/details/${rule.id}/`}
+                    to={`/organizations/${organization.slug}/alerts/rules/details/${rule.id}/`}
                   >
                     {rule.name}
                   </Link>
-                </div>
+                </AlertNameContainer>
                 <ProjectBadgeContainer>
                   {project && <ProjectBadge avatarSize={18} project={project} />}
                 </ProjectBadgeContainer>
@@ -232,6 +234,10 @@ const StyledPanelTable = styled(PanelTable)`
         padding: 48px ${space(2)};
       }
     `}
+`;
+
+const AlertNameContainer = styled('div')`
+  ${overflowEllipsis}
 `;
 
 const AlignRight = styled('div')`

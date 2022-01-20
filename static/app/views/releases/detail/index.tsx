@@ -10,7 +10,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconInfo, IconWarning} from 'sentry/icons';
@@ -121,7 +121,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
         {
           query: {
             adoptionStages: 1,
-            ...getParams(this.pickLocationQuery(location)),
+            ...normalizeDateTimeParams(this.pickLocationQuery(location)),
           },
         },
       ],

@@ -9,7 +9,7 @@ import Button from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -79,7 +79,7 @@ class TeamStability extends AsyncComponent<Props, State> {
         {
           query: {
             ...commonQuery,
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],

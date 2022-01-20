@@ -226,7 +226,7 @@ describe('TeamInsightsOverview', () => {
 
   it('defaults to first team', async () => {
     createWrapper();
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
@@ -234,7 +234,7 @@ describe('TeamInsightsOverview', () => {
 
   it('allows team switching', async () => {
     createWrapper();
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     userEvent.type(screen.getByText('#backend'), '{mouseDown}');

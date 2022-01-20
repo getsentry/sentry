@@ -11,7 +11,7 @@ import BarChart from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -65,7 +65,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/release-count/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -219,6 +219,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                     show: false,
                   },
                 }),
+                barCategoryGap: '5%',
               },
             ]}
             tooltip={{

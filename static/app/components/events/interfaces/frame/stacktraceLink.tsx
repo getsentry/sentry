@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import {ResponseMeta} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
@@ -19,6 +19,7 @@ import {
   RepositoryProjectPathConfigWithIntegration,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
@@ -145,11 +146,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     ];
   }
 
-  onRequestError(error, args) {
-    Sentry.withScope(scope => {
-      scope.setExtra('errorInfo', args);
-      Sentry.captureException(new Error(error));
-    });
+  onRequestError(resp: ResponseMeta) {
+    handleXhrErrorResponse('Unable to fetch stack trace link')(resp);
   }
 
   getDefaultState(): State {

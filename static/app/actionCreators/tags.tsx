@@ -3,7 +3,7 @@ import {Query} from 'history';
 import AlertActions from 'sentry/actions/alertActions';
 import TagActions from 'sentry/actions/tagActions';
 import {Client} from 'sentry/api';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import TagStore from 'sentry/stores/tagStore';
 import {PageFilters, Tag} from 'sentry/types';
@@ -31,7 +31,9 @@ export function loadOrganizationTags(api: Client, orgId: string, selection: Page
   TagStore.reset();
 
   const url = `/organizations/${orgId}/tags/`;
-  const query: Query = selection.datetime ? {...getParams(selection.datetime)} : {};
+  const query: Query = selection.datetime
+    ? {...normalizeDateTimeParams(selection.datetime)}
+    : {};
   query.use_cache = '1';
 
   if (selection.projects) {

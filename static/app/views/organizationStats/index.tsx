@@ -11,7 +11,7 @@ import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageHeading from 'sentry/components/pageHeading';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
@@ -80,7 +80,7 @@ export class OrganizationStats extends Component<Props> {
       end,
       statsPeriod,
       utc: utcString,
-    } = getParams(query, {
+    } = normalizeDateTimeParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,

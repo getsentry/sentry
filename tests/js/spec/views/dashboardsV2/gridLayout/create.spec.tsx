@@ -56,6 +56,10 @@ describe('Dashboards > Create', function () {
         method: 'GET',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        body: {data: []},
+      });
     });
 
     afterEach(function () {

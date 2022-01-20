@@ -70,3 +70,13 @@ class ConfigurationError(ValueError):
             """Python could not find %(package)s in your current environment (required by %(dependency)s). If you have it installed, maybe you are using the wrong python binary to run sentry?"""
             % {"dependency": dependency, "package": package}
         )
+
+
+def is_self_hosted():
+    # Backcompat for rename to support old consumers, particularly single-tenant.
+    from django.conf import settings
+
+    try:
+        return settings.SENTRY_SELF_HOSTED
+    except AttributeError:
+        return settings.SENTRY_ONPREMISE

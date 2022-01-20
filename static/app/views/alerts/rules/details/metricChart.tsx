@@ -23,7 +23,7 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
   StatsPeriodType,
-} from 'sentry/components/organizations/pageFilters/getParams';
+} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Truncate from 'sentry/components/truncate';

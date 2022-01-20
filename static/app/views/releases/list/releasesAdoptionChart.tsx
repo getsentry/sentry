@@ -27,10 +27,10 @@ import {
 } from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import {
-  getParams,
+  normalizeDateTimeParams,
   parseStatsPeriod,
   StatsPeriodType,
-} from 'sentry/components/organizations/pageFilters/getParams';
+} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -157,7 +157,7 @@ class ReleasesAdoptionChart extends Component<Props> {
         interval={interval}
         groupBy={['release']}
         field={[field]}
-        {...getParams(pick(location.query, Object.values(URL_PARAM)))}
+        {...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM)))}
       >
         {({response, loading, reloading}) => {
           const totalCount = getCount(response?.groups, field);

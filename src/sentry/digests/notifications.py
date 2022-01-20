@@ -22,9 +22,9 @@ Notification = namedtuple("Notification", "event rules")
 def split_key(key: str) -> tuple[Project, ActionTargetType, str | None]:
     key_parts = key.split(":", 4)
     project_id = key_parts[2]
-    # XXX: We transitioned to new style keys (len == 5) a while ago on sentry.io. But
-    # on-prem users might transition at any time, so we need to keep this transition
-    # code around for a while, maybe indefinitely.
+    # XXX: We transitioned to new style keys (len == 5) a while ago on
+    # sentry.io. But self-hosted users might transition at any time, so we need
+    # to keep this transition code around for a while, maybe indefinitely.
     if len(key_parts) == 5:
         target_type = ActionTargetType(key_parts[3])
         target_identifier = key_parts[4] if key_parts[4] else None

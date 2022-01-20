@@ -116,12 +116,12 @@ NOTIFICATION_SCOPE_TYPE = {
 
 class FineTuningAPIKey(Enum):
     ALERTS = "alerts"
+    APPROVAL = "approval"
     DEPLOY = "deploy"
     EMAIL = "email"
     REPORTS = "reports"
-    WORKFLOW = "workflow"
-    APPROVAL = "approval"
     OVERAGE = "overage"
+    WORKFLOW = "workflow"
 
 
 class UserOptionsSettingsKey(Enum):
@@ -135,16 +135,16 @@ class UserOptionsSettingsKey(Enum):
 
 
 VALID_VALUES_FOR_KEY = {
+    NotificationSettingTypes.APPROVAL: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
     NotificationSettingTypes.DEPLOY: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.COMMITTED_ONLY,
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.ISSUE_ALERTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
-    },
-    NotificationSettingTypes.APPROVAL: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },

@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart, {BarChartSeries} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -68,7 +68,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/issue-breakdown/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
             statuses,
           },
         },
@@ -149,6 +149,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
         animationDuration: 500,
         animationDelay: idx * 500,
         silent: true,
+        barCategoryGap: '5%',
       })
     );
 

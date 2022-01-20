@@ -240,7 +240,7 @@ describe('OrganizationContext', function () {
       organizations: [],
     });
 
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+    expect(wrapper.find('LoadingTriangle')).toHaveLength(1);
 
     wrapper.setProps({
       organizationsLoading: false,
@@ -253,7 +253,7 @@ describe('OrganizationContext', function () {
     await tick(); // action to start fetch org
     await tick(); // action after successfully fetching org
     wrapper.update();
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+    expect(wrapper.find('LoadingTriangle')).toHaveLength(0);
 
     expect(getOrgMock).toHaveBeenCalled();
     expect(getProjectsMock).toHaveBeenCalled();
@@ -285,7 +285,7 @@ describe('OrganizationContext', function () {
     // await resolving api, and updating component
     await tick();
     wrapper.update();
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+    expect(wrapper.find('LoadingTriangle')).toHaveLength(0);
     expect(getOrgMock).toHaveBeenCalledTimes(1);
 
     // Simulate OrganizationsStore being loaded *after* `OrganizationContext` finishes
@@ -314,7 +314,7 @@ describe('OrganizationContext', function () {
     // await resolving api, and updating component
     await tick();
     wrapper.update();
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+    expect(wrapper.find('LoadingTriangle')).toHaveLength(0);
     expect(getOrgMock).toHaveBeenCalledTimes(1);
 
     // Simulate OrganizationsStore being loaded *after* `OrganizationContext` finishes

@@ -1,8 +1,18 @@
 import copy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from itertools import chain
 
-from django.db.models import Count, ExpressionWrapper, F, IntegerField, Min, OuterRef, Q, Subquery
+from django.db.models import (
+    Count,
+    Exists,
+    ExpressionWrapper,
+    F,
+    IntegerField,
+    Min,
+    OuterRef,
+    Q,
+    Subquery,
+)
 from django.db.models.functions import Coalesce, TruncDay
 from django.utils import timezone
 from rest_framework.request import Request
@@ -12,7 +22,7 @@ from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Group, GroupHistory, GroupHistoryStatus, Project, Team
+from sentry.models import Group, GroupHistory, GroupHistoryStatus, GroupStatus, Project, Team
 from sentry.models.grouphistory import RESOLVED_STATUSES, UNRESOLVED_STATUSES
 
 OPEN_STATUSES = UNRESOLVED_STATUSES + (GroupHistoryStatus.UNIGNORED,)
@@ -70,7 +80,68 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
                 )
             )
         }
-        # TODO: Could get ignored counts from `GroupSnooze` too
+
+        # If we see unresolved/regressed rows without any corresponding resolved rows then we can
+        # assume that the group was ignored before we started recording history.
+        partial_resolved_group_history = {
+            r["project_id"]: r["total"]
+            for r in (
+                GroupHistory.objects.filter_to_team(team)
+                .filter(
+                    Q(group__resolved_at__isnull=True)
+                    | Q(group__resolved_at__gt=oldest_history_date),
+                    status__in=(GroupHistoryStatus.UNRESOLVED, GroupHistoryStatus.REGRESSED),
+                    group__last_seen__gt=datetime.now() - timedelta(days=90),
+                )
+                .annotate(
+                    prev_resolved_status=Subquery(
+                        GroupHistory.objects.filter(
+                            group_id=OuterRef("group_id"),
+                            date_added__lt=OuterRef("date_added"),
+                            status__in=UNRESOLVED_STATUSES + RESOLVED_STATUSES,
+                        )
+                        .order_by("-date_added")
+                        .values("status")[:1]
+                    )
+                )
+                .filter(prev_resolved_status__isnull=True)
+                .values("project_id")
+                .annotate(total=Count("id"))
+            )
+        }
+
+        for project, resolved in partial_resolved_group_history.items():
+            if project not in project_unresolved:
+                continue
+            project_unresolved[project] = max(project_unresolved[project] - resolved, 0)
+
+        # If there are groups that are in the ignored status and we have no ignore/unignore history
+        # rows then we can assume they were ignored before we started recording group history.
+        project_ignored = {
+            r["project"]: r["total"]
+            for r in (
+                Group.objects.filter_to_team(team)
+                .annotate(
+                    ignored_exists=Exists(
+                        GroupHistory.objects.filter(
+                            group_id=OuterRef("id"),
+                            status__in=[GroupHistoryStatus.IGNORED, GroupHistoryStatus.UNIGNORED],
+                        ),
+                    ),
+                )
+                .filter(ignored_exists=False, status=GroupStatus.IGNORED)
+                .values("project")
+                .annotate(
+                    total=Count("id"),
+                )
+            )
+        }
+        for project, ignored in project_ignored.items():
+            if project not in project_unresolved:
+                # This shouldn't be able to happen since the project should already be included,
+                # but just being defensive.
+                continue
+            project_unresolved[project] = max(project_unresolved[project] - ignored, 0)
 
         prev_status_sub_qs = Coalesce(
             Subquery(
@@ -173,6 +244,19 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
 
         agg_project_counts = {}
 
+        # Finally, get the current number of unresolved issues for the team and apply them to the
+        # last bucket. This helps paper over some of the inaccuracy we get from estimating this
+        # value.
+        project_current_unresolved = {
+            r["project"]: r["total"]
+            for r in (
+                Group.objects.filter_to_team(team)
+                .filter(status=GroupStatus.UNRESOLVED)
+                .values("project")
+                .annotate(total=Count("id"))
+            )
+        }
+
         for project, precounts in agg_project_precounts.items():
             open = project_unresolved.get(project, 0)
             sorted_bucket_keys = sorted(precounts.keys())
@@ -181,6 +265,9 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
                 bucket = precounts[bucket_key]
                 open = max(open + bucket["open"] - bucket["closed"], 0)
                 project_counts[bucket_key] = {"unresolved": open}
+            project_counts[sorted_bucket_keys[-1]]["unresolved"] = project_current_unresolved.get(
+                project, 0
+            )
             agg_project_counts[project] = project_counts
 
         return Response(agg_project_counts)
