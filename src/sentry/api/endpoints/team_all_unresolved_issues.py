@@ -244,6 +244,19 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
 
         agg_project_counts = {}
 
+        # Finally, get the current number of unresolved issues for the team and apply them to the
+        # last bucket. This helps paper over some of the inaccuracy we get from estimating this
+        # value.
+        project_current_unresolved = {
+            r["project"]: r["total"]
+            for r in (
+                Group.objects.filter_to_team(team)
+                .filter(status=GroupStatus.UNRESOLVED)
+                .values("project")
+                .annotate(total=Count("id"))
+            )
+        }
+
         for project, precounts in agg_project_precounts.items():
             open = project_unresolved.get(project, 0)
             sorted_bucket_keys = sorted(precounts.keys())
@@ -252,6 +265,9 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
                 bucket = precounts[bucket_key]
                 open = max(open + bucket["open"] - bucket["closed"], 0)
                 project_counts[bucket_key] = {"unresolved": open}
+            project_counts[sorted_bucket_keys[-1]]["unresolved"] = project_current_unresolved.get(
+                project, 0
+            )
             agg_project_counts[project] = project_counts
 
         return Response(agg_project_counts)
