@@ -444,21 +444,15 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             )
         )
 
-        if isinstance(self.backend, MetricsReleaseHealthBackend):
-            truncation = {"second": 0}
-        else:
-            truncation = {"minute": 0}
-
         expected_formatted_lower_bound = (
             datetime.utcfromtimestamp(self.session_started - 3600 * 2)
-            .replace(**truncation)
+            .replace(minute=0)
             .isoformat()[:19]
             + "Z"
         )
 
         expected_formatted_upper_bound = (
-            datetime.utcfromtimestamp(self.session_started).replace(**truncation).isoformat()[:19]
-            + "Z"
+            datetime.utcfromtimestamp(self.session_started).replace(minute=0).isoformat()[:19] + "Z"
         )
 
         # Test for self.session_release
