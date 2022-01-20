@@ -70,7 +70,7 @@ def _webhook_event_data(event, group_id, project_id):
     # a valid URL (it can't know which option to pick). We have to manually
     # create this URL for, that reason.
     event_context["issue_url"] = absolute_uri(f"/api/0/issues/{group_id}/")
-    event_context["issue_id"] = group_id
+    event_context["issue_id"] = str(group_id)
     return event_context
 
 
