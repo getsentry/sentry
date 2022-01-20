@@ -933,7 +933,7 @@ SENTRY_FEATURES = {
     # Enable discover top events queries with other & higher options
     "organizations:discover-top-events": False,
     # Allows an org to have a larger set of project ownership rules per project
-    "organizations:higher_ownership_limit": False,
+    "organizations:higher-ownership-limit": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
