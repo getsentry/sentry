@@ -249,10 +249,9 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
                 "sum(sentry.sessions.session)",
             ],
             "orderBy": ["-sum(sentry.sessions.session)"],
-            "limit": [3],
         }
     )
-    query_definition = QueryDefinition(query_params)
+    query_definition = QueryDefinition(query_params, paginator_kwargs={"limit": 3})
     snuba_queries = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition).get_snuba_queries()
 
     counter_queries = snuba_queries.pop("metrics_counters")
