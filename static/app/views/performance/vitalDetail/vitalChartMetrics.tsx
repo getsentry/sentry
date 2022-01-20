@@ -13,20 +13,22 @@ import {Panel} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString} from 'sentry/types';
+import {DateString, MetricsApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {WebVital} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {MetricsRequestRenderProps} from 'sentry/utils/metrics/metricsRequest';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
 import {ViewProps} from './types';
 import {getMaxOfSeries, getVitalChartDefinitions} from './utils';
 
-type Props = Omit<MetricsRequestRenderProps, 'responsePrevious'> &
-  WithRouterProps &
+type Props = WithRouterProps &
   Omit<ViewProps, 'query' | 'start' | 'end'> & {
+    loading: boolean;
+    response: MetricsApiResponse | null;
+    errored: boolean;
+    reloading: boolean;
     field: string;
     vital: WebVital;
     start: DateString | null;
