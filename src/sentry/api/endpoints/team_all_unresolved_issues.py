@@ -1,5 +1,5 @@
 import copy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from itertools import chain
 
 from django.db.models import (
@@ -81,6 +81,42 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
             )
         }
 
+        # If we see unresolved/regressed rows without any corresponding resolved rows then we can
+        # assume that the group was ignored before we started recording history.
+        partial_resolved_group_history = {
+            r["project_id"]: r["total"]
+            for r in (
+                GroupHistory.objects.filter_to_team(team)
+                .filter(
+                    Q(group__resolved_at__isnull=True)
+                    | Q(group__resolved_at__gt=oldest_history_date),
+                    status__in=(GroupHistoryStatus.UNRESOLVED, GroupHistoryStatus.REGRESSED),
+                    group__last_seen__gt=datetime.now() - timedelta(days=90),
+                )
+                .annotate(
+                    prev_resolved_status=Subquery(
+                        GroupHistory.objects.filter(
+                            group_id=OuterRef("group_id"),
+                            date_added__lt=OuterRef("date_added"),
+                            status__in=UNRESOLVED_STATUSES + RESOLVED_STATUSES,
+                        )
+                        .order_by("-date_added")
+                        .values("status")[:1]
+                    )
+                )
+                .filter(prev_resolved_status__isnull=True)
+                .values("project_id")
+                .annotate(total=Count("id"))
+            )
+        }
+
+        for project, resolved in partial_resolved_group_history.items():
+            if project not in project_unresolved:
+                continue
+            project_unresolved[project] = max(project_unresolved[project] - resolved, 0)
+
+        # If there are groups that are in the ignored status and we have no ignore/unignore history
+        # rows then we can assume they were ignored before we started recording group history.
         project_ignored = {
             r["project"]: r["total"]
             for r in (
@@ -106,11 +142,6 @@ class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):  # type: 
                 # but just being defensive.
                 continue
             project_unresolved[project] = max(project_unresolved[project] - ignored, 0)
-
-        # TODO: We could write a query to fetch any unignored GroupHistory rows that don't have
-        # a corresponding ignored row. This would imply that the Group was ignored before we had
-        # history of it happening, and we could use that to help determine initial ignored count.
-        # Might not be as important as the general ignored detection above.
 
         prev_status_sub_qs = Coalesce(
             Subquery(

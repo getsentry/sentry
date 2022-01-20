@@ -28,12 +28,16 @@ class TeamIssueBreakdownTest(APITestCase):
         group1_6 = self.create_group(
             project=project1, first_seen=before_now(days=41), status=GroupStatus.IGNORED
         )
+        # Should be excluded from initial counts because it has a regressed status without a
+        # corresponding resolved status
+        group1_7 = self.create_group(project=project1, first_seen=before_now(days=40))
         GroupAssignee.objects.assign(group1_1, self.user)
         GroupAssignee.objects.assign(group1_2, self.user)
         GroupAssignee.objects.assign(group1_3, self.user)
         GroupAssignee.objects.assign(group1_4, self.user)
         GroupAssignee.objects.assign(group1_5, self.user)
         GroupAssignee.objects.assign(group1_6, self.user)
+        GroupAssignee.objects.assign(group1_7, self.user)
         GroupHistory.objects.all().delete()
 
         self.create_group_history(
@@ -57,7 +61,9 @@ class TeamIssueBreakdownTest(APITestCase):
             group=group1_2, date_added=before_now(days=3), status=GroupHistoryStatus.RESOLVED
         )
         self.create_group_history(
-            group=group1_2, date_added=before_now(days=3), status=GroupHistoryStatus.REGRESSED
+            group=group1_2,
+            date_added=before_now(days=2, hours=23),
+            status=GroupHistoryStatus.REGRESSED,
         )
         self.create_group_history(
             group=group1_4, date_added=before_now(days=9), status=GroupHistoryStatus.RESOLVED
@@ -71,6 +77,11 @@ class TeamIssueBreakdownTest(APITestCase):
             group=group1_4,
             date_added=before_now(days=8, hours=6),
             status=GroupHistoryStatus.RESOLVED,
+        )
+        self.create_group_history(
+            group=group1_7,
+            date_added=before_now(days=1),
+            status=GroupHistoryStatus.REGRESSED,
         )
         project2 = self.create_project(teams=[self.team])
         group2_1 = self.create_group(project=project2, first_seen=before_now(days=40))
@@ -139,7 +150,7 @@ class TeamIssueBreakdownTest(APITestCase):
             }
             assert expected == response.data[project.id]
 
-        compare_response(response, project1, [2, 2, 2, 3, 3, 3, 3])
+        compare_response(response, project1, [2, 2, 2, 3, 3, 4, 4])
         compare_response(response, project2, [0, 1, 0, 1, 0, 1, 0])
         compare_response(response, project3, [0, 1, 0, 0, 0, 0, 0])
 
