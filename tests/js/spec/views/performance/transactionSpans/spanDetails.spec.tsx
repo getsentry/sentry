@@ -6,6 +6,7 @@ import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibra
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 function initializeData(settings) {
   const data = _initializeData(settings);
@@ -200,7 +201,15 @@ describe('Performance > Transaction Spans > Span Details', function () {
 
       const frequencyHeader = await screen.findByTestId('header-frequency');
       expect(await within(frequencyHeader).findByText('100%')).toBeInTheDocument();
-      expect(await within(frequencyHeader).findByText('1 event')).toBeInTheDocument();
+      expect(
+        await within(frequencyHeader).findByText((_content, element) =>
+          Boolean(
+            element &&
+              element.tagName === 'DIV' &&
+              element.textContent === '1.00 times per event'
+          )
+        )
+      ).toBeInTheDocument();
 
       const totalExclusiveTimeHeader = await screen.findByTestId(
         'header-total-exclusive-time'
@@ -208,7 +217,13 @@ describe('Performance > Transaction Spans > Span Details', function () {
       expect(
         await within(totalExclusiveTimeHeader).findByText('5.00ms')
       ).toBeInTheDocument();
-      // TODO: add an expect for the TBD
+      expect(
+        await within(totalExclusiveTimeHeader).findByText((_content, element) =>
+          Boolean(
+            element && element.tagName === 'DIV' && element.textContent === '1 events'
+          )
+        )
+      ).toBeInTheDocument();
     });
 
     it('renders chart', async function () {
@@ -236,11 +251,30 @@ describe('Performance > Transaction Spans > Span Details', function () {
         organization: data.organization,
       });
 
-      expect(await screen.findByText('Example Transaction')).toBeInTheDocument();
+      expect(await screen.findByText('Event ID')).toBeInTheDocument();
       expect(await screen.findByText('Timestamp')).toBeInTheDocument();
       expect(await screen.findByText('Span Duration')).toBeInTheDocument();
       expect(await screen.findByText('Count')).toBeInTheDocument();
       expect(await screen.findByText('Cumulative Duration')).toBeInTheDocument();
     });
+  });
+});
+
+describe('spanDetailsRouteWithQuery', function () {
+  it('should encode slashes in span op', function () {
+    const target = spanDetailsRouteWithQuery({
+      orgSlug: 'org-slug',
+      transaction: 'transaction',
+      query: {},
+      spanSlug: {op: 'o/p', group: 'aaaaaaaaaaaaaaaa'},
+      projectID: '1',
+    });
+
+    expect(target).toEqual(
+      expect.objectContaining({
+        pathname:
+          '/organizations/org-slug/performance/summary/spans/o%2Fp:aaaaaaaaaaaaaaaa/',
+      })
+    );
   });
 });

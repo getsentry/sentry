@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ("PubSubAnalytics",)
 
 import logging
@@ -7,7 +9,7 @@ from google.cloud import pubsub_v1
 
 from sentry.utils.json import dumps
 
-from .base import Analytics
+from . import Analytics, Event
 
 logger = logging.getLogger(__name__)
 
@@ -15,12 +17,12 @@ logger = logging.getLogger(__name__)
 class PubSubAnalytics(Analytics):
     def __init__(
         self,
-        project,
-        topic,
-        batch_max_bytes=1024 * 1024 * 5,
-        batch_max_latency=0.05,
-        batch_max_messages=1000,
-    ):
+        project: str,
+        topic: str,
+        batch_max_bytes: int = 1024 * 1024 * 5,
+        batch_max_latency: float = 0.05,
+        batch_max_messages: int = 1000,
+    ) -> None:
         settings = pubsub_v1.types.BatchSettings(
             max_bytes=batch_max_bytes,
             max_latency=batch_max_latency,
@@ -34,6 +36,6 @@ class PubSubAnalytics(Analytics):
         else:
             self.topic = self.publisher.topic_path(project, topic)
 
-    def record_event(self, event):
+    def record_event(self, event: Event) -> None:
         if self.publisher is not None:
             self.publisher.publish(self.topic, data=dumps(event.serialize()).encode("utf-8"))

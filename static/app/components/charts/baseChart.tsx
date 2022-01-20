@@ -584,7 +584,7 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     border-radius: ${p => p.theme.borderRadiusBottom};
   }
   .tooltip-arrow {
-    top: calc(100% + 1px);
+    top: 100%;
     left: 50%;
     position: absolute;
     pointer-events: none;

@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.models import ProjectKey, ProjectOption
+from sentry.models import ProjectKey, ProjectKeyStatus, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 from sentry.tasks.relay import schedule_update_config_cache
@@ -112,8 +112,8 @@ def test_generate(
     assert cfg["projectId"] == default_project.id
     assert cfg["publicKeys"] == [
         {
-            "publicKey": default_projectkey.public_key,
             "isEnabled": True,
+            "publicKey": default_projectkey.public_key,
             "numericId": default_projectkey.id,
             "quotas": [],
         }
@@ -212,7 +212,12 @@ def test_projectkeys(default_project, task_runner, redis_cache):
 
     (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
     assert pk_json["publicKey"] == pk.public_key
-    assert pk_json["isEnabled"]
+
+    with task_runner():
+        pk.status = ProjectKeyStatus.INACTIVE
+        pk.save()
+
+    assert redis_cache.get(pk.public_key)["disabled"]
 
     with task_runner():
         pk.delete()

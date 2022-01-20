@@ -156,6 +156,80 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
+  it('Opens in Discover with prepended fields pulled from equations', async function () {
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{
+          ...multipleQueryWidget,
+          queries: [
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: [
+                'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
+              ],
+            },
+          ],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+
+    await tick();
+
+    userEvent.click(screen.getByTestId('context-menu'));
+    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
+    );
+  });
+
+  it('Opens in Discover with Top N', async function () {
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TOP_N,
+          queries: [
+            {...multipleQueryWidget.queries[0], fields: ['transaction', 'count()']},
+          ],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+
+    await tick();
+
+    userEvent.click(screen.getByTestId('context-menu'));
+    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
+    );
+  });
+
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
     mountWithTheme(

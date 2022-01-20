@@ -10,7 +10,9 @@ const uniqueBy = <T,>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Arra
       .reduce((map, item) => {
         const key = item === null || item === undefined ? item : cb(item);
 
-        if (key === undefined || key === null) return map;
+        if (key === undefined || key === null) {
+          return map;
+        }
         map.has(key) || map.set(key, item);
 
         return map;
@@ -189,7 +191,9 @@ export const makeColorMapByImage = (
   for (const frame of frames) {
     const key = frame.image ?? '';
 
-    if (!reverseFrameToImageIndex[key]) reverseFrameToImageIndex[key] = [];
+    if (!reverseFrameToImageIndex[key]) {
+      reverseFrameToImageIndex[key] = [];
+    }
     reverseFrameToImageIndex[key].push(frame);
   }
 
