@@ -50,6 +50,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState(0);
   const field = props.fields[0];
   const vital = settingToVital[chartSetting];
+  const orgSlug = organization.slug;
 
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
@@ -58,7 +59,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         component: ({start, end, period, project, environment, children, fields}) => (
           <MetricsRequest
             api={api}
-            orgSlug={organization.slug}
+            orgSlug={orgSlug}
             start={start}
             end={end}
             statsPeriod={period}
@@ -97,7 +98,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         }) => (
           <MetricsRequest
             api={api}
-            orgSlug={organization.slug}
+            orgSlug={orgSlug}
             start={start}
             end={end}
             statsPeriod={period}
@@ -141,8 +142,8 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
 
         const data = {
           [vital]: getVitalData({
-            field,
             transaction: selectedTransaction,
+            field,
             response: widgetData.chart.response,
           }),
         };
@@ -163,7 +164,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
       EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
         const target = vitalDetailRouteWithQuery({
-          orgSlug: organization.slug,
+          orgSlug,
           query: eventView.generateQueryStringObject(),
           vitalName: vital,
           projectID: decodeList(location.query.project),
@@ -238,7 +239,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                   _eventView.query = initialConditions.formatString();
 
                   const target = vitalDetailRouteWithQuery({
-                    orgSlug: organization.slug,
+                    orgSlug,
                     query: _eventView.generateQueryStringObject(),
                     vitalName: vital,
                     projectID: decodeList(location.query.project), // TODO(metrics): filter by project once api supports it (listItem['project.id'])
@@ -246,8 +247,8 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
 
                   const data = {
                     [vital]: getVitalData({
-                      field,
                       transaction,
+                      field,
                       response: widgetData.chart.response,
                     }),
                   };
@@ -309,7 +310,7 @@ export function getVitalData({
     good: 0,
     p75: 0,
     ...groups.reduce((acc, group) => {
-      acc[group.by.measurement_rating] = group.totals[field];
+      acc[group.by.measurement_rating] = group.totals[field] ?? 0;
       return acc;
     }, {}),
     total: groups.reduce((acc, group) => acc + (group.totals[field] ?? 0), 0),

@@ -5,14 +5,11 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {Environment, PageFilters} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
-
-import {normalizeDateTimeParams} from './parse';
-
-const DEFAULT_DATETIME_PARAMS = normalizeDateTimeParams({});
 
 const LOCAL_STORAGE_KEY = 'global-selection';
 
@@ -20,13 +17,11 @@ const LOCAL_STORAGE_KEY = 'global-selection';
  * Make a default page filters object
  */
 export function getDefaultSelection(): PageFilters {
-  const {utc, start, end, statsPeriod} = DEFAULT_DATETIME_PARAMS;
-
   const datetime = {
-    start: start || null,
-    end: end || null,
-    period: statsPeriod || '',
-    utc: typeof utc !== 'undefined' ? utc === 'true' : null,
+    start: null,
+    end: null,
+    period: DEFAULT_STATS_PERIOD,
+    utc: null,
   };
 
   return {
@@ -85,8 +80,8 @@ function makeLocalStorageKey(orgSlug: string) {
 }
 
 type UpdateData = {
-  project?: Array<string | number> | string | number | null;
-  environment?: Environment['id'][] | null;
+  project?: string[] | null;
+  environment?: string[] | null;
 };
 
 /**
@@ -116,17 +111,9 @@ export function setPageFiltersStorage(
     return;
   }
 
-  const {project, environment} = update;
-  const validatedProject = project
-    ? (Array.isArray(project) ? project : [project])
-        .map(Number)
-        .filter(value => !isNaN(value))
-    : undefined;
-  const validatedEnvironment = environment;
-
   const dataToSave = {
-    projects: validatedProject || current.projects,
-    environments: validatedEnvironment || current.environments,
+    projects: update.project || current.projects,
+    environments: update.environment || current.environments,
   };
 
   const localStorageKey = makeLocalStorageKey(org.slug);

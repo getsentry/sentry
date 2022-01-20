@@ -3,7 +3,7 @@ import {css, Global} from '@emotion/react';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
-const styles = (theme: Theme) => css`
+const docsStyles = (theme: Theme) => css`
   html,
   body {
     font-family: ${theme.text.family};
@@ -25,6 +25,9 @@ const styles = (theme: Theme) => css`
     display: flex;
     justify-content: center;
     background: ${theme.background};
+  }
+  body.sb-show-main {
+    background: ${theme.background} !important;
   }
   .sbdocs.sbdocs-wrapper {
     padding: calc(${space(4)} * 3) calc(${space(4)} * 2);
@@ -164,8 +167,16 @@ const styles = (theme: Theme) => css`
   }
 `;
 
-const PreviewGlobalStyles = ({theme}: {theme: Theme}) => (
-  <Global styles={styles(theme)} />
+export const DocsGlobalStyles = ({theme}: {theme: Theme}) => (
+  <Global styles={docsStyles(theme)} />
 );
 
-export default PreviewGlobalStyles;
+const storyStyles = (theme: Theme) => css`
+  body.sb-show-main {
+    background: ${theme.background} !important;
+  }
+`;
+
+export const StoryGlobalStyles = ({theme}: {theme: Theme}) => (
+  <Global styles={storyStyles(theme)} />
+);

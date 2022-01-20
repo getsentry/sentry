@@ -40,15 +40,15 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 type State = {
   organization: Organization | null;
   loading: boolean;
-  dirty?: boolean;
-  errorType?: string | null;
-  error?: RequestError | null;
-  hooks?: React.ReactNode[];
   prevProps: {
     orgId: string;
     organizationsLoading: boolean;
     location: RouteComponentProps<{orgId: string}, {}>['location'];
   };
+  dirty?: boolean;
+  errorType?: string | null;
+  error?: RequestError | null;
+  hooks?: React.ReactNode[];
 };
 
 const OrganizationContext = createContext<Organization | null>(null);

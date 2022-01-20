@@ -960,8 +960,10 @@ SENTRY_FEATURES = {
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Enable metrics widget (prototype) on Dashboards
+    # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Enable metrics widget (prototype) on Dashboards
+    "organizations:metrics-dashboards-ui": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -998,8 +1000,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-custom-scm": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
-    # Allow orgs to debug internal/unpublished sentry apps with logging
-    "organizations:sentry-app-debugging": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable react-grid-layout dashboards
@@ -1039,6 +1039,8 @@ SENTRY_FEATURES = {
     "organizations:performance-mobile-vitals": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
+    # Enable views for anomaly detection
+    "organizations:performance-anomaly-detection-ui": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1058,6 +1060,8 @@ SENTRY_FEATURES = {
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
     "organizations:semver": True,
+    # Enable the UI for the overage alert settings
+    "organizations:slack-overage-notifications": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1088,10 +1092,6 @@ SENTRY_FEATURES = {
     # Enable team insights page
     "organizations:team-insights": True,
     "organizations:team-insights-v2": False,
-    # Enable login with WebAuthn
-    "organizations:webauthn-login": False,
-    # Enable registering new key with WebAuthn
-    "organizations:webauthn-register": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1329,10 +1329,11 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
+SENTRY_RATELIMITER_ENABLED = False
 SENTRY_RATELIMITER_OPTIONS = {}
 # These values were determined from analysis on one week of api access logs
-SENTRY_RATELIMITER_DEFAULT_IP = 1000
-SENTRY_RATELIMITER_DEFAULT_USER = 3230
+SENTRY_RATELIMITER_DEFAULT_IP = 620
+SENTRY_RATELIMITER_DEFAULT_USER = 620
 SENTRY_RATELIMITER_DEFAULT_ORG = 620
 SENTRY_RATELIMITER_DEFAULTS = {
     RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),

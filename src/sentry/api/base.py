@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Mapping
+from typing import Any, Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -103,7 +103,7 @@ class Endpoint(APIView):
     # Default Rate Limit Values, override in subclass
     # Should be of format: { <http function>: { <category>: RateLimit(limit, window) } }
     rate_limits: Mapping[str, Mapping[RateLimitCategory | str, RateLimit]] = {}
-    enforce_rate_limit: bool = False
+    enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
     def build_cursor_link(self, request: Request, name, cursor):
         querystring = None
@@ -330,7 +330,7 @@ class Endpoint(APIView):
             ]
         )
 
-    def respond(self, context=None, **kwargs):
+    def respond(self, context: Mapping[str, Any] | None = None, **kwargs: Any) -> Response:
         return Response(context, **kwargs)
 
     def respond_with_text(self, text):

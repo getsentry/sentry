@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import Confirm from 'sentry/components/confirm';
 import Link from 'sentry/components/links/link';
 import MenuItem from 'sentry/components/menuItem';
@@ -11,6 +12,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
@@ -79,9 +81,11 @@ function WidgetCardContextMenu({
       if (isAllowWidgetsToDiscover()) {
         // Pull a max of 3 valid Y-Axis from the widget
         const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-        discoverLocation.query.yAxis = widget.queries[0].fields
-          .filter(field => yAxisOptions.includes(field))
-          .slice(0, 3);
+        discoverLocation.query.yAxis = [
+          ...new Set(
+            widget.queries[0].fields.filter(field => yAxisOptions.includes(field))
+          ),
+        ].slice(0, 3);
         switch (widget.displayType) {
           case DisplayType.WORLD_MAP:
             discoverLocation.query.display = DisplayModes.WORLDMAP;
@@ -89,10 +93,34 @@ function WidgetCardContextMenu({
           case DisplayType.BAR:
             discoverLocation.query.display = DisplayModes.BAR;
             break;
+          case DisplayType.TOP_N:
+            discoverLocation.query.display = DisplayModes.TOP5;
+            // Last field is used as the yAxis
+            discoverLocation.query.yAxis =
+              widget.queries[0].fields[widget.queries[0].fields.length - 1];
+            discoverLocation.query.field = widget.queries[0].fields.slice(0, -1);
+            break;
           default:
             break;
         }
       }
+
+      // Gather all fields and functions used in equations and prepend them to discover columns
+      const termsSet: Set<string> = new Set();
+      widget.queries[0].fields.forEach(field => {
+        if (isEquation(field)) {
+          const parsed = parseArithmetic(stripEquationPrefix(field)).tc;
+          parsed.fields.forEach(({term}) => termsSet.add(term as string));
+          parsed.functions.forEach(({term}) => termsSet.add(term as string));
+        }
+      });
+      termsSet.forEach(term => {
+        const fields = discoverLocation.query.field;
+        if (Array.isArray(fields) && !fields.includes(term)) {
+          fields.unshift(term);
+        }
+      });
+
       const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
         ...discoverLocation.query,
       })}`;

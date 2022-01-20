@@ -40,19 +40,13 @@ type State = {
 
 class VitalDetail extends Component<Props, State> {
   state: State = {
-    eventView: generatePerformanceVitalDetailView(
-      this.props.organization,
-      this.props.location
-    ),
+    eventView: generatePerformanceVitalDetailView(this.props.location, false),
   };
 
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceVitalDetailView(
-        nextProps.organization,
-        nextProps.location
-      ),
+      eventView: generatePerformanceVitalDetailView(nextProps.location, false),
     };
   }
 

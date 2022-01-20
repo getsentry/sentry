@@ -14,15 +14,14 @@ export const Body = styled('div')`
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-columns: 66% auto;
-    align-content: start;
-    gap: ${space(3)};
     padding: ${space(3)} ${space(4)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
+    align-content: start;
+    gap: ${space(3)};
   }
 `;
 
@@ -63,11 +62,9 @@ export const HeaderActions = styled('div')`
  * Heading container that includes margins.
  */
 export const Title = styled('h1')`
-  font-size: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  line-height: 1.2;
-  color: ${p => p.theme.textColor};
-  margin-top: ${space(3)};
+  ${p => p.theme.text.pageTitle};
+  color: ${p => p.theme.headingColor};
+  margin-top: ${space(2)};
   /* TODO(bootstrap) Remove important when bootstrap headings are removed */
   margin-bottom: 0 !important;
   min-height: 30px;
