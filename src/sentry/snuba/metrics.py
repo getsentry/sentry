@@ -221,6 +221,12 @@ class QueryDefinition:
 
     def _parse_offset(self, query_params, paginator_kwargs):
         if not self.orderby:
+            cursor = query_params.get("cursor")
+            if cursor is not None:
+                # If order by is not None, it means we will have a `series` query which cannot be
+                # paginated, and passing a `per_page` url param to paginate the results is not
+                # possible
+                raise InvalidParams("'cursor' is only supported in combination with 'orderBy'")
             return None
         return paginator_kwargs.get("offset")
 

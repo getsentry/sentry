@@ -374,6 +374,25 @@ class OrganizationMetricDataTest(APITestCase):
         )
 
     @with_feature(FEATURE_FLAG)
+    def test_pagination_offset_without_orderby(self):
+        """
+        Test that ensures an exception is raised when pagination `per_page` parameter is sent
+        without order by being set
+        """
+        response = self.get_response(
+            self.organization.slug,
+            field="count(sentry.transactions.measurements.lcp)",
+            datasource="snuba",
+            groupBy="transaction",
+            cursor=Cursor(0, 1),
+        )
+        assert response.status_code == 400
+        print(response.json())
+        assert response.json()["detail"] == (
+            "'cursor' is only supported in combination with 'orderBy'"
+        )
+
+    @with_feature(FEATURE_FLAG)
     def test_statsperiod_invalid(self):
         response = self.get_response(
             self.project.organization.slug,
