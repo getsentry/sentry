@@ -16,7 +16,7 @@ class RegressionActivityNotification(GroupActivityNotification):
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
-        self.version = self.activity.data.get("version")
+        self.version = self.activity.data.get("version", "")
         self.version_parsed = parse_release(self.version)["description"]
 
     def get_activity_name(self) -> str:
