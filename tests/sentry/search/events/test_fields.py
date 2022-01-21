@@ -9,7 +9,6 @@ from sentry import eventstore
 from sentry.search.events.fields import (
     COMBINATORS,
     FUNCTIONS,
-    FunctionDetails,
     InvalidSearchQuery,
     QueryFields,
     get_json_meta_type,
@@ -18,6 +17,7 @@ from sentry.search.events.fields import (
     parse_function,
     resolve_field_list,
 )
+from sentry.search.events.types import FunctionDetails
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import Dataset
 

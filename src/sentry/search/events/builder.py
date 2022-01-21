@@ -391,6 +391,7 @@ class QueryBuilder:
 
         orderby_columns: List[str] = orderby if orderby else []
 
+        resolved_orderby: Union[str, SelectType, None]
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
             try:
@@ -403,7 +404,10 @@ class QueryBuilder:
 
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
 
-            if is_function(bare_orderby):
+            if is_function(bare_orderby) and (
+                isinstance(resolved_orderby, Function)
+                or isinstance(resolved_orderby, CurriedFunction)
+            ):
                 bare_orderby = resolved_orderby.alias
 
             for selected_column in self.columns:
@@ -562,7 +566,7 @@ class QueryBuilder:
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
         # start or end a query with an operator.
-        prev = None
+        prev: Union[ParsedTerm, None] = None
         new_terms = []
         term = None
         for term in terms:
@@ -992,7 +996,7 @@ class QueryBuilder:
             raise InvalidSearchQuery(f"{function} is not a valid function")
 
         arguments = parse_arguments(function, match.group("columns"))
-        alias = match.group("alias")
+        alias: Union[str, Any, None] = match.group("alias")
 
         if alias is None:
             alias = get_function_alias_with_columns(raw_function, arguments)
@@ -1004,7 +1008,7 @@ class QueryBuilder:
 
         ie. any_user_display -> any(user_display)
         """
-        return self.function_alias_map[function.alias].field
+        return self.function_alias_map[function.alias].field  # type: ignore
 
 
 class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
