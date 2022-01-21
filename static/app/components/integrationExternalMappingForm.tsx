@@ -31,7 +31,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
     return {
       provider: integration.provider.key,
       integrationId: integration.id,
-      ...pick(mapping, ['externalName', 'sentryName', 'userId', 'teamId']),
+      ...pick(mapping, ['id', 'externalName', 'sentryName', 'userId', 'teamId']),
     };
   }
 
@@ -93,29 +93,21 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
   }
 
   get extraFormFieldProps() {
-    const {isInline, mapping, type} = this.props;
+    const {isInline} = this.props;
     return isInline
       ? {
           // We need to submit the entire model since it could be a new one or an update
           getData: () => this.model.getData(),
           // We need to update the model onBlur for inline forms since the model's 'onPreSubmit' hook
           // does NOT run when using `saveOnBlur`.
-          onBlur: value => {
-            if (!mapping) {
-              return;
-            }
-            const updatedMapping = {
-              ...mapping,
-              [`${type}Id`]: value,
-            };
-            this.updateModelFromMapping(updatedMapping);
-          },
+          onBlur: () => this.updateModel(),
         }
       : {flexibleControlStateSize: true};
   }
 
   // This function is necessary since the endpoint we submit to changes depending on the value selected
-  updateModelFromMapping(mapping?: ExternalActorMapping) {
+  updateModel() {
+    const mapping = this.model.getData() as ExternalActorMapping;
     const {getBaseFormEndpoint} = this.props;
     if (mapping) {
       const endpointDetails = getExternalActorEndpointDetails(
@@ -139,10 +131,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
           onSubmitError={onSubmitError}
           saveOnBlur={isInline}
           allowUndo={isInline}
-          onPreSubmit={() => {
-            const finalMapping = this.model.getData();
-            this.updateModelFromMapping(finalMapping as ExternalActorMapping);
-          }}
+          onPreSubmit={() => this.updateModel()}
         >
           {this.formFields.map(field => (
             <FieldFromConfig
