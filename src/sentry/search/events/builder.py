@@ -120,64 +120,6 @@ class QueryBuilder:  # type: ignore
         self.orderby = self.resolve_orderby(orderby)
         self.array_join = None if array_join is None else self.resolve_column(array_join)
 
-    @property
-    def groupby(self) -> Optional[List[SelectType]]:
-        if self.aggregates:
-            self.validate_aggregate_arguments()
-            return [
-                c
-                for c in self.columns
-                if c not in self.aggregates and not self.is_equation_column(c)
-            ]
-        else:
-            return []
-
-    @cached_property  # type: ignore
-    def project_slugs(self) -> Mapping[str, int]:
-        project_ids = cast(List[int], self.params.get("project_id", []))
-
-        if len(project_ids) > 0:
-            project_slugs = Project.objects.filter(id__in=project_ids)
-        else:
-            project_slugs = []
-
-        return {p.slug: p.id for p in project_slugs}
-
-    def aliased_column(self, name: str) -> SelectType:
-        """Given an unresolved sentry name and an expected alias, return a snql
-        column that will be aliased to the expected alias.
-
-        :param name: The unresolved sentry name.
-        :param alias: The expected alias in the result.
-        """
-
-        # TODO: This method should use an aliased column from the SDK once
-        # that is available to skip these hacks that we currently have to
-        # do aliasing.
-        resolved = self.resolve_column_name(name)
-        column = Column(resolved)
-
-        # If the expected alias is identical to the resolved snuba column,
-        # no need to do this aliasing trick.
-        #
-        # Additionally, tags of the form `tags[...]` can't be aliased again
-        # because it confuses the sdk.
-        if name == resolved:
-            return column
-
-        # If the expected aliases differs from the resolved snuba column,
-        # make sure to alias the expression appropriately so we get back
-        # the column with the correct names.
-        return AliasedExpression(column, name)
-
-    def column(self, name: str) -> Column:
-        """Given an unresolved sentry name and return a snql column.
-
-        :param name: The unresolved sentry name.
-        """
-        resolved_column = self.resolve_column_name(name)
-        return Column(resolved_column)
-
     def load_config(self):
         from sentry.search.events.dataset import DiscoverDatasetConfig
 
@@ -193,45 +135,37 @@ class QueryBuilder:  # type: ignore
 
         return field_alias_converter, function_converter, search_filter_converter
 
-    def get_snql_query(self) -> Query:
-        self.validate_having_clause()
+    def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[LimitBy]:
+        if limitby is None:
+            return None
 
-        return Query(
-            dataset=self.dataset.value,
-            match=Entity(self.dataset.value, sample=self.sample_rate),
-            select=self.columns,
-            array_join=self.array_join,
-            where=self.where,
-            having=self.having,
-            groupby=self.groupby,
-            orderby=self.orderby,
-            limit=self.limit,
-            offset=self.offset,
-            limitby=self.limitby,
-            turbo=self.turbo,
-        )
+        column, count = limitby
+        resolved = self.resolve_column(column)
 
-    def validate_aggregate_arguments(self) -> None:
-        for column in self.columns:
-            if column in self.aggregates:
-                continue
-            conflicting_functions: List[CurriedFunction] = []
-            for aggregate in self.aggregates:
-                if column in aggregate.parameters:
-                    conflicting_functions.append(aggregate)
-            if conflicting_functions:
-                # The first two functions and then a trailing count of remaining functions
-                function_msg = ", ".join(
-                    [self.get_public_alias(function) for function in conflicting_functions[:2]]
-                ) + (
-                    f" and {len(conflicting_functions) - 2} more."
-                    if len(conflicting_functions) > 2
-                    else ""
-                )
-                alias = column.name if type(column) == Column else column.alias
-                raise InvalidSearchQuery(
-                    f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): {function_msg}"
-                )
+        if isinstance(resolved, Column):
+            return LimitBy(resolved, count)
+
+        # TODO: Limit By can only operate on a `Column`. This has the implication
+        # that non aggregate transforms are not allowed in the order by clause.
+        raise InvalidSearchQuery(f"{column} used in a limit by but is not a column.")
+
+    def resolve_conditions(
+        self,
+        query: Optional[str],
+        use_aggregate_conditions: bool,
+    ) -> Tuple[List[WhereType], List[WhereType]]:
+        parsed_terms = self.parse_query(query)
+
+        self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
+        if any(
+            isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
+            for term in parsed_terms
+        ):
+            where, having = self.resolve_boolean_conditions(parsed_terms, use_aggregate_conditions)
+        else:
+            where = self.resolve_where(parsed_terms)
+            having = self.resolve_having(parsed_terms, use_aggregate_conditions)
+        return where, having
 
     @property
     def flattened_having(self) -> List[Condition]:
@@ -285,6 +219,86 @@ class QueryBuilder:  # type: ignore
                             error_extra,
                         )
                     )
+
+    def resolve_where(self, parsed_terms: ParsedTerms) -> List[WhereType]:
+        """Given a list of parsed terms, construct their equivalent snql where
+        conditions. filtering out any aggregates"""
+        where_conditions: List[WhereType] = []
+        for term in parsed_terms:
+            if isinstance(term, SearchFilter):
+                condition = self.format_search_filter(term)
+                if condition:
+                    where_conditions.append(condition)
+
+        return where_conditions
+
+    def resolve_having(
+        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
+    ) -> List[WhereType]:
+        """Given a list of parsed terms, construct their equivalent snql having
+        conditions, filtering only for aggregate conditions"""
+
+        if not use_aggregate_conditions:
+            return []
+
+        having_conditions: List[WhereType] = []
+        for term in parsed_terms:
+            if isinstance(term, AggregateFilter):
+                condition = self.convert_aggregate_filter_to_condition(term)
+                if condition:
+                    having_conditions.append(condition)
+
+        return having_conditions
+
+    def resolve_params(self) -> List[WhereType]:
+        """Keys included as url params take precedent if same key is included in search
+        They are also considered safe and to have had access rules applied unlike conditions
+        from the query string.
+        """
+        conditions = []
+
+        # start/end are required so that we can run a query in a reasonable amount of time
+        if "start" not in self.params or "end" not in self.params:
+            raise InvalidSearchQuery("Cannot query without a valid date range")
+        start, end = self.params["start"], self.params["end"]
+        # Update start to be within retention
+        expired, start = outside_retention_with_modified_start(
+            start, end, Organization(self.params.get("organization_id"))
+        )
+
+        # TODO: this validation should be done when we create the params dataclass instead
+        assert isinstance(start, datetime) and isinstance(
+            end, datetime
+        ), "Both start and end params must be datetime objects"
+        assert all(
+            isinstance(project_id, int) for project_id in self.params.get("project_id", [])
+        ), "All project id params must be ints"
+        if expired:
+            raise QueryOutsideRetentionError(
+                "Invalid date range. Please try a more recent date range."
+            )
+
+        conditions.append(Condition(self.column("timestamp"), Op.GTE, start))
+        conditions.append(Condition(self.column("timestamp"), Op.LT, end))
+
+        if "project_id" in self.params:
+            conditions.append(
+                Condition(
+                    self.column("project_id"),
+                    Op.IN,
+                    self.params["project_id"],
+                )
+            )
+
+        if "environment" in self.params:
+            term = SearchFilter(
+                SearchKey("environment"), "=", SearchValue(self.params["environment"])
+            )
+            condition = self._environment_filter_converter(term)
+            if condition:
+                conditions.append(condition)
+
+        return conditions
 
     def resolve_select(
         self, selected_columns: Optional[List[str]], equations: Optional[List[str]]
@@ -346,119 +360,181 @@ class QueryBuilder:  # type: ignore
 
         return resolved_columns
 
-    def resolve_where(self, parsed_terms: ParsedTerms) -> List[WhereType]:
-        """Given a list of parsed terms, construct their equivalent snql where
-        conditions. filtering out any aggregates"""
-        where_conditions: List[WhereType] = []
-        for term in parsed_terms:
-            if isinstance(term, SearchFilter):
-                condition = self.format_search_filter(term)
-                if condition:
-                    where_conditions.append(condition)
-
-        return where_conditions
-
-    def resolve_having(
-        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
-    ) -> List[WhereType]:
-        """Given a list of parsed terms, construct their equivalent snql having
-        conditions, filtering only for aggregate conditions"""
-
-        if not use_aggregate_conditions:
-            return []
-
-        having_conditions: List[WhereType] = []
-        for term in parsed_terms:
-            if isinstance(term, AggregateFilter):
-                condition = self.convert_aggregate_filter_to_condition(term)
-                if condition:
-                    having_conditions.append(condition)
-
-        return having_conditions
-
-    def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[LimitBy]:
-        if limitby is None:
-            return None
-
-        column, count = limitby
-        resolved = self.resolve_column(column)
-
-        if isinstance(resolved, Column):
-            return LimitBy(resolved, count)
-
-        # TODO: Limit By can only operate on a `Column`. This has the implication
-        # that non aggregate transforms are not allowed in the order by clause.
-        raise InvalidSearchQuery(f"{column} used in a limit by but is not a column.")
-
-    def resolve_params(self) -> List[WhereType]:
-        """Keys included as url params take precedent if same key is included in search
-        They are also considered safe and to have had access rules applied unlike conditions
-        from the query string.
+    def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
+        """Given a list of public aliases, optionally prefixed by a `-` to
+        represent direction, construct a list of Snql Orderbys
         """
-        conditions = []
+        validated: List[OrderBy] = []
 
-        # start/end are required so that we can run a query in a reasonable amount of time
-        if "start" not in self.params or "end" not in self.params:
-            raise InvalidSearchQuery("Cannot query without a valid date range")
-        start, end = self.params["start"], self.params["end"]
-        # Update start to be within retention
-        expired, start = outside_retention_with_modified_start(
-            start, end, Organization(self.params.get("organization_id"))
+        if orderby is None:
+            return validated
+
+        if isinstance(orderby, str):
+            if not orderby:
+                return validated
+
+            orderby = [orderby]
+
+        orderby_columns: List[str] = orderby if orderby else []
+
+        for orderby in orderby_columns:
+            bare_orderby = orderby.lstrip("-")
+            try:
+                if is_equation_alias(bare_orderby):
+                    resolved_orderby = bare_orderby
+                else:
+                    resolved_orderby = self.resolve_column(bare_orderby)
+            except NotImplementedError:
+                resolved_orderby = None
+
+            direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
+
+            if is_function(bare_orderby):
+                bare_orderby = resolved_orderby.alias
+
+            for selected_column in self.columns:
+                if isinstance(selected_column, Column) and selected_column == resolved_orderby:
+                    validated.append(OrderBy(selected_column, direction))
+                    break
+
+                elif (
+                    isinstance(selected_column, AliasedExpression)
+                    and selected_column.alias == bare_orderby
+                ):
+                    # We cannot directly order by an `AliasedExpression`.
+                    # Instead, we order by the column inside.
+                    validated.append(OrderBy(selected_column.exp, direction))
+                    break
+
+                elif (
+                    isinstance(selected_column, CurriedFunction)
+                    and selected_column.alias == bare_orderby
+                ):
+                    validated.append(OrderBy(selected_column, direction))
+                    break
+
+        if len(validated) == len(orderby_columns):
+            return validated
+
+    def resolve_column(self, field: str, alias: bool = False) -> SelectType:
+        """Given a public field, construct the corresponding Snql, this
+        function will determine the type of the field alias, whether its a
+        column, field alias or function and call the corresponding resolver
+
+        :param field: The public field string to resolve into Snql. This may
+                      be a column, field alias, or even a function.
+        :param alias: Whether or not the resolved column is aliased to the
+                      original name. If false, it may still have an alias
+                      but is not guaranteed.
+        """
+        match = is_function(field)
+        if match:
+            return self.resolve_function(field, match)
+        elif self.is_field_alias(field):
+            return self.resolve_field_alias(field)
+        else:
+            return self.resolve_field(field, alias=alias)
+
+    def get_snql_query(self) -> Query:
+        self.validate_having_clause()
+
+        return Query(
+            dataset=self.dataset.value,
+            match=Entity(self.dataset.value, sample=self.sample_rate),
+            select=self.columns,
+            array_join=self.array_join,
+            where=self.where,
+            having=self.having,
+            groupby=self.groupby,
+            orderby=self.orderby,
+            limit=self.limit,
+            offset=self.offset,
+            limitby=self.limitby,
+            turbo=self.turbo,
         )
 
-        # TODO: this validation should be done when we create the params dataclass instead
-        assert isinstance(start, datetime) and isinstance(
-            end, datetime
-        ), "Both start and end params must be datetime objects"
-        assert all(
-            isinstance(project_id, int) for project_id in self.params.get("project_id", [])
-        ), "All project id params must be ints"
-        if expired:
-            raise QueryOutsideRetentionError(
-                "Invalid date range. Please try a more recent date range."
-            )
-
-        conditions.append(Condition(self.column("timestamp"), Op.GTE, start))
-        conditions.append(Condition(self.column("timestamp"), Op.LT, end))
-
-        if "project_id" in self.params:
-            conditions.append(
-                Condition(
-                    self.column("project_id"),
-                    Op.IN,
-                    self.params["project_id"],
-                )
-            )
-
-        if "environment" in self.params:
-            term = SearchFilter(
-                SearchKey("environment"), "=", SearchValue(self.params["environment"])
-            )
-            condition = self._environment_filter_converter(term)
-            if condition:
-                conditions.append(condition)
-
-        return conditions
-
-    # Query filter helper functions
-    def resolve_conditions(
-        self,
-        query: Optional[str],
-        use_aggregate_conditions: bool,
-    ) -> Tuple[List[WhereType], List[WhereType]]:
-        parsed_terms = self.parse_query(query)
-
-        self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
-        if any(
-            isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
-            for term in parsed_terms
-        ):
-            where, having = self.resolve_boolean_conditions(parsed_terms, use_aggregate_conditions)
+    @property
+    def groupby(self) -> Optional[List[SelectType]]:
+        if self.aggregates:
+            self.validate_aggregate_arguments()
+            return [
+                c
+                for c in self.columns
+                if c not in self.aggregates and not self.is_equation_column(c)
+            ]
         else:
-            where = self.resolve_where(parsed_terms)
-            having = self.resolve_having(parsed_terms, use_aggregate_conditions)
-        return where, having
+            return []
 
+    def validate_aggregate_arguments(self) -> None:
+        for column in self.columns:
+            if column in self.aggregates:
+                continue
+            conflicting_functions: List[CurriedFunction] = []
+            for aggregate in self.aggregates:
+                if column in aggregate.parameters:
+                    conflicting_functions.append(aggregate)
+            if conflicting_functions:
+                # The first two functions and then a trailing count of remaining functions
+                function_msg = ", ".join(
+                    [self.get_public_alias(function) for function in conflicting_functions[:2]]
+                ) + (
+                    f" and {len(conflicting_functions) - 2} more."
+                    if len(conflicting_functions) > 2
+                    else ""
+                )
+                alias = column.name if type(column) == Column else column.alias
+                raise InvalidSearchQuery(
+                    f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): {function_msg}"
+                )
+
+    @cached_property  # type: ignore
+    def project_slugs(self) -> Mapping[str, int]:
+        project_ids = cast(List[int], self.params.get("project_id", []))
+
+        if len(project_ids) > 0:
+            project_slugs = Project.objects.filter(id__in=project_ids)
+        else:
+            project_slugs = []
+
+        return {p.slug: p.id for p in project_slugs}
+
+    # General helper methods
+    def aliased_column(self, name: str) -> SelectType:
+        """Given an unresolved sentry name and an expected alias, return a snql
+        column that will be aliased to the expected alias.
+
+        :param name: The unresolved sentry name.
+        :param alias: The expected alias in the result.
+        """
+
+        # TODO: This method should use an aliased column from the SDK once
+        # that is available to skip these hacks that we currently have to
+        # do aliasing.
+        resolved = self.resolve_column_name(name)
+        column = Column(resolved)
+
+        # If the expected alias is identical to the resolved snuba column,
+        # no need to do this aliasing trick.
+        #
+        # Additionally, tags of the form `tags[...]` can't be aliased again
+        # because it confuses the sdk.
+        if name == resolved:
+            return column
+
+        # If the expected aliases differs from the resolved snuba column,
+        # make sure to alias the expression appropriately so we get back
+        # the column with the correct names.
+        return AliasedExpression(column, name)
+
+    def column(self, name: str) -> Column:
+        """Given an unresolved sentry name and return a snql column.
+
+        :param name: The unresolved sentry name.
+        """
+        resolved_column = self.resolve_column_name(name)
+        return Column(resolved_column)
+
+    # Query filter helper methods
     def resolve_boolean_conditions(
         self, terms: ParsedTerms, use_aggregate_conditions: bool
     ) -> Tuple[List[WhereType], List[WhereType]]:
@@ -759,26 +835,7 @@ class QueryBuilder:  # type: ignore
         else:
             return env_conditions[0]
 
-    # Query Fields helper functions
-    def resolve_column(self, field: str, alias: bool = False) -> SelectType:
-        """Given a public field, construct the corresponding Snql, this
-        function will determine the type of the field alias, whether its a
-        column, field alias or function and call the corresponding resolver
-
-        :param field: The public field string to resolve into Snql. This may
-                      be a column, field alias, or even a function.
-        :param alias: Whether or not the resolved column is aliased to the
-                      original name. If false, it may still have an alias
-                      but is not guaranteed.
-        """
-        match = is_function(field)
-        if match:
-            return self.resolve_function(field, match)
-        elif self.is_field_alias(field):
-            return self.resolve_field_alias(field)
-        else:
-            return self.resolve_field(field, alias=alias)
-
+    # Query Fields helper methods
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         """Given a public field, resolve the alias based on the Query's
         dataset and return the Snql Column
@@ -815,62 +872,6 @@ class QueryBuilder:  # type: ignore
 
     def is_column_function(self, column: SelectType) -> bool:
         return isinstance(column, CurriedFunction) and column not in self.aggregates
-
-    def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
-        """Given a list of public aliases, optionally prefixed by a `-` to
-        represent direction, construct a list of Snql Orderbys
-        """
-        validated: List[OrderBy] = []
-
-        if orderby is None:
-            return validated
-
-        if isinstance(orderby, str):
-            if not orderby:
-                return validated
-
-            orderby = [orderby]
-
-        orderby_columns: List[str] = orderby if orderby else []
-
-        for orderby in orderby_columns:
-            bare_orderby = orderby.lstrip("-")
-            try:
-                if is_equation_alias(bare_orderby):
-                    resolved_orderby = bare_orderby
-                else:
-                    resolved_orderby = self.resolve_column(bare_orderby)
-            except NotImplementedError:
-                resolved_orderby = None
-
-            direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
-
-            if is_function(bare_orderby):
-                bare_orderby = resolved_orderby.alias
-
-            for selected_column in self.columns:
-                if isinstance(selected_column, Column) and selected_column == resolved_orderby:
-                    validated.append(OrderBy(selected_column, direction))
-                    break
-
-                elif (
-                    isinstance(selected_column, AliasedExpression)
-                    and selected_column.alias == bare_orderby
-                ):
-                    # We cannot directly order by an `AliasedExpression`.
-                    # Instead, we order by the column inside.
-                    validated.append(OrderBy(selected_column.exp, direction))
-                    break
-
-                elif (
-                    isinstance(selected_column, CurriedFunction)
-                    and selected_column.alias == bare_orderby
-                ):
-                    validated.append(OrderBy(selected_column, direction))
-                    break
-
-        if len(validated) == len(orderby_columns):
-            return validated
 
         # TODO: This is no longer true, can order by fields that aren't selected, keeping
         # for now so we're consistent with the existing functionality
@@ -986,32 +987,6 @@ class QueryBuilder:  # type: ignore
         ie. any_user_display -> any(user_display)
         """
         return self.function_alias_map[function.alias].field
-
-    # Field Aliases
-    def _resolve_project_slug_alias(self, alias: str) -> SelectType:
-        project_ids = {
-            project_id
-            for project_id in self.params.get("project_id", [])
-            if isinstance(project_id, int)
-        }
-
-        # Try to reduce the size of the transform by using any existing conditions on projects
-        # Do not optimize projects list if conditions contain OR operator
-        if not self.has_or_condition and len(self.projects_to_filter) > 0:
-            project_ids &= self.projects_to_filter
-
-        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
-
-        return Function(
-            "transform",
-            [
-                self.column("project.id"),
-                [project["id"] for project in projects],
-                [project["slug"] for project in projects],
-                "",
-            ],
-            alias,
-        )
 
 
 class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
