@@ -67,6 +67,7 @@ from sentry.search.utils import parse_release
 from sentry.utils.numbers import format_grouped_length
 
 from .fields import (
+    MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
     ColumnArg,
     ColumnTagArg,
     ConditionArg,
@@ -87,8 +88,6 @@ from .fields import (
     reflective_result_type,
     with_default,
 )
-
-MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
 
 
 class DatasetConfig(abc.ABC):
