@@ -125,7 +125,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
           this.setState({
             newlyAssociatedMappings: [
               ...this.state.newlyAssociatedMappings.filter(
-                map => map.externalName === newMapping.externalName
+                map => map.externalName !== newMapping.externalName
               ),
               newMapping as ExternalActorMapping,
             ],
