@@ -11,6 +11,21 @@ LABEL org.opencontainers.image.authors="oss@sentry.io"
 ENV PIP_NO_CACHE_DIR=1 \
   PIP_DISABLE_PIP_VERSION_CHECK=1
 
+# replace deb sources
+RUN mv /etc/apt/sources.list /etc/apt/sources.list.bakevan \
+    && echo "deb http://mirrors.cloud.tencent.com/debian/ buster main non-free contrib" >>/etc/apt/sources.list \
+    && echo "deb http://mirrors.cloud.tencent.com/debian-security buster/updates main" >>/etc/apt/sources.list \
+    && echo "deb http://mirrors.cloud.tencent.com/debian/ buster-updates main non-free contrib" >>/etc/apt/sources.list \
+    && echo "deb http://mirrors.cloud.tencent.com/debian/ buster-backports main non-free contrib" >>/etc/apt/sources.list \
+    && echo "deb-src http://mirrors.cloud.tencent.com/debian/ buster main non-free contrib" >>/etc/apt/sources.list \
+    && echo "deb-src http://mirrors.cloud.tencent.com/debian-security buster/updates main" >>/etc/apt/sources.list \
+    && echo "deb-src http://mirrors.cloud.tencent.com/debian/ buster-updates main non-free contrib" >>/etc/apt/sources.list \
+    && echo "deb-src http://mirrors.cloud.tencent.com/debian/ buster-backports main non-free contrib" >>/etc/apt/sources.list
+
+# replace pipy sources
+RUN pip3 install -i https://pypi.douban.com/simple -U pip \
+    && pip3 config set global.index-url https://pypi.douban.com/simple/
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
   # Needed for fetching stuff
   wget \
@@ -23,7 +38,24 @@ ENV VOLTA_VERSION=0.8.1 \
   VOLTA_HOME=/.volta \
   PATH=/.volta/bin:$PATH
 
-RUN wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" \
+# replace volta download url template
+RUN mkdir -p ${VOLTA_HOME} && touch ${VOLTA_HOME}/hooks.json \
+  && echo '{' >> ${VOLTA_HOME}/hooks.json \
+  && echo '  "node": {' >> ${VOLTA_HOME}/hooks.json \
+  && echo '    "distro": {' >> ${VOLTA_HOME}/hooks.json \
+  && echo '      "template": "https://qa-cos-1251524319.cos.ap-shanghai.myqcloud.com/infra_sentry_mirror/node-v{{version}}-{{os}}-{{arch}}.tar.gz"' >> ${VOLTA_HOME}/hooks.json \
+  && echo '    }' >> ${VOLTA_HOME}/hooks.json \
+  && echo '  },' >> ${VOLTA_HOME}/hooks.json \
+  && echo '  "yarn": {' >> ${VOLTA_HOME}/hooks.json \
+  && echo '    "distro": {' >> ${VOLTA_HOME}/hooks.json \
+  && echo '      "template": "https://qa-cos-1251524319.cos.ap-shanghai.myqcloud.com/infra_sentry_mirror/yarn-v{{version}}.tar.gz"' >> ${VOLTA_HOME}/hooks.json \
+  && echo '    }' >> ${VOLTA_HOME}/hooks.json \
+  && echo '  }' >> ${VOLTA_HOME}/hooks.json \
+  && echo '}' >> ${VOLTA_HOME}/hooks.json
+
+# replaced with COS resources
+# RUN wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" \
+RUN wget "https://qa-cos-1251524319.cos.ap-shanghai.myqcloud.com/infra_sentry_mirror/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" \
   && tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin \
   # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
   && volta -v
