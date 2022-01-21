@@ -509,7 +509,7 @@ def massage_sessions_result(
         for row in rows:
             row[ts_col] = row[ts_col][:19] + "Z"
 
-        rows = list(reversed(rows))  # Time series was ordered DESC
+        rows.sort(key=lambda row: row[ts_col])
         fields = [(name, field, list()) for name, field in query.fields.items()]
         group_index = 0
 
