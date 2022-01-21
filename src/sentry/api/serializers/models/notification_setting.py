@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
+from typing import Any, Iterable, Mapping, MutableMapping, Set, Union
 
 from sentry.api.serializers import Serializer
 from sentry.models import NotificationSetting, Team, User
@@ -66,7 +66,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         obj: Union[Team, User],
         attrs: Mapping[str, Iterable[Any]],
         user: User,
-        **kwargs: Any,
+        type: Iterable[NotificationSettingTypes] | NotificationSettingTypes | None = None,
     ) -> Mapping[str, Mapping[str, Mapping[int, Mapping[str, str]]]]:
         """
         Convert a user or team's NotificationSettings to a python object
@@ -95,14 +95,11 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         :returns A mapping. See example.
         """
         # ensure type is array
-        type_option: Iterable[NotificationSettingTypes] | Optional[
-            NotificationSettingTypes
-        ] = kwargs.get("type")
-        if type_option:
-            if isinstance(type_option, Iterable):
-                types_to_serialize = set(type_option)
+        if type:
+            if isinstance(type, Iterable):
+                types_to_serialize = set(type)
             else:
-                types_to_serialize = {type_option}
+                types_to_serialize = {type}
         else:
             types_to_serialize = set(VALID_VALUES_FOR_KEY.keys())
 
