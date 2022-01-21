@@ -1,4 +1,5 @@
 import itertools
+import logging
 import math
 from datetime import datetime, timedelta
 from enum import Enum
@@ -10,6 +11,9 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.search.events.filter import get_filter
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import Dataset, raw_query, resolve_condition
+
+logger = logging.getLogger(__name__)
+
 
 """
 The new Sessions API defines a "metrics"-like interface which is can be used in
@@ -310,6 +314,10 @@ ONE_DAY = timedelta(days=1).total_seconds()
 ONE_HOUR = timedelta(hours=1).total_seconds()
 ONE_MINUTE = timedelta(minutes=1).total_seconds()
 
+#: Snuba applies a default limit of 1000, let's make it explicit here.
+#: https://github.com/getsentry/snuba/blob/69862db3ad224b48810ac1bb3001e4c446bf0aff/snuba/query/snql/parser.py#L908-L909
+SNUBA_LIMIT = 1000
+
 
 class InvalidParams(Exception):
     pass
@@ -426,6 +434,11 @@ def _run_sessions_query(query):
         referrer="sessions.totals",
     )
 
+    # For the time series query, we order the results by descending timestamp,
+    # such that if the maximum snuba limit is surpassed, we get consistent results
+    # for the end of the time range:
+    orderby = [f"-{TS_COL}"]
+
     result_timeseries = raw_query(
         dataset=Dataset.Sessions,
         selected_columns=[TS_COL] + query.query_columns,
@@ -436,8 +449,20 @@ def _run_sessions_query(query):
         start=query.start,
         end=query.end,
         rollup=query.rollup,
+        orderby=orderby,
+        limit=SNUBA_LIMIT,
         referrer="sessions.timeseries",
     )
+    if len(result_timeseries["data"]) == SNUBA_LIMIT:
+        # We know that for every row returned by the "totals" query, we expect
+        # (end-start)/rollup rows in the "series" query:
+        expected_results = len(result_totals["data"]) * len(get_timestamps(query))
+        logger.error(
+            "sessions_v2.snuba_limit_exceeded",
+            extra={
+                "expected_num_rows": expected_results,
+            },
+        )
 
     return result_totals["data"], result_timeseries["data"]
 
@@ -484,7 +509,7 @@ def massage_sessions_result(
         for row in rows:
             row[ts_col] = row[ts_col][:19] + "Z"
 
-        rows.sort(key=lambda row: row[ts_col])
+        rows = list(reversed(rows))  # Time series was ordered DESC
         fields = [(name, field, list()) for name, field in query.fields.items()]
         group_index = 0
 
