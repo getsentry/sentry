@@ -103,6 +103,8 @@ class Dashboard extends Component<Props, State> {
 
   static getDerivedStateFromProps(props, state) {
     if (props.organization.features.includes('dashboard-grid-layout')) {
+      // If the user clicks "Cancel" and the dashboard resets,
+      // recalculate the layout to revert to the unmodified state
       const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
       if (!isEqual(dashboardLayout, state.layouts[DESKTOP])) {
         return {
