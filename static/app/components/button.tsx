@@ -29,7 +29,7 @@ type Props = {
   title?: React.ComponentProps<typeof Tooltip>['title'];
   external?: boolean;
   borderless?: boolean;
-  label?: string;
+  'aria-label'?: string;
   tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
@@ -40,7 +40,8 @@ type Props = {
   children?: React.ReactNode;
 };
 
-type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> & Props;
+type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref' | 'label'> &
+  Props;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
@@ -52,7 +53,7 @@ function BaseButton({
   title,
   icon,
   children,
-  label,
+  'aria-label': ariaLabel,
   borderless,
   align = 'center',
   priority,
@@ -83,7 +84,7 @@ function BaseButton({
 
   // For `aria-label`
   const screenReaderLabel =
-    label || (typeof children === 'string' ? children : undefined);
+    ariaLabel || (typeof children === 'string' ? children : undefined);
 
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
   // Let's use props to determine which to serve up, so we don't have to think about it.

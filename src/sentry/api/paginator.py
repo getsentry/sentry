@@ -316,9 +316,7 @@ class MergingOffsetPaginator(OffsetPaginator):
 
         queryset = self.apply_to_queryset(self.queryset, primary_results)
 
-        mapping = {}
-        for model in queryset:
-            mapping[self.key_from_model(model)] = model
+        mapping = {self.key_from_model(model): model for model in queryset}
 
         results = []
         for row in primary_results:

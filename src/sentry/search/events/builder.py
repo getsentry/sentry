@@ -58,7 +58,7 @@ class QueryBuilder(QueryFilter):  # type: ignore
 
         self.columns = self.resolve_select(selected_columns, equations)
         self.orderby = self.resolve_orderby(orderby)
-        self.array_join = None if array_join is None else self.resolve_column(array_join)
+        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
     def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[LimitBy]:
         if limitby is None:
@@ -68,7 +68,7 @@ class QueryBuilder(QueryFilter):  # type: ignore
         resolved = self.resolve_column(column)
 
         if isinstance(resolved, Column):
-            return LimitBy(resolved, count)
+            return LimitBy([resolved], count)
 
         # TODO: Limit By can only operate on a `Column`. This has the implication
         # that non aggregate transforms are not allowed in the order by clause.

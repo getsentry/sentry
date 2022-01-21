@@ -10,6 +10,7 @@ from operator import itemgetter
 from typing import (
     Any,
     Collection,
+    Dict,
     List,
     Literal,
     Mapping,
@@ -156,7 +157,8 @@ class QueryDefinition:
 
     """
 
-    def __init__(self, query_params):
+    def __init__(self, query_params, paginator_kwargs: Optional[Dict] = None):
+        paginator_kwargs = paginator_kwargs or {}
 
         self.query = query_params.get("query", "")
         self.parsed_query = parse_query(self.query) if self.query else None
@@ -169,7 +171,8 @@ class QueryDefinition:
         self.fields = {key: parse_field(key) for key in raw_fields}
 
         self.orderby = self._parse_orderby(query_params)
-        self.limit = self._parse_limit(query_params)
+        self.limit = self._parse_limit(query_params, paginator_kwargs)
+        self.offset = self._parse_offset(query_params, paginator_kwargs)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -196,10 +199,15 @@ class QueryDefinition:
 
         return (op, metric_name), direction
 
-    def _parse_limit(self, query_params):
-        limit = query_params.get("limit", None)
-        if not self.orderby and limit:
-            raise InvalidParams("'limit' is only supported in combination with 'orderBy'")
+    def _parse_limit(self, query_params, paginator_kwargs):
+        limit = paginator_kwargs.get("limit")
+        if not self.orderby:
+            per_page = query_params.get("per_page")
+            if per_page is not None:
+                # If order by is not None, it means we will have a `series` query which cannot be
+                # paginated, and passing a `per_page` url param to paginate the results is not
+                # possible
+                raise InvalidParams("'per_page' is only supported in combination with 'orderBy'")
 
         if limit is not None:
             try:
@@ -210,6 +218,17 @@ class QueryDefinition:
                 raise InvalidParams("'limit' must be integer >= 1")
 
         return limit
+
+    def _parse_offset(self, query_params, paginator_kwargs):
+        if not self.orderby:
+            cursor = query_params.get("cursor")
+            if cursor is not None:
+                # If order by is not None, it means we will have a `series` query which cannot be
+                # paginated, and passing a `per_page` url param to paginate the results is not
+                # possible
+                raise InvalidParams("'cursor' is only supported in combination with 'orderBy'")
+            return None
+        return paginator_kwargs.get("offset")
 
 
 class TimeRange(Protocol):
@@ -706,7 +725,7 @@ class SnubaQueryBuilder:
             select=list(self._build_select(entity, fields)),
             where=where,
             limit=Limit(query_definition.limit or MAX_POINTS),
-            offset=Offset(0),
+            offset=Offset(query_definition.offset or 0),
             granularity=Granularity(query_definition.rollup),
             orderby=self._build_orderby(query_definition, entity),
         )
@@ -1117,9 +1136,6 @@ class SnubaDataSource(DataSource):
             # This query contains an order by clause, and so we are only interested in the
             # "totals" query
             initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
-            # ToDo(ahmed): Change this to accept the limit from the api request with a fallback to
-            #  50 elements if more than 50 elements are to be requested
-            initial_snuba_query = initial_snuba_query.set_limit(50)
 
             initial_query_results = raw_snql_query(
                 initial_snuba_query, use_cache=False, referrer="api.metrics.totals.initial_query"
@@ -1190,6 +1206,10 @@ class SnubaDataSource(DataSource):
                             Condition(lhs_condition, Op.IN, Function("tuple", condition_value))
                         ]
                     snuba_query = snuba_query.set_where(where)
+                    # Set the limit of the second query to be the provided limits multiplied by
+                    # the number of the metrics requested in the query in this specific entity
+                    snuba_query = snuba_query.set_limit(query.limit * len(snuba_query.select))
+                    snuba_query = snuba_query.set_offset(0)
 
                     snuba_query_res = raw_snql_query(
                         snuba_query, use_cache=False, referrer="api.metrics.totals.second_query"
@@ -1226,18 +1246,21 @@ class SnubaDataSource(DataSource):
                     #     }
                     # }
                     for group_tuple in ordered_tag_conditions[groupby_tags]:
-                        results[entity]["totals"]["data"] += snuba_query_data_dict[group_tuple]
+                        results[entity]["totals"]["data"] += snuba_query_data_dict.get(
+                            group_tuple, []
+                        )
         else:
             snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
-            results = {
-                entity: {
-                    # TODO: Should we use cache?
-                    key: raw_snql_query(query, use_cache=False, referrer=f"api.metrics.{key}")
-                    for key, query in queries.items()
-                    if query is not None
-                }
-                for entity, queries in snuba_queries.items()
-            }
+            results = {}
+            for entity, queries in snuba_queries.items():
+                results.setdefault(entity, {})
+                for key, snuba_query in queries.items():
+                    if snuba_query is None:
+                        continue
+
+                    results[entity][key] = raw_snql_query(
+                        snuba_query, use_cache=False, referrer=f"api.metrics.{key}"
+                    )
 
         assert projects
         converter = SnubaResultConverter(projects[0].organization_id, query, intervals, results)

@@ -3,7 +3,6 @@ import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
 
 import {
   createDashboard,
@@ -23,14 +22,19 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Controls from './controls';
-import Dashboard, {assignTempId, constructGridItemKey} from './dashboard';
+import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
+import {
+  assignTempId,
+  constructDashboardWidgetsWithLayout,
+  getDashboardLayout,
+  isLayoutEqual,
+} from './layoutUtils';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
@@ -41,9 +45,6 @@ import {
   Widget,
 } from './types';
 import {cloneDashboard} from './utils';
-
-// Keys for grid layout values we track in the server
-const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
@@ -693,8 +694,6 @@ const StyledPageHeader = styled('div')`
   grid-template-columns: minmax(0, 1fr);
   grid-row-gap: ${space(2)};
   align-items: center;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.textColor};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
@@ -709,46 +708,3 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 export default withApi(withOrganization(DashboardDetail));
-
-/**
- * Reads the layout from an array of widgets.
- */
-function getDashboardLayout(widgets: Widget[]): RGLLayout[] {
-  return widgets
-    .filter(({layout}) => defined(layout))
-    .map(({layout, ...widget}) => ({
-      ...(layout as RGLLayout),
-      i: constructGridItemKey(widget),
-    }));
-}
-
-/**
- * Creates a new DashboardDetails object with the layouts associated with
- * widgets for outgoing requests.
- */
-function constructDashboardWidgetsWithLayout(
-  dashboard: DashboardDetails,
-  layout: RGLLayout[]
-): DashboardDetails {
-  return {
-    ...dashboard,
-    widgets: dashboard.widgets.map(widget => {
-      const matchingLayout = layout.find(({i}) => i === constructGridItemKey(widget));
-      return {...widget, layout: pick(matchingLayout, STORE_KEYS)};
-    }),
-  };
-}
-
-function isLayoutEqual(prevLayouts: RGLLayout[], newLayouts: RGLLayout[]): boolean {
-  // Compares only defined keys we care about storing
-  const normalizeLayout = layout => {
-    const definedKeys = Object.keys(layout).filter(
-      key => STORE_KEYS.includes(key) && defined(layout[key])
-    );
-    return pick(layout, definedKeys);
-  };
-
-  const prevLayoutNormalized = prevLayouts.map(normalizeLayout);
-  const newLayoutNormalized = newLayouts.map(normalizeLayout);
-  return isEqual(prevLayoutNormalized, newLayoutNormalized);
-}
