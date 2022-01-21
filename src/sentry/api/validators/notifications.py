@@ -72,14 +72,7 @@ def validate_types(
     type: str, context: Optional[List[str]] = None
 ) -> List[NotificationSettingTypes]:
     types_split = type.split(",")
-    out = []
-    for one_type in types_split:
-        try:
-            notification_type = {v: k for k, v in NOTIFICATION_SETTING_TYPES.items()}[one_type]
-        except KeyError:
-            raise ParameterValidationError(f"Unknown type: {one_type}", context)
-        out.append(notification_type)
-    return out
+    return list(map(lambda x: validate_type(x, context), types_split))
 
 
 def validate_type(type: str, context: Optional[List[str]] = None) -> NotificationSettingTypes:
