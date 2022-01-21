@@ -70,7 +70,10 @@ class IssueListFilters extends React.Component<Props> {
       >
         {({hasFeature}) => (
           <FilterContainer>
-            <SearchContainer>
+            <SearchContainer
+              hasFeature={hasFeature}
+              hasIssuePercentDisplay={hasIssuePercentDisplay}
+            >
               <ClassNames>
                 {({css}) => (
                   <GuideAnchor
@@ -145,14 +148,26 @@ const FilterContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const SearchContainer = styled('div')`
+const SearchContainer = styled('div')<{
+  hasIssuePercentDisplay?: boolean;
+  hasFeature?: boolean;
+}>`
   display: inline-grid;
   gap: ${space(1)};
   width: 100%;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 2fr 1fr;
-  }
+  ${p =>
+    p.hasFeature
+      ? `
+    @media (min-width: ${p.theme.breakpoints[1]}) {
+      grid-template-columns: 2fr 1fr;
+    }
+  `
+      : `
+    @media (min-width: ${p.theme.breakpoints[p.hasIssuePercentDisplay ? 1 : 0]}) {
+      grid-template-columns: 1fr auto;
+    }
+  }`}
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr;
