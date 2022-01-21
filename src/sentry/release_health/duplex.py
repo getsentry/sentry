@@ -1,4 +1,5 @@
 import collections.abc
+import math
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -665,6 +666,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "max(session.duration)": ComparatorType.Quantile,
         }
         schema_for_series = {field: [comparator] for field, comparator in schema_for_totals.items()}
+
+        # Tag sentry event with relative end time, so we can see if live queries
+        # cause greater deltas:
+        relative_hours = math.ceil((query.end - datetime.now(timezone.utc)).total_seconds() / 3600)
+        set_tag("run_sessions_query.relative_end_time", f"{relative_hours}h")
 
         def index_by(d: Mapping[Any, Any]) -> Any:
             return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
