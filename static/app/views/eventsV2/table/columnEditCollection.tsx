@@ -21,6 +21,7 @@ import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboardsV2/types';
+import {FieldKey} from 'sentry/views/dashboardsV2/widget/issueWidget/fields';
 
 import {generateFieldOptions} from '../utils';
 
@@ -297,9 +298,24 @@ class ColumnEditCollection extends React.Component<Props, State> {
       return top >= thresholdStart && top <= thresholdEnd;
     });
 
+    // Issue column in Issue widgets are fixed (cannot be moved or deleted)
     if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       this.setState({draggingTargetIndex: targetIndex});
     }
+  };
+
+  isFixedIssueColumn = (columnIndex: number) => {
+    const {source, columns} = this.props;
+    const column = columns[columnIndex];
+    const issueFieldColumnCount = columns.filter(
+      col => col.kind === 'field' && col.field === FieldKey.ISSUE
+    ).length;
+    return (
+      issueFieldColumnCount <= 1 &&
+      source === WidgetType.ISSUE &&
+      column.kind === 'field' &&
+      column.field === FieldKey.ISSUE
+    );
   };
 
   onDragEnd = (event: MouseEvent | TouchEvent) => {
@@ -374,7 +390,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
       canDrag = true,
       isGhost = false,
       gridColumns = 2,
-    }: {canDelete?: boolean; canDrag?: boolean; isGhost?: boolean; gridColumns: number}
+      disabled = false,
+    }: {
+      canDelete?: boolean;
+      canDrag?: boolean;
+      isGhost?: boolean;
+      gridColumns: number;
+      disabled?: boolean;
+    }
   ) {
     const {columns, fieldOptions} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
@@ -426,6 +449,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
             shouldRenderTag
+            disabled={disabled}
           />
           {canDelete || col.kind === 'equation' ? (
             <Button
@@ -478,9 +502,18 @@ class ColumnEditCollection extends React.Component<Props, State> {
             </Heading>
           </RowContainer>
         )}
-        {columns.map((col: Column, i: number) =>
-          this.renderItem(col, i, {canDelete, canDrag, gridColumns})
-        )}
+        {columns.map((col: Column, i: number) => {
+          // Issue column in Issue widgets are fixed (cannot be changed or deleted)
+          if (this.isFixedIssueColumn(i)) {
+            return this.renderItem(col, i, {
+              canDelete: false,
+              canDrag,
+              gridColumns,
+              disabled: true,
+            });
+          }
+          return this.renderItem(col, i, {canDelete, canDrag, gridColumns});
+        })}
         <RowContainer>
           <Actions>
             <Button
