@@ -191,7 +191,7 @@ const getDiscoverUrl = (
   const discoverView = EventView.fromSavedQuery({
     ...commonQuery,
     id: undefined,
-    name: '',
+    name: data.title,
     fields: ['title', 'release', 'environment', 'user', 'timestamp'],
     orderby: '-timestamp',
     query: `issue.id:${data.id}${filtered ? data.discoverSearchQuery : ''}`,
