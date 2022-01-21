@@ -16,7 +16,7 @@ logger = logging.getLogger("sentry.integrations.pagerduty")
 def build_incident_attachment(action, incident, integration_key, metric_value=None, method=None):
     data = incident_attachment_info(incident, metric_value, action=action, method=method)
     incident_status = incident_status_info(incident, metric_value, action=action, method=method)
-    severity = ""
+    severity = "info"
     if incident_status == IncidentStatus.CRITICAL:
         severity = "critical"
     elif incident_status == IncidentStatus.WARNING:
