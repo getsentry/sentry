@@ -552,6 +552,7 @@ if (IS_UI_DEV_ONLY) {
   appConfig.optimization = {
     runtimeChunk: 'single',
   };
+  // TODO: remove target "web" when upgrading to webpack-dev-server v4
   appConfig.target = 'web';
 }
 
