@@ -123,7 +123,10 @@ class QueryBuilder:  # type: ignore
     def load_config(self):
         from sentry.search.events.dataset import DiscoverDatasetConfig
 
-        self.config = DiscoverDatasetConfig(self)
+        if self.dataset == Dataset.Discover:
+            self.config = DiscoverDatasetConfig(self)
+        else:
+            raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
         field_alias_converter = self.config.field_alias_converter
 
