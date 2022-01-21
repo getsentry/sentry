@@ -2,7 +2,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
-import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import {Layout, Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
@@ -45,13 +45,6 @@ export const NUM_DESKTOP_COLS = 6;
 const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
-const ADD_BUTTON_POSITION = {
-  x: 0,
-  y: Number.MAX_SAFE_INTEGER,
-  w: 2,
-  h: 1,
-  isResizable: false,
-};
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
@@ -84,6 +77,7 @@ type Props = {
 type State = {
   isMobile: boolean;
   layouts: Layouts;
+  nextAvailablePosition: Partial<Layout>;
 };
 
 class Dashboard extends Component<Props, State> {
@@ -98,6 +92,7 @@ class Dashboard extends Component<Props, State> {
         [DESKTOP]: isUsingGrid ? desktopLayout : [],
         [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
       },
+      nextAvailablePosition: getNextAvailablePosition(desktopLayout),
     };
   }
 
@@ -372,6 +367,7 @@ class Dashboard extends Component<Props, State> {
     };
     this.setState({
       layouts: newLayouts,
+      nextAvailablePosition: getNextAvailablePosition(newLayouts[DESKTOP]),
     });
 
     const newWidgets = dashboard.widgets.map((widget, index) => {
@@ -415,7 +411,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   renderGridDashboard() {
-    const {layouts, isMobile} = this.state;
+    const {layouts, isMobile, nextAvailablePosition} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
     // Filter out any issue widgets if the user does not have the feature flag
@@ -441,7 +437,7 @@ class Dashboard extends Component<Props, State> {
       >
         {widgets.map((widget, index) => this.renderWidget(widget, index))}
         {isEditing && !!!widgetLimitReached && (
-          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={ADD_BUTTON_POSITION}>
+          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={nextAvailablePosition}>
             <AddWidget
               orgFeatures={organization.features}
               onAddWidget={this.handleStartAdd}
@@ -541,3 +537,39 @@ const GridLayout = styled(WidthProvider(Responsive))`
     z-index: 10;
   }
 `;
+
+function getNextAvailablePosition(layouts: Layout[]) {
+  // Returns an array of the first available whitespace (i.e. the end of
+  // the lowest widget) for each column
+  function generateColumnDepths(): Array<number> {
+    const res = Array(NUM_DESKTOP_COLS).fill(0);
+
+    // loop through every layout and for each x, record the max depth
+    layouts
+      .filter(({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID)
+      .forEach(({x, w, y, h}) => {
+        // Take the x -> x + w
+        for (let col = x; col < x + w; col++) {
+          res[col] = Math.max(y + h, res[col]);
+        }
+      });
+
+    return res;
+  }
+
+  const columnDepths = generateColumnDepths();
+  const maxColumnDepth = Math.max(...columnDepths);
+  // Then match the width against the lowest points to find one that fits
+  for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
+    for (let start = 0; start < columnDepths.length - 1; start++) {
+      if (columnDepths[start] > currDepth) {
+        continue;
+      }
+      const end = start + 2;
+      if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
+        return {x: start, y: currDepth, w: 2, h: 1, isResizable: false};
+      }
+    }
+  }
+  return {x: 0, y: maxColumnDepth + 1, w: 2, h: 1, isResizable: false};
+}
