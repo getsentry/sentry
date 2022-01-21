@@ -219,6 +219,7 @@
     "dotenv-webpack": "^7.1.0",
     "html-webpack-plugin": "^5.0.0",
     "less-loader": "^11.0.0",
+    "react-virtualized": "patch:react-virtualized@^9.22.3#./scripts/patches/react-virtualized+9.22.3.patch",
     "style-loader": "^3.3.1",
     "terser-webpack-plugin": "^5.1.4",
     "webpack-virtual-modules": "^0.4.3",
