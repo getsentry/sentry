@@ -80,6 +80,11 @@ export const DataCategoryName = {
 export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
+/**
+ * Represents a pinned page filter sentinel value
+ */
+export type PinnedPageFilter = 'projects' | 'environments' | 'datetime';
+
 export type PageFilters = {
   /**
    * Currently selected Project IDs

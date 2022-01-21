@@ -34,10 +34,13 @@ describe('MetricsRequest', () => {
 
     expect(childrenMock).toHaveBeenNthCalledWith(1, {
       errored: false,
+      error: null,
       loading: true,
+      isLoading: true,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
@@ -63,10 +66,13 @@ describe('MetricsRequest', () => {
     await waitFor(() =>
       expect(childrenMock).toHaveBeenLastCalledWith({
         errored: false,
+        error: null,
         loading: false,
+        isLoading: false,
         reloading: false,
         response: {groups: [], intervals: []},
         responsePrevious: null,
+        tableData: undefined,
       })
     );
   });
@@ -83,10 +89,13 @@ describe('MetricsRequest', () => {
     expect(childrenMock).toHaveBeenCalledTimes(1);
     expect(childrenMock).toHaveBeenCalledWith({
       errored: false,
+      error: null,
       loading: false,
+      isLoading: false,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
     });
   });
 
@@ -132,10 +141,13 @@ describe('MetricsRequest', () => {
 
     expect(childrenMock).toHaveBeenNthCalledWith(1, {
       errored: false,
+      error: null,
       loading: true,
+      isLoading: true,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(2);
@@ -181,10 +193,13 @@ describe('MetricsRequest', () => {
     await waitFor(() =>
       expect(childrenMock).toHaveBeenLastCalledWith({
         errored: false,
+        error: null,
         loading: false,
+        isLoading: false,
         reloading: false,
         response: {groups: [], intervals: []},
         responsePrevious: {groups: [], intervals: []},
+        tableData: undefined,
       })
     );
   });
@@ -204,10 +219,13 @@ describe('MetricsRequest', () => {
 
     expect(childrenMock).toHaveBeenNthCalledWith(1, {
       errored: false,
+      error: null,
       loading: true,
+      isLoading: true,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
     });
 
     // if start and end are provided, it will not perform a request to fetch previous data
