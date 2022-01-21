@@ -340,30 +340,49 @@ def get_user_subscriptions_for_groups(
     subscriptions_by_group_id: Mapping[int, GroupSubscription],
     user: User,
 ) -> Mapping[int, tuple[bool, bool, GroupSubscription | None]]:
-    """Takes collected data and returns a mapping of group IDs to a three-tuple of values."""
+    """
+    For each group, use the combination of GroupSubscription and
+    NotificationSetting rows to determine if the user is explicitly or
+    implicitly subscribed (or if they can subscribe at all.)
+    """
     results = {}
     for project, groups in groups_by_project.items():
-        has_some_settings = has_any_non_never_settings(
+        notification_settings_by_provider = get_values_by_provider(
             notification_settings_by_scope,
             recipient=user,
             parent_id=project.id,
             type=NotificationSettingTypes.WORKFLOW,
         )
         for group in groups:
-            subscription = subscriptions_by_group_id.get(group.id)
-
-            is_disabled = False
-            if subscription:
-                is_active = subscription.is_active
-            elif not has_some_settings:
-                is_active = False
-                is_disabled = True
-            else:
-                is_active = has_some_settings
-
-            results[group.id] = (is_disabled, is_active, subscription)
-
+            results[group.id] = _get_subscription_values(
+                group,
+                subscriptions_by_group_id,
+                notification_settings_by_provider,
+            )
     return results
+
+
+def _get_subscription_values(
+    group: Group,
+    subscriptions_by_group_id: Mapping[int, GroupSubscription],
+    notification_settings_by_provider: Mapping[ExternalProviders, NotificationSettingOptionValues],
+) -> tuple[bool, bool, GroupSubscription | None]:
+    is_disabled = False
+    subscription = subscriptions_by_group_id.get(group.id)
+    if subscription:
+        # Having a GroupSubscription overrides NotificationSettings.
+        is_active = subscription.is_active
+    else:
+        value = get_highest_notification_setting_value(notification_settings_by_provider)
+        if value == NotificationSettingOptionValues.NEVER:
+            # The user has disabled notifications in all cases.
+            is_disabled = True
+            is_active = False
+        else:
+            # Since there is no subscription, it is only active if the value is ALWAYS.
+            is_active = value == NotificationSettingOptionValues.ALWAYS
+
+    return is_disabled, is_active, subscription
 
 
 def get_settings_by_provider(
