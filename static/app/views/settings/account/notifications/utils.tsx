@@ -397,19 +397,24 @@ export const getParentField = (
 ): FieldObject => {
   const defaultFields = NOTIFICATION_SETTING_FIELDS[notificationType];
 
+  let choices = defaultFields.choices;
+  if (Array.isArray(choices)) {
+    choices = choices.concat([
+      [
+        'default',
+        `${t('Default')} (${getChoiceString(
+          choices,
+          getCurrentDefault(notificationType, notificationSettings)
+        )})`,
+      ],
+    ]);
+  }
+
   return Object.assign({}, defaultFields, {
     label: <ParentLabel parent={parent} notificationType={notificationType} />,
     getData: data => onChange(data, parent.id),
     name: parent.id,
-    choices: defaultFields.choices?.concat([
-      [
-        'default',
-        `${t('Default')} (${getChoiceString(
-          defaultFields.choices,
-          getCurrentDefault(notificationType, notificationSettings)
-        )})`,
-      ],
-    ]),
+    choices,
     defaultValue: 'default',
     help: undefined,
   }) as any;
