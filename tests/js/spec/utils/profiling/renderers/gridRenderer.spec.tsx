@@ -7,6 +7,10 @@ import {
 } from 'sentry/utils/profiling/renderers/gridRenderer';
 
 describe('getIntervalTimeAtX', () => {
+  beforeEach(() => {
+    window.devicePixelRatio = 1;
+  });
+
   it('when origin is at 0', () => {
     const configView = new Rect(0, 0, 10, 10);
     const physicalSpace = new Rect(0, 0, 1000, 1000);
@@ -29,9 +33,38 @@ describe('getIntervalTimeAtX', () => {
 
     expect(getIntervalTimeAtX(configToPhysical, 500)).toBe(10);
   });
+
+  it('high dpr - when origin is at 0', () => {
+    window.devicePixelRatio = 2;
+    const configView = new Rect(0, 0, 10, 10);
+    const physicalSpace = new Rect(0, 0, 1000, 1000);
+
+    const configToPhysical = Transform.transformMatrixBetweenRect(
+      configView,
+      physicalSpace
+    );
+
+    expect(getIntervalTimeAtX(configToPhysical, 500)).toBe(10);
+  });
+  it('high dpr - when origin is offset', () => {
+    window.devicePixelRatio = 2;
+
+    const configView = new Rect(5, 0, 10, 10);
+    const physicalSpace = new Rect(0, 0, 1000, 1000);
+
+    const configToPhysical = Transform.transformMatrixBetweenRect(
+      configView,
+      physicalSpace
+    );
+
+    expect(getIntervalTimeAtX(configToPhysical, 500)).toBe(20);
+  });
 });
 
 describe('computeInterval', () => {
+  beforeEach(() => {
+    window.devicePixelRatio = 1;
+  });
   it('computes intervals when origin is 0', () => {
     const configView = new Rect(0, 0, 100, 100);
     const physicalSpace = new Rect(0, 0, 1000, 1000);
@@ -100,7 +133,7 @@ describe('computeInterval', () => {
 });
 
 describe('gridRenderer', () => {
-  it('draws each interval line and ', () => {
+  it('draws each interval line', () => {
     // Mock the width of the measured text, we dont actually care if this is accurate or not
     const WIDTH = 20;
 

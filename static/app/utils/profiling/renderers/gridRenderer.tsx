@@ -12,20 +12,26 @@ export function getIntervalTimeAtX(configToPhysicalSpace: mat3, x: number): numb
 
   const logicalToConfigSpace = mat3.multiply(
     mat3.create(),
-    physicalToConfigSpace,
-    logicalToPhysical
+    logicalToPhysical,
+    physicalToConfigSpace
   );
 
-  return vec2.transformMat3(
-    vec2.create(),
-    vec2.fromValues(x, 1),
-    logicalToConfigSpace
-  )[0];
+  const vector =
+    logicalToConfigSpace[0] * x + logicalToConfigSpace[3] + logicalToConfigSpace[6];
+
+  if (vector > 1) {
+    return Math.round(vector);
+  }
+
+  return Math.round(vector * 10) / 10;
 }
 
 export function computeInterval(configView: Rect, configToPhysicalSpace: mat3): number[] {
+  // We want to draw an interval every 200px
+  const target = 200;
   // Compute x at 200 and subtract left, so we have the interval
-  const targetInterval = getIntervalTimeAtX(configToPhysicalSpace, 200) - configView.left;
+  const targetInterval =
+    getIntervalTimeAtX(configToPhysicalSpace, target) - configView.left;
   const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
 
   let interval = minInterval;
