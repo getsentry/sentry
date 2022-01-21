@@ -67,13 +67,10 @@ class PagerDutyClient(ApiClient):
         if (
             features.has("organizations:pagerduty-metric-alert-resolve-logging", organization)
             and method == "resolve"
-            and response.status_code == 202
         ):
             logger.info(
                 "resolve.received.pagerduty_metric_alert",
-                extra={
-                    "organization_id": organization.id,
-                },
+                extra={"organization_id": organization.id, "status_code": response.status_code},
             )
         return response
 
