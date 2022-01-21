@@ -49,7 +49,7 @@ import {
   Query,
 } from 'sentry/views/issueList/utils';
 
-const DiscoveryExclusionFields: string[] = [
+export const DiscoveryExclusionFields: string[] = [
   'query',
   'status',
   'bookmarked_by',
