@@ -2,26 +2,60 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 stages:
+  - prepare
+  - run
   - build
 
 builder-image:
-  stage: build
+  stage: prepare
   image: docker-reg.devops.xiaohongshu.com/library/docker:v1.0
+  before_script:
+    - docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD $REGISTRY_NAME
+    - docker pull $REGISTRY_NAME/infra/sentry:builder || true
   script:
-    - export BRANCH_PREFIX=${CI_COMMIT_REF_NAME//[\/|_]/-}
-    - docker build --rm --pull -t $REGISTRY_NAME/infra/sentry-builder:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8} .
-    - ddocker push $REGISTRY_NAME/infra/sentry-builder:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8}
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "release"'
-    - if: '$CI_COMMIT_BRNACH == "develop"'
+    - >
+      docker build --rm --pull \
+        -f ./docker/builder.dockerfile \
+        -t $REGISTRY_NAME/infra/sentry:builder \
+        --cache-from $REGISTRY_NAME/infra/sentry:builder \
+        .
+    - docker push $REGISTRY_NAME/infra/sentry:builder
+  except:
+    - tags
+
+run-builder:
+  stage: run
+  image: docker-reg.devops.xiaohongshu.com/infra/sentry:builder
+  script:
+    - echo RUN BUILDER
+    - bash /builder.sh
+  artifacts:
+    paths:
+      - node_modules/
+      - dist/
+    untracked: false
+    expire_in: 30 min
+  except:
+    - tags
 
 sentry-image:
   stage: build
-  image: docker-reg.devops.xiaohongshu.com/infra/sentry-builder:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8}
+  image: docker-reg.devops.xiaohongshu.com/library/docker:v1.0
+  dependencies:
+    - run-builder
+  before_script:
+    - docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD $REGISTRY_NAME
+    - docker pull $REGISTRY_NAME/infra/sentry:latest || true
   script:
     - export BRANCH_PREFIX=${CI_COMMIT_REF_NAME//[\/|_]/-}
-    - docker build --rm --pull -t $REGISTRY_NAME/red-sentry/$CI_PROJECT_NAME:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8} .
-    - docker push $REGISTRY_NAME/infra/sentry-builder:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8}
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "release"'
-    - if: '$CI_COMMIT_BRNACH == "develop"'
+    - >
+      docker build --rm --pull \
+        -f ./docker/Dockerfile \
+        -t $REGISTRY_NAME/infra/sentry:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8} \
+        -t $REGISTRY_NAME/infra/sentry:latest \
+        --cache-from $REGISTRY_NAME/infra/sentry:latest \
+        .
+    - docker push $REGISTRY_NAME/infra/sentry:${BRANCH_PREFIX}-${CI_COMMIT_SHA:0:8}
+    - docker push $REGISTRY_NAME/infra/sentry:latest
+  except:
+    - tags

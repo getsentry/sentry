@@ -16,6 +16,20 @@ ENV GOSU_VERSION=1.12 \
   TINI_VERSION=0.19.0 \
   TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c
 
+# replace deb sources
+RUN mv /etc/apt/sources.list /etc/apt/sources.list.bakevan \
+    && echo "deb http://mirrors.cloud.tencent.com/debian/ buster main non-free contrib" >>/etc/apt/sources.list \
+    && echo "deb http://mirrors.cloud.tencent.com/debian-security buster/updates main" >>/etc/apt/sources.list \
+    && echo "deb http://mirrors.cloud.tencent.com/debian/ buster-updates main non-free contrib" >>/etc/apt/sources.list \
+    && echo "deb http://mirrors.cloud.tencent.com/debian/ buster-backports main non-free contrib" >>/etc/apt/sources.list \
+    && echo "deb-src http://mirrors.cloud.tencent.com/debian/ buster main non-free contrib" >>/etc/apt/sources.list \
+    && echo "deb-src http://mirrors.cloud.tencent.com/debian-security buster/updates main" >>/etc/apt/sources.list \
+    && echo "deb-src http://mirrors.cloud.tencent.com/debian/ buster-updates main non-free contrib" >>/etc/apt/sources.list \
+    && echo "deb-src http://mirrors.cloud.tencent.com/debian/ buster-backports main non-free contrib" >>/etc/apt/sources.list
+
+# replace pipy sources
+RUN pip3 install -i https://pypi.douban.com/simple -U pip \
+    && pip3 config set global.index-url https://pypi.douban.com/simple/
 
 RUN set -x \
   && buildDeps=" \
@@ -24,11 +38,15 @@ RUN set -x \
   && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
   && rm -rf /var/lib/apt/lists/* \
   # grab gosu for easy step-down from root
-  && wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64" \
+  # replaced with COS resources
+  # && wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64" \
+  && wget -O /usr/local/bin/gosu "https://qa-cos-1251524319.cos.ap-shanghai.myqcloud.com/infra_sentry_mirror/gosu-amd64-$GOSU_VERSION" \
   && echo "$GOSU_SHA256 /usr/local/bin/gosu" | sha256sum --check --status \
   && chmod +x /usr/local/bin/gosu \
   # grab tini for signal processing and zombie killing
-  && wget -O /usr/local/bin/tini "https://github.com/krallin/tini/releases/download/v$TINI_VERSION/tini-amd64" \
+  # replaced with COS resources
+  # && wget -O /usr/local/bin/tini "https://github.com/krallin/tini/releases/download/v$TINI_VERSION/tini-amd64" \
+  && wget -O /usr/local/bin/tini "https://qa-cos-1251524319.cos.ap-shanghai.myqcloud.com/infra_sentry_mirror/tini-amd64-$TINI_VERSION" \
   && echo "$TINI_SHA256 /usr/local/bin/tini" | sha256sum --check --status \
   && chmod +x /usr/local/bin/tini \
   && apt-get purge -y --auto-remove $buildDeps
@@ -69,7 +87,9 @@ RUN set -x \
   && apt-get install -y --no-install-recommends $buildDeps \
   && pip install -r /tmp/dist/requirements.txt \
   && mkdir /tmp/uwsgi-dogstatsd \
-  && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
+  # replaced with COS resources
+  # && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
+  && wget -O - https://qa-cos-1251524319.cos.ap-shanghai.myqcloud.com/infra_sentry_mirror/uwsgi-dogstatsd-filters-and-tags.tar.gz | \
   tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
   && UWSGI_NEED_PLUGIN="" uwsgi --build-plugin /tmp/uwsgi-dogstatsd \
   && mkdir -p /var/lib/uwsgi \
