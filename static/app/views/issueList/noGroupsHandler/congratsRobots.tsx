@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import video from 'sentry-images/spot/congrats-robots.mp4';
 
-import AutoplayVideo from 'sentry/components/autoplayVideo';
+import {AutoplayVideo} from 'sentry/components/autoplayVideo';
 import space from 'sentry/styles/space';
 
 /**
