@@ -12,6 +12,7 @@ from sentry.snuba.metrics import _METRICS
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.testutils.helpers import with_feature
+from sentry.utils.cursors import Cursor
 
 FEATURE_FLAG = "organizations:metrics"
 
@@ -338,13 +339,13 @@ class OrganizationMetricDataTest(APITestCase):
 
     @with_feature(FEATURE_FLAG)
     def test_orderby_2(self):
-        """Only one field is supported with order by"""
+        """Support for more than one field is supported with order by"""
         response = self.get_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)", "count_unique(sentry.sessions.user)"],
             orderBy=["sum(sentry.sessions.session)"],
         )
-        assert response.status_code == 400
+        assert response.status_code == 200
 
     @with_feature(FEATURE_FLAG)
     def test_orderby_percentile(self):
@@ -355,23 +356,41 @@ class OrganizationMetricDataTest(APITestCase):
         assert response.status_code == 400
 
     @with_feature(FEATURE_FLAG)
-    def test_limit_without_orderby(self):
+    def test_pagination_limit_without_orderby(self):
+        """
+        Test that ensures an exception is raised when pagination `per_page` parameter is sent
+        without order by being set
+        """
         response = self.get_response(
-            self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
-            limit=3,
+            self.organization.slug,
+            field="count(sentry.transactions.measurements.lcp)",
+            datasource="snuba",
+            groupBy="transaction",
+            per_page=2,
         )
         assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "'per_page' is only supported in combination with 'orderBy'"
+        )
 
     @with_feature(FEATURE_FLAG)
-    def test_limit_invalid(self):
-        for limit in (-1, 0, "foo"):
-            response = self.get_response(
-                self.project.organization.slug,
-                field="sum(sentry.sessions.session)",
-                limit=limit,
-            )
-            assert response.status_code == 400
+    def test_pagination_offset_without_orderby(self):
+        """
+        Test that ensures an exception is raised when pagination `per_page` parameter is sent
+        without order by being set
+        """
+        response = self.get_response(
+            self.organization.slug,
+            field="count(sentry.transactions.measurements.lcp)",
+            datasource="snuba",
+            groupBy="transaction",
+            cursor=Cursor(0, 1),
+        )
+        assert response.status_code == 400
+        print(response.json())
+        assert response.json()["detail"] == (
+            "'cursor' is only supported in combination with 'orderBy'"
+        )
 
     @with_feature(FEATURE_FLAG)
     def test_statsperiod_invalid(self):
@@ -463,7 +482,7 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             datasource="snuba",
             groupBy="transaction",
             orderBy="-count(sentry.transactions.measurements.lcp)",
-            limit=2,
+            per_page=2,
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -529,6 +548,427 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
             assert group["by"] == {"tag1": expected_tag_value}
             totals = group["totals"]
             assert totals == {"p50(sentry.transactions.measurements.lcp)": expected_count}
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile_with_pagination(self):
+        metric_id = indexer.record("sentry.transactions.measurements.lcp")
+        tag1 = indexer.record("tag1")
+        value1 = indexer.record("value1")
+        value2 = indexer.record("value2")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (tag1, value1, [4, 5, 6]),
+                    (tag1, value2, [1, 2, 3]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="p50(sentry.transactions.measurements.lcp)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy="tag1",
+            orderBy="p50(sentry.transactions.measurements.lcp)",
+            per_page=1,
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {"tag1": "value2"}
+        assert groups[0]["totals"] == {"p50(sentry.transactions.measurements.lcp)": 2}
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="p50(sentry.transactions.measurements.lcp)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy="tag1",
+            orderBy="p50(sentry.transactions.measurements.lcp)",
+            per_page=1,
+            cursor=Cursor(0, 1),
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {"tag1": "value1"}
+        assert groups[0]["totals"] == {"p50(sentry.transactions.measurements.lcp)": 5}
+
+    @with_feature(FEATURE_FLAG)
+    def test_limit_with_orderby_is_overridden_by_paginator_limit(self):
+        """
+        Test that ensures when an `orderBy` clause is set, then the paginator limit overrides the
+        `limit` parameter
+        """
+        metric_id = indexer.record("sentry.transactions.measurements.lcp")
+        tag1 = indexer.record("tag1")
+        value1 = indexer.record("value1")
+        value2 = indexer.record("value2")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (tag1, value1, [4, 5, 6]),
+                    (tag1, value2, [1, 2, 3]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field="p50(sentry.transactions.measurements.lcp)",
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy="tag1",
+            orderBy="p50(sentry.transactions.measurements.lcp)",
+            per_page=1,
+            limit=2,
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 1
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile_with_many_fields_non_transactions_supported_fields(self):
+        """
+        Test that contains a field in the `select` that is not performance related should return
+        a 400
+        """
+        response = self.get_response(
+            self.organization.slug,
+            field=[
+                "p50(sentry.transactions.measurements.lcp)",
+                "sum(sentry.sessions.session)",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["project_id", "transaction"],
+            orderBy="p50(sentry.transactions.measurements.lcp)",
+        )
+        assert response.status_code == 400
+        assert (
+            response.json()["detail"]
+            == "Multi-field select order by queries is not supported for metric "
+            "sentry.sessions.session"
+        )
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile_with_many_fields_transactions_unsupported_fields(self):
+        """
+        Test that contains a field in the `select` that is performance related but currently
+        not supported should return a 400
+        """
+        response = self.get_response(
+            self.organization.slug,
+            field=[
+                "p50(sentry.transactions.measurements.lcp)",
+                "sum(user_misery)",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["project_id", "transaction"],
+            orderBy="p50(sentry.transactions.measurements.lcp)",
+        )
+        assert response.status_code == 400
+        assert (
+            response.json()["detail"]
+            == "Multi-field select order by queries is not supported for metric user_misery"
+        )
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile_with_many_fields_one_entity_no_data(self):
+        """
+        Test that ensures that when metrics data is available then an empty response is returned
+        gracefully
+        """
+        for metric in [
+            "sentry.transactions.measurements.lcp",
+            "sentry.transactions.measurements.fcp",
+            "transaction",
+        ]:
+            indexer.record(metric)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                "p50(sentry.transactions.measurements.lcp)",
+                "p50(sentry.transactions.measurements.fcp)",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["project_id", "transaction"],
+            orderBy="p50(sentry.transactions.measurements.lcp)",
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 0
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile_with_many_fields_one_entity(self):
+        """
+        Test that ensures when transactions are ordered correctly when all the fields requested
+        are from the same entity
+        """
+        metric_id = indexer.record("sentry.transactions.measurements.lcp")
+        metric_id_fcp = indexer.record("sentry.transactions.measurements.fcp")
+        transaction_id = indexer.record("transaction")
+        transaction_1 = indexer.record("/foo/")
+        transaction_2 = indexer.record("/bar/")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (transaction_id, transaction_1, [10, 11, 12]),
+                    (transaction_id, transaction_2, [4, 5, 6]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id_fcp,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (transaction_id, transaction_1, [1, 2, 3]),
+                    (transaction_id, transaction_2, [13, 14, 15]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                "p50(sentry.transactions.measurements.lcp)",
+                "p50(sentry.transactions.measurements.fcp)",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["project_id", "transaction"],
+            orderBy="p50(sentry.transactions.measurements.lcp)",
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar/", 5.0, 14.0),
+            ("/foo/", 11.0, 2.0),
+        ]
+        for (expected_tag_value, expected_lcp_count, expected_fcp_count), group in zip(
+            expected, groups
+        ):
+            # With orderBy, you only get totals:
+            assert "series" not in group
+            assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
+            totals = group["totals"]
+            assert totals == {
+                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
+                "p50(sentry.transactions.measurements.fcp)": expected_fcp_count,
+            }
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile_with_many_fields_multiple_entities(self):
+        """
+        Test that ensures when transactions are ordered correctly when all the fields requested
+        are from multiple entities
+        """
+        transaction_id = indexer.record("transaction")
+        transaction_1 = indexer.record("/foo/")
+        transaction_2 = indexer.record("/bar/")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("sentry.transactions.measurements.lcp"),
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (transaction_id, transaction_1, [10, 11, 12]),
+                    (transaction_id, transaction_2, [4, 5, 6]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("sentry.transactions.user"),
+                    "timestamp": int(time.time()),
+                    "tags": {tag: value},
+                    "type": "s",
+                    "value": numbers,
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (transaction_id, transaction_1, list(range(1))),
+                    (transaction_id, transaction_2, list(range(5))),
+                )
+            ],
+            entity="metrics_sets",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                "p50(sentry.transactions.measurements.lcp)",
+                "count_unique(sentry.transactions.user)",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["project_id", "transaction"],
+            orderBy="p50(sentry.transactions.measurements.lcp)",
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar/", 5.0, 5),
+            ("/foo/", 11.0, 1),
+        ]
+        for (expected_tag_value, expected_lcp_count, users), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert "series" not in group
+            assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
+            totals = group["totals"]
+            assert totals == {
+                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
+                "count_unique(sentry.transactions.user)": users,
+            }
+
+    @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile_with_many_fields_multiple_entities_with_paginator(self):
+        """
+        Test that ensures when transactions are ordered correctly when all the fields requested
+        are from multiple entities
+        """
+        transaction_id = indexer.record("transaction")
+        transaction_1 = indexer.record("/foo/")
+        transaction_2 = indexer.record("/bar/")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("sentry.transactions.measurements.lcp"),
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (transaction_id, transaction_1, [10, 11, 12]),
+                    (transaction_id, transaction_2, [4, 5, 6]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("sentry.transactions.user"),
+                    "timestamp": int(time.time()),
+                    "tags": {tag: value},
+                    "type": "s",
+                    "value": numbers,
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (transaction_id, transaction_1, list(range(1))),
+                    (transaction_id, transaction_2, list(range(5))),
+                )
+            ],
+            entity="metrics_sets",
+        )
+
+        request_args = {
+            "field": [
+                "p50(sentry.transactions.measurements.lcp)",
+                "count_unique(sentry.transactions.user)",
+            ],
+            "statsPeriod": "1h",
+            "interval": "1h",
+            "datasource": "snuba",
+            "groupBy": ["project_id", "transaction"],
+            "orderBy": "p50(sentry.transactions.measurements.lcp)",
+            "per_page": 1,
+        }
+
+        response = self.get_success_response(self.organization.slug, **request_args)
+        groups = response.data["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"]["transaction"] == "/bar/"
+        assert groups[0]["totals"] == {
+            "count_unique(sentry.transactions.user)": 5,
+            "p50(sentry.transactions.measurements.lcp)": 5.0,
+        }
+
+        request_args["cursor"] = Cursor(0, 1)
+
+        response = self.get_success_response(self.organization.slug, **request_args)
+        groups = response.data["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"]["transaction"] == "/foo/"
+        assert groups[0]["totals"] == {
+            "count_unique(sentry.transactions.user)": 1,
+            "p50(sentry.transactions.measurements.lcp)": 11.0,
+        }
 
     @with_feature(FEATURE_FLAG)
     def test_groupby_project(self):

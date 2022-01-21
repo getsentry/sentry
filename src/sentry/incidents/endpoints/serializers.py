@@ -207,9 +207,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 )
 
                 if not result["success"]:
-                    raise serializers.ValidationError(
-                        {"sentry_app": f'{install.sentry_app.name}: {result["message"]}'}
-                    )
+                    raise serializers.ValidationError({"sentry_app": result["message"]})
 
                 del attrs["sentry_app_installation_uuid"]
 
