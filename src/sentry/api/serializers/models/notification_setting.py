@@ -20,7 +20,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         self,
         item_list: Iterable[Union[Team, User]],
         user: User,
-        **kwargs: Any,
+        type: Iterable[NotificationSettingTypes] | NotificationSettingTypes | None = None,
     ) -> Mapping[Union[Team, User], Mapping[str, Iterable[Any]]]:
         """
         This takes a list of recipients (which are either Users or Teams,
@@ -31,14 +31,13 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         :param item_list: Either a Set of User or Team objects whose
             notification settings should be serialized.
         :param user: The user who will be viewing the notification settings.
-        :param kwargs: Dict of optional filter options:
-            - type: NotificationSettingTypes enum value. e.g. WORKFLOW, DEPLOY.
+        :param type: (Optional) NotificationSettingTypes enum value. e.g. WORKFLOW, DEPLOY
+            or an array of enum values
         """
-        type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
         actor_mapping = {recipient.actor_id: recipient for recipient in item_list}
 
         notifications_settings = NotificationSetting.objects._filter(
-            type=type_option,
+            type=type,
             target_ids=actor_mapping.keys(),
         )
 
@@ -54,10 +53,10 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             # This works because both User and Team models implement `get_projects`.
             results[recipient]["projects"] = recipient.get_projects()
 
-            if type(recipient) == Team:
+            if isinstance(recipient, Team):
                 results[recipient]["organizations"] = {recipient.organization}
 
-            if type(recipient) == User:
+            if isinstance(recipient, User):
                 results[recipient]["organizations"] = user.get_orgs()
 
         return results
