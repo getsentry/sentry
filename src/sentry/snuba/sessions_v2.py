@@ -454,7 +454,15 @@ def _run_sessions_query(query):
         referrer="sessions.timeseries",
     )
     if len(result_timeseries["data"]) == SNUBA_LIMIT:
-        logger.error("sessions_v2.snuba_limit_exceeded")
+        # We know that for every row returned by the "totals" query, we expect
+        # (end-start)/rollup rows in the "series" query:
+        expected_results = len(result_totals["data"]) * len(get_timestamps(query))
+        logger.error(
+            "sessions_v2.snuba_limit_exceeded",
+            extra={
+                "expected_num_rows": expected_results,
+            },
+        )
 
     return result_totals["data"], result_timeseries["data"]
 
