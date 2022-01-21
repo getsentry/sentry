@@ -12,6 +12,9 @@ const DEFAULT_WIDGET_WIDTH = 2;
 
 const WIDGET_PREFIX = 'grid-item';
 
+// Keys for grid layout values we track in the server
+const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
+
 export function generateWidgetId(widget: Widget, index: number) {
   return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
 }
@@ -74,4 +77,8 @@ export function getDashboardLayout(widgets: Widget[]): Layout[] {
       ...(layout as Layout),
       i: constructGridItemKey(widget),
     }));
+}
+
+export function pickDefinedStoreKeys(value, key) {
+  return defined(value) && STORE_KEYS.includes(key);
 }

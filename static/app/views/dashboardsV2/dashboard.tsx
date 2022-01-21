@@ -20,7 +20,6 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
@@ -32,11 +31,17 @@ import {
   constructGridItemKey,
   generateWidgetId,
   getDashboardLayout,
-  getDefaultPosition,
   getMobileLayout,
+  pickDefinedStoreKeys,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
+import {
+  DashboardDetails,
+  DashboardWidgetSource,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from './types';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DESKTOP = 'desktop';
@@ -48,9 +53,6 @@ const WIDGET_MARGINS: [number, number] = [16, 16];
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
-
-// Keys for grid layout values we track in the server
-const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
 type Props = {
   api: Client;
@@ -108,6 +110,7 @@ class Dashboard extends Component<Props, State> {
             [DESKTOP]: dashboardLayout,
             [MOBILE]: getMobileLayout(dashboardLayout, props.dashboard.widgets),
           },
+          nextAvailablePosition: getNextAvailablePosition(dashboardLayout),
         };
       }
     }
@@ -327,7 +330,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   renderWidget(widget: Widget, index: number) {
-    const {isMobile} = this.state;
+    const {isMobile, nextAvailablePosition} = this.state;
     const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
     const widgetProps = {
@@ -346,7 +349,14 @@ class Dashboard extends Component<Props, State> {
       return (
         <GridItem
           key={key}
-          data-grid={widget.layout ?? getDefaultPosition(index, widget.displayType)}
+          data-grid={
+            widget.layout ?? {
+              ...nextAvailablePosition,
+              minH: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+              w: 2,
+              h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+            }
+          }
         >
           <SortableWidget {...widgetProps} dragId={dragId} hideDragHandle={isMobile} />
         </GridItem>
@@ -359,6 +369,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleLayoutChange = (_, allLayouts: Layouts) => {
+    const {nextAvailablePosition} = this.state;
     const {dashboard, onUpdate} = this.props;
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
@@ -370,22 +381,22 @@ class Dashboard extends Component<Props, State> {
       nextAvailablePosition: getNextAvailablePosition(newLayouts[DESKTOP]),
     });
 
-    const newWidgets = dashboard.widgets.map((widget, index) => {
+    const newWidgets = dashboard.widgets.map(widget => {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
       if (!matchingLayout) {
         // TODO: Replace this with the smarter placement logic
         matchingLayout = {
-          ...getDefaultPosition(index, widget.displayType),
-          i: gridKey, // Gets ignored, for types
+          ...(nextAvailablePosition as {x: number; y: number}),
+          minH: 2,
+          w: 2,
+          h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+          i: gridKey, // Gets ignored, for types,
         };
       }
       return {
         ...widget,
-        layout: pickBy(
-          matchingLayout,
-          (value, key) => defined(value) && STORE_KEYS.includes(key)
-        ),
+        layout: pickBy(matchingLayout, pickDefinedStoreKeys),
       };
     });
     onUpdate(newWidgets);
@@ -437,7 +448,13 @@ class Dashboard extends Component<Props, State> {
       >
         {widgets.map((widget, index) => this.renderWidget(widget, index))}
         {isEditing && !!!widgetLimitReached && (
-          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={nextAvailablePosition}>
+          <div
+            key={ADD_WIDGET_BUTTON_DRAG_ID}
+            data-grid={{
+              ...nextAvailablePosition,
+              isResizable: false,
+            }}
+          >
             <AddWidget
               orgFeatures={organization.features}
               onAddWidget={this.handleStartAdd}
@@ -539,8 +556,6 @@ const GridLayout = styled(WidthProvider(Responsive))`
 `;
 
 function getNextAvailablePosition(layouts: Layout[]) {
-  // Returns an array of the first available whitespace (i.e. the end of
-  // the lowest widget) for each column
   function generateColumnDepths(): Array<number> {
     const res = Array(NUM_DESKTOP_COLS).fill(0);
 
@@ -561,15 +576,15 @@ function getNextAvailablePosition(layouts: Layout[]) {
   const maxColumnDepth = Math.max(...columnDepths);
   // Then match the width against the lowest points to find one that fits
   for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
-    for (let start = 0; start < columnDepths.length - 1; start++) {
+    for (let start = 0; start <= columnDepths.length - 2; start++) {
       if (columnDepths[start] > currDepth) {
         continue;
       }
       const end = start + 2;
       if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
-        return {x: start, y: currDepth, w: 2, h: 1, isResizable: false};
+        return {x: start, y: currDepth, w: 2, h: 1};
       }
     }
   }
-  return {x: 0, y: maxColumnDepth + 1, w: 2, h: 1, isResizable: false};
+  return {x: 0, y: maxColumnDepth + 1, w: 2, h: 1};
 }
