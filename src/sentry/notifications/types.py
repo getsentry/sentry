@@ -46,6 +46,17 @@ class NotificationSettingTypes(Enum):
     # Notifications that require approval like a request to invite a member
     APPROVAL = 40
 
+    # Notifications about quotas
+    QUOTA = 50
+
+    # Sub category of quotas for each event category
+    QUOTA_ERRORS = 51
+    QUOTA_TRANSACTIONS = 52
+    QUOTA_ATTACHMENTS = 53
+
+    # Sub category of quotas
+    QUOTA_WARNINGS = 54
+
 
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
@@ -53,6 +64,11 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.ISSUE_ALERTS: "alerts",
     NotificationSettingTypes.WORKFLOW: "workflow",
     NotificationSettingTypes.APPROVAL: "approval",
+    NotificationSettingTypes.QUOTA: "quota",
+    NotificationSettingTypes.QUOTA_ERRORS: "quotaErrors",
+    NotificationSettingTypes.QUOTA_TRANSACTIONS: "quotaTransactions",
+    NotificationSettingTypes.QUOTA_ATTACHMENTS: "quotaAttachments",
+    NotificationSettingTypes.QUOTA_WARNINGS: "quotaWarnings",
 }
 
 
@@ -109,6 +125,7 @@ class FineTuningAPIKey(Enum):
     APPROVAL = "approval"
     DEPLOY = "deploy"
     EMAIL = "email"
+    QUOTA = "quota"
     REPORTS = "reports"
     WORKFLOW = "workflow"
 
@@ -120,6 +137,7 @@ class UserOptionsSettingsKey(Enum):
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
     APPROVAL = "approvalNotifications"
+    QUOTA = "quotaNotifications"
 
 
 VALID_VALUES_FOR_KEY = {
@@ -133,6 +151,26 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.ISSUE_ALERTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_ERRORS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_TRANSACTIONS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_ATTACHMENTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_WARNINGS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },

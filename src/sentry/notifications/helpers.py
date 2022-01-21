@@ -225,13 +225,23 @@ def validate(type: NotificationSettingTypes, value: NotificationSettingOptionVal
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
     """In which scope (proj or org) can a user set more specific settings?"""
-    if type in [NotificationSettingTypes.DEPLOY, NotificationSettingTypes.APPROVAL]:
+    if type in [
+        NotificationSettingTypes.DEPLOY,
+        NotificationSettingTypes.APPROVAL,
+        NotificationSettingTypes.QUOTA,
+        NotificationSettingTypes.QUOTA_ERRORS,
+        NotificationSettingTypes.QUOTA_TRANSACTIONS,
+        NotificationSettingTypes.QUOTA_ATTACHMENTS,
+        NotificationSettingTypes.QUOTA_WARNINGS,
+    ]:
         return NotificationScopeType.ORGANIZATION
 
     if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
         return NotificationScopeType.PROJECT
 
-    raise Exception(f"type {type}, must be alerts, deploy, workflow, or approval")
+    raise Exception(
+        f"type {type}, must be alerts, deploy, workflow, approval, quota, quotaErrors, quotaTransactions, quotaAttachments, quotaWarnings"
+    )
 
 
 def get_scope(
