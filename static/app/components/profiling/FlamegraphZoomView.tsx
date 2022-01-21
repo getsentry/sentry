@@ -478,7 +478,6 @@ function FlamegraphZoomView({
     [flamegraphRenderer, canvasPoolManager]
   );
 
-  // Register our callback
   React.useEffect(() => {
     if (!flamegraphCanvasRef) {
       return undefined;
