@@ -22,6 +22,7 @@ function formatCommitMessage(message: string | null) {
 
   return message.split(/\n/)[0];
 }
+
 interface CommitRowProps {
   commit: Commit;
   customAvatar?: React.ReactNode;
@@ -30,7 +31,9 @@ interface CommitRowProps {
 function CommitRow({commit, customAvatar}: CommitRowProps) {
   const handleInviteClick = React.useCallback(() => {
     if (!commit.author?.email) {
-      Sentry.captureException(new Error(`Commit author has no email or id`));
+      Sentry.captureException(
+        new Error(`Commit author has no email or id, invite flow is broken.`)
+      );
       return;
     }
 
