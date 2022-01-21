@@ -54,7 +54,7 @@ class NotificationSettingTypes(Enum):
     QUOTA_TRANSACTIONS = 52
     QUOTA_ATTACHMENTS = 53
 
-    # Sub category of quotas
+    # Sub category of quotas for warnings before hitting the actual limit
     QUOTA_WARNINGS = 54
 
 
