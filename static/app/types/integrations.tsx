@@ -31,16 +31,6 @@ export type ExternalActorMapping = {
   sentryName: string;
 };
 
-export type ExternalActorSuggestion = {
-  externalName: string;
-  userId?: string;
-  teamId?: string;
-};
-
-export type ExternalActorMappingOrSuggestion =
-  | ExternalActorMapping
-  | ExternalActorSuggestion;
-
 export type ExternalUser = {
   id: string;
   memberId: string;

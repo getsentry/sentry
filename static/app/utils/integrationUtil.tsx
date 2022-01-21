@@ -15,7 +15,6 @@ import {
   AppOrProviderOrPlugin,
   DocIntegration,
   ExternalActorMapping,
-  ExternalActorMappingOrSuggestion,
   Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
@@ -150,12 +149,6 @@ export function isDocIntegration(
   return integration.hasOwnProperty('isDraft');
 }
 
-export function isExternalActorMapping(
-  mapping: ExternalActorMappingOrSuggestion
-): mapping is ExternalActorMapping {
-  return mapping.hasOwnProperty('id');
-}
-
 export const getIntegrationType = (
   integration: AppOrProviderOrPlugin
 ): IntegrationType => {
@@ -239,9 +232,9 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
 
 export const getExternalActorEndpointDetails = (
   baseEndpoint: string,
-  mapping?: ExternalActorMappingOrSuggestion
+  mapping?: ExternalActorMapping
 ): {apiMethod: 'POST' | 'PUT'; apiEndpoint: string} => {
-  const isValidMapping = mapping && isExternalActorMapping(mapping);
+  const isValidMapping = mapping && mapping?.id;
   return {
     apiMethod: isValidMapping ? 'PUT' : 'POST',
     apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,

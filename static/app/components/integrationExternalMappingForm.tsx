@@ -4,23 +4,20 @@ import capitalize from 'lodash/capitalize';
 import pick from 'lodash/pick';
 
 import {t, tct} from 'sentry/locale';
-import {ExternalActorMappingOrSuggestion, Integration} from 'sentry/types';
-import {
-  getExternalActorEndpointDetails,
-  isExternalActorMapping,
-} from 'sentry/utils/integrationUtil';
+import {ExternalActorMapping, Integration} from 'sentry/types';
+import {getExternalActorEndpointDetails} from 'sentry/utils/integrationUtil';
 import {FieldFromConfig} from 'sentry/views/settings/components/forms';
 import Form from 'sentry/views/settings/components/forms/form';
 import FormModel from 'sentry/views/settings/components/forms/model';
 import {Field} from 'sentry/views/settings/components/forms/type';
 
-type Props = Pick<Form['props'], 'onCancel' | 'onSubmitError' | 'onSubmitSuccess'> & {
-  type: 'team' | 'user';
+type Props = Pick<Form['props'], 'onCancel' | 'onSubmitSuccess' | 'onSubmitError'> & {
   integration: Integration;
-  dataEndpoint: string;
-  getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
-  mapping?: ExternalActorMappingOrSuggestion;
+  mapping?: ExternalActorMapping;
+  type: 'user' | 'team';
+  getBaseFormEndpoint: (mapping?: ExternalActorMapping) => string;
   sentryNamesMapper: (v: any) => {id: string; name: string}[];
+  dataEndpoint: string;
   onResults?: (data: any, mappingKey?: string) => void;
   isInline?: boolean;
   mappingKey?: string;
@@ -68,7 +65,6 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
           // been in the initial 100 API results, which is why we add it here
           if (
             mapping &&
-            isExternalActorMapping(mapping) &&
             !result.find(entry => {
               const id = type === 'user' ? entry.user.id : entry.id;
               return id === mapping[`${type}Id`];
@@ -105,8 +101,10 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
           // We need to update the model onBlur for inline forms since the model's 'onPreSubmit' hook
           // does NOT run when using `saveOnBlur`.
           onBlur: value => {
-            const updatedMapping: ExternalActorMappingOrSuggestion = {
-              externalName: '',
+            if (!mapping) {
+              return;
+            }
+            const updatedMapping = {
               ...mapping,
               [`${type}Id`]: value,
             };
@@ -117,7 +115,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
   }
 
   // This function is necessary since the endpoint we submit to changes depending on the value selected
-  updateModelFromMapping(mapping?: ExternalActorMappingOrSuggestion) {
+  updateModelFromMapping(mapping?: ExternalActorMapping) {
     const {getBaseFormEndpoint} = this.props;
     if (mapping) {
       const endpointDetails = getExternalActorEndpointDetails(
@@ -143,7 +141,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
           allowUndo={isInline}
           onPreSubmit={() => {
             const finalMapping = this.model.getData();
-            this.updateModelFromMapping(finalMapping as ExternalActorMappingOrSuggestion);
+            this.updateModelFromMapping(finalMapping as ExternalActorMapping);
           }}
         >
           {this.formFields.map(field => (
