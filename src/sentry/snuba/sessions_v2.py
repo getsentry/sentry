@@ -314,11 +314,9 @@ ONE_DAY = timedelta(days=1).total_seconds()
 ONE_HOUR = timedelta(hours=1).total_seconds()
 ONE_MINUTE = timedelta(minutes=1).total_seconds()
 
-#: Time series grouped by release, environment may return more snuba rows
-#: than the snuba default limit of 1000,
+#: Snuba applies a default limit of 1000, let's make it explicit here.
 #: https://github.com/getsentry/snuba/blob/69862db3ad224b48810ac1bb3001e4c446bf0aff/snuba/query/snql/parser.py#L908-L909
-#: so lets set the maximum here
-SNUBA_LIMIT = 10000
+SNUBA_LIMIT = 1000
 
 
 class InvalidParams(Exception):
@@ -455,7 +453,6 @@ def _run_sessions_query(query):
         limit=SNUBA_LIMIT,
         referrer="sessions.timeseries",
     )
-
     if len(result_timeseries["data"]) == SNUBA_LIMIT:
         logger.error("sessions_v2.snuba_limit_exceeded")
 
