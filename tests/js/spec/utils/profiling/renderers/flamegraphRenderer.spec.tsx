@@ -207,7 +207,6 @@ describe('flamegraphRenderer', () => {
 
     const flamegraph = makeFlamegraph();
 
-    // @ts-ignore shaders are init from the constructor
     const _renderer = new FlamegraphRenderer(
       canvas as HTMLCanvasElement,
       flamegraph,
