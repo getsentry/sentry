@@ -971,6 +971,62 @@ class OrganizationMetricIntegrationTest(SessionMetricsTestCase, APITestCase):
         }
 
     @with_feature(FEATURE_FLAG)
+    def test_orderby_percentile_with_many_fields_multiple_entities_with_missing_data(self):
+        """
+        Test that ensures when transactions table has null values for some fields (i.e. fields
+        with a different entity than the entity of the field in the order by), then the table gets
+        populated accordingly
+        """
+        transaction_id = indexer.record("transaction")
+        transaction_1 = indexer.record("/foo/")
+        transaction_2 = indexer.record("/bar/")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("sentry.transactions.measurements.lcp"),
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (transaction_id, transaction_1, [10, 11, 12]),
+                    (transaction_id, transaction_2, [4, 5, 6]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                "p50(sentry.transactions.measurements.lcp)",
+                "count_unique(sentry.transactions.user)",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            datasource="snuba",
+            groupBy=["project_id", "transaction"],
+            orderBy="p50(sentry.transactions.measurements.lcp)",
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar/", 5.0, 5),
+            ("/foo/", 11.0, 1),
+        ]
+        for (expected_tag_value, expected_lcp_count, users), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert "series" not in group
+            assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
+            totals = group["totals"]
+            assert totals == {"p50(sentry.transactions.measurements.lcp)": expected_lcp_count}
+
+    @with_feature(FEATURE_FLAG)
     def test_groupby_project(self):
         self.store_session(self.build_session(project_id=self.project2.id))
         for _ in range(2):

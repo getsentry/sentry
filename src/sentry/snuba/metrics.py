@@ -1246,7 +1246,9 @@ class SnubaDataSource(DataSource):
                     #     }
                     # }
                     for group_tuple in ordered_tag_conditions[groupby_tags]:
-                        results[entity]["totals"]["data"] += snuba_query_data_dict[group_tuple]
+                        results[entity]["totals"]["data"] += snuba_query_data_dict.get(
+                            group_tuple, []
+                        )
         else:
             snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
             results = {}
