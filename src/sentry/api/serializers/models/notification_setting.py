@@ -34,11 +34,11 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         :param kwargs: Dict of optional filter options:
             - type: NotificationSettingTypes enum value. e.g. WORKFLOW, DEPLOY.
         """
-        type: Optional[NotificationSettingTypes] = kwargs.get("type")
+        type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
         actor_mapping = {recipient.actor_id: recipient for recipient in item_list}
 
         notifications_settings = NotificationSetting.objects._filter(
-            type=type,
+            type=type_option,
             target_ids=actor_mapping.keys(),
         )
 
