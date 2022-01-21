@@ -32,7 +32,9 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 )
 
     def get_max_length(self):
-        if features.has("organizations:higher-ownership-limit"):
+        if features.has(
+            "organizations:higher-ownership-limit", self.context["ownership"].project.organization
+        ):
             return HIGHER_MAX_RAW_LENGTH
         return MAX_RAW_LENGTH
 
