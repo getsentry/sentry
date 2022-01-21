@@ -23,9 +23,12 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             paginator = SequencePaginator([])
         else:
             with self.handle_query_errors():
+                environment_ids = None
+                if "environment_objects" in filter_params:
+                    environment_ids = [env.id for env in filter_params["environment_objects"]]
                 paginator = tagstore.get_tag_value_paginator_for_projects(
                     filter_params["project_id"],
-                    filter_params.get("environment"),
+                    environment_ids,
                     key,
                     filter_params["start"],
                     filter_params["end"],
