@@ -529,27 +529,6 @@ def get_most_specific_notification_setting_value(
     )
 
 
-def has_any_non_never_settings(
-    notification_settings_by_scope: Mapping[
-        NotificationScopeType,
-        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
-    ],
-    recipient: Team | User,
-    parent_id: int,
-    type: NotificationSettingTypes,
-) -> bool:
-    """
-    Given notification settings by scope, an organization or project, and a
-    notification type, will a recipient receive any notifications?
-    """
-    return any(
-        value != NotificationSettingOptionValues.NEVER
-        for value in get_values_by_provider(
-            notification_settings_by_scope, recipient, parent_id, type
-        ).values()
-    )
-
-
 def merge_notification_settings_up(
     *settings_mappings: Mapping[ExternalProviders, NotificationSettingOptionValues],
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
