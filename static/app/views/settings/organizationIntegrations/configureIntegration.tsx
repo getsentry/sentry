@@ -30,6 +30,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 type RouteParams = {
   orgId: string;
+  providerKey: string;
   integrationId: string;
 };
 type Props = RouteComponentProps<RouteParams, {}> & {
@@ -54,7 +55,18 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
-    const {location} = this.props;
+    const {
+      location,
+      router,
+      organization,
+      params: {orgId, providerKey},
+    } = this.props;
+    // This page should not be accessible by members
+    if (!organization.access.includes('org:integrations')) {
+      router.push({
+        pathname: `/settings/${orgId}/integrations/${providerKey}/`,
+      });
+    }
     const value =
       (['codeMappings', 'userMappings', 'teamMappings'] as const).find(
         tab => tab === location.query.tab
