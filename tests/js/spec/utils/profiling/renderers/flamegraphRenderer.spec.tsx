@@ -2,6 +2,7 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
@@ -35,24 +36,31 @@ const makeContextMock = (
   partialMock: Partial<WebGLRenderingContext> = {}
 ): WebGLRenderingContext => {
   const context: Partial<WebGLRenderingContext> = {
-    enable: jest.fn(),
-    blendFuncSeparate: jest.fn(),
-    createShader: jest.fn().mockReturnValue({}),
-    compileShader: jest.fn(),
-    shaderSource: jest.fn(),
-    getShaderParameter: jest.fn().mockReturnValue(1),
     attachShader: jest.fn(),
+    bufferData: jest.fn(),
+    blendFuncSeparate: jest.fn(),
+    bindBuffer: jest.fn(),
+    clearColor: jest.fn(),
+    clear: jest.fn(),
+    createShader: jest.fn().mockReturnValue({}),
     createProgram: jest.fn().mockReturnValue({}),
-    linkProgram: jest.fn(),
+    createBuffer: jest.fn().mockReturnValue([]),
+    compileShader: jest.fn(),
+    drawArrays: jest.fn(),
+    enable: jest.fn(),
+    enableVertexAttribArray: jest.fn(),
+    getShaderParameter: jest.fn().mockReturnValue(1),
     getProgramParameter: jest.fn().mockReturnValue({}),
     getUniformLocation: jest.fn().mockReturnValue({}),
     getAttribLocation: jest.fn().mockReturnValue({}),
-    createBuffer: jest.fn().mockReturnValue([]),
-    bindBuffer: jest.fn(),
-    bufferData: jest.fn(),
-    vertexAttribPointer: jest.fn(),
-    enableVertexAttribArray: jest.fn(),
+    linkProgram: jest.fn(),
+    shaderSource: jest.fn(),
+    uniformMatrix3fv: jest.fn(),
+    uniform1i: jest.fn(),
+    uniform2f: jest.fn(),
     useProgram: jest.fn(),
+    vertexAttribPointer: jest.fn(),
+    viewport: jest.fn(),
 
     // @ts-ignore
     canvas: {
@@ -65,7 +73,9 @@ const makeContextMock = (
   return context as WebGLRenderingContext;
 };
 
-const makeCanvasMock = (partialMock: Partial<HTMLCanvasElement>): HTMLCanvasElement => {
+const makeCanvasMock = (
+  partialMock: Partial<HTMLCanvasElement> = {}
+): HTMLCanvasElement => {
   const canvas: Partial<HTMLCanvasElement> = {
     getContext: jest.fn().mockReturnValue(makeContextMock()),
     height: 1000,
@@ -362,15 +372,242 @@ describe('flamegraphRenderer', () => {
     });
   });
 
-  it.todo('getHoveredNode');
+  it('getHoveredNode', () => {
+    const flamegraph = makeFlamegraph({
+      events: [
+        {type: 'O', at: 0, frame: 0},
+        {type: 'O', at: 1, frame: 1},
+        {type: 'C', at: 2, frame: 1},
+        {type: 'C', at: 3, frame: 0},
+        {type: 'O', at: 4, frame: 2},
+        {type: 'O', at: 5, frame: 3},
+        {type: 'C', at: 7, frame: 3},
+        {type: 'C', at: 8, frame: 2},
+        {type: 'O', at: 9, frame: 4},
+        {type: 'O', at: 10, frame: 5},
+        {type: 'C', at: 11, frame: 5},
+        {type: 'C', at: 12, frame: 4},
+      ],
+      shared: {
+        frames: [
+          {name: 'f0'},
+          {name: 'f1'},
+          {name: 'f2'},
+          {name: 'f3'},
+          {name: 'f4'},
+          {name: 'f5'},
+        ],
+      },
+    });
+
+    const renderer = new FlamegraphRenderer(
+      makeCanvasMock() as HTMLCanvasElement,
+      flamegraph,
+      LightFlamegraphTheme,
+      vec2.fromValues(0, 0)
+    );
+
+    expect(renderer.getHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
+    expect(renderer.getHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
+    expect(renderer.getHoveredNode(vec2.fromValues(0, 0))?.frame?.name).toBe('f0');
+    expect(renderer.getHoveredNode(vec2.fromValues(5, 2))?.frame?.name).toBe('f3');
+  });
 
   describe('setConfigView', () => {
-    it.todo('handles edge detection on X axis');
-    it.todo('handles edge detection on Y axis');
+    const makeRenderer = () => {
+      const flamegraph = makeFlamegraph({
+        startValue: 0,
+        endValue: 1000,
+        events: [
+          {type: 'O', frame: 0, at: 0},
+          {type: 'C', frame: 0, at: 500},
+        ],
+        shared: {
+          frames: [{name: 'f0'}],
+        },
+      });
+
+      return new FlamegraphRenderer(
+        makeCanvasMock() as HTMLCanvasElement,
+        flamegraph,
+        LightFlamegraphTheme,
+        vec2.fromValues(0, 0)
+      );
+    };
+
+    it('does not allow zooming in more than the min width of a frame', () => {
+      const renderer = makeRenderer();
+      expect(
+        renderer.setConfigView(new Rect(0, 0, 10, 50)).equals(new Rect(0, 0, 500, 50))
+      ).toBe(true);
+    });
+
+    it('does not allow zooming out more than the duration of a profile', () => {
+      const renderer = makeRenderer();
+      expect(
+        renderer.setConfigView(new Rect(0, 0, 2000, 50)).equals(new Rect(0, 0, 1000, 50))
+      ).toBe(true);
+    });
+
+    describe('edge detection on X axis', () => {
+      it('is not zoomed in', () => {
+        const renderer = makeRenderer();
+
+        // Check that we cant go negative X from start of profile
+        expect(
+          renderer
+            .setConfigView(new Rect(-100, 0, 1000, 50))
+            .equals(new Rect(0, 0, 1000, 50))
+        ).toBe(true);
+        // Check that we cant go over X from end of profile
+        expect(
+          renderer
+            .setConfigView(new Rect(2000, 0, 1000, 50))
+            .equals(new Rect(0, 0, 1000, 50))
+        ).toBe(true);
+      });
+
+      it('is zoomed in', () => {
+        const renderer = makeRenderer();
+
+        // Duration is is 1000, so we can't go over the end of the profile
+        expect(
+          renderer
+            .setConfigView(new Rect(600, 0, 500, 50))
+            .equals(new Rect(500, 0, 500, 50))
+        ).toBe(true);
+      });
+    });
+
+    describe('edge detection on Y axis', () => {
+      it('is not zoomed in', () => {
+        const renderer = makeRenderer();
+
+        // Check that we cant go under stack height
+        expect(
+          renderer
+            .setConfigView(new Rect(0, -50, 1000, 50))
+            .equals(new Rect(0, 0, 1000, 50))
+        ).toBe(true);
+
+        // Check that we cant go over stack height
+        expect(
+          renderer
+            .setConfigView(new Rect(0, 50, 1000, 50))
+            .equals(new Rect(0, 0, 1000, 50))
+        ).toBe(true);
+      });
+
+      it('is zoomed in', () => {
+        const renderer = makeRenderer();
+
+        // Check that we cant go over stack height
+        expect(
+          renderer
+            .setConfigView(new Rect(0, 50, 1000, 25))
+            .equals(new Rect(0, 25, 1000, 25))
+        ).toBe(true);
+      });
+    });
   });
 
   describe('draw', () => {
-    it.todo('sets uniform1f for search results');
-    it.todo('draws all frames');
+    it('sets uniform1f for search results', () => {
+      const context = makeContextMock();
+      const canvas = makeCanvasMock({
+        getContext: jest.fn().mockReturnValue(context),
+      }) as HTMLCanvasElement;
+
+      // @ts-ignore partial mock, we dont need the actual frame,
+      // only f0 matched a search result
+      const results: Record<string, FlamegraphFrame> = {f00: 1};
+
+      const flamegraph = makeFlamegraph({
+        startValue: 0,
+        endValue: 100,
+        events: [
+          {
+            type: 'O',
+            frame: 0,
+            at: 0,
+          },
+          {
+            type: 'C',
+            frame: 0,
+            at: 1,
+          },
+          {
+            type: 'O',
+            frame: 1,
+            at: 1,
+          },
+          {
+            type: 'C',
+            frame: 1,
+            at: 2,
+          },
+        ],
+        shared: {
+          frames: [{name: 'f0'}, {name: 'f1'}],
+        },
+      });
+
+      const renderer = new FlamegraphRenderer(
+        canvas,
+        flamegraph,
+        LightFlamegraphTheme,
+        vec2.fromValues(0, 0)
+      );
+
+      renderer.draw(results, renderer.configToPhysicalSpace);
+      expect(context.uniform1i).toHaveBeenCalledTimes(3);
+      expect(context.drawArrays).toHaveBeenCalledTimes(2);
+    });
+    it('draws all frames', () => {
+      const context = makeContextMock();
+      const canvas = makeCanvasMock({
+        getContext: jest.fn().mockReturnValue(context),
+      }) as HTMLCanvasElement;
+
+      const flamegraph = makeFlamegraph({
+        startValue: 0,
+        endValue: 100,
+        events: [
+          {
+            type: 'O',
+            frame: 0,
+            at: 0,
+          },
+          {
+            type: 'C',
+            frame: 0,
+            at: 1,
+          },
+          {
+            type: 'O',
+            frame: 1,
+            at: 1,
+          },
+          {
+            type: 'C',
+            frame: 1,
+            at: 2,
+          },
+        ],
+        shared: {
+          frames: [{name: 'f0'}, {name: 'f1'}],
+        },
+      });
+
+      const renderer = new FlamegraphRenderer(
+        canvas,
+        flamegraph,
+        LightFlamegraphTheme,
+        vec2.fromValues(0, 0)
+      );
+
+      renderer.draw(null, renderer.configToPhysicalSpace);
+      expect(context.drawArrays).toHaveBeenCalledTimes(2);
+    });
   });
 });
