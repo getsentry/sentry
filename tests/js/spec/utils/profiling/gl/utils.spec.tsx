@@ -3,10 +3,13 @@ import {mat3, vec2} from 'gl-matrix';
 import {
   createProgram,
   createShader,
+  ELLIPSIS,
+  findRangeBinarySearch,
   getContext,
   makeProjectionMatrix,
   Rect,
   Transform,
+  trimTextCenter,
 } from 'sentry/utils/profiling/gl/utils';
 
 describe('makeProjectionMatrix', () => {
@@ -302,5 +305,66 @@ describe('Rect', () => {
         vec2.fromValues(2, 2)
       );
     });
+  });
+});
+
+describe('findRangeBinarySearch', () => {
+  it('throws if target is out of range', () => {
+    expect(() =>
+      findRangeBinarySearch({low: 1, high: 2}, () => 0, 0, Number.MIN_SAFE_INTEGER)
+    ).toThrow('Target value needs to be in low-high range, got 0 for [1, 2]');
+  });
+
+  it('finds in single iteration', () => {
+    const text = new Array(10)
+      .fill(0)
+      .map((_, i) => String.fromCharCode(i + 97))
+      .join('');
+
+    const fn = jest.fn().mockImplementation(n => {
+      return text.substring(0, n).length;
+    });
+
+    const target = 2;
+    const precision = 1;
+
+    // First iteration will halve 1+3, next iteration will compare 2-1 <= 1 and return [1,2]
+    const [low, high] = findRangeBinarySearch({low: 1, high: 3}, fn, target, precision);
+
+    expect([low, high]).toEqual([1, 2]);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(text.substring(0, low)).toBe('a');
+  });
+
+  it('finds closest range', () => {
+    const text = new Array(10)
+      .fill(0)
+      .map((_, i) => String.fromCharCode(i + 97))
+      .join('');
+
+    const fn = jest.fn().mockImplementation(n => {
+      return text.substring(0, n).length;
+    });
+
+    const target = 4;
+    const precision = 1;
+
+    const [low, high] = findRangeBinarySearch({low: 0, high: 10}, fn, target, precision);
+
+    expect([low, high]).toEqual([3.75, 4.375]);
+    expect(fn).toHaveBeenCalledTimes(4);
+    expect(text.substring(0, low)).toBe('abc');
+  });
+});
+
+describe('trimTextCenter', () => {
+  it('trims nothing if low > length', () => {
+    expect(trimTextCenter('abc', 4)).toBe('abc');
+  });
+  it('trims center perfectly', () => {
+    expect(trimTextCenter('abcdef', 5)).toBe(`ab${ELLIPSIS}ef`);
+  });
+  it('favors prefix length', () => {
+    expect(trimTextCenter('abcdef', 4)).toBe(`ab${ELLIPSIS}f`);
   });
 });
