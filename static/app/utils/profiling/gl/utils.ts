@@ -252,8 +252,7 @@ export class Rect {
     return vec[0] >= this.left && vec[0] <= this.right;
   }
   containsY(vec: vec2): boolean {
-    const y = vec[1];
-    return y >= this.top && y <= this.bottom;
+    return vec[1] >= this.top && vec[1] <= this.bottom;
   }
 
   contains(vec: vec2): boolean {
