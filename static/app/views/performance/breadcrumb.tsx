@@ -4,6 +4,7 @@ import {Location, LocationDescriptor} from 'history';
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import Tab from './transactionSummary/tabs';
@@ -23,6 +24,7 @@ type Props = {
     name: string;
   };
   vitalName?: string;
+  spanSlug?: SpanSlug;
   eventSlug?: string;
   traceSlug?: string;
   tab?: Tab;
@@ -31,8 +33,16 @@ type Props = {
 class Breadcrumb extends Component<Props> {
   getCrumbs() {
     const crumbs: Crumb[] = [];
-    const {organization, location, transaction, vitalName, eventSlug, traceSlug, tab} =
-      this.props;
+    const {
+      organization,
+      location,
+      transaction,
+      vitalName,
+      spanSlug,
+      eventSlug,
+      traceSlug,
+      tab,
+    } = this.props;
 
     const performanceTarget: LocationDescriptor = {
       pathname: getPerformanceLandingUrl(organization),
@@ -118,7 +128,12 @@ class Breadcrumb extends Component<Props> {
       }
     }
 
-    if (transaction && eventSlug) {
+    if (transaction && spanSlug) {
+      crumbs.push({
+        to: '',
+        label: t('Span Details'),
+      });
+    } else if (transaction && eventSlug) {
       crumbs.push({
         to: '',
         label: t('Event Details'),

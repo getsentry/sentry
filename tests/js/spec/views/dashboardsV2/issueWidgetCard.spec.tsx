@@ -2,8 +2,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
+import MemberListStore from 'sentry/stores/memberListStore';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('Dashboards > IssueWidgetCard', function () {
   const initialData = initializeOrg({
@@ -23,7 +25,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         conditions: 'event.type:default',
         fields: ['issue', 'assignee', 'title'],
         name: '',
-        orderby: '',
+        orderby: IssueSortOptions.FREQ,
       },
     ],
   };
@@ -57,6 +59,11 @@ describe('Dashboards > IssueWidgetCard', function () {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -64,6 +71,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('renders with title and issues chart', async function () {
+    MemberListStore.loadInitialData([]);
     mountWithTheme(
       <WidgetCard
         api={api}
@@ -94,7 +102,8 @@ describe('Dashboards > IssueWidgetCard', function () {
       screen.getByText('ChunkLoadError: Loading chunk app_bootstrap_index_tsx failed.')
     ).toBeInTheDocument();
     userEvent.hover(screen.getByTitle('dashboard user'));
-    expect(await screen.findByText('Assigned to dashboard user')).toBeInTheDocument();
+    expect(await screen.findByText('Assigned to')).toBeInTheDocument();
+    expect(await screen.findByText('dashboard user')).toBeInTheDocument();
   });
 
   it('opens in issues page', async function () {
@@ -120,7 +129,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Open in Issues').closest('a')?.href).toContain(
-      '/organizations/org-slug/issues/?query=event.type%3Adefault&statsPeriod=14d'
+      '/organizations/org-slug/issues/?query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
   });

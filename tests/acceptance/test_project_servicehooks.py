@@ -18,19 +18,19 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
     def test_simple(self):
         with self.feature("projects:servicehooks"):
             self.browser.get(self.list_hooks_path)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.snapshot("project settings - service hooks - empty list")
             # click "New"
             self.browser.click('[data-test-id="new-service-hook"]')
 
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             assert self.browser.current_url == f"{self.browser.live_server_url}{self.new_hook_path}"
             self.browser.snapshot("project settings - service hooks - create")
             self.browser.element('input[name="url"]').send_keys("https://example.com/hook")
             # click "Save Changes"
             self.browser.click('form [data-test-id="form-submit"]')
 
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             assert (
                 self.browser.current_url == f"{self.browser.live_server_url}{self.list_hooks_path}"
             )
@@ -42,7 +42,7 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
 
             # hopefully click the first service hook
             self.browser.click('[data-test-id="project-service-hook"]')
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             assert self.browser.current_url == "{}{}".format(
                 self.browser.live_server_url,
                 f"/settings/{self.org.slug}/projects/{self.project.slug}/hooks/{hook.guid}/",

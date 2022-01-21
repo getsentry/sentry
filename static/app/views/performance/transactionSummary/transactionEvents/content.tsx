@@ -8,7 +8,7 @@ import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import SearchBar from 'sentry/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -36,6 +36,15 @@ type Props = {
   setError: SetStateAction<string | undefined>;
 };
 
+const transactionsListTitles = [
+  t('event id'),
+  t('user'),
+  t('operation duration'),
+  t('total duration'),
+  t('trace id'),
+  t('timestamp'),
+];
+
 function EventsContent(props: Props) {
   const {
     location,
@@ -48,15 +57,6 @@ function EventsContent(props: Props) {
   } = props;
 
   const eventView = originalEventView.clone();
-
-  const transactionsListTitles = [
-    t('event id'),
-    t('user'),
-    t('operation duration'),
-    t('total duration'),
-    t('trace id'),
-    t('timestamp'),
-  ];
 
   if (webVital) {
     transactionsListTitles.splice(3, 0, t(webVital));
@@ -102,7 +102,7 @@ function Search(props: Props) {
   } = props;
 
   const handleSearch = (query: string) => {
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });

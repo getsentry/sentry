@@ -154,3 +154,28 @@ class SlackPluginTest(PluginTestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             with pytest.raises(ApiError):
                 self.plugin.notify(notification)
+
+    @responses.activate
+    def test_no_error_on_ignorable_slack_errors(self):
+        responses.add("POST", "http://example.com/slack", status=403, body="action_prohibited")
+        self.plugin.set_option("webhook", "http://example.com/slack", self.project)
+
+        event = self.store_event(
+            data={"message": "Hello world", "level": "warning", "culprit": "foo.bar"},
+            project_id=self.project.id,
+        )
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+
+        notification = Notification(event=event, rule=rule)
+
+        # No exception since certain errors are supposed to be ignored
+        with self.options({"system.url-prefix": "http://example.com"}):
+            self.plugin.notify(notification)
+
+        responses.replace("POST", "http://example.com/slack", status=403, body="some_other_error")
+
+        # Other exceptions should not be ignored
+        with self.options({"system.url-prefix": "http://example.com"}):
+            with pytest.raises(ApiError):
+                self.plugin.notify(notification)

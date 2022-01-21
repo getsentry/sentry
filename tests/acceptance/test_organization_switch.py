@@ -32,7 +32,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
         def navigate_to_issues_page(org_slug):
             issues_url = OrganizationSwitchTest.url_creator("issues", org_slug)
             self.browser.get(issues_url)
-            self.browser.wait_until_not(".loading-indicator")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         @TimedRetryPolicy.wrap(timeout=20, exceptions=(TimeoutException,))
         def open_project_selector():
@@ -51,7 +51,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
         transition_urls = [
             OrganizationSwitchTest.url_creator(page, self.organization.slug)
-            for page in ["issues", "releases" "discover", "user-feedback"]
+            for page in ["issues", "releases", "discover", "user-feedback"]
         ]
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=False), self.feature(
@@ -66,7 +66,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
                 )
 
                 self.browser.get(transition_url)
-                self.browser.wait_until_not(".loading-indicator")
+                self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
                 navigate_to_issues_page(self.secondary_organization.slug)
                 open_project_selector()

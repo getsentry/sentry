@@ -65,6 +65,7 @@ type State = {
   filteredImagesByFilter: Images;
   filterOptions: FilterOptions;
   scrollbarWidth: number;
+  isOpen: boolean;
   panelTableHeight?: number;
 };
 
@@ -81,6 +82,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   state: State = {
     searchTerm: '',
     scrollbarWidth: 0,
+    isOpen: false,
     filterOptions: {},
     filteredImages: [],
     filteredImagesByFilter: [],
@@ -99,7 +101,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0) {
+    if (
+      this.state.isOpen ||
+      (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0)
+    ) {
       this.getPanelBodyHeight();
     }
 
@@ -255,6 +260,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
         onClose: this.handleCloseImageDetailsModal,
       }
     );
+  };
+
+  toggleImagesLoaded = () => {
+    this.setState(state => ({
+      isOpen: !state.isOpen,
+    }));
   };
 
   getPanelBodyHeight() {
@@ -507,6 +518,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       searchTerm,
       filterOptions,
       scrollbarWidth,
+      isOpen,
       filteredImagesByFilter: filteredImages,
     } = this.state;
     const {data} = this.props;
@@ -518,8 +530,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
 
+    const actions = (
+      <ToggleButton onClick={this.toggleImagesLoaded} priority="link">
+        {isOpen ? t('Hide Details') : t('Show Details')}
+      </ToggleButton>
+    );
+
     return (
-      <StyledEventDataSection
+      <EventDataSection
         type="images-loaded"
         title={
           <TitleWrapper>
@@ -535,47 +553,41 @@ class DebugMeta extends React.PureComponent<Props, State> {
             />
           </TitleWrapper>
         }
-        actions={
-          <StyledSearchBarAction
-            placeholder={t('Search images loaded')}
-            onChange={value => this.handleChangeSearchTerm(value)}
-            query={searchTerm}
-            filter={
-              displayFilter ? (
-                <SearchBarActionFilter
-                  onChange={this.handleChangeFilter}
-                  options={filterOptions}
-                />
-              ) : undefined
-            }
-          />
-        }
+        actions={actions}
         wrapTitle={false}
         isCentered
       >
-        <StyledPanelTable
-          isEmpty={!filteredImages.length}
-          scrollbarWidth={scrollbarWidth}
-          headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
-          {...this.getEmptyMessage()}
-        >
-          <div ref={this.panelTableRef}>{this.renderList()}</div>
-        </StyledPanelTable>
-      </StyledEventDataSection>
+        {isOpen && (
+          <React.Fragment>
+            <StyledSearchBarAction
+              placeholder={t('Search images loaded')}
+              onChange={value => this.handleChangeSearchTerm(value)}
+              query={searchTerm}
+              filter={
+                displayFilter ? (
+                  <SearchBarActionFilter
+                    onChange={this.handleChangeFilter}
+                    options={filterOptions}
+                  />
+                ) : undefined
+              }
+            />
+            <StyledPanelTable
+              isEmpty={!filteredImages.length}
+              scrollbarWidth={scrollbarWidth}
+              headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
+              {...this.getEmptyMessage()}
+            >
+              <div ref={this.panelTableRef}>{this.renderList()}</div>
+            </StyledPanelTable>
+          </React.Fragment>
+        )}
+      </EventDataSection>
     );
   }
 }
 
 export default withRouter(DebugMeta);
-
-const StyledEventDataSection = styled(EventDataSection)`
-  padding-bottom: ${space(4)};
-
-  /* to increase specificity */
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding-bottom: ${space(2)};
-  }
-`;
 
 const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   overflow: hidden;
@@ -627,4 +639,14 @@ const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
 
 const StyledSearchBarAction = styled(SearchBarAction)`
   z-index: 1;
+  margin-bottom: ${space(1)};
+`;
+
+const ToggleButton = styled(Button)`
+  font-weight: 700;
+  color: ${p => p.theme.subText};
+  &:hover,
+  &:focus {
+    color: ${p => p.theme.textColor};
+  }
 `;

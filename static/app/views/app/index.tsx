@@ -89,7 +89,7 @@ function App({children}: Props) {
       const {id, message, url} = problem;
       const type = problem.severity === 'critical' ? 'error' : 'warning';
 
-      AlertActions.addAlert({id, message, type, url});
+      AlertActions.addAlert({id, message, type, url, opaque: true});
     });
   }
 

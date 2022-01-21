@@ -29,8 +29,8 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
-from sentry.release_health.metrics import MetricIndexNotFound, reverse_tag_value, tag_key
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.entity_subscription import BaseMetricsEntitySubscription
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import build_snuba_filter, get_entity_subscription_for_dataset
 from sentry.utils import metrics, redis
@@ -120,6 +120,16 @@ class SubscriptionProcessor:
         """
         incident_trigger = self.incident_triggers.get(trigger.id)
         return incident_trigger is not None and incident_trigger.status == status.value
+
+    def __reset_trigger_counts(self):
+        """
+        Helper method that clears both the trigger alert and the trigger resolve counts
+        """
+        for trigger_id in self.trigger_alert_counts:
+            self.trigger_alert_counts[trigger_id] = 0
+        for trigger_id in self.trigger_resolve_counts:
+            self.trigger_resolve_counts[trigger_id] = 0
+        self.update_alert_rule_stats()
 
     def calculate_resolve_threshold(self, trigger):
         """
@@ -218,8 +228,7 @@ class SubscriptionProcessor:
 
         return (aggregation_value / comparison_aggregate) * 100
 
-    @staticmethod
-    def get_crash_rate_alert_aggregation_value(subscription_update):
+    def get_crash_rate_alert_aggregation_value(self, subscription_update):
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values.
         The subscription update looks like
@@ -239,6 +248,7 @@ class SubscriptionProcessor:
             CRASH_RATE_ALERT_AGGREGATE_ALIAS
         ]
         if aggregation_value is None:
+            self.__reset_trigger_counts()
             metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
             return
 
@@ -249,6 +259,7 @@ class SubscriptionProcessor:
             if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
                 min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
                 if total_count < min_threshold:
+                    self.__reset_trigger_counts()
                     metrics.incr(
                         "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
                     )
@@ -290,37 +301,28 @@ class SubscriptionProcessor:
         count is just ignored
         - `crashed` represents the total sessions or user counts that crashed.
         """
-        try:
-            session_status = tag_key(self.subscription.project.organization.id, "session.status")
-            data = {}
+        (
+            total_session_count,
+            crash_count,
+        ) = BaseMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
+            data=subscription_update["values"]["data"],
+            org_id=self.subscription.project.organization.id,
+        )
 
-            # ToDo(ahmed): Refactor this logic by calling the aggregate_query_results on the
-            #  BaseMetricsEntitySubscription cls
-            for row in subscription_update["values"]["data"]:
-                tag_value = reverse_tag_value(
-                    self.subscription.project.organization.id, row[session_status]
-                )
-                data[tag_value] = row["value"]
+        if total_session_count == 0:
+            self.__reset_trigger_counts()
+            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
+            return
 
-            total_session_count = data.get("init", 0)
-            crash_count = data.get("crashed", 0)
-
-            if total_session_count == 0:
-                metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
+        if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
+            min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
+            if total_session_count < min_threshold:
+                self.__reset_trigger_counts()
+                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
                 return
 
-            if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-                min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-                if total_session_count < min_threshold:
-                    metrics.incr(
-                        "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
-                    )
-                    return
+        aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
 
-            aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
-        except MetricIndexNotFound:
-            metrics.incr("incidents.alert_rules.ignore_update.metric_index_not_found")
-            aggregation_value = None
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update):

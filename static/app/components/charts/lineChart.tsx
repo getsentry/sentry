@@ -18,25 +18,23 @@ type Props = Omit<ChartProps, 'series'> & {
   seriesOptions?: LineSeriesOption;
 };
 
-export default class LineChart extends React.Component<Props> {
-  render() {
-    const {series, seriesOptions, ...props} = this.props;
-
-    return (
-      <BaseChart
-        {...props}
-        series={series.map(({seriesName, data, dataArray, ...options}) =>
-          LineSeries({
-            ...seriesOptions,
-            ...options,
-            name: seriesName,
-            data: dataArray || data?.map(({value, name}) => [name, value]),
-            animation: false,
-            animationThreshold: 1,
-            animationDuration: 0,
-          })
-        )}
-      />
-    );
-  }
+function LineChart({series, seriesOptions, ...props}: Props) {
+  return (
+    <BaseChart
+      {...props}
+      series={series.map(({seriesName, data, dataArray, ...options}) =>
+        LineSeries({
+          ...seriesOptions,
+          ...options,
+          name: seriesName,
+          data: dataArray || data?.map(({value, name}) => [name, value]),
+          animation: false,
+          animationThreshold: 1,
+          animationDuration: 0,
+        })
+      )}
+    />
+  );
 }
+
+export default LineChart;

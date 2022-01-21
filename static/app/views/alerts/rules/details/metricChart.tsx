@@ -23,9 +23,10 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
   StatsPeriodType,
-} from 'sentry/components/organizations/pageFilters/getParams';
+} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import Truncate from 'sentry/components/truncate';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -535,7 +536,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         ''
     );
 
-    const queryFilter = filter?.map((f, idx) => <Filters key={idx}>{f}</Filters>);
+    const queryFilter = filter?.join(' ');
 
     return (
       <ChartPanel>
@@ -548,7 +549,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           <ChartFilters>
             <StyledCircleIndicator size={8} />
             <Filters>{rule.aggregate}</Filters>
-            {queryFilter}
+            <Truncate value={queryFilter ?? ''} maxLength={75} />
           </ChartFilters>
           {getDynamicText({
             value: (
@@ -822,6 +823,14 @@ const ChartFilters = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.textColor};
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 `;
 
 const Filters = styled('span')`

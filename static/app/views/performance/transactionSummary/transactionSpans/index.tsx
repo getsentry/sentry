@@ -1,7 +1,5 @@
 import {Location} from 'history';
-import pick from 'lodash/pick';
 
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -11,15 +9,11 @@ import PageLayout from '../pageLayout';
 import Tab from '../tabs';
 
 import SpansContent from './content';
-import {generateSpansEventView} from './utils';
-
-const RELATIVE_PERIODS = pick(DEFAULT_RELATIVE_PERIODS, [
-  '1h',
-  '24h',
-  '7d',
-  '14d',
-  '30d',
-]);
+import {
+  generateSpansEventView,
+  SPAN_RELATIVE_PERIODS,
+  SPAN_RETENTION_DAYS,
+} from './utils';
 
 type Props = {
   location: Location;
@@ -39,8 +33,8 @@ function TransactionSpans(props: Props) {
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateSpansEventView}
       childComponent={SpansContent}
-      relativeDateOptions={RELATIVE_PERIODS}
-      maxPickableDays={30}
+      relativeDateOptions={SPAN_RELATIVE_PERIODS}
+      maxPickableDays={SPAN_RETENTION_DAYS}
     />
   );
 }

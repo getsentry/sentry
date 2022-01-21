@@ -14,7 +14,12 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {getTransactionName} from '../../../utils';
 import {NoAccess} from '../../pageLayout';
-import {generateSpansEventView, parseSpanSlug} from '../utils';
+import {
+  generateSpansEventView,
+  parseSpanSlug,
+  SPAN_RELATIVE_PERIODS,
+  SPAN_RETENTION_DAYS,
+} from '../utils';
 
 import SpanDetailsContent from './content';
 
@@ -34,7 +39,11 @@ export default function SpanDetails(props: Props) {
   const {projects} = useProjects();
 
   const project = projects.find(p => p.id === projectId);
-  const eventView = generateSpansEventView(location, transactionName);
+  const eventView = generateSpansEventView({
+    location,
+    transactionName,
+    isMetricsData: false,
+  });
 
   return (
     <SentryDocumentTitle
@@ -54,6 +63,8 @@ export default function SpanDetails(props: Props) {
           specificProjectSlugs={defined(project) ? [project.slug] : []}
           disableMultipleProjectSelection
           showProjectSettingsLink
+          relativeDateOptions={SPAN_RELATIVE_PERIODS}
+          maxPickableDays={SPAN_RETENTION_DAYS}
         >
           <StyledPageContent>
             <NoProjectMessage organization={organization}>
@@ -61,7 +72,7 @@ export default function SpanDetails(props: Props) {
                 location={location}
                 organization={organization}
                 eventView={eventView}
-                projectId={projectId}
+                project={project}
                 transactionName={transactionName}
                 spanSlug={spanSlug}
               />

@@ -11,7 +11,7 @@ import TeamSelector from 'sentry/components/forms/teamSelector';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {t} from 'sentry/locale';
@@ -134,7 +134,7 @@ function TeamInsightsOverview({location, router}: Props) {
       end,
       statsPeriod,
       utc: utcString,
-    } = getParams(query, {
+    } = normalizeDateTimeParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,

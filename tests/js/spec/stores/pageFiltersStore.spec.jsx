@@ -1,4 +1,5 @@
 import {
+  pinFilter,
   updateDateTime,
   updateEnvironments,
   updateProjects,
@@ -17,7 +18,9 @@ describe('PageFiltersStore', function () {
 
   it('getState()', function () {
     expect(PageFiltersStore.getState()).toEqual({
+      organization: null,
       isReady: false,
+      pinnedFilters: new Set(),
       selection: {
         projects: [],
         environments: [],
@@ -82,5 +85,22 @@ describe('PageFiltersStore', function () {
     updateEnvironments(['alpha']);
     await tick();
     expect(PageFiltersStore.getState().selection.environments).toEqual(['alpha']);
+  });
+
+  it('can mark filters as pinned', async function () {
+    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set());
+    pinFilter('projects', true);
+    await tick();
+    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['projects']));
+
+    pinFilter('environments', true);
+    await tick();
+    expect(PageFiltersStore.getState().pinnedFilters).toEqual(
+      new Set(['projects', 'environments'])
+    );
+
+    pinFilter('projects', false);
+    await tick();
+    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['environments']));
   });
 });

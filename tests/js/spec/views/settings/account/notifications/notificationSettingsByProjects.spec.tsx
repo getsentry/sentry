@@ -27,6 +27,7 @@ const createWrapper = (projects: Project[]) => {
       notificationType="alerts"
       notificationSettings={notificationSettings}
       onChange={jest.fn()}
+      onSubmitSuccess={jest.fn()}
     />,
     routerContext
   );

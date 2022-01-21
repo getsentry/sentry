@@ -209,7 +209,7 @@ describe('ReleasesList', function () {
     const sortByOptions = sortDropdown.find('DropdownItem span');
 
     const dateCreatedOption = sortByOptions.at(0);
-    expect(sortByOptions).toHaveLength(4);
+    expect(sortByOptions).toHaveLength(5);
     expect(dateCreatedOption.text()).toEqual('Date Created');
 
     const healthStatsControls = wrapper.find('AdoptionColumn span').first();
@@ -228,7 +228,7 @@ describe('ReleasesList', function () {
     wrapper.unmount();
     const adoptionProps = {
       ...props,
-      organization: {...organization, features: ['release-adoption-stage']},
+      organization,
     };
     wrapper = mountWithTheme(
       <ReleasesList

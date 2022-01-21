@@ -146,9 +146,7 @@ export default class TagDistributionMeter extends React.Component<Props> {
             index,
             to: value.url,
             onClick: () => {
-              if (onTagClick) {
-                onTagClick(title, value);
-              }
+              onTagClick?.(title, value);
             },
           };
 
@@ -159,7 +157,17 @@ export default class TagDistributionMeter extends React.Component<Props> {
               style={{width: pct + '%'}}
             >
               <Tooltip title={tooltipHtml} containerDisplayMode="block">
-                {value.isOther ? <OtherSegment /> : <Segment {...segmentProps} />}
+                {value.isOther ? (
+                  <OtherSegment />
+                ) : (
+                  <Segment
+                    aria-label={t(
+                      'Add the %s segment tag to the search query',
+                      value.value
+                    )}
+                    {...segmentProps}
+                  />
+                )}
               </Tooltip>
             </div>
           );

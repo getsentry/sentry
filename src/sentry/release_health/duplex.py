@@ -446,7 +446,16 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ):
         self.sessions = SessionsReleaseHealthBackend()
         self.metrics = MetricsReleaseHealthBackend()
-        self.metrics_start = metrics_start
+        self.metrics_start = max(
+            metrics_start,
+            # The sessions backend never returns data beyond 90 days, so any
+            # query beyond 90 days will return truncated results.
+            # We assume that the release health duplex backend is sufficiently
+            # often reinstantiated, at least once per day, not only due to
+            # deploys but also because uwsgi/celery are routinely restarting
+            # processes
+            datetime.now(timezone.utc) - timedelta(days=89),
+        )
 
     @staticmethod
     def _org_from_projects(projects_list: Sequence[ProjectOrRelease]) -> Optional[Organization]:
@@ -833,7 +842,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         project_ids: Sequence[ProjectId],
     ) -> Sequence[ProjectRelease]:
         rollup = self.DEFAULT_ROLLUP  # not used
-        schema = [ComparatorType.Exact]
+        schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
+
         should_compare = (
             lambda _: datetime.now(timezone.utc) - timedelta(days=3) > self.metrics_start
         )
@@ -910,11 +920,18 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
-        schema = {
-            "duration_p50": ComparatorType.Quantile,
-            "duration_p90": ComparatorType.Quantile,
-            "*": ComparatorType.Counter,
-        }
+        schema = (
+            [
+                {
+                    "duration_p50": ComparatorType.Quantile,
+                    "duration_p90": ComparatorType.Quantile,
+                    "*": ComparatorType.Counter,
+                }
+            ],
+            {
+                "*": ComparatorType.Counter,
+            },
+        )
         should_compare = lambda _: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects([project_id])
         return self._dispatch_call(  # type: ignore
@@ -989,7 +1006,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[str]] = None,
     ) -> Sequence[ProjectRelease]:
-        schema = [ComparatorType.Exact]
+        schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
+
+        set_tag("get_project_releases_by_stability.limit", str(limit))
+        set_tag("get_project_releases_by_stability.offset", str(offset))
+        set_tag("get_project_releases_by_stability.scope", str(scope))
 
         if stats_period is None:
             stats_period = "24h"

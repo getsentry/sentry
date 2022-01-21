@@ -18,10 +18,8 @@ import {tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import DiscoverQuery, {
-  TableData,
-  TableDataRow,
-} from 'sentry/utils/discover/discoverQuery';
+import DiscoverOrMetricsQuery from 'sentry/utils/discover/discoverOrMetricsQuery';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -60,9 +58,8 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
-  summaryConditions?: string;
-
   projects: Project[];
+  summaryConditions?: string;
   columnTitles?: string[];
 };
 
@@ -396,7 +393,7 @@ class _Table extends React.Component<Props, State> {
 
     return (
       <div>
-        <DiscoverQuery
+        <DiscoverOrMetricsQuery
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
@@ -425,7 +422,7 @@ class _Table extends React.Component<Props, State> {
               <Pagination pageLinks={pageLinks} />
             </React.Fragment>
           )}
-        </DiscoverQuery>
+        </DiscoverOrMetricsQuery>
       </div>
     );
   }

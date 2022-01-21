@@ -452,13 +452,11 @@ function BaseChartUnwrapped({
       )
     : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
-  // Maybe changing the series type to types/echarts Series[] would be a better
-  // solution and can't use ignore for multiline blocks
-  const seriesValid = series && series[0]?.data && (series[0].data as any[]).length > 1;
-  const seriesData = seriesValid ? series[0].data : undefined;
-  const bucketSize = seriesData
-    ? (seriesData as any[])[1][0] - (seriesData as any[])[0][0]
-    : undefined;
+  const seriesData =
+    Array.isArray(series?.[0]?.data) && series[0].data.length > 1
+      ? series[0].data
+      : undefined;
+  const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
   const tooltipOrNone =
     tooltip !== null
@@ -595,14 +593,14 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     border-top: 8px solid ${p => p.theme.backgroundElevated};
     margin-left: -8px;
     &:before {
-      border-left: 9px solid transparent;
-      border-right: 9px solid transparent;
-      border-top: 9px solid ${p => p.theme.border};
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid ${p => p.theme.translucentBorder};
       content: '';
       display: block;
       position: absolute;
-      top: -8px;
-      left: -9px;
+      top: -7px;
+      left: -8px;
       z-index: -1;
     }
   }

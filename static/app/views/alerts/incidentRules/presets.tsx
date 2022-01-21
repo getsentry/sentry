@@ -68,9 +68,9 @@ export const PRESET_AGGREGATES: Preset[] = [
   },
   {
     name: t('Users affected'),
-    match: /^count_unique\(tags\[sentry:user\]\)/,
+    match: /^count_unique\(user\)/,
     validDataset: [Dataset.ERRORS],
-    default: 'count_unique(tags[sentry:user])',
+    default: 'count_unique(user)',
     /**
      * Simple "Open in Discover" button
      */

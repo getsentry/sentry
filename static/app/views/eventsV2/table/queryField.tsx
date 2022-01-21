@@ -105,8 +105,12 @@ class QueryField extends React.Component<Props> {
     Option: ({label, data, ...props}: OptionProps<OptionType>) => {
       return (
         <components.Option label={label} data={data} {...props}>
-          <span data-test-id="label">{label}</span>
-          {data.value && this.renderTag(data.value.kind, label)}
+          <InnerWrap isFocused={props.isFocused}>
+            <OptionLabelWrapper data-test-id="label">
+              {label}
+              {data.value && this.renderTag(data.value.kind, label)}
+            </OptionLabelWrapper>
+          </InnerWrap>
         </components.Option>
       );
     },
@@ -737,6 +741,22 @@ const ArithmeticError = styled(Tooltip)`
   color: ${p => p.theme.red300};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
+`;
+
+const InnerWrap = styled('div')<{isFocused: boolean}>`
+  display: flex;
+  padding: 0 ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  box-sizing: border-box;
+  width: 100%;
+  ${p => p.isFocused && `background: ${p.theme.hover};`}
+`;
+
+const OptionLabelWrapper = styled('span')`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: ${space(1)} 0;
 `;
 
 export {QueryField};

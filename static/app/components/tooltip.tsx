@@ -328,8 +328,7 @@ const TooltipContent = styled(motion.div)<Pick<Props, 'popperStyle'>>`
   background: ${p => p.theme.backgroundElevated};
   padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
-  border: solid 1px ${p => p.theme.border};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   overflow-wrap: break-word;
   max-width: 225px;
 
@@ -355,7 +354,7 @@ const TooltipArrow = styled('span')`
     position: absolute;
     width: 0;
     height: 0;
-    border: solid 7px transparent;
+    border: solid 6px transparent;
     z-index: -1;
   }
 
@@ -364,9 +363,9 @@ const TooltipArrow = styled('span')`
     margin-top: -12px;
     border-bottom-color: ${p => p.theme.backgroundElevated};
     &::before {
-      bottom: -6px;
-      left: -7px;
-      border-bottom-color: ${p => p.theme.border};
+      bottom: -5px;
+      left: -6px;
+      border-bottom-color: ${p => p.theme.translucentBorder};
     }
   }
 
@@ -375,9 +374,9 @@ const TooltipArrow = styled('span')`
     margin-bottom: -12px;
     border-top-color: ${p => p.theme.backgroundElevated};
     &::before {
-      top: -6px;
-      left: -7px;
-      border-top-color: ${p => p.theme.border};
+      top: -5px;
+      left: -6px;
+      border-top-color: ${p => p.theme.translucentBorder};
     }
   }
 
@@ -386,9 +385,9 @@ const TooltipArrow = styled('span')`
     margin-left: -12px;
     border-right-color: ${p => p.theme.backgroundElevated};
     &::before {
-      top: -7px;
-      right: -6px;
-      border-right-color: ${p => p.theme.border};
+      top: -6px;
+      right: -5px;
+      border-right-color: ${p => p.theme.translucentBorder};
     }
   }
 
@@ -397,9 +396,9 @@ const TooltipArrow = styled('span')`
     margin-right: -12px;
     border-left-color: ${p => p.theme.backgroundElevated};
     &::before {
-      top: -7px;
-      left: -6px;
-      border-left-color: ${p => p.theme.border};
+      top: -6px;
+      left: -5px;
+      border-left-color: ${p => p.theme.translucentBorder};
     }
   }
 `;

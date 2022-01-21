@@ -350,6 +350,29 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
+    @mock.patch("sentry.auth.helper.AuthIdentityHandler.warn_about_ambiguous_email")
+    def test_flow_as_unauthenticated_existing_matched_user_with_ambiguous_email(self, mock_warning):
+        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+        secondary_email = "foo@example.com"
+        users = {self.create_user() for _ in range(2)}
+        for user in users:
+            UserEmail.objects.create(user=user, email=secondary_email, is_verified=True)
+
+        resp = self.client.post(self.path, {"init": True})
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        path = reverse("sentry-auth-sso")
+        resp = self.client.post(path, {"email": secondary_email})
+        assert resp.status_code == 200
+
+        assert mock_warning.called
+        received_email, found_users, chosen_user = mock_warning.call_args.args
+        assert received_email == secondary_email
+        assert set(found_users) == users
+        assert chosen_user in users
+
     def test_flow_as_unauthenticated_existing_unmatched_user_with_merge(self):
         auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider="dummy"

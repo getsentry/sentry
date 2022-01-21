@@ -428,7 +428,7 @@ export function VitalBar(props: VitalBarProps) {
       {showDetail && (
         <BarDetail>
           {showDurationDetail && p75 && (
-            <div data-test-id="vital-bar-p75">
+            <div>
               {t('The p75 for all transactions is ')}
               <strong>{p75}</strong>
             </div>

@@ -10,9 +10,8 @@ import Button from 'sentry/components/button';
 import BarChart from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -21,6 +20,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Color, Theme} from 'sentry/utils/theme';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
 
 type Props = AsyncComponent['props'] & {
@@ -65,7 +65,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/release-count/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -219,6 +219,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                     show: false,
                   },
                 }),
+                barCategoryGap: '5%',
               },
             ]}
             tooltip={{
@@ -342,12 +343,4 @@ const PaddedIconArrow = styled(IconArrow)`
 
 const SubText = styled('div')<{color: Color}>`
   color: ${p => p.theme[p.color]};
-`;
-
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
 `;

@@ -44,8 +44,7 @@ class TestSelectRequester(TestCase):
         }
 
         request = responses.calls[0].request
-        assert request.headers["Sentry-App-Signature"]
-
+        assert request.headers["Sentry-App-Signature"] == self.sentry_app.build_signature("")
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         requests = buffer.get_requests()
 

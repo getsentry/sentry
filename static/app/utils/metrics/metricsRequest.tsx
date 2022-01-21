@@ -10,7 +10,10 @@ import {t} from 'sentry/locale';
 import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
+import {TableData} from '../discover/discoverQuery';
+
 import {getMetricsDataSource} from './getMetricsDataSource';
+import {transformMetricsResponseToTable} from './transformMetricsResponseToTable';
 
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
@@ -18,10 +21,13 @@ const omitIgnoredProps = (props: Props) =>
 
 export type MetricsRequestRenderProps = {
   loading: boolean;
+  isLoading: boolean;
   reloading: boolean;
   errored: boolean;
+  error: string | null;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
+  tableData?: TableData;
 };
 
 type DefaultProps = {
@@ -33,7 +39,7 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   api: Client;
-  organization: Organization;
+  orgSlug: Organization['slug'];
   field: string[];
   children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
   project?: Readonly<number[]>;
@@ -47,11 +53,16 @@ type Props = DefaultProps & {
   limit?: number;
   interval?: string;
   isDisabled?: boolean;
+  /**
+   * Transform the response data to be something ingestible by GridEditable tables
+   */
+  includeTabularData?: boolean;
 };
 
 type State = {
   reloading: boolean;
   errored: boolean;
+  error: string | null;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
 };
@@ -64,6 +75,7 @@ class MetricsRequest extends React.Component<Props, State> {
   state: State = {
     reloading: false,
     errored: false,
+    error: null,
     response: null,
     responsePrevious: null,
   };
@@ -87,9 +99,9 @@ class MetricsRequest extends React.Component<Props, State> {
   private unmounting: boolean = false;
 
   get path() {
-    const {organization} = this.props;
+    const {orgSlug} = this.props;
 
-    return `/organizations/${organization.slug}/metrics/data/`;
+    return `/organizations/${orgSlug}/metrics/data/`;
   }
 
   baseQueryParams({previousPeriod = false} = {}) {
@@ -145,6 +157,7 @@ class MetricsRequest extends React.Component<Props, State> {
     this.setState(state => ({
       reloading: state.response !== null,
       errored: false,
+      error: null,
     }));
 
     const promises = [api.requestPromise(this.path, {query: this.baseQueryParams()})];
@@ -177,22 +190,28 @@ class MetricsRequest extends React.Component<Props, State> {
       this.setState({
         reloading: false,
         errored: true,
+        error: error.responseJSON?.detail ?? null,
       });
     }
   };
 
   render() {
-    const {reloading, errored, response, responsePrevious} = this.state;
-    const {children, isDisabled} = this.props;
+    const {reloading, errored, error, response, responsePrevious} = this.state;
+    const {children, isDisabled, includeTabularData} = this.props;
 
     const loading = response === null && !isDisabled;
 
     return children?.({
       loading,
+      isLoading: loading, // loading alias, some components downstream are used to one or the other (because of EventsRequest vs DiscoverQuery)
       reloading,
       errored,
+      error,
       response,
       responsePrevious,
+      tableData: includeTabularData
+        ? transformMetricsResponseToTable({response})
+        : undefined,
     });
   }
 }

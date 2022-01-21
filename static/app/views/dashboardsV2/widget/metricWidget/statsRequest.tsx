@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
@@ -85,7 +85,7 @@ function StatsRequest({
     setErrored(false);
     setIsLoading(true);
 
-    const requestExtraParams = getParams(
+    const requestExtraParams = normalizeDateTimeParams(
       pick(
         location.query,
         Object.values(URL_PARAM).filter(param => param !== URL_PARAM.PROJECT)

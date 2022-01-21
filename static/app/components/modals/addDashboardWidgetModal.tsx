@@ -30,6 +30,7 @@ import {
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Measurements from 'sentry/utils/measurements/measurements';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
@@ -132,7 +133,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
-        displayType: displayType ?? DisplayType.LINE,
+        displayType: displayType ?? DisplayType.TABLE,
         interval: '5m',
         queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
         errors: undefined,
@@ -323,6 +324,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       const newState = cloneDeep(prevState);
       const displayType = prevState.displayType as Widget['displayType'];
       const normalized = normalizeQueries(displayType, prevState.queries);
+      if (displayType === DisplayType.TOP_N) {
+        // TOP N display should only allow a single query
+        normalized.splice(1);
+      }
 
       if (!prevState.userHasModified) {
         // If the Widget is an issue widget,
@@ -364,6 +369,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
   handleFieldChange = (field: string) => (value: string) => {
     const {organization, source} = this.props;
+    const {displayType} = this.state;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
@@ -379,7 +385,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       return {...newState, errors: undefined};
     });
 
-    if (field === 'displayType') {
+    if (field === 'displayType' && value !== displayType) {
       this.handleDefaultFields();
     }
   };
@@ -558,6 +564,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         organization,
         tagKeys: Object.values(tags).map(({key}) => key),
         measurementKeys,
+        spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
       });
 
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();

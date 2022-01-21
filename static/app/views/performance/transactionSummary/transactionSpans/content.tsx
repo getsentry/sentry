@@ -4,13 +4,10 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -24,7 +21,7 @@ import {SetStateAction} from '../types';
 
 import OpsFilter from './opsFilter';
 import {Actions} from './styles';
-import SuspectSpanCard from './suspectSpanCard';
+import SuspectSpansTable from './suspectSpansTable';
 import {SpanSort, SpansTotalValues} from './types';
 import {
   getSuspectSpanSortFromEventView,
@@ -56,14 +53,14 @@ type Props = {
 };
 
 function SpansContent(props: Props) {
-  const {location, organization, eventView, projectId, setError, transactionName} = props;
+  const {location, organization, eventView, projectId, transactionName} = props;
   const query = decodeScalar(location.query.query, '');
 
   function handleChange(key: string) {
     return function (value: string | undefined) {
       ANALYTICS_VALUES[key]?.(organization, value);
 
-      const queryParams = getParams({
+      const queryParams = normalizeDateTimeParams({
         ...(location.query || {}),
         [key]: value,
       });
@@ -130,56 +127,31 @@ function SpansContent(props: Props) {
       >
         {({tableData}) => {
           const totals: SpansTotalValues | null = tableData?.data?.[0] ?? null;
-
           return (
             <SuspectSpansQuery
               location={location}
               orgSlug={organization.slug}
               eventView={spansView}
-              perSuspect={10}
+              limit={10}
+              perSuspect={0}
               spanOps={defined(spanOp) ? [spanOp] : []}
               spanGroups={defined(spanGroup) ? [spanGroup] : []}
             >
-              {({suspectSpans, isLoading, error, pageLinks}) => {
-                if (error) {
-                  setError(error);
-                  return null;
-                }
-
-                // make sure to clear the clear the error message
-                setError(undefined);
-
-                if (isLoading) {
-                  return <LoadingIndicator />;
-                }
-
-                if (!suspectSpans?.length) {
-                  return (
-                    <EmptyStateWarning>
-                      <p>{t('No span data found')}</p>
-                    </EmptyStateWarning>
-                  );
-                }
-
-                return (
-                  <Fragment>
-                    {suspectSpans.map(suspectSpan => (
-                      <SuspectSpanCard
-                        key={`${suspectSpan.op}-${suspectSpan.group}`}
-                        location={location}
-                        organization={organization}
-                        suspectSpan={suspectSpan}
-                        transactionName={transactionName}
-                        eventView={eventView}
-                        totals={totals}
-                        preview={2}
-                        project={projects.find(p => p.id === projectId)}
-                      />
-                    ))}
-                    <Pagination pageLinks={pageLinks} />
-                  </Fragment>
-                );
-              }}
+              {({suspectSpans, isLoading, pageLinks}) => (
+                <Fragment>
+                  <SuspectSpansTable
+                    location={location}
+                    organization={organization}
+                    transactionName={transactionName}
+                    project={projects.find(p => p.id === projectId)}
+                    isLoading={isLoading}
+                    suspectSpans={suspectSpans ?? []}
+                    totals={totals}
+                    sort={sort.field}
+                  />
+                  <Pagination pageLinks={pageLinks ?? null} />
+                </Fragment>
+              )}
             </SuspectSpansQuery>
           );
         }}

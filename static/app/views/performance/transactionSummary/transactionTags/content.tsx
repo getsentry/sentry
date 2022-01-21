@@ -7,7 +7,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
@@ -102,7 +102,7 @@ const InnerContent = (
   const [tagSelected, _changeTagSelected] = useState(initialTag);
 
   const changeTagSelected = (tagKey: string) => {
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       tagKey,
     });
@@ -121,7 +121,7 @@ const InnerContent = (
   }, [initialTag]);
 
   const handleSearch = (query: string) => {
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });

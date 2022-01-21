@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import EventsChart, {EventsChartProps} from 'sentry/components/charts/eventsChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
@@ -45,7 +45,7 @@ class ProjectBaseEventsChart extends Component<Props> {
         query,
         environment: environments,
         project: projects.map(proj => String(proj)),
-        ...getParams(datetime),
+        ...normalizeDateTimeParams(datetime),
       });
       onTotalValuesChange(totals);
     } catch (err) {

@@ -5,16 +5,21 @@ describe('generateIssueWidgetFieldOptions', function () {
     const issueFields = generateIssueWidgetFieldOptions();
     expect(Object.keys(issueFields)).toEqual([
       'field:assignee',
-      'field:culprit',
+      'field:count',
+      'field:firstSeen',
       'field:isBookmarked',
       'field:isHandled',
       'field:isSubscribed',
       'field:issue',
+      'field:lastSeen',
       'field:level',
+      'field:lifetimeCount',
+      'field:lifetimeUserCount',
       'field:permalink',
       'field:platform',
       'field:status',
       'field:title',
+      'field:userCount',
     ]);
   });
   it('returns supplied issue fields', () => {

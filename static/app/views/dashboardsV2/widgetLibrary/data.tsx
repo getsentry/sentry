@@ -11,7 +11,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     id: undefined,
     title: t('Duration Distribution'),
     description: t('Compare transaction durations across different percentiles.'),
-    displayType: DisplayType.AREA,
+    displayType: DisplayType.LINE,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
     queries: [

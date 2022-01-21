@@ -15,6 +15,7 @@ import zip from 'lodash/zip';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -66,12 +67,13 @@ type Props = {
   router: InjectedRouter;
   location: Location;
   widgetLimitReached: boolean;
+  isPreview?: boolean;
   /**
    * Fired when widgets are added/removed/sorted.
    */
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
-  handleAddLibraryWidgets: (widgets: Widget[]) => void;
+  handleUpdateWidgetList: (widgets: Widget[]) => void;
   handleAddCustomWidget: (widget: Widget) => void;
   layout: Layout[];
   onLayoutChange: (layout: Layout[]) => void;
@@ -121,6 +123,9 @@ class Dashboard extends Component<Props, State> {
       this.fetchTags();
     }
     this.addNewWidget();
+
+    // Get member list data for issue widgets
+    this.fetchMemberList();
   }
 
   async componentDidUpdate(prevProps: Props) {
@@ -134,6 +139,19 @@ class Dashboard extends Component<Props, State> {
     if (newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
+    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+      this.fetchMemberList();
+    }
+  }
+
+  fetchMemberList() {
+    const {api, selection} = this.props;
+    // Stores MemberList in MemberListStore for use in modals and sets state for use is child components
+    fetchOrgMembers(
+      api,
+      this.props.organization.slug,
+      selection.projects?.map(projectId => String(projectId))
+    );
   }
 
   async addNewWidget() {
@@ -159,7 +177,7 @@ class Dashboard extends Component<Props, State> {
       organization,
       dashboard,
       selection,
-      handleAddLibraryWidgets,
+      handleUpdateWidgetList,
       handleAddCustomWidget,
     } = this.props;
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
@@ -175,7 +193,7 @@ class Dashboard extends Component<Props, State> {
         dashboard,
         selection,
         onAddWidget: handleAddCustomWidget,
-        onAddLibraryWidget: (widgets: Widget[]) => handleAddLibraryWidgets(widgets),
+        onAddLibraryWidget: (widgets: Widget[]) => handleUpdateWidgetList(widgets),
         source: DashboardWidgetSource.LIBRARY,
       });
       return;
@@ -211,15 +229,26 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
+    const {isEditing, handleUpdateWidgetList} = this.props;
     const nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
     nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
+    if (!!!isEditing) {
+      handleUpdateWidgetList(nextList);
+    }
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
     const {layouts} = this.state;
-    const {dashboard, onUpdate, onLayoutChange, organization} = this.props;
+    const {
+      dashboard,
+      onUpdate,
+      onLayoutChange,
+      organization,
+      isEditing,
+      handleUpdateWidgetList,
+    } = this.props;
 
     const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     onUpdate(nextList);
@@ -230,10 +259,13 @@ class Dashboard extends Component<Props, State> {
       );
       onLayoutChange(newLayout);
     }
+    if (!!!isEditing) {
+      handleUpdateWidgetList(nextList);
+    }
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, handleAddLibraryWidgets} = this.props;
+    const {dashboard, isEditing, handleUpdateWidgetList} = this.props;
 
     const widgetCopy = cloneDeep(widget);
     widgetCopy.id = undefined;
@@ -242,7 +274,9 @@ class Dashboard extends Component<Props, State> {
     const nextList = [...dashboard.widgets];
     nextList.splice(index, 0, widgetCopy);
 
-    handleAddLibraryWidgets(nextList);
+    if (!!!isEditing) {
+      handleUpdateWidgetList(nextList);
+    }
   };
 
   handleEditWidget = (widget: Widget, index: number) => () => {
@@ -257,7 +291,10 @@ class Dashboard extends Component<Props, State> {
       handleAddCustomWidget,
     } = this.props;
 
-    if (organization.features.includes('metrics')) {
+    if (
+      organization.features.includes('metrics') &&
+      organization.features.includes('metrics-dashboards-ui')
+    ) {
       onSetWidgetToBeUpdated(widget);
 
       if (paramDashboardId) {
@@ -307,7 +344,7 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile} = this.state;
-    const {isEditing, organization, widgetLimitReached} = this.props;
+    const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
     const widgetProps = {
       widget,
@@ -316,6 +353,7 @@ class Dashboard extends Component<Props, State> {
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      isPreview,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {
@@ -488,6 +526,8 @@ const GridItem = styled('div')`
 
 // HACK: to stack chart tooltips above other grid items
 const GridLayout = styled(WidthProvider(Responsive))`
+  margin: -${space(2)};
+
   .react-grid-item:hover {
     z-index: 10;
   }

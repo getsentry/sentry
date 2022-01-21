@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
@@ -54,7 +54,7 @@ class Monitors extends AsyncView<Props, State> {
     const {location, router} = this.props;
     router.push({
       pathname: location.pathname,
-      query: getParams({
+      query: normalizeDateTimeParams({
         ...(location.query || {}),
         query,
       }),

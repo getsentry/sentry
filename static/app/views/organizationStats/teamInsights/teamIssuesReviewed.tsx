@@ -6,8 +6,7 @@ import isEqual from 'lodash/isEqual';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import IdBadge from 'sentry/components/idBadge';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -15,6 +14,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
   barAxisLabel,
   convertDaySeriesToWeeks,
@@ -53,7 +53,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/issue-breakdown/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -142,6 +142,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                   silent: true,
                   animationDuration: 500,
                   animationDelay: 0,
+                  barCategoryGap: '5%',
                 },
                 {
                   seriesName: t('Not Reviewed'),
@@ -149,6 +150,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                   silent: true,
                   animationDuration: 500,
                   animationDelay: 500,
+                  barCategoryGap: '5%',
                 },
               ]}
             />
@@ -212,14 +214,6 @@ const StyledPanelTable = styled(PanelTable)`
         padding: 48px ${space(2)};
       }
     `}
-`;
-
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
 `;
 
 const AlignRight = styled('div')`

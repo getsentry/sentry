@@ -19,10 +19,17 @@ export const lightColors = {
   surface400: '#F5F3F7',
 
   gray500: '#2B2233',
-  gray400: '#4D4158',
+  gray400: '#3E3446',
   gray300: '#80708F',
   gray200: '#DBD6E1',
   gray100: '#EBE6EF',
+
+  /**
+   * Alternative version of gray200 that's translucent.
+   * Useful for borders on tooltips, popovers, and dialogs.
+   */
+  translucentGray200: 'rgba(58, 17, 95, 0.18)',
+  translucentGray100: 'rgba(45, 0, 85, 0.1)',
 
   purple400: '#584AC0',
   purple300: '#6C5FC7',
@@ -73,6 +80,13 @@ export const darkColors = {
   gray300: '#998DA5',
   gray200: '#43384C',
   gray100: '#342B3B',
+
+  /**
+   * Alternative version of gray200 that's translucent.
+   * Useful for borders on tooltips, popovers, and dialogs.
+   */
+  translucentGray200: 'rgba(218, 184, 245, 0.18)',
+  translucentGray100: 'rgba(208, 168, 240, 0.1)',
 
   purple400: '#6859CF',
   purple300: '#7669D3',
@@ -131,9 +145,14 @@ type BaseColors = typeof lightColors;
 
 const generateAliases = (colors: BaseColors) => ({
   /**
+   * Heading text color
+   */
+  headingColor: colors.gray500,
+
+  /**
    * Primary text color
    */
-  textColor: colors.gray500,
+  textColor: colors.gray400,
 
   /**
    * Text that should not have as much emphasis
@@ -169,21 +188,13 @@ const generateAliases = (colors: BaseColors) => ({
    * Primary border color
    */
   border: colors.gray200,
+  translucentBorder: colors.translucentGray200,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
   innerBorder: colors.gray100,
-
-  /**
-   * Border around modals
-   */
-  modalBorder: 'none',
-
-  /**
-   * Box shadow on the modal
-   */
-  modalBoxShadow: 'none',
+  translucentInnerBorder: colors.translucentGray100,
 
   /**
    * A color that denotes a "success", or something good
@@ -667,8 +678,19 @@ const commonTheme = {
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
     familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
-    lineHeightHeading: '1.15',
-    lineHeightBody: '1.4',
+    lineHeightHeading: 1.2,
+    lineHeightBody: 1.4,
+    pageTitle: {
+      fontSize: '1.625rem',
+      fontWeight: 600,
+      letterSpacing: '-0.01em',
+      lineHeight: 1.2,
+    },
+    cardTitle: {
+      fontSize: '1rem',
+      fontWeight: 600,
+      lineHeight: 1.2,
+    },
   },
 
   dataCategory,

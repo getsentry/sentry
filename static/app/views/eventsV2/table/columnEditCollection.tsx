@@ -376,7 +376,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       gridColumns = 2,
     }: {canDelete?: boolean; canDrag?: boolean; isGhost?: boolean; gridColumns: number}
   ) {
-    const {columns, fieldOptions, source} = this.props;
+    const {columns, fieldOptions} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -425,7 +425,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             error={this.state.error.get(i)}
             takeFocus={i === this.props.columns.length - 1}
             otherColumns={columns}
-            shouldRenderTag={source !== WidgetType.ISSUE}
+            shouldRenderTag
           />
           {canDelete || col.kind === 'equation' ? (
             <Button

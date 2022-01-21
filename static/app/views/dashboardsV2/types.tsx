@@ -1,3 +1,5 @@
+import {Layout} from 'react-grid-layout';
+
 import {User} from 'sentry/types';
 
 // Max widgets per dashboard we are currently willing
@@ -37,6 +39,7 @@ export type Widget = {
   queries: WidgetQuery[];
   widgetType?: WidgetType;
   tempId?: string;
+  layout?: Partial<Layout>;
 };
 
 /**
@@ -66,6 +69,7 @@ export enum DashboardState {
   EDIT = 'edit',
   CREATE = 'create',
   PENDING_DELETE = 'pending_delete',
+  PREVIEW = 'preview',
 }
 
 // where we launch the dashboard widget from

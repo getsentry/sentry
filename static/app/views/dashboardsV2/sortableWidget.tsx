@@ -20,6 +20,7 @@ type Props = {
   widgetLimitReached: boolean;
   organization: Organization;
   hideDragHandle?: boolean;
+  isPreview?: boolean;
 };
 
 function SortableWidget(props: Props) {
@@ -33,6 +34,7 @@ function SortableWidget(props: Props) {
     onDelete,
     onEdit,
     onDuplicate,
+    isPreview,
   } = props;
 
   const {
@@ -70,6 +72,7 @@ function SortableWidget(props: Props) {
     hideToolbar: isSorting,
     currentWidgetDragging,
     showContextMenu: true,
+    isPreview,
   };
 
   if (organization.features.includes('dashboard-grid-layout')) {

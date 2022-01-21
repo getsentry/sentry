@@ -32,7 +32,7 @@ class IssueDetailsPage(BasePage):
     def go_to_subtab(self, name):
         tabs = self.browser.find_element_by_css_selector(".group-detail .nav-tabs")
         tabs.find_element_by_partial_link_text(name).click()
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def open_issue_errors(self):
         self.browser.click(".errors-toggle")
@@ -67,7 +67,7 @@ class IssueDetailsPage(BasePage):
         assert len(options) > 0, "No assignees could be found."
         options[0].click()
 
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def find_comment_form(self):
         return self.browser.find_element_by_css_selector('[data-test-id="note-input-form"]')
@@ -77,7 +77,7 @@ class IssueDetailsPage(BasePage):
         return text in element.text
 
     def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("event-entries-loading-false")
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")

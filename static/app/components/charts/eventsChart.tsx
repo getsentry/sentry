@@ -46,7 +46,7 @@ import EventsRequest from './eventsRequest';
 type ChartComponent =
   | React.ComponentType<BarChart['props']>
   | React.ComponentType<AreaChart['props']>
-  | React.ComponentType<LineChart['props']>
+  | React.ComponentType<React.ComponentProps<typeof LineChart>>
   | React.ComponentType<React.ComponentProps<typeof WorldMapChart>>;
 
 type ChartProps = {
@@ -206,6 +206,7 @@ class Chart extends React.Component<ChartProps, State> {
     const {seriesSelection} = this.state;
 
     let Component = this.getChartComponent();
+
     if (typeof Component === typeof WorldMapChart) {
       return this.renderWorldMap();
     }

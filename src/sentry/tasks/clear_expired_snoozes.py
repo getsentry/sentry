@@ -1,6 +1,7 @@
 from django.utils import timezone
 
 from sentry.models import Group, GroupSnooze, GroupStatus
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import issue_unignored
 from sentry.tasks.base import instrumented_task
 
@@ -19,6 +20,7 @@ def clear_expired_snoozes():
     GroupSnooze.objects.filter(group__in=group_list).delete()
 
     for group in ignored_groups:
+        record_group_history(group, GroupHistoryStatus.UNIGNORED)
         issue_unignored.send_robust(
             project=group.project,
             user=None,

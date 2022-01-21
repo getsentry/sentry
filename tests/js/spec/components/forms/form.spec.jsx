@@ -1,16 +1,16 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import {Form} from 'sentry/components/forms';
 
 describe('Form', function () {
   describe('render()', function () {
     it('renders with children', function () {
-      const wrapper = mountWithTheme(
+      const {container} = mountWithTheme(
         <Form onSubmit={() => {}}>
           <hr />
         </Form>
       );
-      expect(wrapper).toSnapshot();
+      expect(container).toSnapshot();
     });
   });
 });

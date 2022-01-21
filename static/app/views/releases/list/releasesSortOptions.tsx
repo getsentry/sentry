@@ -52,16 +52,14 @@ function ReleasesSortOptions({
     sortOptions[ReleasesSortOption.SEMVER] = {label: t('Semantic Version')};
   }
 
-  if (organization.features.includes('release-adoption-stage')) {
-    const isDisabled = environments.length !== 1;
-    sortOptions[ReleasesSortOption.ADOPTION] = {
-      label: t('Date Adopted'),
-      disabled: isDisabled,
-      tooltip: isDisabled
-        ? t('Select one environment to use this sort option.')
-        : undefined,
-    };
-  }
+  const isDisabled = environments.length !== 1;
+  sortOptions[ReleasesSortOption.ADOPTION] = {
+    label: t('Date Adopted'),
+    disabled: isDisabled,
+    tooltip: isDisabled
+      ? t('Select one environment to use this sort option.')
+      : undefined,
+  };
 
   return (
     <StyledReleasesDropdown

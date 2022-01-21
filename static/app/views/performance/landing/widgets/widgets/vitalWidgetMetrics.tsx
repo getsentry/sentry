@@ -50,6 +50,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState(0);
   const field = props.fields[0];
   const vital = settingToVital[chartSetting];
+  const orgSlug = organization.slug;
 
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
@@ -58,7 +59,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         component: ({start, end, period, project, environment, children, fields}) => (
           <MetricsRequest
             api={api}
-            organization={organization}
+            orgSlug={orgSlug}
             start={start}
             end={end}
             statsPeriod={period}
@@ -97,7 +98,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         }) => (
           <MetricsRequest
             api={api}
-            organization={organization}
+            orgSlug={orgSlug}
             start={start}
             end={end}
             statsPeriod={period}
@@ -140,7 +141,11 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
         }
 
         const data = {
-          [vital]: getVitalData(selectedTransaction, field, widgetData.chart.response),
+          [vital]: getVitalData({
+            transaction: selectedTransaction,
+            field,
+            response: widgetData.chart.response,
+          }),
         };
 
         return (
@@ -159,7 +164,7 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
       EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
         const target = vitalDetailRouteWithQuery({
-          orgSlug: organization.slug,
+          orgSlug,
           query: eventView.generateQueryStringObject(),
           vitalName: vital,
           projectID: decodeList(location.query.project),
@@ -202,10 +207,6 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                   mehCountField: 'meh',
                   goodCountField: 'good',
                 }}
-                organization={organization}
-                query={eventView.query}
-                project={eventView.project}
-                environment={eventView.environment}
                 grid={{
                   left: space(0),
                   right: space(0),
@@ -238,14 +239,18 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
                   _eventView.query = initialConditions.formatString();
 
                   const target = vitalDetailRouteWithQuery({
-                    orgSlug: organization.slug,
+                    orgSlug,
                     query: _eventView.generateQueryStringObject(),
                     vitalName: vital,
                     projectID: decodeList(location.query.project), // TODO(metrics): filter by project once api supports it (listItem['project.id'])
                   });
 
                   const data = {
-                    [vital]: getVitalData(transaction, field, widgetData.chart.response),
+                    [vital]: getVitalData({
+                      transaction,
+                      field,
+                      response: widgetData.chart.response,
+                    }),
                   };
 
                   return (
@@ -285,13 +290,19 @@ export function VitalWidgetMetrics(props: PerformanceWidgetProps) {
   );
 }
 
-function getVitalData(
-  transaction: string,
-  field: string,
-  response: MetricsApiResponse | null
-) {
+export function getVitalData({
+  transaction,
+  field,
+  response,
+}: {
+  field: string;
+  response: MetricsApiResponse | null;
+  transaction?: string;
+}) {
   const groups =
-    response?.groups.filter(group => group.by.transaction === transaction) ?? [];
+    (transaction
+      ? response?.groups.filter(group => group.by.transaction === transaction)
+      : response?.groups) ?? [];
 
   const vitalData: VitalData = {
     poor: 0,
@@ -299,7 +310,7 @@ function getVitalData(
     good: 0,
     p75: 0,
     ...groups.reduce((acc, group) => {
-      acc[group.by.measurement_rating] = group.totals[field];
+      acc[group.by.measurement_rating] = group.totals[field] ?? 0;
       return acc;
     }, {}),
     total: groups.reduce((acc, group) => acc + (group.totals[field] ?? 0), 0),
