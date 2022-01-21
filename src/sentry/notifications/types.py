@@ -46,13 +46,16 @@ class NotificationSettingTypes(Enum):
     # Notifications that require approval like a request to invite a member
     APPROVAL = 40
 
-    # Notifications about overages
-    OVERAGE = 50
+    # Notifications about quotas
+    QUOTA = 50
 
-    # Sub category of overages, applies to only errors
-    OVERAGE_ERRORS = 51
+    # Sub category of quotas for each event category
+    QUOTA_ERRORS = 51
+    QUOTA_TRANSACTIONS = 52
+    QUOTA_ATTACHMENTS = 53
 
-    # TODO: add transactions and attachments
+    # Sub category of quotas
+    QUOTA_WARNINGS = 54
 
 
 NOTIFICATION_SETTING_TYPES = {
@@ -61,8 +64,11 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.ISSUE_ALERTS: "alerts",
     NotificationSettingTypes.WORKFLOW: "workflow",
     NotificationSettingTypes.APPROVAL: "approval",
-    NotificationSettingTypes.OVERAGE: "overage",
-    NotificationSettingTypes.OVERAGE_ERRORS: "overageErrors",
+    NotificationSettingTypes.QUOTA: "quota",
+    NotificationSettingTypes.QUOTA_ERRORS: "quotaErrors",
+    NotificationSettingTypes.QUOTA_TRANSACTIONS: "quotaTransactions",
+    NotificationSettingTypes.QUOTA_ATTACHMENTS: "quotaAttachments",
+    NotificationSettingTypes.QUOTA_WARNINGS: "quotaWarnings",
 }
 
 
@@ -119,8 +125,8 @@ class FineTuningAPIKey(Enum):
     APPROVAL = "approval"
     DEPLOY = "deploy"
     EMAIL = "email"
+    QUOTA = "quota"
     REPORTS = "reports"
-    OVERAGE = "overage"
     WORKFLOW = "workflow"
 
 
@@ -131,7 +137,7 @@ class UserOptionsSettingsKey(Enum):
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
     APPROVAL = "approvalNotifications"
-    OVERAGE = "overageNotifications"
+    QUOTA = "quotaNotifications"
 
 
 VALID_VALUES_FOR_KEY = {
@@ -148,11 +154,11 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
-    NotificationSettingTypes.OVERAGE: {
+    NotificationSettingTypes.QUOTA: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
-    NotificationSettingTypes.OVERAGE_ERRORS: {
+    NotificationSettingTypes.QUOTA_ERRORS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },

@@ -14,7 +14,10 @@ import {
 } from 'sentry/views/settings/account/notifications/constants';
 import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
-import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
+import {
+  NOTIFICATION_SETTING_FIELDS,
+  QUOTA_FIELDS,
+} from 'sentry/views/settings/account/notifications/fields2';
 import NotificationSettingsByOrganization from 'sentry/views/settings/account/notifications/notificationSettingsByOrganization';
 import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
 import {Identity} from 'sentry/views/settings/account/notifications/types';
@@ -49,7 +52,9 @@ type State = {
   organizationIntegrations: OrganizationIntegration[];
 } & AsyncComponent['state'];
 
-const typeMappedChildren = {overage: ['overageErrors']};
+const typeMappedChildren = {
+  quota: ['quotaErrors', 'quotaTransactions', 'quotaAttachments', 'quotaWarnings'],
+};
 
 const getTypeForQuery = (notificationType: string) => {
   const children = typeMappedChildren[notificationType];
@@ -227,7 +232,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   }
 
   getFields(): Field[] {
-    const {notificationType} = this.props;
+    const {notificationType, organizations} = this.props;
     const {notificationSettings} = this.state;
 
     const help = isGroupedByProject(notificationType)
@@ -259,26 +264,27 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       );
     }
 
+    // add in quota fields if feature flag is set
     if (
-      notificationType === 'overage' &&
-      !isEverythingDisabled(notificationType, notificationSettings)
+      notificationType === 'quota' &&
+      !isEverythingDisabled(notificationType, notificationSettings) &&
+      organizations.some(org => org.features?.includes('slack-overage-notifications'))
     ) {
-      // TODO: put in additional fields
-      fields.push({
-        name: 'overageErrors',
-        type: 'select',
-        label: t('Errors'),
-        choices: [
-          ['always', t('On')],
-          ['never', t('Off')],
-        ],
-        help: t('Notification for error overages.'),
-        getData: data =>
-          this.getStateToPutForDependentSetting(
-            data as NotificationSettingsByProviderObject,
-            'overageErrors'
-          ),
-      });
+      fields.push(
+        ...QUOTA_FIELDS.map(field => ({
+          ...field,
+          type: 'select' as const,
+          choices: [
+            ['always', t('On')],
+            ['never', t('Off')],
+          ] as const,
+          getData: data =>
+            this.getStateToPutForDependentSetting(
+              data as NotificationSettingsByProviderObject,
+              field.name
+            ),
+        }))
+      );
     }
 
     return fields;

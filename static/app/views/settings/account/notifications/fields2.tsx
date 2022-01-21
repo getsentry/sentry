@@ -54,15 +54,15 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     ],
     help: t('Notifications from teammates that require review or approval.'),
   },
-  overage: {
-    name: 'overage',
+  quota: {
+    name: 'quota',
     type: 'select',
-    label: t('Overages'),
+    label: t('Quota Alerts'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Overage notifications'),
+    help: t('Notifications related to hitting event quotas.'),
   },
   reports: {
     name: 'weekly reports',
@@ -89,3 +89,29 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     help: t('You’ll receive notifications about any changes that happen afterwards.'),
   },
 };
+
+// partial field definition for quota sub-categories
+export const QUOTA_FIELDS = [
+  {
+    name: 'quotaErrors',
+    label: t('Errors'),
+    help: t('Receive notifications regarding error quotas.'),
+  },
+  {
+    name: 'quotaTransactions',
+    label: t('Transactions'),
+    help: t('Receive notifications regarding transaction quotas.'),
+  },
+  {
+    name: 'quotaAttachments',
+    label: t('Attachments'),
+    help: t('Receive notifications regarding attachment quotas.'),
+  },
+  {
+    name: 'quotaWarnings',
+    label: t('80% Warnings'),
+    help: t(
+      'Receive notifications when your organization hits the 80% threshold for event quotas.'
+    ),
+  },
+];

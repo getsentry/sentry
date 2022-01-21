@@ -228,17 +228,24 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType | No
     if type in [
         NotificationSettingTypes.DEPLOY,
         NotificationSettingTypes.APPROVAL,
-        NotificationSettingTypes.OVERAGE,
+        NotificationSettingTypes.QUOTA,
     ]:
         return NotificationScopeType.ORGANIZATION
 
     if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
         return NotificationScopeType.PROJECT
 
-    if type in [NotificationSettingTypes.OVERAGE_ERRORS]:
+    if type in [
+        NotificationSettingTypes.QUOTA_ERRORS,
+        NotificationSettingTypes.QUOTA_TRANSACTIONS,
+        NotificationSettingTypes.QUOTA_ATTACHMENTS,
+        NotificationSettingTypes.QUOTA_WARNINGS,
+    ]:
         return None
 
-    raise Exception(f"type {type}, must be alerts, deploy, workflow, approval, overage")
+    raise Exception(
+        f"type {type}, must be alerts, deploy, workflow, approval, quota, quotaErrors, quotaTransactions, quotaAttachments, quotaWarnings"
+    )
 
 
 def get_scope(

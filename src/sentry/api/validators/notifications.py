@@ -71,15 +71,15 @@ def validate_type_option(type: Optional[str]) -> Optional[List[NotificationSetti
 def validate_types(
     type: str, context: Optional[List[str]] = None
 ) -> List[NotificationSettingTypes]:
-    try:
-        types_split = type.split(",")
-        out = []
-        for type in types_split:
-            notification_type = {v: k for k, v in NOTIFICATION_SETTING_TYPES.items()}[type]
-            out.append(notification_type)
-        return out
-    except KeyError:
-        raise ParameterValidationError(f"Unknown type: {type}", context)
+    types_split = type.split(",")
+    out = []
+    for one_type in types_split:
+        try:
+            notification_type = {v: k for k, v in NOTIFICATION_SETTING_TYPES.items()}[one_type]
+        except KeyError:
+            raise ParameterValidationError(f"Unknown type: {one_type}", context)
+        out.append(notification_type)
+    return out
 
 
 def validate_type(type: str, context: Optional[List[str]] = None) -> NotificationSettingTypes:
