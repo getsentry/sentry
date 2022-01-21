@@ -144,6 +144,7 @@ class FlamegraphRenderer {
         }
       }
     } else {
+      // Generate colors for the flamegraph
       const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
         this.frames.map(f => f.frame),
         this.theme.COLORS.COLOR_MAP,
@@ -594,6 +595,7 @@ class FlamegraphRenderer {
         return;
       }
 
+      // Descend into the rest of the children
       for (const child of frame.children) {
         findHoveredNode(child, depth + 1);
       }
