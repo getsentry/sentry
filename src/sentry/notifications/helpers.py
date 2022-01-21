@@ -223,26 +223,21 @@ def validate(type: NotificationSettingTypes, value: NotificationSettingOptionVal
     return value in VALID_VALUES_FOR_KEY.get(type, {})
 
 
-def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType | None:
+def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
     """In which scope (proj or org) can a user set more specific settings?"""
     if type in [
         NotificationSettingTypes.DEPLOY,
         NotificationSettingTypes.APPROVAL,
         NotificationSettingTypes.QUOTA,
-    ]:
-        return NotificationScopeType.ORGANIZATION
-
-    if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
-        return NotificationScopeType.PROJECT
-
-    # disable more specific settings for quota sub-categories
-    if type in [
         NotificationSettingTypes.QUOTA_ERRORS,
         NotificationSettingTypes.QUOTA_TRANSACTIONS,
         NotificationSettingTypes.QUOTA_ATTACHMENTS,
         NotificationSettingTypes.QUOTA_WARNINGS,
     ]:
-        return None
+        return NotificationScopeType.ORGANIZATION
+
+    if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
+        return NotificationScopeType.PROJECT
 
     raise Exception(
         f"type {type}, must be alerts, deploy, workflow, approval, quota, quotaErrors, quotaTransactions, quotaAttachments, quotaWarnings"
@@ -415,22 +410,17 @@ def get_fallback_settings(
     # Set the application-wide defaults in case they aren't set.
     for type_enum in types_to_serialize:
         scope_type = get_scope_type(type_enum)
-        scope_str = NOTIFICATION_SCOPE_TYPE.get(scope_type, None)
-
+        scope_str = NOTIFICATION_SCOPE_TYPE[scope_type]
         type_str = NOTIFICATION_SETTING_TYPES[type_enum]
 
         for provider in NOTIFICATION_SETTING_DEFAULTS.keys():
             provider_str = EXTERNAL_PROVIDERS[provider]
 
-            # if the settig has a scope parent, we want to populate that value
-            if scope_type:
-                parent_ids = (
-                    project_ids if scope_type == NotificationScopeType.PROJECT else organization_ids
-                )
-                for parent_id in parent_ids:
-                    data[type_str][scope_str][parent_id][
-                        provider_str
-                    ] = parent_independent_value_str
+            parent_ids = (
+                project_ids if scope_type == NotificationScopeType.PROJECT else organization_ids
+            )
+            for parent_id in parent_ids:
+                data[type_str][scope_str][parent_id][provider_str] = parent_independent_value_str
 
             if recipient:
                 # Each provider has it's own defaults by type.
@@ -439,7 +429,6 @@ def get_fallback_settings(
                 user_scope_str = NOTIFICATION_SCOPE_TYPE[NotificationScopeType.USER]
 
                 data[type_str][user_scope_str][recipient.id][provider_str] = value_str
-
     return data
 
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
@@ -16,10 +18,10 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
 
     def get_attrs(
         self,
-        item_list: Iterable[Union["Team", "User"]],
+        item_list: Iterable[Union[Team, User]],
         user: User,
         **kwargs: Any,
-    ) -> Mapping[Union["Team", "User"], Mapping[str, Iterable[Any]]]:
+    ) -> Mapping[Union[Team, User], Mapping[str, Iterable[Any]]]:
         """
         This takes a list of recipients (which are either Users or Teams,
         because both can have Notification Settings). The function
@@ -32,15 +34,15 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         :param kwargs: Dict of optional filter options:
             - type: NotificationSettingTypes enum value. e.g. WORKFLOW, DEPLOY.
         """
-        types: Optional[NotificationSettingTypes] = kwargs.get("type")
+        type: Optional[NotificationSettingTypes] = kwargs.get("type")
         actor_mapping = {recipient.actor_id: recipient for recipient in item_list}
 
         notifications_settings = NotificationSetting.objects._filter(
-            types=types,
+            type=type,
             target_ids=actor_mapping.keys(),
         )
 
-        results: MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]] = defaultdict(
+        results: MutableMapping[Union[Team, User], MutableMapping[str, Set[Any]]] = defaultdict(
             lambda: defaultdict(set)
         )
 
@@ -62,7 +64,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
 
     def serialize(
         self,
-        obj: Union["Team", "User"],
+        obj: Union[Team, User],
         attrs: Mapping[str, Iterable[Any]],
         user: User,
         **kwargs: Any,
@@ -93,8 +95,17 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         :param kwargs: The same `kwargs` as `get_attrs`.
         :returns A mapping. See example.
         """
-        type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
-        types_to_serialize = set(type_option) if type_option else set(VALID_VALUES_FOR_KEY.keys())
+        # ensure type is array
+        type_option: Iterable[NotificationSettingTypes] | Optional[
+            NotificationSettingTypes
+        ] = kwargs.get("type")
+        if type_option:
+            if isinstance(type_option, Iterable):
+                types_to_serialize = set(type_option)
+            else:
+                types_to_serialize = {type_option}
+        else:
+            types_to_serialize = set(VALID_VALUES_FOR_KEY.keys())
 
         project_ids = {_.id for _ in attrs["projects"]}
         organization_ids = {_.id for _ in attrs["organizations"]}

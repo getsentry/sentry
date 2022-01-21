@@ -148,7 +148,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def _filter(
         self,
         provider: ExternalProviders | None = None,
-        types: Iterable[NotificationSettingTypes] | None = None,
+        type: NotificationSettingTypes | Iterable[NotificationSettingTypes] | None = None,
         scope_type: NotificationScopeType | None = None,
         scope_identifier: int | None = None,
         target_ids: Iterable[int] | None = None,
@@ -158,8 +158,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         if provider:
             filters["provider"] = provider.value
 
-        if types:
-            filters["type__in"] = list(map(lambda x: x.value, types))
+        if type:
+            if isinstance(type, Iterable):
+                filters["type__in"] = list(map(lambda x: x.value, type))
+            else:
+                filters["type"] = type.value
 
         if scope_type:
             filters["scope_type"] = scope_type.value
@@ -174,7 +177,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def remove_for_user(self, user: User, type: NotificationSettingTypes | None = None) -> None:
         """Bulk delete all Notification Settings for a USER, optionally by type."""
-        self._filter(target_ids=[user.actor_id], types=[type]).delete()
+        self._filter(target_ids=[user.actor_id], type=type).delete()
 
     def remove_for_team(
         self,
@@ -183,7 +186,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         provider: ExternalProviders | None = None,
     ) -> None:
         """Bulk delete all Notification Settings for a TEAM, optionally by type."""
-        self._filter(target_ids=[team.actor_id], provider=provider, types=[type]).delete()
+        self._filter(target_ids=[team.actor_id], provider=provider, type=type).delete()
 
     def remove_for_project(
         self, project: Project, type: NotificationSettingTypes | None = None
@@ -192,7 +195,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self._filter(
             scope_type=NotificationScopeType.PROJECT,
             scope_identifier=project.id,
-            types=[type],
+            type=type,
         ).delete()
 
     def remove_for_organization(
@@ -202,7 +205,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self._filter(
             scope_type=NotificationScopeType.ORGANIZATION,
             scope_identifier=organization.id,
-            types=[type],
+            type=type,
         ).delete()
 
     def find_settings(
@@ -217,7 +220,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         """Wrapper for .filter that translates object parameters to scopes and targets."""
         scope_type, scope_identifier = get_scope(user, team, project, organization)
         target_id = get_target_id(user, team)
-        return self._filter(provider, [type], scope_type, scope_identifier, [target_id])
+        return self._filter(provider, type, scope_type, scope_identifier, [target_id])
 
     def get_for_user_by_projects(
         self,
@@ -342,7 +345,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
             # A missing DB row is equivalent to DEFAULT.
             if value == NotificationSettingOptionValues.DEFAULT:
-                self._filter(provider, [type], scope_type, scope_identifier, [target_id]).delete()
+                self._filter(provider, type, scope_type, scope_identifier, [target_id]).delete()
             else:
                 self._update_settings(
                     provider, type, value, scope_type, scope_identifier, target_id
