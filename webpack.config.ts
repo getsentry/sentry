@@ -29,6 +29,7 @@ interface Configuration extends webpack.Configuration {
 const {env} = process;
 
 // Environment configuration
+env.NODE_ENV = env.NODE_ENV ?? 'development';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
@@ -548,6 +549,10 @@ if (IS_UI_DEV_ONLY) {
       rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
     },
   };
+  appConfig.optimization = {
+    runtimeChunk: 'single',
+  };
+  appConfig.target = 'web';
 }
 
 if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
