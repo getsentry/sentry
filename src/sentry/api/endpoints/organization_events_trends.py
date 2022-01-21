@@ -173,7 +173,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             avg_range_1 = aggregate_range_1
             avg_range_2 = aggregate_range_2
 
-        t_test = query.resolve_division(
+        t_test = query.config.resolve_division(
             Function("minus", [avg_range_1, avg_range_2]),
             Function(
                 "sqrt",
@@ -201,7 +201,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             ),
             "t_test",
         )
-        trend_percentage = query.resolve_division(
+        trend_percentage = query.config.resolve_division(
             aggregate_range_2, aggregate_range_1, "trend_percentage"
         )
         trend_difference = Function(
@@ -212,7 +212,9 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             ],
             "trend_difference",
         )
-        count_percentage = query.resolve_division(count_range_2, count_range_1, "count_percentage")
+        count_percentage = query.config.resolve_division(
+            count_range_2, count_range_1, "count_percentage"
+        )
         return {
             "aggregate_range_1": aggregate_range_1,
             "aggregate_range_2": aggregate_range_2,

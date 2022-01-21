@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from parsimonious.exceptions import ParseError
+from parsimonious.exceptions import ParseError  # type: ignore
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import And, BooleanCondition, Condition, Op, Or
@@ -47,6 +47,7 @@ from sentry.search.events.fields import (
     InvalidSearchQuery,
     NumericColumn,
     SnQLArrayCombinator,
+    SnQLFunction,
     get_function_alias_with_columns,
     is_function,
     parse_arguments,
@@ -59,7 +60,7 @@ from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, resolve_colu
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
-class QueryBuilder:  # type: ignore
+class QueryBuilder:
     """Builds a snql query"""
 
     def __init__(
@@ -85,7 +86,7 @@ class QueryBuilder:  # type: ignore
         self.params = params
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
-        self.equation_config = {}
+        self.equation_config: Optional[Dict[str, bool]] = {}
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
@@ -120,10 +121,16 @@ class QueryBuilder:  # type: ignore
         self.orderby = self.resolve_orderby(orderby)
         self.array_join = None if array_join is None else self.resolve_column(array_join)
 
-    def load_config(self):
+    def load_config(
+        self,
+    ) -> Tuple[
+        Mapping[str, Callable[[str], SelectType]],
+        Mapping[str, SnQLFunction],
+        Mapping[str, Callable[[SearchFilter], Optional[WhereType]]],
+    ]:
         from sentry.search.events.dataset import DiscoverDatasetConfig
 
-        if self.dataset == Dataset.Discover:
+        if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
             self.config = DiscoverDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
@@ -263,7 +270,10 @@ class QueryBuilder:  # type: ignore
         # start/end are required so that we can run a query in a reasonable amount of time
         if "start" not in self.params or "end" not in self.params:
             raise InvalidSearchQuery("Cannot query without a valid date range")
-        start, end = self.params["start"], self.params["end"]
+
+        start: datetime
+        end: datetime
+        start, end = self.params["start"], self.params["end"]  # type: ignore
         # Update start to be within retention
         expired, start = outside_retention_with_modified_start(
             start, end, Organization(self.params.get("organization_id"))
@@ -273,8 +283,9 @@ class QueryBuilder:  # type: ignore
         assert isinstance(start, datetime) and isinstance(
             end, datetime
         ), "Both start and end params must be datetime objects"
+        project_id: List[int] = self.params.get("project_id", [])  # type: ignore
         assert all(
-            isinstance(project_id, int) for project_id in self.params.get("project_id", [])
+            isinstance(project_id, int) for project_id in project_id
         ), "All project id params must be ints"
         if expired:
             raise QueryOutsideRetentionError(
@@ -418,6 +429,10 @@ class QueryBuilder:  # type: ignore
 
         if len(validated) == len(orderby_columns):
             return validated
+
+        # TODO: This is no longer true, can order by fields that aren't selected, keeping
+        # for now so we're consistent with the existing functionality
+        raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
     def resolve_column(self, field: str, alias: bool = False) -> SelectType:
         """Given a public field, construct the corresponding Snql, this
@@ -899,7 +914,7 @@ class QueryBuilder:  # type: ignore
         self,
         function: str,
         match: Optional[Match[str]] = None,
-        resolve_only=False,
+        resolve_only: bool = False,
         overwrite_alias: Optional[str] = None,
     ) -> SelectType:
         """Given a public function, resolve to the corresponding Snql function
