@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.db.models import Case, Count, TextField, Value, When
 from django.utils import timezone
@@ -33,7 +33,10 @@ class TeamUnresolvedIssueAgeEndpoint(TeamEndpoint):  # type: ignore
         current_time = timezone.now()
         unresolved_ages = list(
             Group.objects.filter_to_team(team)
-            .filter(status=GroupStatus.UNRESOLVED)
+            .filter(
+                status=GroupStatus.UNRESOLVED,
+                last_seen__gt=datetime.now() - timedelta(days=90),
+            )
             .annotate(
                 bucket=Case(
                     *[

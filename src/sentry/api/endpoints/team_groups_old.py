@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,7 +17,10 @@ class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
         limit = min(100, int(request.GET.get("limit", 10)))
         group_list = list(
             Group.objects.filter_to_team(team)
-            .filter(status=GroupStatus.UNRESOLVED)
+            .filter(
+                status=GroupStatus.UNRESOLVED,
+                last_seen__gt=datetime.now() - timedelta(days=90),
+            )
             .order_by("first_seen")[:limit]
         )
 
