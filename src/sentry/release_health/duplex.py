@@ -494,7 +494,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         sessions_fn = getattr(self.sessions, fn_name)
         set_tag("releasehealth.duplex.rollup", str(rollup))
         set_tag("releasehealth.duplex.method", fn_name)
-        set_tag("releasehealth.duplex.organization", str(getattr(organization, "id")))
+        set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
 
         tags = {"method": fn_name, "rollup": str(rollup)}
         with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
@@ -670,7 +670,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         # Tag sentry event with relative end time, so we can see if live queries
         # cause greater deltas:
         relative_hours = math.ceil((query.end - datetime.now(timezone.utc)).total_seconds() / 3600)
-        set_tag("run_sessions_query.relative_end_time", f"{relative_hours}h")
+        set_tag("run_sessions_query.rel_end", f"{relative_hours}h")
 
         def index_by(d: Mapping[Any, Any]) -> Any:
             return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
@@ -1014,9 +1014,9 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Sequence[ProjectRelease]:
         schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
 
-        set_tag("get_project_releases_by_stability.limit", str(limit))
-        set_tag("get_project_releases_by_stability.offset", str(offset))
-        set_tag("get_project_releases_by_stability.scope", str(scope))
+        set_tag("gprbs.limit", str(limit))
+        set_tag("gprbs.offset", str(offset))
+        set_tag("gprbs.scope", str(scope))
 
         if stats_period is None:
             stats_period = "24h"
