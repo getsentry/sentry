@@ -73,7 +73,7 @@ const IgnoreActions = ({
         <ActionButton
           priority="primary"
           onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
-          label={t('Unignore')}
+          aria-label={t('Unignore')}
           icon={<IconMute size="xs" />}
         />
       </Tooltip>

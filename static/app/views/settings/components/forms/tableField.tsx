@@ -157,7 +157,7 @@ export default class TableField extends React.Component<Props> {
                         icon={<IconDelete />}
                         size="small"
                         disabled={disabled}
-                        label={t('delete')}
+                        aria-label={t('delete')}
                       />
                     </RemoveButton>
                   </Confirm>

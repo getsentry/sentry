@@ -251,7 +251,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
         <Footer>
           <Button
             disabled={codeownersFile ? false : true}
-            label={t('Add File')}
+            aria-label={t('Add File')}
             priority="primary"
             onClick={this.addFile}
           >

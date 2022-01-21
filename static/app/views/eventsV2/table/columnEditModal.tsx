@@ -102,7 +102,7 @@ class ColumnEditModal extends Component<Props, State> {
             <Button priority="default" href={DISCOVER2_DOCS_URL} external>
               {t('Read the Docs')}
             </Button>
-            <Button label={t('Apply')} priority="primary" onClick={this.handleApply}>
+            <Button aria-label={t('Apply')} priority="primary" onClick={this.handleApply}>
               {t('Apply')}
             </Button>
           </ButtonBar>

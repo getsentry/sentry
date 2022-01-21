@@ -39,7 +39,7 @@ function Actions({
     <Fragment>
       <StyledButtonbar gap={1}>
         <Button
-          label={t('Edit Rule')}
+          aria-label={t('Edit Rule')}
           size="small"
           onClick={onEditRule}
           icon={<IconEdit />}
@@ -53,7 +53,7 @@ function Actions({
           disabled={disabled}
         >
           <Button
-            label={t('Delete Rule')}
+            aria-label={t('Delete Rule')}
             size="small"
             icon={<IconDelete />}
             title={disabled ? deleteRuleMessage : undefined}
@@ -64,7 +64,7 @@ function Actions({
         caret={false}
         customTitle={
           <Button
-            label={t('Actions')}
+            aria-label={t('Actions')}
             icon={<IconEllipsis size="sm" />}
             size="xsmall"
             onClick={onOpenMenuActions}

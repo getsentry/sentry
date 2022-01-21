@@ -71,7 +71,7 @@ function SavedSearchMenuItem({
                 borderless
                 title={t('Delete this saved search')}
                 icon={<IconDelete />}
-                label={t('delete')}
+                aria-label={t('delete')}
                 size="zero"
               />
             </Confirm>

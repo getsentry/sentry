@@ -485,7 +485,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           <Actions>
             <Button
               size="small"
-              label={t('Add a Column')}
+              aria-label={t('Add a Column')}
               onClick={this.handleAddColumn}
               title={title}
               disabled={!canAdd}
@@ -496,7 +496,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             {source !== WidgetType.ISSUE && (
               <Button
                 size="small"
-                label={t('Add an Equation')}
+                aria-label={t('Add an Equation')}
                 onClick={this.handleAddEquation}
                 title={title}
                 disabled={!canAdd}

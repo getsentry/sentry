@@ -82,7 +82,7 @@ function Tag({
             onClick={handleDismiss}
             size="zero"
             priority="link"
-            label={t('Dismiss')}
+            aria-label={t('Dismiss')}
           >
             <IconClose isCircled {...iconsProps} />
           </DismissButton>

@@ -95,7 +95,7 @@ function ReleaseComparisonChartRow({
               borderless
               size="zero"
               icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
-              label={t('Toggle chart group')}
+              aria-label={t('Toggle chart group')}
             />
           )}
         </ExpanderCell>

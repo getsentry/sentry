@@ -192,7 +192,7 @@ class AccountSecurity extends AsyncView<Props> {
                             >
                               <Button
                                 size="small"
-                                label={t('delete')}
+                                aria-label={t('delete')}
                                 icon={<IconDelete />}
                               />
                             </RemoveConfirm>

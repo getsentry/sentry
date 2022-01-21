@@ -147,7 +147,7 @@ const CloseButton = styled(Button)`
 
 CloseButton.defaultProps = {
   icon: <IconClose />,
-  label: t('Close'),
+  ['aria-label']: t('Close'),
   priority: 'link',
   borderless: true,
   size: 'xsmall',

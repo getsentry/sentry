@@ -447,7 +447,7 @@ class RuleNode extends React.Component<Props> {
           </Rule>
           <DeleteButton
             disabled={disabled}
-            label={t('Delete Node')}
+            aria-label={t('Delete Node')}
             onClick={this.handleDelete}
             type="button"
             size="small"

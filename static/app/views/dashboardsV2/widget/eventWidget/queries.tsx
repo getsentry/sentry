@@ -108,7 +108,7 @@ function Queries({
                   }}
                   icon={<IconDelete />}
                   title={t('Remove query')}
-                  label={t('Remove query')}
+                  aria-label={t('Remove query')}
                 />
               )}
             </Fields>

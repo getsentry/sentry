@@ -74,7 +74,7 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
                     size="small"
                     icon={<IconDelete size="sm" />}
                     title={hasAccess ? t('Remove Mapping') : undefined}
-                    label={t('Remove Mapping')}
+                    aria-label={t('Remove Mapping')}
                     disabled={!hasAccess}
                   />
                 </Confirm>

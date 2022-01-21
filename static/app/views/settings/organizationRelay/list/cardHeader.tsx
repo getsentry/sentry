@@ -30,7 +30,7 @@ const CardHeader = ({
     <Button
       size="small"
       icon={<IconDelete />}
-      label={t('Delete Key')}
+      aria-label={t('Delete Key')}
       disabled={disabled}
       title={disabled ? t('You do not have permission to delete keys') : undefined}
     />
@@ -54,7 +54,7 @@ const CardHeader = ({
           size="small"
           onClick={onEdit(publicKey)}
           icon={<IconEdit />}
-          label={t('Edit Key')}
+          aria-label={t('Edit Key')}
           disabled={disabled}
           title={disabled ? t('You do not have permission to edit keys') : undefined}
         />

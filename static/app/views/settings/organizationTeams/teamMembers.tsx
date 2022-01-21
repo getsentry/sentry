@@ -273,7 +273,7 @@ class TeamMembers extends React.Component<Props, State> {
         size="small"
         icon={<IconSubtract size="xs" isCircled />}
         onClick={() => this.removeMember(member)}
-        label={t('Remove')}
+        aria-label={t('Remove')}
       >
         {t('Remove')}
       </Button>

@@ -1001,7 +1001,7 @@ function ReleaseComparisonChart({
                 borderless
                 size="zero"
                 icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
-                label={t('Toggle additional charts')}
+                aria-label={t('Toggle additional charts')}
               />
             </ShowMoreButton>
           </ShowMoreWrapper>

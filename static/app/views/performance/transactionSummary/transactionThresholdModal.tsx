@@ -273,7 +273,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
               {t('Reset All')}
             </Button>
             <Button
-              label={t('Apply')}
+              aria-label={t('Apply')}
               priority="primary"
               onClick={this.handleApply}
               data-test-id="apply-threshold"

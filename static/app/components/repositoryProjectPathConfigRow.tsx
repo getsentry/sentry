@@ -52,7 +52,7 @@ export default class RepositoryProjectPathConfigRow extends Component<Props> {
                 <StyledButton
                   size="small"
                   icon={<IconEdit size="sm" />}
-                  label={t('edit')}
+                  aria-label={t('edit')}
                   disabled={!hasAccess}
                   onClick={() => onEdit(pathConfig)}
                 />
@@ -64,7 +64,7 @@ export default class RepositoryProjectPathConfigRow extends Component<Props> {
                   <StyledButton
                     size="small"
                     icon={<IconDelete size="sm" />}
-                    label={t('delete')}
+                    aria-label={t('delete')}
                     disabled={!hasAccess}
                   />
                 </Confirm>

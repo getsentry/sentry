@@ -45,7 +45,7 @@ class EventAttachmentActions extends Component<Props> {
           <Button
             size="xsmall"
             icon={<IconDelete size="xs" />}
-            label={t('Delete')}
+            aria-label={t('Delete')}
             disabled={!url}
             title={!url ? t('Insufficient permissions to delete attachments') : undefined}
           />
@@ -57,7 +57,7 @@ class EventAttachmentActions extends Component<Props> {
           href={url ? `${url}?download=1` : ''}
           disabled={!url}
           title={!url ? t('Insufficient permissions to download attachments') : undefined}
-          label={t('Download')}
+          aria-label={t('Download')}
         />
 
         {withPreviewButton && (

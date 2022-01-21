@@ -39,7 +39,7 @@ const CloseButton = styled(Button)`
 `;
 
 CloseButton.defaultProps = {
-  label: t('Close Modal'),
+  ['aria-label']: t('Close Modal'),
   icon: <IconClose size="10px" />,
   size: 'zero',
 };
