@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import abc
 from functools import reduce
-from typing import Any, List, Mapping, Optional, Union
+from typing import Callable, List, Mapping, Optional, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -21,6 +22,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
+from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
@@ -88,29 +90,29 @@ from .fields import (
 
 MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
 
-# class DatasetConfig:
-#     """
-#     Dataset-specific configuration that is passed to
-#     the QueryBuilder
-#     """
 
-#     def __init__(
-#         self,
-#         dataset: Dataset,
-#         function_converter: Mapping[str, SnQLFunction],
-#         field_alias_converter: Mapping[str, Callable[[str], SelectType]],
-#     ):
-#         self.dataset: dataset
-#         self.function_converter: function_converter
-#         self.field_alias_converter: field_alias_converter
+class DatasetConfig(abc.ABC):
+    @abc.abstractproperty
+    def search_filter_converter(self):
+        pass
+
+    @abc.abstractproperty
+    def field_alias_converter(self):
+        pass
+
+    @abc.abstractproperty
+    def function_converter(self):
+        pass
 
 
-class DiscoverDatasetConfig:
-    def __init__(self, builder: Any):
+class DiscoverDatasetConfig(DatasetConfig):
+    def __init__(self, builder: QueryBuilder):
         self.builder = builder
 
     @property
-    def search_filter_converter(self):
+    def search_filter_converter(
+        self,
+    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
             "environment": self._environment_filter_converter,
             "message": self._message_filter_converter,
@@ -130,7 +132,7 @@ class DiscoverDatasetConfig:
         }
 
     @property
-    def field_alias_converter(self):
+    def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
         return {
             PROJECT_ALIAS: self._resolve_project_slug_alias,
             PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
@@ -150,7 +152,7 @@ class DiscoverDatasetConfig:
         }
 
     @property
-    def function_converter(self):
+    def function_converter(self) -> Mapping[str, SnQLFunction]:
         return {
             function.name: function
             for function in [

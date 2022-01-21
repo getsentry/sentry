@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Any, Dict, List, Match, Optional, Set, Tuple, Union, cast
+from typing import Any, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
+from django.utils.functional import cached_property
 from parsimonious.exceptions import ParseError
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -30,7 +31,6 @@ from sentry.discover.arithmetic import (
 )
 from sentry.models import Organization
 from sentry.models.project import Project
-from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
@@ -55,11 +55,11 @@ from sentry.search.events.fields import (
 from sentry.search.events.filter import ParsedTerm, ParsedTerms, QueryFilter
 from sentry.search.events.types import HistogramParams, ParamsType, SelectType, WhereType
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
-from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
+from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, resolve_column
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
-class QueryBuilder(QueryBase):  # type: ignore
+class QueryBuilder:  # type: ignore
     """Builds a snql query"""
 
     def __init__(
@@ -81,31 +81,41 @@ class QueryBuilder(QueryBase):  # type: ignore
         turbo: bool = False,
         sample_rate: Optional[float] = None,
     ):
-        super().__init__(dataset, params, auto_fields, functions_acl)
+        self.dataset = dataset
+        self.params = params
+        self.auto_fields = auto_fields
+        self.functions_acl = set() if functions_acl is None else functions_acl
+        self.equation_config = {}
+
+        # Function is a subclass of CurriedFunction
+        self.where: List[WhereType] = []
+        # The list of aggregates to be selected
+        self.aggregates: List[CurriedFunction] = []
+        self.columns: List[SelectType] = []
+        self.orderby: List[OrderBy] = []
+        self.projects_to_filter: Set[int] = set()
+        self.function_alias_map: Dict[str, FunctionDetails] = {}
+
+        self.auto_aggregations = auto_aggregations
+        self.limit = None if limit is None else Limit(limit)
+        self.offset = None if offset is None else Offset(offset)
+        self.turbo = Turbo(turbo)
+        self.sample_rate = sample_rate
+
+        self.resolve_column_name = resolve_column(self.dataset)
 
         (
             self.field_alias_converter,
             self.function_converter,
             self.search_filter_converter,
         ) = self.load_config()
-        self.function_alias_map: Dict[str, FunctionDetails] = {}
-
-        self.auto_aggregations = auto_aggregations
-
-        self.limit = None if limit is None else Limit(limit)
-        self.offset = None if offset is None else Offset(offset)
 
         self.limitby = self.resolve_limitby(limitby)
-        self.turbo = Turbo(turbo)
-        self.sample_rate = sample_rate
-
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
         )
-
         # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
         self.where += self.resolve_params()
-
         self.columns = self.resolve_select(selected_columns, equations)
         self.orderby = self.resolve_orderby(orderby)
         self.array_join = None if array_join is None else self.resolve_column(array_join)
@@ -121,6 +131,52 @@ class QueryBuilder(QueryBase):  # type: ignore
             ]
         else:
             return []
+
+    @cached_property  # type: ignore
+    def project_slugs(self) -> Mapping[str, int]:
+        project_ids = cast(List[int], self.params.get("project_id", []))
+
+        if len(project_ids) > 0:
+            project_slugs = Project.objects.filter(id__in=project_ids)
+        else:
+            project_slugs = []
+
+        return {p.slug: p.id for p in project_slugs}
+
+    def aliased_column(self, name: str) -> SelectType:
+        """Given an unresolved sentry name and an expected alias, return a snql
+        column that will be aliased to the expected alias.
+
+        :param name: The unresolved sentry name.
+        :param alias: The expected alias in the result.
+        """
+
+        # TODO: This method should use an aliased column from the SDK once
+        # that is available to skip these hacks that we currently have to
+        # do aliasing.
+        resolved = self.resolve_column_name(name)
+        column = Column(resolved)
+
+        # If the expected alias is identical to the resolved snuba column,
+        # no need to do this aliasing trick.
+        #
+        # Additionally, tags of the form `tags[...]` can't be aliased again
+        # because it confuses the sdk.
+        if name == resolved:
+            return column
+
+        # If the expected aliases differs from the resolved snuba column,
+        # make sure to alias the expression appropriately so we get back
+        # the column with the correct names.
+        return AliasedExpression(column, name)
+
+    def column(self, name: str) -> Column:
+        """Given an unresolved sentry name and return a snql column.
+
+        :param name: The unresolved sentry name.
+        """
+        resolved_column = self.resolve_column_name(name)
+        return Column(resolved_column)
 
     def load_config(self):
         from sentry.search.events.dataset import DiscoverDatasetConfig
