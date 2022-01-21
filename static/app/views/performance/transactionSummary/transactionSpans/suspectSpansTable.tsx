@@ -47,8 +47,10 @@ export default function SuspectSpansTable(props: Props) {
     description: suspectSpan.description,
     totalCount: suspectSpan.count,
     frequency:
+      // Due to how Clickhouse retrieves data via approximations, sometimes the frequency value can exceed the total number of spans.
+      // This can result in a ratio greater than 1, so use Math.min here to avoid those cases
       defined(suspectSpan.frequency) && defined(totals?.count)
-        ? suspectSpan.frequency / totals!.count
+        ? Math.min(1, suspectSpan.frequency / totals!.count)
         : null,
     avgOccurrences: suspectSpan.avgOccurrences,
     p50ExclusiveTime: suspectSpan.p50ExclusiveTime,
