@@ -555,6 +555,7 @@ const GridLayout = styled(WidthProvider(Responsive))`
   }
 `;
 
+// TODO: This is pretty messy code right now, will clean up
 function getNextAvailablePosition(layouts: Layout[]) {
   function generateColumnDepths(): Array<number> {
     const res = Array(NUM_DESKTOP_COLS).fill(0);
