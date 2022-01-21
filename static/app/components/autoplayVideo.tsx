@@ -18,7 +18,6 @@ function AutoplayVideo(props: React.VideoHTMLAttributes<HTMLVideoElement>) {
       // We can't use the muted prop because of a react bug.
       // https://github.com/facebook/react/issues/10389
       // So we need to set the muted property then trigger play.
-      // console.log(videoRef.current);
       videoRef.current.muted = true;
 
       // non-chromium Edge and jsdom don't return a promise.
