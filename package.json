@@ -43,7 +43,7 @@
     "@types/js-cookie": "^2.2.7",
     "@types/lodash": "^4.14.171",
     "@types/marked": "^0.7.2",
-    "@types/mini-css-extract-plugin": "^2.0.1",
+    "@types/mini-css-extract-plugin": "^2.5.1",
     "@types/papaparse": "^5.2.6",
     "@types/pegjs": "^0.10.3",
     "@types/react": "~17.0.14",
