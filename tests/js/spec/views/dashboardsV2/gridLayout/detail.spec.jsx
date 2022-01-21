@@ -10,7 +10,7 @@ import {
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {constructGridItemKey} from 'sentry/views/dashboardsV2/dashboard';
+import {constructGridItemKey} from 'sentry/views/dashboardsV2/layoutUtils';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 

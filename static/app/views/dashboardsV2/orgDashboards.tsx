@@ -13,7 +13,7 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
-import {assignTempId} from './dashboard';
+import {assignTempId} from './layoutUtils';
 import {DashboardDetails, DashboardListItem} from './types';
 
 type OrgDashboardsChildrenProps = {
