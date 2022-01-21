@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
-import {components, OptionProps} from 'react-select';
+import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -58,6 +58,7 @@ import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGro
 import Field from 'sentry/views/settings/components/forms/field';
 import FieldLabel from 'sentry/views/settings/components/forms/field/fieldLabel';
 
+import Option from '../forms/selectOption';
 import Tooltip from '../tooltip';
 
 import {TAB, TabsButtonBar} from './dashboardWidgetLibraryModal/tabsButtonBar';
@@ -517,11 +518,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   containerDisplayMode="block"
                   position="right"
                 >
-                  <components.Option
-                    label={label}
-                    data={data}
-                    {...(optionProps as any)}
-                  />
+                  <Option label={label} data={data} {...(optionProps as any)} />
                 </Tooltip>
               ),
             }}
