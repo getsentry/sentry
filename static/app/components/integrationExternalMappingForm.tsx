@@ -59,6 +59,10 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
         placeholder: t(`Select Sentry ${capitalize(type)}`),
         url: dataEndpoint,
         onResults: result => {
+          onResults?.(result, isInline ? mapping?.externalName : mappingKey);
+          // TODO(Leander): The code below only fixes the problem when viewed, not when edited
+          // Pagination still has bugs for results not on initial return of the query
+
           // For organizations with >100 entries, we want to make sure their
           // saved mapping gets populated in the results if it wouldn't have
           // been in the initial 100 API results, which is why we add it here
@@ -70,14 +74,16 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
               return id === mapping[`${type}Id`];
             })
           ) {
-            result = [{id: mapping[`${type}Id`], name: mapping.sentryName}, ...result];
+            return optionMapper([
+              {id: mapping[`${type}Id`], name: mapping.sentryName},
+              ...sentryNamesMapper(result),
+            ]);
           }
-          onResults?.(result, isInline ? mapping?.externalName : mappingKey);
           return optionMapper(sentryNamesMapper(result));
         },
       },
     ];
-    // We only add the field for externalName if it's not an inline form
+    // We only add the field for externalName if it's the full (not inline) form
     if (!isInline) {
       fields.unshift({
         name: 'externalName',
