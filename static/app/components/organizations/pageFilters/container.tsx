@@ -150,7 +150,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     }
 
     // When the project stays the same, it's still possible that the
-    // environment changed, so explictly update the enviornment
+    // environment changed, so explicitly update the environment
     if (noProjectChange && !noEnvironmentChange) {
       updateEnvironments(newEnvironments);
     }
