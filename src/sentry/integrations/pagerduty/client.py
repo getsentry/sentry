@@ -31,7 +31,7 @@ class PagerDutyClient(ApiClient):
 
         return self._request(method, path, headers=headers, data=data, params=params)
 
-    def send_trigger(self, data, organization, method):
+    def send_trigger(self, data, organization=None, method="fire"):
         # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
         if isinstance(data, Event):
             source = data.transaction or data.culprit or "<unknown>"
@@ -65,7 +65,8 @@ class PagerDutyClient(ApiClient):
 
         response = self.post("/", data=payload)
         if (
-            features.has("organizations:pagerduty-metric-alert-resolve-logging", organization)
+            organization
+            and features.has("organizations:pagerduty-metric-alert-resolve-logging", organization)
             and method == "resolve"
         ):
             logger.info(
