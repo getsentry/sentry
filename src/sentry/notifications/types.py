@@ -162,6 +162,18 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
+    NotificationSettingTypes.QUOTA_TRANSACTIONS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_ATTACHMENTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_WARNINGS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
     NotificationSettingTypes.WORKFLOW: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.SUBSCRIBE_ONLY,
