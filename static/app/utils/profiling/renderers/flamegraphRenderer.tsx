@@ -1,11 +1,11 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {clamp} from '../colors/utils';
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphTheme} from '../flamegraph/FlamegraphTheme';
 import {FlamegraphFrame} from '../flamegraphFrame';
 import {Frame} from '../frame';
 import {
+  computeClampedConfigView,
   createProgram,
   createShader,
   getContext,
@@ -144,6 +144,7 @@ class FlamegraphRenderer {
         }
       }
     } else {
+      // Generate colors for the flamegraph
       const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
         this.frames.map(f => f.frame),
         this.theme.COLORS.COLOR_MAP,
@@ -497,53 +498,39 @@ class FlamegraphRenderer {
     this.gl.useProgram(this.program);
   }
 
-  setConfigView(configView: Rect): void {
-    const minViewWidth = this.flamegraph.profile.minFrameDuration;
-    const maxViewWidth = this.flamegraph.configSpace.width;
-
-    const clampedWidth = clamp(configView.width, minViewWidth, maxViewWidth);
-
-    const minX = 0;
-    const maxX = this.flamegraph.configSpace.width - clampedWidth;
-
-    const minY = 0;
-    const maxY =
-      configView.height >= this.configSpace.height + (this.flamegraph.inverted ? 1 : 0)
-        ? 0
-        : this.configSpace.height -
-          configView.height +
-          (this.flamegraph.inverted ? 1 : 0);
-
-    const clampedX = clamp(configView.x, minX, maxX);
-    const clampedY = clamp(configView.y, minY, maxY);
-
-    this.configView = new Rect(clampedX, clampedY, clampedWidth, this.configView.height);
+  setConfigView(configView: Rect): Rect {
+    this.configView = computeClampedConfigView(
+      configView,
+      {
+        min: this.flamegraph.profile.minFrameDuration,
+        max: this.configSpace.width,
+      },
+      {
+        min: 0,
+        max: this.configSpace.height,
+      },
+      !!this.flamegraph.inverted
+    );
+    return this.configView;
   }
 
-  transformConfigView(transformation: mat3): void {
+  transformConfigView(transformation: mat3): Rect {
     const newConfigViewSpace = this.configView.transformRect(transformation);
 
-    const minViewWidth = this.flamegraph.profile.minFrameDuration;
-    const maxViewWidth = this.flamegraph.configSpace.width;
+    this.configView = computeClampedConfigView(
+      newConfigViewSpace,
+      {
+        min: this.flamegraph.profile.minFrameDuration,
+        max: this.configSpace.width,
+      },
+      {
+        min: 0,
+        max: this.configSpace.height,
+      },
+      !!this.flamegraph.inverted
+    );
 
-    const clampedWidth = clamp(newConfigViewSpace.width, minViewWidth, maxViewWidth);
-
-    const minX = 0;
-    const maxX = this.flamegraph.configSpace.width - clampedWidth;
-
-    const minY = 0;
-    const maxY =
-      newConfigViewSpace.height >=
-      this.configSpace.height + (this.flamegraph.inverted ? 1 : 0)
-        ? 0
-        : this.configSpace.height -
-          this.configView.height +
-          (this.flamegraph.inverted ? 1 : 0);
-
-    const clampedY = clamp(newConfigViewSpace.y, minY, maxY);
-    const clampedX = clamp(newConfigViewSpace.x, minX, maxX);
-
-    this.configView = new Rect(clampedX, clampedY, clampedWidth, this.configView.height);
+    return this.configView;
   }
 
   getColorForFrame(frame: Frame): number[] {
@@ -579,14 +566,20 @@ class FlamegraphRenderer {
         1
       );
 
-      const containsX = frameRect.containsX(configSpaceCursor);
-      const containsY = frameRect.containsY(configSpaceCursor);
+      // We treat entire flamegraph as a segment tree, this allows us to query in O(log n) time by
+      // only looking at the nodes that are relevant to the current cursor position. We discard any values
+      // on x axis that do not overlap the cursor, and descend until we find a node that overlaps at cursor y position
+      if (!frameRect.containsX(configSpaceCursor)) {
+        return;
+      }
 
-      if (containsX && containsY) {
+      // If our frame depth overlaps cursor y position, we have found our node
+      if (frameRect.containsY(configSpaceCursor)) {
         hoveredNode = frame;
         return;
       }
 
+      // Descend into the rest of the children
       for (const child of frame.children) {
         findHoveredNode(child, depth + 1);
       }
@@ -600,7 +593,7 @@ class FlamegraphRenderer {
   }
 
   draw(
-    searchResults: Record<FlamegraphFrame['frame']['key'], FlamegraphFrame> = {},
+    searchResults: Record<FlamegraphFrame['frame']['key'], FlamegraphFrame> | null,
     configToPhysicalSpace = this.configToPhysicalSpace
   ): void {
     if (!this.gl) {
@@ -648,25 +641,29 @@ class FlamegraphRenderer {
 
     const length = this.frames.length;
     let frame;
-    let i = 0;
 
     // This is an optimization to avoid setting uniform1i for each draw call when user is not searching
-    if (Object.keys(searchResults).length > 0) {
-      for (i < length; i++; ) {
+    if (searchResults) {
+      for (let i = 0; i < length; i++) {
         frame = this.frames[i];
-
         const vertexOffset = i * VERTICES;
 
         this.gl.uniform1i(
           this.uniforms.u_is_search_result,
-          searchResults[`${frame.frame.name + frame.frame.file + String(frame.start)}`]
+          searchResults[
+            `${
+              frame.frame.name +
+              (frame.frame.file ? frame.frame.file : '') +
+              String(frame.start)
+            }`
+          ]
             ? 1
             : 0
         );
         this.gl.drawArrays(this.gl.TRIANGLES, vertexOffset, VERTICES);
       }
     } else {
-      for (i < length; i++; ) {
+      for (let i = 0; i < length; i++) {
         const vertexOffset = i * VERTICES;
 
         this.gl.drawArrays(this.gl.TRIANGLES, vertexOffset, VERTICES);

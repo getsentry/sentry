@@ -1,5 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {clamp} from '../colors/utils';
+
 export function createShader(
   gl: WebGLRenderingContext,
   type: WebGLRenderingContext['VERTEX_SHADER'] | WebGLRenderingContext['FRAGMENT_SHADER'],
@@ -456,4 +458,25 @@ export function trimTextCenter(text: string, low: number) {
     text.length - postfixLength,
     text.length
   )}`;
+}
+
+export function computeClampedConfigView(
+  newConfigView: Rect,
+  width: {max: number; min: number},
+  height: {max: number; min: number},
+  inverted: boolean
+) {
+  const clampedWidth = clamp(newConfigView.width, width.min, width.max);
+  const clampedHeight = clamp(newConfigView.height, height.min, height.max);
+
+  const maxX = width.max - clampedWidth;
+  const maxY =
+    clampedHeight >= height.max + (inverted ? 1 : 0)
+      ? 0
+      : height.max - clampedHeight + (inverted ? 1 : 0);
+
+  const clampedX = clamp(newConfigView.x, 0, maxX);
+  const clampedY = clamp(newConfigView.y, 0, maxY);
+
+  return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
 }
