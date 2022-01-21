@@ -1,7 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
-import pick from 'lodash/pick';
 
 import {t, tct} from 'sentry/locale';
 import {ExternalActorMapping, Integration} from 'sentry/types';
@@ -31,7 +30,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
     return {
       provider: integration.provider.key,
       integrationId: integration.id,
-      ...pick(mapping, ['id', 'externalName', 'sentryName', 'userId', 'teamId']),
+      ...mapping,
     };
   }
 
@@ -86,7 +85,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
         type: 'string',
         required: true,
         label: isInline ? undefined : tct('External [type]', {type: capitalize(type)}),
-        placeholder: t(`${type === 'user' ? '@username' : '@org/teamname'}`),
+        placeholder: type === 'user' ? t('@username') : t('@org/teamname'),
       });
     }
     return fields;

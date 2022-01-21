@@ -234,7 +234,7 @@ export const getExternalActorEndpointDetails = (
   baseEndpoint: string,
   mapping?: ExternalActorMapping
 ): {apiMethod: 'POST' | 'PUT'; apiEndpoint: string} => {
-  const isValidMapping = mapping && mapping?.id;
+  const isValidMapping = !!mapping?.id;
   return {
     apiMethod: isValidMapping ? 'PUT' : 'POST',
     apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
