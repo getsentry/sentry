@@ -3215,7 +3215,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         project2 = self.create_project(organization=self.organization)
         event_data = load_data("transaction", timestamp=before_now(seconds=3))
         self.store_event(data=event_data, project_id=project2.id)
-        expected = [self.project.slug, project2.slug]
+        expected = list(sorted([self.project.slug, project2.slug]))
 
         result = discover.query(
             selected_columns=["project"],
