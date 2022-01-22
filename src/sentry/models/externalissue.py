@@ -7,6 +7,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, JSONField, Model, sane_repr
+from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:
     from sentry.models import Integration
@@ -25,6 +26,18 @@ class ExternalIssueManager(BaseManager):
             kwargs["key"] = external_issue_key
 
         return self.filter(**kwargs)
+
+    def get_linked_issues(self, event: Event, integration: Integration) -> QuerySet[ExternalIssue]:
+        from sentry.models import GroupLink
+
+        return self.filter(
+            id__in=GroupLink.objects.filter(
+                project_id=event.group.project_id,
+                group_id=event.group.id,
+                linked_type=GroupLink.LinkedType.issue,
+            ).values_list("linked_id", flat=True),
+            integration_id=integration.id,
+        )
 
 
 class ExternalIssue(Model):

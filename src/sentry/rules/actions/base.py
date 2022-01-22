@@ -98,16 +98,6 @@ class IntegrationEventAction(EventAction):
         return self.form_cls(self.data, integrations=self.get_integrations())
 
 
-def _linked_issues(event, integration):
-    return ExternalIssue.objects.filter(
-        id__in=GroupLink.objects.filter(
-            project_id=event.group.project_id,
-            group_id=event.group.id,
-            linked_type=GroupLink.LinkedType.issue,
-        ).values_list("linked_id", flat=True),
-        integration_id=integration.id,
-    )
-
 
 def get_linked_issue_ids(event, integration):
     return _linked_issues(event, integration).values_list("key", flat=True)
