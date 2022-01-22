@@ -580,6 +580,8 @@ def prepare_reports(dry_run=False, *args, **kwargs):
     for organization in RangeQuerySetWrapper(organizations, step=10000):
         prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
+    logger.info("reports.finish_prepare_report")
+
 
 @instrumented_task(
     name="sentry.tasks.reports.prepare_organization_report",
