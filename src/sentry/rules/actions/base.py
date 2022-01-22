@@ -117,8 +117,7 @@ class IntegrationEventAction(EventAction):
         return self.get_integration().get_installation(self.project.organization.id)
 
     def get_form_instance(self) -> forms.Form:
-        form: forms.Form = self.form_cls(self.data, integrations=self.get_integrations())
-        return form
+        return self.form_cls(self.data, integrations=self.get_integrations())  # type: ignore
 
 
 def create_link(

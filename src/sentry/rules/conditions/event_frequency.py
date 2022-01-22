@@ -54,13 +54,13 @@ class EventFrequencyForm(forms.Form):
     )
     value = forms.IntegerField(widget=forms.TextInput())
     comparisonType = forms.ChoiceField(
-        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),
+        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),  # type: ignore
         required=False,
     )
     comparisonInterval = forms.ChoiceField(
         choices=[
             (key, label)
-            for key, (label, duration) in sorted(
+            for key, (label, duration_) in sorted(
                 comparison_intervals.items(), key=lambda item: item[1][1]
             )
         ],
@@ -78,14 +78,14 @@ class EventFrequencyForm(forms.Form):
         ):
             msg = forms.ValidationError("comparisonInterval is required when comparing by percent")
             self.add_error("comparisonInterval", msg)
-            return None
+            return {}
         return cleaned_data
 
 
 class BaseEventFrequencyCondition(EventCondition):
     intervals = standard_intervals
     form_cls = EventFrequencyForm
-    label = NotImplemented  # subclass must implement
+    label: str
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.tsdb = kwargs.pop("tsdb", tsdb)
@@ -136,7 +136,7 @@ class BaseEventFrequencyCondition(EventCondition):
     def get_rate(self, event: Event, interval: str, environment_id: str) -> int:
         _, duration = self.intervals[interval]
         end = timezone.now()
-        result = self.query(event, end - duration, end, environment_id=environment_id)
+        result: int = self.query(event, end - duration, end, environment_id=environment_id)
         comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
         if comparison_type == COMPARISON_TYPE_PERCENT:
             comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
@@ -158,13 +158,17 @@ class BaseEventFrequencyCondition(EventCondition):
     @property
     def is_guessed_to_be_created_on_project_creation(self) -> bool:
         """
-        Best effort approximation on whether a rule with this condition was created on project creation based on how
-        closely the rule and project are created; and if the label matches the default name used on project creation.
+        Best effort approximation on whether a rule with this condition was
+        created on project creation based on how closely the rule and project
+        are created; and if the label matches the default name used on project
+        creation.
+
         :return:
             bool: True if rule is approximated to be created on project creation, False otherwise.
         """
         delta = abs(self.rule.date_added - self.project.date_added)
-        return delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL
+        guess: bool = delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL
+        return guess
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
@@ -225,13 +229,13 @@ class EventFrequencyPercentForm(EventFrequencyForm):
     )
     value = forms.FloatField(widget=forms.TextInput(), min_value=0)
 
-    def clean(self) -> Mapping[str, Any] | None:
+    def clean(self) -> Dict[str, Any]:
         cleaned_data = super().clean()
         if cleaned_data["comparisonType"] == COMPARISON_TYPE_COUNT and cleaned_data["value"] > 100:
             self.add_error(
                 "value", forms.ValidationError("Ensure this value is less than or equal to 100")
             )
-            return None
+            return {}
 
         return cleaned_data
 
@@ -297,6 +301,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                         "avg_sessions_in_interval": avg_sessions_in_interval,
                     },
                 )
-            return 100 * round(issue_count / avg_sessions_in_interval, 4)
+            percent: int = 100 * round(issue_count / avg_sessions_in_interval, 4)
+            return percent
 
         return 0

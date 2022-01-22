@@ -76,6 +76,7 @@ class AgeComparisonFilter(EventFilter):
         _, delta_time = timeranges[time]
 
         first_seen = event.group.first_seen
-        return age_comparison_map[comparison_type](
+        passes_: bool = age_comparison_map[comparison_type](
             first_seen + (value * delta_time), timezone.now()
         )
+        return passes_

@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections import namedtuple
-from typing import Any, Callable, Mapping, Sequence, Type
+from typing import Any, Callable, MutableMapping, Sequence, Type
 
 from django import forms
 
 from sentry.eventstore.models import Event
 from sentry.models import Project, Rule
-from sentry.rules.actions import IntegrationNotifyServiceForm
 from sentry.rules.processor import RuleFuture
 
 """
@@ -57,12 +56,12 @@ class RuleDescriptor(type):
 
 class RuleBase(metaclass=RuleDescriptor):
     label: str
-    form_cls: Type[IntegrationNotifyServiceForm]
+    form_cls: Type[forms.Form]
 
     logger = logging.getLogger("sentry.rules")
 
     def __init__(
-        self, project: Project, data: Mapping[str, Any] | None = None, rule: Rule | None = None
+        self, project: Project, rule: Rule, data: MutableMapping[str, Any] | None = None
     ) -> None:
         self.project = project
         self.data = data or {}
@@ -76,10 +75,9 @@ class RuleBase(metaclass=RuleDescriptor):
         return self.data.get(key, default)
 
     def get_form_instance(self) -> forms.Form:
+        data: MutableMapping[str, Any] | None = None
         if self.had_data:
             data = self.data
-        else:
-            data = None
         return self.form_cls(data)
 
     def render_label(self) -> str:

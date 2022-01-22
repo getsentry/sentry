@@ -24,7 +24,7 @@ class AssignedToFilter(EventFilter):
 
     def get_assignees(self, group: Group) -> Sequence[Team | User]:
         cache_key = f"group:{group.id}:assignees"
-        assignee_list = cache.get(cache_key)
+        assignee_list: Sequence[Team | User] = cache.get(cache_key)
         if assignee_list is None:
             assignee_list = list(group.assignee_set.all())
             cache.set(cache_key, assignee_list, 60)
@@ -49,4 +49,5 @@ class AssignedToFilter(EventFilter):
             return False
 
     def get_form_instance(self) -> forms.Form:
-        return self.form_cls(self.project, self.data)
+        form: forms.Form = self.form_cls(self.project, self.data)
+        return form

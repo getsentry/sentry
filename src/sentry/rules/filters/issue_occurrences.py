@@ -26,5 +26,5 @@ class IssueOccurrencesFilter(EventFilter):
 
         # This value is slightly delayed due to us batching writes to times_seen
         # which can cause the filter to be delayed or occasionally not work as expected.
-        issue_occurrences = event.group.times_seen
+        issue_occurrences: int = event.group.times_seen
         return issue_occurrences >= value
