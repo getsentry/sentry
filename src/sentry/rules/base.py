@@ -48,10 +48,11 @@ CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 
 class RuleDescriptor(type):
-    def __new__(cls, *args, **kwargs):
-        new_cls = super().__new__(cls, *args, **kwargs)
+    def __new__(cls, *args: Any, **kwargs: Any) -> RuleDescriptor:
+        new_cls: Any = super().__new__(cls, *args, **kwargs)
         new_cls.id = f"{new_cls.__module__}.{new_cls.__name__}"
-        return new_cls
+        new_cls_: RuleDescriptor = new_cls
+        return new_cls_
 
 
 class RuleBase(metaclass=RuleDescriptor):
