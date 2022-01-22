@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any, Dict
 
 from django import forms
 from django.core.cache import cache
@@ -67,7 +67,7 @@ class EventFrequencyForm(forms.Form):
         required=False,
     )
 
-    def clean(self) -> Mapping[str, Any] | None:
+    def clean(self) -> Dict[str, Any]:
         cleaned_data = super().clean()
         # Don't store an empty string here if the value isn't passed
         if cleaned_data.get("comparisonInterval") == "":

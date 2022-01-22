@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Dict
 
 from django import forms
 
@@ -43,7 +43,7 @@ class TaggedEventForm(forms.Form):
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()), widget=forms.Select())
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
-    def clean(self) -> None:
+    def clean(self) -> Dict[str, Any]:
         super().clean()
 
         match = self.cleaned_data.get("match")
@@ -51,6 +51,7 @@ class TaggedEventForm(forms.Form):
 
         if match not in (MatchType.IS_SET, MatchType.NOT_SET) and not value:
             raise forms.ValidationError("This field is required.")
+        return {}
 
 
 class TaggedEventCondition(EventCondition):

@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Dict, MutableMapping, Optional, Sequence, Tuple
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -29,7 +29,7 @@ from .utils import (
 logger = logging.getLogger("sentry.rules")
 
 
-class SlackNotifyServiceForm(forms.Form):  # type: ignore
+class SlackNotifyServiceForm(forms.Form):
     workspace = forms.ChoiceField(choices=(), widget=forms.Select())
     channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.CharField(required=False, widget=forms.TextInput())
@@ -53,7 +53,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
         # in the task (integrations/slack/tasks.py) if the channel_id is found.
         self._pending_save = False
 
-    def clean(self) -> Mapping[str, Any]:
+    def clean(self) -> Dict[str, Any]:
         channel_id = (
             self.data.get("inputChannelId")
             or self.data.get("input_channel_id")
