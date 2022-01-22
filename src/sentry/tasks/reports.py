@@ -576,9 +576,11 @@ def prepare_reports(dry_run=False, *args, **kwargs):
 
     logger.info("reports.begin_prepare_report")
 
-    organizations = _get_organization_queryset()
-    for organization in RangeQuerySetWrapper(organizations, step=10000):
-        prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
+    organizations = _get_organization_queryset().values_list("id", flat=True)
+    for organization_id in RangeQuerySetWrapper(
+        organizations, step=10000, result_value_getter=lambda item: item
+    ):
+        prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
 
     logger.info("reports.finish_prepare_report")
 
