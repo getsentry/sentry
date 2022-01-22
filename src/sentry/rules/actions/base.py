@@ -11,8 +11,8 @@ from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.models import ExternalIssue, GroupLink
 from sentry.models.integration import Integration
+from sentry.rules import RuleFuture
 from sentry.rules.base import EventState, RuleBase
-from sentry.rules.processor import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
 

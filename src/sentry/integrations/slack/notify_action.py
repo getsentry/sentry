@@ -9,8 +9,8 @@ from sentry.eventstore.models import Event
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.rules import RuleFuture
 from sentry.rules.actions.base import IntegrationEventAction
-from sentry.rules.processor import RuleFuture
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,

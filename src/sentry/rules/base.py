@@ -8,7 +8,7 @@ from django import forms
 
 from sentry.eventstore.models import Event
 from sentry.models import Project, Rule
-from sentry.rules.processor import RuleFuture
+from sentry.rules import RuleFuture
 
 """
 Rules apply either before an event gets stored, or immediately after.
