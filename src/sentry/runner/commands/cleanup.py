@@ -44,6 +44,8 @@ def multiprocess_worker(task_queue):
     logger = logging.getLogger("sentry.cleanup")
 
     configured = False
+    skip_models = []
+    deletions = None
 
     while True:
         j = task_queue.get()
@@ -58,18 +60,18 @@ def multiprocess_worker(task_queue):
             configure()
             configured = True
 
-        from sentry import deletions, models, similarity
+            from sentry import deletions, models, similarity
 
-        skip_models = [
-            # Handled by other parts of cleanup
-            models.EventAttachment,
-            models.UserReport,
-            models.Group,
-            models.GroupEmailThread,
-            models.GroupRuleStatus,
-            # Handled by TTL
-            similarity,
-        ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
+            skip_models = [
+                # Handled by other parts of cleanup
+                models.EventAttachment,
+                models.UserReport,
+                models.Group,
+                models.GroupEmailThread,
+                models.GroupRuleStatus,
+                # Handled by TTL
+                similarity,
+            ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
 
         model, chunk = j
         model = import_string(model)
