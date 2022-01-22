@@ -1,7 +1,18 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Sequence
+
+from django import forms
+
+from sentry.eventstore.models import Event
 from sentry.mail.forms.assigned_to import AssignedToForm
 from sentry.notifications.types import ASSIGNEE_CHOICES, AssigneeTargetType
+from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
 from sentry.utils.cache import cache
+
+if TYPE_CHECKING:
+    from sentry.models import Group, Team, User
 
 
 class AssignedToFilter(EventFilter):
@@ -11,7 +22,7 @@ class AssignedToFilter(EventFilter):
 
     form_fields = {"targetType": {"type": "assignee", "choices": ASSIGNEE_CHOICES}}
 
-    def get_assignees(self, group):
+    def get_assignees(self, group: Group) -> Sequence[Team | User]:
         cache_key = f"group:{group.id}:assignees"
         assignee_list = cache.get(cache_key)
         if assignee_list is None:
@@ -19,7 +30,7 @@ class AssignedToFilter(EventFilter):
             cache.set(cache_key, assignee_list, 60)
         return assignee_list
 
-    def passes(self, event, state):
+    def passes(self, event: Event, state: EventState) -> bool:
         target_type = AssigneeTargetType(self.get_option("targetType"))
 
         if target_type == AssigneeTargetType.UNASSIGNED:
@@ -37,5 +48,5 @@ class AssignedToFilter(EventFilter):
                         return True
             return False
 
-    def get_form_instance(self):
+    def get_form_instance(self) -> forms.Form:
         return self.form_cls(self.project, self.data)

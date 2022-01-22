@@ -1,3 +1,16 @@
+from __future__ import annotations
+
+import logging
+from collections import namedtuple
+from typing import Any, Callable, Mapping, Sequence, Type
+
+from django import forms
+
+from sentry.eventstore.models import Event
+from sentry.models import Project, Rule
+from sentry.rules.actions import IntegrationNotifyServiceForm
+from sentry.rules.processor import RuleFuture
+
 """
 Rules apply either before an event gets stored, or immediately after.
 
@@ -28,9 +41,6 @@ by the rule's logic. Each rule condition may be associated with a form.
 - [ACTION:I want to group events when] [RULE:an event matches [FORM]]
 """
 
-import logging
-from collections import namedtuple
-
 # Encapsulates a reference to the callback, including arguments. The `key`
 # attribute may be specifically used to key the callbacks when they are
 # collated during rule processing.
@@ -45,34 +55,36 @@ class RuleDescriptor(type):
 
 
 class RuleBase(metaclass=RuleDescriptor):
-    label = None
-    form_cls = None
+    label: str
+    form_cls: Type[IntegrationNotifyServiceForm]
 
     logger = logging.getLogger("sentry.rules")
 
-    def __init__(self, project, data=None, rule=None):
+    def __init__(
+        self, project: Project, data: Mapping[str, Any] | None = None, rule: Rule | None = None
+    ) -> None:
         self.project = project
         self.data = data or {}
         self.had_data = data is not None
         self.rule = rule
 
-    def is_enabled(self):
+    def is_enabled(self) -> bool:
         return True
 
-    def get_option(self, key, default=None):
+    def get_option(self, key: str, default: str | None = None) -> str:
         return self.data.get(key, default)
 
-    def get_form_instance(self):
+    def get_form_instance(self) -> forms.Form:
         if self.had_data:
             data = self.data
         else:
             data = None
         return self.form_cls(data)
 
-    def render_label(self):
+    def render_label(self) -> str:
         return self.label.format(**self.data)
 
-    def validate_form(self):
+    def validate_form(self) -> bool:
         if not self.form_cls:
             return True
 
@@ -80,12 +92,23 @@ class RuleBase(metaclass=RuleDescriptor):
 
         return form.is_valid()
 
-    def future(self, callback, key=None, **kwargs):
+    def future(
+        self,
+        callback: Callable[[Event, Sequence[RuleFuture]], None],
+        key: str | None = None,
+        **kwargs: Any,
+    ) -> CallbackFuture:
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
 
 
 class EventState:
-    def __init__(self, is_new, is_regression, is_new_group_environment, has_reappeared):
+    def __init__(
+        self,
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        has_reappeared: bool,
+    ) -> None:
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment

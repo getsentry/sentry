@@ -11,6 +11,7 @@ from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notifications.user_report import UserReportNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
+from sentry.rules import RuleFuture
 from sentry.tasks.digests import deliver_digest
 from sentry.utils import metrics
 
@@ -28,7 +29,7 @@ class MailAdapter:
     def rule_notify(
         self,
         event: Any,
-        futures: Sequence[Any],
+        futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
     ) -> None:

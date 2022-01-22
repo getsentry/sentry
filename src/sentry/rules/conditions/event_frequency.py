@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import logging
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any, Mapping
 
 from django import forms
 from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import release_health, tsdb
+from sentry.eventstore.models import Event
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
+from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.utils import metrics
 from sentry.utils.snuba import options_override
@@ -62,7 +67,7 @@ class EventFrequencyForm(forms.Form):
         required=False,
     )
 
-    def clean(self):
+    def clean(self) -> Mapping[str, Any] | None:
         cleaned_data = super().clean()
         # Don't store an empty string here if the value isn't passed
         if cleaned_data.get("comparisonInterval") == "":
@@ -73,7 +78,7 @@ class EventFrequencyForm(forms.Form):
         ):
             msg = forms.ValidationError("comparisonInterval is required when comparing by percent")
             self.add_error("comparisonInterval", msg)
-            return
+            return None
         return cleaned_data
 
 
@@ -82,7 +87,7 @@ class BaseEventFrequencyCondition(EventCondition):
     form_cls = EventFrequencyForm
     label = NotImplemented  # subclass must implement
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.tsdb = kwargs.pop("tsdb", tsdb)
         self.form_fields = {
             "value": {"type": "number", "placeholder": 100},
@@ -100,7 +105,7 @@ class BaseEventFrequencyCondition(EventCondition):
 
         super().__init__(*args, **kwargs)
 
-    def passes(self, event, state):
+    def passes(self, event: Event, state: EventState) -> bool:
         interval = self.get_option("interval")
         try:
             value = float(self.get_option("value"))
@@ -113,7 +118,7 @@ class BaseEventFrequencyCondition(EventCondition):
         current_value = self.get_rate(event, interval, self.rule.environment_id)
         return current_value > value
 
-    def query(self, event, start, end, environment_id):
+    def query(self, event: Event, start: datetime, end: datetime, environment_id: str) -> Any:
         query_result = self.query_hook(event, start, end, environment_id)
         metrics.incr(
             "rules.conditions.queried_snuba",
@@ -124,11 +129,11 @@ class BaseEventFrequencyCondition(EventCondition):
         )
         return query_result
 
-    def query_hook(self, event, start, end, environment_id):
+    def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> Any:
         """ """
         raise NotImplementedError  # subclass must implement
 
-    def get_rate(self, event, interval, environment_id):
+    def get_rate(self, event: Event, interval: str, environment_id: str) -> int:
         _, duration = self.intervals[interval]
         end = timezone.now()
         result = self.query(event, end - duration, end, environment_id=environment_id)
@@ -151,7 +156,7 @@ class BaseEventFrequencyCondition(EventCondition):
         return result
 
     @property
-    def is_guessed_to_be_created_on_project_creation(self):
+    def is_guessed_to_be_created_on_project_creation(self) -> bool:
         """
         Best effort approximation on whether a rule with this condition was created on project creation based on how
         closely the rule and project are created; and if the label matches the default name used on project creation.
@@ -165,7 +170,7 @@ class BaseEventFrequencyCondition(EventCondition):
 class EventFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen more than {value} times in {interval}"
 
-    def query_hook(self, event, start, end, environment_id):
+    def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> Any:
         return self.tsdb.get_sums(
             model=self.tsdb.models.group,
             keys=[event.group_id],
@@ -179,7 +184,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen by more than {value} users in {interval}"
 
-    def query_hook(self, event, start, end, environment_id):
+    def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> Any:
         return self.tsdb.get_distinct_counts_totals(
             model=self.tsdb.models.users_affected_by_group,
             keys=[event.group_id],
@@ -220,13 +225,13 @@ class EventFrequencyPercentForm(EventFrequencyForm):
     )
     value = forms.FloatField(widget=forms.TextInput(), min_value=0)
 
-    def clean(self):
+    def clean(self) -> Mapping[str, Any] | None:
         cleaned_data = super().clean()
         if cleaned_data["comparisonType"] == COMPARISON_TYPE_COUNT and cleaned_data["value"] > 100:
             self.add_error(
                 "value", forms.ValidationError("Ensure this value is less than or equal to 100")
             )
-            return
+            return None
 
         return cleaned_data
 
@@ -235,12 +240,13 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     label = "The issue affects more than {value} percent of sessions in {interval}"
     logger = logging.getLogger("rules.event_frequency")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.intervals = percent_intervals
         self.form_cls = EventFrequencyPercentForm
         super().__init__(*args, **kwargs)
 
-        # Override form fields interval to hide 1 min option from ui, but leave it available to process existing 1m rules
+        # Override form fields interval to hide 1 min option from ui, but leave
+        # it available to process existing 1m rules.
         self.form_fields["interval"] = {
             "type": "choice",
             "choices": [
@@ -252,7 +258,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             ],
         }
 
-    def query_hook(self, event, start, end, environment_id):
+    def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
         project_id = event.project_id
         cache_key = f"r.c.spc:{project_id}-{environment_id}"
         session_count_last_hour = cache.get(cache_key)

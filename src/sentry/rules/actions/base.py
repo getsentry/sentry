@@ -1,11 +1,18 @@
+from __future__ import annotations
+
 import logging
+from typing import Any, Callable, Mapping, Sequence
 
 from django import forms
+from django.db.models import QuerySet
+from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
+from sentry.eventstore.models import Event
 from sentry.models import ExternalIssue, GroupLink
 from sentry.models.integration import Integration
-from sentry.rules.base import RuleBase
+from sentry.rules.base import EventState, RuleBase
+from sentry.rules.processor import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
 
@@ -15,7 +22,7 @@ INTEGRATION_KEY = "integration"
 class IntegrationNotifyServiceForm(forms.Form):
     integration = forms.ChoiceField(choices=(), widget=forms.Select())
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         super(forms.Form, self).__init__(*args, **kwargs)
         if integrations:
@@ -28,7 +35,7 @@ class IntegrationNotifyServiceForm(forms.Form):
 class EventAction(RuleBase):
     rule_type = "action/event"
 
-    def after(self, event, state):
+    def after(self, event: Event, state: EventState) -> Any:
         """
         Executed after a Rule matches.
 
@@ -56,29 +63,44 @@ class IntegrationEventAction(EventAction):
     Intermediate abstract class to help DRY some event actions code.
     """
 
-    def is_enabled(self):
+    @property
+    def provider(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def integration_key(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def ticket_type(self) -> str:
+        raise NotImplementedError
+
+    def is_enabled(self) -> bool:
         return self.get_integrations().exists()
 
-    def get_integration_name(self):
-        """
-        Get the integration's name for the label.
-
-        :return: string
-        """
+    def get_integration_name(self) -> str:
+        """Get the integration's name for the label."""
         try:
-            return self.get_integration().name
+            integration = self.get_integration()
         except Integration.DoesNotExist:
             return "[removed]"
 
-    def get_integrations(self):
-        return Integration.objects.get_active_integrations(self.project.organization.id).filter(
+        _name: str = integration.name
+        return _name
+
+    def get_integrations(self) -> QuerySet[Integration]:
+        query: QuerySet[Integration] = Integration.objects.get_active_integrations(
+            self.project.organization.id
+        ).filter(
             provider=self.provider,
         )
+        return query
 
-    def get_integration_id(self):
-        return self.get_option(self.integration_key)
+    def get_integration_id(self) -> str:
+        integration_id: str = self.get_option(self.integration_key)
+        return integration_id
 
-    def get_integration(self):
+    def get_integration(self) -> Integration:
         """
         Uses the required class variables `provider` and `integration_key` with
         RuleBase.get_option to get the integration object from DB.
@@ -91,14 +113,17 @@ class IntegrationEventAction(EventAction):
             provider=self.provider,
         )
 
-    def get_installation(self):
+    def get_installation(self) -> Any:
         return self.get_integration().get_installation(self.project.organization.id)
 
-    def get_form_instance(self):
-        return self.form_cls(self.data, integrations=self.get_integrations())
+    def get_form_instance(self) -> forms.Form:
+        form: forms.Form = self.form_cls(self.data, integrations=self.get_integrations())
+        return form
 
 
-def create_link(integration, installation, event, response):
+def create_link(
+    integration: Integration, installation: Any, event: Event, response: Response
+) -> None:
     """
     After creating the event on a third-party service, create a link to the
     external resource in the DB. TODO make this a transaction.
@@ -127,17 +152,22 @@ def create_link(integration, installation, event, response):
     )
 
 
-def build_description(event, rule_id, installation, generate_footer):
+def build_description(
+    event: Event, rule_id: int, installation: Any, generate_footer: Callable[[str], str]
+) -> str:
     """
     Format the description of the ticket/work item
     """
     project = event.group.project
     rule_url = f"/organizations/{project.organization.slug}/alerts/rules/{project.slug}/{rule_id}/"
 
-    return installation.get_group_description(event.group, event) + generate_footer(rule_url)
+    description: str = installation.get_group_description(event.group, event) + generate_footer(
+        rule_url
+    )
+    return description
 
 
-def create_issue(event, futures):
+def create_issue(event: Event, futures: Sequence[RuleFuture]) -> None:
     """Create an issue for a given event"""
     organization = event.group.project.organization
 
@@ -185,7 +215,7 @@ class TicketEventAction(IntegrationEventAction):
 
     form_cls = IntegrationNotifyServiceForm
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(IntegrationEventAction, self).__init__(*args, **kwargs)
         integration_choices = [
             (i.id, self.translate_integration(i)) for i in self.get_integrations()
@@ -208,16 +238,17 @@ class TicketEventAction(IntegrationEventAction):
         if dynamic_fields:
             self.form_fields.update(dynamic_fields)
 
-    def render_label(self):
-        return self.label.format(integration=self.get_integration_name())
+    def render_label(self) -> str:
+        label: str = self.label.format(integration=self.get_integration_name())
+        return label
 
-    def get_dynamic_form_fields(self):
+    def get_dynamic_form_fields(self) -> Mapping[str, Any] | None:
         """
         Either get the dynamic form fields cached on the DB return `None`.
 
         :return: (Option) Django form fields dictionary
         """
-        form_fields = self.data.get("dynamic_form_fields")
+        form_fields: Mapping[str, Any] | None = self.data.get("dynamic_form_fields")
         if not form_fields:
             return None
 
@@ -230,17 +261,18 @@ class TicketEventAction(IntegrationEventAction):
             return fields
         return form_fields
 
-    def translate_integration(self, integration):
-        return integration.name
+    def translate_integration(self, integration: Integration) -> str:
+        name: str = integration.name
+        return name
 
     @property
-    def prompt(self):
+    def prompt(self) -> str:
         return f"Create {self.ticket_type}"
 
-    def generate_footer(self, rule_url):
+    def generate_footer(self, rule_url: str) -> str:
         raise NotImplementedError
 
-    def after(self, event, state):
+    def after(self, event: Event, state: EventState) -> Any:
         integration_id = self.get_integration_id()
         key = f"{self.provider}:{integration_id}"
         return self.future(
