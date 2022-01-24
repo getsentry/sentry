@@ -53,7 +53,7 @@ from sentry.search.events.fields import (
     parse_arguments,
     parse_combinator,
 )
-from sentry.search.events.filter import ParsedTerm, ParsedTerms, QueryFilter
+from sentry.search.events.filter import ParsedTerm, ParsedTerms
 from sentry.search.events.types import HistogramParams, ParamsType, SelectType, WhereType
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, resolve_column
@@ -1031,7 +1031,7 @@ class QueryBuilder:
         )
 
 
-class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
+class TimeseriesQueryBuilder(QueryBuilder):  # type: ignore
     time_column = Column("time")
 
     def __init__(
@@ -1048,20 +1048,21 @@ class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
         super().__init__(
             dataset,
             params,
+            query=query,
             auto_fields=False,
+            use_aggregate_conditions=False,
+            limitby=None,
+            orderby=None,
+            array_join=None,
             functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
         )
-        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
 
-        self.limit = None if limit is None else Limit(limit)
-
-        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-        self.where += self.resolve_params()
-        self.columns = self.resolve_select(selected_columns, equations)
         self.granularity = Granularity(granularity)
 
-        # This is a timeseries, the groupby will always be time
+    # This is a timeseries, the groupby will always be time
+    @property
+    def groupby(self) -> Optional[List[SelectType]]:
         self.groupby = [self.time_column]
 
     @property
