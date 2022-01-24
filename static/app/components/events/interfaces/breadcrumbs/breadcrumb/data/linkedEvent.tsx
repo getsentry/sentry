@@ -67,11 +67,14 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
         return;
       }
 
-      addErrorMessage(
-        t('The endpoint %s is being used very quickly. The limit is 1/1s', endpoint)
+      const errorMessage = t(
+        'The endpoint %s is being used very quickly. The limit is 1/1s',
+        endpoint
       );
 
-      Sentry.captureException(error);
+      addErrorMessage(errorMessage);
+
+      Sentry.captureException(new Error(errorMessage));
 
       // do nothing. The link won't be displayed
     }
@@ -100,6 +103,7 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
       addErrorMessage(
         t('An error occurred while fetching the data of the breadcrumb event link')
       );
+
       Sentry.captureException(error);
       // do nothing. The link won't be displayed
     }
