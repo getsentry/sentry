@@ -4,6 +4,7 @@ import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SidebarSection from 'sentry/components/sidebarSection';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -114,8 +115,7 @@ class IssueListSidebar extends React.Component<Props, State> {
           <LoadingIndicator />
         ) : (
           <React.Fragment>
-            <StreamTagFilter>
-              <StyledHeader>{t('Text')}</StyledHeader>
+            <SidebarSection title={t('Text')}>
               <form onSubmit={this.onTextFilterSubmit}>
                 <Input
                   placeholder={t('Search title and culprit text body')}
@@ -127,7 +127,7 @@ class IssueListSidebar extends React.Component<Props, State> {
                 )}
               </form>
               <StyledHr />
-            </StreamTagFilter>
+            </SidebarSection>
 
             {map(tags, tag => (
               <IssueListTagFilter
@@ -163,15 +163,6 @@ const StyledIconClose = styled(IconClose)`
   &:hover {
     color: ${p => p.theme.gray300};
   }
-`;
-
-const StyledHeader = styled('h6')`
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(1)};
-`;
-
-const StreamTagFilter = styled('div')`
-  margin-bottom: ${space(2)};
 `;
 
 const StyledHr = styled('hr')`
