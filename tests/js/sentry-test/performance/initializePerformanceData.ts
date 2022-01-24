@@ -133,7 +133,7 @@ function makeExample(opt: ExampleOpt): ExampleTransaction {
   };
 }
 
-function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
+export function makeSuspectSpan(opt: SuspectOpt): SuspectSpan {
   const {op, group, description, examples} = opt;
   return {
     op,
