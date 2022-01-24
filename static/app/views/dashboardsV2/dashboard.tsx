@@ -377,17 +377,17 @@ class Dashboard extends Component<Props, State> {
     let columnDepths = calculateColumnDepths(layouts[DESKTOP]);
 
     return widgets.map((widget, index) => {
-      if (!defined(widget.layout)) {
-        const height = getWidgetHeight(widget.displayType);
-        const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
-          columnDepths,
-          height
-        );
-        columnDepths = nextColumnDepths;
-        return this.renderWidget(widget, index, nextPosition);
+      if (defined(widget.layout)) {
+        return this.renderWidget(widget, index);
       }
 
-      return this.renderWidget(widget, index);
+      const height = getWidgetHeight(widget.displayType);
+      const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
+        columnDepths,
+        height
+      );
+      columnDepths = nextColumnDepths;
+      return this.renderWidget(widget, index, nextPosition);
     });
   }
 

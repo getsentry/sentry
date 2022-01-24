@@ -22,6 +22,8 @@ export type Position = {
   y: number;
 };
 
+type NextPosition = [position: Position, columnDepths: number[]];
+
 export function generateWidgetId(widget: Widget, index: number) {
   return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
 }
@@ -125,7 +127,7 @@ export function calculateColumnDepths(layouts: Layout[]): number[] {
 export function getNextAvailablePosition(
   columnDepths: number[],
   height: number
-): [Position, number[]] {
+): NextPosition {
   const maxColumnDepth = Math.max(...columnDepths);
 
   // Look for an opening at each depth by scanning from 0, 0
