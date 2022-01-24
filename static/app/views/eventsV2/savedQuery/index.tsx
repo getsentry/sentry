@@ -26,7 +26,11 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import {DashboardWidgetSource, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
 import InputControl from 'sentry/views/settings/components/forms/controls/input';
 
 import {
@@ -231,10 +235,16 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   handleAddDashboardWidget = () => {
     const {organization, eventView, savedQuery, yAxis} = this.props;
+
+    const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+    const defaultTableColumns = eventView.fields.map(({field}) => field);
     const sort = eventView.sorts[0];
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
-      fields: yAxis && yAxis.length > 0 ? yAxis : ['count()'],
+      fields: [
+        ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+      ],
       conditions: eventView.query,
       orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };
@@ -248,11 +258,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       organization,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns: eventView.fields.map(({field}) => field),
+      defaultTableColumns,
       defaultTitle:
         savedQuery?.name ??
         (eventView.name !== 'All Events' ? eventView.name : undefined),
-      displayType: displayModeToDisplayType(eventView.display as DisplayModes),
+      displayType,
     });
   };
 
