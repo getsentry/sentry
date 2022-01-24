@@ -59,6 +59,8 @@ class BaseApiResponse:
         elif response.text.startswith("<"):
             if not allow_text:
                 raise ValueError(f"Not a valid response type: {response.text[:128]}")
+            elif response.status_code == 301 and ignore_webhook_errors:
+                return
             elif response.status_code < 200 or response.status_code >= 300:
                 raise ValueError(
                     f"Received unexpected plaintext response for code {response.status_code}"
