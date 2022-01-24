@@ -5,7 +5,6 @@ import * as qs from 'query-string';
 import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
-import {DiscoveryExclusionFields} from 'sentry/components/stream/group';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -14,7 +13,11 @@ import {Group, OrganizationSummary, PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {queryToObj} from 'sentry/utils/stream';
-import {IssueDisplayOptions, IssueSortOptions} from 'sentry/views/issueList/utils';
+import {
+  DISCOVER_EXCLUSION_FIELDS,
+  IssueDisplayOptions,
+  IssueSortOptions,
+} from 'sentry/views/issueList/utils';
 
 import {Widget, WidgetQuery} from '../types';
 
@@ -154,7 +157,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       if (typeof query === 'string') {
         const queryObj = queryToObj(query);
         for (const queryTag in queryObj) {
-          if (!DiscoveryExclusionFields.includes(queryTag)) {
+          if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
             const queryVal = queryObj[queryTag].includes(' ')
               ? `"${queryObj[queryTag]}"`
               : queryObj[queryTag];
