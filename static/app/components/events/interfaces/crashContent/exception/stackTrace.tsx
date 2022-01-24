@@ -5,6 +5,7 @@ import {ExceptionValue, Group, Organization, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {isNativePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
@@ -86,7 +87,10 @@ function StackTrace({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
-  if (!!organization?.features?.includes('native-stack-trace-v2')) {
+  if (
+    !!organization?.features?.includes('native-stack-trace-v2') &&
+    isNativePlatform(platform)
+  ) {
     return (
       <StacktraceContentV3
         data={data}

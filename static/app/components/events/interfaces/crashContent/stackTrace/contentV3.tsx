@@ -1,15 +1,13 @@
 import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Frame, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
-import Line from '../../frame/lineV2';
+import NativeFrame from '../../nativeFrame';
 import {getImageRange, parseAddress} from '../../utils';
 
 type Props = {
@@ -18,18 +16,16 @@ type Props = {
   event: Event;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   newestFirst?: boolean;
-  className?: string;
   isHoverPreviewed?: boolean;
   includeSystemFrames?: boolean;
   expandFirstFrame?: boolean;
 };
 
-function StackTraceContent({
+function Content({
   data,
   platform,
   event,
   newestFirst,
-  className,
   isHoverPreviewed,
   groupingCurrentLevel,
   includeSystemFrames = true,
@@ -60,20 +56,6 @@ function StackTraceContent({
     });
 
     return image;
-  }
-
-  function getClassName() {
-    const classes = ['traceback'];
-
-    if (className) {
-      classes.push(className);
-    }
-
-    if (includeSystemFrames) {
-      return [...classes, 'full-traceback'].join(' ');
-    }
-
-    return [...classes, 'in-app-traceback'].join(' ');
   }
 
   function isFrameUsedForGrouping(frame: Frame) {
@@ -112,161 +94,151 @@ function StackTraceContent({
   }
 
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
-    return (
-      <ListItem className="frame frames-omitted">
-        {t(
-          'Frames %d until %d were omitted and not available.',
-          firstFrameOmitted,
-          lastFrameOmitted
-        )}
-      </ListItem>
+    return t(
+      'Frames %d until %d were omitted and not available.',
+      firstFrameOmitted,
+      lastFrameOmitted
     );
   }
 
-  function renderConvertedFrames() {
-    const firstFrameOmitted = framesOmitted?.[0] ?? null;
-    const lastFrameOmitted = framesOmitted?.[1] ?? null;
-    const lastFrameIndex = getLastFrameIndex();
+  const firstFrameOmitted = framesOmitted?.[0] ?? null;
+  const lastFrameOmitted = framesOmitted?.[1] ?? null;
+  const lastFrameIndex = getLastFrameIndex();
 
-    let nRepeats = 0;
+  let nRepeats = 0;
 
-    const maxLengthOfAllRelativeAddresses = frames.reduce(
-      (maxLengthUntilThisPoint, frame) => {
-        const correspondingImage = findImageForAddress(
-          frame.instructionAddr,
-          frame.addrMode
-        );
+  const maxLengthOfAllRelativeAddresses = frames.reduce(
+    (maxLengthUntilThisPoint, frame) => {
+      const correspondingImage = findImageForAddress(
+        frame.instructionAddr,
+        frame.addrMode
+      );
 
-        try {
-          const relativeAddress = (
-            parseAddress(frame.instructionAddr) -
-            parseAddress(correspondingImage.image_addr)
-          ).toString(16);
+      try {
+        const relativeAddress = (
+          parseAddress(frame.instructionAddr) -
+          parseAddress(correspondingImage.image_addr)
+        ).toString(16);
 
-          return maxLengthUntilThisPoint > relativeAddress.length
-            ? maxLengthUntilThisPoint
-            : relativeAddress.length;
-        } catch {
-          return maxLengthUntilThisPoint;
-        }
-      },
-      0
-    );
+        return maxLengthUntilThisPoint > relativeAddress.length
+          ? maxLengthUntilThisPoint
+          : relativeAddress.length;
+      } catch {
+        return maxLengthUntilThisPoint;
+      }
+    },
+    0
+  );
 
-    const convertedFrames = frames
-      .map((frame, frameIndex) => {
-        const prevFrame = frames[frameIndex - 1];
-        const nextFrame = frames[frameIndex + 1];
+  const convertedFrames = frames
+    .map((frame, frameIndex) => {
+      const prevFrame = frames[frameIndex - 1];
+      const nextFrame = frames[frameIndex + 1];
 
-        const repeatedFrame =
-          nextFrame &&
-          frame.lineNo === nextFrame.lineNo &&
-          frame.instructionAddr === nextFrame.instructionAddr &&
-          frame.package === nextFrame.package &&
-          frame.module === nextFrame.module &&
-          frame.function === nextFrame.function;
+      const repeatedFrame =
+        nextFrame &&
+        frame.lineNo === nextFrame.lineNo &&
+        frame.instructionAddr === nextFrame.instructionAddr &&
+        frame.package === nextFrame.package &&
+        frame.module === nextFrame.module &&
+        frame.function === nextFrame.function;
 
-        if (repeatedFrame) {
-          nRepeats++;
-        }
-
-        const isUsedForGrouping = isFrameUsedForGrouping(frame);
-
-        const isVisible =
-          includeSystemFrames ||
-          frame.inApp ||
-          (nextFrame && nextFrame.inApp) ||
-          // the last non-app frame
-          (!frame.inApp && !nextFrame) ||
-          isUsedForGrouping;
-
-        if (isVisible && !repeatedFrame) {
-          const lineProps = {
-            event,
-            frame,
-            prevFrame,
-            nextFrame,
-            isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
-            emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
-            platform,
-            timesRepeated: nRepeats,
-            showingAbsoluteAddress: showingAbsoluteAddresses,
-            onAddressToggle: handleToggleAddresses,
-            image: findImageForAddress(frame.instructionAddr, frame.addrMode),
-            maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
-            registers: {},
-            includeSystemFrames,
-            onFunctionNameToggle: handleToggleFunctionName,
-            showCompleteFunctionName,
-            isHoverPreviewed,
-            isUsedForGrouping,
-          };
-
-          nRepeats = 0;
-
-          if (frameIndex === firstFrameOmitted) {
-            return (
-              <Fragment key={frameIndex}>
-                <Line {...lineProps} nativeV2 />
-                {renderOmittedFrames(firstFrameOmitted, lastFrameOmitted)}
-              </Fragment>
-            );
-          }
-
-          return <Line key={frameIndex} nativeV2 {...lineProps} />;
-        }
-
-        if (!repeatedFrame) {
-          nRepeats = 0;
-        }
-
-        if (frameIndex !== firstFrameOmitted) {
-          return null;
-        }
-
-        return renderOmittedFrames(firstFrameOmitted, lastFrameOmitted);
-      })
-      .filter(frame => !!frame) as React.ReactElement[];
-
-    if (convertedFrames.length > 0 && registers) {
-      const lastFrame = convertedFrames.length - 1;
-      convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
-        registers,
-      });
-
-      if (!newestFirst) {
-        return convertedFrames;
+      if (repeatedFrame) {
+        nRepeats++;
       }
 
-      return [...convertedFrames].reverse();
-    }
+      const isUsedForGrouping = isFrameUsedForGrouping(frame);
 
-    if (!newestFirst) {
-      return convertedFrames;
-    }
+      const isVisible =
+        includeSystemFrames ||
+        frame.inApp ||
+        (nextFrame && nextFrame.inApp) ||
+        // the last non-app frame
+        (!frame.inApp && !nextFrame) ||
+        isUsedForGrouping;
 
-    return [...convertedFrames].reverse();
+      if (isVisible && !repeatedFrame) {
+        const frameProps = {
+          event,
+          frame,
+          prevFrame,
+          nextFrame,
+          isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
+          emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
+          platform,
+          timesRepeated: nRepeats,
+          showingAbsoluteAddress: showingAbsoluteAddresses,
+          onAddressToggle: handleToggleAddresses,
+          image: findImageForAddress(frame.instructionAddr, frame.addrMode),
+          maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
+          registers: {},
+          includeSystemFrames,
+          onFunctionNameToggle: handleToggleFunctionName,
+          showCompleteFunctionName,
+          isHoverPreviewed,
+          isUsedForGrouping,
+        };
+
+        nRepeats = 0;
+
+        if (frameIndex === firstFrameOmitted) {
+          return (
+            <Fragment key={frameIndex}>
+              <NativeFrame {...frameProps} />
+              {renderOmittedFrames(firstFrameOmitted, lastFrameOmitted)}
+            </Fragment>
+          );
+        }
+
+        return <NativeFrame key={frameIndex} {...frameProps} />;
+      }
+
+      if (!repeatedFrame) {
+        nRepeats = 0;
+      }
+
+      if (frameIndex !== firstFrameOmitted) {
+        return null;
+      }
+
+      return renderOmittedFrames(firstFrameOmitted, lastFrameOmitted);
+    })
+    .filter(frame => !!frame) as React.ReactElement[];
+
+  if (convertedFrames.length > 0 && registers) {
+    const lastFrame = convertedFrames.length - 1;
+    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
+      registers,
+    });
+
+    return (
+      <Wrapper isHoverPreviewed={isHoverPreviewed}>
+        {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+      </Wrapper>
+    );
   }
 
   return (
-    <StyledList className={getClassName()} data-test-id="stack-trace">
-      {renderConvertedFrames()}
-    </StyledList>
+    <Wrapper isHoverPreviewed={isHoverPreviewed}>
+      {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+    </Wrapper>
   );
 }
 
-export default StackTraceContent;
+export default Content;
 
-const StyledList = styled(List)`
-  gap: 0;
-  position: relative;
+const Wrapper = styled(Panel)<{isHoverPreviewed?: boolean}>`
+  display: grid;
   overflow: hidden;
-  z-index: 1;
-  box-shadow: ${p => p.theme.dropShadowLight};
-
-  && {
-    border-radius: ${p => p.theme.borderRadius};
-    border: 1px solid ${p => p.theme.gray200};
-    margin-bottom: ${space(3)};
-  }
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 16px;
+  color: ${p => p.theme.gray500};
+  ${p =>
+    p.isHoverPreviewed &&
+    `
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      margin-bottom: 0;
+    `}
 `;

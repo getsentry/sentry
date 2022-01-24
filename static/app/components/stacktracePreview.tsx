@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Client} from 'sentry/api';
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
+import StackTraceContentV3 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV3';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import Hovercard, {Body} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -14,6 +15,7 @@ import {Organization, PlatformType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {isNativePlatform} from 'sentry/utils/platform';
 import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
@@ -163,11 +165,32 @@ class StacktracePreview extends React.Component<Props, State> {
     const {organization, groupingCurrentLevel} = this.props;
 
     if (event) {
-      const platform = (event.platform ?? 'other') as PlatformType;
+      const framePlatform = stacktrace?.frames?.find(frame => !!frame.platform)?.platform;
+      const platform = (framePlatform ?? event.platform ?? 'other') as PlatformType;
 
-      return (
-        <div onClick={this.handleStacktracePreviewClick}>
-          {!!organization.features?.includes('grouping-stacktrace-ui') ? (
+      if (
+        !!organization?.features?.includes('native-stack-trace-v2') &&
+        isNativePlatform(platform)
+      ) {
+        return (
+          <div onClick={this.handleStacktracePreviewClick}>
+            <StackTraceContentV3
+              data={stacktrace}
+              expandFirstFrame={false}
+              includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
+              platform={platform}
+              newestFirst={isStacktraceNewestFirst()}
+              event={event}
+              groupingCurrentLevel={groupingCurrentLevel}
+              isHoverPreviewed
+            />
+          </div>
+        );
+      }
+
+      if (!!organization.features?.includes('grouping-stacktrace-ui')) {
+        return (
+          <div onClick={this.handleStacktracePreviewClick}>
             <StackTraceContentV2
               data={stacktrace}
               expandFirstFrame={false}
@@ -178,17 +201,21 @@ class StacktracePreview extends React.Component<Props, State> {
               groupingCurrentLevel={groupingCurrentLevel}
               isHoverPreviewed
             />
-          ) : (
-            <StackTraceContent
-              data={stacktrace}
-              expandFirstFrame={false}
-              includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
-              platform={platform}
-              newestFirst={isStacktraceNewestFirst()}
-              event={event}
-              isHoverPreviewed
-            />
-          )}
+          </div>
+        );
+      }
+
+      return (
+        <div onClick={this.handleStacktracePreviewClick}>
+          <StackTraceContent
+            data={stacktrace}
+            expandFirstFrame={false}
+            includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
+            platform={platform}
+            newestFirst={isStacktraceNewestFirst()}
+            event={event}
+            isHoverPreviewed
+          />
         </div>
       );
     }
