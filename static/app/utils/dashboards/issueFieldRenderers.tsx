@@ -44,10 +44,10 @@ type SpecialField = {
 type SpecialFields = {
   issue: SpecialField;
   assignee: SpecialField;
-  lifetimeCount: SpecialField;
-  lifetimeUserCount: SpecialField;
-  count: SpecialField;
-  userCount: SpecialField;
+  lifetimeEvents: SpecialField;
+  lifetimeUsers: SpecialField;
+  events: SpecialField;
+  users: SpecialField;
   firstSeen: SpecialField;
   lastSeen: SpecialField;
 };
@@ -94,21 +94,21 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
-  lifetimeCount: {
+  lifetimeEvents: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'lifetimeCount'),
+    renderFunc: data => issuesCountRenderer(data, 'lifetimeEvents'),
   },
-  lifetimeUserCount: {
+  lifetimeUsers: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'lifetimeUserCount'),
+    renderFunc: data => issuesCountRenderer(data, 'lifetimeUsers'),
   },
-  count: {
+  events: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'count'),
+    renderFunc: data => issuesCountRenderer(data, 'events'),
   },
-  userCount: {
+  users: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'userCount'),
+    renderFunc: data => issuesCountRenderer(data, 'users'),
   },
   firstSeen: {
     sortField: null,
@@ -122,14 +122,14 @@ const SPECIAL_FIELDS: SpecialFields = {
 
 const issuesCountRenderer = (
   data: EventData,
-  field: 'count' | 'userCount' | 'lifetimeCount' | 'lifetimeUserCount'
+  field: 'events' | 'users' | 'lifetimeEvents' | 'lifetimeUsers'
 ) => {
   const {selectionDateString} = data;
   const isUserField = !!/user/i.exec(field.toLowerCase());
   const primaryCount = data[field];
-  const count = data[isUserField ? 'userCount' : 'count'];
-  const lifetimeCount = data[isUserField ? 'lifetimeUserCount' : 'lifetimeCount'];
-  const filteredCount = data[isUserField ? 'filteredUserCount' : 'filteredCount'];
+  const count = data[isUserField ? 'users' : 'events'];
+  const lifetimeCount = data[isUserField ? 'lifetimeUsers' : 'lifetimeEvents'];
+  const filteredCount = data[isUserField ? 'filteredUsers' : 'filteredEvents'];
   return (
     <Container>
       <Tooltip
@@ -160,7 +160,7 @@ const issuesCountRenderer = (
         }
       >
         <span>
-          {['count', 'userCount'].includes(field) && filteredCount ? (
+          {['events', 'users'].includes(field) && filteredCount ? (
             <React.Fragment>
               <Count value={filteredCount} />
               <SecondaryCount value={primaryCount} />

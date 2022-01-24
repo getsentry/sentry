@@ -19,10 +19,10 @@ export enum FieldKey {
   IS_HANDLED = 'isHandled',
   LAST_SEEN = 'lastSeen',
   FIRST_SEEN = 'firstSeen',
-  COUNT = 'count',
-  USER_COUNT = 'userCount',
-  LIFETIME_COUNT = 'lifetimeCount',
-  LIFETIME_USER_COUNT = 'lifetimeUserCount',
+  COUNT = 'events',
+  USER_COUNT = 'users',
+  LIFETIME_COUNT = 'lifetimeEvents',
+  LIFETIME_USER_COUNT = 'lifetimeUsers',
 }
 
 export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
