@@ -51,6 +51,12 @@ const WIDGET_MARGINS: [number, number] = [16, 16];
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
+const MOBILE_ADD_WIDGET_LAYOUT = {
+  x: 0,
+  y: Number.MAX_SAFE_INTEGER,
+  w: DEFAULT_WIDGET_WIDTH,
+  h: 1,
+};
 
 type Props = {
   api: Client;
@@ -77,7 +83,6 @@ type Props = {
 type State = {
   isMobile: boolean;
   layouts: Layouts;
-  nextAvailablePosition: {x: number; y: number};
 };
 
 class Dashboard extends Component<Props, State> {
@@ -86,14 +91,12 @@ class Dashboard extends Component<Props, State> {
     const {dashboard, organization} = props;
     const isUsingGrid = organization.features.includes('dashboard-grid-layout');
     const desktopLayout = getDashboardLayout(dashboard.widgets);
-    const columnDepths = generateColumnDepths(desktopLayout);
     this.state = {
       isMobile: false,
       layouts: {
         [DESKTOP]: isUsingGrid ? desktopLayout : [],
         [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
       },
-      nextAvailablePosition: getNextAvailablePosition(columnDepths)[0],
     };
   }
 
@@ -103,14 +106,12 @@ class Dashboard extends Component<Props, State> {
       // recalculate the layout to revert to the unmodified state
       const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
       if (!isEqual(dashboardLayout, state.layouts[DESKTOP])) {
-        const columnDepths = generateColumnDepths(dashboardLayout);
         return {
           ...state,
           layouts: {
             [DESKTOP]: dashboardLayout,
             [MOBILE]: getMobileLayout(dashboardLayout, props.dashboard.widgets),
           },
-          nextAvailablePosition: getNextAvailablePosition(columnDepths)[0],
         };
       }
     }
@@ -375,7 +376,11 @@ class Dashboard extends Component<Props, State> {
 
     widgets.forEach((widget, index) => {
       if (!defined(widget.layout)) {
-        const [nextPos, nextColumnDepths] = getNextAvailablePosition(columnDepths);
+        const height = getWidgetHeight(widget.displayType);
+        const [nextPos, nextColumnDepths] = getNextAvailablePosition(
+          columnDepths,
+          height
+        );
         columnDepths = nextColumnDepths;
         renderedWidgets.push(this.renderWidget(widget, index, nextPos));
       } else {
@@ -399,16 +404,21 @@ class Dashboard extends Component<Props, State> {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
       if (!matchingLayout) {
+        const defaultHeight = getWidgetHeight(widget.displayType);
+
         // Calculate the available position
-        const [nextPos, nextColumnDepths] = getNextAvailablePosition(columnDepths);
+        const [nextPos, nextColumnDepths] = getNextAvailablePosition(
+          columnDepths,
+          defaultHeight
+        );
         columnDepths = nextColumnDepths;
 
         // Set the position
         matchingLayout = {
           ...nextPos,
-          minH: getWidgetHeight(widget.displayType),
+          minH: defaultHeight,
           w: DEFAULT_WIDGET_WIDTH,
-          h: getWidgetHeight(widget.displayType),
+          h: defaultHeight,
           i: gridKey, // Gets ignored, for types,
         };
       }
@@ -420,7 +430,6 @@ class Dashboard extends Component<Props, State> {
 
     this.setState({
       layouts: newLayouts,
-      nextAvailablePosition: getNextAvailablePosition(columnDepths)[0],
     });
     onUpdate(newWidgets);
   };
@@ -444,8 +453,24 @@ class Dashboard extends Component<Props, State> {
     this.setState({isMobile: false});
   };
 
+  get addWidgetLayout() {
+    const {isMobile, layouts} = this.state;
+    if (isMobile) {
+      return MOBILE_ADD_WIDGET_LAYOUT;
+    }
+
+    const columnDepths = generateColumnDepths(layouts[DESKTOP]);
+    const nextPosition = getNextAvailablePosition(columnDepths, 1)[0];
+    return {
+      ...nextPosition,
+      w: DEFAULT_WIDGET_WIDTH,
+      h: 1,
+      isResizable: false,
+    };
+  }
+
   renderGridDashboard() {
-    const {layouts, isMobile, nextAvailablePosition} = this.state;
+    const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
     // Filter out any issue widgets if the user does not have the feature flag
@@ -471,19 +496,7 @@ class Dashboard extends Component<Props, State> {
       >
         {this.renderWidgets(widgets)}
         {isEditing && !!!widgetLimitReached && (
-          <div
-            key={ADD_WIDGET_BUTTON_DRAG_ID}
-            data-grid={
-              isMobile
-                ? {x: 0, y: Number.MAX_SAFE_INTEGER, w: 2, h: 1}
-                : {
-                    ...nextAvailablePosition,
-                    w: DEFAULT_WIDGET_WIDTH,
-                    h: 1,
-                    isResizable: false,
-                  }
-            }
-          >
+          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={this.addWidgetLayout}>
             <AddWidget
               orgFeatures={organization.features}
               onAddWidget={this.handleStartAdd}

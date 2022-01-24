@@ -109,7 +109,7 @@ export function generateColumnDepths(layouts: Layout[]): number[] {
 // if more positions are required for calculation
 export function getNextAvailablePosition(
   columnDepths: number[],
-  height: number = 2
+  height: number
 ): [
   {
     x: number;
