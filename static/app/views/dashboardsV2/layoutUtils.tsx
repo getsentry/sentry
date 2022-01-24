@@ -110,19 +110,34 @@ export function generateColumnDepths(layouts: Layout[]): number[] {
   return depths;
 }
 
-// Returns the next available position, as well as the next column depth
-// if more positions are required for calculation
+/**
+ * Find out where the next place we can put a widget is, and returns the next
+ * input for the case where we need to place multiple widgets.
+ *
+ * @param columnDepths A profile of how deep the widgets in a column extend
+ * @param height The desired height of the next widget we want to place
+ * @returns An {x, y} positioning for the next available spot, as well as the
+ * next columnDepths array if this position were used.
+ */
 export function getNextAvailablePosition(
   columnDepths: number[],
   height: number
 ): [Position, number[]] {
   const maxColumnDepth = Math.max(...columnDepths);
-  // Match the width against the lowest points to find one that fits
+
+  // Look for an opening at each depth by scanning from 0, 0
+  // By scanning from 0 depth to the highest depth, we ensure
+  // we get the top-most available spot
   for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
     for (let start = 0; start <= columnDepths.length - DEFAULT_WIDGET_WIDTH; start++) {
       if (columnDepths[start] > currDepth) {
+        // There are potentially widgets in the way here, so skip
         continue;
       }
+
+      // If all of the columns from start to end (the size of the widget)
+      // have at most the current depth, then we've found a valid positioning
+      // No other widgets extend into the space we need
       const end = start + DEFAULT_WIDGET_WIDTH;
       if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
         for (let col = start; col < start + DEFAULT_WIDGET_WIDTH; col++) {
