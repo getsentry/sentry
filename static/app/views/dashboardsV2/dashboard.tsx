@@ -349,15 +349,16 @@ class Dashboard extends Component<Props, State> {
     if (organization.features.includes('dashboard-grid-layout')) {
       const key = constructGridItemKey(widget);
       const dragId = key;
+      const height = getWidgetHeight(widget.displayType);
       return (
         <GridItem
           key={key}
           data-grid={
             widget.layout ?? {
               ...defaultPosition,
-              minH: getWidgetHeight(widget.displayType),
+              minH: height,
               w: DEFAULT_WIDGET_WIDTH,
-              h: getWidgetHeight(widget.displayType),
+              h: height,
             }
           }
         >
@@ -407,21 +408,21 @@ class Dashboard extends Component<Props, State> {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
       if (!matchingLayout) {
-        const defaultHeight = getWidgetHeight(widget.displayType);
+        const height = getWidgetHeight(widget.displayType);
 
         // Calculate the available position
         const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
           columnDepths,
-          defaultHeight
+          height
         );
         columnDepths = nextColumnDepths;
 
         // Set the position
         matchingLayout = {
           ...nextPosition,
-          minH: defaultHeight,
+          minH: height,
           w: DEFAULT_WIDGET_WIDTH,
-          h: defaultHeight,
+          h: height,
           i: gridKey, // Gets ignored, for types,
         };
       }
