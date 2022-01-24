@@ -141,7 +141,7 @@ export function getNextAvailablePosition(
       const end = start + DEFAULT_WIDGET_WIDTH;
       if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
         for (let col = start; col < start + DEFAULT_WIDGET_WIDTH; col++) {
-          columnDepths[col] = Math.max(currDepth + height, columnDepths[col]);
+          columnDepths[col] = currDepth + height;
         }
         return [{x: start, y: currDepth}, [...columnDepths]];
       }
@@ -149,7 +149,7 @@ export function getNextAvailablePosition(
   }
 
   for (let col = 0; col < DEFAULT_WIDGET_WIDTH; col++) {
-    columnDepths[col] = Math.max(maxColumnDepth + height, columnDepths[col]);
+    columnDepths[col] = maxColumnDepth;
   }
   return [{x: 0, y: maxColumnDepth}, [...columnDepths]];
 }
