@@ -915,16 +915,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const wrapper = mountModal({
       initialData,
       onAddWidget: data => (widget = data),
+      displayType: types.DisplayType.TOP_N,
       defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
       defaultWidgetQuery: {
         name: '',
-        fields: ['count()'],
+        fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
         conditions: 'tag:value',
         orderby: '',
       },
     });
     // Select Top n display
-    selectByLabel(wrapper, 'Top 5 Events', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('top_n');
 
     // No delete button as there is only one field.
@@ -1002,7 +1002,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       onUpdateWidget: () => undefined,
       source: types.DashboardWidgetSource.DISCOVERV2,
       displayType: types.DisplayType.TOP_N,
-      defaultWidgetQuery: {fields: ['count_unique(user)'], orderby: '-count_unique_user'},
+      defaultWidgetQuery: {
+        fields: ['title', 'count()', 'count_unique(user)'],
+        orderby: '-count_unique_user',
+      },
       defaultTableColumns: ['title', 'count()'],
     });
 

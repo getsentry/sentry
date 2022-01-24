@@ -25,7 +25,11 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
-import {DashboardWidgetSource, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
 
 import {
   displayModeToDisplayType,
@@ -100,13 +104,17 @@ class QueryList extends React.Component<Props> {
       event.preventDefault();
       event.stopPropagation();
 
+      const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+      const defaultTableColumns = eventView.fields.map(({field}) => field);
       const sort = eventView.sorts[0];
       const defaultWidgetQuery: WidgetQuery = {
         name: '',
-        fields:
-          typeof savedQuery?.yAxis === 'string'
+        fields: [
+          ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+          ...(typeof savedQuery?.yAxis === 'string'
             ? [savedQuery?.yAxis]
-            : savedQuery?.yAxis ?? ['count()'],
+            : savedQuery?.yAxis ?? ['count()']),
+        ],
         conditions: eventView.query,
         orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
       };
@@ -123,11 +131,11 @@ class QueryList extends React.Component<Props> {
         statsPeriod: eventView.statsPeriod,
         source: DashboardWidgetSource.DISCOVERV2,
         defaultWidgetQuery,
-        defaultTableColumns: eventView.fields.map(({field}) => field),
+        defaultTableColumns,
         defaultTitle:
           savedQuery?.name ??
           (eventView.name !== 'All Events' ? eventView.name : undefined),
-        displayType: displayModeToDisplayType(eventView.display as DisplayModes),
+        displayType,
       });
     };
 
