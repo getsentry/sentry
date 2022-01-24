@@ -34,7 +34,6 @@ from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
-    FUNCTION_ALIASES,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     TAG_KEY_RE,
@@ -136,11 +135,7 @@ class QueryBuilder:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
         field_alias_converter = self.config.field_alias_converter
-
         function_converter = self.config.function_converter
-        for alias, name in FUNCTION_ALIASES.items():
-            function_converter[alias] = function_converter[name].alias_as(alias)
-
         search_filter_converter = self.config.search_filter_converter
 
         return field_alias_converter, function_converter, search_filter_converter
