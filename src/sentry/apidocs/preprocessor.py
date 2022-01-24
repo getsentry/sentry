@@ -1,15 +1,18 @@
-from typing import Dict, Literal, Set, TypedDict
+from typing import Any, Dict, Literal, Set, TypedDict
+
+HTTP_METHODS_SET = Set[
+    Literal["GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"]
+]
 
 
 class EndpointRegistryType(TypedDict):
-    callback: str
-    methods: Set[Literal["GET", "POST", "PUT", "PATCH", "DELETE"]]
+    methods: HTTP_METHODS_SET
 
 
 PUBLIC_ENDPOINTS: Dict[str, EndpointRegistryType] = {}
 
 
-def custom_preprocessing_hook(endpoints):  # TODO: organize method, rename
+def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     filtered = []
     for (path, path_regex, method, callback) in endpoints:
 

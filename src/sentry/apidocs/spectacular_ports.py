@@ -1,3 +1,5 @@
+# type: ignore
+
 import collections
 import inspect
 import typing

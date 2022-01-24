@@ -5,7 +5,7 @@ from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSe
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import Direction
 
-from sentry.apidocs.spectacular_ports import resolve_type_hint
+from sentry.apidocs.spectacular_ports import resolve_type_hint  # type: ignore
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):  # type: ignore
