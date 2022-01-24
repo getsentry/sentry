@@ -143,7 +143,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       const rendered = fieldRenderer(dataRow);
 
       return (
-        <BigNumber autoFontResize key={`big_number:${result.title}`}>
+        <BigNumber key={`big_number:${result.title}`}>
           <svg
             width="100%"
             height="100%"
@@ -365,7 +365,7 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface200};
 `;
 
-const BigNumber = styled('div')<{autoFontResize?: boolean}>`
+const BigNumber = styled('div')`
   resize: both;
   line-height: 1;
   display: inline-flex;
