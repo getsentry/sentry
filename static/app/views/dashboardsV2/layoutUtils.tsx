@@ -1,6 +1,4 @@
 import {Layout} from 'react-grid-layout';
-import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
 
@@ -8,12 +6,9 @@ import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 
 import {NUM_DESKTOP_COLS} from './dashboard';
-import {DashboardDetails, DisplayType, Widget} from './types';
+import {DisplayType, Widget} from './types';
 
 const DEFAULT_WIDGET_WIDTH = 2;
-
-// Keys for grid layout values we track in the server
-const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
 const WIDGET_PREFIX = 'grid-item';
 
@@ -39,7 +34,7 @@ export function assignTempId(widget: Widget) {
 export function getDefaultPosition(index: number, displayType: DisplayType) {
   return {
     x: (DEFAULT_WIDGET_WIDTH * index) % NUM_DESKTOP_COLS,
-    y: Number.MAX_VALUE,
+    y: Number.MAX_SAFE_INTEGER,
     w: DEFAULT_WIDGET_WIDTH,
     h: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
     minH: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
@@ -79,35 +74,4 @@ export function getDashboardLayout(widgets: Widget[]): Layout[] {
       ...(layout as Layout),
       i: constructGridItemKey(widget),
     }));
-}
-
-/**
- * Creates a new DashboardDetails object with the layouts associated with
- * widgets for outgoing requests.
- */
-export function constructDashboardWidgetsWithLayout(
-  dashboard: DashboardDetails,
-  layout: Layout[]
-): DashboardDetails {
-  return {
-    ...dashboard,
-    widgets: dashboard.widgets.map(widget => {
-      const matchingLayout = layout.find(({i}) => i === constructGridItemKey(widget));
-      return {...widget, layout: pick(matchingLayout, STORE_KEYS)};
-    }),
-  };
-}
-
-export function isLayoutEqual(prevLayouts: Layout[], newLayouts: Layout[]): boolean {
-  // Compares only defined keys we care about storing
-  const normalizeLayout = layout => {
-    const definedKeys = Object.keys(layout).filter(
-      key => STORE_KEYS.includes(key) && defined(layout[key])
-    );
-    return pick(layout, definedKeys);
-  };
-
-  const prevLayoutNormalized = prevLayouts.map(normalizeLayout);
-  const newLayoutNormalized = newLayouts.map(normalizeLayout);
-  return isEqual(prevLayoutNormalized, newLayoutNormalized);
 }

@@ -210,6 +210,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       if (typeof onUpdateWidget === 'function' && !!previousWidget) {
         onUpdateWidget({
           id: previousWidget?.id,
+          layout: previousWidget?.layout,
           ...widgetData,
         });
         addSuccessMessage(t('Updated widget.'));
