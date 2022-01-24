@@ -94,10 +94,13 @@ export function getWidgetHeight(displayType: DisplayType): number {
   return displayType === DisplayType.BIG_NUMBER ? 1 : 2;
 }
 
-export function generateColumnDepths(layouts: Layout[]): number[] {
+/**
+ * Creates an array from layouts where each column stores how deep it is.
+ */
+export function calculateColumnDepths(layouts: Layout[]): number[] {
   const depths = Array(NUM_DESKTOP_COLS).fill(0);
 
-  // loop through every layout and for each x, record the max depth
+  // For each layout's x, record the max depth
   layouts
     .filter(({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID)
     .forEach(({x, w, y, h}) => {
@@ -111,11 +114,11 @@ export function generateColumnDepths(layouts: Layout[]): number[] {
 }
 
 /**
- * Find out where the next place we can put a widget is, and returns the next
- * input for the case where we need to place multiple widgets.
+ * Find the next place to place a widget and also returns the next
+ * input when this operation needs to be called multiple times.
  *
- * @param columnDepths A profile of how deep the widgets in a column extend
- * @param height The desired height of the next widget we want to place
+ * @param columnDepths A profile of how deep the widgets in a column extend.
+ * @param height The desired height of the next widget we want to place.
  * @returns An {x, y} positioning for the next available spot, as well as the
  * next columnDepths array if this position were used.
  */

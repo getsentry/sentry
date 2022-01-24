@@ -28,9 +28,9 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
+  calculateColumnDepths,
   constructGridItemKey,
   DEFAULT_WIDGET_WIDTH,
-  generateColumnDepths,
   generateWidgetId,
   getDashboardLayout,
   getMobileLayout,
@@ -371,7 +371,7 @@ class Dashboard extends Component<Props, State> {
 
   renderWidgets(widgets: Widget[]) {
     const {layouts} = this.state;
-    let columnDepths = generateColumnDepths(layouts[DESKTOP]);
+    let columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const renderedWidgets: ReactNode[] = [];
 
     widgets.forEach((widget, index) => {
@@ -399,7 +399,7 @@ class Dashboard extends Component<Props, State> {
     };
 
     // Generate a column depth array for this update cycle
-    let columnDepths = generateColumnDepths(newLayouts[DESKTOP]);
+    let columnDepths = calculateColumnDepths(newLayouts[DESKTOP]);
     const newWidgets = dashboard.widgets.map(widget => {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
@@ -459,7 +459,7 @@ class Dashboard extends Component<Props, State> {
       return MOBILE_ADD_WIDGET_LAYOUT;
     }
 
-    const columnDepths = generateColumnDepths(layouts[DESKTOP]);
+    const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const nextPosition = getNextAvailablePosition(columnDepths, 1)[0];
     return {
       ...nextPosition,
