@@ -94,7 +94,7 @@ function EventOrGroupExtraDetails({
               pathname: issuesPath,
               query: {
                 query: `logger:${logger}`,
-                project: project.id,
+                project: [project.id],
               },
             }}
           >
