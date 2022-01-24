@@ -558,7 +558,7 @@ const GridLayout = styled(WidthProvider(Responsive))`
 // TODO: This is pretty messy code right now, will clean up
 function getNextAvailablePosition(layouts: Layout[]) {
   function generateColumnDepths(): Array<number> {
-    const res = Array(NUM_DESKTOP_COLS).fill(0);
+    const depths = Array(NUM_DESKTOP_COLS).fill(0);
 
     // loop through every layout and for each x, record the max depth
     layouts
@@ -566,11 +566,11 @@ function getNextAvailablePosition(layouts: Layout[]) {
       .forEach(({x, w, y, h}) => {
         // Take the x -> x + w
         for (let col = x; col < x + w; col++) {
-          res[col] = Math.max(y + h, res[col]);
+          depths[col] = Math.max(y + h, depths[col]);
         }
       });
 
-    return res;
+    return depths;
   }
 
   const columnDepths = generateColumnDepths();
