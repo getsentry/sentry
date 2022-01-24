@@ -941,26 +941,6 @@ class DiscoverDatasetConfig(DatasetConfig):
             self.builder.column(dividend), self.builder.column(divisor), alias
         )
 
-    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
-        return Function(
-            "if",
-            [
-                Function(
-                    "greater",
-                    [divisor, 0],
-                ),
-                Function(
-                    "divide",
-                    [
-                        dividend,
-                        divisor,
-                    ],
-                ),
-                None,
-            ],
-            alias,
-        )
-
     def _resolve_measurements_frames_slow_rate(self, _: str) -> SelectType:
         return self._resolve_aliased_division(
             "measurements.frames_slow", "measurements.frames_total", MEASUREMENTS_FRAMES_SLOW_RATE

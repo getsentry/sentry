@@ -985,6 +985,26 @@ class QueryBuilder:
 
         return snql_function.snql_column(arguments, alias)
 
+    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
+        return Function(
+            "if",
+            [
+                Function(
+                    "greater",
+                    [divisor, 0],
+                ),
+                Function(
+                    "divide",
+                    [
+                        dividend,
+                        divisor,
+                    ],
+                ),
+                None,
+            ],
+            alias,
+        )
+
     def parse_function(self, match: Match[str]) -> Tuple[str, Optional[str], List[str], str]:
         """Given a FUNCTION_PATTERN match, seperate the function name, arguments
         and alias out
