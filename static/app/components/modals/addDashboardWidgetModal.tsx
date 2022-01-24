@@ -163,7 +163,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (this.omitDashboardProp) {
       this.fetchDashboards();
     }
-    this.handleDefaultFields();
   }
 
   get omitDashboardProp() {
@@ -210,6 +209,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       if (typeof onUpdateWidget === 'function' && !!previousWidget) {
         onUpdateWidget({
           id: previousWidget?.id,
+          layout: previousWidget?.layout,
           ...widgetData,
         });
         addSuccessMessage(t('Updated widget.'));
@@ -319,13 +319,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
   };
 
-  handleDefaultFields = () => {
-    const {defaultWidgetQuery, defaultTableColumns, widget} = this.props;
+  handleDefaultFields = (newDisplayType: DisplayType) => {
+    const {displayType, defaultWidgetQuery, defaultTableColumns, widget} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      const displayType = prevState.displayType as Widget['displayType'];
-      const normalized = normalizeQueries(displayType, prevState.queries);
-      if (displayType === DisplayType.TOP_N) {
+      const normalized = normalizeQueries(newDisplayType, prevState.queries);
+      if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
         normalized.splice(1);
       }
@@ -333,7 +332,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       if (!prevState.userHasModified) {
         // If the Widget is an issue widget,
         if (
-          displayType === DisplayType.TABLE &&
+          newDisplayType === DisplayType.TABLE &&
           widget?.widgetType === WidgetType.ISSUE
         ) {
           set(newState, 'queries', widget.queries);
@@ -344,19 +343,16 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         // Default widget provided by Add to Dashboard from Discover
         if (defaultWidgetQuery && defaultTableColumns) {
           // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
-          if (displayType === DisplayType.TABLE) {
+          // This is so the widget can reflect the same columns as the table in Discover without requiring additional user input
+          if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
               query.fields = [...defaultTableColumns];
             });
-          } else if (displayType === DisplayType.TOP_N) {
-            normalized.forEach(query => {
-              // Append Y-Axis to query.fields since TOP_N view assumes the last field is the Y-Axis
-              query.fields = [...defaultTableColumns, defaultWidgetQuery.fields[0]];
-              query.orderby = defaultWidgetQuery.orderby;
-            });
-          } else {
+          } else if (newDisplayType === displayType) {
+            // When switching back to original display type, default fields back to the fields provided from the discover query
             normalized.forEach(query => {
               query.fields = [...defaultWidgetQuery.fields];
+              query.orderby = defaultWidgetQuery.orderby;
             });
           }
         }
@@ -387,7 +383,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     });
 
     if (field === 'displayType' && value !== displayType) {
-      this.handleDefaultFields();
+      this.handleDefaultFields(value as DisplayType);
     }
   };
 
