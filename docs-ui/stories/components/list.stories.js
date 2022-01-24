@@ -18,8 +18,8 @@ export const _List = ({...args}) => {
   const items = range(0, 10);
   return (
     <List {...args}>
-      {items.map(x => (
-        <ListItem key={x}>Item {x + 1}</ListItem>
+      {items.map(item => (
+        <ListItem key={item}>Item {item + 1}</ListItem>
       ))}
     </List>
   );
