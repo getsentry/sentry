@@ -3,19 +3,9 @@ import logging
 import time
 from collections import deque
 from concurrent.futures import Future
-from typing import (
-    Any,
-    Callable,
-    Deque,
-    List,
-    Mapping,
-    MutableMapping,
-    NamedTuple,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import Any, Callable, Deque, List, Mapping, MutableMapping, NamedTuple, Optional, Union
 
+from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import MessageRejected
@@ -36,35 +26,35 @@ logger = logging.getLogger(__name__)
 MessageBatch = List[Message[KafkaPayload]]
 
 
-def initializer():
+def initializer() -> None:
     from sentry.runner import configure
 
     configure()
 
 
 @functools.lru_cache(maxsize=10)
-def get_indexer():
+def get_indexer():  # type: ignore
     from sentry.sentry_metrics import indexer
 
     return indexer
 
 
 @functools.lru_cache(maxsize=10)
-def get_task():
+def get_task():  # type: ignore
     from sentry.sentry_metrics.indexer.tasks import process_indexed_metrics
 
     return process_indexed_metrics
 
 
 @functools.lru_cache(maxsize=10)
-def get_metrics():
+def get_metrics():  # type: ignore
     from sentry.utils import metrics
 
     return metrics
 
 
-def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapping[str, Any]:
-    consumer_config = kafka_config.get_kafka_consumer_cluster_options(
+def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapping[Any, Any]:
+    consumer_config: MutableMapping[Any, Any] = kafka_config.get_kafka_consumer_cluster_options(
         "default",
         override_params={
             "enable.auto.commit": False,
@@ -97,7 +87,7 @@ class MetricsBatchBuilder:
         return len(self.__messages)
 
     @property
-    def messages(self):
+    def messages(self) -> MessageBatch:
         return self.__messages
 
     def append(self, message: Message[KafkaPayload]) -> None:
@@ -174,7 +164,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
 
 class ProducerResultFuture(NamedTuple):
     message: Message[KafkaPayload]
-    future: Future
+    future: Future[Message[KafkaPayload]]
 
 
 class ProduceStep(ProcessingStep[MessageBatch]):
@@ -184,12 +174,18 @@ class ProduceStep(ProcessingStep[MessageBatch]):
     can commit up to the last future that is done.
     """
 
-    def __init__(self, commit_function: Callable[[Mapping[Partition, Position]], None]) -> None:
-        snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
-        snuba_metrics_producer = KafkaProducer(
-            kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
-        )
-        self.__producer = snuba_metrics_producer
+    def __init__(
+        self,
+        commit_function: Callable[[Mapping[Partition, Position]], None],
+        producer: Optional[AbstractProducer] = None,
+    ) -> None:
+        if not producer:
+            snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
+            snuba_metrics_producer = KafkaProducer(
+                kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
+            )
+            producer = snuba_metrics_producer
+        self.__producer = producer
         self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
             "topic", "snuba-metrics"
         )
@@ -301,10 +297,10 @@ def process_messages(
         strings.update(parsed_strings)
 
     with metrics.timer("metrics_consumer.bulk_record"):
-        mapping = indexer.bulk_record(list(strings))  # type: ignore
+        mapping = indexer.bulk_record(list(strings))
 
-    new_messages: Sequence[Message[KafkaPayload]] = []
-    celery_messages: Sequence[Mapping[str, Union[str, int, Mapping[int, int]]]] = []
+    new_messages: List[Message[KafkaPayload]] = []
+    celery_messages: List[Mapping[str, Union[str, int, Mapping[int, int]]]] = []
 
     for message in outer_message.payload:
         parsed_payload_value = parsed_payloads_by_offset[message.offset]
