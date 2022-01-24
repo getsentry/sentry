@@ -1,7 +1,7 @@
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-import {Component} from 'react';
+import {Component, ReactNode} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
@@ -19,6 +19,7 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
@@ -29,6 +30,7 @@ import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   constructGridItemKey,
   DEFAULT_WIDGET_WIDTH,
+  generateColumnDepths,
   generateWidgetId,
   getDashboardLayout,
   getMobileLayout,
@@ -84,13 +86,14 @@ class Dashboard extends Component<Props, State> {
     const {dashboard, organization} = props;
     const isUsingGrid = organization.features.includes('dashboard-grid-layout');
     const desktopLayout = getDashboardLayout(dashboard.widgets);
+    const columnDepths = generateColumnDepths(desktopLayout);
     this.state = {
       isMobile: false,
       layouts: {
         [DESKTOP]: isUsingGrid ? desktopLayout : [],
         [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
       },
-      nextAvailablePosition: getNextAvailablePosition(desktopLayout),
+      nextAvailablePosition: getNextAvailablePosition(columnDepths),
     };
   }
 
@@ -100,13 +103,14 @@ class Dashboard extends Component<Props, State> {
       // recalculate the layout to revert to the unmodified state
       const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
       if (!isEqual(dashboardLayout, state.layouts[DESKTOP])) {
+        const columnDepths = generateColumnDepths(dashboardLayout);
         return {
           ...state,
           layouts: {
             [DESKTOP]: dashboardLayout,
             [MOBILE]: getMobileLayout(dashboardLayout, props.dashboard.widgets),
           },
-          nextAvailablePosition: getNextAvailablePosition(dashboardLayout),
+          nextAvailablePosition: getNextAvailablePosition(columnDepths),
         };
       }
     }
@@ -325,8 +329,8 @@ class Dashboard extends Component<Props, State> {
     ];
   }
 
-  renderWidget(widget: Widget, index: number) {
-    const {isMobile, nextAvailablePosition} = this.state;
+  renderWidget(widget: Widget, index: number, defaultPosition?: {x: number; y: number}) {
+    const {isMobile} = this.state;
     const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
     const widgetProps = {
@@ -347,7 +351,7 @@ class Dashboard extends Component<Props, State> {
           key={key}
           data-grid={
             widget.layout ?? {
-              ...nextAvailablePosition,
+              ...defaultPosition,
               minH: getWidgetHeight(widget.displayType),
               w: DEFAULT_WIDGET_WIDTH,
               h: getWidgetHeight(widget.displayType),
@@ -364,26 +368,60 @@ class Dashboard extends Component<Props, State> {
     return <SortableWidget {...widgetProps} key={key} dragId={dragId} />;
   }
 
+  renderWidgets(widgets: Widget[]) {
+    const {layouts} = this.state;
+    const columnDepths = generateColumnDepths(layouts[DESKTOP]);
+    const renderedWidgets: Array<ReactNode> = [];
+
+    widgets.forEach((widget, index) => {
+      if (!defined(widget.layout)) {
+        const calculatedNextAvailable = getNextAvailablePosition(columnDepths);
+        const {x, y} = calculatedNextAvailable;
+
+        // Update the column depths in case other widgets need next positioning
+        for (let col = x; col < x + DEFAULT_WIDGET_WIDTH; col++) {
+          columnDepths[col] = Math.max(
+            y + getWidgetHeight(widget.displayType),
+            columnDepths[col]
+          );
+        }
+        renderedWidgets.push(this.renderWidget(widget, index, calculatedNextAvailable));
+      } else {
+        renderedWidgets.push(this.renderWidget(widget, index));
+      }
+    });
+    return renderedWidgets;
+  }
+
   handleLayoutChange = (_, allLayouts: Layouts) => {
-    const {nextAvailablePosition} = this.state;
     const {dashboard, onUpdate} = this.props;
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
       [MOBILE]: allLayouts[MOBILE].filter(isNotAddButton),
     };
-    this.setState({
-      layouts: newLayouts,
-      nextAvailablePosition: getNextAvailablePosition(newLayouts[DESKTOP]),
-    });
 
+    // Generate a column depth array for this update cycle
+    const columnDepths = generateColumnDepths(newLayouts[DESKTOP]);
     const newWidgets = dashboard.widgets.map(widget => {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
       if (!matchingLayout) {
+        // Calculate the available position
+        const calculatedNextAvailable = getNextAvailablePosition(columnDepths);
+        const {x, y} = calculatedNextAvailable;
+
+        // Update the column depths in case other widgets need next positioning
+        for (let col = x; col < x + DEFAULT_WIDGET_WIDTH; col++) {
+          columnDepths[col] = Math.max(
+            y + getWidgetHeight(widget.displayType),
+            columnDepths[col]
+          );
+        }
+
+        // Set the position
         matchingLayout = {
-          // TODO: After this gets assigned once, we need to generate the next one
-          ...(nextAvailablePosition as {x: number; y: number}),
+          ...calculatedNextAvailable,
           minH: getWidgetHeight(widget.displayType),
           w: DEFAULT_WIDGET_WIDTH,
           h: getWidgetHeight(widget.displayType),
@@ -394,6 +432,11 @@ class Dashboard extends Component<Props, State> {
         ...widget,
         layout: pickDefinedStoreKeys(matchingLayout),
       };
+    });
+
+    this.setState({
+      layouts: newLayouts,
+      nextAvailablePosition: getNextAvailablePosition(columnDepths),
     });
     onUpdate(newWidgets);
   };
@@ -442,7 +485,7 @@ class Dashboard extends Component<Props, State> {
         isResizable={canModifyLayout}
         isBounded
       >
-        {widgets.map((widget, index) => this.renderWidget(widget, index))}
+        {this.renderWidgets(widgets)}
         {isEditing && !!!widgetLimitReached && (
           <div
             key={ADD_WIDGET_BUTTON_DRAG_ID}
