@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DateTime from 'sentry/components/dateTime';
-import DeviceName from 'sentry/components/deviceName';
+import {DeviceName} from 'sentry/components/deviceName';
 import FileSize from 'sentry/components/fileSize';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {AvatarUser, Organization, Tag} from 'sentry/types';
