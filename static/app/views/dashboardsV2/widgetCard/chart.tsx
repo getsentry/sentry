@@ -142,7 +142,20 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
       const rendered = fieldRenderer(dataRow);
 
-      return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
+      return (
+        <BigNumber autoFontResize key={`big_number:${result.title}`}>
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 400 200"
+            preserveAspectRatio="xMinYMin meet"
+          >
+            <foreignObject width="100%" height="100%">
+              {rendered}
+            </foreignObject>
+          </svg>
+        </BigNumber>
+      );
     });
   }
 
@@ -352,8 +365,10 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface200};
 `;
 
-const BigNumber = styled('div')`
-  font-size: 32px;
+const BigNumber = styled('div')<{autoFontResize?: boolean}>`
+  flex: 1;
+  resize: both;
+  font-size: 75px;
   line-height: 1;
   color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
