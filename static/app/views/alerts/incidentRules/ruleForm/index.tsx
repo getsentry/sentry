@@ -687,6 +687,30 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const canEdit =
       isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
 
+    const triggerForm = (hasAccess: boolean) => (
+      <Triggers
+        disabled={!hasAccess || !canEdit}
+        projects={this.state.projects}
+        errors={this.state.triggerErrors}
+        triggers={triggers}
+        aggregate={aggregate}
+        resolveThreshold={resolveThreshold}
+        thresholdType={thresholdType}
+        comparisonType={comparisonType}
+        currentProject={params.projectId}
+        organization={organization}
+        ruleId={ruleId}
+        availableActions={this.state.availableActions}
+        onChange={this.handleChangeTriggers}
+        onThresholdTypeChange={this.handleThresholdTypeChange}
+        onResolveThresholdChange={this.handleResolveThresholdChange}
+      />
+    );
+
+    const ruleNameOwnerForm = (hasAccess: boolean) => (
+      <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
+    );
+
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => (
@@ -752,27 +776,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               <AlertListItem>
                 <ListItemTitle>{t('Set thresholds to trigger alert')}</ListItemTitle>
               </AlertListItem>
-              <Triggers
-                disabled={!hasAccess || !canEdit}
-                projects={this.state.projects}
-                errors={this.state.triggerErrors}
-                triggers={triggers}
-                aggregate={aggregate}
-                resolveThreshold={resolveThreshold}
-                thresholdType={thresholdType}
-                comparisonType={comparisonType}
-                currentProject={params.projectId}
-                organization={organization}
-                ruleId={ruleId}
-                availableActions={this.state.availableActions}
-                onChange={this.handleChangeTriggers}
-                onThresholdTypeChange={this.handleThresholdTypeChange}
-                onResolveThresholdChange={this.handleResolveThresholdChange}
-              />
+              {triggerForm(hasAccess)}
               <StyledListItem>
                 <ListItemTitle>{t('Add a rule name and team')}</ListItemTitle>
               </StyledListItem>
-              <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
+              {ruleNameOwnerForm(hasAccess)}
             </List>
           </Form>
         )}
