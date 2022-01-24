@@ -10,6 +10,8 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {Widget} from './types';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
+const TABLE_ITEM_LIMIT = 20;
+
 type Props = {
   widget: Widget;
   dragId: string;
@@ -73,6 +75,7 @@ function SortableWidget(props: Props) {
     currentWidgetDragging,
     showContextMenu: true,
     isPreview,
+    tableItemLimit: TABLE_ITEM_LIMIT,
   };
 
   if (organization.features.includes('dashboard-grid-layout')) {
