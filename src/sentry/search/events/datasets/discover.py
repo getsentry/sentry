@@ -28,6 +28,7 @@ from sentry.search.events.constants import (
     EQUALITY_OPERATORS,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
+    FUNCTION_ALIASES,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
     MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
@@ -137,7 +138,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     @property
     def function_converter(self) -> Mapping[str, SnQLFunction]:
-        return {
+        function_converter = {
             function.name: function
             for function in [
                 SnQLFunction(
@@ -664,6 +665,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
             ]
         }
+
+        for alias, name in FUNCTION_ALIASES.items():
+            function_converter[alias] = function_converter[name].alias_as(alias)
+
+        return function_converter
 
     # Field Aliases
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:

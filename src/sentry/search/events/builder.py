@@ -34,7 +34,6 @@ from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
-    FUNCTION_ALIASES,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     TAG_KEY_RE,
@@ -112,14 +111,16 @@ class QueryBuilder:
         ) = self.load_config()
 
         self.limitby = self.resolve_limitby(limitby)
-        self.where, self.having = self.resolve_conditions(
-            query, use_aggregate_conditions=use_aggregate_conditions
-        )
-        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-        self.where += self.resolve_params()
-        self.columns = self.resolve_select(selected_columns, equations)
-        self.orderby = self.resolve_orderby(orderby)
-        self.array_join = None if array_join is None else self.resolve_column(array_join)
+
+        if self.dataset != Dataset.Sessions:
+            self.where, self.having = self.resolve_conditions(
+                query, use_aggregate_conditions=use_aggregate_conditions
+            )
+            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+            self.where += self.resolve_params()
+            self.columns = self.resolve_select(selected_columns, equations)
+            self.orderby = self.resolve_orderby(orderby)
+            self.array_join = None if array_join is None else self.resolve_column(array_join)
 
     def load_config(
         self,
@@ -129,18 +130,17 @@ class QueryBuilder:
         Mapping[str, Callable[[SearchFilter], Optional[WhereType]]],
     ]:
         from sentry.search.events.datasets.discover import DiscoverDatasetConfig
+        from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 
         if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
             self.config = DiscoverDatasetConfig(self)
+        if self.dataset == Dataset.Sessions:
+            self.config = SessionsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
         field_alias_converter = self.config.field_alias_converter
-
         function_converter = self.config.function_converter
-        for alias, name in FUNCTION_ALIASES.items():
-            function_converter[alias] = function_converter[name].alias_as(alias)
-
         search_filter_converter = self.config.search_filter_converter
 
         return field_alias_converter, function_converter, search_filter_converter
