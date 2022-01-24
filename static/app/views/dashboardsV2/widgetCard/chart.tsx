@@ -150,7 +150,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
             viewBox="0 0 400 200"
             preserveAspectRatio="xMinYMin meet"
           >
-            <foreignObject width="100%" height="100%">
+            <foreignObject x="0" y="0" width="100%" height="100%">
               {rendered}
             </foreignObject>
           </svg>
@@ -366,10 +366,13 @@ const LoadingPlaceholder = styled(Placeholder)`
 `;
 
 const BigNumber = styled('div')<{autoFontResize?: boolean}>`
-  flex: 1;
   resize: both;
-  font-size: 75px;
   line-height: 1;
+  display: inline-flex;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  font-size: 200px;
   color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
   * {
