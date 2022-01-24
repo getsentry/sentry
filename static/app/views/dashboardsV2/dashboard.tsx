@@ -54,6 +54,7 @@ const MOBILE_ADD_WIDGET_LAYOUT = {
   y: Number.MAX_SAFE_INTEGER,
   w: DEFAULT_WIDGET_WIDTH,
   h: 1,
+  isResizable: false,
 };
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
