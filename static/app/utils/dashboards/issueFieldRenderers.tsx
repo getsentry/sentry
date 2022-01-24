@@ -8,7 +8,9 @@ import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
+import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import Tooltip from 'sentry/components/tooltip';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
@@ -130,7 +132,7 @@ const issuesCountRenderer = (
   organization: Organization,
   field: 'count' | 'userCount' | 'lifetimeCount' | 'lifetimeUserCount'
 ) => {
-  const {selectionDateString} = data;
+  const {start, end, period} = data;
   const isUserField = !!/user/i.exec(field.toLowerCase());
   const primaryCount = data[field];
   const count = data[isUserField ? 'userCount' : 'count'];
@@ -138,6 +140,10 @@ const issuesCountRenderer = (
   const filteredCount = data[isUserField ? 'filteredUserCount' : 'filteredCount'];
   const discoverLink = getDiscoverUrl(data, organization);
   const filteredDiscoverLink = getDiscoverUrl(data, organization, true);
+  const selectionDateString =
+    !!start && !!end
+      ? 'time range'
+      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
   return (
     <Container>
       <Tooltip
@@ -191,6 +197,9 @@ const getDiscoverUrl = (
   const discoverView = EventView.fromSavedQuery({
     ...commonQuery,
     id: undefined,
+    start: data.start,
+    end: data.end,
+    range: data.period,
     name: data.title,
     fields: ['title', 'release', 'environment', 'user', 'timestamp'],
     orderby: '-timestamp',

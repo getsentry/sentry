@@ -4,8 +4,6 @@ import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
-import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -174,11 +172,11 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       transformedTableResult.projectId = group.project.id;
 
       const {period, start, end} = selection.datetime || {};
-      const selectionDateString =
-        !!start && !!end
-          ? 'time range'
-          : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
-      transformedTableResult.selectionDateString = selectionDateString;
+      if (start && end) {
+        transformedTableResult.start = getUtcDateString(start);
+        transformedTableResult.end = getUtcDateString(end);
+      }
+      transformedTableResult.period = period;
       transformedTableResults.push(transformedTableResult);
     });
     return transformedTableResults;
