@@ -304,7 +304,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
                 f".react-grid-item:nth-of-type(2) {WIDGET_DRAG_HANDLE}"
             )
             action = ActionChains(self.browser.driver)
-            action.drag_and_drop_by_offset(dragHandle, -500, 0).perform()
+            action.drag_and_drop_by_offset(dragHandle, -1000, 0).perform()
 
             # Resize new widget, get the 2nd element instead of the "last" because the "last" is
             # the add widget button
