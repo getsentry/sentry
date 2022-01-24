@@ -8,7 +8,7 @@ const useMemoWithPrevious = <T>(
   deps: React.DependencyList
 ): T => {
   const [value, setValue] = useState<T>(() => factory(null));
-  const previous = usePrevious<T>(value);
+  const previous = usePrevious<T | null>(value);
 
   useEffectAfterFirstRender(() => {
     setValue(factory(previous));
