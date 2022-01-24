@@ -110,11 +110,11 @@ export function getNextAvailablePosition(layouts: Layout[]): {x: number; y: numb
   const maxColumnDepth = Math.max(...columnDepths);
   // Match the width against the lowest points to find one that fits
   for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
-    for (let start = 0; start <= columnDepths.length - 2; start++) {
+    for (let start = 0; start <= columnDepths.length - DEFAULT_WIDGET_WIDTH; start++) {
       if (columnDepths[start] > currDepth) {
         continue;
       }
-      const end = start + 2;
+      const end = start + DEFAULT_WIDGET_WIDTH;
       if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
         return {x: start, y: currDepth};
       }
