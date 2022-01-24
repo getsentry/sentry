@@ -120,10 +120,10 @@ function SuspectSpansHeader(props: HeaderProps) {
         <SectionHeading>{t('Suspect Spans')}</SectionHeading>
         <FeatureBadge type="alpha" />
       </div>
-      <Button to={viewAllTarget} size="small" data-test-id="suspect-spans-open-tab">
+      <Button to={viewAllTarget} size="xsmall" data-test-id="suspect-spans-open-tab">
         {t('View All Spans')}
       </Button>
-      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
+      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xsmall" />
     </Header>
   );
 }
@@ -132,6 +132,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
+  align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`
