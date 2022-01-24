@@ -139,6 +139,9 @@ class AuthLoginView(BaseView):
             register_form = None
 
         if can_register and register_form.is_valid():
+            # TODO process recaptcha
+            # recaptcha_token = request.POST.get("recaptcha")
+
             user = register_form.save()
             user.send_confirm_emails(is_new_user=True)
             user_signup.send_robust(

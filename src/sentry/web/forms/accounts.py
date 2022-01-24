@@ -223,6 +223,19 @@ class RegistrationForm(PasswordlessRegistrationForm):
         required=True, widget=forms.PasswordInput(attrs={"placeholder": "something super secret"})
     )
 
+    recaptcha = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(
+            attrs={
+                "id": "recaptcha",
+                "data-should-add-recaptcha": (
+                    "true" if settings.SHOULD_ADD_GOOGLE_RECAPTCHA_V3 else "false"
+                ),
+                "data-sitekey": (settings.GOOGLE_RECAPTCHA_V3_SITE_KEY or ""),
+            },
+        ),
+    )
+
     def clean_password(self):
         password = self.cleaned_data["password"]
         password_validation.validate_password(password)

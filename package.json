@@ -127,6 +127,7 @@
     "react-select": "^3.0.8",
     "react-sparklines": "1.7.0",
     "react-virtualized": "^9.22.3",
+    "recaptcha-v3": "^1.10.0",
     "reflux": "0.4.1",
     "regenerator-runtime": "^0.13.3",
     "rrweb-player": "^0.7.6",

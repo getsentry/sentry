@@ -26,6 +26,13 @@ export type OnSentryInitConfiguration =
   | {
       name: 'onReady';
       onReady: (globals: typeof exportGlobals) => void;
+    }
+  | {
+      name: 'recaptcha';
+      action: 'signup';
+      element_id: 'recaptcha';
+      should_add_recaptcha_attr_name: 'data-should-add-recaptcha';
+      sitekey_attr_name: 'data-sitekey';
     };
 
 declare global {

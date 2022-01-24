@@ -17,6 +17,30 @@ const COMPONENT_MAP = {
 
 async function processItem(initConfig: OnSentryInitConfiguration) {
   /**
+   * Allows auth pages to dymanically load and execute Google reCaptcha V3 JavaScript API
+   */
+  if (initConfig.name === 'recaptcha') {
+    const captchaElement = document.getElementById(
+      initConfig.element_id
+    ) as HTMLInputElement;
+    const shouldAddCaptcha = captchaElement?.getAttribute(
+      initConfig.should_add_recaptcha_attr_name
+    );
+
+    if (shouldAddCaptcha && shouldAddCaptcha === 'true') {
+      const sitekey = captchaElement?.getAttribute(initConfig.sitekey_attr_name);
+      if (sitekey) {
+        const recaptchaV3 = await import('recaptcha-v3');
+        recaptchaV3.load(sitekey).then(reCaptchaInstance => {
+          reCaptchaInstance.execute(initConfig.action).then((responseToken: string) => {
+            captchaElement.value = responseToken;
+          });
+        });
+      }
+    }
+  }
+
+  /**
    * Allows our auth pages to dynamically attach a client side password
    * strength indicator The password strength component is very
    * heavyweight as it includes the zxcvbn, a relatively byte-heavy
