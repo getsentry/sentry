@@ -17,6 +17,11 @@ const WIDGET_PREFIX = 'grid-item';
 // Keys for grid layout values we track in the server
 const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
+type Position = {
+  x: number;
+  y: number;
+};
+
 export function generateWidgetId(widget: Widget, index: number) {
   return widget.id ? `${widget.id}-index-${index}` : `index-${index}`;
 }
@@ -110,13 +115,7 @@ export function generateColumnDepths(layouts: Layout[]): number[] {
 export function getNextAvailablePosition(
   columnDepths: number[],
   height: number
-): [
-  {
-    x: number;
-    y: number;
-  },
-  number[]
-] {
+): [Position, number[]] {
   const maxColumnDepth = Math.max(...columnDepths);
   // Match the width against the lowest points to find one that fits
   for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
