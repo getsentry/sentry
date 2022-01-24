@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Sequence, Set
+from typing import Dict, Mapping, Optional, Sequence, Set
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError
@@ -12,6 +12,11 @@ from sentry.constants import MAX_TOP_EVENTS
 from sentry.models import Organization
 from sentry.snuba import discover
 from sentry.utils.snuba import SnubaTSResult
+
+METRICS_ENHANCE_REFERRERS: Set[str] = {
+    "api.performance.homepage.widget-chart",
+}
+
 
 ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
     "api.alerts.alert-rule-chart",
@@ -26,6 +31,7 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
     "api.discover.top5-chart",
     "api.discover.dailytop5-chart",
     "api.performance.homepage.duration-chart",
+    "api.performance.homepage.widget-chart",
     "api.performance.transaction-summary.sidebar-chart",
     "api.performance.transaction-summary.vitals-chart",
     "api.performance.transaction-summary.trends-chart",
@@ -35,22 +41,21 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
-    def has_chart_interpolation(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:performance-chart-interpolation", organization, actor=request.user
+    def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
+        batch_features = features.batch_has(
+            [
+                "organizations:performance-chart-interpolation",
+                "organizations:discover-use-snql",
+                "organizations:performance-use-metrics",
+            ],
+            organization=organization,
+            actor=request.user,
         )
-
-    def has_discover_snql(self, organization: Organization, request: Request) -> bool:
-        return features.has("organizations:discover-use-snql", organization, actor=request.user)
+        return batch_features.get(f"organization:{organization.id}", {}) if batch_features else {}
 
     def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
-            if not self.has_feature(organization, request):
-                # We used to return a "v1" result here, keeping tags to keep an eye on its use
-                span.set_data("using_v1_results", True)
-                sentry_sdk.set_tag("stats.using_v1", organization.slug)
-                return Response(status=404)
 
             top_events = 0
 
@@ -85,6 +90,19 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 if referrer in ALLOWED_EVENTS_STATS_REFERRERS
                 else "api.organization-event-stats"
             )
+            features = self.get_features(organization, request)
+            discover_snql = features.get("organizations:discover-use-snql", False)
+            has_chart_interpolation = features.get(
+                "organizations:performance-chart-interpolation", False
+            )
+            performance_use_metrics = features.get("organizations:performance-use-metrics", False)
+
+            metrics_enhanced = (
+                referrer in METRICS_ENHANCE_REFERRERS
+                and performance_use_metrics
+                and request.GET.get("metricsEnhanced") == "1"
+            )
+            sentry_sdk.set_tag("performance.use_metrics", metrics_enhanced)
 
         def get_event_stats(
             query_columns: Sequence[str],
@@ -109,7 +127,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     allow_empty=False,
                     zerofill_results=zerofill_results,
                     include_other=True,
-                    use_snql=self.has_discover_snql(organization, request),
+                    use_snql=discover_snql,
                 )
             return discover.timeseries_query(
                 selected_columns=query_columns,
@@ -119,7 +137,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 referrer=referrer,
                 zerofill_results=zerofill_results,
                 comparison_delta=comparison_delta,
-                use_snql=self.has_discover_snql(organization, request),
+                use_snql=discover_snql,
             )
 
         try:
@@ -131,8 +149,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     top_events,
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=not (
-                        request.GET.get("withoutZerofill") == "1"
-                        and self.has_chart_interpolation(organization, request)
+                        request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
                     ),
                     comparison_delta=comparison_delta,
                 ),
