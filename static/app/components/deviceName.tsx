@@ -1,5 +1,8 @@
 import * as React from 'react';
+import * as Sentry from '@sentry/react';
 
+// Self reference to the module, so that we can mock a failed import in a test.
+import * as selfModule from 'sentry/components/deviceName';
 import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
 
 export function iOSDeviceNameMapper(
@@ -7,7 +10,7 @@ export function iOSDeviceNameMapper(
   iOSDeviceList: IOSDeviceList | null
 ): string | null {
   // If we have no model, render nothing
-  if (model === undefined) {
+  if (typeof model !== 'string') {
     return null;
   }
 
@@ -16,12 +19,10 @@ export function iOSDeviceNameMapper(
     return model;
   }
 
-  const components = model.split(' ');
-  const modelIdentifier = components[0];
-  const modelId = components.splice(1).join(' ');
+  const [identifier, ...rest] = model.split(' ');
 
-  const modelName = iOSDeviceList.generationByIdentifier(modelIdentifier);
-  return modelName === undefined ? model : `${modelName} ${modelId}`;
+  const modelName = iOSDeviceList.generationByIdentifier(identifier);
+  return modelName === undefined ? model : `${modelName} ${rest.join(' ')}`;
 }
 
 export async function loadiOSDeviceListModule() {
@@ -42,13 +43,19 @@ function DeviceName({value, children}: DeviceNameProps): React.ReactNode {
 
   React.useEffect(() => {
     let didUnmount = false;
-    loadiOSDeviceListModule().then(deviceList => {
-      if (didUnmount) {
-        return;
-      }
 
-      setiOSDeviceList(deviceList);
-    });
+    selfModule
+      .loadiOSDeviceListModule()
+      .then(deviceList => {
+        if (didUnmount) {
+          return;
+        }
+
+        setiOSDeviceList(deviceList);
+      })
+      .catch(() => {
+        Sentry.captureException('Failed to load ios-device-list module');
+      });
 
     return () => {
       didUnmount = true;
