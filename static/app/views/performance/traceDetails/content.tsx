@@ -101,7 +101,9 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     if (transactions === 0 && errors > 0) {
       return (
-        <LoadingError message={t('The trace you are looking contains only errors.')} />
+        <LoadingError
+          message={t('The trace cannot be shown when all events are errors.')}
+        />
       );
     }
 
