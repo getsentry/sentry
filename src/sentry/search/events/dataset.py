@@ -91,16 +91,21 @@ from .fields import (
 
 
 class DatasetConfig(abc.ABC):
-    @abc.abstractproperty
-    def search_filter_converter(self):
+    @property
+    @abc.abstractmethod
+    def search_filter_converter(
+        self,
+    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         pass
 
-    @abc.abstractproperty
-    def field_alias_converter(self):
+    @property
+    @abc.abstractmethod
+    def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
         pass
 
-    @abc.abstractproperty
-    def function_converter(self):
+    @property
+    @abc.abstractmethod
+    def function_converter(self) -> Mapping[str, SnQLFunction]:
         pass
 
 
