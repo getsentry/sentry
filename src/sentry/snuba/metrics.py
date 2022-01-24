@@ -30,7 +30,7 @@ from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.relay.config import ALL_MEASUREMENT_METRICS
-from sentry.search.events.filter import QueryFilter
+from sentry.search.events.builder import QueryBuilder
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import (
@@ -134,13 +134,13 @@ def parse_query(query_string: str) -> Sequence[Condition]:
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
     try:
-        query_filter = QueryFilter(
+        query_builder = QueryBuilder(
             Dataset.Sessions,
             params={
                 "project_id": 0,
             },
         )
-        where, _ = query_filter.resolve_conditions(query_string, use_aggregate_conditions=True)
+        where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse query: {e}")
 

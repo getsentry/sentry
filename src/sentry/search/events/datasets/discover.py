@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 from functools import reduce
 from typing import Callable, List, Mapping, Optional, Union
 
@@ -55,18 +54,8 @@ from sentry.search.events.constants import (
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
-from sentry.search.events.filter import (
-    _flip_field_sort,
-    handle_operator_negation,
-    parse_semver,
-    to_list,
-    translate_transaction_status,
-)
-from sentry.search.events.types import SelectType, WhereType
-from sentry.search.utils import parse_release
-from sentry.utils.numbers import format_grouped_length
-
-from .fields import (
+from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.fields import (
     MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
     ColumnArg,
     ColumnTagArg,
@@ -88,25 +77,16 @@ from .fields import (
     reflective_result_type,
     with_default,
 )
-
-
-class DatasetConfig(abc.ABC):
-    @property
-    @abc.abstractmethod
-    def search_filter_converter(
-        self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def function_converter(self) -> Mapping[str, SnQLFunction]:
-        pass
+from sentry.search.events.filter import (
+    _flip_field_sort,
+    handle_operator_negation,
+    parse_semver,
+    to_list,
+    translate_transaction_status,
+)
+from sentry.search.events.types import SelectType, WhereType
+from sentry.search.utils import parse_release
+from sentry.utils.numbers import format_grouped_length
 
 
 class DiscoverDatasetConfig(DatasetConfig):

@@ -128,7 +128,7 @@ class QueryBuilder:
         Mapping[str, SnQLFunction],
         Mapping[str, Callable[[SearchFilter], Optional[WhereType]]],
     ]:
-        from sentry.search.events.dataset import DiscoverDatasetConfig
+        from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 
         if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
             self.config = DiscoverDatasetConfig(self)
