@@ -177,7 +177,7 @@ def test_process_messages(mock_indexer, mock_task) -> None:
     assert mock_task.apply_async.call_args == call(kwargs=expected_task_args)
 
 
-def test_produce_step():
+def test_produce_step() -> None:
     topic = Topic("snuba-metrics")
     partition = Partition(topic, 0)
 

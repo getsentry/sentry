@@ -3,7 +3,18 @@ import logging
 import time
 from collections import deque
 from concurrent.futures import Future
-from typing import Any, Callable, Deque, List, Mapping, MutableMapping, NamedTuple, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Deque,
+    List,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Union,
+)
 
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
@@ -153,6 +164,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
 
     def terminate(self) -> None:
         self.__closed = True
+        self.__next_step.terminate()
 
     def close(self) -> None:
         self.__closed = True
@@ -162,9 +174,18 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         self.__next_step.join(timeout)
 
 
-class ProducerResultFuture(NamedTuple):
-    message: Message[KafkaPayload]
-    future: Future[Message[KafkaPayload]]
+if TYPE_CHECKING:
+
+    class ProducerResultFuture(NamedTuple):
+        message: Message[KafkaPayload]
+        future: Future[Message[KafkaPayload]]
+
+
+else:
+
+    class ProducerResultFuture(NamedTuple):
+        message: Message[KafkaPayload]
+        future: Future
 
 
 class ProduceStep(ProcessingStep[MessageBatch]):
@@ -212,7 +233,7 @@ class ProduceStep(ProcessingStep[MessageBatch]):
                 # that could happen:
                 # * CancelledError (future was cancelled)
                 # * TimeoutError (future timedout)
-                # * Exception (the fucture call raised an exception)
+                # * Exception (the future call raised an exception)
                 raise
             self.__commit_function({message.partition: Position(message.offset, message.timestamp)})
 
@@ -306,11 +327,6 @@ def process_messages(
         parsed_payload_value = parsed_payloads_by_offset[message.offset]
         new_payload_value = parsed_payload_value
 
-        message_type = parsed_payload_value.get("type", "unknown")
-        metrics.incr(
-            "metrics_consumer.process_message.messages_seen", tags={"metric_type": message_type}
-        )
-
         metric_name = parsed_payload_value["name"]
         tags = parsed_payload_value.get("tags", {})
 
@@ -340,6 +356,7 @@ def process_messages(
         )
 
     task.apply_async(kwargs={"messages": celery_messages})
+    metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
 
     return new_messages
 
