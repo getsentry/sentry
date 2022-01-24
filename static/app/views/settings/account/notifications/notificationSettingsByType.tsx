@@ -7,13 +7,17 @@ import {OrganizationIntegration} from 'sentry/types/integrations';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
+  ALL_PROVIDER_NAMES,
   CONFIRMATION_MESSAGE,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'sentry/views/settings/account/notifications/constants';
 import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
-import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
+import {
+  NOTIFICATION_SETTING_FIELDS,
+  QUOTA_FIELDS,
+} from 'sentry/views/settings/account/notifications/fields2';
 import NotificationSettingsByOrganization from 'sentry/views/settings/account/notifications/notificationSettingsByOrganization';
 import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
 import {Identity} from 'sentry/views/settings/account/notifications/types';
@@ -33,7 +37,7 @@ import {
 } from 'sentry/views/settings/account/notifications/utils';
 import Form from 'sentry/views/settings/components/forms/form';
 import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
-import {FieldObject} from 'sentry/views/settings/components/forms/type';
+import {Field} from 'sentry/views/settings/components/forms/type';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -47,6 +51,19 @@ type State = {
   identities: Identity[];
   organizationIntegrations: OrganizationIntegration[];
 } & AsyncComponent['state'];
+
+const typeMappedChildren = {
+  quota: ['quotaErrors', 'quotaTransactions', 'quotaAttachments', 'quotaWarnings'],
+};
+
+const getQueryParams = (notificationType: string) => {
+  // if we need multiple settings on this page
+  // then omit the type so we can load all settings
+  if (notificationType in typeMappedChildren) {
+    return null;
+  }
+  return {type: notificationType};
+};
 
 class NotificationSettingsByType extends AsyncComponent<Props, State> {
   getDefaultState(): State {
@@ -64,7 +81,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       [
         'notificationSettings',
         `/users/me/notification-settings/`,
-        {query: {type: notificationType}},
+        {query: getQueryParams(notificationType)},
       ],
       ['identities', `/users/me/identities/`, {query: {provider: 'slack'}}],
       [
@@ -103,6 +120,39 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       notificationSettings,
       changedData
     );
+
+    this.setState({
+      notificationSettings: mergeNotificationSettings(
+        notificationSettings,
+        updatedNotificationSettings
+      ),
+    });
+
+    return updatedNotificationSettings;
+  };
+
+  getStateToPutForDependentSetting = (
+    changedData: NotificationSettingsByProviderObject,
+    notificationType: string
+  ) => {
+    const value = changedData[notificationType];
+    const {notificationSettings} = this.state;
+
+    // parent setting will control the which providers we send to
+    // just set every provider to the same value for the child/dependent setting
+    const userSettings = ALL_PROVIDER_NAMES.reduce((accum, provider) => {
+      accum[provider] = value;
+      return accum;
+    }, {});
+
+    // setting is a user-only setting
+    const updatedNotificationSettings = {
+      [notificationType]: {
+        user: {
+          me: userSettings,
+        },
+      },
+    };
 
     this.setState({
       notificationSettings: mergeNotificationSettings(
@@ -174,18 +224,22 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         getCurrentProviders(notificationType, notificationSettings)
       );
     }
+    const childTypes: string[] = typeMappedChildren[notificationType] || [];
+    childTypes.forEach(childType => {
+      initialData[childType] = getCurrentDefault(childType, notificationSettings);
+    });
     return initialData;
   }
 
-  getFields(): FieldObject[] {
-    const {notificationType} = this.props;
+  getFields(): Field[] {
+    const {notificationType, organizations} = this.props;
     const {notificationSettings} = this.state;
 
     const help = isGroupedByProject(notificationType)
       ? t('This is the default for all projects.')
       : t('This is the default for all organizations.');
 
-    const defaultField = Object.assign(
+    const defaultField: Field = Object.assign(
       {},
       NOTIFICATION_SETTING_FIELDS[notificationType],
       {
@@ -197,7 +251,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       defaultField.confirm = {never: CONFIRMATION_MESSAGE};
     }
 
-    const fields = [defaultField];
+    const fields: Field[] = [defaultField];
     if (!isEverythingDisabled(notificationType, notificationSettings)) {
       fields.push(
         Object.assign(
@@ -209,7 +263,31 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         )
       );
     }
-    return fields as FieldObject[];
+
+    // add in quota fields if feature flag is set
+    if (
+      notificationType === 'quota' &&
+      !isEverythingDisabled(notificationType, notificationSettings) &&
+      organizations.some(org => org.features?.includes('slack-overage-notifications'))
+    ) {
+      fields.push(
+        ...QUOTA_FIELDS.map(field => ({
+          ...field,
+          type: 'select' as const,
+          choices: [
+            ['always', t('On')],
+            ['never', t('Off')],
+          ] as const,
+          getData: data =>
+            this.getStateToPutForDependentSetting(
+              data as NotificationSettingsByProviderObject,
+              field.name
+            ),
+        }))
+      );
+    }
+
+    return fields;
   }
 
   getUnlinkedOrgs = (): OrganizationSummary[] => {
