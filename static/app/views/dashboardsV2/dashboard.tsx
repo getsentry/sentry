@@ -28,19 +28,15 @@ import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   constructGridItemKey,
+  DEFAULT_WIDGET_WIDTH,
   generateWidgetId,
   getDashboardLayout,
   getMobileLayout,
+  getWidgetHeight,
   pickDefinedStoreKeys,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
-import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  DisplayType,
-  Widget,
-  WidgetType,
-} from './types';
+import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DESKTOP = 'desktop';
@@ -78,7 +74,7 @@ type Props = {
 type State = {
   isMobile: boolean;
   layouts: Layouts;
-  nextAvailablePosition: Partial<Layout>;
+  nextAvailablePosition: {x: number; y: number};
 };
 
 class Dashboard extends Component<Props, State> {
@@ -351,9 +347,9 @@ class Dashboard extends Component<Props, State> {
           data-grid={
             widget.layout ?? {
               ...nextAvailablePosition,
-              minH: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
-              w: 2,
-              h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+              minH: getWidgetHeight(widget.displayType),
+              w: DEFAULT_WIDGET_WIDTH,
+              h: getWidgetHeight(widget.displayType),
             }
           }
         >
@@ -387,9 +383,9 @@ class Dashboard extends Component<Props, State> {
         // TODO: Replace this with the smarter placement logic
         matchingLayout = {
           ...(nextAvailablePosition as {x: number; y: number}),
-          minH: 2,
-          w: 2,
-          h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+          minH: getWidgetHeight(widget.displayType),
+          w: DEFAULT_WIDGET_WIDTH,
+          h: getWidgetHeight(widget.displayType),
           i: gridKey, // Gets ignored, for types,
         };
       }
@@ -555,7 +551,7 @@ const GridLayout = styled(WidthProvider(Responsive))`
 `;
 
 // TODO: This is pretty messy code right now, will clean up
-function getNextAvailablePosition(layouts: Layout[]) {
+function getNextAvailablePosition(layouts: Layout[]): {x: number; y: number} {
   function generateColumnDepths(): Array<number> {
     const depths = Array(NUM_DESKTOP_COLS).fill(0);
 
@@ -582,9 +578,9 @@ function getNextAvailablePosition(layouts: Layout[]) {
       }
       const end = start + 2;
       if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
-        return {x: start, y: currDepth, w: 2, h: 1};
+        return {x: start, y: currDepth};
       }
     }
   }
-  return {x: 0, y: maxColumnDepth + 1, w: 2, h: 1};
+  return {x: 0, y: maxColumnDepth + 1};
 }

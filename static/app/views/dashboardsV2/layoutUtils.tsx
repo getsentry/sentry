@@ -9,7 +9,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import {NUM_DESKTOP_COLS} from './dashboard';
 import {DisplayType, Widget} from './types';
 
-const DEFAULT_WIDGET_WIDTH = 2;
+export const DEFAULT_WIDGET_WIDTH = 2;
 
 const WIDGET_PREFIX = 'grid-item';
 
@@ -80,6 +80,10 @@ export function getDashboardLayout(widgets: Widget[]): Layout[] {
     }));
 }
 
-export function pickDefinedStoreKeys(layout: Layout) {
+export function pickDefinedStoreKeys(layout: Layout): Partial<Layout> {
   return pickBy(layout, (value, key) => defined(value) && STORE_KEYS.includes(key));
+}
+
+export function getWidgetHeight(displayType: DisplayType): number {
+  return displayType === DisplayType.BIG_NUMBER ? 1 : 2;
 }
