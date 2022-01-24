@@ -32,7 +32,7 @@ class Migration(CheckedMigration):
             model_name="release",
             index=models.Index(
                 fields=["organization", "version"],
-                name="version_btree_idx",
+                name="sentry_release_version_btree",
                 opclasses=["", "text_pattern_ops"],
             ),
         ),

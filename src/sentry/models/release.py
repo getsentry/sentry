@@ -469,7 +469,7 @@ class Release(Model):
             models.Index(
                 fields=["organization", "version"],
                 opclasses=["", "text_pattern_ops"],
-                name="version_btree_idx",
+                name="sentry_release_version_btree",
             )
         ]
 
