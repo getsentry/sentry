@@ -529,12 +529,12 @@ function TagsHeader(props: HeaderProps) {
       <Button
         onClick={handleViewAllTagsClick}
         to={viewAllTarget}
-        size="small"
+        size="xsmall"
         data-test-id="tags-explorer-open-tags"
       >
         {t('View All Tags')}
       </Button>
-      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
+      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xsmall" />
     </Header>
   );
 }
@@ -549,6 +549,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
+  align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`

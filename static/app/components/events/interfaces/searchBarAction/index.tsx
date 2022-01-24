@@ -63,7 +63,7 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
   width: 100%;
   position: relative;
   .search-input {
-    height: 32px;
+    height: 34px;
   }
   .search-clear-form,
   .search-input-icon {

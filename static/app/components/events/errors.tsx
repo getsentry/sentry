@@ -150,6 +150,7 @@ class Errors extends Component<Props, State> {
           <StyledButton
             data-test-id="event-error-toggle"
             priority="link"
+            size="zero"
             onClick={this.toggle}
           >
             {isOpen ? t('Hide') : t('Show')}

@@ -187,6 +187,7 @@ export class Line extends React.Component<Props, State> {
           className="btn-toggle"
           data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
           css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
+          size="zero"
           title={t('Toggle Context')}
           tooltipProps={
             isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined

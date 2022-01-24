@@ -148,7 +148,7 @@ class ErrorItem extends React.Component<Props, State> {
             {this.renderTroubleshootingLink(error)}
           </div>
           {!!cleanedData.length && (
-            <ToggleButton onClick={this.handleToggle} priority="link">
+            <ToggleButton onClick={this.handleToggle} priority="link" size="zero">
               {isOpen ? t('Collapse') : t('Expand')}
             </ToggleButton>
           )}

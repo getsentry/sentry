@@ -225,7 +225,7 @@ class VitalCard extends Component<Props, State> {
         <div>
           {hasPerformanceEventsPage ? (
             <Button
-              size="small"
+              size="xsmall"
               to={newEventView
                 .withColumns([{kind: 'field', field: column}])
                 .withSorts([{kind: 'desc', field: column}])
@@ -242,7 +242,7 @@ class VitalCard extends Component<Props, State> {
             </Button>
           ) : (
             <DiscoverButton
-              size="small"
+              size="xsmall"
               to={newEventView.getResultsViewUrlTarget(organization.slug)}
               onClick={this.trackOpenInDiscoverClicked}
             >
