@@ -54,10 +54,10 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
       return;
     }
 
+    const endpoint = `/organizations/${orgSlug}/eventids/${eventId}/`;
+
     try {
-      const response = await api.requestPromise(
-        `/organizations/${orgSlug}/eventids/${eventId}/`
-      );
+      const response = await api.requestPromise(endpoint);
 
       setEventIdLookup(response);
     } catch (error) {
@@ -68,8 +68,9 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
       }
 
       addErrorMessage(
-        t('An error occurred while fetching the data of the breadcrumb event link')
+        t('The endpoint %s is being used very quickly. The limit is 1/1s', endpoint)
       );
+
       Sentry.captureException(error);
 
       // do nothing. The link won't be displayed
