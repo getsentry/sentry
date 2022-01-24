@@ -239,7 +239,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
                 f".react-grid-item:nth-of-type(2) {WIDGET_DRAG_HANDLE}"
             )
             action = ActionChains(self.browser.driver)
-            action.drag_and_drop_by_offset(dragHandle, 500, 0)
+            action.drag_and_drop_by_offset(dragHandle, 1000, 0)
             action.perform()
 
             # Edit the new widget
