@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import timedelta
 from uuid import uuid4
 
@@ -43,6 +44,8 @@ def multiprocess_worker(task_queue):
     logger = logging.getLogger("sentry.cleanup")
 
     configured = False
+    skip_models = []
+    deletions = None
 
     while True:
         j = task_queue.get()
@@ -55,6 +58,7 @@ def multiprocess_worker(task_queue):
             from sentry.runner import configure
 
             configure()
+            configured = True
 
             from sentry import deletions, models, similarity
 
@@ -68,8 +72,6 @@ def multiprocess_worker(task_queue):
                 # Handled by TTL
                 similarity,
             ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
-
-            configured = True
 
         model, chunk = j
         model = import_string(model)
@@ -142,182 +144,190 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         p.start()
         pool.append(p)
 
-    from sentry.runner import configure
+    try:
+        from sentry.runner import configure
 
-    configure()
+        configure()
 
-    from django.db import router as db_router
+        from django.db import router as db_router
 
-    from sentry import models
-    from sentry.app import nodestore
-    from sentry.data_export.models import ExportedData
-    from sentry.db.deletion import BulkDeleteQuery
-
-    if timed:
-        import time
-
+        from sentry import models
+        from sentry.app import nodestore
+        from sentry.data_export.models import ExportedData
+        from sentry.db.deletion import BulkDeleteQuery
         from sentry.utils import metrics
 
-        start_time = time.time()
+        start_time = None
+        if timed:
+            start_time = time.time()
 
-    # list of models which this query is restricted to
-    model_list = {m.lower() for m in model}
+        # list of models which this query is restricted to
+        model_list = {m.lower() for m in model}
 
-    def is_filtered(model):
-        if router is not None and db_router.db_for_write(model) != router:
-            return True
-        if not model_list:
-            return False
-        return model.__name__.lower() not in model_list
+        def is_filtered(model):
+            if router is not None and db_router.db_for_write(model) != router:
+                return True
+            if not model_list:
+                return False
+            return model.__name__.lower() not in model_list
 
-    # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
-    # (model, datetime_field, order_by)
-    BULK_QUERY_DELETES = [
-        (models.UserReport, "date_added", None),
-        (models.GroupEmailThread, "date", None),
-        (models.GroupRuleStatus, "date_added", None),
-    ] + EXTRA_BULK_QUERY_DELETES
+        # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
+        # (model, datetime_field, order_by)
+        BULK_QUERY_DELETES = [
+            (models.UserReport, "date_added", None),
+            (models.GroupEmailThread, "date", None),
+            (models.GroupRuleStatus, "date_added", None),
+        ] + EXTRA_BULK_QUERY_DELETES
 
-    # Deletions that use the `deletions` code path (which handles their child relations)
-    # (model, datetime_field, order_by)
-    DELETES = [
-        (models.EventAttachment, "date_added", "date_added"),
-        (models.Group, "last_seen", "last_seen"),
-    ]
+        # Deletions that use the `deletions` code path (which handles their child relations)
+        # (model, datetime_field, order_by)
+        DELETES = [
+            (models.EventAttachment, "date_added", "date_added"),
+            (models.Group, "last_seen", "last_seen"),
+        ]
 
-    if not silent:
-        click.echo("Removing expired values for LostPasswordHash")
-
-    if is_filtered(models.LostPasswordHash):
         if not silent:
-            click.echo(">> Skipping LostPasswordHash")
-    else:
-        models.LostPasswordHash.objects.filter(
-            date_added__lte=timezone.now() - timedelta(hours=48)
-        ).delete()
+            click.echo("Removing expired values for LostPasswordHash")
 
-    if not silent:
-        click.echo("Removing expired values for OrganizationMember")
-
-    if is_filtered(models.OrganizationMember):
-        if not silent:
-            click.echo(">> Skipping OrganizationMember")
-    else:
-        expired_threshold = timezone.now() - timedelta(days=days)
-        models.OrganizationMember.objects.delete_expired(expired_threshold)
-
-    for model in [models.ApiGrant, models.ApiToken]:
-        if not silent:
-            click.echo(f"Removing expired values for {model.__name__}")
-
-        if is_filtered(model):
+        if is_filtered(models.LostPasswordHash):
             if not silent:
-                click.echo(f">> Skipping {model.__name__}")
+                click.echo(">> Skipping LostPasswordHash")
         else:
-            queryset = model.objects.filter(
-                expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
-            )
+            models.LostPasswordHash.objects.filter(
+                date_added__lte=timezone.now() - timedelta(hours=48)
+            ).delete()
 
-            # SentryAppInstallations are associated to ApiTokens. We're okay
-            # with these tokens sticking around so that the Integration can
-            # refresh them, but all other non-associated tokens should be
-            # deleted.
-            if model is models.ApiToken:
-                queryset = queryset.filter(sentry_app_installation__isnull=True)
-
-            queryset.delete()
-
-    if not silent:
-        click.echo("Removing expired files associated with ExportedData")
-
-    if is_filtered(ExportedData):
         if not silent:
-            click.echo(">> Skipping ExportedData files")
-    else:
-        queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
-        for item in queryset:
-            item.delete_file()
+            click.echo("Removing expired values for OrganizationMember")
 
-    project_id = None
-    if project:
-        click.echo("Bulk NodeStore deletion not available for project selection", err=True)
-        project_id = get_project(project)
-        if project_id is None:
-            click.echo("Error: Project not found", err=True)
-            raise click.Abort()
-    else:
-        if not silent:
-            click.echo("Removing old NodeStore values")
-
-        cutoff = timezone.now() - timedelta(days=days)
-        try:
-            nodestore.cleanup(cutoff)
-        except NotImplementedError:
-            click.echo("NodeStore backend does not support cleanup operation", err=True)
-
-    for bqd in BULK_QUERY_DELETES:
-        if len(bqd) == 4:
-            model, dtfield, order_by, chunk_size = bqd
+        if is_filtered(models.OrganizationMember):
+            if not silent:
+                click.echo(">> Skipping OrganizationMember")
         else:
-            chunk_size = 10000
-            model, dtfield, order_by = bqd
+            expired_threshold = timezone.now() - timedelta(days=days)
+            models.OrganizationMember.objects.delete_expired(expired_threshold)
 
-        if not silent:
-            click.echo(
-                "Removing {model} for days={days} project={project}".format(
-                    model=model.__name__, days=days, project=project or "*"
+        for model in [models.ApiGrant, models.ApiToken]:
+            if not silent:
+                click.echo(f"Removing expired values for {model.__name__}")
+
+            if is_filtered(model):
+                if not silent:
+                    click.echo(f">> Skipping {model.__name__}")
+            else:
+                queryset = model.objects.filter(
+                    expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
                 )
-            )
-        if is_filtered(model):
-            if not silent:
-                click.echo(">> Skipping %s" % model.__name__)
-        else:
-            BulkDeleteQuery(
-                model=model, dtfield=dtfield, days=days, project_id=project_id, order_by=order_by
-            ).execute(chunk_size=chunk_size)
 
-    for model, dtfield, order_by in DELETES:
+                # SentryAppInstallations are associated to ApiTokens. We're okay
+                # with these tokens sticking around so that the Integration can
+                # refresh them, but all other non-associated tokens should be
+                # deleted.
+                if model is models.ApiToken:
+                    queryset = queryset.filter(sentry_app_installation__isnull=True)
+
+                queryset.delete()
+
         if not silent:
-            click.echo(
-                "Removing {model} for days={days} project={project}".format(
-                    model=model.__name__, days=days, project=project or "*"
+            click.echo("Removing expired files associated with ExportedData")
+
+        if is_filtered(ExportedData):
+            if not silent:
+                click.echo(">> Skipping ExportedData files")
+        else:
+            queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
+            for item in queryset:
+                item.delete_file()
+
+        project_id = None
+        if project:
+            click.echo("Bulk NodeStore deletion not available for project selection", err=True)
+            project_id = get_project(project)
+            if project_id is None:
+                click.echo("Error: Project not found", err=True)
+                raise click.Abort()
+        else:
+            if not silent:
+                click.echo("Removing old NodeStore values")
+
+            cutoff = timezone.now() - timedelta(days=days)
+            try:
+                nodestore.cleanup(cutoff)
+            except NotImplementedError:
+                click.echo("NodeStore backend does not support cleanup operation", err=True)
+
+        for bqd in BULK_QUERY_DELETES:
+            if len(bqd) == 4:
+                model, dtfield, order_by, chunk_size = bqd
+            else:
+                chunk_size = 10000
+                model, dtfield, order_by = bqd
+
+            if not silent:
+                click.echo(
+                    "Removing {model} for days={days} project={project}".format(
+                        model=model.__name__, days=days, project=project or "*"
+                    )
                 )
-            )
+            if is_filtered(model):
+                if not silent:
+                    click.echo(">> Skipping %s" % model.__name__)
+            else:
+                BulkDeleteQuery(
+                    model=model,
+                    dtfield=dtfield,
+                    days=days,
+                    project_id=project_id,
+                    order_by=order_by,
+                ).execute(chunk_size=chunk_size)
 
-        if is_filtered(model):
+        for model, dtfield, order_by in DELETES:
             if not silent:
-                click.echo(">> Skipping %s" % model.__name__)
-        else:
-            imp = ".".join((model.__module__, model.__name__))
+                click.echo(
+                    "Removing {model} for days={days} project={project}".format(
+                        model=model.__name__, days=days, project=project or "*"
+                    )
+                )
 
-            q = BulkDeleteQuery(
-                model=model, dtfield=dtfield, days=days, project_id=project_id, order_by=order_by
-            )
+            if is_filtered(model):
+                if not silent:
+                    click.echo(">> Skipping %s" % model.__name__)
+            else:
+                imp = ".".join((model.__module__, model.__name__))
 
-            for chunk in q.iterator(chunk_size=100):
-                task_queue.put((imp, chunk))
+                q = BulkDeleteQuery(
+                    model=model,
+                    dtfield=dtfield,
+                    days=days,
+                    project_id=project_id,
+                    order_by=order_by,
+                )
 
-            task_queue.join()
+                for chunk in q.iterator(chunk_size=100):
+                    task_queue.put((imp, chunk))
 
-    # Clean up FileBlob instances which are no longer used and aren't super
-    # recent (as there could be a race between blob creation and reference)
-    if not silent:
-        click.echo("Cleaning up unused FileBlob references")
-    if is_filtered(models.FileBlob):
+                task_queue.join()
+
+        # Clean up FileBlob instances which are no longer used and aren't super
+        # recent (as there could be a race between blob creation and reference)
         if not silent:
-            click.echo(">> Skipping FileBlob")
-    else:
-        cleanup_unused_files(silent)
+            click.echo("Cleaning up unused FileBlob references")
+        if is_filtered(models.FileBlob):
+            if not silent:
+                click.echo(">> Skipping FileBlob")
+        else:
+            cleanup_unused_files(silent)
 
-    # Shut down our pool
-    for _ in pool:
-        task_queue.put(_STOP_WORKER)
+    finally:
+        # Shut down our pool
+        for _ in pool:
+            task_queue.put(_STOP_WORKER)
 
-    # And wait for it to drain
-    for p in pool:
-        p.join()
+        # And wait for it to drain
+        for p in pool:
+            p.join()
 
-    if timed:
+    if timed and start_time:
         duration = int(time.time() - start_time)
         metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
         click.echo("Clean up took %s second(s)." % duration)
