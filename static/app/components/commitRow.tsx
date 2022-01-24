@@ -26,9 +26,10 @@ function formatCommitMessage(message: string | null) {
 interface CommitRowProps {
   commit: Commit;
   customAvatar?: React.ReactNode;
+  className?: string;
 }
 
-function CommitRow({commit, customAvatar}: CommitRowProps) {
+function CommitRow({commit, customAvatar, className}: CommitRowProps) {
   const handleInviteClick = React.useCallback(() => {
     if (!commit.author?.email) {
       Sentry.captureException(
@@ -48,7 +49,7 @@ function CommitRow({commit, customAvatar}: CommitRowProps) {
   }, [commit.author]);
 
   return (
-    <PanelItem key={commit.id}>
+    <PanelItem key={commit.id} className={className}>
       {customAvatar ? (
         customAvatar
       ) : commit.author && commit.author.id === undefined ? (

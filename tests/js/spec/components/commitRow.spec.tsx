@@ -2,6 +2,7 @@ import * as React from 'react';
 import {fireEvent, render, screen} from '@testing-library/react';
 
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {CommitRow} from 'sentry/components/commitRow';
@@ -43,20 +44,6 @@ const baseCommit: Commit = {
   releases: [],
 };
 
-const getByTextContent = text => {
-  // Passing function to `getByText`
-  return screen.getByText((_, element): boolean => {
-    const hasText = (e: Element | null) => e?.textContent?.includes(text);
-    const elementHasText = hasText(element);
-    // We need to look at the children of the element to see if they have the text
-    // eslint-disable-next-line
-    const childrenDontHaveText = Array.from(element?.children || []).every(
-      child => !hasText(child)
-    );
-    return !!(elementHasText && childrenDontHaveText);
-  });
-};
-
 // static/app/components/hovercard.tsx
 describe('commitRow', () => {
   it('renders custom avatar', () => {
@@ -64,7 +51,7 @@ describe('commitRow', () => {
     expect(screen.getByText(/Custom Avatar/)).toBeInTheDocument();
   });
 
-  it('renders invite flow for non associated users', async () => {
+  it('renders invite flow for non associated users', () => {
     const commit: Commit = {
       ...baseCommit,
       author: {
@@ -75,11 +62,12 @@ describe('commitRow', () => {
 
     mountWithTheme(<CommitRow commit={commit} />);
     expect(
-      getByTextContent(
-        'The email author@commit.com is not a member of your organization.'
+      screen.getByText(
+        textWithMarkupMatcher(
+          /The email author@commit.com is not a member of your organization./
+        )
       )
     ).toBeInTheDocument();
-    expect(screen.getByText(/is not a member of your organization./)).toBeInTheDocument();
 
     fireEvent.click(screen.getByText(/Invite/));
 
