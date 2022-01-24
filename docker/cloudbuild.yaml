@@ -41,7 +41,7 @@ steps:
       - '-c'
       - |
         mkdir self-hosted && cd self-hosted
-        curl -L "https://github.com/getsentry/self-hosted/archive/master.tar.gz" | tar xzf - --strip-components=1
+        curl -L "https://github.com/getsentry/self-hosted/archive/13d14e8db723446696068be733e9fedcc5ec8bc4.tar.gz" | tar xzf - --strip-components=1
         echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
   - name: 'gcr.io/$PROJECT_ID/docker-compose'
     id: e2e-test
