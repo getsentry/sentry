@@ -134,6 +134,7 @@ SCHEMA = {
             "type": "object",
             "properties": {
                 "type": {"type": "string", "enum": ["alert-rule-settings"]},
+                "description": {"type": "string", "maxLength": 140, "minLength": 1},
                 "uri": {"$ref": "#/definitions/uri"},
                 "required_fields": {"$ref": "#/definitions/fieldset"},
                 "optional_fields": {"$ref": "#/definitions/fieldset"},

@@ -334,7 +334,9 @@ describe('Dashboards > Detail', function () {
       await wrapper.update();
       const modal = await mountGlobalModal();
 
-      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(
+        expect.objectContaining(widgets[0])
+      );
     });
 
     it('shows add widget option', async function () {
