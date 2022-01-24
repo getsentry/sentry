@@ -28,7 +28,7 @@ export type MetricsRequestRenderProps = {
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
   pageLinks: string | null;
-   tableData?: TableData;
+  tableData?: TableData;
 };
 
 type DefaultProps = {
