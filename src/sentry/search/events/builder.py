@@ -159,77 +159,6 @@ class QueryBuilder:
         # that non aggregate transforms are not allowed in the order by clause.
         raise InvalidSearchQuery(f"{column} used in a limit by but is not a column.")
 
-    def resolve_conditions(
-        self,
-        query: Optional[str],
-        use_aggregate_conditions: bool,
-    ) -> Tuple[List[WhereType], List[WhereType]]:
-        parsed_terms = self.parse_query(query)
-
-        self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
-        if any(
-            isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
-            for term in parsed_terms
-        ):
-            where, having = self.resolve_boolean_conditions(parsed_terms, use_aggregate_conditions)
-        else:
-            where = self.resolve_where(parsed_terms)
-            having = self.resolve_having(parsed_terms, use_aggregate_conditions)
-        return where, having
-
-    @property
-    def flattened_having(self) -> List[Condition]:
-        """Return self.having as a flattened list ignoring boolean operators
-        This is because self.having can have a mix of BooleanConditions and Conditions. And each BooleanCondition can in
-        turn be a mix of either type.
-        """
-        flattened: List[Condition] = []
-        boolean_conditions: List[BooleanCondition] = []
-
-        for condition in self.having:
-            if isinstance(condition, Condition):
-                flattened.append(condition)
-            elif isinstance(condition, BooleanCondition):
-                boolean_conditions.append(condition)
-
-        while len(boolean_conditions) > 0:
-            boolean_condition = boolean_conditions.pop()
-            for condition in boolean_condition.conditions:
-                if isinstance(condition, Condition):
-                    flattened.append(condition)
-                elif isinstance(condition, BooleanCondition):
-                    boolean_conditions.append(condition)
-
-        return flattened
-
-    def validate_having_clause(self) -> None:
-        """Validate that the functions in having are selected columns
-
-        Skipped if auto_aggregations are enabled, and at least one other aggregate is selected
-        This is so we don't change grouping suddenly
-        """
-
-        conditions = self.flattened_having
-        if self.auto_aggregations and self.aggregates:
-            for condition in conditions:
-                lhs = condition.lhs
-                if isinstance(lhs, CurriedFunction) and lhs not in self.columns:
-                    self.columns.append(lhs)
-                    self.aggregates.append(lhs)
-            return
-        # If auto aggregations is disabled or aggregations aren't present in the first place we throw an error
-        else:
-            error_extra = ", and could not be automatically added" if self.auto_aggregations else ""
-            for condition in conditions:
-                lhs = condition.lhs
-                if isinstance(lhs, CurriedFunction) and lhs not in self.columns:
-                    raise InvalidSearchQuery(
-                        "Aggregate {} used in a condition but is not a selected column{}.".format(
-                            lhs.alias,
-                            error_extra,
-                        )
-                    )
-
     def resolve_where(self, parsed_terms: ParsedTerms) -> List[WhereType]:
         """Given a list of parsed terms, construct their equivalent snql where
         conditions. filtering out any aggregates"""
@@ -259,6 +188,101 @@ class QueryBuilder:
                     having_conditions.append(condition)
 
         return having_conditions
+
+    def resolve_conditions(
+        self,
+        query: Optional[str],
+        use_aggregate_conditions: bool,
+    ) -> Tuple[List[WhereType], List[WhereType]]:
+        parsed_terms = self.parse_query(query)
+
+        self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
+        if any(
+            isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
+            for term in parsed_terms
+        ):
+            where, having = self.resolve_boolean_conditions(parsed_terms, use_aggregate_conditions)
+        else:
+            where = self.resolve_where(parsed_terms)
+            having = self.resolve_having(parsed_terms, use_aggregate_conditions)
+        return where, having
+
+    def resolve_boolean_conditions(
+        self, terms: ParsedTerms, use_aggregate_conditions: bool
+    ) -> Tuple[List[WhereType], List[WhereType]]:
+        if len(terms) == 1:
+            return self.resolve_boolean_condition(terms[0], use_aggregate_conditions)
+
+        # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
+        # basic sanitization of the query: can't have two operators next to each other, and can't
+        # start or end a query with an operator.
+        prev: Union[ParsedTerm, None] = None
+        new_terms = []
+        term = None
+        for term in terms:
+            if prev:
+                if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
+                    raise InvalidSearchQuery(
+                        f"Missing condition in between two condition operators: '{prev} {term}'"
+                    )
+            else:
+                if SearchBoolean.is_operator(term):
+                    raise InvalidSearchQuery(
+                        f"Condition is missing on the left side of '{term}' operator"
+                    )
+
+            if term != SearchBoolean.BOOLEAN_AND:
+                new_terms.append(term)
+
+            prev = term
+
+        if term is not None and SearchBoolean.is_operator(term):
+            raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
+        terms = new_terms
+
+        # We put precedence on AND, which sort of counter-intuitively means we have to split the query
+        # on ORs first, so the ANDs are grouped together. Search through the query for ORs and split the
+        # query on each OR.
+        # We want to maintain a binary tree, so split the terms on the first OR we can find and recurse on
+        # the two sides. If there is no OR, split the first element out to AND
+        index = None
+        lhs, rhs = None, None
+        operator = None
+        try:
+            index = terms.index(SearchBoolean.BOOLEAN_OR)
+            lhs, rhs = terms[:index], terms[index + 1 :]
+            operator = Or
+        except Exception:
+            lhs, rhs = terms[:1], terms[1:]
+            operator = And
+
+        lhs_where, lhs_having = self.resolve_boolean_conditions(lhs, use_aggregate_conditions)
+        rhs_where, rhs_having = self.resolve_boolean_conditions(rhs, use_aggregate_conditions)
+
+        if operator == Or and (lhs_where or rhs_where) and (lhs_having or rhs_having):
+            raise InvalidSearchQuery(
+                "Having an OR between aggregate filters and normal filters is invalid."
+            )
+
+        where = self._combine_conditions(lhs_where, rhs_where, operator)
+        having = self._combine_conditions(lhs_having, rhs_having, operator)
+
+        return where, having
+
+    def resolve_boolean_condition(
+        self, term: ParsedTerm, use_aggregate_conditions: bool
+    ) -> Tuple[List[WhereType], List[WhereType]]:
+        if isinstance(term, ParenExpression):
+            return self.resolve_boolean_conditions(term.children, use_aggregate_conditions)
+
+        where, having = [], []
+
+        if isinstance(term, SearchFilter):
+            where = self.resolve_where([term])
+        elif isinstance(term, AggregateFilter):
+            having = self.resolve_having([term], use_aggregate_conditions)
+
+        return where, having
 
     def resolve_params(self) -> List[WhereType]:
         """Keys included as url params take precedent if same key is included in search
@@ -374,6 +398,124 @@ class QueryBuilder:
 
         return resolved_columns
 
+    def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
+        """Given a public field, resolve the alias based on the Query's
+        dataset and return the Snql Column
+        """
+        tag_match = TAG_KEY_RE.search(raw_field)
+        field = tag_match.group("tag") if tag_match else raw_field
+
+        if VALID_FIELD_PATTERN.match(field):
+            return self.aliased_column(raw_field) if alias else self.column(raw_field)
+        else:
+            raise InvalidSearchQuery(f"Invalid characters in field {field}")
+
+    def resolve_field_alias(self, alias: str) -> SelectType:
+        """Given a field alias, convert it to its corresponding snql"""
+        converter = self.field_alias_converter.get(alias)
+        if not converter:
+            raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
+        return converter(alias)
+
+    def resolve_function(
+        self,
+        function: str,
+        match: Optional[Match[str]] = None,
+        resolve_only: bool = False,
+        overwrite_alias: Optional[str] = None,
+    ) -> SelectType:
+        """Given a public function, resolve to the corresponding Snql function
+
+
+        :param function: the public alias for a function eg. "p50(transaction.duration)"
+        :param match: the Match so we don't have to run the regex twice
+        :param resolve_only: whether we should add the aggregate to self.aggregates
+        :param overwrite_alias: ignore the alias in the parsed_function and use this string instead
+        """
+        if match is None:
+            match = is_function(function)
+
+        if not match:
+            raise InvalidSearchQuery(f"Invalid characters in field {function}")
+
+        name, combinator_name, parsed_arguments, alias = self.parse_function(match)
+        if overwrite_alias is not None:
+            alias = overwrite_alias
+
+        snql_function = self.function_converter[name]
+
+        combinator = snql_function.find_combinator(combinator_name)
+
+        if combinator_name is not None and combinator is None:
+            raise InvalidSearchQuery(
+                f"{snql_function.name}: no support for the -{combinator_name} combinator"
+            )
+
+        if not snql_function.is_accessible(self.functions_acl, combinator):
+            raise InvalidSearchQuery(f"{snql_function.name}: no access to private function")
+
+        combinator_applied = False
+
+        arguments = snql_function.format_as_arguments(
+            name, parsed_arguments, self.params, combinator
+        )
+
+        self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
+
+        for arg in snql_function.args:
+            if isinstance(arg, ColumnArg):
+                if (
+                    arguments[arg.name] in NumericColumn.numeric_array_columns
+                    and isinstance(arg, NumericColumn)
+                    and not isinstance(combinator, SnQLArrayCombinator)
+                ):
+                    arguments[arg.name] = Function(
+                        "arrayJoin", [self.resolve_column(arguments[arg.name])]
+                    )
+                else:
+                    arguments[arg.name] = self.resolve_column(arguments[arg.name])
+            if combinator is not None and combinator.is_applicable(arg.name):
+                arguments[arg.name] = combinator.apply(arguments[arg.name])
+                combinator_applied = True
+
+        if combinator and not combinator_applied:
+            raise InvalidSearchQuery("Invalid combinator: Arguments passed were incompatible")
+
+        if snql_function.snql_aggregate is not None:
+            if not resolve_only:
+                self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
+            return snql_function.snql_aggregate(arguments, alias)
+
+        return snql_function.snql_column(arguments, alias)
+
+    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
+        return Function(
+            "if",
+            [
+                Function(
+                    "greater",
+                    [divisor, 0],
+                ),
+                Function(
+                    "divide",
+                    [
+                        dividend,
+                        divisor,
+                    ],
+                ),
+                None,
+            ],
+            alias,
+        )
+
+    def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
+        """Convert this tree of Operations to the equivalent snql functions"""
+        lhs = self._resolve_equation_operand(equation.lhs)
+        rhs = self._resolve_equation_operand(equation.rhs)
+        if equation.operator == "divide":
+            rhs = Function("nullIf", [rhs, 0])
+        return Function(equation.operator, [lhs, rhs], alias)
+
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
         represent direction, construct a list of Snql Orderbys
@@ -457,23 +599,30 @@ class QueryBuilder:
         else:
             return self.resolve_field(field, alias=alias)
 
-    def get_snql_query(self) -> Query:
-        self.validate_having_clause()
+    @property
+    def flattened_having(self) -> List[Condition]:
+        """Return self.having as a flattened list ignoring boolean operators
+        This is because self.having can have a mix of BooleanConditions and Conditions. And each BooleanCondition can in
+        turn be a mix of either type.
+        """
+        flattened: List[Condition] = []
+        boolean_conditions: List[BooleanCondition] = []
 
-        return Query(
-            dataset=self.dataset.value,
-            match=Entity(self.dataset.value, sample=self.sample_rate),
-            select=self.columns,
-            array_join=self.array_join,
-            where=self.where,
-            having=self.having,
-            groupby=self.groupby,
-            orderby=self.orderby,
-            limit=self.limit,
-            offset=self.offset,
-            limitby=self.limitby,
-            turbo=self.turbo,
-        )
+        for condition in self.having:
+            if isinstance(condition, Condition):
+                flattened.append(condition)
+            elif isinstance(condition, BooleanCondition):
+                boolean_conditions.append(condition)
+
+        while len(boolean_conditions) > 0:
+            boolean_condition = boolean_conditions.pop()
+            for condition in boolean_condition.conditions:
+                if isinstance(condition, Condition):
+                    flattened.append(condition)
+                elif isinstance(condition, BooleanCondition):
+                    boolean_conditions.append(condition)
+
+        return flattened
 
     @property
     def groupby(self) -> Optional[List[SelectType]]:
@@ -486,6 +635,45 @@ class QueryBuilder:
             ]
         else:
             return []
+
+    @cached_property  # type: ignore
+    def project_slugs(self) -> Mapping[str, int]:
+        project_ids = cast(List[int], self.params.get("project_id", []))
+
+        if len(project_ids) > 0:
+            project_slugs = Project.objects.filter(id__in=project_ids)
+        else:
+            project_slugs = []
+
+        return {p.slug: p.id for p in project_slugs}
+
+    def validate_having_clause(self) -> None:
+        """Validate that the functions in having are selected columns
+
+        Skipped if auto_aggregations are enabled, and at least one other aggregate is selected
+        This is so we don't change grouping suddenly
+        """
+
+        conditions = self.flattened_having
+        if self.auto_aggregations and self.aggregates:
+            for condition in conditions:
+                lhs = condition.lhs
+                if isinstance(lhs, CurriedFunction) and lhs not in self.columns:
+                    self.columns.append(lhs)
+                    self.aggregates.append(lhs)
+            return
+        # If auto aggregations is disabled or aggregations aren't present in the first place we throw an error
+        else:
+            error_extra = ", and could not be automatically added" if self.auto_aggregations else ""
+            for condition in conditions:
+                lhs = condition.lhs
+                if isinstance(lhs, CurriedFunction) and lhs not in self.columns:
+                    raise InvalidSearchQuery(
+                        "Aggregate {} used in a condition but is not a selected column{}.".format(
+                            lhs.alias,
+                            error_extra,
+                        )
+                    )
 
     def validate_aggregate_arguments(self) -> None:
         for column in self.columns:
@@ -508,17 +696,6 @@ class QueryBuilder:
                 raise InvalidSearchQuery(
                     f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): {function_msg}"
                 )
-
-    @cached_property  # type: ignore
-    def project_slugs(self) -> Mapping[str, int]:
-        project_ids = cast(List[int], self.params.get("project_id", []))
-
-        if len(project_ids) > 0:
-            project_slugs = Project.objects.filter(id__in=project_ids)
-        else:
-            project_slugs = []
-
-        return {p.slug: p.id for p in project_slugs}
 
     # General helper methods
     def aliased_column(self, name: str) -> SelectType:
@@ -557,83 +734,6 @@ class QueryBuilder:
         return Column(resolved_column)
 
     # Query filter helper methods
-    def resolve_boolean_conditions(
-        self, terms: ParsedTerms, use_aggregate_conditions: bool
-    ) -> Tuple[List[WhereType], List[WhereType]]:
-        if len(terms) == 1:
-            return self.resolve_boolean_condition(terms[0], use_aggregate_conditions)
-
-        # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
-        # basic sanitization of the query: can't have two operators next to each other, and can't
-        # start or end a query with an operator.
-        prev: Union[ParsedTerm, None] = None
-        new_terms = []
-        term = None
-        for term in terms:
-            if prev:
-                if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
-                    raise InvalidSearchQuery(
-                        f"Missing condition in between two condition operators: '{prev} {term}'"
-                    )
-            else:
-                if SearchBoolean.is_operator(term):
-                    raise InvalidSearchQuery(
-                        f"Condition is missing on the left side of '{term}' operator"
-                    )
-
-            if term != SearchBoolean.BOOLEAN_AND:
-                new_terms.append(term)
-
-            prev = term
-
-        if term is not None and SearchBoolean.is_operator(term):
-            raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
-        terms = new_terms
-
-        # We put precedence on AND, which sort of counter-intuitively means we have to split the query
-        # on ORs first, so the ANDs are grouped together. Search through the query for ORs and split the
-        # query on each OR.
-        # We want to maintain a binary tree, so split the terms on the first OR we can find and recurse on
-        # the two sides. If there is no OR, split the first element out to AND
-        index = None
-        lhs, rhs = None, None
-        operator = None
-        try:
-            index = terms.index(SearchBoolean.BOOLEAN_OR)
-            lhs, rhs = terms[:index], terms[index + 1 :]
-            operator = Or
-        except Exception:
-            lhs, rhs = terms[:1], terms[1:]
-            operator = And
-
-        lhs_where, lhs_having = self.resolve_boolean_conditions(lhs, use_aggregate_conditions)
-        rhs_where, rhs_having = self.resolve_boolean_conditions(rhs, use_aggregate_conditions)
-
-        if operator == Or and (lhs_where or rhs_where) and (lhs_having or rhs_having):
-            raise InvalidSearchQuery(
-                "Having an OR between aggregate filters and normal filters is invalid."
-            )
-
-        where = self._combine_conditions(lhs_where, rhs_where, operator)
-        having = self._combine_conditions(lhs_having, rhs_having, operator)
-
-        return where, having
-
-    def resolve_boolean_condition(
-        self, term: ParsedTerm, use_aggregate_conditions: bool
-    ) -> Tuple[List[WhereType], List[WhereType]]:
-        if isinstance(term, ParenExpression):
-            return self.resolve_boolean_conditions(term.children, use_aggregate_conditions)
-
-        where, having = [], []
-
-        if isinstance(term, SearchFilter):
-            where = self.resolve_where([term])
-        elif isinstance(term, AggregateFilter):
-            having = self.resolve_having([term], use_aggregate_conditions)
-
-        return where, having
-
     def add_conditions(self, conditions: List[Condition]) -> None:
         self.where += conditions
 
@@ -858,26 +958,6 @@ class QueryBuilder:
             return env_conditions[0]
 
     # Query Fields helper methods
-    def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
-        """Given a public field, resolve the alias based on the Query's
-        dataset and return the Snql Column
-        """
-        tag_match = TAG_KEY_RE.search(raw_field)
-        field = tag_match.group("tag") if tag_match else raw_field
-
-        if VALID_FIELD_PATTERN.match(field):
-            return self.aliased_column(raw_field) if alias else self.column(raw_field)
-        else:
-            raise InvalidSearchQuery(f"Invalid characters in field {field}")
-
-    def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
-        """Convert this tree of Operations to the equivalent snql functions"""
-        lhs = self._resolve_equation_operand(equation.lhs)
-        rhs = self._resolve_equation_operand(equation.rhs)
-        if equation.operator == "divide":
-            rhs = Function("nullIf", [rhs, 0])
-        return Function(equation.operator, [lhs, rhs], alias)
-
     def _resolve_equation_operand(self, operand: OperandType) -> Union[SelectType, float]:
         if isinstance(operand, Operation):
             return self.resolve_equation(operand)
@@ -903,107 +983,9 @@ class QueryBuilder:
         """Given a public field, check if it's a field alias"""
         return field in self.field_alias_converter
 
-    def resolve_field_alias(self, alias: str) -> SelectType:
-        """Given a field alias, convert it to its corresponding snql"""
-        converter = self.field_alias_converter.get(alias)
-        if not converter:
-            raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
-        return converter(alias)
-
     def is_function(self, function: str) -> bool:
         """ "Given a public field, check if it's a supported function"""
         return function in self.function_converter
-
-    def resolve_function(
-        self,
-        function: str,
-        match: Optional[Match[str]] = None,
-        resolve_only: bool = False,
-        overwrite_alias: Optional[str] = None,
-    ) -> SelectType:
-        """Given a public function, resolve to the corresponding Snql function
-
-
-        :param function: the public alias for a function eg. "p50(transaction.duration)"
-        :param match: the Match so we don't have to run the regex twice
-        :param resolve_only: whether we should add the aggregate to self.aggregates
-        :param overwrite_alias: ignore the alias in the parsed_function and use this string instead
-        """
-        if match is None:
-            match = is_function(function)
-
-        if not match:
-            raise InvalidSearchQuery(f"Invalid characters in field {function}")
-
-        name, combinator_name, parsed_arguments, alias = self.parse_function(match)
-        if overwrite_alias is not None:
-            alias = overwrite_alias
-
-        snql_function = self.function_converter[name]
-
-        combinator = snql_function.find_combinator(combinator_name)
-
-        if combinator_name is not None and combinator is None:
-            raise InvalidSearchQuery(
-                f"{snql_function.name}: no support for the -{combinator_name} combinator"
-            )
-
-        if not snql_function.is_accessible(self.functions_acl, combinator):
-            raise InvalidSearchQuery(f"{snql_function.name}: no access to private function")
-
-        combinator_applied = False
-
-        arguments = snql_function.format_as_arguments(
-            name, parsed_arguments, self.params, combinator
-        )
-
-        self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
-
-        for arg in snql_function.args:
-            if isinstance(arg, ColumnArg):
-                if (
-                    arguments[arg.name] in NumericColumn.numeric_array_columns
-                    and isinstance(arg, NumericColumn)
-                    and not isinstance(combinator, SnQLArrayCombinator)
-                ):
-                    arguments[arg.name] = Function(
-                        "arrayJoin", [self.resolve_column(arguments[arg.name])]
-                    )
-                else:
-                    arguments[arg.name] = self.resolve_column(arguments[arg.name])
-            if combinator is not None and combinator.is_applicable(arg.name):
-                arguments[arg.name] = combinator.apply(arguments[arg.name])
-                combinator_applied = True
-
-        if combinator and not combinator_applied:
-            raise InvalidSearchQuery("Invalid combinator: Arguments passed were incompatible")
-
-        if snql_function.snql_aggregate is not None:
-            if not resolve_only:
-                self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
-            return snql_function.snql_aggregate(arguments, alias)
-
-        return snql_function.snql_column(arguments, alias)
-
-    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
-        return Function(
-            "if",
-            [
-                Function(
-                    "greater",
-                    [divisor, 0],
-                ),
-                Function(
-                    "divide",
-                    [
-                        dividend,
-                        divisor,
-                    ],
-                ),
-                None,
-            ],
-            alias,
-        )
 
     def parse_function(self, match: Match[str]) -> Tuple[str, Optional[str], List[str], str]:
         """Given a FUNCTION_PATTERN match, seperate the function name, arguments
@@ -1029,6 +1011,24 @@ class QueryBuilder:
         ie. any_user_display -> any(user_display)
         """
         return self.function_alias_map[function.alias].field  # type: ignore
+
+    def get_snql_query(self) -> Query:
+        self.validate_having_clause()
+
+        return Query(
+            dataset=self.dataset.value,
+            match=Entity(self.dataset.value, sample=self.sample_rate),
+            select=self.columns,
+            array_join=self.array_join,
+            where=self.where,
+            having=self.having,
+            groupby=self.groupby,
+            orderby=self.orderby,
+            limit=self.limit,
+            offset=self.offset,
+            limitby=self.limitby,
+            turbo=self.turbo,
+        )
 
 
 class TimeseriesQueryBuilder(QueryFilter):  # type: ignore

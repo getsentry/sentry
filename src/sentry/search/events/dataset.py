@@ -8,7 +8,7 @@ import sentry_sdk
 from django.utils.functional import cached_property
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.column import Column
-from snuba_sdk.conditions import Condition, Op, Or
+from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -113,7 +113,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         self,
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
-            "environment": self._environment_filter_converter,
+            "environment": self.builder._environment_filter_converter,
             "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
@@ -937,7 +937,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _resolve_aliased_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
         """Given public aliases resolve division"""
-        return self.resolve_division(
+        return self.builder.resolve_division(
             self.builder.column(dividend), self.builder.column(divisor), alias
         )
 
@@ -1051,30 +1051,6 @@ class DiscoverDatasetConfig(DatasetConfig):
         )
 
     # Query Filters
-    def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        # conditions added to env_conditions can be OR'ed
-        env_conditions = []
-        value = search_filter.value.value
-        values_set = set(value if isinstance(value, (list, tuple)) else [value])
-        # sorted for consistency
-        values = sorted(f"{value}" for value in values_set)
-        environment = self.builder.column("environment")
-        # the "no environment" environment is null in snuba
-        if "" in values:
-            values.remove("")
-            operator = Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL
-            env_conditions.append(Condition(environment, operator))
-        if len(values) == 1:
-            operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
-            env_conditions.append(Condition(environment, operator, values.pop()))
-        elif values:
-            operator = Op.IN if search_filter.operator in EQUALITY_OPERATORS else Op.NOT_IN
-            env_conditions.append(Condition(environment, operator, values))
-        if len(env_conditions) > 1:
-            return Or(conditions=env_conditions)
-        else:
-            return env_conditions[0]
-
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Convert project slugs to ids and create a filter based on those.
         This is cause we only store project ids in clickhouse.
