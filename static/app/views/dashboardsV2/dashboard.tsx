@@ -49,15 +49,15 @@ export const NUM_DESKTOP_COLS = 6;
 const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
-const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
-const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
-const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 const MOBILE_ADD_WIDGET_LAYOUT = {
   x: 0,
   y: Number.MAX_SAFE_INTEGER,
   w: DEFAULT_WIDGET_WIDTH,
   h: 1,
 };
+const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
+const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
+const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 
 type Props = {
   api: Client;
