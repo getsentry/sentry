@@ -381,8 +381,8 @@ class Dashboard extends Component<Props, State> {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
       if (!matchingLayout) {
-        // TODO: Replace this with the smarter placement logic
         matchingLayout = {
+          // TODO: After this gets assigned once, we need to generate the next one
           ...(nextAvailablePosition as {x: number; y: number}),
           minH: getWidgetHeight(widget.displayType),
           w: DEFAULT_WIDGET_WIDTH,
