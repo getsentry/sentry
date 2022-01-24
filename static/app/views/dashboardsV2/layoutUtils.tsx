@@ -89,7 +89,7 @@ export function getWidgetHeight(displayType: DisplayType): number {
   return displayType === DisplayType.BIG_NUMBER ? 1 : 2;
 }
 
-export function generateColumnDepths(layouts: Layout[]): Array<number> {
+export function generateColumnDepths(layouts: Layout[]): number[] {
   const depths = Array(NUM_DESKTOP_COLS).fill(0);
 
   // loop through every layout and for each x, record the max depth
@@ -105,10 +105,18 @@ export function generateColumnDepths(layouts: Layout[]): Array<number> {
   return depths;
 }
 
-export function getNextAvailablePosition(columnDepths: Array<number>): {
-  x: number;
-  y: number;
-} {
+// Returns the next available position, as well as the next column depth
+// if more positions are required for calculation
+export function getNextAvailablePosition(
+  columnDepths: number[],
+  height: number = 2
+): [
+  {
+    x: number;
+    y: number;
+  },
+  number[]
+] {
   const maxColumnDepth = Math.max(...columnDepths);
   // Match the width against the lowest points to find one that fits
   for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
@@ -118,9 +126,16 @@ export function getNextAvailablePosition(columnDepths: Array<number>): {
       }
       const end = start + DEFAULT_WIDGET_WIDTH;
       if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
-        return {x: start, y: currDepth};
+        for (let col = start; col < start + DEFAULT_WIDGET_WIDTH; col++) {
+          columnDepths[col] = Math.max(currDepth + height, columnDepths[col]);
+        }
+        return [{x: start, y: currDepth}, [...columnDepths]];
       }
     }
   }
-  return {x: 0, y: maxColumnDepth + 1};
+
+  for (let col = 0; col < DEFAULT_WIDGET_WIDTH; col++) {
+    columnDepths[col] = Math.max(maxColumnDepth + height, columnDepths[col]);
+  }
+  return [{x: 0, y: maxColumnDepth}, [...columnDepths]];
 }

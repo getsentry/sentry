@@ -93,7 +93,7 @@ class Dashboard extends Component<Props, State> {
         [DESKTOP]: isUsingGrid ? desktopLayout : [],
         [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
       },
-      nextAvailablePosition: getNextAvailablePosition(columnDepths),
+      nextAvailablePosition: getNextAvailablePosition(columnDepths)[0],
     };
   }
 
@@ -110,7 +110,7 @@ class Dashboard extends Component<Props, State> {
             [DESKTOP]: dashboardLayout,
             [MOBILE]: getMobileLayout(dashboardLayout, props.dashboard.widgets),
           },
-          nextAvailablePosition: getNextAvailablePosition(columnDepths),
+          nextAvailablePosition: getNextAvailablePosition(columnDepths)[0],
         };
       }
     }
@@ -370,22 +370,14 @@ class Dashboard extends Component<Props, State> {
 
   renderWidgets(widgets: Widget[]) {
     const {layouts} = this.state;
-    const columnDepths = generateColumnDepths(layouts[DESKTOP]);
-    const renderedWidgets: Array<ReactNode> = [];
+    let columnDepths = generateColumnDepths(layouts[DESKTOP]);
+    const renderedWidgets: ReactNode[] = [];
 
     widgets.forEach((widget, index) => {
       if (!defined(widget.layout)) {
-        const calculatedNextAvailable = getNextAvailablePosition(columnDepths);
-        const {x, y} = calculatedNextAvailable;
-
-        // Update the column depths in case other widgets need next positioning
-        for (let col = x; col < x + DEFAULT_WIDGET_WIDTH; col++) {
-          columnDepths[col] = Math.max(
-            y + getWidgetHeight(widget.displayType),
-            columnDepths[col]
-          );
-        }
-        renderedWidgets.push(this.renderWidget(widget, index, calculatedNextAvailable));
+        const [nextPos, nextColumnDepths] = getNextAvailablePosition(columnDepths);
+        columnDepths = nextColumnDepths;
+        renderedWidgets.push(this.renderWidget(widget, index, nextPos));
       } else {
         renderedWidgets.push(this.renderWidget(widget, index));
       }
@@ -402,26 +394,18 @@ class Dashboard extends Component<Props, State> {
     };
 
     // Generate a column depth array for this update cycle
-    const columnDepths = generateColumnDepths(newLayouts[DESKTOP]);
+    let columnDepths = generateColumnDepths(newLayouts[DESKTOP]);
     const newWidgets = dashboard.widgets.map(widget => {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
       if (!matchingLayout) {
         // Calculate the available position
-        const calculatedNextAvailable = getNextAvailablePosition(columnDepths);
-        const {x, y} = calculatedNextAvailable;
-
-        // Update the column depths in case other widgets need next positioning
-        for (let col = x; col < x + DEFAULT_WIDGET_WIDTH; col++) {
-          columnDepths[col] = Math.max(
-            y + getWidgetHeight(widget.displayType),
-            columnDepths[col]
-          );
-        }
+        const [nextPos, nextColumnDepths] = getNextAvailablePosition(columnDepths);
+        columnDepths = nextColumnDepths;
 
         // Set the position
         matchingLayout = {
-          ...calculatedNextAvailable,
+          ...nextPos,
           minH: getWidgetHeight(widget.displayType),
           w: DEFAULT_WIDGET_WIDTH,
           h: getWidgetHeight(widget.displayType),
@@ -436,7 +420,7 @@ class Dashboard extends Component<Props, State> {
 
     this.setState({
       layouts: newLayouts,
-      nextAvailablePosition: getNextAvailablePosition(columnDepths),
+      nextAvailablePosition: getNextAvailablePosition(columnDepths)[0],
     });
     onUpdate(newWidgets);
   };
