@@ -115,3 +115,23 @@ def get_attachment_no_text():
     attachments = json.loads(data["attachments"][0])
     assert len(attachments) == 1
     return attachments[0]
+
+
+def setup_slack_with_identities(organization, user):
+    integration = install_slack(organization)
+    idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+    Identity.objects.create(
+        external_id="UXXXXXXX1",
+        idp=idp,
+        user=user,
+        status=IdentityStatus.VALID,
+        scopes=[],
+    )
+    responses.add(
+        method=responses.POST,
+        url="https://slack.com/api/chat.postMessage",
+        body='{"ok": true}',
+        status=200,
+        content_type="application/json",
+    )
+    return integration
