@@ -550,7 +550,6 @@ const GridLayout = styled(WidthProvider(Responsive))`
   }
 `;
 
-// TODO: This is pretty messy code right now, will clean up
 function getNextAvailablePosition(layouts: Layout[]): {x: number; y: number} {
   function generateColumnDepths(): Array<number> {
     const depths = Array(NUM_DESKTOP_COLS).fill(0);
@@ -559,7 +558,7 @@ function getNextAvailablePosition(layouts: Layout[]): {x: number; y: number} {
     layouts
       .filter(({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID)
       .forEach(({x, w, y, h}) => {
-        // Take the x -> x + w
+        // Adjust the column depths for each column the widget takes up
         for (let col = x; col < x + w; col++) {
           depths[col] = Math.max(y + h, depths[col]);
         }
@@ -570,7 +569,7 @@ function getNextAvailablePosition(layouts: Layout[]): {x: number; y: number} {
 
   const columnDepths = generateColumnDepths();
   const maxColumnDepth = Math.max(...columnDepths);
-  // Then match the width against the lowest points to find one that fits
+  // Match the width against the lowest points to find one that fits
   for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
     for (let start = 0; start <= columnDepths.length - 2; start++) {
       if (columnDepths[start] > currDepth) {
