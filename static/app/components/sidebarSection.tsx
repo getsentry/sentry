@@ -29,7 +29,7 @@ const Wrapper = styled('div')`
 `;
 
 const Heading = styled('h6')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
   display: flex;
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
