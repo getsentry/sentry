@@ -448,6 +448,8 @@ class Dashboard extends Component<Props, State> {
             key={ADD_WIDGET_BUTTON_DRAG_ID}
             data-grid={{
               ...nextAvailablePosition,
+              w: DEFAULT_WIDGET_WIDTH,
+              h: 1,
               isResizable: false,
             }}
           >
