@@ -60,7 +60,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     expect(screen.getByText('LCP by Country')).toBeInTheDocument();
     expect(screen.getByText('Miserable Users')).toBeInTheDocument();
     expect(screen.getByText('Slow vs Fast Transactions')).toBeInTheDocument();
-    expect(screen.getByText('Latest Unresolved Issues')).toBeInTheDocument();
+    expect(screen.getByText('Issues For Review')).toBeInTheDocument();
     expect(screen.getByText('Top Unhandled Error Types')).toBeInTheDocument();
     expect(screen.getByText('Users Affected by Errors')).toBeInTheDocument();
 
