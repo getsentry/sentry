@@ -230,6 +230,12 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
       );
 };
 
+/**
+ * Uses the mapping and baseEndpoint to derive the details for the mappings request.
+ * @param baseEndpoint Must have a trailing slash, since the id is appended for PUT requests!
+ * @param mapping The mapping being sent to the endpoint
+ * @returns An object containing the request method (apiMethod), and final endpoint (apiEndpoint)
+ */
 export const getExternalActorEndpointDetails = (
   baseEndpoint: string,
   mapping?: ExternalActorMapping
