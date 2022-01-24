@@ -17,7 +17,7 @@ const WIDGET_PREFIX = 'grid-item';
 // Keys for grid layout values we track in the server
 const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
-type Position = {
+export type Position = {
   x: number;
   y: number;
 };

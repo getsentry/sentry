@@ -1,7 +1,7 @@
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-import {Component, ReactNode} from 'react';
+import {Component} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
@@ -37,6 +37,7 @@ import {
   getNextAvailablePosition,
   getWidgetHeight,
   pickDefinedStoreKeys,
+  Position,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
@@ -330,7 +331,7 @@ class Dashboard extends Component<Props, State> {
     ];
   }
 
-  renderWidget(widget: Widget, index: number, defaultPosition?: {x: number; y: number}) {
+  renderWidget(widget: Widget, index: number, defaultPosition?: Position) {
     const {isMobile} = this.state;
     const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
@@ -372,9 +373,8 @@ class Dashboard extends Component<Props, State> {
   renderWidgets(widgets: Widget[]) {
     const {layouts} = this.state;
     let columnDepths = calculateColumnDepths(layouts[DESKTOP]);
-    const renderedWidgets: ReactNode[] = [];
 
-    widgets.forEach((widget, index) => {
+    return widgets.map((widget, index) => {
       if (!defined(widget.layout)) {
         const height = getWidgetHeight(widget.displayType);
         const [nextPos, nextColumnDepths] = getNextAvailablePosition(
@@ -382,12 +382,11 @@ class Dashboard extends Component<Props, State> {
           height
         );
         columnDepths = nextColumnDepths;
-        renderedWidgets.push(this.renderWidget(widget, index, nextPos));
-      } else {
-        renderedWidgets.push(this.renderWidget(widget, index));
+        return this.renderWidget(widget, index, nextPos);
       }
+
+      return this.renderWidget(widget, index);
     });
-    return renderedWidgets;
   }
 
   handleLayoutChange = (_, allLayouts: Layouts) => {
