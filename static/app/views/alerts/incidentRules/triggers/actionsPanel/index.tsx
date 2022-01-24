@@ -17,6 +17,9 @@ import {uniqueId} from 'sentry/utils/guid';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
 import withOrganization from 'sentry/utils/withOrganization';
+import ActionSpecificTargetSelector from 'sentry/views/alerts/incidentRules/triggers/actionsPanel/actionSpecificTargetSelector';
+import ActionTargetSelector from 'sentry/views/alerts/incidentRules/triggers/actionsPanel/actionTargetSelector';
+import DeleteActionButton from 'sentry/views/alerts/incidentRules/triggers/actionsPanel/deleteActionButton';
 import {
   Action,
   ActionLabel,
@@ -26,10 +29,6 @@ import {
   Trigger,
 } from 'sentry/views/alerts/incidentRules/types';
 import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRuleModal';
-
-import ActionSpecificTargetSelector from './actionSpecificTargetSelector';
-import ActionTargetSelector from './actionTargetSelector';
-import DeleteActionButton from './deleteActionButton';
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;
