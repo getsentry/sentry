@@ -278,12 +278,13 @@ def build_project_series(start__stop, project):
         orderby=[OrderBy(Column("time"), Direction.ASC)],
     )
     outcome_series = raw_snql_query(outcomes_query, referrer="reports.series")
-    total_error_series = [
-        (int(to_timestamp(parse_snuba_datetime(v["time"]))), v["total"])
-        for v in outcome_series["data"]
-        if v["category"] in DataCategory.error_categories()
-    ]
-    total_error_series = zerofill_clean(total_error_series)
+    total_error_series = OrderedDict()
+    for v in outcome_series["data"]:
+        if v["category"] in DataCategory.error_categories():
+            timestamp = int(to_timestamp(parse_snuba_datetime(v["time"])))
+            total_error_series[timestamp] = total_error_series.get(timestamp, 0) + v["total"]
+
+    total_error_series = zerofill_clean(list(total_error_series.items()))
     transaction_series = [
         (int(to_timestamp(parse_snuba_datetime(v["time"]))), v["total"])
         for v in outcome_series["data"]
@@ -513,6 +514,31 @@ def build_key_events(interval, project):
     return [(e["group_id"], e["count()"]) for e in key_errors]
 
 
+def build_key_transactions(interval, project):
+    start, stop = interval
+
+    # Take the 3 most frequently occuring transactions
+    query = Query(
+        dataset=Dataset.Transactions.value,
+        match=Entity("transactions"),
+        select=[
+            Column("transaction_name"),
+            Function("count", []),
+        ],
+        where=[
+            Condition(Column("finish_ts"), Op.GTE, start),
+            Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
+            Condition(Column("project_id"), Op.EQ, project.id),
+        ],
+        groupby=[Column("transaction_name")],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limit=Limit(3),
+    )
+    query_result = raw_snql_query(query)
+    key_errors = query_result["data"]
+    return [(e["transaction_name"], e["count()"], project.id) for e in key_errors]
+
+
 def build_report(fields):
     """
     Constructs the Report namedtuple class, as well as the `prepare` and
@@ -562,6 +588,7 @@ Report, build_project_report, merge_reports = build_report(
             partial(merge_series, function=safe_add),
         ),
         ("key_events", build_key_events, partial(take_max_n, n=3)),
+        ("key_transactions", build_key_transactions, partial(take_max_n, n=3)),
     ],
 )
 
@@ -1022,7 +1049,7 @@ def build_project_breakdown_series(reports):
     }
 
 
-def build_key_errors(key_events, organization):
+def build_key_errors_ctx(key_events, organization):
     # Join with DB
     groups = Group.objects.filter(
         id__in=map(lambda i: i[0], key_events),
@@ -1046,6 +1073,69 @@ def build_key_errors(key_events, organization):
             "status": group_id_to_group_history.get(e[0], "Unresolved"),
         }
         for e in filter(lambda e: e[0] in group_id_to_group, key_events)
+    ]
+
+
+def build_key_transactions_ctx(key_events, organization, interval, projects):
+    project_ids = map(lambda project: project.id, projects)
+    transaction_names = map(lambda p: p[0], key_events)
+
+    start, stop = interval
+    query = Query(
+        dataset=Dataset.Transactions.value,
+        match=Entity("transactions"),
+        select=[
+            Column("transaction_name"),
+            Function("quantile(0.95)", [Column("duration")], "q95"),
+        ],
+        where=[
+            Condition(Column("finish_ts"), Op.GTE, start),
+            Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
+            Condition(Column("transaction_name"), Op.IN, transaction_names),
+            Condition(Column("project_id"), Op.IN, project_ids),
+        ],
+        groupby=[Column("transaction_name")],
+    )
+    query_result = raw_snql_query(query)
+    this_week_p95 = {}
+    for point in query_result["data"]:
+        this_week_p95[point["transaction_name"]] = point["q95"]
+
+    query = Query(
+        dataset=Dataset.Transactions.value,
+        match=Entity("transactions"),
+        select=[
+            Column("transaction_name"),
+            Function("quantile(0.95)", [Column("duration")], "q95"),
+        ],
+        where=[
+            Condition(Column("finish_ts"), Op.GTE, start - timedelta(days=7)),
+            Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1) - timedelta(days=7)),
+            Condition(Column("transaction_name"), Op.IN, transaction_names),
+            Condition(Column("project_id"), Op.IN, project_ids),
+        ],
+        groupby=[Column("transaction_name")],
+    )
+    query_result = raw_snql_query(query)
+    last_week_p95 = {}
+    for point in query_result["data"]:
+        last_week_p95[point["transaction_name"]] = point["q95"]
+
+    # Fetch projects
+    project_ids = map(lambda p: p[2], key_events)
+    project_id_to_project = {}
+    for project in organization.project_set.filter(id__in=project_ids).all():
+        project_id_to_project[project.id] = project
+
+    return [
+        {
+            "name": e[0],
+            "count": e[1],
+            "project": project_id_to_project[e[2]],
+            "p95": this_week_p95.get(e[0], None),
+            "p95_prev_week": last_week_p95.get(e[0], None),
+        }
+        for e in filter(lambda e: e[2] in project_id_to_project, key_events)
     ]
 
 
@@ -1091,7 +1181,10 @@ def to_context(organization, interval, reports):
         ],
         "projects": {"series": build_project_breakdown_series(reports)},
         "calendar": to_calendar(organization, interval, report.calendar_series),
-        "key_errors": build_key_errors(report.key_events, organization),
+        "key_errors": build_key_errors_ctx(report.key_events, organization),
+        "key_transactions": build_key_transactions_ctx(
+            report.key_transactions, organization, interval, reports.keys()
+        ),
     }
 
 

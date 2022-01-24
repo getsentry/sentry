@@ -555,5 +555,29 @@
     {% endwith %}
   </div>
   {% endif %}
+
+  {%if report.key_errors|length > 0 %}
+  <div id="key-errors">
+    {% with report.key_transactions as transactions %}
+    <h4>Key Transactions</h4>
+    {% for a in transactions %}
+    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
+      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
+      <div style="width: 65%;">
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="#">{{a.name}}</a>
+        <div style="font-size: 12px; color: #80708F;">{{a.project.name}}</div>
+      </div>
+      <div style="font-size: 14px; margin-left: auto;">
+        {% if a.p95_prev_week %}
+        <span>{{a.p95_prev_week | duration}}</span>
+        <span> -> </span>
+        {% endif %}
+        <span>{{a.p95 | duration}}</span>
+      </div>
+    </div>
+    {% endfor %}
+    {% endwith %}
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
