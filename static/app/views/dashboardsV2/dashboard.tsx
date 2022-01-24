@@ -377,12 +377,12 @@ class Dashboard extends Component<Props, State> {
     return widgets.map((widget, index) => {
       if (!defined(widget.layout)) {
         const height = getWidgetHeight(widget.displayType);
-        const [nextPos, nextColumnDepths] = getNextAvailablePosition(
+        const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
           columnDepths,
           height
         );
         columnDepths = nextColumnDepths;
-        return this.renderWidget(widget, index, nextPos);
+        return this.renderWidget(widget, index, nextPosition);
       }
 
       return this.renderWidget(widget, index);
@@ -396,8 +396,11 @@ class Dashboard extends Component<Props, State> {
       [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
       [MOBILE]: allLayouts[MOBILE].filter(isNotAddButton),
     };
+    this.setState({
+      layouts: newLayouts,
+    });
 
-    // Generate a column depth array for this update cycle
+    // Generate a new list of widgets where the layouts are associated
     let columnDepths = calculateColumnDepths(newLayouts[DESKTOP]);
     const newWidgets = dashboard.widgets.map(widget => {
       const gridKey = constructGridItemKey(widget);
@@ -406,7 +409,7 @@ class Dashboard extends Component<Props, State> {
         const defaultHeight = getWidgetHeight(widget.displayType);
 
         // Calculate the available position
-        const [nextPos, nextColumnDepths] = getNextAvailablePosition(
+        const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
           columnDepths,
           defaultHeight
         );
@@ -414,7 +417,7 @@ class Dashboard extends Component<Props, State> {
 
         // Set the position
         matchingLayout = {
-          ...nextPos,
+          ...nextPosition,
           minH: defaultHeight,
           w: DEFAULT_WIDGET_WIDTH,
           h: defaultHeight,
@@ -427,9 +430,6 @@ class Dashboard extends Component<Props, State> {
       };
     });
 
-    this.setState({
-      layouts: newLayouts,
-    });
     onUpdate(newWidgets);
   };
 
@@ -459,7 +459,7 @@ class Dashboard extends Component<Props, State> {
     }
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
-    const nextPosition = getNextAvailablePosition(columnDepths, 1)[0];
+    const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
     return {
       ...nextPosition,
       w: DEFAULT_WIDGET_WIDTH,
