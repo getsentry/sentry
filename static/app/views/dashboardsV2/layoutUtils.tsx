@@ -1,4 +1,5 @@
 import {Layout} from 'react-grid-layout';
+import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
 
@@ -79,6 +80,6 @@ export function getDashboardLayout(widgets: Widget[]): Layout[] {
     }));
 }
 
-export function pickDefinedStoreKeys(value, key) {
-  return defined(value) && STORE_KEYS.includes(key);
+export function pickDefinedStoreKeys(layout: Layout) {
+  return pickBy(layout, (value, key) => defined(value) && STORE_KEYS.includes(key));
 }

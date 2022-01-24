@@ -10,7 +10,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import pickBy from 'lodash/pickBy';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -396,7 +395,7 @@ class Dashboard extends Component<Props, State> {
       }
       return {
         ...widget,
-        layout: pickBy(matchingLayout, pickDefinedStoreKeys),
+        layout: pickDefinedStoreKeys(matchingLayout),
       };
     });
     onUpdate(newWidgets);
