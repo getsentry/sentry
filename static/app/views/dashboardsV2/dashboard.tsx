@@ -489,12 +489,16 @@ class Dashboard extends Component<Props, State> {
         {isEditing && !!!widgetLimitReached && (
           <div
             key={ADD_WIDGET_BUTTON_DRAG_ID}
-            data-grid={{
-              ...nextAvailablePosition,
-              w: DEFAULT_WIDGET_WIDTH,
-              h: 1,
-              isResizable: false,
-            }}
+            data-grid={
+              isMobile
+                ? {x: 0, y: Number.MAX_SAFE_INTEGER, w: 2, h: 1}
+                : {
+                    ...nextAvailablePosition,
+                    w: DEFAULT_WIDGET_WIDTH,
+                    h: 1,
+                    isResizable: false,
+                  }
+            }
           >
             <AddWidget
               orgFeatures={organization.features}
