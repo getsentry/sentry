@@ -2,7 +2,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
-import {Layout, Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
@@ -32,6 +32,7 @@ import {
   generateWidgetId,
   getDashboardLayout,
   getMobileLayout,
+  getNextAvailablePosition,
   getWidgetHeight,
   pickDefinedStoreKeys,
 } from './layoutUtils';
@@ -549,37 +550,3 @@ const GridLayout = styled(WidthProvider(Responsive))`
     z-index: 10;
   }
 `;
-
-function getNextAvailablePosition(layouts: Layout[]): {x: number; y: number} {
-  function generateColumnDepths(): Array<number> {
-    const depths = Array(NUM_DESKTOP_COLS).fill(0);
-
-    // loop through every layout and for each x, record the max depth
-    layouts
-      .filter(({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID)
-      .forEach(({x, w, y, h}) => {
-        // Adjust the column depths for each column the widget takes up
-        for (let col = x; col < x + w; col++) {
-          depths[col] = Math.max(y + h, depths[col]);
-        }
-      });
-
-    return depths;
-  }
-
-  const columnDepths = generateColumnDepths();
-  const maxColumnDepth = Math.max(...columnDepths);
-  // Match the width against the lowest points to find one that fits
-  for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
-    for (let start = 0; start <= columnDepths.length - 2; start++) {
-      if (columnDepths[start] > currDepth) {
-        continue;
-      }
-      const end = start + 2;
-      if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
-        return {x: start, y: currDepth};
-      }
-    }
-  }
-  return {x: 0, y: maxColumnDepth + 1};
-}

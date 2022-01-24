@@ -6,6 +6,7 @@ import zip from 'lodash/zip';
 import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 
+import {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {NUM_DESKTOP_COLS} from './dashboard';
 import {DisplayType, Widget} from './types';
 
@@ -86,4 +87,38 @@ export function pickDefinedStoreKeys(layout: Layout): Partial<Layout> {
 
 export function getWidgetHeight(displayType: DisplayType): number {
   return displayType === DisplayType.BIG_NUMBER ? 1 : 2;
+}
+
+export function getNextAvailablePosition(layouts: Layout[]): {x: number; y: number} {
+  function generateColumnDepths(): Array<number> {
+    const depths = Array(NUM_DESKTOP_COLS).fill(0);
+
+    // loop through every layout and for each x, record the max depth
+    layouts
+      .filter(({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID)
+      .forEach(({x, w, y, h}) => {
+        // Adjust the column depths for each column the widget takes up
+        for (let col = x; col < x + w; col++) {
+          depths[col] = Math.max(y + h, depths[col]);
+        }
+      });
+
+    return depths;
+  }
+
+  const columnDepths = generateColumnDepths();
+  const maxColumnDepth = Math.max(...columnDepths);
+  // Match the width against the lowest points to find one that fits
+  for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
+    for (let start = 0; start <= columnDepths.length - 2; start++) {
+      if (columnDepths[start] > currDepth) {
+        continue;
+      }
+      const end = start + 2;
+      if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
+        return {x: start, y: currDepth};
+      }
+    }
+  }
+  return {x: 0, y: maxColumnDepth + 1};
 }
