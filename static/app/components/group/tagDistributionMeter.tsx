@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import {deviceNameMapper, loadDeviceListModule} from 'sentry/components/deviceName';
+import {iOSDeviceNameMapper, loadiOSDeviceListModule} from 'sentry/components/deviceName';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {Group, Organization, TagWithTopValues} from 'sentry/types';
 import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
@@ -48,7 +48,7 @@ class GroupTagDistributionMeter extends Component<Props, State> {
       error: false,
     });
 
-    loadDeviceListModule()
+    loadiOSDeviceListModule()
       .then(iOSDeviceList => {
         this.setState({
           iOSDeviceList,
@@ -74,7 +74,7 @@ class GroupTagDistributionMeter extends Component<Props, State> {
       ? topValues.map(value => ({
           ...value,
           name: iOSDeviceList
-            ? deviceNameMapper(value.name || '', iOSDeviceList) || ''
+            ? iOSDeviceNameMapper(value.name || '', iOSDeviceList) || ''
             : value.name,
           url,
         }))
