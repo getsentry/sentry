@@ -127,6 +127,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
+    const {organization} = this.props;
+
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
       const fields = Object.keys(tableMeta ?? {});
@@ -142,8 +144,12 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
       const rendered = fieldRenderer(dataRow);
 
+      if (!!!organization.features.includes('dashboard-grid-layout')) {
+        return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
+      }
+
       return (
-        <BigNumber key={`big_number:${result.title}`}>
+        <BigNumber autoFontResize key={`big_number:${result.title}`}>
           <svg
             width="100%"
             height="100%"
@@ -365,14 +371,14 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface200};
 `;
 
-const BigNumber = styled('div')`
+const BigNumber = styled('div')<{autoFontResize?: boolean}>`
   resize: both;
   line-height: 1;
   display: inline-flex;
   flex: 1;
   width: 100%;
   min-height: 0;
-  font-size: 200px;
+  font-size: ${p => (p.autoFontResize ? '200px' : '32px')};
   color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
   * {
