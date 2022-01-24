@@ -15,7 +15,7 @@ const useEffectAfterFirstRender = (
     }
 
     cb();
-  }, deps);
+  }, [cb, ...deps]);
 };
 
 export {useEffectAfterFirstRender};
