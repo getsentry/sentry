@@ -221,7 +221,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
-        <StyledListItem>{t('Filter events')}</StyledListItem>
+        <StyledListItem>
+          <StyledListTitle>{t('Filter events')}</StyledListTitle>
+        </StyledListItem>
         <FormRow>
           <SelectField
             name="environment"
@@ -357,7 +359,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
         </FormRow>
         {dataset !== Dataset.SESSIONS && (
           <Feature features={['organizations:change-alerts']} organization={organization}>
-            <StyledListItem>{t('Select threshold type')}</StyledListItem>
+            <StyledListItem>
+              <StyledListTitle>{t('Select threshold type')}</StyledListTitle>
+            </StyledListItem>
             <FormRow>
               <RadioGroup
                 style={{flex: 1}}
@@ -452,6 +456,8 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 }
 
 const StyledListTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  line-height: 1.3;
   display: flex;
   span {
     margin-left: ${space(1)};
@@ -479,8 +485,6 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  line-height: 1.3;
 `;
 
 const FormRow = styled('div')`

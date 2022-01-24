@@ -17,9 +17,6 @@ import {uniqueId} from 'sentry/utils/guid';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
 import withOrganization from 'sentry/utils/withOrganization';
-import ActionSpecificTargetSelector from 'sentry/views/alerts/incidentRules/triggers/actionsPanel/actionSpecificTargetSelector';
-import ActionTargetSelector from 'sentry/views/alerts/incidentRules/triggers/actionsPanel/actionTargetSelector';
-import DeleteActionButton from 'sentry/views/alerts/incidentRules/triggers/actionsPanel/deleteActionButton';
 import {
   Action,
   ActionLabel,
@@ -29,6 +26,10 @@ import {
   Trigger,
 } from 'sentry/views/alerts/incidentRules/types';
 import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRuleModal';
+
+import ActionSpecificTargetSelector from './actionSpecificTargetSelector';
+import ActionTargetSelector from './actionTargetSelector';
+import DeleteActionButton from './deleteActionButton';
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;
@@ -284,12 +285,14 @@ class ActionsPanel extends PureComponent<Props> {
     return (
       <Fragment>
         <PerformActionsListItem>
-          {t('Perform actions')}
-          <AlertParagraph>
-            {t(
-              'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
-            )}
-          </AlertParagraph>
+          <ListItemTitle>
+            {t('Perform actions')}
+            <AlertParagraph>
+              {t(
+                'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
+              )}
+            </AlertParagraph>
+          </ListItemTitle>
         </PerformActionsListItem>
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
@@ -467,13 +470,12 @@ const RuleRowContainer = styled('div')`
   border: 1px ${p => p.theme.border} solid;
 `;
 
-const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(3)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+const PerformActionsListItem = styled(ListItem)`
+  margin: ${space(2)} 0 0 0;
 `;
 
-const PerformActionsListItem = styled(StyledListItem)`
-  margin-bottom: 0;
+const ListItemTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1.3;
 `;
 

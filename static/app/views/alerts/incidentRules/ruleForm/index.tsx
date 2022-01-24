@@ -687,30 +687,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const canEdit =
       isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
 
-    const triggerForm = (hasAccess: boolean) => (
-      <Triggers
-        disabled={!hasAccess || !canEdit}
-        projects={this.state.projects}
-        errors={this.state.triggerErrors}
-        triggers={triggers}
-        aggregate={aggregate}
-        resolveThreshold={resolveThreshold}
-        thresholdType={thresholdType}
-        comparisonType={comparisonType}
-        currentProject={params.projectId}
-        organization={organization}
-        ruleId={ruleId}
-        availableActions={this.state.availableActions}
-        onChange={this.handleChangeTriggers}
-        onThresholdTypeChange={this.handleThresholdTypeChange}
-        onResolveThresholdChange={this.handleResolveThresholdChange}
-      />
-    );
-
-    const ruleNameOwnerForm = (hasAccess: boolean) => (
-      <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
-    );
-
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => (
@@ -773,10 +749,30 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 }
                 onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               />
-              <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
-              {triggerForm(hasAccess)}
-              <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
-              {ruleNameOwnerForm(hasAccess)}
+              <AlertListItem>
+                <ListItemTitle>{t('Set thresholds to trigger alert')}</ListItemTitle>
+              </AlertListItem>
+              <Triggers
+                disabled={!hasAccess || !canEdit}
+                projects={this.state.projects}
+                errors={this.state.triggerErrors}
+                triggers={triggers}
+                aggregate={aggregate}
+                resolveThreshold={resolveThreshold}
+                thresholdType={thresholdType}
+                comparisonType={comparisonType}
+                currentProject={params.projectId}
+                organization={organization}
+                ruleId={ruleId}
+                availableActions={this.state.availableActions}
+                onChange={this.handleChangeTriggers}
+                onThresholdTypeChange={this.handleThresholdTypeChange}
+                onResolveThresholdChange={this.handleResolveThresholdChange}
+              />
+              <StyledListItem>
+                <ListItemTitle>{t('Add a rule name and team')}</ListItemTitle>
+              </StyledListItem>
+              <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
             </List>
           </Form>
         )}
@@ -787,7 +783,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
+`;
+
+const ListItemTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
+  line-height: 1.3;
 `;
 
 const AlertListItem = styled(StyledListItem)`
