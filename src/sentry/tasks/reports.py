@@ -266,7 +266,7 @@ def build_project_series(start__stop, project):
             Condition(Column("timestamp"), Op.LT, stop + timedelta(days=1)),
             Condition(Column("project_id"), Op.EQ, project.id),
             Condition(Column("org_id"), Op.EQ, project.organization_id),
-            Condition(Column("outcome"), Op.IN, [Outcome.ACCEPTED]),
+            Condition(Column("outcome"), Op.EQ, Outcome.ACCEPTED),
             Condition(
                 Column("category"),
                 Op.IN,
