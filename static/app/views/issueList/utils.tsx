@@ -154,3 +154,18 @@ export function getDisplayLabel(key: IssueDisplayOptions) {
       return t('Event Count');
   }
 }
+
+export const DISCOVER_EXCLUSION_FIELDS: string[] = [
+  'query',
+  'status',
+  'bookmarked_by',
+  'assigned',
+  'assigned_to',
+  'unassigned',
+  'subscribed_by',
+  'active_at',
+  'first_release',
+  'first_seen',
+  'is',
+  '__text',
+];

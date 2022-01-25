@@ -7,7 +7,10 @@ import partial from 'lodash/partial';
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
 import DateTime from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
+import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import Tooltip from 'sentry/components/tooltip';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
@@ -96,19 +99,23 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   lifetimeCount: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'lifetimeCount'),
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeCount'),
   },
   lifetimeUserCount: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'lifetimeUserCount'),
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeUserCount'),
   },
   count: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'count'),
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'count'),
   },
   userCount: {
     sortField: null,
-    renderFunc: data => issuesCountRenderer(data, 'userCount'),
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'userCount'),
   },
   firstSeen: {
     sortField: null,
@@ -122,14 +129,21 @@ const SPECIAL_FIELDS: SpecialFields = {
 
 const issuesCountRenderer = (
   data: EventData,
+  organization: Organization,
   field: 'count' | 'userCount' | 'lifetimeCount' | 'lifetimeUserCount'
 ) => {
-  const {selectionDateString} = data;
+  const {start, end, period} = data;
   const isUserField = !!/user/i.exec(field.toLowerCase());
   const primaryCount = data[field];
   const count = data[isUserField ? 'userCount' : 'count'];
   const lifetimeCount = data[isUserField ? 'lifetimeUserCount' : 'lifetimeCount'];
   const filteredCount = data[isUserField ? 'filteredUserCount' : 'filteredCount'];
+  const discoverLink = getDiscoverUrl(data, organization);
+  const filteredDiscoverLink = getDiscoverUrl(data, organization, true);
+  const selectionDateString =
+    !!start && !!end
+      ? 'time range'
+      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
   return (
     <Container>
       <Tooltip
@@ -140,17 +154,17 @@ const issuesCountRenderer = (
           <div>
             {filteredCount ? (
               <React.Fragment>
-                <StyledContent>
+                <StyledLink to={filteredDiscoverLink}>
                   {t('Matching search filters')}
                   <WrappedCount value={filteredCount} />
-                </StyledContent>
+                </StyledLink>
                 <Divider />
               </React.Fragment>
             ) : null}
-            <StyledContent>
+            <StyledLink to={discoverLink}>
               {t(`Total in ${selectionDateString}`)}
               <WrappedCount value={count} />
-            </StyledContent>
+            </StyledLink>
             <Divider />
             <StyledContent>
               {t('Since issue began')}
@@ -174,6 +188,27 @@ const issuesCountRenderer = (
   );
 };
 
+const getDiscoverUrl = (
+  data: EventData,
+  organization: Organization,
+  filtered?: boolean
+) => {
+  const commonQuery = {projects: [Number(data.projectId)]};
+  const discoverView = EventView.fromSavedQuery({
+    ...commonQuery,
+    id: undefined,
+    start: data.start,
+    end: data.end,
+    range: data.period,
+    name: data.title,
+    fields: ['title', 'release', 'environment', 'user', 'timestamp'],
+    orderby: '-timestamp',
+    query: `issue.id:${data.id}${filtered ? data.discoverSearchQuery : ''}`,
+    version: 2,
+  });
+  return discoverView.getResultsViewUrlTarget(organization.slug);
+};
+
 const contentStyle = css`
   width: 100%;
   justify-content: space-between;
@@ -183,6 +218,15 @@ const contentStyle = css`
 
 const StyledContent = styled('div')`
   ${contentStyle};
+`;
+
+const StyledLink = styled(Link)`
+  ${contentStyle};
+  color: ${p => p.theme.gray400};
+  &:hover {
+    color: ${p => p.theme.gray400};
+    background: ${p => p.theme.hover};
+  }
 `;
 
 const SecondaryCount = styled(Count)`

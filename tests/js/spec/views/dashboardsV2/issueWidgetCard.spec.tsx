@@ -56,6 +56,7 @@ describe('Dashboards > IssueWidgetCard', function () {
             name: 'dashboard user',
             email: 'dashboarduser@sentry.io',
           },
+          project: {id: 1},
         },
       ],
     });
