@@ -24,7 +24,6 @@ import {
   DateString,
   Organization,
   PageFilters,
-  RelativePeriod,
   SelectValue,
   TagCollection,
 } from 'sentry/types';
@@ -77,7 +76,7 @@ export type DashboardWidgetModalOptions = {
   source: DashboardWidgetSource;
   start?: DateString;
   end?: DateString;
-  statsPeriod?: RelativePeriod | string;
+  statsPeriod?: string;
   selectedWidgets?: WidgetTemplate[];
   onAddLibraryWidget?: (widgets: Widget[]) => void;
 };
