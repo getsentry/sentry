@@ -10,7 +10,7 @@ import {
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {constructGridItemKey} from 'sentry/views/dashboardsV2/dashboard';
+import {constructGridItemKey} from 'sentry/views/dashboardsV2/layoutUtils';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -334,7 +334,9 @@ describe('Dashboards > Detail', function () {
       await wrapper.update();
       const modal = await mountGlobalModal();
 
-      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(
+        expect.objectContaining(widgets[0])
+      );
     });
 
     it('shows add widget option', async function () {

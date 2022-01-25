@@ -97,9 +97,7 @@ const DISCOVER_FIELD_TO_METRIC = {
 
 const DISCOVER_FIELD_TO_METRIC_GROUP_BY = {
   transaction: 'transaction',
-
-  // TODO(metrics):
-  // project
+  project: 'project_id',
 };
 
 const METRIC_TO_DISCOVER_FIELD = invert(DISCOVER_FIELD_TO_METRIC);

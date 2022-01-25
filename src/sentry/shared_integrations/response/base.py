@@ -23,8 +23,10 @@ class BaseApiResponse:
         self.status_code = status_code
 
     def __repr__(self) -> str:
+        name = type(self).__name__
+        code = self.status_code
         content_type = (self.headers or {}).get("Content-Type", "")
-        return f"<{type(self).__name__}: code={self.status_code}, content_type={content_type}>"
+        return f"<{name}: code={code}, content_type={content_type}>"
 
     @property
     def json(self) -> Any:
@@ -59,6 +61,8 @@ class BaseApiResponse:
         elif response.text.startswith("<"):
             if not allow_text:
                 raise ValueError(f"Not a valid response type: {response.text[:128]}")
+            elif ignore_webhook_errors and response.status_code >= 300:
+                return BaseApiResponse()
             elif response.status_code < 200 or response.status_code >= 300:
                 raise ValueError(
                     f"Received unexpected plaintext response for code {response.status_code}"

@@ -96,16 +96,16 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   },
   {
     id: undefined,
-    title: t('Latest Unresolved Issues'),
-    description: t('Most recently seen unresolved issues.'),
+    title: t('Issues For Review'),
+    description: t('Most recently seen unresolved issues for review.'),
     displayType: DisplayType.TABLE,
     widgetType: WidgetType.ISSUE,
     interval: '5m',
     queries: [
       {
         name: '',
-        conditions: 'is:unresolved',
-        fields: ['issue', 'assignee', 'title'],
+        conditions: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+        fields: ['issue', 'assignee', 'count', 'title'],
         orderby: 'date',
       },
     ],

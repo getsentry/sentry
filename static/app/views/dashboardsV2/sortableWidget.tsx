@@ -10,6 +10,8 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {Widget} from './types';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
+const TABLE_ITEM_LIMIT = 20;
+
 type Props = {
   widget: Widget;
   dragId: string;
@@ -82,6 +84,7 @@ function SortableWidget(props: Props) {
       // TODO(nar): These aren't necessary for supporting RGL
       isSorting: false,
       currentWidgetDragging: false,
+      tableItemLimit: TABLE_ITEM_LIMIT,
     };
     return (
       <GridWidgetWrapper>
