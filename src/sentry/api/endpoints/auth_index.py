@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import is_safe_url
@@ -102,6 +104,7 @@ class AuthIndexEndpoint(Endpoint):
         authenticated = False
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
+            logger: logging.Logger = logging.getLogger(__name__)
             try:
                 interface = Authenticator.objects.get_interface(request.user, "u2f")
                 if not interface.is_enrolled():
@@ -109,9 +112,20 @@ class AuthIndexEndpoint(Endpoint):
                 challenge = json.loads(validator.validated_data["challenge"])
                 response = json.loads(validator.validated_data["response"])
                 authenticated = interface.validate_response(request, challenge, response)
+                if not authenticated:
+                    logger.warning(
+                        "sudo_modal.u2f_authentication.verification_failed",
+                    )
             except ValueError:
+                logger.warning(
+                    "sudo_modal.u2f_authentication.value_error",
+                )
                 pass
             except LookupError:
+                logger.warning(
+                    "sudo_modal.u2f_authentication.interface_not_enrolled",
+                    {"validated_data": validator.validated_data},
+                )
                 pass
 
         # attempt password authentication
