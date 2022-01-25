@@ -99,7 +99,7 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
       }
 
       addErrorMessage(errorMessage);
-      handleXhrErrorResponse(errorMessage)(error);
+      handleXhrErrorResponse('An error occurred while fetching an issue')(error);
 
       // do nothing. The link won't be displayed
     }
