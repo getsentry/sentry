@@ -116,16 +116,18 @@ class AuthIndexEndpoint(Endpoint):
                 if not authenticated:
                     logger.warning(
                         "u2f_authentication.verification_failed",
+                        {"user": request.user.id},
                     )
             except ValueError:
                 logger.warning(
                     "u2f_authentication.value_error",
+                    {"user": request.user.id},
                 )
                 pass
             except LookupError:
                 logger.warning(
                     "u2f_authentication.interface_not_enrolled",
-                    {"validated_data": validator.validated_data},
+                    {"validated_data": validator.validated_data, "user": request.user.id},
                 )
                 pass
 
