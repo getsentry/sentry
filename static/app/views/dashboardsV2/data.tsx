@@ -3,6 +3,10 @@ import {uniqueId} from 'sentry/utils/guid';
 
 import {DashboardDetails, DisplayType, WidgetType} from './types';
 
+type DashboardTemplate = DashboardDetails & {
+  description: string;
+};
+
 export const EMPTY_DASHBOARD: DashboardDetails = {
   id: '',
   dateCreated: '',
@@ -11,12 +15,13 @@ export const EMPTY_DASHBOARD: DashboardDetails = {
   widgets: [],
 };
 
-export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
+export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
   {
     id: 'default-template',
     dateCreated: '',
     createdBy: undefined,
-    title: t('Default'),
+    title: t('General'),
+    description: t('Various Frontend & Backend Widgets'),
     widgets: [
       {
         title: t('Number of Errors'),
@@ -214,9 +219,10 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
   },
   {
     id: 'frontend-template',
-    title: t('Frontend'),
+    title: t('Frontend KPIs'),
     dateCreated: '',
     createdBy: undefined,
+    description: t('Erroring URLs and Web Vitals'),
     widgets: [
       {
         title: t('Top 5 Issues by Unique Users over Time'),
@@ -421,9 +427,10 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
   },
   {
     id: 'backend-template',
-    title: t('Backend'),
+    title: t('Backend KPIs'),
     dateCreated: '',
     createdBy: undefined,
+    description: t('Issues and Performance'),
     widgets: [
       {
         title: t('Top 5 Issues by Unique Users over Time'),
@@ -636,9 +643,10 @@ export const DASHBOARDS_TEMPLATES: DashboardDetails[] = [
   },
   {
     id: 'mobile-template',
-    title: t('Mobile'),
+    title: t('Mobile KPIs'),
     dateCreated: '',
     createdBy: undefined,
+    description: t('Crash Details and Performance Vitals'),
     widgets: [
       {
         title: t('Total Crashes'),

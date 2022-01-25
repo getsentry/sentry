@@ -147,7 +147,7 @@ class ManageDashboards extends AsyncView<Props, State> {
           {DASHBOARDS_TEMPLATES.map(dashboard => (
             <TemplateCard
               title={dashboard.title}
-              widgetCount={dashboard.widgets.length}
+              description={dashboard.description}
               onPreview={() => this.onPreview(dashboard.id)}
               onAdd={() => this.onAdd(dashboard)}
               key={dashboard.title}
