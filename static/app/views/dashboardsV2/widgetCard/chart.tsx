@@ -158,7 +158,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       // most of the time.
       const w =
         widget.layout?.w && widget.layout?.h
-          ? (widget.layout.w / widget.layout.h) * 300
+          ? (widget.layout.w / widget.layout.h) * 400
           : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
 
       return (
