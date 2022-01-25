@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, cast
 
 from django.db.models import Count
@@ -20,7 +19,6 @@ from sentry.models import (
     Integration,
     Organization,
     Project,
-    ProjectTeam,
     Release,
     ReleaseCommit,
     Repository,
@@ -39,25 +37,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-def get_projects(projects: Iterable[Project], team_ids: Iterable[int]) -> set[Project]:
-    team_projects = set(
-        ProjectTeam.objects.filter(team_id__in=team_ids)
-        .values_list("project_id", flat=True)
-        .distinct()
-    )
-    return {p for p in projects if p.id in team_projects}
-
-
-def get_users_by_teams(organization: Organization) -> Mapping[int, list[int]]:
-    user_teams: MutableMapping[int, list[int]] = defaultdict(list)
-    queryset = User.objects.filter(
-        sentry_orgmember_set__organization_id=organization.id
-    ).values_list("id", "sentry_orgmember_set__teams")
-    for user_id, team_id in queryset:
-        user_teams[user_id].append(team_id)
-    return user_teams
 
 
 def get_deploy(activity: Activity) -> Deploy | None:
