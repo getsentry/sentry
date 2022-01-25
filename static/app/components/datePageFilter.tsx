@@ -144,7 +144,7 @@ function DatePageFilter({
   const handleUpdate = (timePeriodUpdate: ChangeData) => {
     const {relative, start, end, utc} = timePeriodUpdate;
     const newTimePeriod = {
-      statsPeriod: relative,
+      period: relative,
       start,
       end,
       utc,

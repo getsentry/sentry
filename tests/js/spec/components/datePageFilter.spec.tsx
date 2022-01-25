@@ -47,6 +47,7 @@ describe('DatePageFilter', function () {
     expect(PageFiltersStore.getState()).toEqual({
       organization: null,
       isReady: true,
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '7d',
