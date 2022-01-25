@@ -112,7 +112,8 @@ class QueryBuilder:
 
         self.limitby = self.resolve_limitby(limitby)
 
-        if self.dataset != Dataset.Sessions:
+        # TODO(wmak): Refactor snuba/metrics.py to call QueryBuilder correctly.
+        if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
             self.where, self.having = self.resolve_conditions(
                 query, use_aggregate_conditions=use_aggregate_conditions
             )
@@ -153,7 +154,7 @@ class QueryBuilder:
         resolved = self.resolve_column(column)
 
         if isinstance(resolved, Column):
-            return LimitBy(resolved, count)
+            return LimitBy([resolved], count)
 
         # TODO: Limit By can only operate on a `Column`. This has the implication
         # that non aggregate transforms are not allowed in the order by clause.
