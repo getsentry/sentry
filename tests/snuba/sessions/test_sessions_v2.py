@@ -327,8 +327,6 @@ def test_massage_simple_timeseries():
 
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_unordered_timeseries():
-    """A timeseries is filled up when it only receives partial data"""
-
     query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)")
     result_totals = [{"sessions": 10}]
     # snuba returns the datetimes as strings for now
