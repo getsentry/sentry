@@ -14,6 +14,7 @@ import HookStore from 'sentry/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
   DocIntegration,
+  ExternalActorMapping,
   Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
@@ -227,4 +228,21 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
     : t(
         'Update to the latest version of our Slack app to get access to personal and team notifications.'
       );
+};
+
+/**
+ * Uses the mapping and baseEndpoint to derive the details for the mappings request.
+ * @param baseEndpoint Must have a trailing slash, since the id is appended for PUT requests!
+ * @param mapping The mapping being sent to the endpoint
+ * @returns An object containing the request method (apiMethod), and final endpoint (apiEndpoint)
+ */
+export const getExternalActorEndpointDetails = (
+  baseEndpoint: string,
+  mapping?: ExternalActorMapping
+): {apiMethod: 'POST' | 'PUT'; apiEndpoint: string} => {
+  const isValidMapping = !!mapping?.id;
+  return {
+    apiMethod: isValidMapping ? 'PUT' : 'POST',
+    apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
+  };
 };
