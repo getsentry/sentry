@@ -13,6 +13,11 @@ NOTIFICATION_SETTINGS_ALL_SOMETIMES = {
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
     NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
     NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA_ERRORS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA_TRANSACTIONS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA_ATTACHMENTS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingOptionValues.ALWAYS,
 }
 
 NOTIFICATION_SETTINGS_SLACK = {
@@ -20,6 +25,11 @@ NOTIFICATION_SETTINGS_SLACK = {
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA_ERRORS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA_TRANSACTIONS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA_ATTACHMENTS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingOptionValues.ALWAYS,
 }
 
 NOTIFICATION_SETTING_DEFAULTS = {
