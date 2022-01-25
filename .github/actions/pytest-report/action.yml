@@ -34,7 +34,7 @@ runs:
     - name: Fetch report from current branch (if not master)
       if: inputs.action != 'upload' && steps.current-branch.outputs.name != 'master'
       id: 'get-artifact-branch'
-      uses: getsentry/action-download-workflow-artifact@8938b196f708685088ab97914bad0af627dc14f7
+      uses: getsentry/action-download-workflow-artifact@2c7fdc458e9fb008b94b8399a483ff6e3af883b1
       with:
         branch: ${{ steps.current-branch.outputs.name }}
         artifact: ${{ inputs.artifact }}__internal
@@ -45,7 +45,7 @@ runs:
     - name: Fetch existing report from master
       if: inputs.action != 'upload' && (steps.get-artifact-branch.outcome == 'skipped' || steps.get-artifact-branch.outputs.result == 'failed')
       id: 'get-artifact'
-      uses: getsentry/action-download-workflow-artifact@8938b196f708685088ab97914bad0af627dc14f7
+      uses: getsentry/action-download-workflow-artifact@2c7fdc458e9fb008b94b8399a483ff6e3af883b1
       with:
         branch: ${{ inputs.branch }}
         artifact: ${{ inputs.artifact }}
@@ -59,7 +59,7 @@ runs:
       if: steps.get-artifact.outcome == 'success'
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-report
+        artifact: ${{ inputs.artifact }}__internal
         path: ${{ inputs.dest }}
 
     - name: Debug
@@ -81,5 +81,5 @@ runs:
       if: inputs.action == 'upload'
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-report
+        name: ${{ inputs.artifact }}
         path: ${{ inputs.dest }}
