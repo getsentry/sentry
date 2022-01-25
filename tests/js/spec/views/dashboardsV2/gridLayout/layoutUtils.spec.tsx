@@ -44,8 +44,7 @@ describe('Dashboards > Utils', () => {
 
       const [position, nextColumnDepths] = getNextAvailablePosition(columnDepths, 2);
 
-      expect(position.x).toEqual(expectedPosition.x);
-      expect(position.y).toEqual(expectedPosition.y);
+      expect(position).toEqual(expectedPosition);
       expect(nextColumnDepths).toEqual(expectedNextColumnDepths);
     });
 
@@ -56,8 +55,7 @@ describe('Dashboards > Utils', () => {
 
       const [position, nextColumnDepths] = getNextAvailablePosition(columnDepths, 2);
 
-      expect(position.x).toEqual(expectedPosition.x);
-      expect(position.y).toEqual(expectedPosition.y);
+      expect(position).toEqual(expectedPosition);
       expect(nextColumnDepths).toEqual(expectedNextColumnDepths);
     });
 
@@ -68,8 +66,7 @@ describe('Dashboards > Utils', () => {
 
       const [position, nextColumnDepths] = getNextAvailablePosition(columnDepths, 2);
 
-      expect(position.x).toEqual(expectedPosition.x);
-      expect(position.y).toEqual(expectedPosition.y);
+      expect(position).toEqual(expectedPosition);
       expect(nextColumnDepths).toEqual(expectedNextColumnDepths);
     });
 
@@ -80,8 +77,7 @@ describe('Dashboards > Utils', () => {
 
       const [position, nextColumnDepths] = getNextAvailablePosition(columnDepths, 2);
 
-      expect(position.x).toEqual(expectedPosition.x);
-      expect(position.y).toEqual(expectedPosition.y);
+      expect(position).toEqual(expectedPosition);
       expect(nextColumnDepths).toEqual(expectedNextColumnDepths);
     });
 
@@ -97,8 +93,7 @@ describe('Dashboards > Utils', () => {
         2
       );
 
-      expect(position.x).toEqual(expectedPosition.x);
-      expect(position.y).toEqual(expectedPosition.y);
+      expect(position).toEqual(expectedPosition);
       expect(finalColumnDepths).toEqual(expectedNextColumnDepths);
     });
 
@@ -109,8 +104,7 @@ describe('Dashboards > Utils', () => {
 
       const [position, nextColumnDepths] = getNextAvailablePosition(columnDepths, 4);
 
-      expect(position.x).toEqual(expectedPosition.x);
-      expect(position.y).toEqual(expectedPosition.y);
+      expect(position).toEqual(expectedPosition);
       expect(nextColumnDepths).toEqual(expectedNextColumnDepths);
     });
   });
