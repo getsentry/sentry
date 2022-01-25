@@ -311,6 +311,24 @@ function TeamInsightsOverview({location, router}: Props) {
             )}
             {isInsightsV2 && (
               <DescriptionCard
+                title={t('All Unresolved Issues')}
+                description={t(
+                  'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or ignored in the past.'
+                )}
+              >
+                <TeamUnresolvedIssues
+                  projects={projects}
+                  organization={organization}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start}
+                  end={end}
+                  utc={utc}
+                />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
                 title={t('New and Returning Issues')}
                 description={t(
                   'The new, regressed, and unignored issues that were assigned to your team.'
@@ -355,24 +373,6 @@ function TeamInsightsOverview({location, router}: Props) {
                 )}
               >
                 <TeamIssuesAge organization={organization} teamSlug={currentTeam!.slug} />
-              </DescriptionCard>
-            )}
-            {isInsightsV2 && (
-              <DescriptionCard
-                title={t('All Unresolved Issues')}
-                description={t(
-                  'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or ignored in the past.'
-                )}
-              >
-                <TeamUnresolvedIssues
-                  projects={projects}
-                  organization={organization}
-                  teamSlug={currentTeam!.slug}
-                  period={period}
-                  start={start}
-                  end={end}
-                  utc={utc}
-                />
               </DescriptionCard>
             )}
             <DescriptionCard
@@ -446,6 +446,8 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   }
 `;
 
-const SectionTitle = styled(Layout.Title)`
-  margin-bottom: ${space(1)} !important;
+const SectionTitle = styled('h2')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-top: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
