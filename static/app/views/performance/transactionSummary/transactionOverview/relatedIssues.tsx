@@ -23,7 +23,7 @@ type Props = {
   organization: OrganizationSummary;
   location: Location;
   transaction: string;
-  statsPeriod?: string;
+  statsPeriod?: string | null;
   start?: string;
   end?: string;
 };
