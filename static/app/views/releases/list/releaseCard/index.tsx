@@ -135,7 +135,7 @@ class ReleaseCard extends Component<Props> {
         </ReleaseInfo>
 
         <ReleaseProjects>
-          <ReleaseProjectsHeader>
+          <ReleaseProjectsHeader lightText>
             <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
               <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
               {showReleaseAdoptionStages && (
