@@ -128,7 +128,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             if attrs.get("sentry_app_config"):
                 if attrs.get("sentry_app_installation_uuid") is None:
                     raise serializers.ValidationError(
-                        {"sentry_app": "Missing paramater: sentry_app_installation_uuid"}
+                        {"sentry_app": "Missing parameter: sentry_app_installation_uuid"}
                     )
 
                 try:
