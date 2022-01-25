@@ -536,7 +536,48 @@ def build_key_transactions(interval, project):
     )
     query_result = raw_snql_query(query)
     key_errors = query_result["data"]
-    return [(e["transaction_name"], e["count()"], project.id) for e in key_errors]
+
+    transaction_names = map(lambda p: p["transaction_name"], key_errors)
+
+    def query_p95(interval):
+        start, stop = interval
+        query = Query(
+            dataset=Dataset.Transactions.value,
+            match=Entity("transactions"),
+            select=[
+                Column("transaction_name"),
+                Function("quantile(0.95)", [Column("duration")], "q95"),
+            ],
+            where=[
+                Condition(Column("finish_ts"), Op.GTE, start),
+                Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
+                Condition(Column("transaction_name"), Op.IN, transaction_names),
+                Condition(Column("project_id"), Op.EQ, project.id),
+            ],
+            groupby=[Column("transaction_name")],
+        )
+        return raw_snql_query(query)
+
+    query_result = query_p95((start, stop))
+    this_week_p95 = {}
+    for point in query_result["data"]:
+        this_week_p95[point["transaction_name"]] = point["q95"]
+
+    query_result = query_p95((start - timedelta(days=7), stop - timedelta(days=7)))
+    last_week_p95 = {}
+    for point in query_result["data"]:
+        last_week_p95[point["transaction_name"]] = point["q95"]
+
+    return [
+        (
+            e["transaction_name"],
+            e["count()"],
+            project.id,
+            this_week_p95.get(e["transaction_name"], None),
+            last_week_p95.get(e["transaction_name"], None),
+        )
+        for e in key_errors
+    ]
 
 
 def build_report(fields):
@@ -565,7 +606,7 @@ def build_report(fields):
 def take_max_n(x, y, n):
     series = x + y
     series.sort(key=lambda group_id__count: group_id__count[1], reverse=True)
-    return series[:3]
+    return series[:n]
 
 
 Report, build_project_report, merge_reports = build_report(
@@ -882,7 +923,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 
     inclusion_predicates = [
         lambda interval, project__report: project__report[1] is not None,
-        has_valid_aggregates,
+        # has_valid_aggregates,
     ]
 
     reports = dict(
@@ -1076,55 +1117,11 @@ def build_key_errors_ctx(key_events, organization):
     ]
 
 
-def build_key_transactions_ctx(key_events, organization, interval, projects):
-    project_ids = map(lambda project: project.id, projects)
-    transaction_names = map(lambda p: p[0], key_events)
-
-    start, stop = interval
-    query = Query(
-        dataset=Dataset.Transactions.value,
-        match=Entity("transactions"),
-        select=[
-            Column("transaction_name"),
-            Function("quantile(0.95)", [Column("duration")], "q95"),
-        ],
-        where=[
-            Condition(Column("finish_ts"), Op.GTE, start),
-            Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1)),
-            Condition(Column("transaction_name"), Op.IN, transaction_names),
-            Condition(Column("project_id"), Op.IN, project_ids),
-        ],
-        groupby=[Column("transaction_name")],
-    )
-    query_result = raw_snql_query(query)
-    this_week_p95 = {}
-    for point in query_result["data"]:
-        this_week_p95[point["transaction_name"]] = point["q95"]
-
-    query = Query(
-        dataset=Dataset.Transactions.value,
-        match=Entity("transactions"),
-        select=[
-            Column("transaction_name"),
-            Function("quantile(0.95)", [Column("duration")], "q95"),
-        ],
-        where=[
-            Condition(Column("finish_ts"), Op.GTE, start - timedelta(days=7)),
-            Condition(Column("finish_ts"), Op.LT, stop + timedelta(days=1) - timedelta(days=7)),
-            Condition(Column("transaction_name"), Op.IN, transaction_names),
-            Condition(Column("project_id"), Op.IN, project_ids),
-        ],
-        groupby=[Column("transaction_name")],
-    )
-    query_result = raw_snql_query(query)
-    last_week_p95 = {}
-    for point in query_result["data"]:
-        last_week_p95[point["transaction_name"]] = point["q95"]
-
+def build_key_transactions_ctx(key_events, organization, projects):
+    # Todo: use projects arg?
     # Fetch projects
-    project_ids = map(lambda p: p[2], key_events)
     project_id_to_project = {}
-    for project in organization.project_set.filter(id__in=project_ids).all():
+    for project in projects:
         project_id_to_project[project.id] = project
 
     return [
@@ -1132,8 +1129,8 @@ def build_key_transactions_ctx(key_events, organization, interval, projects):
             "name": e[0],
             "count": e[1],
             "project": project_id_to_project[e[2]],
-            "p95": this_week_p95.get(e[0], None),
-            "p95_prev_week": last_week_p95.get(e[0], None),
+            "p95": e[3],
+            "p95_prev_week": e[4],
         }
         for e in filter(lambda e: e[2] in project_id_to_project, key_events)
     ]
@@ -1183,7 +1180,7 @@ def to_context(organization, interval, reports):
         "calendar": to_calendar(organization, interval, report.calendar_series),
         "key_errors": build_key_errors_ctx(report.key_events, organization),
         "key_transactions": build_key_transactions_ctx(
-            report.key_transactions, organization, interval, reports.keys()
+            report.key_transactions, organization, reports.keys()
         ),
     }
 
