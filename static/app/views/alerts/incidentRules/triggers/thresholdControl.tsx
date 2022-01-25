@@ -20,7 +20,7 @@ type Props = ThresholdControlValue & {
   disableThresholdType: boolean;
   placeholder: string;
   comparisonType: AlertRuleComparisonType;
-  thresholdPeriod: number | '' | null;
+  thresholdPeriod: number | null;
   onChange: (value: ThresholdControlValue, e: React.FormEvent) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   onThresholdPeriodChange: (value: number) => void;
