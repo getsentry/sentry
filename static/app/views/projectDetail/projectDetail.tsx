@@ -254,7 +254,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   />
                   <Button
                     icon={<IconSettings />}
-                    label={t('Settings')}
+                    aria-label={t('Settings')}
                     to={`/settings/${params.orgId}/projects/${params.projectId}/`}
                   />
                 </ButtonBar>

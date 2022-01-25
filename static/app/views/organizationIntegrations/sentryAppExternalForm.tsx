@@ -28,10 +28,11 @@ export type SchemaFormConfig = {
   uri: string;
   required_fields?: FieldFromSchema[];
   optional_fields?: FieldFromSchema[];
+  description: string | null;
 };
 
 // only need required_fields and optional_fields
-type State = Omit<SchemaFormConfig, 'uri'> & {
+type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
 };
 

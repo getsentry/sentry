@@ -3,6 +3,7 @@ from the `metrics` dataset instead of `sessions`.
 
 Do not call this module directly. Use the `release_health` service instead. """
 import abc
+import logging
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -22,9 +23,18 @@ from typing import (
     cast,
 )
 
-from snuba_sdk import Column, Condition, Entity, Op, Query
-from snuba_sdk.expressions import Granularity
-from snuba_sdk.function import Function
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+)
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
 
@@ -45,8 +55,10 @@ from sentry.sentry_metrics.utils import (
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import TS_COL_GROUP, TS_COL_QUERY, get_intervals
-from sentry.snuba.sessions_v2 import QueryDefinition, finite_or_none
+from sentry.snuba.sessions_v2 import SNUBA_LIMIT, QueryDefinition, finite_or_none
 from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger(__name__)
 
 #: Referrers for snuba queries
 #: Referrers must be searchable, so no string interpolation here
@@ -320,16 +332,17 @@ def _get_snuba_query(
             continue
 
         try:
-            groupby[field] = resolve_tag_key(field)
+            groupby[field] = Column(resolve_tag_key(field))
         except MetricIndexNotFound:
             # exclude unresolved keys from groupby
             pass
 
     full_groupby = set(groupby.values()) - remove_groupby
+
     if series:
         full_groupby.add(Column(TS_COL_GROUP))
 
-    return Query(
+    query_args = dict(
         dataset=Dataset.Metrics.value,
         match=Entity(entity_key.value),
         select=list(columns),
@@ -337,6 +350,13 @@ def _get_snuba_query(
         where=conditions,
         granularity=Granularity(query.rollup),
     )
+
+    if series:
+        # Set higher limit and order by to be consistent with sessions_v2
+        query_args["limit"] = Limit(SNUBA_LIMIT)
+        query_args["orderby"] = [OrderBy(Column(TS_COL_GROUP), Direction.DESC)]
+
+    return Query(**query_args)
 
 
 def _get_snuba_query_data(
@@ -369,6 +389,9 @@ def _get_snuba_query_data(
         )
         referrer = REFERRERS[metric_key][query_type]
         query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
+
+        if len(query_data) == SNUBA_LIMIT:
+            logger.error("metrics_sessions_v2.snuba_limit_exceeded")
 
         yield (metric_key, query_data)
 

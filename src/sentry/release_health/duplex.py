@@ -1,4 +1,5 @@
 import collections.abc
+import math
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -446,7 +447,16 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ):
         self.sessions = SessionsReleaseHealthBackend()
         self.metrics = MetricsReleaseHealthBackend()
-        self.metrics_start = metrics_start
+        self.metrics_start = max(
+            metrics_start,
+            # The sessions backend never returns data beyond 90 days, so any
+            # query beyond 90 days will return truncated results.
+            # We assume that the release health duplex backend is sufficiently
+            # often reinstantiated, at least once per day, not only due to
+            # deploys but also because uwsgi/celery are routinely restarting
+            # processes
+            datetime.now(timezone.utc) - timedelta(days=89),
+        )
 
     @staticmethod
     def _org_from_projects(projects_list: Sequence[ProjectOrRelease]) -> Optional[Organization]:
@@ -484,7 +494,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         sessions_fn = getattr(self.sessions, fn_name)
         set_tag("releasehealth.duplex.rollup", str(rollup))
         set_tag("releasehealth.duplex.method", fn_name)
-        set_tag("releasehealth.duplex.organization", str(getattr(organization, "id")))
+        set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
 
         tags = {"method": fn_name, "rollup": str(rollup)}
         with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
@@ -656,6 +666,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "max(session.duration)": ComparatorType.Quantile,
         }
         schema_for_series = {field: [comparator] for field, comparator in schema_for_totals.items()}
+
+        # Tag sentry event with relative end time, so we can see if live queries
+        # cause greater deltas:
+        relative_hours = math.ceil((query.end - datetime.now(timezone.utc)).total_seconds() / 3600)
+        set_tag("run_sessions_query.rel_end", f"{relative_hours}h")
 
         def index_by(d: Mapping[Any, Any]) -> Any:
             return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
@@ -911,11 +926,18 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
-        schema = {
-            "duration_p50": ComparatorType.Quantile,
-            "duration_p90": ComparatorType.Quantile,
-            "*": ComparatorType.Counter,
-        }
+        schema = (
+            [
+                {
+                    "duration_p50": ComparatorType.Quantile,
+                    "duration_p90": ComparatorType.Quantile,
+                    "*": ComparatorType.Counter,
+                }
+            ],
+            {
+                "*": ComparatorType.Counter,
+            },
+        )
         should_compare = lambda _: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects([project_id])
         return self._dispatch_call(  # type: ignore
@@ -992,9 +1014,9 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Sequence[ProjectRelease]:
         schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
 
-        set_tag("get_project_releases_by_stability.limit", str(limit))
-        set_tag("get_project_releases_by_stability.offset", str(offset))
-        set_tag("get_project_releases_by_stability.scope", str(scope))
+        set_tag("gprbs.limit", str(limit))
+        set_tag("gprbs.offset", str(offset))
+        set_tag("gprbs.scope", str(scope))
 
         if stats_period is None:
             stats_period = "24h"

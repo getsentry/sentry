@@ -135,7 +135,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           <ActionsLeft>
             {inviteDetails.needsSso && (
               <Button
-                label="sso-login"
+                aria-label="sso-login"
                 priority="primary"
                 href={this.makeNextUrl(`/auth/login/${inviteDetails.orgSlug}/`)}
               >
@@ -144,7 +144,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
             )}
             {!inviteDetails.requireSso && (
               <Button
-                label="create-account"
+                aria-label="create-account"
                 priority="primary"
                 href={this.makeNextUrl('/auth/register/')}
               >
@@ -212,7 +212,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     return (
       <Actions>
         <Button
-          label="join-organization"
+          aria-label="join-organization"
           priority="primary"
           disabled={accepting}
           onClick={this.handleAcceptInvite}

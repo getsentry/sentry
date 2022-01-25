@@ -5,28 +5,23 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {Environment, PageFilters} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 
-import {normalizeDateTimeParams} from './parse';
-
-const DEFAULT_DATETIME_PARAMS = normalizeDateTimeParams({});
-
-const LOCAL_STORAGE_KEY = 'global-selection';
+import {PageFiltersStringified} from './types';
 
 /**
  * Make a default page filters object
  */
 export function getDefaultSelection(): PageFilters {
-  const {utc, start, end, statsPeriod} = DEFAULT_DATETIME_PARAMS;
-
   const datetime = {
-    start: start || null,
-    end: end || null,
-    period: statsPeriod || '',
-    utc: typeof utc !== 'undefined' ? utc === 'true' : null,
+    start: null,
+    end: null,
+    period: DEFAULT_STATS_PERIOD,
+    utc: null,
   };
 
   return {
@@ -81,12 +76,16 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
 }
 
 function makeLocalStorageKey(orgSlug: string) {
-  return `${LOCAL_STORAGE_KEY}:${orgSlug}`;
+  return `global-selection:${orgSlug}`;
 }
 
-type UpdateData = {
-  project?: Array<string | number> | string | number | null;
-  environment?: Environment['id'][] | null;
+// XXX(epurkhiser): Note the difference here between the update input type and
+// retrieved output type. It is like this historically because of how these
+// functions have been used
+
+type RetrievedData = {
+  projects: number[];
+  environments: string[];
 };
 
 /**
@@ -105,7 +104,7 @@ type UpdateData = {
 export function setPageFiltersStorage(
   orgSlug: string | null,
   current: PageFilters,
-  update: UpdateData
+  newQuery: PageFiltersStringified
 ) {
   const org = orgSlug && OrganizationsStore.get(orgSlug);
 
@@ -116,17 +115,9 @@ export function setPageFiltersStorage(
     return;
   }
 
-  const {project, environment} = update;
-  const validatedProject = project
-    ? (Array.isArray(project) ? project : [project])
-        .map(Number)
-        .filter(value => !isNaN(value))
-    : undefined;
-  const validatedEnvironment = environment;
-
   const dataToSave = {
-    projects: validatedProject || current.projects,
-    environments: validatedEnvironment || current.environments,
+    projects: newQuery.project || current.projects,
+    environments: newQuery.environment || current.environments,
   };
 
   const localStorageKey = makeLocalStorageKey(org.slug);
@@ -149,15 +140,24 @@ export function getPageFilterStorage(orgSlug: string) {
     return null;
   }
 
+  let decoded: any;
+
   try {
-    return JSON.parse(value) as Omit<PageFilters, 'datetime'>;
+    decoded = JSON.parse(value);
   } catch (err) {
     // use default if invalid
     Sentry.captureException(err);
     console.error(err); // eslint-disable-line no-console
+
+    return null;
   }
 
-  return null;
+  const result: RetrievedData = {
+    projects: decoded.projects?.map(Number) ?? [],
+    environments: decoded.environments ?? [],
+  };
+
+  return result;
 }
 
 /**

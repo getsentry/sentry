@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
-import {components, OptionProps} from 'react-select';
+import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -24,12 +24,12 @@ import {
   DateString,
   Organization,
   PageFilters,
-  RelativePeriod,
   SelectValue,
   TagCollection,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Measurements from 'sentry/utils/measurements/measurements';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
@@ -57,6 +57,7 @@ import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGro
 import Field from 'sentry/views/settings/components/forms/field';
 import FieldLabel from 'sentry/views/settings/components/forms/field/fieldLabel';
 
+import Option from '../forms/selectOption';
 import Tooltip from '../tooltip';
 
 import {TAB, TabsButtonBar} from './dashboardWidgetLibraryModal/tabsButtonBar';
@@ -75,7 +76,7 @@ export type DashboardWidgetModalOptions = {
   source: DashboardWidgetSource;
   start?: DateString;
   end?: DateString;
-  statsPeriod?: RelativePeriod | string;
+  statsPeriod?: string | null;
   selectedWidgets?: WidgetTemplate[];
   onAddLibraryWidget?: (widgets: Widget[]) => void;
 };
@@ -161,7 +162,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (this.omitDashboardProp) {
       this.fetchDashboards();
     }
-    this.handleDefaultFields();
   }
 
   get omitDashboardProp() {
@@ -208,6 +208,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       if (typeof onUpdateWidget === 'function' && !!previousWidget) {
         onUpdateWidget({
           id: previousWidget?.id,
+          layout: previousWidget?.layout,
           ...widgetData,
         });
         addSuccessMessage(t('Updated widget.'));
@@ -317,17 +318,20 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     }
   };
 
-  handleDefaultFields = () => {
-    const {defaultWidgetQuery, defaultTableColumns, widget} = this.props;
+  handleDefaultFields = (newDisplayType: DisplayType) => {
+    const {displayType, defaultWidgetQuery, defaultTableColumns, widget} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      const displayType = prevState.displayType as Widget['displayType'];
-      const normalized = normalizeQueries(displayType, prevState.queries);
+      const normalized = normalizeQueries(newDisplayType, prevState.queries);
+      if (newDisplayType === DisplayType.TOP_N) {
+        // TOP N display should only allow a single query
+        normalized.splice(1);
+      }
 
       if (!prevState.userHasModified) {
         // If the Widget is an issue widget,
         if (
-          displayType === DisplayType.TABLE &&
+          newDisplayType === DisplayType.TABLE &&
           widget?.widgetType === WidgetType.ISSUE
         ) {
           set(newState, 'queries', widget.queries);
@@ -338,19 +342,16 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         // Default widget provided by Add to Dashboard from Discover
         if (defaultWidgetQuery && defaultTableColumns) {
           // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
-          if (displayType === DisplayType.TABLE) {
+          // This is so the widget can reflect the same columns as the table in Discover without requiring additional user input
+          if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
               query.fields = [...defaultTableColumns];
             });
-          } else if (displayType === DisplayType.TOP_N) {
-            normalized.forEach(query => {
-              // Append Y-Axis to query.fields since TOP_N view assumes the last field is the Y-Axis
-              query.fields = [...defaultTableColumns, defaultWidgetQuery.fields[0]];
-              query.orderby = defaultWidgetQuery.orderby;
-            });
-          } else {
+          } else if (newDisplayType === displayType) {
+            // When switching back to original display type, default fields back to the fields provided from the discover query
             normalized.forEach(query => {
               query.fields = [...defaultWidgetQuery.fields];
+              query.orderby = defaultWidgetQuery.orderby;
             });
           }
         }
@@ -364,6 +365,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
   handleFieldChange = (field: string) => (value: string) => {
     const {organization, source} = this.props;
+    const {displayType} = this.state;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
@@ -379,8 +381,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       return {...newState, errors: undefined};
     });
 
-    if (field === 'displayType') {
-      this.handleDefaultFields();
+    if (field === 'displayType' && value !== displayType) {
+      this.handleDefaultFields(value as DisplayType);
     }
   };
 
@@ -511,11 +513,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   containerDisplayMode="block"
                   position="right"
                 >
-                  <components.Option
-                    label={label}
-                    data={data}
-                    {...(optionProps as any)}
-                  />
+                  <Option label={label} data={data} {...(optionProps as any)} />
                 </Tooltip>
               ),
             }}
@@ -551,13 +549,14 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const querySelection: PageFilters = statsPeriod
       ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
       : start && end
-      ? {...selection, datetime: {start, end, period: '', utc: null}}
+      ? {...selection, datetime: {start, end, period: null, utc: null}}
       : selection;
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
         organization,
         tagKeys: Object.values(tags).map(({key}) => key),
         measurementKeys,
+        spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
       });
 
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
