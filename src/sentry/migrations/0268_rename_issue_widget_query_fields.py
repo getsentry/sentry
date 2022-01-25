@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0268_sentry_release_version_btree"),
+        ("sentry", "0267_sentry_release_version_btree"),
     ]
 
     operations = [
