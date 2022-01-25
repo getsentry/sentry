@@ -125,6 +125,7 @@ class InnerGlobalSdkSuggestions extends React.Component<Props, State> {
     const showBroadcastsPanel = (
       <Button
         priority="link"
+        size="zero"
         onClick={() => {
           SidebarPanelActions.activatePanel(SidebarPanelKey.Broadcasts);
           recordAnalyticsClicked({organization});
@@ -143,6 +144,7 @@ class InnerGlobalSdkSuggestions extends React.Component<Props, State> {
           <Actions>
             <Button
               priority="link"
+              size="zero"
               title={t('Dismiss for the next two weeks')}
               onClick={this.snoozePrompt}
             >
