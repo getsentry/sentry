@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import logging
 import re
@@ -327,6 +329,10 @@ class ReleaseQuerySet(models.QuerySet):
         return build_number
 
 
+def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
+    return f"g-r:{group_id}-{project_id}-{first}"
+
+
 class ReleaseModelManager(BaseManager):
     def get_queryset(self):
         return ReleaseQuerySet(self.model, using=self._db)
@@ -375,6 +381,38 @@ class ReleaseModelManager(BaseManager):
 
     def order_by_recent(self):
         return self.get_queryset().order_by_recent()
+
+    def _get_group_release_version(self, group_id: int, orderby: str) -> str:
+        from sentry.models import GroupRelease
+
+        # Using `id__in()` because there is no foreign key relationship.
+        return self.get(
+            id__in=GroupRelease.objects.filter(group_id=group_id)
+            .order_by(orderby)
+            .values("release_id")[:1]
+        ).version
+
+    def get_group_release_version(
+        self, project_id: int, group_id: int, first: bool = True, use_cache: bool = True
+    ) -> str | None:
+        cache_key = _get_cache_key(project_id, group_id, first)
+
+        release_version = cache.get(cache_key) if use_cache else None
+        if release_version is False:
+            # We've cached the fact that no rows exist.
+            return None
+
+        if release_version is None:
+            # Cache miss or not use_cache.
+            orderby = "first_seen" if first else "-last_seen"
+            try:
+                release_version = self._get_group_release_version(group_id, orderby)
+            except Release.DoesNotExist:
+                release_version = False
+            cache.set(cache_key, release_version, 3600)
+
+        # Convert the False back into a None.
+        return release_version or None
 
 
 class Release(Model):
