@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timezone
 from typing import Dict, List, Mapping, MutableMapping, Union
 from unittest.mock import Mock, call, patch
@@ -9,7 +10,12 @@ from arroyo.types import Message, Partition, Position, Topic
 from arroyo.utils.clock import TestingClock as Clock
 
 from sentry.sentry_metrics.indexer.mock import MockIndexer
-from sentry.sentry_metrics.multiprocess import BatchMessages, ProduceStep, process_messages
+from sentry.sentry_metrics.multiprocess import (
+    BatchMessages,
+    MetricsBatchBuilder,
+    ProduceStep,
+    process_messages,
+)
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.utils import json
 
@@ -17,7 +23,7 @@ from sentry.utils import json
 def test_batch_messages() -> None:
     next_step = Mock()
 
-    max_batch_time = 100.0
+    max_batch_time = 100.0  # seconds
     max_batch_size = 2
 
     batch_messages_step = BatchMessages(
@@ -59,6 +65,46 @@ def test_batch_messages() -> None:
     )
 
     assert batch_messages_step._BatchMessages__batch is None
+
+
+def test_metrics_batch_builder():
+    max_batch_time = 3.0  # seconds
+    max_batch_size = 2
+
+    # 1. Ready when max_batch_size is reached
+    batch_builder_size = MetricsBatchBuilder(
+        max_batch_size=max_batch_size, max_batch_time=max_batch_time
+    )
+
+    assert not batch_builder_size.ready()
+
+    message1 = Message(
+        Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
+    )
+    batch_builder_size.append(message1)
+    assert not batch_builder_size.ready()
+
+    message2 = Message(
+        Partition(Topic("topic"), 0), 2, KafkaPayload(None, b"another value", []), datetime.now()
+    )
+    batch_builder_size.append(message2)
+    assert batch_builder_size.ready()
+
+    # 2. Ready when max_batch_time is reached
+    batch_builder_time = MetricsBatchBuilder(
+        max_batch_size=max_batch_size, max_batch_time=max_batch_time
+    )
+
+    assert not batch_builder_time.ready()
+
+    message1 = Message(
+        Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
+    )
+    batch_builder_time.append(message1)
+    assert not batch_builder_time.ready()
+
+    time.sleep(3)
+    assert batch_builder_time.ready()
 
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())
