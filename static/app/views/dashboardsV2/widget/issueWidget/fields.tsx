@@ -19,10 +19,10 @@ export enum FieldKey {
   IS_HANDLED = 'isHandled',
   LAST_SEEN = 'lastSeen',
   FIRST_SEEN = 'firstSeen',
-  COUNT = 'events',
-  USER_COUNT = 'users',
-  LIFETIME_COUNT = 'lifetimeEvents',
-  LIFETIME_USER_COUNT = 'lifetimeUsers',
+  EVENTS = 'events',
+  USERS = 'users',
+  LIFETIME_EVENTS = 'lifetimeEvents',
+  LIFETIME_USERS = 'lifetimeUsers',
 }
 
 export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
@@ -37,8 +37,13 @@ export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.IS_HANDLED]: 'boolean',
   [FieldKey.LAST_SEEN]: 'string',
   [FieldKey.FIRST_SEEN]: 'string',
-  [FieldKey.COUNT]: 'string',
-  [FieldKey.USER_COUNT]: 'string',
-  [FieldKey.LIFETIME_COUNT]: 'string',
-  [FieldKey.LIFETIME_USER_COUNT]: 'string',
+  [FieldKey.EVENTS]: 'string',
+  [FieldKey.USERS]: 'string',
+  [FieldKey.LIFETIME_EVENTS]: 'string',
+  [FieldKey.LIFETIME_USERS]: 'string',
+};
+
+export const ISSUE_FIELD_TO_HEADER_MAP = {
+  [FieldKey.LIFETIME_EVENTS]: 'Lifetime Events',
+  [FieldKey.LIFETIME_USERS]: 'Lifetime Users',
 };
