@@ -1,20 +1,13 @@
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 
-from .alert_rule import AlertRuleSerializer
-from .alert_rule_trigger import AlertRuleTriggerSerializer
-from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer
-
 __all__ = (
     "AlertRuleSerializer",
     "AlertRuleTriggerSerializer",
     "AlertRuleTriggerActionSerializer",
     "ACTION_TARGET_TYPE_TO_STRING",
-    "CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS",
-    "DATASET_VALID_EVENT_TYPES",
     "STRING_TO_ACTION_TARGET_TYPE",
     "STRING_TO_ACTION_TYPE",
-    "UNSUPPORTED_QUERIES",
 )
 
 STRING_TO_ACTION_TYPE = {
@@ -41,3 +34,8 @@ UNSUPPORTED_QUERIES = {"release:latest"}
 
 # Allowed time windows (in minutes) for crash rate alerts
 CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [30, 60, 120, 240, 720, 1440]
+
+
+from .alert_rule import AlertRuleSerializer  # NOQA
+from .alert_rule_trigger import AlertRuleTriggerSerializer  # NOQA
+from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer  # NOQA
