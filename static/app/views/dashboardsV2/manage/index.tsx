@@ -30,7 +30,7 @@ import {DASHBOARDS_TEMPLATES} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import {DashboardDetails, DashboardListItem} from '../types';
 
-import DashboardList from './dashboardList';
+import DashboardList from './dashboardGridList';
 import TemplateCard from './templateCard';
 import {setShowTemplates, shouldShowTemplates} from './utils';
 
