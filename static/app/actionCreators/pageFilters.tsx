@@ -136,7 +136,7 @@ export function initializeUrlState({
     },
   };
 
-  // Do not set a period if we an have absolute start and end
+  // Do not set a period if we have absolute start and end
   if (pageFilters.datetime.start && pageFilters.datetime.end) {
     pageFilters.datetime.period = '';
   }
