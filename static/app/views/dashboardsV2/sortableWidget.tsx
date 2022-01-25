@@ -75,7 +75,6 @@ function SortableWidget(props: Props) {
     currentWidgetDragging,
     showContextMenu: true,
     isPreview,
-    tableItemLimit: TABLE_ITEM_LIMIT,
   };
 
   if (organization.features.includes('dashboard-grid-layout')) {
@@ -85,6 +84,7 @@ function SortableWidget(props: Props) {
       // TODO(nar): These aren't necessary for supporting RGL
       isSorting: false,
       currentWidgetDragging: false,
+      tableItemLimit: TABLE_ITEM_LIMIT,
     };
     return (
       <GridWidgetWrapper>
