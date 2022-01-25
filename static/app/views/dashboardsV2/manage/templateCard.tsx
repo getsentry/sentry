@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import Card from 'sentry/components/card';
-import TextOverflow from 'sentry/components/textOverflow';
 import {IconAdd, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -27,10 +26,10 @@ function TemplateCard({title, widgetCount, onPreview, onAdd}: Props) {
       </Header>
       <ButtonContainer>
         <StyledButton onClick={onAdd} icon={<IconAdd isCircled />}>
-          <TextOverflow>{t('Add Dashboard')}</TextOverflow>
+          {t('Add Dashboard')}
         </StyledButton>
         <StyledButton priority="primary" onClick={onPreview}>
-          <TextOverflow>{t('Preview Dashboard')}</TextOverflow>
+          {t('Preview')}
         </StyledButton>
       </ButtonContainer>
     </StyledCard>
@@ -42,7 +41,7 @@ const StyledCard = styled(Card)`
   padding: ${space(2)};
 `;
 
-const Detail = styled(TextOverflow)`
+const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
@@ -56,6 +55,14 @@ const Header = styled('div')`
 const ButtonContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    flex-direction: column;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    flex-direction: row;
+  }
 `;
 
 const StyledButton = styled(Button)`
