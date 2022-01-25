@@ -148,7 +148,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
       {
         seriesName: 'previous failure_rate()',
         stack: 'previous',
-        data: previousSeries.some(serie => defined(serie.value)) ? series : [],
+        data: previousSeries.some(serie => defined(serie.value)) ? previousSeries : [],
       },
     ];
 
