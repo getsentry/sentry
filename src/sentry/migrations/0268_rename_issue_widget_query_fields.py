@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0266_add_dashboard_widget_detail_field"),
+        ("sentry", "0268_sentry_release_version_btree"),
     ]
 
     operations = [
