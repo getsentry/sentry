@@ -18,6 +18,7 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   Environment,
@@ -195,7 +196,6 @@ export function initializeUrlState({
   }
 
   PageFiltersActions.initializeUrlState(pageFilters);
-  PageFiltersActions.setOrganization(organization);
 
   const newDatetime = {
     ...datetime,
@@ -300,7 +300,8 @@ export function updateParams(obj: PageFiltersUpdate, router?: Router, options?: 
   }
 
   if (options?.save) {
-    const {organization, selection} = PageFiltersStore.getState();
+    const {organization} = OrganizationStore.getState();
+    const {selection} = PageFiltersStore.getState();
     const orgSlug = organization?.slug ?? null;
 
     setPageFiltersStorage(orgSlug, selection, newQuery);

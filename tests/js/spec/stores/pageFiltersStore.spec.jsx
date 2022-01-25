@@ -18,7 +18,6 @@ describe('PageFiltersStore', function () {
 
   it('getState()', function () {
     expect(PageFiltersStore.getState()).toEqual({
-      organization: null,
       isReady: false,
       pinnedFilters: new Set(),
       selection: {
