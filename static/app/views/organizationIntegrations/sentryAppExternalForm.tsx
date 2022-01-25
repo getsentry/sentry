@@ -325,7 +325,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     if (this.model.validateForm()) {
       onSubmitSuccess({
         // The form data must be nested in 'settings' to ensure they don't overlap with any other field names.
-        settings: formData,
+        settings: Object.entries(formData).map(([name, value]) => ({name, value})),
         sentryAppInstallationUuid,
         // Used on the backend to explicitly associate with a different rule than those without a custom form.
         hasSchemaFormConfig: true,
