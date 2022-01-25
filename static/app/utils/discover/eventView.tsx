@@ -181,7 +181,7 @@ const decodeSorts = (location: Location): Array<Sort> => {
   return fromSorts(sorts);
 };
 
-const encodeSort = (sort: Sort): string => {
+export const encodeSort = (sort: Sort): string => {
   switch (sort.kind) {
     case 'desc': {
       return `-${sort.field}`;
