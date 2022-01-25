@@ -76,6 +76,7 @@ export type UnsavedIncidentRule = {
   triggers: Trigger[];
   aggregate: string;
   thresholdType: AlertRuleThresholdType;
+  thresholdPeriod: number | '' | null;
   resolveThreshold: number | '' | null;
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];

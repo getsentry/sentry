@@ -19,8 +19,10 @@ type Props = ThresholdControlValue & {
   disableThresholdType: boolean;
   placeholder: string;
   comparisonType: AlertRuleComparisonType;
+  thresholdPeriod: number | '' | null;
   onChange: (value: ThresholdControlValue, e: React.FormEvent) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  onThresholdPeriodChange: (value: number) => void;
 };
 
 type State = {
@@ -89,6 +91,7 @@ class ThresholdControl extends React.Component<Props, State> {
   render() {
     const {currentValue} = this.state;
     const {
+      thresholdPeriod,
       thresholdType,
       comparisonType,
       threshold,
@@ -98,11 +101,11 @@ class ThresholdControl extends React.Component<Props, State> {
       onThresholdTypeChange: __,
       disabled,
       disableThresholdType,
-      ...props
+      onThresholdPeriodChange,
     } = this.props;
 
     return (
-      <div {...props}>
+      <Wrapper>
         <Container comparisonType={comparisonType}>
           <SelectContainer>
             <SelectControl
@@ -140,6 +143,7 @@ class ThresholdControl extends React.Component<Props, State> {
               onChange={this.handleTypeChange}
             />
           </SelectContainer>
+
           <ThresholdContainer comparisonType={comparisonType}>
             <ThresholdInput>
               <StyledInput
@@ -166,21 +170,59 @@ class ThresholdControl extends React.Component<Props, State> {
                 </Tooltip>
               </DragContainer>
             </ThresholdInput>
-            {comparisonType === AlertRuleComparisonType.CHANGE && '%'}
+            {comparisonType === AlertRuleComparisonType.CHANGE && (
+              <PercentWrapper>%</PercentWrapper>
+            )}
           </ThresholdContainer>
         </Container>
-      </div>
+        <SelectContainer>
+          <SelectControl
+            isDisabled={disabled}
+            name="thresholdPeriod"
+            value={thresholdPeriod ?? 1}
+            options={[
+              {
+                value: 1,
+                label: t('For 1 minute'),
+              },
+              {
+                value: 2,
+                label: t('For 2 minutes'),
+              },
+              {
+                value: 5,
+                label: t('For 5 minutes'),
+              },
+              {
+                value: 10,
+                label: t('For 10 minutes'),
+              },
+              {
+                value: 20,
+                label: t('For 20 minutes'),
+              },
+            ]}
+            onChange={onThresholdPeriodChange}
+          />
+        </SelectContainer>
+      </Wrapper>
     );
   }
 }
 
+const Wrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
 const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
-  flex: 1;
+  flex: 2;
   display: flex;
   align-items: center;
   flex-direction: ${p =>
     p.comparisonType === AlertRuleComparisonType.COUNT ? 'row' : 'row-reverse'};
-  gap: ${p => (p.comparisonType === AlertRuleComparisonType.COUNT ? space(1) : space(2))};
+  gap: ${space(1)};
 `;
 
 const SelectContainer = styled('div')`
@@ -188,7 +230,7 @@ const SelectContainer = styled('div')`
 `;
 
 const ThresholdContainer = styled('div')<{comparisonType: AlertRuleComparisonType}>`
-  flex: ${p => (p.comparisonType === AlertRuleComparisonType.COUNT ? '3' : '2')};
+  flex: 1;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -200,12 +242,14 @@ const StyledInput = styled(Input)`
 `;
 
 const ThresholdInput = styled('div')`
-  flex: 1;
   position: relative;
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-right: ${space(1)};
+`;
+
+const PercentWrapper = styled('div')`
+  margin-left: ${space(1)};
 `;
 
 const DragContainer = styled('div')`
@@ -214,8 +258,4 @@ const DragContainer = styled('div')`
   right: 12px;
 `;
 
-export default styled(ThresholdControl)`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
+export default ThresholdControl;

@@ -11,6 +11,7 @@ import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import ThresholdControl from 'sentry/views/alerts/incidentRules/triggers/thresholdControl';
 import Field from 'sentry/views/settings/components/forms/field';
+import FieldDescription from 'sentry/views/settings/components/forms/field/fieldDescription';
 
 import {isSessionAggregate} from '../../utils';
 import {
@@ -35,6 +36,7 @@ type Props = {
   projects: Project[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
   comparisonType: AlertRuleComparisonType;
   aggregate: UnsavedIncidentRule['aggregate'];
   trigger: Trigger;
@@ -46,6 +48,7 @@ type Props = {
 
   onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  onThresholdPeriodChange: (value: number) => void;
 };
 
 class TriggerForm extends React.PureComponent<Props> {
@@ -72,15 +75,18 @@ class TriggerForm extends React.PureComponent<Props> {
       trigger,
       isCritical,
       thresholdType,
+      thresholdPeriod,
       comparisonType,
       fieldHelp,
       triggerLabel,
       placeholder,
       onThresholdTypeChange,
+      onThresholdPeriodChange,
     } = this.props;
 
     return (
-      <Field
+      <StyledField
+        inline={false}
         label={triggerLabel}
         help={fieldHelp}
         required={isCritical}
@@ -91,13 +97,15 @@ class TriggerForm extends React.PureComponent<Props> {
           disableThresholdType={!isCritical}
           type={trigger.label}
           thresholdType={thresholdType}
+          thresholdPeriod={thresholdPeriod}
           threshold={trigger.alertThreshold}
           comparisonType={comparisonType}
           placeholder={placeholder}
           onChange={this.handleChangeThreshold}
           onThresholdTypeChange={onThresholdTypeChange}
+          onThresholdPeriodChange={onThresholdPeriodChange}
         />
-      </Field>
+      </StyledField>
     );
   }
 }
@@ -183,11 +191,13 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       organization,
       triggers,
       thresholdType,
+      thresholdPeriod,
       comparisonType,
       aggregate,
       resolveThreshold,
       projects,
       onThresholdTypeChange,
+      onThresholdPeriodChange,
     } = this.props;
 
     const resolveTrigger: UnsavedTrigger = {
@@ -212,6 +222,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               disabled={disabled}
               error={errors && errors.get(index)}
               trigger={trigger}
+              thresholdPeriod={thresholdPeriod}
               thresholdType={thresholdType}
               comparisonType={comparisonType}
               aggregate={aggregate}
@@ -244,6 +255,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               }
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
+              onThresholdPeriodChange={onThresholdPeriodChange}
             />
           );
         })}
@@ -254,6 +266,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           error={errors && errors.get(2)}
           trigger={resolveTrigger}
           // Flip rule thresholdType to opposite
+          thresholdPeriod={thresholdPeriod}
           thresholdType={+!thresholdType}
           comparisonType={comparisonType}
           aggregate={aggregate}
@@ -274,6 +287,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           placeholder={t('Automatic')}
           onChange={this.handleChangeResolveTrigger}
           onThresholdTypeChange={onThresholdTypeChange}
+          onThresholdPeriodChange={onThresholdPeriodChange}
         />
       </React.Fragment>
     );
@@ -293,6 +307,23 @@ const WarningIndicator = styled(CircleIndicator)`
 const ResolvedIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.green300};
   margin-right: ${space(1)};
+`;
+
+const StyledField = styled(Field)`
+  display: flex;
+  flex-direction: row;
+
+  & > div {
+    flex: 1 0 60%;
+  }
+
+  ${FieldDescription} {
+    flex: 1 0 40%;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column;
+  }
 `;
 
 export default withConfig(withApi(TriggerFormContainer));
