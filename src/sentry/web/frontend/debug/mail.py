@@ -520,6 +520,7 @@ def report(request):
             build_usage_outcomes(),
             build_calendar_data(project),
             key_events=[(g.id, random.randint(0, 1000)) for g in Group.objects.all()[:3]],
+            key_transactions=[("/transaction/1", 1234, project.id, 1111, 2222)],
         )
 
     if random.random() < 0.85:

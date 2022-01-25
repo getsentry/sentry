@@ -567,10 +567,10 @@
         <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="#">{{a.name}}</a>
         <div style="font-size: 12px; color: #80708F;">{{a.project.name}}</div>
       </div>
-      <div style="font-size: 14px; margin-left: auto;">
+      <div style="font-size: 14px; margin-left: auto; display: flex;">
         {% if a.p95_prev_week %}
         <span>{{a.p95_prev_week | duration}}</span>
-        <span> -> </span>
+        <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-right.png' %}" width="16px" height="16px" style="margin: 0 8px;">
         {% endif %}
         <span>{{a.p95 | duration}}</span>
       </div>
