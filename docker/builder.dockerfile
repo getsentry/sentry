@@ -23,8 +23,8 @@ RUN mv /etc/apt/sources.list /etc/apt/sources.list.bakevan \
     && echo "deb-src http://mirrors.cloud.tencent.com/debian/ buster-backports main non-free contrib" >>/etc/apt/sources.list
 
 # replace pipy sources
-RUN pip3 install -i https://pypi.douban.com/simple -U pip \
-    && pip3 config set global.index-url https://pypi.douban.com/simple/
+RUN pip3 install -i https://mirrors.cloud.tencent.com/pypi/simple -U pip \
+    && pip3 config set global.index-url https://mirrors.cloud.tencent.com/pypi/simple
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
   # Needed for fetching stuff
