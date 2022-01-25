@@ -25,7 +25,9 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  const {organization, project, routerContext} = initializeOrg();
+  const {organization, project, routerContext} = initializeOrg({
+    organization: {features: ['metric-alert-threshold-period']},
+  });
   const createWrapper = props =>
     mountWithTheme(
       <RuleFormContainer

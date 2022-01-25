@@ -1,10 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import SelectControl from 'sentry/components/forms/selectControl';
 import NumberDragControl from 'sentry/components/numberDragControl';
 import Tooltip from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   AlertRuleComparisonType,
@@ -178,36 +179,20 @@ class ThresholdControl extends React.Component<Props, State> {
             )}
           </ThresholdContainer>
         </Container>
-        <SelectContainer>
-          <SelectControl
-            isDisabled={disabled}
-            name="thresholdPeriod"
-            value={thresholdPeriod}
-            options={[
-              {
-                value: 1,
-                label: t('For 1 minute'),
-              },
-              {
-                value: 2,
-                label: t('For 2 minutes'),
-              },
-              {
-                value: 5,
-                label: t('For 5 minutes'),
-              },
-              {
-                value: 10,
-                label: t('For 10 minutes'),
-              },
-              {
-                value: 20,
-                label: t('For 20 minutes'),
-              },
-            ]}
-            onChange={this.handleThresholdPeriodChange}
-          />
-        </SelectContainer>
+        <Feature features={['metric-alert-threshold-period']}>
+          <SelectContainer>
+            <SelectControl
+              isDisabled={disabled}
+              name="thresholdPeriod"
+              value={thresholdPeriod}
+              options={[1, 2, 5, 10, 20].map(value => ({
+                value,
+                label: tn('For %s minute', 'For %s minutes', value),
+              }))}
+              onChange={this.handleThresholdPeriodChange}
+            />
+          </SelectContainer>
+        </Feature>
       </Wrapper>
     );
   }

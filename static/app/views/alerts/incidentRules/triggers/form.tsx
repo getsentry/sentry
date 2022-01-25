@@ -11,7 +11,6 @@ import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import ThresholdControl from 'sentry/views/alerts/incidentRules/triggers/thresholdControl';
 import Field from 'sentry/views/settings/components/forms/field';
-import FieldDescription from 'sentry/views/settings/components/forms/field/fieldDescription';
 
 import {isSessionAggregate} from '../../utils';
 import {
@@ -85,8 +84,7 @@ class TriggerForm extends React.PureComponent<Props> {
     } = this.props;
 
     return (
-      <StyledField
-        inline={false}
+      <Field
         label={triggerLabel}
         help={fieldHelp}
         required={isCritical}
@@ -105,7 +103,7 @@ class TriggerForm extends React.PureComponent<Props> {
           onThresholdTypeChange={onThresholdTypeChange}
           onThresholdPeriodChange={onThresholdPeriodChange}
         />
-      </StyledField>
+      </Field>
     );
   }
 }
@@ -307,23 +305,6 @@ const WarningIndicator = styled(CircleIndicator)`
 const ResolvedIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.green300};
   margin-right: ${space(1)};
-`;
-
-const StyledField = styled(Field)`
-  display: flex;
-  flex-direction: row;
-
-  & > div {
-    flex: 1 0 60%;
-  }
-
-  ${FieldDescription} {
-    flex: 1 0 40%;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    flex-direction: column;
-  }
 `;
 
 export default withConfig(withApi(TriggerFormContainer));
