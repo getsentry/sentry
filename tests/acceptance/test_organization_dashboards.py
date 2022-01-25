@@ -100,9 +100,10 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
-        self.team = self.create_team(organization=self.organization, name="Mariachi Band")
-        self.project = self.create_project(
-            organization=self.organization, teams=[self.team], name="Bengal"
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
+            project_id=self.project.id,
         )
         self.dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by=self.user, organization=self.organization
@@ -361,6 +362,31 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots(
                 "dashboards - delete existing widget does not reset new widget layout"
             )
+
+    def test_resize_big_number_widget(self):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Big Number Widget",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count_unique(issue)"], order=0
+        )
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+            self.page.visit_dashboard_detail()
+            self.page.enter_edit_state()
+
+            # Resize existing widget
+            resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(resizeHandle, 200, 200).perform()
+
+            self.page.save_dashboard()
+
+            self.capture_screenshots("dashboards - resize big number widget")
 
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
