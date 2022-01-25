@@ -40,6 +40,7 @@ from sentry.search.events.constants import (
     TIMESTAMP_FIELDS,
     VALID_FIELD_PATTERN,
 )
+from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     FunctionDetails,
@@ -95,6 +96,7 @@ class QueryBuilder:
         self.aggregates: List[CurriedFunction] = []
         self.columns: List[SelectType] = []
         self.orderby: List[OrderBy] = []
+        self.groupby: List[SelectType] = []
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
 
@@ -136,6 +138,7 @@ class QueryBuilder:
         from sentry.search.events.datasets.discover import DiscoverDatasetConfig
         from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 
+        self.config: DatasetConfig
         if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
@@ -603,7 +606,7 @@ class QueryBuilder:
         else:
             return self.resolve_field(field, alias=alias)
 
-    def resolve_groupby(self) -> Optional[List[SelectType]]:
+    def resolve_groupby(self) -> List[SelectType]:
         if self.aggregates:
             self.validate_aggregate_arguments()
             return [
@@ -1034,7 +1037,7 @@ class QueryBuilder:
         )
 
 
-class TimeseriesQueryBuilder(QueryBuilder):  # type: ignore
+class TimeseriesQueryBuilder(QueryBuilder):
     time_column = Column("time")
 
     def __init__(
@@ -1067,7 +1070,7 @@ class TimeseriesQueryBuilder(QueryBuilder):  # type: ignore
         if not self.aggregates:
             raise InvalidSearchQuery("Cannot query a timeseries without a Y-Axis")
         # Casting for now since QueryFields/QueryFilter are only partially typed
-        return cast(List[SelectType], self.aggregates)
+        return self.aggregates
 
     def get_snql_query(self) -> Query:
         return Query(
@@ -1311,9 +1314,11 @@ class HistogramQueryBuilder(QueryBuilder):
             OrderBy(resolved_histogram, Direction.ASC)
         ]
 
-    @property
-    def groupby(self) -> Optional[List[SelectType]]:
-        base_groupby = super().groupby
+        self.groupby = self.resolve_groupby()
+        self.groupby = self.resolve_additional_groupby()
+
+    def resolve_additional_groupby(self) -> List[SelectType]:
+        base_groupby = self.groupby
         if base_groupby is not None and self.additional_groupby is not None:
             base_groupby += [self.resolve_column(field) for field in self.additional_groupby]
 

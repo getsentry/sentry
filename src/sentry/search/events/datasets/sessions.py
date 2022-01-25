@@ -29,7 +29,7 @@ class SessionsDatasetConfig(DatasetConfig):
 
     @property
     def function_converter(self) -> Mapping[str, SnQLFunction]:
-        return []
+        return {}
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Parse releases for potential aliases like `latest`"""
