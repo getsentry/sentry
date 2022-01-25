@@ -44,11 +44,11 @@ type Props = {
   action: 'create' | 'link';
   element: 'issue-link' | 'alert-rule-action';
   /**
-   * Addtional form data to submit with the request
+   * Additional form data to submit with the request
    */
   extraFields?: {[key: string]: any};
   /**
-   * Addtional body parameters to submit with the request
+   * Additional body parameters to submit with the request
    */
   extraRequestBody?: {[key: string]: any};
   /**
