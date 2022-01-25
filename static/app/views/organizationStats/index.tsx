@@ -35,6 +35,8 @@ import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 
+test;
+
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
 const PAGE_QUERY_PARAMS = [
