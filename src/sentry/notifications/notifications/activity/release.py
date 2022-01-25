@@ -14,7 +14,6 @@ from sentry.notifications.utils import (
     get_projects,
     get_release,
     get_repos,
-    get_users_by_emails,
     get_users_by_teams,
 )
 from sentry.notifications.utils.actions import MessageAction
@@ -49,7 +48,7 @@ class ReleaseActivityNotification(ActivityNotification):
         self.projects = set(self.release.projects.all())
         self.commit_list = get_commits_for_release(self.release)
         self.email_list = {c.author.email for c in self.commit_list if c.author}
-        users = get_users_by_emails(self.email_list, self.organization)
+        users = UserEmail.objects.get_users_by_emails(self.email_list, self.organization)
         self.user_ids = {u.id for u in users.values()}
         self.repos = get_repos(self.commit_list, users, self.organization)
         self.environment = get_environment_for_deploy(self.deploy)

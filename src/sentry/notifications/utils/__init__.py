@@ -8,7 +8,6 @@ from django.db.models import Count
 from django.utils.safestring import mark_safe
 
 from sentry import integrations
-from sentry.db.models.query import in_iexact
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
     Activity,
@@ -27,7 +26,6 @@ from sentry.models import (
     Repository,
     Rule,
     User,
-    UserEmail,
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
@@ -94,20 +92,6 @@ def get_group_counts_by_project(
         .values_list("project")
         .annotate(num_groups=Count("id"))
     )
-
-
-def get_users_by_emails(emails: Iterable[str], organization: Organization) -> Mapping[str, User]:
-    if not emails:
-        return {}
-
-    return {
-        ue.email: ue.user
-        for ue in UserEmail.objects.filter(
-            in_iexact("email", emails),
-            is_verified=True,
-            user__sentry_orgmember_set__organization=organization,
-        ).select_related("user")
-    }
 
 
 def get_repos(
