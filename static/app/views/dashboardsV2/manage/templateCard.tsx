@@ -19,10 +19,10 @@ function TemplateCard({title, widgetCount, onPreview, onAdd}: Props) {
     <StyledCard>
       <Header>
         <IconGeneric size="48" />
-        <div>
+        <Title>
           {t(title + ' Template')}
           <Detail>{t('%s Starter Widgets', widgetCount)}</Detail>
-        </div>
+        </Title>
       </Header>
       <ButtonContainer>
         <StyledButton onClick={onAdd} icon={<IconAdd isCircled />}>
@@ -41,15 +41,21 @@ const StyledCard = styled(Card)`
   padding: ${space(2)};
 `;
 
-const Detail = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
-`;
-
 const Header = styled('div')`
   display: flex;
   gap: ${space(2)};
+`;
+
+const Title = styled('div')`
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+`;
+
+const Detail = styled(Title)`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray300};
 `;
 
 const ButtonContainer = styled('div')`
