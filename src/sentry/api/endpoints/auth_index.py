@@ -115,16 +115,16 @@ class AuthIndexEndpoint(Endpoint):
                 authenticated = interface.validate_response(request, challenge, response)
                 if not authenticated:
                     self.logger.warning(
-                        "sudo_modal.u2f_authentication.verification_failed",
+                        "u2f_authentication.verification_failed",
                     )
             except ValueError:
                 self.logger.warning(
-                    "sudo_modal.u2f_authentication.value_error",
+                    "u2f_authentication.value_error",
                 )
                 pass
             except LookupError:
                 self.logger.warning(
-                    "sudo_modal.u2f_authentication.interface_not_enrolled",
+                    "u2f_authentication.interface_not_enrolled",
                     {"validated_data": validator.validated_data},
                 )
                 pass
