@@ -1,13 +1,13 @@
 // Taken from https://stackoverflow.com/a/56859650/1015027
 function findTextWithMarkup(contentNode: null | Element, textMatch: string | RegExp) {
   const hasText = (node: Element): boolean => {
-    if (!node.textContent) {
+    if (node.textContent === null) {
       return false;
     }
     if (typeof textMatch === 'string') {
       return node.textContent.includes(textMatch);
     }
-    return textMatch.test(node.textContent ?? '');
+    return textMatch.test(node.textContent);
   };
 
   const nodeHasText = hasText(contentNode as Element);
