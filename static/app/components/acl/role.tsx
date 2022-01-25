@@ -69,4 +69,6 @@ function Role({role, organization, children}: RoleProps): React.ReactElement | n
   return hasRole ? children : null;
 }
 
-export default withOrganization(Role);
+const withOrganizationRole = withOrganization(Role);
+
+export {withOrganizationRole as Role};

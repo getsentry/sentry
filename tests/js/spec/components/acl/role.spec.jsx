@@ -2,7 +2,7 @@ import Cookies from 'js-cookie';
 
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('Role', function () {
