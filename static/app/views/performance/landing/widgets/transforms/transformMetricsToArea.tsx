@@ -75,15 +75,12 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     );
 
     const series = response.intervals.map((intervalValue, intervalIndex) => {
-      const totalSerieBucket = totalPerBucket?.[intervalIndex];
-      const totalFailureSerieBucket = totalFailurePerBucket?.[intervalIndex];
+      const totalSerieBucket = totalPerBucket[intervalIndex];
+      const totalFailureSerieBucket = totalFailurePerBucket[intervalIndex];
 
       return {
         name: moment(intervalValue).valueOf(),
-        value:
-          defined(totalFailureSerieBucket) && defined(totalSerieBucket)
-            ? totalFailureSerieBucket / totalSerieBucket
-            : totalFailureSerieBucket,
+        value: totalFailureSerieBucket / totalSerieBucket,
       };
     }) as SeriesDataUnit[];
 
@@ -105,18 +102,12 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     );
 
     const dataMean = data.map(serie => {
-      let meanData: undefined | number = undefined;
-
-      if (defined(seriesTotal) && defined(seriesTotalFailure)) {
-        meanData = seriesTotalFailure / seriesTotal;
-      }
+      const meanData = seriesTotalFailure / seriesTotal;
 
       return {
         mean: meanData,
         outputType: aggregateOutputType(serie.seriesName),
-        label: defined(meanData)
-          ? axisLabelFormatter(meanData, serie.seriesName)
-          : undefined,
+        label: axisLabelFormatter(meanData, serie.seriesName),
       };
     });
 
@@ -163,16 +154,14 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
     return {
       ...commonChildData,
-      hasData: defined(data) && !!data.length && !!data[0].data.length,
+      hasData: !!data[0].data.length,
       data: data as Series[],
       dataMean,
-      previousData: previousData ?? undefined,
+      previousData,
     };
   }
 
-  const groups = response.groups;
-
-  const data = groups.map(group => {
+  const data = response.groups.map(group => {
     const series = response.intervals.map((intervalValue, intervalIndex) => ({
       name: moment(intervalValue).valueOf(),
       value: group.series[metricsField][intervalIndex],
@@ -186,15 +175,11 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   });
 
   const dataMean = data.map(serie => {
-    let meanData: undefined | number = undefined;
-
     const serieData = serie.data
       .filter(({value}) => defined(value))
       .map(({value}) => value);
 
-    if (serieData.length > 0) {
-      meanData = mean(serieData);
-    }
+    const meanData = serieData.length > 0 ? mean(serieData) : undefined;
 
     return {
       mean: meanData,
@@ -220,7 +205,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
   return {
     ...commonChildData,
-    hasData: defined(data) && !!data.length && !!data[0].data.length,
+    hasData: !!data.length && !!data[0].data.length,
     data: data as Series[],
     dataMean,
     previousData: previousData ?? undefined,
