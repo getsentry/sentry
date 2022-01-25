@@ -88,6 +88,10 @@ class ThresholdControl extends React.Component<Props, State> {
     onChange({thresholdType, threshold: currentValue + delta}, e);
   };
 
+  handleThresholdPeriodChange = ({value}) => {
+    this.props.onThresholdPeriodChange(value);
+  };
+
   render() {
     const {currentValue} = this.state;
     const {
@@ -101,7 +105,6 @@ class ThresholdControl extends React.Component<Props, State> {
       onThresholdTypeChange: __,
       disabled,
       disableThresholdType,
-      onThresholdPeriodChange,
     } = this.props;
 
     return (
@@ -179,7 +182,7 @@ class ThresholdControl extends React.Component<Props, State> {
           <SelectControl
             isDisabled={disabled}
             name="thresholdPeriod"
-            value={thresholdPeriod ?? 1}
+            value={thresholdPeriod}
             options={[
               {
                 value: 1,
@@ -202,7 +205,7 @@ class ThresholdControl extends React.Component<Props, State> {
                 label: t('For 20 minutes'),
               },
             ]}
-            onChange={onThresholdPeriodChange}
+            onChange={this.handleThresholdPeriodChange}
           />
         </SelectContainer>
       </Wrapper>

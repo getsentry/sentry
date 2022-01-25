@@ -128,7 +128,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
-      thresholdPeriod: rule.thresholdPeriod,
+      thresholdPeriod: rule.thresholdPeriod ?? 1,
       comparisonDelta: rule.comparisonDelta ?? undefined,
       comparisonType: !rule.comparisonDelta
         ? AlertRuleComparisonType.COUNT
@@ -455,6 +455,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       resolveThreshold,
       triggers,
       thresholdType,
+      thresholdPeriod,
       comparisonDelta,
       uuid,
       timeWindow,
@@ -494,6 +495,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
+          thresholdPeriod,
           comparisonDelta,
           timeWindow,
           aggregate,
