@@ -7,6 +7,8 @@ import {IntervalPeriod} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
+import {PageFiltersState} from './types';
+
 export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 
 type SingleParamValue = string | undefined | null;
@@ -288,8 +290,8 @@ export function getStateFromQuery(
 ) {
   const {allowAbsoluteDatetime} = normalizeOptions;
 
-  const project = getProject(query[URL_PARAM.PROJECT]);
-  const environment = getEnvironment(query[URL_PARAM.ENVIRONMENT]);
+  const project = getProject(query[URL_PARAM.PROJECT]) ?? null;
+  const environment = getEnvironment(query[URL_PARAM.ENVIRONMENT]) ?? null;
 
   const dateTimeParams = normalizeDateTimeParams(query, normalizeOptions);
 
@@ -301,7 +303,7 @@ export function getStateFromQuery(
   const period = dateTimeParams.statsPeriod;
   const utc = dateTimeParams.utc;
 
-  return {
+  const state: PageFiltersState = {
     project,
     environment,
     period: period || null,
@@ -309,4 +311,6 @@ export function getStateFromQuery(
     end: end || null,
     utc: typeof utc !== 'undefined' ? utc === 'true' : null,
   };
+
+  return state;
 }

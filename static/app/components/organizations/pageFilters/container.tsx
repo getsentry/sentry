@@ -19,11 +19,14 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
 import {getStateFromQuery} from './parse';
+import {PageFiltersState} from './types';
 
-const getDateObjectFromQuery = (query: Record<string, any>) =>
+type DatetimeState = Pick<PageFiltersState, 'start' | 'end' | 'period' | 'utc'>;
+
+const getDatetimeFromState = (state: PageFiltersState) =>
   Object.fromEntries(
-    Object.entries(query).filter(([key]) => DATE_TIME_KEYS.includes(key))
-  );
+    Object.entries(state).filter(([key]) => DATE_TIME_KEYS.includes(key))
+  ) as DatetimeState;
 
 type GlobalSelectionHeaderProps = Omit<
   React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
@@ -125,35 +128,37 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       return;
     }
 
-    const oldQuery = getStateFromQuery(lastQuery.current, {
+    const oldState = getStateFromQuery(lastQuery.current, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
     });
-    const newQuery = getStateFromQuery(location.query, {
+    const newState = getStateFromQuery(location.query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
     });
 
-    const newEnvironments = newQuery.environment || [];
-    const newDateObject = getDateObjectFromQuery(newQuery);
-    const oldDateObject = getDateObjectFromQuery(oldQuery);
+    const newEnvironments = newState.environment || [];
+    const newDateState = getDatetimeFromState(newState);
+    const oldDateState = getDatetimeFromState(oldState);
 
-    /**
-     * Do not pass router to these actionCreators, as we do not want to update
-     * routes since these state changes are happening due to a change of routes
-     */
-    if (!isEqual(oldQuery.project, newQuery.project)) {
-      updateProjects(newQuery.project || [], null, {environments: newEnvironments});
-    } else if (!isEqual(oldQuery.environment, newQuery.environment)) {
-      /**
-       * When the project stays the same, it's still possible that the environment
-       * changed, so explictly update the enviornment
-       */
+    const noProjectChange = isEqual(oldState.project, newState.project);
+    const noEnvironmentChange = isEqual(oldState.environment, newState.environment);
+    const noDatetimeChange = isEqual(oldDateState, newDateState);
+
+    // Do not pass router to these actionCreators, as we do not want to update
+    // routes since these state changes are happening due to a change of routes
+    if (!noProjectChange) {
+      updateProjects(newState.project || [], null, {environments: newEnvironments});
+    }
+
+    // When the project stays the same, it's still possible that the
+    // environment changed, so explicitly update the environment
+    if (noProjectChange && !noEnvironmentChange) {
       updateEnvironments(newEnvironments);
     }
 
-    if (!isEqual(oldDateObject, newDateObject)) {
-      updateDateTime(newDateObject);
+    if (!noDatetimeChange) {
+      updateDateTime(newDateState);
     }
 
     lastQuery.current = location.query;
