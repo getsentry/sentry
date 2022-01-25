@@ -16,13 +16,13 @@ export type Result = {
   label: string;
 };
 
-type Props = {
+export type SelectAsyncControlProps = {
   url: string;
   onResults: (data: any) => Result[]; // TODO(ts): Improve data type
   onQuery: (query: string | undefined) => {};
   forwardedRef: React.Ref<ReactSelect<GeneralSelectValue>>;
   value: ControlProps['value'];
-  defaultOptions: boolean | GeneralSelectValue[];
+  defaultOptions?: boolean | GeneralSelectValue[];
 };
 
 type State = {
@@ -32,7 +32,7 @@ type State = {
 /**
  * Performs an API request to `url` to fetch the options
  */
-class SelectAsyncControl extends React.Component<Props> {
+class SelectAsyncControl extends React.Component<SelectAsyncControlProps> {
   static defaultProps = {
     placeholder: '--',
     defaultOptions: true,

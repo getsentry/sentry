@@ -8,6 +8,7 @@ import IntegrationExternalMappingForm from 'sentry/components/integrationExterna
 import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
 import {t} from 'sentry/locale';
 import {ExternalActorMapping, Integration, Organization, Team} from 'sentry/types';
+import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = AsyncComponent['props'] &
@@ -18,6 +19,7 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   teams: Team[];
+  initialResults: Team[];
   queryResults: {
     // For inline forms, the mappingKey will be the external name (since multiple will be rendered at one time)
     // For the modal form, the mappingKey will be this.modalMappingKey (since only one modal form is rendered at any time)
@@ -30,6 +32,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       teams: [],
+      initialResults: [],
       queryResults: {},
     };
   }
@@ -37,11 +40,14 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     return [
+      // We paginate on this query, since we're filtering by hasExternalTeams:true
       [
         'teams',
         `/organizations/${organization.slug}/teams/`,
         {query: {...location?.query, query: 'hasExternalTeams:true'}},
       ],
+      // We use this query as defaultOptions to reduce identical API calls
+      ['initialResults', `/organizations/${organization.slug}/teams/`],
     ];
   }
 
@@ -86,11 +92,16 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return externalTeamMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 
-  modalMappingKey = 'MODAL_RESULTS';
+  modalMappingKey = '__MODAL_RESULTS__';
 
   get dataEndpoint() {
     const {organization} = this.props;
     return `/organizations/${organization.slug}/teams/`;
+  }
+
+  get defaultTeamOptions() {
+    const {initialResults} = this.state;
+    return this.sentryNamesMapper(initialResults).map(sentryNameToOption);
   }
 
   getBaseFormEndpoint(mapping?: ExternalActorMapping) {
@@ -98,10 +109,14 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
       return '';
     }
     const {organization} = this.props;
-    const {queryResults} = this.state;
-    const mappingResults =
+    const {queryResults, initialResults} = this.state;
+    const fieldResults =
       queryResults[mapping.externalName] ?? queryResults[this.modalMappingKey];
-    const team = mappingResults?.find(item => item.id === mapping.teamId);
+    const team =
+      // First, search for the team in the query results...
+      fieldResults?.find(item => item.id === mapping.teamId) ??
+      // Then in the initial results, if nothing was found.
+      initialResults?.find(item => item.id === mapping.teamId);
     return `/teams/${organization.slug}/${team?.slug ?? ''}/external-teams/`;
   }
 
@@ -131,6 +146,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
             integration={integration}
             dataEndpoint={this.dataEndpoint}
             getBaseFormEndpoint={map => this.getBaseFormEndpoint(map)}
+            defaultOptions={this.defaultTeamOptions}
             mapping={mapping}
             mappingKey={this.modalMappingKey}
             sentryNamesMapper={this.sentryNamesMapper}
@@ -157,6 +173,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
         mappings={this.mappings}
         dataEndpoint={this.dataEndpoint}
         getBaseFormEndpoint={mapping => this.getBaseFormEndpoint(mapping)}
+        defaultOptions={this.defaultTeamOptions}
         sentryNamesMapper={this.sentryNamesMapper}
         onCreate={this.openModal}
         onDelete={this.handleDelete}
