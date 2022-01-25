@@ -57,7 +57,6 @@ describe('GlobalSelectionHeader', function () {
     jest.spyOn(globalActions, 'updateDateTime');
     jest.spyOn(globalActions, 'updateEnvironments');
     jest.spyOn(globalActions, 'updateProjects');
-    jest.spyOn(globalActions, 'updateParams');
   });
 
   beforeEach(function () {
@@ -78,7 +77,6 @@ describe('GlobalSelectionHeader', function () {
       globalActions.updateDateTime,
       globalActions.updateProjects,
       globalActions.updateEnvironments,
-      globalActions.updateParams,
       router.push,
       router.replace,
       getItem,

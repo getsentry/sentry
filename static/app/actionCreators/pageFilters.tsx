@@ -286,7 +286,7 @@ export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
  * @param [router] React router object
  * @param [options] Options object
  */
-export function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options) {
+function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options) {
   // Allow another component to handle routing
   if (!router) {
     return;
