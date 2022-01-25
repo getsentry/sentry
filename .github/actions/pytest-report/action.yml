@@ -62,15 +62,6 @@ runs:
         artifact: ${{ inputs.artifact }}__internal
         path: ${{ inputs.dest }}
 
-    - name: Debug
-      if: inputs.action != 'upload'
-      shell: bash
-      run: |
-        ls ${{ github.workspace }}/${{ inputs.path }}
-        echo $PWD
-        echo '${{ steps.current-branch.outputs.name }}'
-        echo '${{ env.GITHUB_REF_NAME }}'
-
     # Need to rename so if we have multiple test instances, the reports do not overwrite each other on GHA
     - name: Rename report
       if: inputs.action == 'upload'
