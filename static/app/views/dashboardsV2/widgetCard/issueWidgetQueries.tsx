@@ -19,7 +19,7 @@ import {
 
 import {Widget, WidgetQuery} from '../types';
 
-const MAX_ITEMS = 5;
+const DEFAULT_ITEM_LIMIT = 5;
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 const DEFAULT_EXPAND = ['owners'];
@@ -43,6 +43,7 @@ type Props = {
   organization: OrganizationSummary;
   widget: Widget;
   selection: PageFilters;
+  limit?: number;
   children: (props: {
     loading: boolean;
     errorMessage: undefined | string;
@@ -183,7 +184,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
   }
 
   async fetchIssuesData() {
-    const {selection, api, organization, widget} = this.props;
+    const {selection, api, organization, widget, limit} = this.props;
     this.setState({tableResults: []});
     // Issue Widgets only support single queries
     const query = widget.queries[0];
@@ -216,7 +217,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         method: 'GET',
         data: qs.stringify({
           ...params,
-          limit: MAX_ITEMS,
+          limit: limit ?? DEFAULT_ITEM_LIMIT,
         }),
       });
       this.setState({
