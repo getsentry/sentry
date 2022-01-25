@@ -130,9 +130,11 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
     const oldState = getStateFromQuery(lastQuery.current, {
       allowEmptyPeriod: true,
+      allowAbsoluteDatetime: true,
     });
     const newState = getStateFromQuery(location.query, {
       allowEmptyPeriod: true,
+      allowAbsoluteDatetime: true,
     });
 
     const newEnvironments = newState.environment || [];
