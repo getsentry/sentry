@@ -53,6 +53,10 @@ type SpecialFields = {
   users: SpecialField;
   firstSeen: SpecialField;
   lastSeen: SpecialField;
+  lifetimeCount: SpecialField;
+  lifetimeUserCount: SpecialField;
+  count: SpecialField;
+  userCount: SpecialField;
 };
 
 /**
@@ -124,6 +128,26 @@ const SPECIAL_FIELDS: SpecialFields = {
   lastSeen: {
     sortField: null,
     renderFunc: ({lastSeen}) => <StyledDateTime date={lastSeen} />,
+  },
+  lifetimeCount: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeEvents'),
+  },
+  lifetimeUserCount: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeUsers'),
+  },
+  count: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'events'),
+  },
+  userCount: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'users'),
   },
 };
 
