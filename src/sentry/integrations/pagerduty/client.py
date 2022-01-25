@@ -1,6 +1,11 @@
+import logging
+
+from sentry import features
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.eventstore.models import Event
 from sentry.integrations.client import ApiClient
+
+logger = logging.getLogger("sentry.integrations.pagerduty")
 
 LEVEL_SEVERITY_MAP = {
     "debug": "info",
@@ -26,7 +31,7 @@ class PagerDutyClient(ApiClient):
 
         return self._request(method, path, headers=headers, data=data, params=params)
 
-    def send_trigger(self, data):
+    def send_trigger(self, data, organization=None, method="fire"):
         # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
         if isinstance(data, Event):
             source = data.transaction or data.culprit or "<unknown>"
@@ -58,7 +63,17 @@ class PagerDutyClient(ApiClient):
             # the payload is for a metric alert
             payload = data
 
-        return self.post("/", data=payload)
+        response = self.post("/", data=payload)
+        if (
+            organization
+            and features.has("organizations:pagerduty-metric-alert-resolve-logging", organization)
+            and method == "resolve"
+        ):
+            logger.info(
+                "resolve.received.pagerduty_metric_alert",
+                extra={"organization_id": organization.id, "status_code": response.status_code},
+            )
+        return response
 
     def send_acknowledge(self, data):
         pass
