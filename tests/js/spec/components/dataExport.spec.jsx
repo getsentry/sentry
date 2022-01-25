@@ -1,154 +1,178 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {act, fireEvent, screen, waitFor} from '@testing-library/react';
+
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
 import WrappedDataExport from 'sentry/components/dataExport';
 
 jest.mock('sentry/actionCreators/indicator');
 
-describe('DataExport', function () {
-  const mockUnauthorizedOrg = TestStubs.Organization({
-    features: [],
-  });
-  const mockAuthorizedOrg = TestStubs.Organization({
-    features: ['discover-query'],
-  });
-  const mockPayload = {
-    queryType: 'Issues-by-Tag',
-    queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
-  };
-  const mockRouterContext = mockOrganization =>
-    TestStubs.routerContext([
-      {
-        organization: mockOrganization,
-      },
-    ]);
+const mockUnauthorizedOrg = TestStubs.Organization({
+  features: [],
+});
+const mockAuthorizedOrg = TestStubs.Organization({
+  features: ['discover-query'],
+});
+const mockPayload = {
+  queryType: 'Issues-by-Tag',
+  queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
+};
+const mockRouterContext = mockOrganization =>
+  TestStubs.routerContext([
+    {
+      organization: mockOrganization,
+    },
+  ]);
 
+describe('DataExport', function () {
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => void 0);
+  });
+  afterAll(() => {
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
+  });
   it('should not render anything for an unauthorized organization', function () {
-    const wrapper = mountWithTheme(
-      <WrappedDataExport payload={mockPayload} />,
-      mockRouterContext(mockUnauthorizedOrg)
-    );
-    expect(wrapper.isEmptyRender()).toBe(true);
+    mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+      context: mockRouterContext(mockUnauthorizedOrg),
+    });
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('should render the button for an authorized organization', function () {
-    const wrapper = mountWithTheme(
-      <WrappedDataExport payload={mockPayload} />,
-      mockRouterContext(mockAuthorizedOrg)
-    );
-    expect(wrapper.isEmptyRender()).toBe(false);
-    expect(wrapper.text()).toContain('Export All to CSV');
+    mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+      context: mockRouterContext(mockAuthorizedOrg),
+    });
+    expect(screen.getByText(/Export All to CSV/)).toBeInTheDocument();
   });
 
   it('should render custom children if provided', function () {
-    const testString = 'This is an example string';
-    const wrapper = mountWithTheme(
-      <WrappedDataExport payload={mockPayload}>{testString}</WrappedDataExport>,
-      mockRouterContext(mockAuthorizedOrg)
+    mountWithTheme(
+      <WrappedDataExport payload={mockPayload}>
+        This is an example string
+      </WrappedDataExport>,
+      {context: mockRouterContext(mockAuthorizedOrg)}
     );
-    expect(wrapper.text()).toContain(testString);
+    expect(screen.getByText(/This is an example string/)).toBeInTheDocument();
   });
 
   it('should respect the disabled prop and not be clickable', function () {
-    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     const postDataExport = MockApiClient.addMockResponse({
-      url,
+      url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
       body: {id: 721},
     });
-    const wrapper = mountWithTheme(
-      <WrappedDataExport payload={mockPayload} disabled />,
-      mockRouterContext(mockAuthorizedOrg)
-    );
-    expect(wrapper.find(Button).prop('disabled')).toBe(true);
-    wrapper.find('button').simulate('click');
+
+    mountWithTheme(<WrappedDataExport payload={mockPayload} disabled />, {
+      context: mockRouterContext(mockAuthorizedOrg),
+    });
+
+    fireEvent.click(screen.getByRole('button'));
     expect(postDataExport).not.toHaveBeenCalled();
+    expect(screen.getByRole('button')).toBeDisabled();
   });
 
   it('should send a request and disable itself when clicked', async function () {
-    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     const postDataExport = MockApiClient.addMockResponse({
-      url,
+      url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
       body: {id: 721},
     });
-    const wrapper = mountWithTheme(
-      <WrappedDataExport payload={mockPayload} />,
-      mockRouterContext(mockAuthorizedOrg)
-    );
-    expect(wrapper.find(Button).prop('disabled')).toBe(false);
-    wrapper.find('button').simulate('click');
-    await tick();
-    expect(wrapper.find(Button).prop('disabled')).toBe(true);
-    expect(postDataExport).toHaveBeenCalledWith(url, {
-      data: {
-        query_type: mockPayload.queryType,
-        query_info: mockPayload.queryInfo,
-      },
-      method: 'POST',
-      error: expect.anything(),
-      success: expect.anything(),
+    mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+      context: mockRouterContext(mockAuthorizedOrg),
     });
-    await tick();
-    wrapper.update();
-    expect(wrapper.find(Button).prop('disabled')).toBe(true);
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button'));
+    });
+
+    expect(postDataExport).toHaveBeenCalledWith(
+      `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
+      {
+        data: {
+          query_type: mockPayload.queryType,
+          query_info: mockPayload.queryInfo,
+        },
+        method: 'POST',
+        error: expect.anything(),
+        success: expect.anything(),
+      }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toBeDisabled();
+    });
   });
 
   it('should reset the state when receiving a new payload', async function () {
-    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     MockApiClient.addMockResponse({
-      url,
+      url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
       body: {id: 721},
     });
-    const wrapper = mountWithTheme(
-      <WrappedDataExport payload={mockPayload} />,
-      mockRouterContext(mockAuthorizedOrg)
-    );
-    wrapper.find('button').simulate('click');
-    await tick();
-    wrapper.update();
-    expect(wrapper.find(Button).prop('disabled')).toBe(true);
-    wrapper.setProps({payload: {...mockPayload, queryType: 'Discover'}});
-    wrapper.update();
-    expect(wrapper.find(Button).prop('disabled')).toBe(false);
+
+    const {rerender} = mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+      context: mockRouterContext(mockAuthorizedOrg),
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByText(/Export All to CSV/));
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toBeDisabled();
+    });
+
+    rerender(<WrappedDataExport payload={{...mockPayload, queryType: 'Discover'}} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toBeEnabled();
+    });
   });
 
   it('should display default error message if non provided', async function () {
-    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     MockApiClient.addMockResponse({
-      url,
+      url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
       statusCode: 400,
     });
-    const wrapper = mountWithTheme(
-      <WrappedDataExport payload={mockPayload} />,
-      mockRouterContext(mockAuthorizedOrg)
-    );
-    wrapper.find('button').simulate('click');
-    await tick();
-    expect(addErrorMessage).toHaveBeenCalledWith(
-      "We tried our hardest, but we couldn't export your data. Give it another go."
-    );
-    wrapper.update();
-    expect(wrapper.find(Button).prop('disabled')).toBe(false);
+
+    mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+      context: mockRouterContext(mockAuthorizedOrg),
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button'));
+    });
+
+    await waitFor(() => {
+      expect(addErrorMessage).toHaveBeenCalledWith(
+        "We tried our hardest, but we couldn't export your data. Give it another go."
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).toBeEnabled();
+    });
   });
 
   it('should display provided error message', async function () {
-    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     MockApiClient.addMockResponse({
-      url,
+      url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
       statusCode: 400,
       body: {detail: 'uh oh'},
     });
-    const wrapper = mountWithTheme(
-      <WrappedDataExport payload={mockPayload} />,
-      mockRouterContext(mockAuthorizedOrg)
-    );
-    wrapper.find('button').simulate('click');
-    await tick();
-    expect(addErrorMessage).toHaveBeenCalledWith('uh oh');
+
+    mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+      context: mockRouterContext(mockAuthorizedOrg),
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button'));
+    });
+
+    await waitFor(() => {
+      expect(addErrorMessage).toHaveBeenCalledWith('uh oh');
+    });
   });
 });
