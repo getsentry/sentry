@@ -14,6 +14,7 @@ from typing import (
     Tuple,
     TypedDict,
     TypeVar,
+    Union,
     cast,
 )
 
@@ -208,6 +209,8 @@ def query_trace_data(
     trace_id: str, params: Mapping[str, str], use_snql: bool = False
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     sentry_sdk.set_tag("discover.use_snql", use_snql)
+    transaction_query: Union[QueryBuilder, discover.PreparedQuery]
+    error_query: Union[QueryBuilder, discover.PreparedQuery]
     if use_snql:
         transaction_query = QueryBuilder(
             Dataset.Transactions,

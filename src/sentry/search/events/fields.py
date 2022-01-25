@@ -2,7 +2,20 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Match,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -71,7 +84,6 @@ MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
 ConditionalFunction = namedtuple("ConditionalFunction", "condition match fallback")
-FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
 ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")
 
 
@@ -2296,6 +2308,12 @@ class SnQLFunction(DiscoverFunction):
             names.add(arg.name)
 
         self.validate_result_type(self.default_result_type)
+
+
+class FunctionDetails(NamedTuple):
+    field: str
+    instance: SnQLFunction
+    arguments: Mapping[str, NormalizedArg]
 
 
 class QueryFields(QueryBase):
