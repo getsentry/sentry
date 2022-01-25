@@ -5,11 +5,9 @@ from datetime import timedelta
 
 from django.db import transaction
 from django.utils import timezone
-from django.utils.encoding import force_text
 from rest_framework import serializers
 from snuba_sdk.legacy import json_to_snql
 
-from sentry import analytics
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
@@ -19,31 +17,14 @@ from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
     AlertRuleNameAlreadyUsedError,
-    AlertRuleTriggerLabelAlreadyUsedError,
     ChannelLookupTimeoutError,
-    InvalidTriggerActionError,
     check_aggregate_column_support,
     create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
     delete_alert_rule_trigger,
-    delete_alert_rule_trigger_action,
-    rewrite_trigger_action_fields,
     translate_aggregate_field,
     update_alert_rule,
-    update_alert_rule_trigger,
-    update_alert_rule_trigger_action,
 )
-from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleThresholdType,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-)
-from sentry.integrations.slack.utils import validate_channel_id
-from sentry.mediators import alert_rule_actions
-from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import get_entity_subscription_for_dataset
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
@@ -52,295 +33,10 @@ from sentry.utils import json
 from sentry.utils.compat import zip
 from sentry.utils.snuba import raw_snql_query
 
+from . import CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS, DATASET_VALID_EVENT_TYPES, UNSUPPORTED_QUERIES
+from .alert_rule_trigger import AlertRuleTriggerSerializer
+
 logger = logging.getLogger(__name__)
-
-
-string_to_action_type = {
-    registration.slug: registration.type
-    for registration in AlertRuleTriggerAction.get_registered_types()
-}
-action_target_type_to_string = {
-    AlertRuleTriggerAction.TargetType.USER: "user",
-    AlertRuleTriggerAction.TargetType.TEAM: "team",
-    AlertRuleTriggerAction.TargetType.SPECIFIC: "specific",
-    AlertRuleTriggerAction.TargetType.SENTRY_APP: "sentry_app",
-}
-string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.items()}
-dataset_valid_event_types = {
-    QueryDatasets.EVENTS: {
-        SnubaQueryEventType.EventType.ERROR,
-        SnubaQueryEventType.EventType.DEFAULT,
-    },
-    QueryDatasets.TRANSACTIONS: {SnubaQueryEventType.EventType.TRANSACTION},
-}
-
-# TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
-unsupported_queries = {"release:latest"}
-
-# Allowed time windows (in minutes) for crash rate alerts
-CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [30, 60, 120, 240, 720, 1440]
-
-
-class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
-    """
-    Serializer for creating/updating a trigger action. Required context:
-     - `trigger`: The trigger related to this action.
-     - `alert_rule`: The alert_rule related to this action.
-     - `organization`: The organization related to this action.
-     - `access`: An access object (from `request.access`)
-     - `user`: The user from `request.user`
-    """
-
-    id = serializers.IntegerField(required=False)
-    type = serializers.CharField()
-    target_type = serializers.CharField()
-    sentry_app_config = serializers.JSONField(required=False)
-    sentry_app_installation_uuid = serializers.CharField(required=False)
-
-    class Meta:
-        model = AlertRuleTriggerAction
-        fields = [
-            "id",
-            "type",
-            "target_type",
-            "target_identifier",
-            "integration",
-            "sentry_app",
-            "sentry_app_config",
-            "sentry_app_installation_uuid",
-        ]
-        extra_kwargs = {
-            "target_identifier": {"required": True},
-            "target_display": {"required": False},
-            "integration": {"required": False, "allow_null": True},
-            "sentry_app": {"required": False, "allow_null": True},
-            "sentry_app_config": {"required": False, "allow_null": True},
-            "sentry_app_installation_uuid": {"required": False, "allow_null": True},
-        }
-
-    def validate_type(self, type):
-        if type not in string_to_action_type:
-            raise serializers.ValidationError(
-                "Invalid type, valid values are [%s]" % ", ".join(string_to_action_type.keys())
-            )
-        return string_to_action_type[type]
-
-    def validate_target_type(self, target_type):
-        if target_type not in string_to_action_target_type:
-            raise serializers.ValidationError(
-                "Invalid targetType, valid values are [%s]"
-                % ", ".join(string_to_action_target_type.keys())
-            )
-        return string_to_action_target_type[target_type]
-
-    def validate(self, attrs):
-        if ("type" in attrs) != ("target_type" in attrs) != ("target_identifier" in attrs):
-            raise serializers.ValidationError(
-                "type, targetType and targetIdentifier must be passed together"
-            )
-        type = attrs.get("type")
-        target_type = attrs.get("target_type")
-        access = self.context["access"]
-        identifier = attrs.get("target_identifier")
-
-        if type is not None:
-            type_info = AlertRuleTriggerAction.get_registered_type(type)
-            if target_type not in type_info.supported_target_types:
-                allowed_target_types = ",".join(
-                    action_target_type_to_string[type_name]
-                    for type_name in type_info.supported_target_types
-                )
-                raise serializers.ValidationError(
-                    {
-                        "target_type": "Invalid target type for %s. Valid types are [%s]"
-                        % (type_info.slug, allowed_target_types)
-                    }
-                )
-
-        if attrs.get("type") == AlertRuleTriggerAction.Type.EMAIL:
-            if target_type == AlertRuleTriggerAction.TargetType.TEAM:
-                try:
-                    team = Team.objects.get(id=identifier)
-                except Team.DoesNotExist:
-                    raise serializers.ValidationError("Team does not exist")
-                if not access.has_team(team):
-                    raise serializers.ValidationError("Team does not exist")
-            elif target_type == AlertRuleTriggerAction.TargetType.USER:
-                try:
-                    user = User.objects.get(id=identifier)
-                except User.DoesNotExist:
-                    raise serializers.ValidationError("User does not exist")
-
-                if not OrganizationMember.objects.filter(
-                    organization=self.context["organization"], user=user
-                ).exists():
-                    raise serializers.ValidationError("User does not belong to this organization")
-        elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
-            if not attrs.get("integration"):
-                raise serializers.ValidationError(
-                    {"integration": "Integration must be provided for slack"}
-                )
-
-        elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
-            if not attrs.get("sentry_app"):
-                raise serializers.ValidationError(
-                    {"sentry_app": "SentryApp must be provided for sentry_app"}
-                )
-            if attrs.get("sentry_app_config"):
-                if attrs.get("sentry_app_installation_uuid") is None:
-                    raise serializers.ValidationError(
-                        {"sentry_app": "Missing paramater: sentry_app_installation_uuid"}
-                    )
-
-                try:
-                    install = SentryAppInstallation.objects.get(
-                        uuid=attrs.get("sentry_app_installation_uuid")
-                    )
-                except SentryAppInstallation.DoesNotExist:
-                    raise serializers.ValidationError(
-                        {"sentry_app": "The installation does not exist."}
-                    )
-                # Check response from creator and bubble up errors from providers as a ValidationError
-                result = alert_rule_actions.AlertRuleActionCreator.run(
-                    install=install,
-                    fields=attrs.get("sentry_app_config"),
-                )
-
-                if not result["success"]:
-                    raise serializers.ValidationError({"sentry_app": result["message"]})
-
-                del attrs["sentry_app_installation_uuid"]
-
-        attrs["use_async_lookup"] = self.context.get("use_async_lookup")
-        attrs["input_channel_id"] = self.context.get("input_channel_id")
-        should_validate_channel_id = self.context.get("validate_channel_id", True)
-        # validate_channel_id is assumed to be true unless explicitly passed as false
-        if attrs["input_channel_id"] and should_validate_channel_id:
-            validate_channel_id(identifier, attrs["integration"].id, attrs["input_channel_id"])
-        return attrs
-
-    def create(self, validated_data):
-        try:
-            action = create_alert_rule_trigger_action(
-                trigger=self.context["trigger"], **validated_data
-            )
-        except InvalidTriggerActionError as e:
-            raise serializers.ValidationError(force_text(e))
-        except ApiRateLimitedError as e:
-            raise serializers.ValidationError(force_text(e))
-        else:
-            analytics.record(
-                "metric_alert_with_ui_component.created",
-                user_id=getattr(self.context["user"], "id", None),
-                alert_rule_id=getattr(self.context["alert_rule"], "id"),
-                organization_id=getattr(self.context["organization"], "id"),
-            )
-            return action
-
-    def update(self, instance, validated_data):
-        if "id" in validated_data:
-            validated_data.pop("id")
-        try:
-            return update_alert_rule_trigger_action(instance, **validated_data)
-        except InvalidTriggerActionError as e:
-            raise serializers.ValidationError(force_text(e))
-        except ApiRateLimitedError as e:
-            raise serializers.ValidationError(force_text(e))
-
-
-class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
-    """
-    Serializer for creating/updating an alert rule trigger. Required context:
-     - `alert_rule`: The alert_rule related to this trigger.
-     - `organization`: The organization related to this trigger.
-     - `access`: An access object (from `request.access`)
-     - `user`: The user from `request.user`
-    """
-
-    id = serializers.IntegerField(required=False)
-
-    # TODO: These might be slow for many projects, since it will query for each
-    # individually. If we find this to be a problem then we can look into batching.
-    excluded_projects = serializers.ListField(child=ProjectField(), required=False)
-    actions = serializers.ListField(required=False)
-
-    class Meta:
-        model = AlertRuleTrigger
-        fields = ["id", "label", "alert_threshold", "excluded_projects", "actions"]
-        extra_kwargs = {"label": {"min_length": 1, "max_length": 64}}
-
-    def create(self, validated_data):
-        try:
-            actions = validated_data.pop("actions", None)
-            alert_rule_trigger = create_alert_rule_trigger(
-                alert_rule=self.context["alert_rule"], **validated_data
-            )
-            self._handle_actions(alert_rule_trigger, actions)
-
-            return alert_rule_trigger
-        except AlertRuleTriggerLabelAlreadyUsedError:
-            raise serializers.ValidationError("This label is already in use for this alert rule")
-
-    def update(self, instance, validated_data):
-        actions = validated_data.pop("actions")
-        if "id" in validated_data:
-            validated_data.pop("id")
-        try:
-            alert_rule_trigger = update_alert_rule_trigger(instance, **validated_data)
-            self._handle_actions(alert_rule_trigger, actions)
-            return alert_rule_trigger
-        except AlertRuleTriggerLabelAlreadyUsedError:
-            raise serializers.ValidationError("This label is already in use for this alert rule")
-
-    def _handle_actions(self, alert_rule_trigger, actions):
-        channel_lookup_timeout_error = None
-        if actions is not None:
-            # Delete actions we don't have present in the updated data.
-            action_ids = [x["id"] for x in actions if "id" in x]
-            actions_to_delete = AlertRuleTriggerAction.objects.filter(
-                alert_rule_trigger=alert_rule_trigger
-            ).exclude(id__in=action_ids)
-            for action in actions_to_delete:
-                delete_alert_rule_trigger_action(action)
-
-            for action_data in actions:
-                action_data = rewrite_trigger_action_fields(action_data)
-                if "id" in action_data:
-                    action_instance = AlertRuleTriggerAction.objects.get(
-                        alert_rule_trigger=alert_rule_trigger, id=action_data["id"]
-                    )
-                else:
-                    action_instance = None
-
-                action_serializer = AlertRuleTriggerActionSerializer(
-                    context={
-                        "alert_rule": alert_rule_trigger.alert_rule,
-                        "trigger": alert_rule_trigger,
-                        "organization": self.context["organization"],
-                        "access": self.context["access"],
-                        "user": self.context["user"],
-                        "use_async_lookup": self.context.get("use_async_lookup"),
-                        "validate_channel_id": self.context.get("validate_channel_id"),
-                        "input_channel_id": action_data.pop("input_channel_id", None),
-                    },
-                    instance=action_instance,
-                    data=action_data,
-                )
-                if action_serializer.is_valid():
-                    try:
-                        action_serializer.save()
-                    except ChannelLookupTimeoutError as e:
-                        # raise the lookup error after the rest of the validation is complete
-                        channel_lookup_timeout_error = e
-                else:
-                    raise serializers.ValidationError(action_serializer.errors)
-        if channel_lookup_timeout_error:
-            raise channel_lookup_timeout_error
-
-
-class ObjectField(serializers.Field):
-    def to_internal_value(self, data):
-        return data
 
 
 class AlertRuleSerializer(CamelSnakeModelSerializer):
@@ -420,7 +116,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     def validate_query(self, query):
         query_terms = query.split()
         for query_term in query_terms:
-            if query_term in unsupported_queries:
+            if query_term in UNSUPPORTED_QUERIES:
                 raise serializers.ValidationError(
                     f"Unsupported Query: We do not currently support the {query_term} query"
                 )
@@ -548,6 +244,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             try:
                 raw_snql_query(snql_query, referrer="alertruleserializer.test_query")
             except Exception:
+                # TODO MARCOS 1
                 logger.exception("Error while validating snuba alert rule query")
                 raise serializers.ValidationError(
                     "Invalid Query or Metric: An error occurred while attempting "
@@ -564,7 +261,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         event_types = data.get("event_types")
 
-        valid_event_types = dataset_valid_event_types.get(data["dataset"], set())
+        valid_event_types = DATASET_VALID_EVENT_TYPES.get(data["dataset"], set())
         if event_types and set(event_types) - valid_event_types:
             raise serializers.ValidationError(
                 "Invalid event types for this dataset. Valid event types are %s"
