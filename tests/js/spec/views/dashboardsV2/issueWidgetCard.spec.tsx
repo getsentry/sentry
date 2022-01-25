@@ -59,6 +59,7 @@ describe('Dashboards > IssueWidgetCard', function () {
           lifetime: {count: 10, userCount: 5},
           count: 6,
           userCount: 3,
+          project: {id: 1},
         },
       ],
     });

@@ -41,6 +41,7 @@ describe('MetricsRequest', () => {
       response: null,
       responsePrevious: null,
       tableData: undefined,
+      pageLinks: null,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
@@ -53,7 +54,7 @@ describe('MetricsRequest', () => {
           field: ['fieldA'],
           groupBy: ['status'],
           interval: '1h',
-          limit: 3,
+          per_page: 3,
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
@@ -73,6 +74,7 @@ describe('MetricsRequest', () => {
         response: {groups: [], intervals: []},
         responsePrevious: null,
         tableData: undefined,
+        pageLinks: null,
       })
     );
   });
@@ -96,6 +98,7 @@ describe('MetricsRequest', () => {
       response: null,
       responsePrevious: null,
       tableData: undefined,
+      pageLinks: null,
     });
   });
 
@@ -148,6 +151,7 @@ describe('MetricsRequest', () => {
       response: null,
       responsePrevious: null,
       tableData: undefined,
+      pageLinks: null,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(2);
@@ -162,7 +166,7 @@ describe('MetricsRequest', () => {
           field: ['fieldA'],
           groupBy: ['status'],
           interval: '1h',
-          limit: 3,
+          per_page: 3,
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
@@ -182,7 +186,7 @@ describe('MetricsRequest', () => {
           query: 'abc',
           groupBy: ['status'],
           orderBy: 'fieldA',
-          limit: 3,
+          per_page: 3,
           interval: '1h',
           statsPeriodStart: '28d',
           statsPeriodEnd: '14d',
@@ -200,6 +204,7 @@ describe('MetricsRequest', () => {
         response: {groups: [], intervals: []},
         responsePrevious: {groups: [], intervals: []},
         tableData: undefined,
+        pageLinks: null,
       })
     );
   });
@@ -226,6 +231,7 @@ describe('MetricsRequest', () => {
       response: null,
       responsePrevious: null,
       tableData: undefined,
+      pageLinks: null,
     });
 
     // if start and end are provided, it will not perform a request to fetch previous data
@@ -240,7 +246,7 @@ describe('MetricsRequest', () => {
           field: ['fieldA'],
           groupBy: ['status'],
           interval: '1h',
-          limit: 3,
+          per_page: 3,
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',

@@ -577,10 +577,14 @@ def prepare_reports(dry_run=False, *args, **kwargs):
     logger.info("reports.begin_prepare_report")
 
     organizations = _get_organization_queryset().values_list("id", flat=True)
-    for organization_id in RangeQuerySetWrapper(
-        organizations, step=10000, result_value_getter=lambda item: item
+    for i, organization_id in enumerate(
+        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item)
     ):
         prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
+        if i % 10000:
+            logger.info(
+                f"Scheduled prepare_organization_report for org {organization_id}. Total scheduled: {i}"
+            )
 
     logger.info("reports.finish_prepare_report")
 
