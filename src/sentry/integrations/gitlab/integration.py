@@ -356,7 +356,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
 
-        if state["installation_data"].get("group", None):
+        if state["installation_data"].get("group"):
             group = self.get_group_info(data["access_token"], state["installation_data"])
             include_subgroups = state["installation_data"]["include_subgroups"]
         else:
