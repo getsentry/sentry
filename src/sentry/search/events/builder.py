@@ -81,12 +81,13 @@ class QueryBuilder:
         turbo: bool = False,
         sample_rate: Optional[float] = None,
         partial: bool = False,
+        equation_config: Optional[Dict[str, bool]] = None,
     ):
         self.dataset = dataset
         self.params = params
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
-        self.equation_config: Optional[Dict[str, bool]] = {}
+        self.equation_config = {} if equation_config is None else equation_config
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
@@ -122,6 +123,7 @@ class QueryBuilder:
             self.where += self.resolve_params()
             self.columns = self.resolve_select(selected_columns, equations)
             self.orderby = self.resolve_orderby(orderby)
+            self.groupby = self.resolve_groupby()
             self.array_join = None if array_join is None else self.resolve_column(array_join)
 
     def load_config(
@@ -601,6 +603,17 @@ class QueryBuilder:
         else:
             return self.resolve_field(field, alias=alias)
 
+    def resolve_groupby(self) -> Optional[List[SelectType]]:
+        if self.aggregates:
+            self.validate_aggregate_arguments()
+            return [
+                c
+                for c in self.columns
+                if c not in self.aggregates and not self.is_equation_column(c)
+            ]
+        else:
+            return []
+
     @property
     def flattened_having(self) -> List[Condition]:
         """Return self.having as a flattened list ignoring boolean operators
@@ -625,18 +638,6 @@ class QueryBuilder:
                     boolean_conditions.append(condition)
 
         return flattened
-
-    @property
-    def groupby(self) -> Optional[List[SelectType]]:
-        if self.aggregates:
-            self.validate_aggregate_arguments()
-            return [
-                c
-                for c in self.columns
-                if c not in self.aggregates and not self.is_equation_column(c)
-            ]
-        else:
-            return []
 
     @cached_property  # type: ignore
     def project_slugs(self) -> Mapping[str, int]:
@@ -1051,20 +1052,14 @@ class TimeseriesQueryBuilder(QueryBuilder):  # type: ignore
             dataset,
             params,
             query=query,
-            auto_fields=False,
-            use_aggregate_conditions=False,
-            limitby=None,
-            orderby=None,
-            array_join=None,
+            selected_columns=selected_columns,
+            equations=equations,
             functions_acl=functions_acl,
+            limit=limit,
             equation_config={"auto_add": True, "aggregates_only": True},
         )
 
         self.granularity = Granularity(granularity)
-
-    # This is a timeseries, the groupby will always be time
-    @property
-    def groupby(self) -> Optional[List[SelectType]]:
         self.groupby = [self.time_column]
 
     @property
