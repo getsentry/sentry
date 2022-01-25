@@ -123,6 +123,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         self.browser.snapshot(screenshot_name)
         self.browser.refresh()
         self.page.wait_until_loaded()
+
         self.browser.snapshot(f"{screenshot_name} (refresh)")
 
     def test_add_and_move_new_widget_on_existing_dashboard(self):
@@ -156,12 +157,13 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.save_dashboard()
 
             # Wait for page redirect, or else loading check passes too early
-            wait = WebDriverWait(self.browser.driver, 2)
+            wait = WebDriverWait(self.browser.driver, 10)
             wait.until(
-                lambda driver: driver.current_url.endswith(
-                    f"/organizations/{self.organization.slug}/dashboard/2/"
+                lambda driver: (
+                    f"/organizations/{self.organization.slug}/dashboard/2/" in driver.current_url
                 )
             )
+
             self.capture_screenshots("dashboards - save widget layout in new custom dashboard")
 
     def test_move_existing_widget_on_existing_dashboard(self):
