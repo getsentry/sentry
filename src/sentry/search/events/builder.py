@@ -126,7 +126,7 @@ class QueryBuilder:
             self.columns = self.resolve_select(selected_columns, equations)
             self.orderby = self.resolve_orderby(orderby)
             self.groupby = self.resolve_groupby()
-            self.array_join = None if array_join is None else self.resolve_column(array_join)
+            self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
     def load_config(
         self,

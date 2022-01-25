@@ -1287,7 +1287,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
     )
     @mock.patch(
-        "sentry.search.events.dataset.discover.MAX_QUERYABLE_TRANSACTION_THRESHOLDS",
+        "sentry.search.events.datasets.discover.MAX_QUERYABLE_TRANSACTION_THRESHOLDS",
         MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
     )
     def test_too_many_transaction_thresholds(self):
@@ -4364,7 +4364,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_too_many_team_key_transactions(self):
         MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
         with mock.patch(
-            "sentry.search.events.dataset.discover.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
+            "sentry.search.events.datasets.discover.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
             MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
         ):
             with mock.patch(
