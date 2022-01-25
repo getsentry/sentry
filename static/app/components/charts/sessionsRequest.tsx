@@ -26,7 +26,7 @@ type Props = {
   field: SessionField[];
   project?: number[];
   environment?: string[];
-  statsPeriod?: string;
+  statsPeriod?: string | null;
   start?: string;
   end?: string;
   query?: string;

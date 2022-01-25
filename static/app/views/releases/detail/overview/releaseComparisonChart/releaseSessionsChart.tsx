@@ -52,7 +52,7 @@ type Props = {
   diff: React.ReactNode;
   loading: boolean;
   reloading: boolean;
-  period?: string;
+  period?: string | null;
   start?: string;
   end?: string;
   utc?: boolean;

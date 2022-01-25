@@ -45,7 +45,7 @@ type Props = DefaultProps & {
   children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
   project?: Readonly<number[]>;
   environment?: Readonly<string[]>;
-  statsPeriod?: string;
+  statsPeriod?: string | null;
   start?: DateString;
   end?: DateString;
   query?: string;

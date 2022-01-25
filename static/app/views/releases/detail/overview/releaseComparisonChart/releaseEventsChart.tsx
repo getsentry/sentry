@@ -35,7 +35,7 @@ type Props = WithRouterProps & {
   value: React.ReactNode;
   diff: React.ReactNode;
   organization: Organization;
-  period?: string;
+  period?: string | null;
   start?: string;
   end?: string;
   utc?: boolean;

@@ -107,7 +107,7 @@ function TeamInsightsOverview({location, router}: Props) {
   }
 
   function setStateOnUrl(nextState: {
-    pageStatsPeriod?: string;
+    pageStatsPeriod?: string | null;
     pageStart?: DateString;
     pageEnd?: DateString;
     pageUtc?: boolean | null;

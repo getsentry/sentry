@@ -71,7 +71,7 @@ export type TraceProps = {
   traceId: string;
   start?: string;
   end?: string;
-  statsPeriod?: string;
+  statsPeriod?: string | null;
 };
 
 export type TraceRequestProps = DiscoverQueryProps & TraceProps;

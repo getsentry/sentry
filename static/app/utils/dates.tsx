@@ -209,9 +209,9 @@ export function parsePeriodToHours(str: string): number {
 }
 
 export function statsPeriodToDays(
-  statsPeriod: string | undefined,
-  start: DateString | undefined,
-  end: DateString | undefined
+  statsPeriod?: string | null,
+  start?: DateString,
+  end?: DateString
 ) {
   if (statsPeriod && statsPeriod.endsWith('d')) {
     return parseInt(statsPeriod.slice(0, -1), 10);

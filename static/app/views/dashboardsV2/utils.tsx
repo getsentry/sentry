@@ -51,7 +51,7 @@ export function eventViewFromWidget(
     query: conditions,
     orderby: query.orderby,
     projects,
-    range: statsPeriod,
+    range: statsPeriod ?? undefined,
     start: start ? getUtcDateString(start) : undefined,
     end: end ? getUtcDateString(end) : undefined,
     environment: environments,

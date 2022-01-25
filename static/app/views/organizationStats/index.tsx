@@ -190,7 +190,7 @@ export class OrganizationStats extends Component<Props> {
   setStateOnUrl = (
     nextState: {
       dataCategory?: DataCategory;
-      pageStatsPeriod?: string;
+      pageStatsPeriod?: string | null;
       pageStart?: DateString;
       pageEnd?: DateString;
       pageUtc?: boolean | null;

@@ -29,8 +29,8 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   environment: string[];
   query?: string;
   sort?: string;
-  statsPeriod?: string;
-  groupStatsPeriod?: string;
+  statsPeriod?: string | null;
+  groupStatsPeriod?: string | null;
   cursor?: string;
   page?: number | string;
   display?: string;
@@ -177,7 +177,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         transformedTableResult.start = getUtcDateString(start);
         transformedTableResult.end = getUtcDateString(end);
       }
-      transformedTableResult.period = period;
+      transformedTableResult.period = period ?? '';
       transformedTableResults.push(transformedTableResult);
     });
     return transformedTableResults;

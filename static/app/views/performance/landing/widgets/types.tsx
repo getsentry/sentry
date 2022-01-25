@@ -57,7 +57,7 @@ export type QueryFC<T extends WidgetDataConstraint> = React.FC<
   QueryChildren & {
     fields?: string | string[];
     yAxis?: string | string[];
-    period?: string;
+    period?: string | null;
     start?: DateString;
     end?: DateString;
     project?: Readonly<number[]>;

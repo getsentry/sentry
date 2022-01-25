@@ -32,7 +32,7 @@ type RequestQuery = {
   query?: string;
   start?: string;
   end?: string;
-  period?: string;
+  period?: string | null;
   utc?: string;
 };
 

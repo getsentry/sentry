@@ -93,7 +93,7 @@ export type PageFilters = {
   datetime: {
     start: DateString;
     end: DateString;
-    period: string;
+    period: string | null;
     utc: boolean | null;
   };
 };

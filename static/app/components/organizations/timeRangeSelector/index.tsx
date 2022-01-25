@@ -102,7 +102,7 @@ type Props = WithRouterProps & {
   /**
    * Relative date value
    */
-  relative: string;
+  relative: string | null;
 
   /**
    * Override defaults from DEFAULT_RELATIVE_PERIODS

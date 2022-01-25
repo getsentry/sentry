@@ -156,7 +156,7 @@ const MAX_PERIOD_HOURS_INCLUDE_PREVIOUS = 45 * 24;
 
 export function canIncludePreviousPeriod(
   includePrevious: boolean | undefined,
-  period: string | undefined
+  period: string | null | undefined
 ) {
   if (!includePrevious) {
     return false;
