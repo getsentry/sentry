@@ -1,6 +1,6 @@
 from rest_framework import status
 
-from sentry.models import ProjectCodeOwners
+from sentry.models import Integration, OrganizationIntegration, ProjectCodeOwners
 from sentry.testutils import APITestCase
 
 
@@ -115,3 +115,44 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         self.create_member(user=admin, organization=self.organization, role="admin")
         self.login_as(admin)
         self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
+
+    def test_query_by_provider(self):
+        """
+        Tests that the provider query parameter filters the returned associations appropriately.
+        """
+        self.create_codeowners(self.project_1, self.code_mapping_1, raw=self.data_1["raw"])
+        self.create_codeowners(self.project_2, self.code_mapping_2, raw=self.data_2["raw"])
+
+        response = self.get_success_response(
+            self.organization.slug, status=status.HTTP_200_OK, provider="life"
+        )
+        assert response.data == {}
+
+        response = self.get_success_response(
+            self.organization.slug, status=status.HTTP_200_OK, provider="github"
+        )
+        assert len(response.data.keys()) == 2
+
+        # Create a codeowners under the "life" provider, and check the query parameter again
+        integration = Integration.objects.create(provider="life", name="Life")
+        integration.add_organization(self.organization, self.user)
+        organization_integration = OrganizationIntegration.objects.get(
+            integration_id=integration.id
+        )
+        project_3 = self.create_project(
+            organization=self.organization, teams=[self.team_1, self.team_2]
+        )
+        code_mapping_3 = self.create_code_mapping(
+            project=project_3, organization_integration=organization_integration
+        )
+        self.create_codeowners(project_3, code_mapping_3, raw=self.data_2["raw"])
+
+        response = self.get_success_response(
+            self.organization.slug, status=status.HTTP_200_OK, provider="life"
+        )
+        assert len(response.data.keys()) == 1
+        assert project_3.slug in response.data.keys()
+
+        # Ensure all associations are returned without the provider specified
+        response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
+        assert len(response.data.keys()) == 3
