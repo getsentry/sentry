@@ -17,12 +17,7 @@ def rename_issue_widget_query_fields(apps, schema_editor):
 
     for query in RangeQuerySetWrapperWithProgressBar(DashboardWidgetQuery.objects.all()):
         fields = getattr(query, "fields")
-        new_fields = map(
-            lambda field: field
-            if field not in old_to_new_field_mapping.keys()
-            else old_to_new_field_mapping[field],
-            fields,
-        )
+        new_fields = [old_to_new_field_mapping.get(field, field) for field in fields]
         if fields != new_fields:
             query.fields = new_fields
             query.save()
