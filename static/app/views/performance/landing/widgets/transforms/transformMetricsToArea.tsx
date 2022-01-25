@@ -55,7 +55,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   const isFailureRateWidget = chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA;
 
   if (isFailureRateWidget) {
-    const groups = response.groups.filter(
+    const failedGroups = response.groups.filter(
       group => !TRANSACTION_SUCCESS_STATUS.includes(group.by['transaction.status'])
     );
 
@@ -68,7 +68,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
     const totalFailurePerBucket = response.intervals.map(
       (_intervalValue, intervalIndex) =>
-        groups.reduce(
+        failedGroups.reduce(
           (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
           0
         )
@@ -96,7 +96,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
       0
     );
 
-    const seriesTotalFailure = groups.reduce(
+    const seriesTotalFailure = failedGroups.reduce(
       (acc, group) => acc + (group.totals[metricsField] ?? 0),
       0
     );
