@@ -1,3 +1,5 @@
+import selectEvent from 'react-select-event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -102,6 +104,9 @@ describe('Incident Rules Form', () => {
         'Incident Rule'
       );
 
+      // Set thresholdPeriod
+      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
+
       userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenCalledWith(
@@ -111,6 +116,7 @@ describe('Incident Rules Form', () => {
             name: 'Incident Rule',
             projects: ['project-slug'],
             eventTypes: ['default'],
+            thresholdPeriod: 10,
           }),
         })
       );
