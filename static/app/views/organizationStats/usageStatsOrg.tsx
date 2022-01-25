@@ -12,7 +12,7 @@ import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'sentry/types';
+import {DataCategory, IntervalPeriod, Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {
@@ -37,7 +37,7 @@ type Props = {
   chartTransform?: string;
   handleChangeState: (state: {
     dataCategory?: DataCategory;
-    pagePeriod?: RelativePeriod;
+    pagePeriod?: string;
     transform?: ChartDataTransform;
   }) => void;
 } & AsyncComponent['props'];
