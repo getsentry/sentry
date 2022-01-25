@@ -6,8 +6,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
+from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.models import OrganizationMemberTeam
 from sentry.models.actor import ACTOR_TYPES
 

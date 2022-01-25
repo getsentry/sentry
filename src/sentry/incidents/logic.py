@@ -1365,7 +1365,7 @@ def translate_aggregate_field(aggregate, reverse=False):
 
 def get_slack_actions_with_async_lookups(organization, user, data):
     try:
-        from sentry.incidents.endpoints.serializers import AlertRuleTriggerActionSerializer
+        from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
 
         slack_actions = []
         for trigger in data["triggers"]:

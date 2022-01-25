@@ -5,8 +5,8 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
+from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase

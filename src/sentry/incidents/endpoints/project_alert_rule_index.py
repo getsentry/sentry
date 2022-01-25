@@ -13,9 +13,9 @@ from sentry.api.paginator import (
     OffsetPaginator,
 )
 from sentry.api.serializers import CombinedRuleSerializer, serialize
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule
+from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.models import Rule, RuleStatus
 from sentry.signals import alert_rule_created
