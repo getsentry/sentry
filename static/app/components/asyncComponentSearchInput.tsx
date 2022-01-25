@@ -18,14 +18,14 @@ type RenderProps = {
 
 function DefaultSearchBar({
   busy,
-  handleSearch,
+  onSubmit,
   className,
   placeholder,
   handleInputChange,
   query,
 }): React.ReactElement {
   return (
-    <Form onSubmit={handleSearch}>
+    <Form onSubmit={onSubmit}>
       <Input
         value={query}
         onChange={handleInputChange}
@@ -37,12 +37,7 @@ function DefaultSearchBar({
   );
 }
 
-interface AsyncComponentSearchInputProps extends WithRouterProps {
-  // optional, otherwise app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy
-  api: Client;
-  onError: () => void;
-
-  onSuccess: (data: object, resp: ResponseMeta | undefined) => void;
+export interface AsyncComponentSearchInputProps extends WithRouterProps {
   /**
    * Placeholder text in the search input
    */
@@ -83,91 +78,107 @@ function AsyncComponentSearchInput({
   location,
   children,
 }: AsyncComponentSearchInputProps): React.ReactElement {
-  const [{busy, query}, setState] = React.useState<{busy: boolean; query: string}>({
+  const [state, setState] = React.useState<{busy: boolean; query: string}>({
     query: '',
     busy: false,
   });
 
-  const queryResolver = React.useCallback(async (searchQuery: string) => {
-    setState({busy: true, query});
+  // We need to use a mutable ref to keep reference to our latest query, else
+  // useCallback scope will always reference the previous value and our condition will always fail
+  const latestQuery = React.useRef<string>(state.query);
 
-    try {
-      const [data, , resp] = await api.requestPromise(`${url}`, {
-        includeAllArgs: true,
-        method: 'GET',
-        query: {...location.query, query: searchQuery},
-      });
-      // only update data if the request's query matches the current query
-      if (query === searchQuery) {
-        onSuccess(data, resp);
+  const queryResolver = React.useCallback(
+    async (searchQuery: string) => {
+      latestQuery.current = searchQuery;
+      setState({query: searchQuery, busy: true});
+
+      try {
+        const [data, , resp] = await api.requestPromise(url, {
+          includeAllArgs: true,
+          method: 'GET',
+          query: {...location.query, query: searchQuery},
+        });
+
+        // only update data if the request's query matches the current query
+        if (latestQuery.current === searchQuery) {
+          onSuccess(data, resp);
+        }
+      } catch {
+        // TODO: should this also respect latestQuery === searchQuery?
+        onError();
       }
-    } catch {
-      onError();
-    }
 
-    setState({busy: false, query: searchQuery});
-  }, []);
+      setState({query: searchQuery, busy: false});
+    },
+    [onSuccess, onError, api, url]
+  );
 
   const debouncedQueryResolver = React.useMemo(() => {
     return debounce(queryResolver, debounceWait);
   }, [queryResolver, debounceWait]);
 
-  const handleChange = React.useCallback((searchQuery: string) => {
-    debouncedQueryResolver(searchQuery);
-  }, []);
+  const handleChange = React.useCallback(
+    (searchQuery: string) => {
+      debouncedQueryResolver(searchQuery);
+    },
+    [debouncedQueryResolver]
+  );
 
   const handleInputChange = React.useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
       debouncedQueryResolver(evt.target.value);
     },
-    [handleChange]
+    [debouncedQueryResolver]
   );
 
   /**
    * This is called when "Enter" (more specifically a form "submit" event) is pressed.
    */
-  function handleSearch(evt: React.FormEvent<HTMLFormElement>) {
-    evt.preventDefault();
+  const handleSubmit = React.useCallback(
+    (evt: React.FormEvent<HTMLFormElement>) => {
+      evt.preventDefault();
 
-    // Update the URL to reflect search term.
-    if (updateRoute) {
-      router.push({
-        pathname: location.pathname,
-        query: {
-          query,
-        },
-      });
-    }
+      // Update the URL to reflect search term.
+      if (updateRoute) {
+        router.push({
+          pathname: location.pathname,
+          query: {
+            query: state.query,
+          },
+        });
+      }
 
-    if (typeof onSearchSubmit !== 'function') {
-      return;
-    }
-    onSearchSubmit(query, evt);
-  }
+      if (typeof onSearchSubmit === 'function') {
+        onSearchSubmit(state.query, evt);
+        return;
+      }
+    },
+    [state, router, location.pathname]
+  );
 
   if (isRenderFunc<RenderProps>(children)) {
     return children({
       defaultSearchBar: (
         <DefaultSearchBar
-          busy={busy}
-          handleSearch={handleSearch}
-          query={query}
+          busy={state.busy}
+          onSubmit={handleSubmit}
+          query={state.query}
           handleInputChange={handleInputChange}
           className={className}
           placeholder={placeholder}
         />
       ),
-      busy,
-      value: query,
+      busy: state.busy,
+      value: state.query,
       handleChange,
     });
   }
 
   return (
     <DefaultSearchBar
-      busy={busy}
-      handleSearch={handleSearch}
-      query={query}
+      busy={state.busy}
+      query={state.query}
+      onSubmit={handleSubmit}
       handleInputChange={handleInputChange}
       className={className}
       placeholder={placeholder}
@@ -192,4 +203,5 @@ const Form = styled('form')`
   position: relative;
 `;
 
-export default withRouter(AsyncComponentSearchInput);
+const AsyncComponentSearchInputWithRouter = withRouter(AsyncComponentSearchInput);
+export {AsyncComponentSearchInputWithRouter as AsyncComponentSearchInput};
