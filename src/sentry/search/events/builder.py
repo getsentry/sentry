@@ -80,6 +80,7 @@ class QueryBuilder:
         limitby: Optional[Tuple[str, int]] = None,
         turbo: bool = False,
         sample_rate: Optional[float] = None,
+        partial: bool = False,
     ):
         self.dataset = dataset
         self.params = params
@@ -113,7 +114,7 @@ class QueryBuilder:
         self.limitby = self.resolve_limitby(limitby)
 
         # TODO(wmak): Refactor snuba/metrics.py to call QueryBuilder correctly.
-        if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
+        if not partial:
             self.where, self.having = self.resolve_conditions(
                 query, use_aggregate_conditions=use_aggregate_conditions
             )
@@ -135,7 +136,7 @@ class QueryBuilder:
 
         if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
             self.config = DiscoverDatasetConfig(self)
-        if self.dataset == Dataset.Sessions:
+        elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")

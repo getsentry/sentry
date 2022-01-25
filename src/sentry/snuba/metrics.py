@@ -106,7 +106,7 @@ def _resolve_tags(input_: Any) -> Any:
         return [_resolve_tags(item) for item in input_]
     if isinstance(input_, Function):
         if input_.function == "ifNull":
-            # This was wrapped automatically by QueryFilter, remove wrapper
+            # This was wrapped automatically by QueryBuilder, remove wrapper
             return _resolve_tags(input_.parameters[0])
         return Function(
             function=input_.function,
@@ -139,6 +139,7 @@ def parse_query(query_string: str) -> Sequence[Condition]:
             params={
                 "project_id": 0,
             },
+            partial=True,
         )
         where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
     except InvalidSearchQuery as e:
