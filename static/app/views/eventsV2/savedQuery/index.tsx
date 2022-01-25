@@ -382,12 +382,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   renderButtonAddToDashboard() {
     return (
-      <AddToDashboardButton
+      <Button
         key="add-dashboard-widget-from-discover"
+        data-test-id="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
         {t('Add to Dashboard')}
-      </AddToDashboardButton>
+      </Button>
     );
   }
 
@@ -465,12 +466,6 @@ const IconUpdate = styled('div')`
   margin-right: ${space(0.75)};
   border-radius: 5px;
   background-color: ${p => p.theme.yellow300};
-`;
-
-const AddToDashboardButton = styled(Button)`
-  span {
-    height: 38px;
-  }
 `;
 
 export default withProjects(withApi(SavedQueryButtonGroup));
