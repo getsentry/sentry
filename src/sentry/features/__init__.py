@@ -84,6 +84,7 @@ default_manager.add("organizations:global-views", OrganizationFeature)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
+default_manager.add("organizations:higher-ownership-limit", OrganizationFeature)
 default_manager.add("organizations:idp-automatic-migration", OrganizationFeature, True)
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)
 default_manager.add("organizations:improved-search", OrganizationFeature, True)
@@ -119,6 +120,9 @@ default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, 
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, True)
 default_manager.add("organizations:onboarding", OrganizationFeature)
 default_manager.add("organizations:org-subdomains", OrganizationFeature)
+default_manager.add(
+    "organizations:pagerduty-metric-alert-resolve-logging", OrganizationFeature, True
+)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
 default_manager.add("organizations:performance-events-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-landing-widgets", OrganizationFeature, True)

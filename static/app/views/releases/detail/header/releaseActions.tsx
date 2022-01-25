@@ -159,7 +159,7 @@ function ReleaseActions({
       <StyledDropdownLink
         caret={false}
         anchorRight={window.innerWidth > 992}
-        title={<ActionsButton icon={<IconEllipsis />} label={t('Actions')} />}
+        title={<ActionsButton icon={<IconEllipsis />} aria-label={t('Actions')} />}
       >
         {isReleaseArchived(release) ? (
           <Confirm

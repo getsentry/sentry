@@ -153,7 +153,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
               <Button
                 size="small"
                 icon={<IconDelete size="md" />}
-                label={t('delete')}
+                aria-label={t('delete')}
                 disabled={!hasAccess}
               />
             </Confirm>

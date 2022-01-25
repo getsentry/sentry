@@ -47,6 +47,7 @@ describe('Dashboards > WidgetCard', function () {
   };
 
   const api = new Client();
+  let eventsMock;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -56,6 +57,13 @@ describe('Dashboards > WidgetCard', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-geo/',
       body: [],
+    });
+    eventsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {title: 'string'},
+        data: [{title: 'title'}],
+      },
     });
   });
 
@@ -203,7 +211,9 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [
+            {...multipleQueryWidget.queries[0], fields: ['transaction', 'count()']},
+          ],
         }}
         selection={selection}
         isEditing={false}
@@ -224,7 +234,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
@@ -352,5 +362,74 @@ describe('Dashboards > WidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
+  });
+
+  it('calls eventsV2 with a limit of 20 items', async function () {
+    const mock = jest.fn();
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={mock}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+    await tick();
+    expect(eventsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          per_page: 20,
+        }),
+      })
+    );
+  });
+
+  it('calls eventsV2 with a default limit of 5 items', async function () {
+    const mock = jest.fn();
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={mock}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+    await tick();
+    expect(eventsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          per_page: 5,
+        }),
+      })
+    );
   });
 });
