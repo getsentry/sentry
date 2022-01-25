@@ -19,6 +19,8 @@ from sentry.utils import auth, json
 from sentry.utils.auth import initiate_login
 from sentry.utils.functional import extract_lazy_object
 
+logger: logging.Logger = logging.getLogger(__name__)
+
 
 class AuthIndexEndpoint(Endpoint):
     """
@@ -32,8 +34,6 @@ class AuthIndexEndpoint(Endpoint):
     authentication_classes = [QuietBasicAuthentication, SessionAuthentication]
 
     permission_classes = ()
-
-    logger: logging.Logger = logging.getLogger(__name__)
 
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
@@ -114,16 +114,16 @@ class AuthIndexEndpoint(Endpoint):
                 response = json.loads(validator.validated_data["response"])
                 authenticated = interface.validate_response(request, challenge, response)
                 if not authenticated:
-                    self.logger.warning(
+                    logger.warning(
                         "u2f_authentication.verification_failed",
                     )
             except ValueError:
-                self.logger.warning(
+                logger.warning(
                     "u2f_authentication.value_error",
                 )
                 pass
             except LookupError:
-                self.logger.warning(
+                logger.warning(
                     "u2f_authentication.interface_not_enrolled",
                     {"validated_data": validator.validated_data},
                 )
