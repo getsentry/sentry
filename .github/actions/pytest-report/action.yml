@@ -34,13 +34,10 @@ runs:
     - name: Fetch report from current branch (if not master)
       if: inputs.action != 'upload' && steps.current-branch.outputs.name != 'master'
       id: 'get-artifact-branch'
-      uses: getsentry/action-download-workflow-artifact@2c7fdc458e9fb008b94b8399a483ff6e3af883b1
+      uses: actions/download-artifact@v2
       with:
-        branch: ${{ steps.current-branch.outputs.name }}
         artifact: ${{ inputs.artifact }}__internal
         path: ${{ github.workspace }}/${{ inputs.path }}
-        ignoreError: true
-        workflowEvent: push
 
     - name: Fetch existing report from master
       if: inputs.action != 'upload' && (steps.get-artifact-branch.outcome == 'skipped' || steps.get-artifact-branch.outputs.result == 'failed')
