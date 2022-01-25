@@ -22,7 +22,7 @@ function SubscribeAction({disabled, group, onClick}: Props) {
       title={getSubscriptionReason(group, true)}
       tooltipProps={{delay: 300}}
       priority={group.isSubscribed ? 'primary' : 'default'}
-      size="zero"
+      size="xsmall"
       aria-label={t('Subscribe')}
       onClick={onClick}
       icon={<IconBell size="xs" />}
