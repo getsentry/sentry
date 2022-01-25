@@ -985,6 +985,7 @@ function ReleaseComparisonChart({
         withExpanders={withExpanders}
       >
         {charts.map(chartRow => renderChartRow(chartRow))}
+        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
         {additionalCharts.length > 0 && (
           <ShowMoreWrapper
             onClick={() => setIsOtherExpanded(!isOtherExpanded)}
@@ -1006,7 +1007,6 @@ function ReleaseComparisonChart({
             </ShowMoreButton>
           </ShowMoreWrapper>
         )}
-        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
       </ChartTable>
     </Fragment>
   );
