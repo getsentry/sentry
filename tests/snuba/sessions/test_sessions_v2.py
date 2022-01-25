@@ -326,6 +326,40 @@ def test_massage_simple_timeseries():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
+def test_massage_unordered_timeseries():
+    """A timeseries is filled up when it only receives partial data"""
+
+    query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)")
+    result_totals = [{"sessions": 10}]
+    # snuba returns the datetimes as strings for now
+    result_timeseries = [
+        {"sessions": 3, "bucketed_started": "2020-12-18T00:00:00+00:00"},
+        {"sessions": 2, "bucketed_started": "2020-12-17T18:00:00+00:00"},
+        {"sessions": 4, "bucketed_started": "2020-12-18T06:00:00+00:00"},
+        {"sessions": 1, "bucketed_started": "2020-12-17T12:00:00+00:00"},
+    ]
+
+    expected_result = {
+        "start": "2020-12-17T12:00:00Z",
+        "end": "2020-12-18T11:15:00Z",
+        "query": "",
+        "intervals": [
+            "2020-12-17T12:00:00Z",
+            "2020-12-17T18:00:00Z",
+            "2020-12-18T00:00:00Z",
+            "2020-12-18T06:00:00Z",
+        ],
+        "groups": [
+            {"by": {}, "series": {"sum(session)": [1, 2, 3, 4]}, "totals": {"sum(session)": 10}}
+        ],
+    }
+
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
+
+    assert actual_result == expected_result
+
+
+@freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_no_timeseries():
 
     query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)&groupby=projects")
