@@ -55,7 +55,7 @@ from sentry.search.events.fields import (
 from sentry.search.events.filter import ParsedTerm, ParsedTerms, QueryFilter
 from sentry.search.events.types import HistogramParams, ParamsType, SelectType, WhereType
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
-from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, resolve_column
+from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, raw_snql_query, resolve_column
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
@@ -1024,6 +1024,9 @@ class QueryBuilder:
             limitby=self.limitby,
             turbo=self.turbo,
         )
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
 
 class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
