@@ -9,7 +9,7 @@ type Props = {
   projectId: string;
   eventId: string;
   attachment: IssueAttachment;
-  children: (downloadUrl: string | null) => React.ReactNode;
+  children: (downloadUrl: string | null) => React.ReactElement | null;
 };
 
 function AttachmentUrl({attachment, organization, eventId, projectId, children}: Props) {

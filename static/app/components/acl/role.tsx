@@ -10,7 +10,7 @@ type RoleRenderProps = {
   hasRole: boolean;
 };
 
-type ChildrenRenderFn = (props: RoleRenderProps) => React.ReactElement;
+type ChildrenRenderFn = (props: RoleRenderProps) => React.ReactElement | null;
 
 function checkUserRole(user: User, organization: Organization, role: RoleProps['role']) {
   if (!user) {
