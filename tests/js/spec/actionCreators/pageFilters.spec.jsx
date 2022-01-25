@@ -259,7 +259,7 @@ describe('PageFilters ActionCreators', function () {
           query: {},
         },
       });
-      updateDateTime({period: '24h'}, router);
+      updateDateTime({statsPeriod: '24h'}, router);
 
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/test/',
@@ -274,6 +274,23 @@ describe('PageFilters ActionCreators', function () {
         location: {
           pathname: '/test/',
           query: {statsPeriod: '14d'},
+        },
+      });
+      updateDateTime({statsPeriod: '24h'}, router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {
+          statsPeriod: '24h',
+        },
+      });
+    });
+
+    it('updates `statsPeriod` when given a new  `period`', function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {},
         },
       });
       updateDateTime({period: '24h'}, router);

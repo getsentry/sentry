@@ -11,7 +11,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {PageFilters} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 
-import {PageFiltersStringified} from './types';
+const LOCAL_STORAGE_KEY = 'global-selection';
 
 /**
  * Make a default page filters object
@@ -76,16 +76,12 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
 }
 
 function makeLocalStorageKey(orgSlug: string) {
-  return `global-selection:${orgSlug}`;
+  return `${LOCAL_STORAGE_KEY}:${orgSlug}`;
 }
 
-// XXX(epurkhiser): Note the difference here between the update input type and
-// retrieved output type. It is like this historically because of how these
-// functions have been used
-
-type RetrievedData = {
-  projects: number[];
-  environments: string[];
+type UpdateData = {
+  project?: string[] | null;
+  environment?: string[] | null;
 };
 
 /**
@@ -104,7 +100,7 @@ type RetrievedData = {
 export function setPageFiltersStorage(
   orgSlug: string | null,
   current: PageFilters,
-  newQuery: PageFiltersStringified
+  update: UpdateData
 ) {
   const org = orgSlug && OrganizationsStore.get(orgSlug);
 
@@ -116,8 +112,8 @@ export function setPageFiltersStorage(
   }
 
   const dataToSave = {
-    projects: newQuery.project || current.projects,
-    environments: newQuery.environment || current.environments,
+    projects: update.project || current.projects,
+    environments: update.environment || current.environments,
   };
 
   const localStorageKey = makeLocalStorageKey(org.slug);
@@ -140,24 +136,15 @@ export function getPageFilterStorage(orgSlug: string) {
     return null;
   }
 
-  let decoded: any;
-
   try {
-    decoded = JSON.parse(value);
+    return JSON.parse(value) as Omit<PageFilters, 'datetime'>;
   } catch (err) {
     // use default if invalid
     Sentry.captureException(err);
     console.error(err); // eslint-disable-line no-console
-
-    return null;
   }
 
-  const result: RetrievedData = {
-    projects: decoded.projects?.map(Number) ?? [],
-    environments: decoded.environments ?? [],
-  };
-
-  return result;
+  return null;
 }
 
 /**
