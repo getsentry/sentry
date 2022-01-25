@@ -65,7 +65,7 @@ describe('RepositoryRow', function () {
 
       // Trash button should be disabled
       expect(wrapper.find('Confirm').props().disabled).toEqual(true);
-      expect(wrapper.find('Button[label="delete"]').props().disabled).toEqual(true);
+      expect(wrapper.find('Button[aria-label="delete"]').props().disabled).toEqual(true);
 
       // Cancel button active
       const cancel = wrapper.find('Button[data-test-id="repo-cancel"]');
@@ -93,7 +93,7 @@ describe('RepositoryRow', function () {
 
       // Trash button should be disabled
       expect(wrapper.find('Confirm').props().disabled).toEqual(true);
-      expect(wrapper.find('Button[label="delete"]').props().disabled).toEqual(true);
+      expect(wrapper.find('Button[aria-label="delete"]').props().disabled).toEqual(true);
     });
 
     it('displays disabled cancel', function () {
@@ -137,7 +137,7 @@ describe('RepositoryRow', function () {
         />,
         routerContext
       );
-      wrapper.find('Button[label="delete"]').simulate('click');
+      wrapper.find('Button[aria-label="delete"]').simulate('click');
 
       // Confirm modal
       const modal = await mountGlobalModal();
@@ -202,7 +202,7 @@ describe('RepositoryRow', function () {
       expect(wrapper.find('Button[data-test-id="repo-cancel"]')).toHaveLength(0);
 
       // Edit button should display enabled
-      expect(wrapper.find('Button[label="edit"]').props().disabled).toEqual(false);
+      expect(wrapper.find('Button[aria-label="edit"]').props().disabled).toEqual(false);
     });
 
     it('disables edit button when cancel pending', function () {
@@ -218,10 +218,10 @@ describe('RepositoryRow', function () {
 
       // Trash button should be disabled
       expect(wrapper.find('Confirm').props().disabled).toEqual(true);
-      expect(wrapper.find('Button[label="delete"]').props().disabled).toEqual(true);
+      expect(wrapper.find('Button[aria-label="delete"]').props().disabled).toEqual(true);
 
       // Edit button should be disabled
-      expect(wrapper.find('Button[label="edit"]').props().disabled).toEqual(true);
+      expect(wrapper.find('Button[aria-label="edit"]').props().disabled).toEqual(true);
 
       // Cancel button active
       const cancel = wrapper.find('Button[data-test-id="repo-cancel"]');

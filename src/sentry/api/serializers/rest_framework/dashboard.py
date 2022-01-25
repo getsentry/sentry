@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns, resolve_equation_list
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -47,6 +48,37 @@ def is_table_display_type(display_type):
         display_type
         == DashboardWidgetDisplayTypes.as_text_choices()[DashboardWidgetDisplayTypes.TABLE][0]
     )
+
+
+class LayoutField(serializers.Field):
+    STORE_KEYS = {
+        "x",
+        "y",
+        "w",
+        "h",
+        "min_w",
+        "max_w",
+        "min_h",
+        "max_h",
+    }
+
+    def to_internal_value(self, data):
+        if data is None:
+            return None
+
+        layout_to_store = {}
+        for key in self.STORE_KEYS:
+            value = data.get(key)
+            if value is None:
+                continue
+
+            if not isinstance(value, int):
+                raise serializers.ValidationError(f"Expected number for: {key}")
+            layout_to_store[key] = value
+
+        # Store the layout with camel case dict keys because they'll be
+        # served as camel case in outgoing responses anyways
+        return convert_dict_key_case(layout_to_store, snake_to_camel_case)
 
 
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
@@ -152,6 +184,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
+    layout = LayoutField(required=False, allow_null=True)
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -289,6 +322,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             if "widget_type" in widget_data
             else DashboardWidgetTypes.DISCOVER,
             order=order,
+            detail={"layout": widget_data.get("layout")},
         )
         new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
@@ -305,11 +339,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
     def update_widget(self, widget, data, order):
+        prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
         widget.order = order
+        widget.detail = {"layout": data.get("layout", prev_layout)}
         widget.save()
 
         if "queries" in data:

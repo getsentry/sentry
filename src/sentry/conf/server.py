@@ -932,6 +932,8 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable discover top events queries with other & higher options
     "organizations:discover-top-events": False,
+    # Allows an org to have a larger set of project ownership rules per project
+    "organizations:higher-ownership-limit": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
@@ -1025,6 +1027,8 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
+    # Enable logging for select organizations
+    "organizations:pagerduty-metric-alert-resolve-logging": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
@@ -1039,6 +1043,8 @@ SENTRY_FEATURES = {
     "organizations:performance-mobile-vitals": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
+    # Enable views for anomaly detection
+    "organizations:performance-anomaly-detection-ui": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1058,6 +1064,8 @@ SENTRY_FEATURES = {
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
     "organizations:semver": True,
+    # Enable the UI for the overage alert settings
+    "organizations:slack-overage-notifications": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1088,10 +1096,6 @@ SENTRY_FEATURES = {
     # Enable team insights page
     "organizations:team-insights": True,
     "organizations:team-insights-v2": False,
-    # Enable login with WebAuthn
-    "organizations:webauthn-login": False,
-    # Enable registering new key with WebAuthn
-    "organizations:webauthn-register": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1329,10 +1333,11 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
+SENTRY_RATELIMITER_ENABLED = False
 SENTRY_RATELIMITER_OPTIONS = {}
 # These values were determined from analysis on one week of api access logs
-SENTRY_RATELIMITER_DEFAULT_IP = 1000
-SENTRY_RATELIMITER_DEFAULT_USER = 3230
+SENTRY_RATELIMITER_DEFAULT_IP = 620
+SENTRY_RATELIMITER_DEFAULT_USER = 620
 SENTRY_RATELIMITER_DEFAULT_ORG = 620
 SENTRY_RATELIMITER_DEFAULTS = {
     RateLimitCategory.IP: RateLimit(SENTRY_RATELIMITER_DEFAULT_IP, 1),
@@ -2205,6 +2210,7 @@ KAFKA_CLUSTERS = {
 
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
+KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
@@ -2224,6 +2230,9 @@ KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
     KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
+    # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
+    # create a separate producer. Check ``track_outcome`` for details.
+    KAFKA_OUTCOMES_BILLING: None,
     KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {
         "cluster": "default",
         "topic": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,

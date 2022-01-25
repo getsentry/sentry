@@ -188,7 +188,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
                       <Button
                         icon={<IconDelete size="sm" />}
                         title={t('Remove All Artifacts')}
-                        label={t('Remove All Artifacts')}
+                        aria-label={t('Remove All Artifacts')}
                         disabled={!hasAccess}
                       />
                     </Confirm>

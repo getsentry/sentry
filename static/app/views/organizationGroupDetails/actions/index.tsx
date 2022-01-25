@@ -308,7 +308,7 @@ class Actions extends React.Component<Props, State> {
           isActive={group.isBookmarked}
           title={bookmarkTitle}
           tooltipProps={{delay: 300}}
-          label={bookmarkTitle}
+          aria-label={bookmarkTitle}
           onClick={this.handleClick(disabled, this.onToggleBookmark)}
           icon={<IconStar isSolid size="xs" />}
         />
@@ -324,7 +324,7 @@ class Actions extends React.Component<Props, State> {
             disabled={disabled}
             icon={<IconRefresh size="xs" />}
             title={t('Reprocess this issue')}
-            label={t('Reprocess this issue')}
+            aria-label={t('Reprocess this issue')}
             onClick={this.handleClick(disabled, this.onReprocessEvent)}
           />
         )}
