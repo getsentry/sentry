@@ -17,7 +17,7 @@ import {
   getPageFilterStorage,
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/utils';
-import {DATE_TIME, URL_PARAM} from 'sentry/constants/pageFilters';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   Environment,
@@ -110,35 +110,35 @@ export function initializeUrlState({
   showAbsolute = true,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
+
   const query = pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT]);
   const hasProjectOrEnvironmentInUrl = Object.keys(query).length > 0;
+
   const parsed = getStateFromQuery(queryParams, {
     allowAbsoluteDatetime: showAbsolute,
     allowEmptyPeriod: true,
   });
+
   const {datetime: defaultDateTime, ...retrievedDefaultSelection} = getDefaultSelection();
+
   const {datetime: customizedDefaultDateTime, ...customizedDefaultSelection} =
     defaultSelection || {};
 
-  let pageFilters: Omit<PageFilters, 'datetime'> & {
-    datetime: {
-      [K in keyof PageFilters['datetime']]: PageFilters['datetime'][K] | null;
-    };
-  } = {
+  let pageFilters: PageFilters = {
     ...retrievedDefaultSelection,
     ...customizedDefaultSelection,
     datetime: {
-      [DATE_TIME.START as 'start']:
-        parsed.start || customizedDefaultDateTime?.start || null,
-      [DATE_TIME.END as 'end']: parsed.end || customizedDefaultDateTime?.end || null,
-      [DATE_TIME.PERIOD as 'period']:
+      start: parsed.start || customizedDefaultDateTime?.start || null,
+      end: parsed.end || customizedDefaultDateTime?.end || null,
+      period:
         parsed.period || customizedDefaultDateTime?.period || defaultDateTime.period,
-      [DATE_TIME.UTC as 'utc']: parsed.utc || customizedDefaultDateTime?.utc || null,
+      utc: parsed.utc || customizedDefaultDateTime?.utc || null,
     },
   };
 
+  // Do not set a period if we have absolute start and end
   if (pageFilters.datetime.start && pageFilters.datetime.end) {
-    pageFilters.datetime.period = null;
+    pageFilters.datetime.period = '';
   }
 
   if (hasProjectOrEnvironmentInUrl) {
