@@ -183,7 +183,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
 
             message = json.dumps(payload)
 
-            if len(message) > 256 * 1024:
+            if len(message) > 256 * 1024 and not s3_bucket:
                 logger.info("sentry_plugins.amazon_sqs.skip_oversized", extra=logging_params)
                 return False
 
