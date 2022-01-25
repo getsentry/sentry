@@ -1794,7 +1794,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=columns,
             where=where_clause,
             groupby=group_by,
-            granularity=Granularity(rollup) if rollup is not None else None,
+            granularity=Granularity(
+                rollup if rollup is not None else LEGACY_SESSIONS_DEFAULT_ROLLUP
+            ),
         )
 
         rows = raw_snql_query(
