@@ -341,6 +341,20 @@ class GroupManager(BaseManager):
             id__in=assigned_groups,
         )
 
+    def get_issues_mapping(
+        self,
+        group_ids: Sequence[int],
+        project_ids: Sequence[int],
+        organization: Organization,
+    ) -> Mapping[int, str | None]:
+        """Create a dictionary of group_ids to their qualified_short_ids."""
+        return {
+            i.id: i.qualified_short_id
+            for i in self.filter(
+                id__in=group_ids, project_id__in=project_ids, project__organization=organization
+            )
+        }
+
 
 class Group(Model):
     """
@@ -616,16 +630,6 @@ class Group(Model):
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
-
-    @staticmethod
-    def issues_mapping(group_ids, project_ids, organization):
-        """Create a dictionary of group_ids to their qualified_short_ids"""
-        return {
-            i.id: i.qualified_short_id
-            for i in Group.objects.filter(
-                id__in=group_ids, project_id__in=project_ids, project__organization=organization
-            )
-        }
 
     def get_assignee(self) -> Team | User | None:
         from sentry.models import GroupAssignee
