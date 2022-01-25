@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -124,6 +125,7 @@ class IssueListFilters extends React.Component<Props> {
             </SearchContainer>
             {hasFeature && (
               <IssueListDropdownsWrapper>
+                {hasFeature && <DatePageFilter />}
                 {hasIssuePercentDisplay && (
                   <IssueListDisplayOptions
                     onDisplayChange={onDisplayChange}
