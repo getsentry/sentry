@@ -164,7 +164,7 @@ def test_has_valid_aggregates(interval):
     project = None  # parameter is unused
 
     def make_report(aggregates):
-        return Report(None, aggregates, None, None, None)
+        return Report(None, aggregates, None, None, None, None, None)
 
     assert has_valid_aggregates(interval, (project, make_report([None] * 4))) is False
 
