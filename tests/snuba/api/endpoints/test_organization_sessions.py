@@ -685,6 +685,35 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert seen == {"abnormal", "crashed", "errored", "healthy"}
 
+    @freeze_time("2021-01-14T12:37:28.303Z")
+    def test_snuba_limit_exceeded(self):
+        # TODO: When I call `patch` as a decorator, the metrics backend is selected.
+        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6):  # 2 * 3 => only show two groups
+
+            response = self.do_request(
+                {
+                    "project": [-1],
+                    "statsPeriod": "3d",
+                    "interval": "1d",
+                    "field": ["sum(session)", "count_unique(user)"],
+                    "groupBy": ["project", "release", "environment"],
+                }
+            )
+
+            assert response.status_code == 200, response.content
+            assert result_sorted(response.data) == [
+                {
+                    "by": {"release": "foo@1.0.0", "environment": "production", "project": 2},
+                    "totals": {"sum(session)": 3, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 3], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {"release": "foo@1.0.0", "environment": "production", "project": 4},
+                    "totals": {"sum(session)": 2, "count_unique(user)": 1},
+                    "series": {"sum(session)": [0, 0, 2], "count_unique(user)": [0, 0, 1]},
+                },
+            ]
+
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
