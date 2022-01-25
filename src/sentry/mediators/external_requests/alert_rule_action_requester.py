@@ -76,13 +76,12 @@ class AlertRuleActionRequester(Mediator):
 
     @memoize
     def body(self):
-        return json.dumps({
-            "fields": {
-                field["name"]: field["value"]
-                for field in self.fields
-            },
-            "installationId": self.install.uuid
-        })
+        return json.dumps(
+            {
+                "fields": {field["name"]: field["value"] for field in self.fields},
+                "installationId": self.install.uuid,
+            }
+        )
 
     @memoize
     def sentry_app(self):
