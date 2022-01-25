@@ -1,11 +1,9 @@
-from datetime import datetime
 from urllib.parse import urlparse
 
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseServerError
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
@@ -150,14 +148,6 @@ class SAML2ACSView(AuthView):
             return helper.error(ERR_SAML_FAILED.format(reason=auth.get_last_error_reason()))
 
         helper.bind_state("auth_attributes", auth.get_attributes())
-
-        # Not all providers send a session expiration value, but if they do,
-        # we should respect it and set session cookies to expire at the given time.
-        if auth.get_session_expiration() is not None:
-            session_expiration = datetime.fromtimestamp(auth.get_session_expiration()).replace(
-                tzinfo=timezone.utc
-            )
-            request.session.set_expiry(session_expiration)
 
         return helper.next_step()
 
