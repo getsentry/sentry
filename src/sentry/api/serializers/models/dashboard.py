@@ -9,6 +9,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.utils import json
 
 
 @register(DashboardWidget)
@@ -66,14 +67,28 @@ class DashboardListSerializer(Serializer):
         widgets = list(
             DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys())
             .order_by("order")
-            .values_list("dashboard_id", "order", "display_type")
+            .values_list("dashboard_id", "order", "display_type", "detail", "id")
         )
 
-        result = defaultdict(lambda: {"widget_display": []})
-        for dashboard_id, _, display_type in widgets:
+        result = defaultdict(lambda: {"widget_display": [], "layout": []})
+        for dashboard_id, _, display_type, _, _ in widgets:
             dashboard = item_dict[dashboard_id]
             display_type = DashboardWidgetDisplayTypes.get_type_name(display_type)
             result[dashboard]["widget_display"].append(display_type)
+
+        # TODO: feature flag
+        for dashboard_id, _, display_type, detail, widget_id in widgets:
+            dashboard = item_dict[dashboard_id]
+            if detail:
+                blah = json.loads(detail)
+                if blah.get("layout"):
+                    result[dashboard]["layout"].append(
+                        {
+                            **blah.get("layout"),
+                            "i": f"grid-item-{widget_id}",
+                            "displayType": DashboardWidgetDisplayTypes.get_type_name(display_type),
+                        }
+                    )
 
         return result
 
@@ -84,6 +99,7 @@ class DashboardListSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": serialize(obj.created_by, serializer=UserSerializer()),
             "widgetDisplay": attrs.get("widget_display", []),
+            "layout": attrs.get("layout", []),
         }
         return data
 
