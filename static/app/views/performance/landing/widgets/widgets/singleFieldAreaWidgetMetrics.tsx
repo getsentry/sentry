@@ -38,7 +38,6 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
   }
 
   const field = fields[0];
-  const isFailureRateWidget = chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA;
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -62,7 +61,11 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
           environment={environment}
           query={new MutableSearch(eventView.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
           field={decodeList(chartFields)}
-          groupBy={isFailureRateWidget ? ['transaction.status'] : undefined}
+          groupBy={
+            chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA
+              ? ['transaction.status']
+              : undefined
+          }
           includePrevious
         >
           {children}
@@ -103,7 +106,6 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
             <DurationChart
               {...provided.widgetData.chart}
               {...provided}
-              aggregation={isFailureRateWidget ? 'failure_rate()' : undefined}
               chartColors={chartColor ? [chartColor] : undefined}
               disableMultiAxis
               disableXAxis

@@ -69,31 +69,67 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
       )
     : undefined;
 
-  const data = groups.map(group => {
-    const series = response.intervals.map((intervalValue, intervalIndex) => {
-      const serieBucket = group.series[metricsField][intervalIndex];
-      const totalSerieBucket = totalPerBucket?.[intervalIndex];
-      return {
-        name: moment(intervalValue).valueOf(),
-        value:
-          defined(totalSerieBucket) &&
-          defined(serieBucket) &&
-          serieBucket > 0 &&
-          totalSerieBucket > 0
-            ? serieBucket / totalSerieBucket
-            : serieBucket,
-      };
-    });
+  const totalFailurePerBucket = isFailureRateWidget
+    ? response.intervals.map((_intervalValue, intervalIndex) =>
+        groups.reduce(
+          (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
+          0
+        )
+      )
+    : undefined;
 
-    return {
-      seriesName: metricsField,
-      totals: group.totals[metricsField],
-      data: series.some(serie => defined(serie.value)) ? series : [],
-    };
-  });
+  const data = (
+    isFailureRateWidget
+      ? [
+          {
+            seriesName: 'failure_rate()',
+            data: response.intervals.map((intervalValue, intervalIndex) => {
+              const totalSerieBucket = totalPerBucket?.[intervalIndex];
+              const totalFailureSerieBucket = totalFailurePerBucket?.[intervalIndex];
+
+              return {
+                name: moment(intervalValue).valueOf(),
+                value:
+                  defined(totalFailureSerieBucket) &&
+                  defined(totalSerieBucket) &&
+                  totalSerieBucket > 0 &&
+                  totalFailureSerieBucket > 0
+                    ? totalSerieBucket / totalFailureSerieBucket
+                    : totalSerieBucket,
+              };
+            }),
+          },
+        ]
+      : groups.map(group => {
+          const series = response.intervals.map((intervalValue, intervalIndex) => {
+            const serieBucket = group.series[metricsField][intervalIndex];
+            const totalSerieBucket = totalPerBucket?.[intervalIndex];
+            return {
+              name: moment(intervalValue).valueOf(),
+              value:
+                defined(totalSerieBucket) &&
+                defined(serieBucket) &&
+                serieBucket > 0 &&
+                totalSerieBucket > 0
+                  ? serieBucket / totalSerieBucket
+                  : serieBucket,
+            };
+          });
+
+          return {
+            seriesName: metricsField,
+            totals: group.totals[metricsField],
+            data: series.some(serie => defined(serie.value)) ? series : [],
+          };
+        })
+  ) as Series[];
 
   const seriesTotal = isFailureRateWidget
     ? response.groups.reduce((acc, group) => acc + (group.totals[metricsField] ?? 0), 0)
+    : undefined;
+
+  const seriesTotalFailure = isFailureRateWidget
+    ? groups.reduce((acc, group) => acc + (group.totals[metricsField] ?? 0), 0)
     : undefined;
 
   const dataMean = data.map(serie => {
@@ -101,27 +137,26 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
     if (
       defined(seriesTotal) &&
-      defined(serie.totals) &&
-      serie.totals > 0 &&
+      defined(seriesTotalFailure) &&
+      seriesTotalFailure > 0 &&
       seriesTotal > 0
     ) {
-      meanData = serie.totals / seriesTotal;
+      meanData = seriesTotal / seriesTotalFailure;
     } else {
       const serieData = serie.data
         .filter(({value}) => defined(value))
         .map(({value}) => value);
-
       if (serieData.length > 0) {
         meanData = mean(serieData);
       }
     }
 
-    const seriesName = defined(seriesTotal) ? 'failure_rate()' : serie.seriesName;
-
     return {
       mean: meanData,
-      outputType: aggregateOutputType(seriesName),
-      label: defined(meanData) ? axisLabelFormatter(meanData, seriesName) : undefined,
+      outputType: aggregateOutputType(serie.seriesName),
+      label: defined(meanData)
+        ? axisLabelFormatter(meanData, serie.seriesName)
+        : undefined,
     };
   });
 
