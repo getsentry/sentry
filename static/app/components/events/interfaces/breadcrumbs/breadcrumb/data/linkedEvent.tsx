@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 import {InjectedRouter, PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -10,6 +9,7 @@ import ShortId from 'sentry/components/shortId';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventIdResponse, Group, Organization, Project} from 'sentry/types';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useSessionStorage from 'sentry/utils/useSessionStorage';
 
@@ -26,6 +26,10 @@ type Props = {
   router: InjectedRouter;
   route: PlainRoute;
 };
+
+const errorMessage = t(
+  'An error occurred while fetching the data of the breadcrumb event link'
+);
 
 function LinkedEvent({orgSlug, eventId, route, router}: Props) {
   const [storedLinkedEvent, setStoredLinkedEvent, removeStoredLinkedEvent] =
@@ -54,10 +58,10 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
       return;
     }
 
-    const endpoint = `/organizations/${orgSlug}/eventids/${eventId}/`;
-
     try {
-      const response = await api.requestPromise(endpoint);
+      const response = await api.requestPromise(
+        `/organizations/${orgSlug}/eventids/${eventId}/`
+      );
 
       setEventIdLookup(response);
     } catch (error) {
@@ -67,14 +71,8 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
         return;
       }
 
-      const errorMessage = t(
-        'The endpoint %s is being used very quickly. The limit is 1/1s',
-        endpoint
-      );
-
       addErrorMessage(errorMessage);
-
-      Sentry.captureException(new Error(errorMessage));
+      handleXhrErrorResponse(errorMessage)(error);
 
       // do nothing. The link won't be displayed
     }
@@ -100,11 +98,9 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
         return;
       }
 
-      addErrorMessage(
-        t('An error occurred while fetching the data of the breadcrumb event link')
-      );
+      addErrorMessage(errorMessage);
+      handleXhrErrorResponse(errorMessage)(error);
 
-      Sentry.captureException(error);
       // do nothing. The link won't be displayed
     }
   }
