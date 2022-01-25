@@ -142,7 +142,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
             ? totalFailureSerieBucket / totalSerieBucket
             : totalFailureSerieBucket,
       };
-    });
+    }) as SeriesDataUnit[];
 
     const previousData = [
       {
