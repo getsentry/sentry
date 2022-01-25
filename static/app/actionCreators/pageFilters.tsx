@@ -138,7 +138,7 @@ export function initializeUrlState({
 
   // Do not set a period if we have absolute start and end
   if (pageFilters.datetime.start && pageFilters.datetime.end) {
-    pageFilters.datetime.period = '';
+    pageFilters.datetime.period = null;
   }
 
   if (hasProjectOrEnvironmentInUrl) {

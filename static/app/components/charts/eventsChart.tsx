@@ -348,7 +348,7 @@ export type EventsChartProps = {
   /**
    * Relative datetime expression. eg. 14d
    */
-  period?: string;
+  period?: string | null;
   /**
    * Absolute start date.
    */

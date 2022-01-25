@@ -37,7 +37,7 @@ type Props = {
   chartTransform?: string;
   handleChangeState: (state: {
     dataCategory?: DataCategory;
-    pagePeriod?: string;
+    pagePeriod?: string | null;
     transform?: ChartDataTransform;
   }) => void;
 } & AsyncComponent['props'];

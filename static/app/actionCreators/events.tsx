@@ -19,7 +19,7 @@ type Options = {
   project?: Readonly<number[]>;
   environment?: Readonly<string[]>;
   team?: Readonly<string | string[]>;
-  period?: string;
+  period?: string | null;
   start?: DateString;
   end?: DateString;
   interval?: string;

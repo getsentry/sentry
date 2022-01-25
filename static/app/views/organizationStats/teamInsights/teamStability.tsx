@@ -33,7 +33,7 @@ import {groupByTrend} from './utils';
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   projects: Project[];
-  period?: string;
+  period?: string | null;
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
