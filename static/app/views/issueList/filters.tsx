@@ -71,7 +71,7 @@ class IssueListFilters extends React.Component<Props> {
         {({hasFeature}) => (
           <FilterContainer>
             <SearchContainer
-              hasFeature={hasFeature}
+              hasProjectEnvFilter={hasFeature}
               hasIssuePercentDisplay={hasIssuePercentDisplay}
             >
               <ClassNames>
@@ -123,7 +123,7 @@ class IssueListFilters extends React.Component<Props> {
               )}
             </SearchContainer>
             {hasFeature && (
-              <IssueListDropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
+              <IssueListDropdownsWrapper>
                 {hasIssuePercentDisplay && (
                   <IssueListDisplayOptions
                     onDisplayChange={onDisplayChange}
@@ -150,14 +150,14 @@ const FilterContainer = styled('div')`
 
 const SearchContainer = styled('div')<{
   hasIssuePercentDisplay?: boolean;
-  hasFeature?: boolean;
+  hasProjectEnvFilter?: boolean;
 }>`
   display: inline-grid;
   gap: ${space(1)};
   width: 100%;
 
   ${p =>
-    p.hasFeature
+    p.hasProjectEnvFilter
       ? `
     @media (min-width: ${p.theme.breakpoints[1]}) {
       grid-template-columns: 2fr 1fr;
@@ -191,7 +191,7 @@ const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   }
 `;
 
-const IssueListDropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
+const IssueListDropdownsWrapper = styled('div')`
   display: grid;
   gap: ${space(1)};
   grid-auto-columns: max-content;
