@@ -232,7 +232,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   }
 
   getFields(): Field[] {
-    const {notificationType, organizations} = this.props;
+    const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
     const help = isGroupedByProject(notificationType)
@@ -264,11 +264,10 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       );
     }
 
-    // add in quota fields if feature flag is set
+    // if a quota notification is not disabled, add in our dependent fields
     if (
       notificationType === 'quota' &&
-      !isEverythingDisabled(notificationType, notificationSettings) &&
-      organizations.some(org => org.features?.includes('slack-overage-notifications'))
+      !isEverythingDisabled(notificationType, notificationSettings)
     ) {
       fields.push(
         ...QUOTA_FIELDS.map(field => ({
