@@ -9,10 +9,6 @@ import * as qs from 'query-string';
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getStateFromQuery} from 'sentry/components/organizations/pageFilters/parse';
 import {
-  PageFiltersStringified,
-  PageFiltersUpdate,
-} from 'sentry/components/organizations/pageFilters/types';
-import {
   getDefaultSelection,
   getPageFilterStorage,
   setPageFiltersStorage,
@@ -20,6 +16,7 @@ import {
 import {DATE_TIME, URL_PARAM} from 'sentry/constants/pageFilters';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
+  DateString,
   Environment,
   MinimalProject,
   Organization,
@@ -56,14 +53,39 @@ type Options = {
 };
 
 /**
- * Represents the input for updating the date time of page filters
+ * Represents the datetime portion of page filters staate
  */
-type DateTimeUpdate = Pick<PageFiltersUpdate, 'start' | 'end' | 'period' | 'utc'>;
+type DateTimeUpdate = {
+  start?: DateString;
+  end?: DateString;
+  statsPeriod?: string | null;
+  utc?: string | boolean | null;
+  /**
+   * @deprecated
+   */
+  period?: string | null;
+};
+
+/**
+ * Object used to update the page filter parameters
+ */
+type UpdateParams = {
+  project?: ProjectId[] | null;
+  environment?: EnvironmentId[] | null;
+} & DateTimeUpdate;
 
 /**
  * Output object used for updating query parameters
  */
-type PageFilterQuery = PageFiltersStringified & Record<string, Location['query'][string]>;
+type PageFilterQuery = {
+  project?: string[] | null;
+  environment?: string[] | null;
+  start?: string | null;
+  end?: string | null;
+  statsPeriod?: string | null;
+  utc?: string | null;
+  [extra: string]: Location['query'][string];
+};
 
 /**
  * This can be null which will not perform any router side effects, and instead updates store.
@@ -286,7 +308,7 @@ export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
  * @param [router] React router object
  * @param [options] Options object
  */
-export function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options) {
+export function updateParams(obj: UpdateParams, router?: Router, options?: Options) {
   // Allow another component to handle routing
   if (!router) {
     return;
@@ -323,7 +345,7 @@ export function updateParams(obj: PageFiltersUpdate, router?: Router, options?: 
  * @param [options] Options object
  */
 function getNewQueryParams(
-  obj: PageFiltersUpdate,
+  obj: UpdateParams,
   currentQuery: Location['query'],
   options: Options = {}
 ) {
@@ -351,7 +373,12 @@ function getNewQueryParams(
   };
 
   // Only set a stats period if we don't have an absolute date
-  const statsPeriod = !start && !end ? obj.period || currentQueryState.period : null;
+  //
+  // `period` is deprecated as a url parameter, though some pages may still
+  // include it (need to actually validate this?), normalize period and stats
+  // period together
+  const statsPeriod =
+    !start && !end ? obj.statsPeriod || obj.period || currentQueryState.period : null;
 
   const newQuery: PageFilterQuery = {
     project: project?.map(String),
