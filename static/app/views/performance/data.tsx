@@ -5,8 +5,10 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
 import {
@@ -454,6 +456,13 @@ function generateGenericPerformanceEventView(
   // in case the metric switch is disabled (for now).
   if (!isMetricsData) {
     eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  }
+
+  if (query.trendParameter) {
+    const trendParameter = getCurrentTrendParameter(location);
+    if (Boolean(WEB_VITAL_DETAILS[trendParameter.column])) {
+      eventView.additionalConditions.addFilterValues('has', [trendParameter.column]);
+    }
   }
 
   return eventView;
