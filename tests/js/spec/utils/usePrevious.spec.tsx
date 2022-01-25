@@ -17,9 +17,12 @@ describe('usePrevious', () => {
   });
 
   it('provides previous value', () => {
-    const {result, rerender} = renderHook(value => usePrevious(value), {
-      initialProps: undefined,
-    });
+    const {result, rerender} = renderHook(
+      (value: string | undefined) => usePrevious(value),
+      {
+        initialProps: undefined,
+      }
+    );
 
     rerender('New Value');
     // We did not pass anything under initialProps
