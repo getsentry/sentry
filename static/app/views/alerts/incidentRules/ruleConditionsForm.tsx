@@ -320,6 +320,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     'release.package',
                     'release.build',
                   ]}
+                  includeSessionTagsValues={dataset === Dataset.SESSIONS}
                   disabled={disabled}
                   useFormWrapper={false}
                   organization={organization}

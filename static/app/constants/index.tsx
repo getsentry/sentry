@@ -4,7 +4,7 @@
  */
 
 import {t} from 'sentry/locale';
-import {Scope} from 'sentry/types';
+import {DataCategory, Scope} from 'sentry/types';
 
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';
@@ -207,6 +207,12 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '14d': t('Last 14 days'),
   '30d': t('Last 30 days'),
   '90d': t('Last 90 days'),
+};
+
+export const DATA_CATEGORY_NAMES = {
+  [DataCategory.ERRORS]: t('Errors'),
+  [DataCategory.TRANSACTIONS]: t('Transactions'),
+  [DataCategory.ATTACHMENTS]: t('Attachments'),
 };
 
 // Special Search characters

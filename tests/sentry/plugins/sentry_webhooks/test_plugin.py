@@ -95,3 +95,17 @@ class WebHooksPluginTest(TestCase):
 
         with pytest.raises(PluginError):
             validate_urls(form.cleaned_data.get("urls"))
+
+    @responses.activate
+    def test_moved_permanently(self):
+        """Test that we do not raise an error for 301s"""
+
+        responses.add(responses.POST, "http://example.com", body="<moved permanently", status=301)
+
+        try:
+            self.plugin.notify(self.notification)
+        except Exception:
+            assert False, "ValueError: Received unexpected plaintext response for code 301"
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == 301

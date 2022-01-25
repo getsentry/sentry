@@ -71,12 +71,6 @@ export enum DataCategory {
 
 export type EventType = 'error' | 'transaction' | 'attachment';
 
-export const DataCategoryName = {
-  [DataCategory.ERRORS]: 'Errors',
-  [DataCategory.TRANSACTIONS]: 'Transactions',
-  [DataCategory.ATTACHMENTS]: 'Attachments',
-};
-
 export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
