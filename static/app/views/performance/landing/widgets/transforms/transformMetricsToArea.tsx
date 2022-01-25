@@ -111,7 +111,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
       };
     });
 
-    const previousGroups = responsePrevious?.groups.filter(
+    const previousFailedGroups = responsePrevious?.groups.filter(
       group => !TRANSACTION_SUCCESS_STATUS.includes(group.by['transaction.status'])
     );
 
@@ -125,7 +125,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
     const previousTotalFailurePerBucket = responsePrevious?.intervals.map(
       (_intervalValue, intervalIndex) =>
-        previousGroups?.reduce(
+        previousFailedGroups?.reduce(
           (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
           0
         )
