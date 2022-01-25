@@ -20,7 +20,6 @@ from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
-# TODO MARCOS FIRST
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     """
     Serializer for creating/updating a trigger action. Required context:
