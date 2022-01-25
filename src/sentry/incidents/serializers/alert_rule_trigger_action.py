@@ -1,8 +1,16 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.utils.encoding import force_text
 from rest_framework import serializers
 
 from sentry import analytics
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.api.serializers.rest_framework.base import (
+    camel_to_snake_case,
+    convert_dict_key_case,
+    snake_to_camel_case,
+)
 from sentry.incidents.logic import (
     InvalidTriggerActionError,
     create_alert_rule_trigger_action,
@@ -20,7 +28,25 @@ from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
-class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
+class IgnoreSettingsCamelSnakeModelSerializer(serializers.ModelSerializer):
+    def __init__(
+        self,
+        instance: Any | None = None,
+        data: dict[str, Any] | list[Any] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        if data is not None:
+            data = convert_dict_key_case(
+                data, camel_to_snake_case, recursive_stopwords=("settings",)
+            )
+        super().__init__(instance=instance, data=data, **kwargs)
+
+    @property
+    def errors(self) -> dict[str, Any] | list[Any]:
+        return convert_dict_key_case(super().errors, snake_to_camel_case)
+
+
+class AlertRuleTriggerActionSerializer(IgnoreSettingsCamelSnakeModelSerializer):
     """
     Serializer for creating/updating a trigger action. Required context:
      - `trigger`: The trigger related to this action.

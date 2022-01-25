@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any, Callable, Sequence
+
 from django.utils.text import re_camel_case
 from rest_framework.fields import empty
 from rest_framework.serializers import ModelSerializer, Serializer
@@ -18,10 +22,14 @@ def snake_to_camel_case(value):
     return words[0].lower() + "".join(word.capitalize() for word in words[1:])
 
 
-def convert_dict_key_case(obj, converter):
+def convert_dict_key_case(
+    obj: dict[str, Any] | list[Any],
+    converter: Callable[[str], str],
+    recursive_stopwords: Sequence[str] | None = None,
+) -> dict[str, Any] | list[Any]:
     """
     Recursively converts the keys of a dictionary using the provided converter
-    param.
+    param, but halts recursion when it hits a stopword.
     """
     if isinstance(obj, list):
         return [convert_dict_key_case(x, converter) for x in obj]
@@ -31,9 +39,9 @@ def convert_dict_key_case(obj, converter):
 
     obj = obj.copy()
     for key in list(obj.keys()):
-        converted_key = converter(key)
-        obj[converted_key] = convert_dict_key_case(obj.pop(key), converter)
-
+        if key not in (recursive_stopwords or ()):
+            converted_key = converter(key)
+            obj[converted_key] = convert_dict_key_case(obj.pop(key), converter)
     return obj
 
 
