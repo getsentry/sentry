@@ -54,19 +54,14 @@ class SelectAsyncField extends React.Component<
      * The propsValue is the `id` of the object (user, team, etc), and
      * react-select expects a full value object: {value: "id", label: "name"}
      **/
-    const returnValue =
+    return (
       // When rendering the selected value, first look at the API results...
       this.state.results.find(({value}) => value === propsValue) ??
       // Then at the defaultOptions passed in props...
       this.props.defaultOptions?.find(({value}) => value === propsValue) ??
       // Then at the latest value selected in the form
-      this.state.latestSelection;
-    // console.log({
-    //   results: this.state.results,
-    //   defaultOptions: this.props.defaultOptions,
-    //   latestSelection: this.state.latestSelection,
-    // });
-    return returnValue;
+      this.state.latestSelection
+    );
   }
 
   render() {
@@ -81,7 +76,6 @@ class SelectAsyncField extends React.Component<
             onResults={data => {
               const results = onResults(data);
               const resultSelection = results.find(result => result.value === value);
-              // TODO(Leander): Ensure you can submit after selecting new, then typing a 3rd query
               this.setState(
                 resultSelection
                   ? {
