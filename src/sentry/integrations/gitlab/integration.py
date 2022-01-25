@@ -356,7 +356,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
 
-        if state["installation_data"]["group"]:
+        if state["installation_data"].get("group", None):
             group = self.get_group_info(data["access_token"], state["installation_data"])
             include_subgroups = state["installation_data"]["include_subgroups"]
         else:
@@ -378,11 +378,11 @@ class GitlabIntegrationProvider(IntegrationProvider):
             # This value is embedded then in the webhook token that we
             # give to gitlab to allow us to find the integration a hook came
             # from.
-            "external_id": "{}:{}".format(hostname, group.get("id", "instance")),
+            "external_id": "{}:{}".format(hostname, group.get("id", "_instance_")),
             "metadata": {
                 "icon": group.get("avatar_url", None),
                 "instance": hostname,
-                "domain_name": "{}/{}".format(hostname, group.get("full_path", "")),
+                "domain_name": u"{}/{}".format(hostname, group.get("full_path", "")).rtrim("/"),
                 "scopes": scopes,
                 "verify_ssl": verify_ssl,
                 "base_url": base_url,
