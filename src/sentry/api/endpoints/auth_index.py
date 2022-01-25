@@ -33,6 +33,8 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
+    logger: logging.Logger = logging.getLogger(__name__)
+
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -104,7 +106,6 @@ class AuthIndexEndpoint(Endpoint):
         authenticated = False
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
-            logger: logging.Logger = logging.getLogger(__name__)
             try:
                 interface = Authenticator.objects.get_interface(request.user, "u2f")
                 if not interface.is_enrolled():
@@ -113,16 +114,16 @@ class AuthIndexEndpoint(Endpoint):
                 response = json.loads(validator.validated_data["response"])
                 authenticated = interface.validate_response(request, challenge, response)
                 if not authenticated:
-                    logger.warning(
+                    self.logger.warning(
                         "sudo_modal.u2f_authentication.verification_failed",
                     )
             except ValueError:
-                logger.warning(
+                self.logger.warning(
                     "sudo_modal.u2f_authentication.value_error",
                 )
                 pass
             except LookupError:
-                logger.warning(
+                self.logger.warning(
                     "sudo_modal.u2f_authentication.interface_not_enrolled",
                     {"validated_data": validator.validated_data},
                 )
