@@ -209,6 +209,14 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '90d': t('Last 90 days'),
 };
 
+export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
+  '1h': t('1H'),
+  '24h': t('24H'),
+  '7d': t('7D'),
+  '14d': t('14D'),
+  '30d': t('30D'),
+};
+
 export const DATA_CATEGORY_NAMES = {
   [DataCategory.ERRORS]: t('Errors'),
   [DataCategory.TRANSACTIONS]: t('Transactions'),

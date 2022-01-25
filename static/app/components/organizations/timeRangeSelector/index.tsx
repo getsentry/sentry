@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
 import DropdownMenu from 'sentry/components/dropdownMenu';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -18,6 +17,8 @@ import {DateString, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {analytics} from 'sentry/utils/analytics';
 import {
+  getDateWithTimezoneInUtc,
+  getInternalDate,
   getLocalToSystem,
   getPeriodAgo,
   getUserTimezone,
@@ -26,26 +27,6 @@ import {
 } from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-
-// Strips timezone from local date, creates a new moment date object with timezone
-// Then returns as a Date object
-const getDateWithTimezoneInUtc = (date, utc) =>
-  moment
-    .tz(
-      moment(date).local().format('YYYY-MM-DD HH:mm:ss'),
-      utc ? 'UTC' : getUserTimezone()
-    )
-    .utc()
-    .toDate();
-
-const getInternalDate = (date, utc) => {
-  if (utc) {
-    return getUtcToSystem(date);
-  }
-  return new Date(
-    moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
-  );
-};
 
 const DateRangeHook = HookOrDefault({
   hookName: 'component:header-date-range',
