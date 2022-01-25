@@ -35,6 +35,9 @@ import {Widget} from '../types';
 
 import WidgetQueries from './widgetQueries';
 
+const BIG_NUMBER_WIDGET_DEFAULT_HEIGHT = 200;
+const BIG_NUMBER_WIDGET_DEFAULT_WIDTH = 400;
+
 type TableResultProps = Pick<
   WidgetQueries['state'],
   'errorMessage' | 'loading' | 'tableResults'
@@ -148,12 +151,22 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
+      const {widget} = this.props;
+      const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
+
+      // heuristics to maintain an aspect ratio that works
+      // most of the time.
+      const w =
+        widget.layout?.w && widget.layout?.h
+          ? (widget.layout.w / widget.layout.h) * 300
+          : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
+
       return (
         <BigNumber autoFontResize key={`big_number:${result.title}`}>
           <svg
             width="100%"
             height="100%"
-            viewBox="0 0 400 200"
+            viewBox={`0 0 ${w} ${h}`}
             preserveAspectRatio="xMinYMin meet"
           >
             <foreignObject x="0" y="0" width="100%" height="100%">
@@ -378,7 +391,8 @@ const BigNumber = styled('div')<{autoFontResize?: boolean}>`
   flex: 1;
   width: 100%;
   min-height: 0;
-  font-size: ${p => (p.autoFontResize ? '200px' : '32px')};
+  font-size: ${p =>
+    p.autoFontResize ? `${BIG_NUMBER_WIDGET_DEFAULT_HEIGHT}px` : '32px'};
   color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
   * {
