@@ -42,7 +42,7 @@ export type QueryWithColumnState =
       sort: string | string[] | null | undefined;
     };
 
-const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
+const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',
   name: '',
 
@@ -55,12 +55,10 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
 
 // TODO(mark) these types are coupled to the gridEditable component types and
 // I'd prefer the types to be more general purpose but that will require a second pass.
-export function decodeColumnOrder(
-  fields: Readonly<Field[]>
-): TableColumn<React.ReactText>[] {
+export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
   let equations = 0;
   return fields.map((f: Field) => {
-    const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
+    const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field);
     const columnName = f.field;
