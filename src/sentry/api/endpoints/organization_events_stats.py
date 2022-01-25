@@ -90,12 +90,14 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 if referrer in ALLOWED_EVENTS_STATS_REFERRERS
                 else "api.organization-event-stats"
             )
-            features = self.get_features(organization, request)
-            discover_snql = features.get("organizations:discover-use-snql", False)
-            has_chart_interpolation = features.get(
+            batch_features = self.get_features(organization, request)
+            discover_snql = batch_features.get("organizations:discover-use-snql", False)
+            has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
             )
-            performance_use_metrics = features.get("organizations:performance-use-metrics", False)
+            performance_use_metrics = batch_features.get(
+                "organizations:performance-use-metrics", False
+            )
 
             metrics_enhanced = (
                 referrer in METRICS_ENHANCE_REFERRERS
