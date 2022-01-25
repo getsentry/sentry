@@ -517,12 +517,12 @@ class QueryField extends React.Component<Props> {
         tagType = 'success';
         break;
       case FieldValueKind.MEASUREMENT:
-        text = 'measure';
-        tagType = 'info';
+        text = 'field';
+        tagType = 'highlight';
         break;
       case FieldValueKind.BREAKDOWN:
-        text = 'breakdown';
-        tagType = 'error';
+        text = 'field';
+        tagType = 'highlight';
         break;
       case FieldValueKind.TAG:
         text = kind;
