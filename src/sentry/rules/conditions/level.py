@@ -1,9 +1,10 @@
 from collections import OrderedDict
+from typing import Callable, Tuple
 
 from django import forms
 
 from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
-from sentry.rules import MATCH_CHOICES, EventState, MatchType
+from sentry.rules import MATCH_CHOICES, MatchType
 from sentry.rules.conditions.base import EventCondition
 
 key: Callable[[Tuple[str, str]], str] = lambda x: x[0]
