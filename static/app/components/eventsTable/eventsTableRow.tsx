@@ -37,12 +37,12 @@ class EventsTableRow extends React.Component<Props> {
         attachment={event.crashFile}
       >
         {url =>
-          url && (
+          url ? (
             <small>
               {crashFileType}: <a href={`${url}?download=1`}>{event.crashFile?.name}</a> (
               <FileSize bytes={event.crashFile?.size || 0} />)
             </small>
-          )
+          ) : null
         }
       </AttachmentUrl>
     );
