@@ -23,7 +23,7 @@ class AlertRuleActionRequester(Mediator):
 
     install = Param("sentry.models.SentryAppInstallation")
     uri = Param((str,))
-    fields = Param(object, required=False, default={})
+    fields = Param(object, required=False, default=[])
     http_method = Param(str, required=False, default="POST")
 
     def call(self):
