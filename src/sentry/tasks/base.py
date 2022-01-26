@@ -47,6 +47,10 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
 
             return result
 
+        # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
+        # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
+        # being OOM killed.
+        kwargs["trail"] = False
         return app.task(name=name, **kwargs)(_wrapped)
 
     return wrapped
