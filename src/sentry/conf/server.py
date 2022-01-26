@@ -451,7 +451,7 @@ SESSION_COOKIE_NAME = "sentrysid"
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
 SESSION_COOKIE_SAMESITE = None
 
-SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
+SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
 GOOGLE_OAUTH2_CLIENT_ID = ""
 GOOGLE_OAUTH2_CLIENT_SECRET = ""
@@ -1027,6 +1027,8 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
+    # Enable logging for select organizations
+    "organizations:pagerduty-metric-alert-resolve-logging": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown

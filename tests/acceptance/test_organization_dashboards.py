@@ -239,7 +239,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
                 f".react-grid-item:nth-of-type(2) {WIDGET_DRAG_HANDLE}"
             )
             action = ActionChains(self.browser.driver)
-            action.drag_and_drop_by_offset(dragHandle, 500, 0)
+            action.drag_and_drop_by_offset(dragHandle, 1000, 0)
             action.perform()
 
             # Edit the new widget
@@ -304,7 +304,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
                 f".react-grid-item:nth-of-type(2) {WIDGET_DRAG_HANDLE}"
             )
             action = ActionChains(self.browser.driver)
-            action.drag_and_drop_by_offset(dragHandle, -500, 0).perform()
+            action.drag_and_drop_by_offset(dragHandle, -1000, 0).perform()
 
             # Resize new widget, get the 2nd element instead of the "last" because the "last" is
             # the add widget button
@@ -361,6 +361,33 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots(
                 "dashboards - delete existing widget does not reset new widget layout"
             )
+
+    def test_default_layout_when_widgets_do_not_have_layout_set(self):
+        existing_widgets = DashboardWidget.objects.bulk_create(
+            [
+                DashboardWidget(
+                    dashboard=self.dashboard,
+                    order=i,
+                    title=f"Existing Widget {i}",
+                    display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    interval="1d",
+                )
+                for i in range(4)
+            ]
+        )
+        DashboardWidgetQuery.objects.bulk_create(
+            [
+                DashboardWidgetQuery(widget=existing_widget, fields=["count()"], order=0)
+                for existing_widget in existing_widgets
+            ]
+        )
+
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.page.wait_until_loaded()
+            self.browser.snapshot("dashboards - default layout when widgets do not have layout set")
 
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
