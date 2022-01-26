@@ -140,7 +140,17 @@ class TraceDetailsContent extends React.Component<Props, State> {
                 return (
                   <List symbol="bullet" data-test-id="trace-view-errors-list">
                     {tableData.data.map(data => (
-                      <ListItem key={data.id}>{data.title}</ListItem>
+                      <ListItem key={data.id}>
+                        {tct(`[link]: ${data.title}`, {
+                          link: (
+                            <Link
+                              to={`/organizations/${organization.slug}/discover/${data.project}:${data.id}`}
+                            >
+                              {data.project}
+                            </Link>
+                          ),
+                        })}
+                      </ListItem>
                     ))}
                   </List>
                 );

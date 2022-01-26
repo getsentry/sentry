@@ -15,7 +15,7 @@ const SAMPLE_ERROR_DATA = {
 
 const initializeData = () => {
   const data = _initializeData({
-    features: ['performance-view'],
+    features: ['performance-view', 'trace-view'],
   });
 
   act(() => ProjectsStore.loadInitialData(data.organization.projects));
