@@ -977,6 +977,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
+    # Enable threshold period in metric alert rule builder
+    "organizations:metric-alert-threshold-period": False,
     # Enable migrating auth identities between providers automatically
     "organizations:idp-automatic-migration": False,
     # Enable integration functionality to create and link groups to issues on
