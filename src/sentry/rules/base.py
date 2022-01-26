@@ -61,7 +61,10 @@ class RuleBase(metaclass=RuleDescriptor):
     logger = logging.getLogger("sentry.rules")
 
     def __init__(
-        self, project: Project, rule: Rule, data: MutableMapping[str, Any] | None = None
+        self,
+        project: Project,
+        data: MutableMapping[str, Any] | None = None,
+        rule: Rule | None = None,
     ) -> None:
         self.project = project
         self.data = data or {}
