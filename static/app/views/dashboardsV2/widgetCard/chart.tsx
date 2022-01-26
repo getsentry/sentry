@@ -152,22 +152,30 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       }
 
       const {widget} = this.props;
+      const widthToHeightRatio =
+        widget.layout?.w && widget.layout?.h ? widget.layout.w / widget.layout.h : 1;
+
       const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
 
       // heuristics to maintain an aspect ratio that works
       // most of the time.
       const w =
         widget.layout?.w && widget.layout?.h
-          ? (widget.layout.w / widget.layout.h) * 400
+          ? widthToHeightRatio * 400
           : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
 
+      const fontSize =
+        widthToHeightRatio < 1
+          ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * widthToHeightRatio
+          : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
+
       return (
-        <BigNumber autoFontResize key={`big_number:${result.title}`}>
+        <BigNumber fontSize={fontSize} key={`big_number:${result.title}`}>
           <svg
             width="100%"
             height="100%"
             viewBox={`0 0 ${w} ${h}`}
-            preserveAspectRatio="xMinYMax meet"
+            preserveAspectRatio="xMinYMin meet"
           >
             <foreignObject x="0" y="0" width="100%" height="100%">
               {rendered}
@@ -384,15 +392,14 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface200};
 `;
 
-const BigNumber = styled('div')<{autoFontResize?: boolean}>`
+const BigNumber = styled('div')<{fontSize?: number}>`
   resize: both;
   line-height: 1;
   display: inline-flex;
   flex: 1;
   width: 100%;
   min-height: 0;
-  font-size: ${p =>
-    p.autoFontResize ? `${BIG_NUMBER_WIDGET_DEFAULT_HEIGHT}px` : '32px'};
+  font-size: ${p => (p.fontSize ? `${p.fontSize}px` : '32px')};
   color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
   * {
