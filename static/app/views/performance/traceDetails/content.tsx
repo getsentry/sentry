@@ -138,7 +138,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                 }
 
                 return (
-                  <List symbol="bullet">
+                  <List symbol="bullet" data-test-id="trace-view-errors-list">
                     {tableData.data.map(data => (
                       <ListItem key={data.id}>{data.title}</ListItem>
                     ))}
