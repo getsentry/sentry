@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import is_safe_url
@@ -16,6 +18,8 @@ from sentry.models import Authenticator, Organization
 from sentry.utils import auth, json
 from sentry.utils.auth import initiate_login
 from sentry.utils.functional import extract_lazy_object
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class AuthIndexEndpoint(Endpoint):
@@ -109,9 +113,22 @@ class AuthIndexEndpoint(Endpoint):
                 challenge = json.loads(validator.validated_data["challenge"])
                 response = json.loads(validator.validated_data["response"])
                 authenticated = interface.validate_response(request, challenge, response)
+                if not authenticated:
+                    logger.warning(
+                        "u2f_authentication.verification_failed",
+                        extra={"user": request.user.id},
+                    )
             except ValueError:
+                logger.warning(
+                    "u2f_authentication.value_error",
+                    extra={"user": request.user.id},
+                )
                 pass
             except LookupError:
+                logger.warning(
+                    "u2f_authentication.interface_not_enrolled",
+                    extra={"validated_data": validator.validated_data, "user": request.user.id},
+                )
                 pass
 
         # attempt password authentication
