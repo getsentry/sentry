@@ -5,7 +5,7 @@
  * or used in multiple views.
  */
 import {getInterval} from 'sentry/components/charts/utils';
-import {API_ACCESS_SCOPES, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {API_ACCESS_SCOPES} from 'sentry/constants';
 
 /**
  * Visual representation of a project/team/organization/user
@@ -71,13 +71,6 @@ export enum DataCategory {
 
 export type EventType = 'error' | 'transaction' | 'attachment';
 
-export const DataCategoryName = {
-  [DataCategory.ERRORS]: 'Errors',
-  [DataCategory.TRANSACTIONS]: 'Transactions',
-  [DataCategory.ATTACHMENTS]: 'Attachments',
-};
-
-export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
 /**
@@ -100,7 +93,7 @@ export type PageFilters = {
   datetime: {
     start: DateString;
     end: DateString;
-    period: RelativePeriod | string;
+    period: string | null;
     utc: boolean | null;
   };
 };

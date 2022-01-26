@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.utils import timezone
 from django.utils.timezone import now
@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-@freeze_time()
+@freeze_time(datetime(2021, 6, 24, 4, 00))
 class TeamIssueBreakdownTest(APITestCase):
     endpoint = "sentry-api-0-team-all-unresolved-issues"
 

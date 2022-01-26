@@ -256,7 +256,7 @@ type Props = {
   /**
    * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
    */
-  period?: string;
+  period?: string | null;
   /**
    * Formats dates as UTC?
    */
