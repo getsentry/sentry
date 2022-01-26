@@ -33,6 +33,7 @@ _Button.args = {
   priority: undefined,
   size: undefined,
   borderless: false,
+  translucentBorder: false,
   icon: false,
   busy: false,
   disabled: false,

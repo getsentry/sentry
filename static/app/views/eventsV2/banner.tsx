@@ -112,6 +112,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
     >
       <Button
         size={isSmallBanner ? 'xsmall' : undefined}
+        translucentBorder
         to={resultsUrl}
         onClick={() => {
           trackAnalyticsEvent({
@@ -133,6 +134,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
         {({showModal}) => (
           <Button
             size={isSmallBanner ? 'xsmall' : undefined}
+            translucentBorder
             onClick={() => {
               trackAnalyticsEvent({
                 eventKey: 'discover_v2.tour.start',
