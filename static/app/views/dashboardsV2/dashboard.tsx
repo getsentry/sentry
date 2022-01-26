@@ -49,12 +49,9 @@ export const NUM_DESKTOP_COLS = 6;
 const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
-const MOBILE_ADD_WIDGET_LAYOUT = {
+const BOTTOM_MOBILE_VIEW_POSITION = {
   x: 0,
   y: Number.MAX_SAFE_INTEGER,
-  w: DEFAULT_WIDGET_WIDTH,
-  h: 1,
-  isResizable: false,
 };
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
@@ -104,6 +101,13 @@ class Dashboard extends Component<Props, State> {
 
   static getDerivedStateFromProps(props, state) {
     if (props.organization.features.includes('dashboard-grid-layout')) {
+      if (state.isMobile) {
+        // Don't need to recalculate any layout state from props in the mobile view
+        // because it we want to force different positions (i.e. new widgets added
+        // at the bottom)
+        return null;
+      }
+
       // If the user clicks "Cancel" and the dashboard resets,
       // recalculate the layout to revert to the unmodified state
       const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
@@ -397,15 +401,13 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleLayoutChange = (_, allLayouts: Layouts) => {
+    const {isMobile} = this.state;
     const {dashboard, onUpdate} = this.props;
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
       [MOBILE]: allLayouts[MOBILE].filter(isNotAddButton),
     };
-    this.setState({
-      layouts: newLayouts,
-    });
 
     // Generate a new list of widgets where the layouts are associated
     let columnDepths = calculateColumnDepths(newLayouts[DESKTOP]);
@@ -414,6 +416,12 @@ class Dashboard extends Component<Props, State> {
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
       if (!matchingLayout) {
         const height = getDefaultWidgetHeight(widget.displayType);
+        const defaultWidgetParams = {
+          w: DEFAULT_WIDGET_WIDTH,
+          h: height,
+          minH: height,
+          i: gridKey,
+        };
 
         // Calculate the available position
         const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
@@ -422,14 +430,21 @@ class Dashboard extends Component<Props, State> {
         );
         columnDepths = nextColumnDepths;
 
-        // Set the position
+        // Set the position for the desktop layout
         matchingLayout = {
+          ...defaultWidgetParams,
           ...nextPosition,
-          minH: height,
-          w: DEFAULT_WIDGET_WIDTH,
-          h: height,
-          i: gridKey, // Gets ignored, for types,
         };
+
+        if (isMobile) {
+          // This is a new widget and it's on the mobile page so we keep it at the bottom
+          const mobileLayout = newLayouts[MOBILE].filter(({i}) => i !== gridKey);
+          mobileLayout.push({
+            ...defaultWidgetParams,
+            ...BOTTOM_MOBILE_VIEW_POSITION,
+          });
+          newLayouts[MOBILE] = mobileLayout;
+        }
       }
       return {
         ...widget,
@@ -437,6 +452,9 @@ class Dashboard extends Component<Props, State> {
       };
     });
 
+    this.setState({
+      layouts: newLayouts,
+    });
     onUpdate(newWidgets);
   };
 
@@ -461,14 +479,15 @@ class Dashboard extends Component<Props, State> {
 
   get addWidgetLayout() {
     const {isMobile, layouts} = this.state;
-    if (isMobile) {
-      return MOBILE_ADD_WIDGET_LAYOUT;
+    let position: Position = BOTTOM_MOBILE_VIEW_POSITION;
+    if (!isMobile) {
+      const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
+      const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
+      position = nextPosition;
     }
 
-    const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
-    const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
     return {
-      ...nextPosition,
+      ...position,
       w: DEFAULT_WIDGET_WIDTH,
       h: 1,
       isResizable: false,
