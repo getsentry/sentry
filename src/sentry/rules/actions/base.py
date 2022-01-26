@@ -20,7 +20,7 @@ logger = logging.getLogger("sentry.rules")
 INTEGRATION_KEY = "integration"
 
 
-class IntegrationNotifyServiceForm(forms.Form):
+class IntegrationNotifyServiceForm(forms.Form):  # type: ignore
     integration = forms.ChoiceField(choices=(), widget=forms.Select())
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -77,7 +77,8 @@ class IntegrationEventAction(EventAction):
         raise NotImplementedError
 
     def is_enabled(self) -> bool:
-        return self.get_integrations().exists()
+        enabled: bool = self.get_integrations().exists()
+        return enabled
 
     def get_integration_name(self) -> str:
         """Get the integration's name for the label."""
@@ -118,7 +119,7 @@ class IntegrationEventAction(EventAction):
         return self.get_integration().get_installation(self.project.organization.id)
 
     def get_form_instance(self) -> forms.Form:
-        return self.form_cls(self.data, integrations=self.get_integrations())  # type: ignore
+        return self.form_cls(self.data, integrations=self.get_integrations())
 
 
 def create_link(
@@ -254,7 +255,7 @@ class TicketEventAction(IntegrationEventAction):
 
         :return: (Option) Django form fields dictionary
         """
-        form_fields: Mapping[str, Any] | None = self.data.get("dynamic_form_fields")
+        form_fields: Mapping[str, Any] | list[Any] | None = self.data.get("dynamic_form_fields")
         if not form_fields:
             return None
 

@@ -24,7 +24,7 @@ class AssignedToFilter(EventFilter):
 
     def get_assignees(self, group: Group) -> Sequence[Team | User]:
         cache_key = f"group:{group.id}:assignees"
-        assignee_list: Sequence[Team | User] = cache.get(cache_key)
+        assignee_list: Sequence[Team | User] | None = cache.get(cache_key)
         if assignee_list is None:
             assignee_list = list(group.assignee_set.all())
             cache.set(cache_key, assignee_list, 60)

@@ -42,7 +42,7 @@ comparison_types = {
 }
 
 
-class EventFrequencyForm(forms.Form):
+class EventFrequencyForm(forms.Form):  # type: ignore
     intervals = standard_intervals
     interval = forms.ChoiceField(
         choices=[
@@ -54,7 +54,7 @@ class EventFrequencyForm(forms.Form):
     )
     value = forms.IntegerField(widget=forms.TextInput())
     comparisonType = forms.ChoiceField(
-        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),  # type: ignore
+        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),
         required=False,
     )
     comparisonInterval = forms.ChoiceField(
@@ -66,7 +66,7 @@ class EventFrequencyForm(forms.Form):
     )
 
     def clean(self) -> Dict[str, Any]:
-        cleaned_data = super().clean()
+        cleaned_data: Dict[str, Any] = super().clean()
         # Don't store an empty string here if the value isn't passed
         if cleaned_data.get("comparisonInterval") == "":
             del cleaned_data["comparisonInterval"]

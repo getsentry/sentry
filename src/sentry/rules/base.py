@@ -90,9 +90,8 @@ class RuleBase(metaclass=RuleDescriptor):
         if not self.form_cls:
             return True
 
-        form = self.get_form_instance()
-
-        return form.is_valid()
+        is_valid: bool = self.get_form_instance().is_valid()
+        return is_valid
 
     def future(
         self,

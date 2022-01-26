@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Generator, MutableMapping, Optional, Sequence, Tuple
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -9,8 +9,9 @@ from sentry.eventstore.models import Event
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.rules import RuleFuture
+from sentry.rules import EventState, RuleFuture
 from sentry.rules.actions.base import IntegrationEventAction
+from sentry.rules.base import CallbackFuture
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -29,7 +30,7 @@ from .utils import (
 logger = logging.getLogger("sentry.rules")
 
 
-class SlackNotifyServiceForm(forms.Form):
+class SlackNotifyServiceForm(forms.Form):  # type: ignore
     workspace = forms.ChoiceField(choices=(), widget=forms.Select())
     channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.CharField(required=False, widget=forms.TextInput())
@@ -159,7 +160,7 @@ class SlackNotifyServiceForm(forms.Form):
         return cleaned_data
 
 
-class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
+class SlackNotifyServiceAction(IntegrationEventAction):
     form_cls = SlackNotifyServiceForm
     label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
     prompt = "Send a Slack notification"
@@ -178,7 +179,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
             "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
         }
 
-    def after(self, event: Event, state: str) -> Any:
+    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
