@@ -51,6 +51,11 @@ type Props = {
    * A custom loading indicator.
    */
   loader?: React.ReactNode;
+
+  /**
+   * If true, scrolling headers out of view will pin to the top of container.
+   */
+  stickyHeaders?: boolean;
 };
 
 /**
@@ -77,6 +82,7 @@ const PanelTable = ({
   emptyMessage = t('There are no items to display'),
   emptyAction,
   loader,
+  stickyHeaders = false,
   ...props
 }: Props) => {
   const shouldShowLoading = isLoading === true;
@@ -92,7 +98,9 @@ const PanelTable = ({
       {...props}
     >
       {headers.map((header, i) => (
-        <PanelTableHeader key={i}>{header}</PanelTableHeader>
+        <PanelTableHeader key={i} sticky={stickyHeaders}>
+          {header}
+        </PanelTableHeader>
       ))}
 
       {shouldShowLoading && (
@@ -155,7 +163,7 @@ const Wrapper = styled(Panel, {
   overflow: auto;
 `;
 
-export const PanelTableHeader = styled('div')`
+export const PanelTableHeader = styled('div')<{sticky: boolean}>`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -167,6 +175,14 @@ export const PanelTableHeader = styled('div')`
   flex-direction: column;
   justify-content: center;
   min-height: 45px;
+
+  ${p =>
+    p.sticky &&
+    `
+    position: sticky;
+    top: 0;
+    zIndex: 1;
+  `}
 `;
 
 export default PanelTable;
