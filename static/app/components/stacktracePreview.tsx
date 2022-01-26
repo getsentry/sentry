@@ -6,7 +6,7 @@ import StackTraceContent from 'sentry/components/events/interfaces/crashContent/
 import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
 import StackTraceContentV3 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV3';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
-import Hovercard, {Body} from 'sentry/components/hovercard';
+import {Body, Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
