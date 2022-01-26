@@ -306,8 +306,7 @@ class TransactionHeader extends React.Component<Props> {
             </Feature>
             <Feature
               organization={organization}
-              // features={['organizations:performance-anomaly-detection-ui']} #TODO(k-fish): Remove when flag is merged
-              features={['organizations:performance-events-page']}
+              features={['organizations:performance-anomaly-detection-ui']}
             >
               <ListLink
                 data-test-id="anomalies-tab"

@@ -7,9 +7,9 @@ import withProjects from 'sentry/utils/withProjects';
 
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
-import {generateSpansEventView} from '../transactionSpans/utils';
 
 import AnomaliesContent from './content';
+import {generateAnomaliesEventView} from './utils';
 
 type Props = {
   location: Location;
@@ -26,7 +26,7 @@ function TransactionAnomalies(props: Props) {
       organization={organization}
       projects={projects}
       tab={Tab.Anomalies}
-      generateEventView={generateSpansEventView} // TODO(k-fish): Fix
+      generateEventView={generateAnomaliesEventView}
       getDocumentTitle={getDocumentTitle}
       childComponent={AnomaliesContent}
     />
