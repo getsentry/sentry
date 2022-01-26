@@ -22,6 +22,7 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 import {MetricsSwitch} from '../metricsSwitch';
 
+import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
@@ -238,6 +239,7 @@ class TransactionHeader extends React.Component<Props> {
     const tagsTarget = tagsRouteWithQuery(routeQuery);
     const eventsTarget = eventsRouteWithQuery(routeQuery);
     const spansTarget = spansRouteWithQuery(routeQuery);
+    const anomaliesTarget = anomaliesRouteWithQuery(routeQuery);
 
     return (
       <Layout.Header>
@@ -299,6 +301,21 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTabClick(Tab.Spans)}
               >
                 {t('Spans')}
+                <FeatureBadge type="alpha" noTooltip />
+              </ListLink>
+            </Feature>
+            <Feature
+              organization={organization}
+              // features={['organizations:performance-anomaly-detection-ui']} #TODO(k-fish): Remove when flag is merged
+              features={['organizations:performance-events-page']}
+            >
+              <ListLink
+                data-test-id="anomalies-tab"
+                to={anomaliesTarget}
+                isActive={() => currentTab === Tab.Anomalies}
+                onClick={this.trackTabClick(Tab.Anomalies)}
+              >
+                {t('Anomalies')}
                 <FeatureBadge type="alpha" noTooltip />
               </ListLink>
             </Feature>
