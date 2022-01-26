@@ -1,10 +1,11 @@
-from typing import Any, Sequence
+from typing import Generator, Sequence
 
 from sentry.eventstore.models import Event
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import LegacyPluginService
+from sentry.rules.base import CallbackFuture
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
@@ -30,7 +31,7 @@ class NotifyEventAction(EventAction):
 
         return results
 
-    def after(self, event: Event, state: EventState) -> Any:
+    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         group = event.group
 
         for plugin_ in self.get_plugins():

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Generator, Mapping, Sequence
 
 from django import forms
 from django.db.models import QuerySet
@@ -13,7 +13,7 @@ from sentry.integrations import IntegrationInstallation
 from sentry.models import ExternalIssue, GroupLink
 from sentry.models.integration import Integration
 from sentry.rules import RuleFuture
-from sentry.rules.base import EventState, RuleBase
+from sentry.rules.base import CallbackFuture, EventState, RuleBase
 
 logger = logging.getLogger("sentry.rules")
 
@@ -36,7 +36,7 @@ class IntegrationNotifyServiceForm(forms.Form):
 class EventAction(RuleBase):
     rule_type = "action/event"
 
-    def after(self, event: Event, state: EventState) -> Any:
+    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         """
         Executed after a Rule matches.
 
@@ -278,10 +278,10 @@ class TicketEventAction(IntegrationEventAction):
     def generate_footer(self, rule_url: str) -> str:
         raise NotImplementedError
 
-    def after(self, event: Event, state: EventState) -> Any:
+    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         integration_id = self.get_integration_id()
         key = f"{self.provider}:{integration_id}"
-        return self.future(
+        yield self.future(
             create_issue,
             key=key,
             data=self.data,

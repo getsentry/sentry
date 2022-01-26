@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Generator, Mapping, Optional, Sequence
 
 from rest_framework import serializers
 
@@ -8,6 +8,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
 from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
+from sentry.rules.base import CallbackFuture
 from sentry.tasks.sentry_apps import notify_sentry_app
 
 ValidationError = serializers.ValidationError
@@ -128,7 +129,7 @@ class NotifyEventSentryAppAction(EventAction):
                 f"Unexpected setting(s) '{extra_keys_string}' configured for {sentry_app.name}"
             )
 
-    def after(self, event: Event, state: EventState) -> Any:
+    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         sentry_app = self.get_sentry_app(event)
         yield self.future(
             notify_sentry_app,

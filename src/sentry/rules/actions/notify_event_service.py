@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, Sequence
+from typing import Any, Generator, Mapping, Sequence
 
 from django import forms
 
@@ -18,6 +18,7 @@ from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService, SentryAppService
+from sentry.rules.base import CallbackFuture
 from sentry.tasks.sentry_apps import notify_sentry_app, send_and_save_webhook_request
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -166,7 +167,7 @@ class NotifyEventServiceAction(EventAction):
             return f"(Legacy) {title}"
         return title
 
-    def after(self, event: Event, state: EventState) -> Any:
+    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         service = self.get_option("service")
 
         extra = {"event_id": event.event_id}
