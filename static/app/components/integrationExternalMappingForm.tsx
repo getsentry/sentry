@@ -4,9 +4,14 @@ import capitalize from 'lodash/capitalize';
 
 import {SelectAsyncControlProps} from 'sentry/components/forms/selectAsyncControl';
 import {t, tct} from 'sentry/locale';
-import {ExternalActorMapping, Integration} from 'sentry/types';
+import {
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
+  Integration,
+} from 'sentry/types';
 import {
   getExternalActorEndpointDetails,
+  isExternalActorMapping,
   sentryNameToOption,
 } from 'sentry/utils/integrationUtil';
 import {FieldFromConfig} from 'sentry/views/settings/components/forms';
@@ -17,9 +22,9 @@ import {Field} from 'sentry/views/settings/components/forms/type';
 type Props = Pick<Form['props'], 'onCancel' | 'onSubmitSuccess' | 'onSubmitError'> &
   Pick<SelectAsyncControlProps, 'defaultOptions'> & {
     integration: Integration;
-    mapping?: ExternalActorMapping;
+    mapping?: ExternalActorMappingOrSuggestion;
     type: 'user' | 'team';
-    getBaseFormEndpoint: (mapping?: ExternalActorMapping) => string;
+    getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
     sentryNamesMapper: (v: any) => {id: string; name: string}[];
     dataEndpoint: string;
     onResults?: (data: any, mappingKey?: string) => void;
@@ -39,13 +44,13 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
     };
   }
 
-  getDefaultOptions(mapping?: ExternalActorMapping) {
+  getDefaultOptions(mapping?: ExternalActorMappingOrSuggestion) {
     const {defaultOptions, type} = this.props;
     if (typeof defaultOptions === 'boolean') {
       return defaultOptions;
     }
     const options = [...(defaultOptions ?? [])];
-    if (!mapping) {
+    if (!mapping || !isExternalActorMapping(mapping)) {
       return options;
     }
     // For organizations with >100 entries, we want to make sure their
