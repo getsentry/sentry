@@ -84,7 +84,7 @@ const transformAnomalyData = (_: any, results: {data: AnomalyPayload}) => {
     })),
   });
 
-  const anomalies = results.data.anomalies.data;
+  const anomalies = results.data.anomalies;
   const highConfidenceAreas = anomalies
     .filter(a => a.confidence === 'high')
     .map(transformAnomalyToArea);
@@ -251,11 +251,7 @@ function AnomaliesContent(props: Props) {
           eventView={props.eventView}
         >
           {({data}) => (
-            <AnomaliesTable
-              anomalies={data?.anomalies.data}
-              {...props}
-              isLoading={false}
-            />
+            <AnomaliesTable anomalies={data?.anomalies} {...props} isLoading={false} />
           )}
         </AnomaliesQuery>
       </TableContainer>
