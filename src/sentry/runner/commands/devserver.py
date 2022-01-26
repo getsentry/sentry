@@ -241,7 +241,7 @@ def devserver(
                     "`SENTRY_USE_METRICS_DEV` can only be used when "
                     "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
                 )
-            # daemons += [_get_daemon("metrics")]
+            daemons += [_get_daemon("metrics")]
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
