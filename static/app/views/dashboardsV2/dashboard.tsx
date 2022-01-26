@@ -103,7 +103,7 @@ class Dashboard extends Component<Props, State> {
     if (props.organization.features.includes('dashboard-grid-layout')) {
       if (state.isMobile) {
         // Don't need to recalculate any layout state from props in the mobile view
-        // because it we want to force different positions (i.e. new widgets added
+        // because we want to force different positions (i.e. new widgets added
         // at the bottom)
         return null;
       }
