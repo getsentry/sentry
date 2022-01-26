@@ -58,5 +58,6 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'projectselector.direct_selection': 'Project Selector: Direct Selection',
   'projectselector.update': 'Project Selector: Update',
   'projectselector.clear': 'Project Selector: Clear',
+  'projectselector.toggle': 'Project Selector: Toggle',
   'projectselector.multi_button_clicked': 'Project Selector: Multi Button Clicked',
 };
