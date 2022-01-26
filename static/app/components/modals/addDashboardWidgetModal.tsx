@@ -15,7 +15,6 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
-import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
@@ -635,7 +634,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             state.displayType === DisplayType.TABLE && (
               <React.Fragment>
                 <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
-                <FeatureBadge type="beta" />
                 <StyledRadioGroup
                   style={{flex: 1}}
                   choices={DATASET_CHOICES}
