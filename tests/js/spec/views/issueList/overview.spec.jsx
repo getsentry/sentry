@@ -1789,7 +1789,6 @@ describe('IssueList', function () {
 
     const {routerContext} = initializeOrg();
     wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
-
     wrapper.setState({
       groupIds: range(0, 25).map(String),
       queryCount: 75,
