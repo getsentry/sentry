@@ -281,8 +281,11 @@ class QueryDefinition:
         self.params = params
 
         query_columns = set()
-        for field in self.fields.values():
-            query_columns.update(field.get_snuba_columns(raw_groupby))
+        for i, field in enumerate(self.fields.values()):
+            columns = field.get_snuba_columns(raw_groupby)
+            if i == 0:
+                self.primary_column = columns[0]  # Will be used in order by
+            query_columns.update(columns)
         for groupby in self.groupby:
             query_columns.update(groupby.get_snuba_columns())
         self.query_columns = list(query_columns)
@@ -426,7 +429,7 @@ def _run_sessions_query(query):
     # We only return the top-N groups, based on the first field that is being
     # queried, assuming that those are the most relevant to the user.
     # In a future iteration we might expose an `orderBy` query parameter.
-    orderby = [f"-{query.query_columns[0]}"]
+    orderby = [f"-{query.primary_column}"]
 
     max_groups = SNUBA_LIMIT // len(get_timestamps(query))
 
