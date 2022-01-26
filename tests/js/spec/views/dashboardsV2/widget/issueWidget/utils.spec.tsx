@@ -15,7 +15,6 @@ describe('generateIssueWidgetFieldOptions', function () {
       'field:level',
       'field:lifetimeCount',
       'field:lifetimeUserCount',
-      'field:permalink',
       'field:platform',
       'field:status',
       'field:title',

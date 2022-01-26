@@ -65,6 +65,53 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         assert response.status_code == 200, response.content
         self.run_test("fruit", expected=[("orange", 2), ("apple", 1)])
 
+    def test_env(self):
+        env2 = self.create_environment()
+        self.store_event(
+            data={"timestamp": iso_format(self.day_ago), "tags": {"fruit": "apple"}},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago),
+                "tags": {"fruit": "apple"},
+                "environment": self.environment.name,
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago),
+                "tags": {"fruit": "apple"},
+                "environment": env2.name,
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"timestamp": iso_format(self.min_ago), "tags": {"fruit": "orange"}},
+            project_id=self.project.id,
+        )
+        self.run_test(
+            "fruit",
+            environment=self.environment.name,
+            expected=[("apple", 1)],
+        )
+
+    def test_semver_with_env(self):
+        env = self.create_environment(name="dev", project=self.project)
+        env1 = self.create_environment(name="prod", project=self.project)
+
+        self.create_release(version="test@1.0.0.0", environments=[env])
+        self.create_release(version="test@2.0.0.0")
+        self.run_test(
+            SEMVER_ALIAS,
+            qs_params={"query": "1.", "environment": [env.name]},
+            expected=[("1.0.0.0", None)],
+        )
+        self.run_test(
+            SEMVER_ALIAS, qs_params={"query": "1.", "environment": [env1.name]}, expected=[]
+        )
+
     def test_bad_key(self):
         response = self.get_response("fr uit")
         assert response.status_code == 400, response.content

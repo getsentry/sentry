@@ -25,7 +25,7 @@ const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
 type Period = {
-  period: string;
+  period: string | null;
   start: DateString;
   end: DateString;
 };
@@ -57,7 +57,7 @@ type Props = {
   xAxisIndex?: number | number[];
   start?: DateString;
   end?: DateString;
-  period?: string;
+  period?: string | null;
   utc?: boolean | null;
   onChartReady?: EChartChartReadyHandler;
   onDataZoom?: EChartDataZoomHandler;

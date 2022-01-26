@@ -10,7 +10,7 @@ import {Widget} from 'sentry/views/dashboardsV2/types';
 import {DisplayType} from '../utils';
 
 type ValidationError = {
-  [key: string]: string[] | ValidationError[] | ValidationError;
+  [key: string]: string | string[] | ValidationError[] | ValidationError;
 };
 
 type FlatValidationError = {
@@ -23,6 +23,10 @@ export function mapErrors(
 ): FlatValidationError {
   Object.keys(data).forEach((key: string) => {
     const value = data[key];
+    if (typeof value === 'string') {
+      update[key] = value;
+      return;
+    }
     // Recurse into nested objects.
     if (Array.isArray(value) && typeof value[0] === 'string') {
       update[key] = value[0];

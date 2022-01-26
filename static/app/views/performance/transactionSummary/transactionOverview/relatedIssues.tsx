@@ -23,7 +23,7 @@ type Props = {
   organization: OrganizationSummary;
   location: Location;
   transaction: string;
-  statsPeriod?: string;
+  statsPeriod?: string | null;
   start?: string;
   end?: string;
 };
@@ -101,7 +101,7 @@ class RelatedIssues extends Component<Props> {
           <SectionHeading>{t('Related Issues')}</SectionHeading>
           <Button
             data-test-id="issues-open"
-            size="small"
+            size="xsmall"
             to={issueSearch}
             onClick={this.handleOpenClick}
           >

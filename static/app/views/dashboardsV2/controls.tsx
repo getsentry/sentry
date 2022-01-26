@@ -131,7 +131,7 @@ class Controls extends React.Component<Props> {
                   e.preventDefault();
                   onEdit();
                 }}
-                icon={<IconEdit size="xs" />}
+                icon={<IconEdit />}
                 disabled={!hasFeature}
                 priority={
                   organization.features.includes('widget-library') ? 'default' : 'primary'

@@ -80,7 +80,7 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
               caret={false}
               customTitle={
                 <Button
-                  label={t('Actions')}
+                  aria-label={t('Actions')}
                   size="xsmall"
                   icon={<IconEllipsis size="xs" />}
                 />
