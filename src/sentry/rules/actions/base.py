@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
+from sentry.integrations import IntegrationInstallation
 from sentry.models import ExternalIssue, GroupLink
 from sentry.models.integration import Integration
 from sentry.rules import RuleFuture
@@ -121,7 +122,10 @@ class IntegrationEventAction(EventAction):
 
 
 def create_link(
-    integration: Integration, installation: Any, event: Event, response: Response
+    integration: Integration,
+    installation: IntegrationInstallation,
+    event: Event,
+    response: Response,
 ) -> None:
     """
     After creating the event on a third-party service, create a link to the
@@ -152,7 +156,10 @@ def create_link(
 
 
 def build_description(
-    event: Event, rule_id: int, installation: Any, generate_footer: Callable[[str], str]
+    event: Event,
+    rule_id: int,
+    installation: IntegrationInstallation,
+    generate_footer: Callable[[str], str],
 ) -> str:
     """
     Format the description of the ticket/work item
