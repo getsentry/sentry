@@ -59,7 +59,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   quota: {
     name: 'quota',
     type: 'select',
-    label: t('Quota Notifications'),
+    label: t('Quota'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
