@@ -21,6 +21,7 @@ type Props = {
   data: TableData['data'] | undefined;
   className?: string;
   getCustomFieldRenderer?: typeof getFieldRenderer;
+  fieldHeaderMap?: Record<string, string>;
 };
 
 class SimpleTableChart extends Component<Props> {
@@ -42,7 +43,8 @@ class SimpleTableChart extends Component<Props> {
   }
 
   render() {
-    const {className, loading, fields, metadata, data, title} = this.props;
+    const {className, loading, fields, metadata, data, title, fieldHeaderMap} =
+      this.props;
     const meta = metadata ?? {};
     const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
@@ -55,7 +57,7 @@ class SimpleTableChart extends Component<Props> {
             const align = fieldAlignment(column.name, column.type, meta);
             return (
               <HeadCell key={index} align={align}>
-                {column.name}
+                {fieldHeaderMap?.[column.name] ?? column.name}
               </HeadCell>
             );
           })}

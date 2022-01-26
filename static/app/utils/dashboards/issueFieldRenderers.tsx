@@ -47,12 +47,16 @@ type SpecialField = {
 type SpecialFields = {
   issue: SpecialField;
   assignee: SpecialField;
+  lifetimeEvents: SpecialField;
+  lifetimeUsers: SpecialField;
+  events: SpecialField;
+  users: SpecialField;
+  firstSeen: SpecialField;
+  lastSeen: SpecialField;
   lifetimeCount: SpecialField;
   lifetimeUserCount: SpecialField;
   count: SpecialField;
   userCount: SpecialField;
-  firstSeen: SpecialField;
-  lastSeen: SpecialField;
 };
 
 /**
@@ -97,25 +101,25 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
-  lifetimeCount: {
+  lifetimeEvents: {
     sortField: null,
     renderFunc: (data, {organization}) =>
-      issuesCountRenderer(data, organization, 'lifetimeCount'),
+      issuesCountRenderer(data, organization, 'lifetimeEvents'),
   },
-  lifetimeUserCount: {
+  lifetimeUsers: {
     sortField: null,
     renderFunc: (data, {organization}) =>
-      issuesCountRenderer(data, organization, 'lifetimeUserCount'),
+      issuesCountRenderer(data, organization, 'lifetimeUsers'),
   },
-  count: {
+  events: {
     sortField: null,
     renderFunc: (data, {organization}) =>
-      issuesCountRenderer(data, organization, 'count'),
+      issuesCountRenderer(data, organization, 'events'),
   },
-  userCount: {
+  users: {
     sortField: null,
     renderFunc: (data, {organization}) =>
-      issuesCountRenderer(data, organization, 'userCount'),
+      issuesCountRenderer(data, organization, 'users'),
   },
   firstSeen: {
     sortField: null,
@@ -125,19 +129,39 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: null,
     renderFunc: ({lastSeen}) => <StyledDateTime date={lastSeen} />,
   },
+  lifetimeCount: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeEvents'),
+  },
+  lifetimeUserCount: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'lifetimeUsers'),
+  },
+  count: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'events'),
+  },
+  userCount: {
+    sortField: null,
+    renderFunc: (data, {organization}) =>
+      issuesCountRenderer(data, organization, 'users'),
+  },
 };
 
 const issuesCountRenderer = (
   data: EventData,
   organization: Organization,
-  field: 'count' | 'userCount' | 'lifetimeCount' | 'lifetimeUserCount'
+  field: 'events' | 'users' | 'lifetimeEvents' | 'lifetimeUsers'
 ) => {
   const {start, end, period} = data;
   const isUserField = !!/user/i.exec(field.toLowerCase());
   const primaryCount = data[field];
-  const count = data[isUserField ? 'userCount' : 'count'];
-  const lifetimeCount = data[isUserField ? 'lifetimeUserCount' : 'lifetimeCount'];
-  const filteredCount = data[isUserField ? 'filteredUserCount' : 'filteredCount'];
+  const count = data[isUserField ? 'users' : 'events'];
+  const lifetimeCount = data[isUserField ? 'lifetimeUsers' : 'lifetimeEvents'];
+  const filteredCount = data[isUserField ? 'filteredUsers' : 'filteredEvents'];
   const discoverLink = getDiscoverUrl(data, organization);
   const filteredDiscoverLink = getDiscoverUrl(data, organization, true);
   const selectionDateString =
@@ -174,7 +198,7 @@ const issuesCountRenderer = (
         }
       >
         <span>
-          {['count', 'userCount'].includes(field) && filteredCount ? (
+          {['events', 'users'].includes(field) && filteredCount ? (
             <React.Fragment>
               <Count value={filteredCount} />
               <SecondaryCount value={primaryCount} />

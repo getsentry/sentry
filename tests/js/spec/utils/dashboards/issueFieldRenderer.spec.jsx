@@ -47,9 +47,9 @@ describe('getIssueFieldRenderer', function () {
       'spans.total.time': 75,
       'transaction.duration': 75,
       'timestamp.to_day': '2021-09-05T00:00:00+00:00',
-      lifetimeCount: 10000,
-      filteredCount: 3000,
-      count: 6000,
+      lifetimeEvents: 10000,
+      filteredEvents: 3000,
+      events: 6000,
       period: '7d',
     };
 
@@ -115,8 +115,8 @@ describe('getIssueFieldRenderer', function () {
     });
 
     it('can render counts', async function () {
-      const renderer = getIssueFieldRenderer('count', {
-        count: 'string',
+      const renderer = getIssueFieldRenderer('events', {
+        events: 'string',
       });
 
       rtlMountWithTheme(
