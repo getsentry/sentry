@@ -19,6 +19,7 @@ from sentry.models import (
 )
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
+    RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
@@ -860,6 +861,36 @@ class SnubaTagStorage(TagStorage):
             [(i, TagValue(SEMVER_BUILD_ALIAS, v, None, None, None)) for i, v in enumerate(packages)]
         )
 
+    def _get_tag_values_for_releases_across_all_datasets(self, projects, environments, query):
+        from sentry.api.paginator import SequencePaginator
+
+        organization_id = Project.objects.filter(id=projects[0]).values_list(
+            "organization_id", flat=True
+        )[0]
+        qs = Release.objects.filter(organization_id=organization_id)
+
+        if projects:
+            qs = qs.filter(
+                id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                    "release_id", flat=True
+                )
+            )
+        if environments:
+            qs = qs.filter(
+                id__in=ReleaseEnvironment.objects.filter(
+                    environment_id__in=environments
+                ).values_list("release_id", flat=True)
+            )
+
+        if query:
+            qs = qs.filter(version__startswith=query)
+
+        versions = qs.order_by("version").values_list("version", flat=True)[:1000]
+
+        return SequencePaginator(
+            [(i, TagValue(RELEASE_ALIAS, v, None, None, None)) for i, v in enumerate(versions)]
+        )
+
     def get_tag_value_paginator_for_projects(
         self,
         projects,
@@ -870,6 +901,7 @@ class SnubaTagStorage(TagStorage):
         query=None,
         order_by="-last_seen",
         include_transactions=False,
+        include_sessions=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -939,6 +971,11 @@ class SnubaTagStorage(TagStorage):
 
         if key == SEMVER_BUILD_ALIAS:
             return self._get_tag_values_for_semver_build(projects, environments, query)
+
+        if key == RELEASE_ALIAS and include_sessions:
+            return self._get_tag_values_for_releases_across_all_datasets(
+                projects, environments, query
+            )
 
         conditions = []
         project_slugs = {}

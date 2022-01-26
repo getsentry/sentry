@@ -34,6 +34,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
                     filter_params["end"],
                     query=request.GET.get("query"),
                     include_transactions=request.GET.get("includeTransactions") == "1",
+                    include_sessions=request.GET.get("includeSessions") == "1",
                 )
 
         return self.paginate(

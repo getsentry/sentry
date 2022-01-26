@@ -29,7 +29,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
-import {assignTempId, getDashboardLayout} from './layoutUtils';
+import {getDashboardLayout} from './layoutUtils';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
@@ -293,7 +293,7 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard} = this.state;
     const newModifiedDashboard = {
       ...cloneDashboard(modifiedDashboard || dashboard),
-      widgets: widgets.map(assignTempId),
+      widgets,
     };
     this.setState({
       modifiedDashboard: newModifiedDashboard,
@@ -326,11 +326,7 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     const newModifiedDashboard = modifiedDashboard || dashboard;
-    let newWidget = widget;
-    if (this.props.organization.features.includes('dashboard-grid-layout')) {
-      newWidget = assignTempId(widget);
-    }
-    this.onUpdateWidget([...newModifiedDashboard.widgets, newWidget]);
+    this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
   onAddWidget = () => {
