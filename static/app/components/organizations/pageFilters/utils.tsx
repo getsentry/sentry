@@ -7,11 +7,8 @@ import pickBy from 'lodash/pickBy';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {PageFilters} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
-
-import {PageFiltersStringified} from './types';
 
 /**
  * Make a default page filters object
@@ -98,29 +95,14 @@ type RetrievedData = {
  * However, if user then changes environment, it should...? Currently it will
  * save the current project alongside environment to local storage. It's
  * debatable if this is the desired behavior.
- *
- * This will be a no-op if a inaccessible organization slug is passed.
  */
-export function setPageFiltersStorage(
-  orgSlug: string | null,
-  current: PageFilters,
-  newQuery: PageFiltersStringified
-) {
-  const org = orgSlug && OrganizationsStore.get(orgSlug);
-
-  // Do nothing if no org is loaded or user is not an org member. Only
-  // organizations that a user has membership in will be available via the
-  // organizations store
-  if (!org) {
-    return;
-  }
-
+export function setPageFiltersStorage(orgSlug: string, selection: PageFilters) {
   const dataToSave = {
-    projects: newQuery.project || current.projects,
-    environments: newQuery.environment || current.environments,
+    projects: selection.projects,
+    environments: selection.environments,
   };
 
-  const localStorageKey = makeLocalStorageKey(org.slug);
+  const localStorageKey = makeLocalStorageKey(orgSlug);
 
   try {
     localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
