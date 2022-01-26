@@ -47,7 +47,7 @@ class EventFrequencyForm(forms.Form):
     interval = forms.ChoiceField(
         choices=[
             (key, label)
-            for key, (label, duration) in sorted(
+            for key, (label, _) in sorted(
                 intervals.items(), key=lambda key____label__duration: key____label__duration[1][1]
             )
         ]
@@ -60,9 +60,7 @@ class EventFrequencyForm(forms.Form):
     comparisonInterval = forms.ChoiceField(
         choices=[
             (key, label)
-            for key, (label, duration_) in sorted(
-                comparison_intervals.items(), key=lambda item: item[1][1]
-            )
+            for key, (label, _) in sorted(comparison_intervals.items(), key=lambda item: item[1][1])
         ],
         required=False,
     )
