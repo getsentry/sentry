@@ -15,7 +15,7 @@ import {
   Organization,
   Team,
 } from 'sentry/types';
-import {isExternalActorMapping, sentryNameToOption} from 'sentry/utils/integrationUtil';
+import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = AsyncComponent['props'] &
@@ -112,7 +112,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   }
 
   getBaseFormEndpoint(mapping?: ExternalActorMappingOrSuggestion) {
-    if (!mapping || !isExternalActorMapping(mapping)) {
+    if (!mapping) {
       return '';
     }
     const {organization} = this.props;

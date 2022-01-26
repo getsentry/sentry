@@ -50,15 +50,17 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
       return defaultOptions;
     }
     const options = [...(defaultOptions ?? [])];
-    if (!mapping || !isExternalActorMapping(mapping)) {
+    if (!mapping || !isExternalActorMapping(mapping) || !mapping.sentryName) {
       return options;
     }
     // For organizations with >100 entries, we want to make sure their
     // saved mapping gets populated in the results if it wouldn't have
     // been in the initial 100 API results, which is why we add it here
     const mappingId = mapping[`${type}Id`];
-    const mappingOption = options.find(({value}) => mappingId && value === mappingId);
-    return !!mappingOption
+    const isMappingInOptionsAlready = options.some(
+      ({value}) => mappingId && value === mappingId
+    );
+    return isMappingInOptionsAlready
       ? options
       : [{value: mappingId, label: mapping.sentryName}, ...options];
   }
