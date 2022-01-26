@@ -168,7 +168,7 @@ export const Transform = {
       to.height / from.height,
       0,
       -((from.x * to.width) / from.width),
-      -((from.y * to.y) / from.height),
+      -((from.y * to.height) / from.height),
       1
     );
   },
