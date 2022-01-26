@@ -259,6 +259,16 @@ class GroupAssigneeTestCase(TestCase):
                 project=group.project, group=group, user=user_w_access, team__isnull=True
             ).exists()
 
+            # confirm capitalization doesn't affect syncing
+            groups_updated = sync_group_assignee_inbound(
+                integration, user_w_access.email.title(), "APP-123"
+            )
+
+            assert groups_updated[0] == group
+            assert GroupAssignee.objects.filter(
+                project=group.project, group=group, user=user_w_access, team__isnull=True
+            ).exists()
+
     def test_assignee_sync_inbound_deassign(self):
         group = self.group
         integration = Integration.objects.create(provider="example", external_id="123456")
