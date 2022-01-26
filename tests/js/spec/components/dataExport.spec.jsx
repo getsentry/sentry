@@ -25,13 +25,6 @@ const mockRouterContext = mockOrganization =>
   ]);
 
 describe('DataExport', function () {
-  beforeAll(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => void 0);
-  });
-  afterAll(() => {
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
-  });
   it('should not render anything for an unauthorized organization', function () {
     mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockUnauthorizedOrg),
