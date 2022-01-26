@@ -20,25 +20,14 @@ import {t, tct} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
+import {ViewProps} from '../../types';
 import {
   SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
   SpanOperationBreakdownFilter,
 } from '../filter';
-
-const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
-
-type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = WithRouterProps &
   ViewProps & {
