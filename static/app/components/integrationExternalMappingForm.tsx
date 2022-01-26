@@ -116,12 +116,15 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
 
   // This function is necessary since the endpoint we submit to changes depending on the value selected
   updateModel() {
-    const mapping = this.model.getData() as ExternalActorMapping;
-    const {getBaseFormEndpoint} = this.props;
-    if (mapping) {
+    const {getBaseFormEndpoint, mapping} = this.props;
+    const updatedMapping: ExternalActorMapping = {
+      ...mapping,
+      ...(this.model.getData() as ExternalActorMapping),
+    };
+    if (updatedMapping) {
       const endpointDetails = getExternalActorEndpointDetails(
-        getBaseFormEndpoint(mapping),
-        mapping
+        getBaseFormEndpoint(updatedMapping),
+        updatedMapping
       );
       this.model.setFormOptions({...this.model.options, ...endpointDetails});
     }
