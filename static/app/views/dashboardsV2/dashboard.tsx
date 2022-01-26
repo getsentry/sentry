@@ -10,7 +10,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import pickBy from 'lodash/pickBy';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -30,11 +29,16 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
+  calculateColumnDepths,
   constructGridItemKey,
+  DEFAULT_WIDGET_WIDTH,
   generateWidgetId,
   getDashboardLayout,
-  getDefaultPosition,
+  getDefaultWidgetHeight,
   getMobileLayout,
+  getNextAvailablePosition,
+  pickDefinedStoreKeys,
+  Position,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
@@ -46,19 +50,13 @@ export const NUM_DESKTOP_COLS = 6;
 const NUM_MOBILE_COLS = 2;
 const ROW_HEIGHT = 120;
 const WIDGET_MARGINS: [number, number] = [16, 16];
-const ADD_BUTTON_POSITION = {
+const BOTTOM_MOBILE_VIEW_POSITION = {
   x: 0,
   y: Number.MAX_SAFE_INTEGER,
-  w: 2,
-  h: 1,
-  isResizable: false,
 };
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
-
-// Keys for grid layout values we track in the server
-const STORE_KEYS = ['x', 'y', 'w', 'h', 'minW', 'maxW', 'minH', 'maxH'];
 
 type Props = {
   api: Client;
@@ -104,10 +102,22 @@ class Dashboard extends Component<Props, State> {
 
   static getDerivedStateFromProps(props, state) {
     if (props.organization.features.includes('dashboard-grid-layout')) {
+      if (state.isMobile) {
+        // Don't need to recalculate any layout state from props in the mobile view
+        // because we want to force different positions (i.e. new widgets added
+        // at the bottom)
+        return null;
+      }
+
       // If the user clicks "Cancel" and the dashboard resets,
       // recalculate the layout to revert to the unmodified state
       const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
-      if (!isEqual(dashboardLayout, state.layouts[DESKTOP])) {
+      if (
+        !isEqual(
+          dashboardLayout.map(pickDefinedStoreKeys),
+          state.layouts[DESKTOP].map(pickDefinedStoreKeys)
+        )
+      ) {
         return {
           ...state,
           layouts: {
@@ -332,7 +342,7 @@ class Dashboard extends Component<Props, State> {
     ];
   }
 
-  renderWidget(widget: Widget, index: number) {
+  renderWidget(widget: Widget, index: number, defaultPosition?: Position) {
     const {isMobile} = this.state;
     const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
@@ -349,10 +359,18 @@ class Dashboard extends Component<Props, State> {
     if (organization.features.includes('dashboard-grid-layout')) {
       const key = constructGridItemKey(widget);
       const dragId = key;
+      const height = getDefaultWidgetHeight(widget.displayType);
       return (
         <GridItem
           key={key}
-          data-grid={widget.layout ?? getDefaultPosition(index, widget.displayType)}
+          data-grid={
+            widget.layout ?? {
+              ...defaultPosition,
+              minH: height,
+              w: DEFAULT_WIDGET_WIDTH,
+              h: height,
+            }
+          }
         >
           <SortableWidget {...widgetProps} dragId={dragId} hideDragHandle={isMobile} />
         </GridItem>
@@ -364,34 +382,79 @@ class Dashboard extends Component<Props, State> {
     return <SortableWidget {...widgetProps} key={key} dragId={dragId} />;
   }
 
+  renderWidgets(widgets: Widget[]) {
+    const {layouts} = this.state;
+    let columnDepths = calculateColumnDepths(layouts[DESKTOP]);
+
+    return widgets.map((widget, index) => {
+      if (defined(widget.layout)) {
+        return this.renderWidget(widget, index);
+      }
+
+      const height = getDefaultWidgetHeight(widget.displayType);
+      const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
+        columnDepths,
+        height
+      );
+      columnDepths = nextColumnDepths;
+      return this.renderWidget(widget, index, nextPosition);
+    });
+  }
+
   handleLayoutChange = (_, allLayouts: Layouts) => {
+    const {isMobile} = this.state;
     const {dashboard, onUpdate} = this.props;
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
       [MOBILE]: allLayouts[MOBILE].filter(isNotAddButton),
     };
-    this.setState({
-      layouts: newLayouts,
-    });
 
-    const newWidgets = dashboard.widgets.map((widget, index) => {
+    // Generate a new list of widgets where the layouts are associated
+    let columnDepths = calculateColumnDepths(newLayouts[DESKTOP]);
+    const newWidgets = dashboard.widgets.map(widget => {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
       if (!matchingLayout) {
-        // TODO: Replace this with the smarter placement logic
-        matchingLayout = {
-          ...getDefaultPosition(index, widget.displayType),
-          i: gridKey, // Gets ignored, for types
+        const height = getDefaultWidgetHeight(widget.displayType);
+        const defaultWidgetParams = {
+          w: DEFAULT_WIDGET_WIDTH,
+          h: height,
+          minH: height,
+          i: gridKey,
         };
+
+        // Calculate the available position
+        const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
+          columnDepths,
+          height
+        );
+        columnDepths = nextColumnDepths;
+
+        // Set the position for the desktop layout
+        matchingLayout = {
+          ...defaultWidgetParams,
+          ...nextPosition,
+        };
+
+        if (isMobile) {
+          // This is a new widget and it's on the mobile page so we keep it at the bottom
+          const mobileLayout = newLayouts[MOBILE].filter(({i}) => i !== gridKey);
+          mobileLayout.push({
+            ...defaultWidgetParams,
+            ...BOTTOM_MOBILE_VIEW_POSITION,
+          });
+          newLayouts[MOBILE] = mobileLayout;
+        }
       }
       return {
         ...widget,
-        layout: pickBy(
-          matchingLayout,
-          (value, key) => defined(value) && STORE_KEYS.includes(key)
-        ),
+        layout: pickDefinedStoreKeys(matchingLayout),
       };
+    });
+
+    this.setState({
+      layouts: newLayouts,
     });
     onUpdate(newWidgets);
   };
@@ -414,6 +477,23 @@ class Dashboard extends Component<Props, State> {
     }
     this.setState({isMobile: false});
   };
+
+  get addWidgetLayout() {
+    const {isMobile, layouts} = this.state;
+    let position: Position = BOTTOM_MOBILE_VIEW_POSITION;
+    if (!isMobile) {
+      const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
+      const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
+      position = nextPosition;
+    }
+
+    return {
+      ...position,
+      w: DEFAULT_WIDGET_WIDTH,
+      h: 1,
+      isResizable: false,
+    };
+  }
 
   renderGridDashboard() {
     const {layouts, isMobile} = this.state;
@@ -448,9 +528,9 @@ class Dashboard extends Component<Props, State> {
         }
         isBounded
       >
-        {widgets.map((widget, index) => this.renderWidget(widget, index))}
+        {this.renderWidgets(widgets)}
         {isEditing && !!!widgetLimitReached && (
-          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={ADD_BUTTON_POSITION}>
+          <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={this.addWidgetLayout}>
             <AddWidget
               orgFeatures={organization.features}
               onAddWidget={this.handleStartAdd}
