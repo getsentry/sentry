@@ -125,15 +125,26 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return teams.map(({id, slug}) => ({id, name: slug}));
   }
 
+  /**
+   * This method combines the results from searches made on a form dropping repeated entries
+   * that have identical 'id's. This is because we need the result of the the search query when
+   * the user submits to get the team slug, but it won't always be the last query they've made.
+   *
+   * If they search (but not select) after making a selection, and we didn't keep a running collection of results,
+   * we wouldn't have the team to generate the endpoint from.
+   */
+  combineResultsById = (resultList1, resultList2) => {
+    return uniqBy([...resultList1, ...resultList2], 'id');
+  };
+
   handleResults = (results, mappingKey?: string) => {
     if (mappingKey) {
       const {queryResults} = this.state;
       this.setState({
         queryResults: {
           ...queryResults,
-          // This line will keep a running collection of the queries made on this mappingKey
-          // That way, no matter what they type after making a selection, we don't lose the result
-          [mappingKey]: uniqBy([...results, ...(queryResults[mappingKey] ?? [])], 'id'),
+          // Ensure we always have a team to pull the slug from
+          [mappingKey]: this.combineResultsById(results, queryResults[mappingKey] ?? []),
         },
       });
     }

@@ -50,17 +50,19 @@ class SelectAsyncField extends React.Component<
   };
 
   findValue(propsValue: string): GeneralSelectValue {
+    const {defaultOptions} = this.props;
+    const {results, latestSelection} = this.state;
     /**
      * The propsValue is the `id` of the object (user, team, etc), and
      * react-select expects a full value object: {value: "id", label: "name"}
      **/
     return (
       // When rendering the selected value, first look at the API results...
-      this.state.results.find(({value}) => value === propsValue) ??
+      results.find(({value}) => value === propsValue) ??
       // Then at the defaultOptions passed in props...
-      this.props.defaultOptions?.find(({value}) => value === propsValue) ??
+      defaultOptions?.find(({value}) => value === propsValue) ??
       // Then at the latest value selected in the form
-      this.state.latestSelection
+      latestSelection
     );
   }
 
