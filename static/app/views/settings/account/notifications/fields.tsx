@@ -78,8 +78,10 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     // Component will create choices,
   },
   quota: {
-    title: t('Quota Alerts'),
-    description: t('Notifications related to hitting event quotas.'),
+    title: t('Quota Notifications'),
+    description: t(
+      'Control the notifications you receive for error, transaction, and attachment quota limits.'
+    ),
     type: 'select',
     // No choices here because it's going to have dynamic content
     // Component will create choices,

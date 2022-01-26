@@ -273,10 +273,6 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         ...QUOTA_FIELDS.map(field => ({
           ...field,
           type: 'select' as const,
-          choices: [
-            ['always', t('On')],
-            ['never', t('Off')],
-          ] as const,
           getData: data =>
             this.getStateToPutForDependentSetting(
               data as NotificationSettingsByProviderObject,

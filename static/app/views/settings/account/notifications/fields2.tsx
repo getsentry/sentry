@@ -1,4 +1,6 @@
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import {Field} from 'sentry/views/settings/components/forms/type';
 
 export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
@@ -57,12 +59,14 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   quota: {
     name: 'quota',
     type: 'select',
-    label: t('Quota Alerts'),
+    label: t('Quota Notifications'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Notifications related to hitting event quotas.'),
+    help: t(
+      'Control the notifications you receive for error, transaction, and attachment quota limits.'
+    ),
   },
   reports: {
     name: 'weekly reports',
@@ -93,25 +97,53 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
 // partial field definition for quota sub-categories
 export const QUOTA_FIELDS = [
   {
+    name: 'quotaWarnings',
+    label: t('Set Quota Limit'),
+    help: t(
+      'Receive notifications when your organization exceeeds the following limits.'
+    ),
+    choices: [
+      ['always', t('100% and 80%')],
+      ['never', t('100%')],
+    ] as const,
+  },
+  {
     name: 'quotaErrors',
     label: t('Errors'),
-    help: t('Receive notifications regarding error quotas.'),
+    help: tct('Receive notifications about your error quotas. [learnMore:Learn more]', {
+      learnMore: <ExternalLink href={getDocsLinkForEventType('error')} />,
+    }),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
   },
   {
     name: 'quotaTransactions',
     label: t('Transactions'),
-    help: t('Receive notifications regarding transaction quotas.'),
+    help: tct(
+      'Receive notifications about your transaction quota. [learnMore:Learn more]',
+      {
+        learnMore: <ExternalLink href={getDocsLinkForEventType('transaction')} />,
+      }
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
   },
   {
     name: 'quotaAttachments',
     label: t('Attachments'),
-    help: t('Receive notifications regarding attachment quotas.'),
-  },
-  {
-    name: 'quotaWarnings',
-    label: t('80% Warnings'),
-    help: t(
-      'Receive notifications when your organization hits the 80% threshold for event quotas.'
+    help: tct(
+      'Receive notifications about your attachment quota. [learnMore:Learn more]',
+      {
+        learnMore: <ExternalLink href={getDocsLinkForEventType('attachment')} />,
+      }
     ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
   },
 ];

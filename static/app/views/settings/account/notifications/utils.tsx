@@ -419,3 +419,17 @@ export const getParentField = (
     help: undefined,
   }) as any;
 };
+
+/**
+ * Returns a link to docs on explaining how to manage quotas for that event type
+ */
+export function getDocsLinkForEventType(event: 'error' | 'transaction' | 'attachment') {
+  switch (event) {
+    case 'transaction':
+      return 'https://docs.sentry.io/product/performance/transaction-summary/';
+    case 'attachment':
+      return 'https://docs.sentry.io/product/accounts/quotas/#attachment-limits';
+    default:
+      return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
+  }
+}
