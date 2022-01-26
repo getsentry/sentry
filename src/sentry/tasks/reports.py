@@ -570,15 +570,25 @@ backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    trail=False,
 )
 def prepare_reports(dry_run=False, *args, **kwargs):
     timestamp, duration = _fill_default_parameters(*args, **kwargs)
 
     logger.info("reports.begin_prepare_report")
 
-    organizations = _get_organization_queryset()
-    for organization in RangeQuerySetWrapper(organizations, step=10000):
-        prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
+    organizations = _get_organization_queryset().values_list("id", flat=True)
+    for i, organization_id in enumerate(
+        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item)
+    ):
+        prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
+        if i % 10000 == 0:
+            logger.info(
+                "reports.scheduled_prepare_organization_report",
+                extra={"organization_id": organization_id, "total_scheduled": i},
+            )
+
+    logger.info("reports.finish_prepare_report")
 
 
 @instrumented_task(

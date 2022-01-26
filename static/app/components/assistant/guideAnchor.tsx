@@ -147,6 +147,7 @@ class GuideAnchor extends React.Component<Props, State> {
     const dismissButton = (
       <DismissButton
         size="small"
+        translucentBorder
         href={href}
         onClick={this.handleDismiss}
         priority="link"
@@ -165,7 +166,12 @@ class GuideAnchor extends React.Component<Props, State> {
           <div>
             {lastStep ? (
               <React.Fragment>
-                <StyledButton size="small" to={to} onClick={this.handleFinish}>
+                <StyledButton
+                  size="small"
+                  translucentBorder
+                  to={to}
+                  onClick={this.handleFinish}
+                >
                   {currentStep.nextText ||
                     (hasManySteps ? t('Enough Already') : t('Got It'))}
                 </StyledButton>
@@ -173,7 +179,12 @@ class GuideAnchor extends React.Component<Props, State> {
               </React.Fragment>
             ) : (
               <React.Fragment>
-                <StyledButton size="small" onClick={this.handleNextStep} to={to}>
+                <StyledButton
+                  size="small"
+                  translucentBorder
+                  onClick={this.handleNextStep}
+                  to={to}
+                >
                   {currentStep.nextText || t('Next')}
                 </StyledButton>
                 {!currentStep.cantDismiss && dismissButton}

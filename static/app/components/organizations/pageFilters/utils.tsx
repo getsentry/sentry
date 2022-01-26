@@ -7,11 +7,8 @@ import pickBy from 'lodash/pickBy';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {PageFilters} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
-
-const LOCAL_STORAGE_KEY = 'global-selection';
 
 /**
  * Make a default page filters object
@@ -76,12 +73,16 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
 }
 
 function makeLocalStorageKey(orgSlug: string) {
-  return `${LOCAL_STORAGE_KEY}:${orgSlug}`;
+  return `global-selection:${orgSlug}`;
 }
 
-type UpdateData = {
-  project?: string[] | null;
-  environment?: string[] | null;
+// XXX(epurkhiser): Note the difference here between the update input type and
+// retrieved output type. It is like this historically because of how these
+// functions have been used
+
+type RetrievedData = {
+  projects: number[];
+  environments: string[];
 };
 
 /**
@@ -94,29 +95,14 @@ type UpdateData = {
  * However, if user then changes environment, it should...? Currently it will
  * save the current project alongside environment to local storage. It's
  * debatable if this is the desired behavior.
- *
- * This will be a no-op if a inaccessible organization slug is passed.
  */
-export function setPageFiltersStorage(
-  orgSlug: string | null,
-  current: PageFilters,
-  update: UpdateData
-) {
-  const org = orgSlug && OrganizationsStore.get(orgSlug);
-
-  // Do nothing if no org is loaded or user is not an org member. Only
-  // organizations that a user has membership in will be available via the
-  // organizations store
-  if (!org) {
-    return;
-  }
-
+export function setPageFiltersStorage(orgSlug: string, selection: PageFilters) {
   const dataToSave = {
-    projects: update.project || current.projects,
-    environments: update.environment || current.environments,
+    projects: selection.projects,
+    environments: selection.environments,
   };
 
-  const localStorageKey = makeLocalStorageKey(org.slug);
+  const localStorageKey = makeLocalStorageKey(orgSlug);
 
   try {
     localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
@@ -136,15 +122,24 @@ export function getPageFilterStorage(orgSlug: string) {
     return null;
   }
 
+  let decoded: any;
+
   try {
-    return JSON.parse(value) as Omit<PageFilters, 'datetime'>;
+    decoded = JSON.parse(value);
   } catch (err) {
     // use default if invalid
     Sentry.captureException(err);
     console.error(err); // eslint-disable-line no-console
+
+    return null;
   }
 
-  return null;
+  const result: RetrievedData = {
+    projects: decoded.projects?.map(Number) ?? [],
+    environments: decoded.environments ?? [],
+  };
+
+  return result;
 }
 
 /**

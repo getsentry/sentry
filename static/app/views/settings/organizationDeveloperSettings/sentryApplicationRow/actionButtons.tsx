@@ -63,7 +63,7 @@ const ActionButtons = ({
         title={disableDeleteReason}
         size="small"
         icon={<IconDelete />}
-        label="Delete"
+        aria-label="Delete"
       />
     ) : (
       onDelete && (
@@ -73,7 +73,7 @@ const ActionButtons = ({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <StyledButton size="small" icon={<IconDelete />} label="Delete" />
+          <StyledButton size="small" icon={<IconDelete />} aria-label="Delete" />
         </ConfirmDelete>
       )
     )

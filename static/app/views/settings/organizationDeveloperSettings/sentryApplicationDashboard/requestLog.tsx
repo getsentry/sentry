@@ -283,13 +283,13 @@ export default class RequestLog extends AsyncComponent<Props, State> {
             icon={<IconChevron direction="left" size="sm" />}
             onClick={this.handlePrevPage}
             disabled={!this.hasPrevPage}
-            label={t('Previous page')}
+            aria-label={t('Previous page')}
           />
           <Button
             icon={<IconChevron direction="right" size="sm" />}
             onClick={this.handleNextPage}
             disabled={!this.hasNextPage}
-            label={t('Next page')}
+            aria-label={t('Next page')}
           />
         </PaginationButtons>
       </React.Fragment>

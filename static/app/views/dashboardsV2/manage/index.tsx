@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
@@ -232,6 +233,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
     await createDashboard(api, organization.slug, dashboard, true);
     this.onDashboardsChange();
+    addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
   }
 
   onPreview(dashboardId: string) {

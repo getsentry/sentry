@@ -5,7 +5,7 @@ describe('generateIssueWidgetFieldOptions', function () {
     const issueFields = generateIssueWidgetFieldOptions();
     expect(Object.keys(issueFields)).toEqual([
       'field:assignee',
-      'field:count',
+      'field:events',
       'field:firstSeen',
       'field:isBookmarked',
       'field:isHandled',
@@ -13,13 +13,12 @@ describe('generateIssueWidgetFieldOptions', function () {
       'field:issue',
       'field:lastSeen',
       'field:level',
-      'field:lifetimeCount',
-      'field:lifetimeUserCount',
-      'field:permalink',
+      'field:lifetimeEvents',
+      'field:lifetimeUsers',
       'field:platform',
       'field:status',
       'field:title',
-      'field:userCount',
+      'field:users',
     ]);
   });
   it('returns supplied issue fields', () => {

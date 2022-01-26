@@ -34,7 +34,7 @@ const EventsGeoRequest = ({
   query: string;
   orderby?: string;
   projects: number[];
-  period?: string;
+  period?: string | null;
   start: DateString;
   end: DateString;
   environments: string[];

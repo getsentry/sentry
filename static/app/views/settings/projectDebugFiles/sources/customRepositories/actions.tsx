@@ -141,7 +141,7 @@ function Actions({
           disabled={actionsDisabled}
           customTitle={
             <StyledActionButton
-              label={t('Actions')}
+              aria-label={t('Actions')}
               disabled={actionsDisabled}
               title={
                 !hasFeature

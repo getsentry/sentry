@@ -6,11 +6,12 @@ import {
   mountWithTheme as rtlMountWithTheme,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {constructGridItemKey} from 'sentry/views/dashboardsV2/dashboard';
+import {constructGridItemKey} from 'sentry/views/dashboardsV2/layoutUtils';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -334,7 +335,9 @@ describe('Dashboards > Detail', function () {
       await wrapper.update();
       const modal = await mountGlobalModal();
 
-      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(
+        expect.objectContaining(widgets[0])
+      );
     });
 
     it('shows add widget option', async function () {
@@ -512,6 +515,42 @@ describe('Dashboards > Detail', function () {
 
       expect(screen.getByText('Edit Dashboard')).toBeInTheDocument();
       expect(mockPut).not.toHaveBeenCalled();
+    });
+
+    it('renders the custom resize handler for a widget', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      userEvent.click(await screen.findByText('Edit Dashboard'));
+      const widget = screen.getByText('First Widget').closest('.react-grid-item');
+      const resizeHandle = within(widget).getByTestId('custom-resize-handle');
+
+      expect(resizeHandle).toBeVisible();
     });
   });
 });

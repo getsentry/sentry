@@ -451,7 +451,7 @@ SESSION_COOKIE_NAME = "sentrysid"
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
 SESSION_COOKIE_SAMESITE = None
 
-SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
+SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
 GOOGLE_OAUTH2_CLIENT_ID = ""
 GOOGLE_OAUTH2_CLIENT_SECRET = ""
@@ -932,6 +932,8 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable discover top events queries with other & higher options
     "organizations:discover-top-events": False,
+    # Allows an org to have a larger set of project ownership rules per project
+    "organizations:higher-ownership-limit": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
@@ -975,6 +977,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
+    # Enable threshold period in metric alert rule builder
+    "organizations:metric-alert-threshold-period": False,
     # Enable migrating auth identities between providers automatically
     "organizations:idp-automatic-migration": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1025,6 +1029,8 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
+    # Enable logging for select organizations
+    "organizations:pagerduty-metric-alert-resolve-logging": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
@@ -2206,6 +2212,7 @@ KAFKA_CLUSTERS = {
 
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
+KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
@@ -2225,6 +2232,9 @@ KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
     KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
+    # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
+    # create a separate producer. Check ``track_outcome`` for details.
+    KAFKA_OUTCOMES_BILLING: None,
     KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {
         "cluster": "default",
         "topic": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
