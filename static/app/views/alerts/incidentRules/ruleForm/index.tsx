@@ -391,7 +391,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    const {aggregate} = this.state;
+    const {aggregate: _aggregate} = this.state;
     if (
       [
         'dataset',
@@ -402,6 +402,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         'comparisonDelta',
       ].includes(name)
     ) {
+      const aggregate = name === 'aggregate' ? value : _aggregate;
       this.setState({aggregate, [name]: value});
     }
   };
