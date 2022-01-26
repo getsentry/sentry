@@ -64,9 +64,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t(
-      'Control the notifications you receive for error, transaction, and attachment quota limits.'
-    ),
+    help: t('Error, transaction, and attachment quota limits.'),
   },
   reports: {
     name: 'weekly reports',
