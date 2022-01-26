@@ -74,7 +74,7 @@ class OptionSelector extends Component<Props, State> {
           <DropdownMenu alwaysRenderMenu={false}>
             {({isOpen, getMenuProps, getActorProps}) => (
               <Fragment>
-                <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
+                <StyledDropdownButton {...getActorProps()} size="small" isOpen={isOpen}>
                   <TruncatedLabel>{String(selectedOption.label)}</TruncatedLabel>
                 </StyledDropdownButton>
                 <StyledDropdownBubble
@@ -140,8 +140,6 @@ const MenuContainer = styled('div')`
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
-  padding: ${space(1)} ${space(2)};
-  font-weight: normal;
   z-index: ${p => (p.isOpen ? p.theme.zIndex.dropdownAutocomplete.actor : 'auto')};
 `;
 

@@ -120,6 +120,9 @@ default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, 
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, True)
 default_manager.add("organizations:onboarding", OrganizationFeature)
 default_manager.add("organizations:org-subdomains", OrganizationFeature)
+default_manager.add(
+    "organizations:pagerduty-metric-alert-resolve-logging", OrganizationFeature, True
+)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
 default_manager.add("organizations:performance-events-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-landing-widgets", OrganizationFeature, True)

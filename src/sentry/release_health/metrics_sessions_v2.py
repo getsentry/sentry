@@ -5,6 +5,7 @@ Do not call this module directly. Use the `release_health` service instead. """
 import abc
 import logging
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import (
@@ -571,11 +572,15 @@ def run_sessions_query(
     span_op: str,
 ) -> SessionsQueryResult:
     """Convert a QueryDefinition to multiple snuba queries and reformat the results"""
-    data, metric_to_output_field = _fetch_data(org_id, query)
+    # This is necessary so that we do not mutate the query object shared between different
+    # backend runs
+    query_clone = deepcopy(query)
+
+    data, metric_to_output_field = _fetch_data(org_id, query_clone)
 
     data_points = _flatten_data(org_id, data)
 
-    intervals = list(get_intervals(query))
+    intervals = list(get_intervals(query_clone))
     timestamp_index = {timestamp.isoformat(): index for index, timestamp in enumerate(intervals)}
 
     def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
@@ -589,8 +594,10 @@ def run_sessions_query(
 
     groups: MutableMapping[GroupKey, Group] = defaultdict(
         lambda: {
-            "totals": {field: default_for(field) for field in query.raw_fields},
-            "series": {field: len(intervals) * [default_for(field)] for field in query.raw_fields},
+            "totals": {field: default_for(field) for field in query_clone.raw_fields},
+            "series": {
+                field: len(intervals) * [default_for(field)] for field in query_clone.raw_fields
+            },
         }
     )
 
@@ -641,9 +648,9 @@ def run_sessions_query(
         return dt.isoformat().replace("+00:00", "Z")
 
     return {
-        "start": format_datetime(query.start),
-        "end": format_datetime(query.end),
-        "query": query.query,
+        "start": format_datetime(query_clone.start),
+        "end": format_datetime(query_clone.end),
+        "query": query_clone.query,
         "intervals": [format_datetime(dt) for dt in intervals],
         "groups": groups_as_list,
     }
@@ -690,5 +697,5 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
     if isinstance(input_, (int, float)):
         return input_
 
-    assert isinstance(input_, list), input_
+    assert isinstance(input_, (tuple, list)), input_
     return [_translate_conditions(org_id, item) for item in input_]
