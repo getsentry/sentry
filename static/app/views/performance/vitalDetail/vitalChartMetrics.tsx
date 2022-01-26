@@ -19,8 +19,8 @@ import {WebVital} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
+import {ViewProps} from '../types';
 
-import {ViewProps} from './types';
 import {getMaxOfSeries, getVitalChartDefinitions} from './utils';
 
 type Props = WithRouterProps &

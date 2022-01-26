@@ -19,22 +19,11 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/formatters';
 import {Theme} from 'sentry/utils/theme';
 
+import {ViewProps} from '../../types';
+import {QUERY_KEYS} from '../../utils';
 import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../filter';
 
-const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
-
-type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
-
-type ApiResult = {
-  [bucket: string]: number;
-};
+type ApiResult = Record<string, number>;
 
 type Props = AsyncComponent['props'] &
   ViewProps & {

@@ -20,22 +20,11 @@ import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
 import {transformEventStatsSmoothed} from '../../trends/utils';
-
-const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
-
-type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
+import {ViewProps} from '../../types';
 
 type Props = WithRouterProps &
   ViewProps & {
