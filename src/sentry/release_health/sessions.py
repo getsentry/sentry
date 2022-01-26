@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 from typing import Mapping, Optional, Sequence, Set, Tuple, Union
 
@@ -81,11 +82,16 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         query: QueryDefinition,
         span_op: str,
     ) -> SessionsQueryResult:
+        # This is necessary because if we are running against the `DuplexReleaseHealthBackend`, the
+        # `query` object gets mutated, and that in turn affects the query results in subsequent
+        # backend calls
+        query_clone = deepcopy(query)
+
         with sentry_sdk.start_span(op=span_op, description="run_sessions_query"):
-            totals, series = _run_sessions_query(query)
+            totals, series = _run_sessions_query(query_clone)
 
         with sentry_sdk.start_span(op=span_op, description="massage_sessions_results"):
-            return massage_sessions_result(query, totals, series)  # type: ignore
+            return massage_sessions_result(query_clone, totals, series)  # type: ignore
 
     def get_release_sessions_time_bounds(
         self,
