@@ -102,7 +102,6 @@ type Props = {
 type State = {
   groupIds: string[];
   reviewedIds: string[];
-  forReviewGroupIds: string[];
   forReview: boolean;
   selectAllActive: boolean;
   realtimeActive: boolean;
@@ -160,7 +159,6 @@ class IssueListOverview extends React.Component<Props, State> {
     return {
       groupIds: [],
       reviewedIds: [],
-      forReviewGroupIds: [],
       forReview: false,
       selectAllActive: false,
       realtimeActive,

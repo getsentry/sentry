@@ -1789,7 +1789,6 @@ describe('IssueList', function () {
 
     const {routerContext} = initializeOrg();
     wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
-    wrapper.instance().fetchData = jest.fn();
 
     wrapper.setState({
       groupIds: range(0, 25).map(String),
@@ -1798,8 +1797,6 @@ describe('IssueList', function () {
       queryMaxCount: 1000,
       pageLinks: DEFAULT_LINKS_HEADER,
     });
-
-    wrapper.update();
 
     const paginationCaption = wrapper.find('PaginationCaption');
     // 2nd page subtracts the one removed
