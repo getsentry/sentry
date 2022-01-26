@@ -36,7 +36,7 @@ runs:
       id: 'get-artifact-branch'
       uses: actions/download-artifact@v2
       with:
-        artifact: ${{ inputs.artifact }}__internal
+        name: ${{ inputs.artifact }}__internal
         path: ${{ github.workspace }}/${{ inputs.path }}
 
     - name: Fetch existing report from master
@@ -56,7 +56,7 @@ runs:
       if: steps.get-artifact.outcome == 'success'
       uses: actions/upload-artifact@v2
       with:
-        artifact: ${{ inputs.artifact }}__internal
+        name: ${{ inputs.artifact }}__internal
         path: ${{ inputs.dest }}
 
     # Need to rename so if we have multiple test instances, the reports do not overwrite each other on GHA
