@@ -34,10 +34,13 @@ runs:
     - name: Fetch report from current branch (if not master)
       if: inputs.action != 'upload' && steps.current-branch.outputs.name != 'master'
       id: 'get-artifact-branch'
-      uses: actions/download-artifact@v2
+      uses: getsentry/action-download-workflow-artifact@2c7fdc458e9fb008b94b8399a483ff6e3af883b1
       with:
-        name: ${{ inputs.artifact }}__internal
+        branch: ${{ steps.current-branch.outputs.name }}
+        artifact: ${{ inputs.artifact }}__internal
         path: ${{ github.workspace }}/${{ inputs.path }}
+        ignoreError: true
+        workflowEvent: push
 
     - name: Fetch existing report from master
       if: inputs.action != 'upload' && (steps.get-artifact-branch.outcome == 'skipped' || steps.get-artifact-branch.outputs.result == 'failed')
@@ -58,6 +61,15 @@ runs:
       with:
         name: ${{ inputs.artifact }}__internal
         path: ${{ inputs.dest }}
+
+    - name: Debug
+      if: inputs.action != 'upload'
+      shell: bash
+      run: |
+        ls ${{ github.workspace }}/${{ inputs.path }}
+        echo $PWD
+        echo '${{ steps.current-branch.outputs.name }}'
+        echo '${{ env.GITHUB_REF_NAME }}'
 
     # Need to rename so if we have multiple test instances, the reports do not overwrite each other on GHA
     - name: Rename report
