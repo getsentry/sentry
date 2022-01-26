@@ -52,7 +52,7 @@ type BaseField = {
   updatesForm?: boolean;
   /** Does editing this field need to clear all other fields? */
   resetsForm?: boolean;
-  confirm?: {[key: string]: string};
+  confirm?: {[key: string]: React.ReactNode};
   autosize?: boolean;
   maxRows?: number;
   extraHelp?: string;

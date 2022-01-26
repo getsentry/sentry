@@ -285,7 +285,7 @@ export const getStateToPutForProvider = (
   notificationSettings: NotificationSettingsObject,
   changedData: NotificationSettingsByProviderObject
 ): NotificationSettingsObject => {
-  const providerList: string[] = changedData.provider.split('+');
+  const providerList: string[] = changedData.provider?.split('+') || [];
   const fallbackValue = getFallBackValue(notificationType);
 
   // If the user has no settings, we need to create them.
@@ -397,20 +397,39 @@ export const getParentField = (
 ): FieldObject => {
   const defaultFields = NOTIFICATION_SETTING_FIELDS[notificationType];
 
+  let choices = defaultFields.choices;
+  if (Array.isArray(choices)) {
+    choices = choices.concat([
+      [
+        'default',
+        `${t('Default')} (${getChoiceString(
+          choices,
+          getCurrentDefault(notificationType, notificationSettings)
+        )})`,
+      ],
+    ]);
+  }
+
   return Object.assign({}, defaultFields, {
     label: <ParentLabel parent={parent} notificationType={notificationType} />,
     getData: data => onChange(data, parent.id),
     name: parent.id,
-    choices: defaultFields.choices?.concat([
-      [
-        'default',
-        `${t('Default')} (${getChoiceString(
-          defaultFields.choices,
-          getCurrentDefault(notificationType, notificationSettings)
-        )})`,
-      ],
-    ]),
+    choices,
     defaultValue: 'default',
     help: undefined,
   }) as any;
 };
+
+/**
+ * Returns a link to docs on explaining how to manage quotas for that event type
+ */
+export function getDocsLinkForEventType(event: 'error' | 'transaction' | 'attachment') {
+  switch (event) {
+    case 'transaction':
+      return 'https://docs.sentry.io/product/performance/transaction-summary/';
+    case 'attachment':
+      return 'https://docs.sentry.io/product/accounts/quotas/#attachment-limits';
+    default:
+      return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
+  }
+}

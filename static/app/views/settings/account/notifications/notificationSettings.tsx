@@ -91,11 +91,20 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
+  get notificationSettingsType() {
+    const hasFeatureFlag =
+      this.props.organizations.filter(org =>
+        org.features?.includes('slack-overage-notifications')
+      ).length > 0;
+    // filter out quotas if the feature flag isn't set
+    return NOTIFICATION_SETTINGS_TYPES.filter(type => type !== 'quota' || hasFeatureFlag);
+  }
+
   getInitialData(): {[key: string]: string} {
     const {notificationSettings} = this.state;
 
     return Object.fromEntries(
-      NOTIFICATION_SETTINGS_TYPES.map(notificationType => [
+      this.notificationSettingsType.map(notificationType => [
         notificationType,
         decideDefault(notificationType, notificationSettings),
       ])
@@ -106,7 +115,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {notificationSettings} = this.state;
 
     const fields: FieldObject[] = [];
-    for (const notificationType of NOTIFICATION_SETTINGS_TYPES) {
+    for (const notificationType of this.notificationSettingsType) {
       const field = Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
         getData: data => this.getStateToPutForDefault(data, notificationType),
         help: (
