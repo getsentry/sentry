@@ -530,7 +530,7 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
 @run.command("ingest-metrics-consumer")
 @log_options()
-@click.option("--topic", default="ingest-metrics", help="Topic to get subscription updates from.")
+@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
 @batching_kafka_options("ingest-metrics-consumer")
 @configuration
 def metrics_consumer(**options):
@@ -542,7 +542,7 @@ def metrics_consumer(**options):
 
 @run.command("ingest-metrics-consumer-2")
 @log_options()
-@click.option("--topic", default="ingest-metrics", help="Topic to get subscription updates from.")
+@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
 @batching_kafka_options("ingest-metrics-consumer")
 @configuration
 @click.option(
