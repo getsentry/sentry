@@ -71,8 +71,10 @@ export function platformToPerformanceType(
   }
 
   if (
-    selectedProjects.every(project =>
-      BACKEND_PLATFORMS.includes(project.platform as string)
+    selectedProjects.every(
+      project =>
+        BACKEND_PLATFORMS.includes(project.platform as string) &&
+        project.platform !== 'native'
     )
   ) {
     return PROJECT_PERFORMANCE_TYPE.BACKEND;
