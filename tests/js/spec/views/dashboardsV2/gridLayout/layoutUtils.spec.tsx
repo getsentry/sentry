@@ -107,5 +107,13 @@ describe('Dashboards > Utils', () => {
       expect(position).toEqual(expectedPosition);
       expect(nextColumnDepths).toEqual(expectedNextColumnDepths);
     });
+
+    it('does not mutate its input array', () => {
+      const columnDepths = [1, 1, 1, 1, 1, 1];
+
+      getNextAvailablePosition(columnDepths, 4);
+
+      expect(columnDepths).toEqual([1, 1, 1, 1, 1, 1]);
+    });
   });
 });

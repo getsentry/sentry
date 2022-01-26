@@ -92,7 +92,7 @@ export function pickDefinedStoreKeys(layout: Layout): Partial<Layout> {
   return pickBy(layout, (value, key) => defined(value) && STORE_KEYS.includes(key));
 }
 
-export function getWidgetHeight(displayType: DisplayType): number {
+export function getDefaultWidgetHeight(displayType: DisplayType): number {
   return displayType === DisplayType.BIG_NUMBER ? 1 : 2;
 }
 
@@ -125,9 +125,10 @@ export function calculateColumnDepths(layouts: Layout[]): number[] {
  * next columnDepths array if this position were used.
  */
 export function getNextAvailablePosition(
-  columnDepths: number[],
+  initialColumnDepths: number[],
   height: number
 ): NextPosition {
+  const columnDepths = [...initialColumnDepths];
   const maxColumnDepth = Math.max(...columnDepths);
 
   // Look for an opening at each depth by scanning from 0, 0

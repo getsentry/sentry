@@ -33,9 +33,9 @@ import {
   DEFAULT_WIDGET_WIDTH,
   generateWidgetId,
   getDashboardLayout,
+  getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
-  getWidgetHeight,
   pickDefinedStoreKeys,
   Position,
 } from './layoutUtils';
@@ -349,7 +349,7 @@ class Dashboard extends Component<Props, State> {
     if (organization.features.includes('dashboard-grid-layout')) {
       const key = constructGridItemKey(widget);
       const dragId = key;
-      const height = getWidgetHeight(widget.displayType);
+      const height = getDefaultWidgetHeight(widget.displayType);
       return (
         <GridItem
           key={key}
@@ -381,7 +381,7 @@ class Dashboard extends Component<Props, State> {
         return this.renderWidget(widget, index);
       }
 
-      const height = getWidgetHeight(widget.displayType);
+      const height = getDefaultWidgetHeight(widget.displayType);
       const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
         columnDepths,
         height
@@ -408,7 +408,7 @@ class Dashboard extends Component<Props, State> {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
       if (!matchingLayout) {
-        const height = getWidgetHeight(widget.displayType);
+        const height = getDefaultWidgetHeight(widget.displayType);
 
         // Calculate the available position
         const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
