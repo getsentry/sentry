@@ -18,6 +18,7 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   Environment,
@@ -138,7 +139,7 @@ export function initializeUrlState({
 
   // Do not set a period if we have absolute start and end
   if (pageFilters.datetime.start && pageFilters.datetime.end) {
-    pageFilters.datetime.period = '';
+    pageFilters.datetime.period = null;
   }
 
   if (hasProjectOrEnvironmentInUrl) {
@@ -195,7 +196,6 @@ export function initializeUrlState({
   }
 
   PageFiltersActions.initializeUrlState(pageFilters);
-  PageFiltersActions.setOrganization(organization);
 
   const newDatetime = {
     ...datetime,
@@ -286,7 +286,7 @@ export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
  * @param [router] React router object
  * @param [options] Options object
  */
-export function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options) {
+function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options) {
   // Allow another component to handle routing
   if (!router) {
     return;
@@ -300,7 +300,8 @@ export function updateParams(obj: PageFiltersUpdate, router?: Router, options?: 
   }
 
   if (options?.save) {
-    const {organization, selection} = PageFiltersStore.getState();
+    const {organization} = OrganizationStore.getState();
+    const {selection} = PageFiltersStore.getState();
     const orgSlug = organization?.slug ?? null;
 
     setPageFiltersStorage(orgSlug, selection, newQuery);

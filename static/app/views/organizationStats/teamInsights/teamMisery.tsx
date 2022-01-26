@@ -33,7 +33,7 @@ type TeamMiseryProps = {
   periodTableData: TableData | null;
   weekTableData: TableData | null;
   isLoading: boolean;
-  period?: string;
+  period?: string | null;
   error?: Error | null;
 };
 
@@ -190,7 +190,7 @@ type Props = AsyncComponent['props'] & {
   teamId: string;
   projects: Project[];
   location: Location;
-  period?: string;
+  period?: string | null;
   start?: string;
   end?: string;
 } & DateTimeObject;
@@ -237,7 +237,7 @@ function TeamMiseryWrapper({
   const periodEventView = EventView.fromSavedQuery({
     ...commonEventView,
     name: 'periodMisery',
-    range: period,
+    range: period ?? undefined,
     start,
     end,
   });

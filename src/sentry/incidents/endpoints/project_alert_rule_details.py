@@ -5,12 +5,12 @@ from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.bases import ProjectAlertRuleEndpoint
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.logic import (
     AlreadyDeletedError,
     delete_alert_rule,
     get_slack_actions_with_async_lookups,
 )
+from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.integrations.slack import tasks
 
 

@@ -2,7 +2,7 @@ import chunk from 'lodash/chunk';
 import moment from 'moment';
 
 import BaseChart from 'sentry/components/charts/baseChart';
-import {SeriesDataUnit} from 'sentry/types/echarts';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
 
 /**
  * Buckets a week of sequential days into one data unit
