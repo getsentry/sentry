@@ -182,7 +182,10 @@ function IncompatibleQueryAlert({
   );
 }
 
-type CreateAlertFromViewButtonProps = React.ComponentProps<typeof Button> & {
+type CreateAlertFromViewButtonProps = Omit<
+  React.ComponentProps<typeof Button>,
+  'aria-label'
+> & {
   className?: string;
   projects: Project[];
   /**
@@ -307,6 +310,7 @@ function CreateAlertFromViewButton({
       organization={organization}
       onClick={handleClick}
       to={to}
+      aria-label={t('Create alert')}
       {...buttonProps}
     />
   );

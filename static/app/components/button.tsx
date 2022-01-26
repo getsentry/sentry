@@ -17,6 +17,16 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
+type ConditionalAriaLabel =
+  | {
+      children: Omit<React.ReactNode, 'null' | 'undefined' | 'boolean'>;
+      'aria-label'?: string;
+    }
+  | {
+      children?: null | boolean;
+      'aria-label': string;
+    };
+
 type Props = {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
   size?: 'zero' | 'xsmall' | 'small';
@@ -29,7 +39,6 @@ type Props = {
   title?: React.ComponentProps<typeof Tooltip>['title'];
   external?: boolean;
   borderless?: boolean;
-  'aria-label'?: string;
   tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
@@ -37,8 +46,7 @@ type Props = {
 
   // This is only used with `<ButtonBar>`
   barId?: string;
-  children?: React.ReactNode;
-};
+} & ConditionalAriaLabel;
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref' | 'label'> &
   Props;
@@ -53,7 +61,6 @@ function BaseButton({
   title,
   icon,
   children,
-  'aria-label': ariaLabel,
   borderless,
   align = 'center',
   priority,
@@ -82,16 +89,11 @@ function BaseButton({
     return disabled ? undefined : prop;
   }
 
-  // For `aria-label`
-  const screenReaderLabel =
-    ariaLabel || (typeof children === 'string' ? children : undefined);
-
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
   // Let's use props to determine which to serve up, so we don't have to think about it.
   // *Note* you must still handle tabindex manually.
   const button = (
     <StyledButton
-      aria-label={screenReaderLabel}
       aria-disabled={disabled}
       disabled={disabled}
       to={getUrl(to)}

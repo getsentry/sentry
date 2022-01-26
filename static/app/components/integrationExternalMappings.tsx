@@ -76,6 +76,7 @@ class IntegrationExternalMappings extends Component<Props, State> {
               size="small"
               icon={<IconEllipsisVertical size="sm" />}
               disabled={!hasAccess}
+              aria-label={t('Actions')}
             />
           }
         >

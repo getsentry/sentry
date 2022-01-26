@@ -59,7 +59,7 @@ type Props = {
   /**
    * Override defaults from DEFAULT_RELATIVE_PERIODS_PAGE_FILTER
    */
-  relativeOptions?: Record<string, React.ReactNode>;
+  relativeOptions?: Record<string, React.ReactChild>;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
