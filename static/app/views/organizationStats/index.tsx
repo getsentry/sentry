@@ -16,18 +16,15 @@ import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageHeading from 'sentry/components/pageHeading';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {
+  DATA_CATEGORY_NAMES,
+  DEFAULT_RELATIVE_PERIODS,
+  DEFAULT_STATS_PERIOD,
+} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {
-  DataCategory,
-  DataCategoryName,
-  DateString,
-  Organization,
-  Project,
-  RelativePeriod,
-} from 'sentry/types';
+import {DataCategory, DateString, Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 
@@ -69,7 +66,7 @@ export class OrganizationStats extends Component<Props> {
 
   get dataCategoryName(): string {
     const dataCategory = this.dataCategory;
-    return DataCategoryName[dataCategory] ?? t('Unknown Data Category');
+    return DATA_CATEGORY_NAMES[dataCategory] ?? t('Unknown Data Category');
   }
 
   get dataDatetime(): DateTimeObject {
@@ -178,7 +175,7 @@ export class OrganizationStats extends Component<Props> {
     }
 
     return this.setStateOnUrl({
-      pageStatsPeriod: (relative as RelativePeriod) || undefined,
+      pageStatsPeriod: relative || undefined,
       pageStart: undefined,
       pageEnd: undefined,
       pageUtc: undefined,
@@ -193,7 +190,7 @@ export class OrganizationStats extends Component<Props> {
   setStateOnUrl = (
     nextState: {
       dataCategory?: DataCategory;
-      pageStatsPeriod?: RelativePeriod;
+      pageStatsPeriod?: string | null;
       pageStart?: DateString;
       pageEnd?: DateString;
       pageUtc?: boolean | null;

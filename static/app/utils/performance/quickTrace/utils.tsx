@@ -240,7 +240,7 @@ export function makeEventView({
 }: {
   start?: string;
   end?: string;
-  statsPeriod?: string;
+  statsPeriod?: string | null;
 }) {
   return EventView.fromSavedQuery({
     id: undefined,
@@ -254,7 +254,7 @@ export function makeEventView({
     environment: [],
     start,
     end,
-    range: statsPeriod,
+    range: statsPeriod ?? undefined,
   });
 }
 

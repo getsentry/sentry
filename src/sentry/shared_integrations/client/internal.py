@@ -1,22 +1,26 @@
+from __future__ import annotations
+
 from random import random
+from typing import Any
 
 import sentry_sdk
+from rest_framework.response import Response
 
 from sentry.api import ApiClient
 from sentry.shared_integrations.track_response import TrackResponseMixin
 from sentry.utils import metrics
 
 
-class BaseInternalApiClient(ApiClient, TrackResponseMixin):
-    integration_type = None
+class BaseInternalApiClient(ApiClient, TrackResponseMixin):  # type: ignore
+    integration_type: str | None = None
 
-    log_path = None
+    log_path: str | None = None
 
-    datadog_prefix = None
+    datadog_prefix: str | None = None
 
-    def request(self, *args, **kwargs):
+    def request(self, *args: Any, **kwargs: Any) -> Response:
         metrics.incr(
-            "%s.http_request" % self.datadog_prefix,
+            f"{self.datadog_prefix}.http_request",
             sample_rate=1.0,
             tags={self.integration_type: self.name},
         )
@@ -36,6 +40,6 @@ class BaseInternalApiClient(ApiClient, TrackResponseMixin):
             trace_id=trace_id,
             sampled=random() < 0.05,
         ) as span:
-            resp = ApiClient.request(self, *args, **kwargs)
+            resp: Response = ApiClient.request(self, *args, **kwargs)
             self.track_response_data(resp.status_code, span, None, resp)
             return resp

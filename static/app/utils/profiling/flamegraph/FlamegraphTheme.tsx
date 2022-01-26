@@ -5,6 +5,8 @@ const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI 
 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono',
 'Courier New', monospace`;
 
+const FRAME_FONT = `"Source Code Pro", Courier, monospace`;
+
 // Luma chroma hue settings
 export interface LCH {
   C_0: number;
@@ -85,6 +87,7 @@ export interface FlamegraphTheme {
   };
   FONTS: {
     FONT: string;
+    FRAME_FONT: string;
   };
 }
 
@@ -155,6 +158,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
   },
   FONTS: {
     FONT: MONOSPACE_FONT,
+    FRAME_FONT,
   },
 };
 
@@ -210,5 +214,6 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
   },
   FONTS: {
     FONT: MONOSPACE_FONT,
+    FRAME_FONT,
   },
 };
