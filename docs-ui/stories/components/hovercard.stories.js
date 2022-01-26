@@ -17,7 +17,7 @@ export default {
   },
 };
 
-export const _OldHovercard = ({...args}) => (
+export const _Hovercard = ({...args}) => (
   <div
     style={{
       height: 300,
@@ -30,7 +30,7 @@ export const _OldHovercard = ({...args}) => (
   </div>
 );
 
-_OldHovercard.parameters = {
+_Hovercard.parameters = {
   docs: {
     description: {
       story:
