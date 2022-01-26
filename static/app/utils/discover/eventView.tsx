@@ -58,11 +58,11 @@ export type MetaType = Record<string, ColumnType>;
 export type EventData = Record<string, any>;
 
 export type LocationQuery = {
-  start?: string | string[];
-  end?: string | string[];
-  utc?: string | string[];
-  statsPeriod?: string | string[];
-  cursor?: string | string[];
+  start?: string | string[] | null;
+  end?: string | string[] | null;
+  utc?: string | string[] | null;
+  statsPeriod?: string | string[] | null;
+  cursor?: string | string[] | null;
 };
 
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
@@ -181,7 +181,7 @@ const decodeSorts = (location: Location): Array<Sort> => {
   return fromSorts(sorts);
 };
 
-const encodeSort = (sort: Sort): string => {
+export const encodeSort = (sort: Sort): string => {
   switch (sort.kind) {
     case 'desc': {
       return `-${sort.field}`;
@@ -580,10 +580,10 @@ class EventView {
       datetime: {
         start: this.start ?? null,
         end: this.end ?? null,
-        period: this.statsPeriod ?? '',
-        // TODO(tony) Add support for the Use UTC option from
-        // the global headers, currently, that option is not
-        // supported and all times are assumed to be UTC
+        period: this.statsPeriod ?? null,
+        // TODO(tony) Add support for the Use UTC option from the global
+        // headers, currently, that option is not supported and all times are
+        // assumed to be UTC
         utc: true,
       },
     };

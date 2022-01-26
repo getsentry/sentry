@@ -217,7 +217,7 @@ def test_projectkeys(default_project, task_runner, redis_cache):
         pk.status = ProjectKeyStatus.INACTIVE
         pk.save()
 
-    assert not redis_cache.get(pk.public_key)["publicKeys"]
+    assert redis_cache.get(pk.public_key)["disabled"]
 
     with task_runner():
         pk.delete()

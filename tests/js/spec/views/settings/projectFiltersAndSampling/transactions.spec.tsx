@@ -190,7 +190,7 @@ describe('Filters and Sampling - Transaction rule', function () {
 
       // Modal will close
       await waitForElementToBeRemoved(() =>
-        screen.getByText('Edit Transaction Sampling Rule')
+        screen.queryByText('Edit Transaction Sampling Rule')
       );
 
       // Error rules panel is updated
@@ -259,7 +259,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         // Close Modal
         userEvent.click(screen.getByLabelText('Close Modal'));
         await waitForElementToBeRemoved(() =>
-          screen.getByText('Add Transaction Sampling Rule')
+          screen.queryByText('Add Transaction Sampling Rule')
         );
       });
 
@@ -304,7 +304,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         // Close Modal
         userEvent.click(screen.getByLabelText('Close Modal'));
         await waitForElementToBeRemoved(() =>
-          screen.getByText('Add Transaction Sampling Rule')
+          screen.queryByText('Add Transaction Sampling Rule')
         );
       });
 
@@ -400,7 +400,7 @@ describe('Filters and Sampling - Transaction rule', function () {
 
           // Modal will close
           await waitForElementToBeRemoved(() =>
-            screen.getByText('Add Transaction Sampling Rule')
+            screen.queryByText('Add Transaction Sampling Rule')
           );
 
           // Transaction rules panel is updated
@@ -503,7 +503,7 @@ describe('Filters and Sampling - Transaction rule', function () {
 
             // Modal will close
             await waitForElementToBeRemoved(() =>
-              screen.getByText('Add Transaction Sampling Rule')
+              screen.queryByText('Add Transaction Sampling Rule')
             );
 
             // Transaction rules panel is updated
@@ -630,7 +630,7 @@ describe('Filters and Sampling - Transaction rule', function () {
 
             // Modal will close
             await waitForElementToBeRemoved(() =>
-              screen.getByText('Add Transaction Sampling Rule')
+              screen.queryByText('Add Transaction Sampling Rule')
             );
 
             // Transaction rules panel is updated
@@ -828,7 +828,7 @@ describe('Filters and Sampling - Transaction rule', function () {
 
       // Modal will close
       await waitForElementToBeRemoved(() =>
-        screen.getByText('Edit Transaction Sampling Rule')
+        screen.queryByText('Edit Transaction Sampling Rule')
       );
 
       // Error rules panel is updated

@@ -6,6 +6,7 @@ import Link from 'sentry/components/links/link';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
@@ -51,6 +52,13 @@ class NotificationSettings extends AsyncComponent<Props, State> {
       ['notificationSettings', `/users/me/notification-settings/`],
       ['legacyData', '/users/me/notifications/'],
     ];
+  }
+
+  componentDidMount() {
+    // only tied to a user
+    trackAdvancedAnalyticsEvent('notification_settings.index_page_viewed', {
+      organization: null,
+    });
   }
 
   getStateToPutForDefault = (

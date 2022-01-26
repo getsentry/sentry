@@ -19,6 +19,7 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -59,6 +60,7 @@ type Props = WithRouterProps & {
   noLazyLoad?: boolean;
   hideDragHandle?: boolean;
   widgetLimitReached: boolean;
+  tableItemLimit?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -127,7 +129,7 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  tableResultComponent({
+  issueTableResultComponent({
     loading,
     errorMessage,
     transformedResults,
@@ -154,18 +156,21 @@ class WidgetCard extends React.Component<Props> {
         metadata={ISSUE_FIELDS}
         data={transformedResults}
         organization={organization}
+        getCustomFieldRenderer={getIssueFieldRenderer}
       />
     );
   }
 
   renderIssueChart() {
-    const {widget, api, organization, selection, renderErrorMessage} = this.props;
+    const {widget, api, organization, selection, renderErrorMessage, tableItemLimit} =
+      this.props;
     return (
       <IssueWidgetQueries
         api={api}
         organization={organization}
         widget={widget}
         selection={selection}
+        limit={tableItemLimit}
       >
         {({transformedResults, errorMessage, loading}) => {
           return (
@@ -174,7 +179,11 @@ class WidgetCard extends React.Component<Props> {
                 ? renderErrorMessage(errorMessage)
                 : null}
               <LoadingScreen loading={loading} />
-              {this.tableResultComponent({transformedResults, loading, errorMessage})}
+              {this.issueTableResultComponent({
+                transformedResults,
+                loading,
+                errorMessage,
+              })}
               {this.renderToolbar()}
             </React.Fragment>
           );
@@ -184,14 +193,23 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderDiscoverChart() {
-    const {widget, api, organization, selection, renderErrorMessage, location, router} =
-      this.props;
+    const {
+      widget,
+      api,
+      organization,
+      selection,
+      renderErrorMessage,
+      location,
+      router,
+      tableItemLimit,
+    } = this.props;
     return (
       <WidgetQueries
         api={api}
         organization={organization}
         widget={widget}
         selection={selection}
+        limit={tableItemLimit}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (

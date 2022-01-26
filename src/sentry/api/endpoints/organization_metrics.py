@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.snuba.metrics import (
     InvalidField,
     InvalidParams,
@@ -12,6 +13,7 @@ from sentry.snuba.metrics import (
     QueryDefinition,
     SnubaDataSource,
 )
+from sentry.utils.cursors import Cursor, CursorResult
 
 
 def get_datasource(request):
@@ -112,10 +114,40 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
-        try:
-            query = QueryDefinition(request.GET)
-            data = get_datasource(request).get_series(projects, query)
-        except (InvalidField, InvalidParams) as exc:
-            raise (ParseError(detail=str(exc)))
 
-        return Response(data, status=200)
+        def data_fn(offset: int, limit: int):
+            try:
+                query = QueryDefinition(
+                    request.GET, paginator_kwargs={"limit": limit, "offset": offset}
+                )
+                data = get_datasource(request).get_series(projects, query)
+            except (InvalidField, InvalidParams) as exc:
+                raise (ParseError(detail=str(exc)))
+            return data
+
+        return self.paginate(
+            request,
+            paginator=MetricsDataSeriesPaginator(data_fn=data_fn),
+            default_per_page=50,
+            max_per_page=100,
+        )
+
+
+class MetricsDataSeriesPaginator(GenericOffsetPaginator):
+    def get_result(self, limit, cursor=None):
+        assert limit > 0
+        offset = cursor.offset if cursor is not None else 0
+        data = self.data_fn(offset=offset, limit=limit + 1)
+
+        if isinstance(data.get("groups"), list):
+            has_more = len(data["groups"]) == limit + 1
+            if has_more:
+                data["groups"].pop()
+        else:
+            raise NotImplementedError
+
+        return CursorResult(
+            data,
+            prev=Cursor(0, max(0, offset - limit), True, offset > 0),
+            next=Cursor(0, max(0, offset + limit), False, has_more),
+        )

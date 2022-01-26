@@ -32,6 +32,7 @@ import {eventViewFromWidget} from '../utils';
 
 // Don't fetch more than 66 bins as we're plotting on a small area.
 const MAX_BIN_COUNT = 66;
+const DEFAULT_ITEM_LIMIT = 5;
 
 function getWidgetInterval(
   widget: Widget,
@@ -109,6 +110,7 @@ type Props = {
   organization: OrganizationSummary;
   widget: Widget;
   selection: PageFilters;
+  limit?: number;
   children: (
     props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
   ) => React.ReactNode;
@@ -207,7 +209,7 @@ class WidgetQueries extends React.Component<Props, State> {
   private _isMounted: boolean = false;
 
   fetchEventData(queryFetchID: symbol) {
-    const {selection, api, organization, widget} = this.props;
+    const {selection, api, organization, widget, limit} = this.props;
 
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
@@ -219,7 +221,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
-        per_page: 5,
+        per_page: limit ?? DEFAULT_ITEM_LIMIT,
         noPagination: true,
       };
       if (widget.displayType === 'table') {

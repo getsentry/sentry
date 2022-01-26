@@ -57,7 +57,7 @@ type Props = Pick<
     chartOptions: Record<string, any>;
     series: React.ComponentProps<typeof LineChart>['series'];
   };
-  statsPeriod?: string;
+  statsPeriod?: string | null;
   start?: Date;
   end?: Date;
 };
