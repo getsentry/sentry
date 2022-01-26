@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.base import Endpoint
 from sentry.testutils import APITestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -48,3 +49,22 @@ class EnforceRateLimitTest(APITestCase):
         with freeze_time("2000-01-01"):
             self.get_success_response()
             self.get_success_response()
+
+
+@override_settings(ROOT_URLCONF="tests.sentry.ratelimits.utils.test_enforce_rate_limit")
+class TestKillswitch(APITestCase):
+    def test_killswitch_override(self):
+        """Ensure that an activated killswitch overrides any other local enforcement"""
+        self.endpoint = "enforced-endpoint"
+        options.set("api.rate-limiter-activated", False)
+        with freeze_time("2000-01-01"):
+            self.get_success_response()
+            self.get_success_response()
+
+    def test_killswitch_disabled(self):
+        """Ensure that an deactivated killswitch doesn't affect local enforcement"""
+        self.endpoint = "enforced-endpoint"
+        options.set("api.rate-limiter-activated", True)
+        with freeze_time("2000-01-01"):
+            self.get_success_response()
+            self.get_error_response()

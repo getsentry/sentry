@@ -387,3 +387,6 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
+
+# Killswitch for API Rate limiter
+register("api.rate-limiter-activated", default=True, type=Bool)
