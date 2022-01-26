@@ -218,6 +218,13 @@ class ProduceStep(ProcessingStep[MessageBatch]):
         # TODO(meredith): make this an option to pass in
         self.__max_buffer_size = 10000
 
+        # XXX(meredith): This is only temporary to record how much
+        # time we spend committing when we commit once per message
+        # instead of batching commits
+        self.__commit_start = time.time()
+        self.__commit_duration_sum = 0
+        self.__metrics = get_metrics()
+
     def poll(self) -> None:
         while self.__futures:
             if not self.__futures[0].future.done():
@@ -235,7 +242,22 @@ class ProduceStep(ProcessingStep[MessageBatch]):
                 # * TimeoutError (future timedout)
                 # * Exception (the future call raised an exception)
                 raise
+            start = time.time()
             self.__commit_function({message.partition: Position(message.offset, message.timestamp)})
+            end = time.time()
+            commit_duration = end - start
+            self._record_commit_duration(commit_duration)
+
+    def _record_commit_duration(self, commit_duration: float) -> None:
+        self.__commit_duration_sum += commit_duration
+
+        # record commit durations every 5 minutes
+        if (self.__commit_start + 300) < time.time():
+            self.__metrics.incr(
+                "produce_step.commit_duration", amount=int(self.__commit_duration_sum)
+            )
+            self.__commit_duration_sum = 0
+            self.__commit_start = time.time()
 
     def submit(self, outer_message: Message[MessageBatch]) -> None:
         assert not self.__closed
