@@ -551,7 +551,10 @@ class Group(Model):
         from sentry.models import Release
 
         return Release.objects.get_group_release_version(
-            self.project_id, self.id, orderby="-last_seen", use_cache=use_cache
+            project_id=self.project_id,
+            group_id=self.id,
+            first=False,
+            use_cache=use_cache,
         )
 
     def get_event_type(self):

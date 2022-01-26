@@ -309,7 +309,7 @@ class GroupTest(TestCase, SnubaTestCase):
         )
 
         assert group.get_first_release() == "200"
-        cache.delete(group2._get_cache_key(group2.id, group2.project_id, True))
+        cache.delete(_get_cache_key(group2.id, group2.project_id, True))
 
         assert group2.get_first_release() is None
         cache.delete(_get_cache_key(group.id, group.project_id, True))
