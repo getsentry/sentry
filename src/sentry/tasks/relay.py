@@ -28,7 +28,7 @@ def update_config_cache(
         invalidated.
     """
 
-    from sentry.models import Project, ProjectKey
+    from sentry.models import Project, ProjectKey, ProjectKeyStatus
     from sentry.relay import projectconfig_cache
     from sentry.relay.config import get_project_config
 
@@ -80,8 +80,13 @@ def update_config_cache(
     if generate:
         config_cache = {}
         for key in keys:
-            project_config = get_project_config(key.project, project_keys=[key], full_config=True)
-            config_cache[key.public_key] = project_config.to_dict()
+            if key.status != ProjectKeyStatus.ACTIVE:
+                project_config = {"disabled": True}
+            else:
+                project_config = get_project_config(
+                    key.project, project_keys=[key], full_config=True
+                ).to_dict()
+            config_cache[key.public_key] = project_config
 
         projectconfig_cache.set_many(config_cache)
     else:

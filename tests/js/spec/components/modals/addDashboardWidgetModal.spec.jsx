@@ -915,16 +915,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const wrapper = mountModal({
       initialData,
       onAddWidget: data => (widget = data),
+      displayType: types.DisplayType.TOP_N,
       defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
       defaultWidgetQuery: {
         name: '',
-        fields: ['count()'],
+        fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
         conditions: 'tag:value',
         orderby: '',
       },
     });
     // Select Top n display
-    selectByLabel(wrapper, 'Top 5 Events', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('top_n');
 
     // No delete button as there is only one field.
@@ -1002,7 +1002,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       onUpdateWidget: () => undefined,
       source: types.DashboardWidgetSource.DISCOVERV2,
       displayType: types.DisplayType.TOP_N,
-      defaultWidgetQuery: {fields: ['count_unique(user)'], orderby: '-count_unique_user'},
+      defaultWidgetQuery: {
+        fields: ['title', 'count()', 'count_unique(user)'],
+        orderby: '-count_unique_user',
+      },
       defaultTableColumns: ['title', 'count()'],
     });
 
@@ -1161,6 +1164,33 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       expect(screen.getByText('Data Set')).toBeInTheDocument();
+      wrapper.unmount();
+    });
+
+    it('disables moving and deleting issue column', async function () {
+      const wrapper = mountModalWithRtl({
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
+      await tick();
+      expect(screen.getByText('issue')).toBeInTheDocument();
+      expect(screen.getByText('assignee')).toBeInTheDocument();
+      expect(screen.getByText('title')).toBeInTheDocument();
+      expect(screen.getAllByRole('button', {name: 'Remove column'}).length).toEqual(2);
+      expect(screen.getAllByRole('button', {name: 'Drag to reorder'}).length).toEqual(3);
+      userEvent.click(screen.getAllByRole('button', {name: 'Remove column'})[1]);
+      userEvent.click(screen.getAllByRole('button', {name: 'Remove column'})[0]);
+      await tick();
+      expect(screen.getByText('issue')).toBeInTheDocument();
+      expect(screen.queryByText('assignee')).not.toBeInTheDocument();
+      expect(screen.queryByText('title')).not.toBeInTheDocument();
+      expect(screen.queryAllByRole('button', {name: 'Remove column'}).length).toEqual(0);
+      expect(screen.queryAllByRole('button', {name: 'Drag to reorder'}).length).toEqual(
+        0
+      );
       wrapper.unmount();
     });
   });

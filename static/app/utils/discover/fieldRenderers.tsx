@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
-import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -16,7 +15,6 @@ import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
 import {Organization} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -100,7 +98,7 @@ const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
  *
  * This mapping should match the output sentry.utils.snuba:get_json_type
  */
-const FIELD_FORMATTERS: FieldFormatters = {
+export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
     renderFunc: (field, data) => {
@@ -212,7 +210,6 @@ type SpecialFields = {
   'trend_percentage()': SpecialField;
   'timestamp.to_hour': SpecialField;
   'timestamp.to_day': SpecialField;
-  assignee: SpecialField;
 };
 
 /**
@@ -430,27 +427,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       </Container>
     ),
   },
-  assignee: {
-    sortField: 'assignee.name',
-    renderFunc: data => {
-      const memberList = MemberListStore.getAll();
-      return (
-        <ActorContainer>
-          <AssigneeSelector id={data.id} memberList={memberList} noDropdown />
-        </ActorContainer>
-      );
-    },
-  },
 };
-
-const ActorContainer = styled('div')`
-  display: flex;
-  justify-content: left;
-  margin-left: 18px;
-  :hover {
-    cursor: default;
-  }
-`;
 
 type SpecialFunctionFieldRenderer = (
   fieldName: string

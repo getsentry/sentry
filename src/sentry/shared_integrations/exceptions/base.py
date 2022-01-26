@@ -1,16 +1,20 @@
+from __future__ import annotations
+
 from collections import OrderedDict
+from typing import Any, Mapping
 
 from bs4 import BeautifulSoup
+from requests import Response
 
 from sentry.utils import json
 
 
 class ApiError(Exception):
-    code = None
-    json = None
-    xml = None
+    code: int | None = None
+    json: Mapping[str, Any] | None = None
+    xml: str | None = None
 
-    def __init__(self, text, code=None, url=None):
+    def __init__(self, text: str, code: int | None = None, url: str | None = None) -> None:
         if code is not None:
             self.code = code
         self.text = text
@@ -31,7 +35,7 @@ class ApiError(Exception):
         super().__init__(text[:1024])
 
     @classmethod
-    def from_response(cls, response, url=None):
+    def from_response(cls, response: Response, url: str | None = None) -> ApiError:
         from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
 
         if response.status_code == 401:

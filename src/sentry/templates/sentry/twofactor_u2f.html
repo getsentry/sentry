@@ -7,7 +7,7 @@
   <div id="u2f-container">
     <div class="loading">
       <div class="loading-mask"></div>
-      <div class="loading-indicator"></div>
+      <div class="loading-indicator" data-test-id="loading-indicator"></div>
     </div>
   </div>
   {% script %}
@@ -19,7 +19,6 @@
       container: '#u2f-container',
       props: {
         challengeData: {{ activation.challenge|to_json|safe }},
-        isWebauthnSigninFFEnabled: {{isWebauthnSigninFFEnabled|to_json|safe }},
       },
     });
   </script>

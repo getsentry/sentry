@@ -341,7 +341,7 @@ describe('Performance > TransactionSummary', function () {
     );
 
     // Ensure create alert from discover is shown with metric alerts
-    expect(screen.queryByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
   });
 
   it('renders Web Vitals widget', async function () {
@@ -443,7 +443,7 @@ describe('Performance > TransactionSummary', function () {
           query: 'transaction:/organizations/:orgId/issues/',
           groupBy: ['measurement_rating'],
           orderBy: undefined,
-          limit: undefined,
+          per_page: undefined,
           interval: '1h',
           datasource: undefined,
           statsPeriod: '14d',
@@ -536,7 +536,7 @@ describe('Performance > TransactionSummary', function () {
           field: ['count(sentry.transactions.transaction.duration)'],
           groupBy: ['transaction.status'],
           interval: '1h',
-          limit: undefined,
+          per_page: undefined,
           orderBy: undefined,
           project: [2],
           query: 'transaction:/performance',
@@ -561,7 +561,7 @@ describe('Performance > TransactionSummary', function () {
           field: ['count(sentry.transactions.transaction.duration)'],
           groupBy: undefined,
           interval: '1h',
-          limit: undefined,
+          per_page: undefined,
           orderBy: undefined,
           project: [2],
           query: 'transaction:/performance',
