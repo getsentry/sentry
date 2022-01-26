@@ -26,4 +26,4 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
 
     @transaction_start("AzureDevopsCreateTicketAction.after")
     def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
-        yield super().after(event, state)
+        return super().after(event, state)

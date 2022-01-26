@@ -266,7 +266,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         session_count_last_hour = cache.get(cache_key)
         if session_count_last_hour is None:
             with options_override({"consistent": False}):
-                session_count_last_hour = release_health.get_project_sessions_count(
+                session_count_last_hour = release_health.get_project_sessions_count(  # NOQA
                     project_id=project_id,
                     environment_id=environment_id,
                     rollup=60,

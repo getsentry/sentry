@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Generator, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Generator, Optional, Sequence, Tuple
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -78,7 +78,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
 
-        cleaned_data: MutableMapping[str, Any] = super().clean()
+        cleaned_data: Dict[str, Any] = super().clean()
 
         workspace: Optional[int] = cleaned_data.get("workspace")
 
