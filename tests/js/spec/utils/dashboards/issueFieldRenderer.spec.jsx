@@ -50,7 +50,7 @@ describe('getIssueFieldRenderer', function () {
       lifetimeCount: 10000,
       filteredCount: 3000,
       count: 6000,
-      selectionDateString: 'last 7 days',
+      period: '7d',
     };
 
     MockApiClient.addMockResponse({

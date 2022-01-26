@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
-import {Organization, PageFilters, PinnedPageFilter} from 'sentry/types';
+import {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 
 import {CommonStoreInterface} from './types';
@@ -11,7 +11,6 @@ import {CommonStoreInterface} from './types';
 type State = {
   selection: PageFilters;
   pinnedFilters: Set<PinnedPageFilter>;
-  organization: Organization | null;
   isReady: boolean;
 };
 
@@ -19,13 +18,11 @@ type Internals = {
   selection: PageFilters;
   pinnedFilters: Set<PinnedPageFilter>;
   hasInitialState: boolean;
-  organization: Organization | null;
 };
 
 type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   reset(selection?: PageFilters): void;
   onReset(): void;
-  onSetOrganization(organization: Organization): void;
   onInitializeUrlState(newSelection: PageFilters): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
   updateDateTime(datetime: PageFilters['datetime']): void;
@@ -37,13 +34,11 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   selection: getDefaultSelection(),
   pinnedFilters: new Set(),
   hasInitialState: false,
-  organization: null,
 
   init() {
     this.reset(this.selection);
     this.listenTo(PageFiltersActions.reset, this.onReset);
     this.listenTo(PageFiltersActions.initializeUrlState, this.onInitializeUrlState);
-    this.listenTo(PageFiltersActions.setOrganization, this.onSetOrganization);
     this.listenTo(PageFiltersActions.updateProjects, this.updateProjects);
     this.listenTo(PageFiltersActions.updateDateTime, this.updateDateTime);
     this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments);
@@ -53,10 +48,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   reset(selection) {
     this._hasInitialState = false;
     this.selection = selection || getDefaultSelection();
-  },
-
-  onSetOrganization(organization) {
-    this.organization = organization;
   },
 
   /**
@@ -70,9 +61,9 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
 
   getState() {
     const isReady = this._hasInitialState;
-    const {selection, pinnedFilters, organization} = this;
+    const {selection, pinnedFilters} = this;
 
-    return {selection, pinnedFilters, isReady, organization};
+    return {selection, pinnedFilters, isReady};
   },
 
   onReset() {

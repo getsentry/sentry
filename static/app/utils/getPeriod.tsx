@@ -8,7 +8,7 @@ type DateObject = {
   /**
    * Relative period string in format "<int><unit>" (e.g. 4d for 4 days)
    */
-  period?: string;
+  period?: string | null;
   /**
    * Starting date object
    */

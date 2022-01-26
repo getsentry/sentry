@@ -60,6 +60,7 @@ type Props = WithRouterProps & {
   noLazyLoad?: boolean;
   hideDragHandle?: boolean;
   widgetLimitReached: boolean;
+  tableItemLimit?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -161,13 +162,15 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderIssueChart() {
-    const {widget, api, organization, selection, renderErrorMessage} = this.props;
+    const {widget, api, organization, selection, renderErrorMessage, tableItemLimit} =
+      this.props;
     return (
       <IssueWidgetQueries
         api={api}
         organization={organization}
         widget={widget}
         selection={selection}
+        limit={tableItemLimit}
       >
         {({transformedResults, errorMessage, loading}) => {
           return (
@@ -190,14 +193,23 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderDiscoverChart() {
-    const {widget, api, organization, selection, renderErrorMessage, location, router} =
-      this.props;
+    const {
+      widget,
+      api,
+      organization,
+      selection,
+      renderErrorMessage,
+      location,
+      router,
+      tableItemLimit,
+    } = this.props;
     return (
       <WidgetQueries
         api={api}
         organization={organization}
         widget={widget}
         selection={selection}
+        limit={tableItemLimit}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (
