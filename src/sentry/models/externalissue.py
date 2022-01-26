@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Sequence
 
 from django.db import models
 from django.db.models import QuerySet
@@ -38,6 +38,12 @@ class ExternalIssueManager(BaseManager):
             ).values_list("linked_id", flat=True),
             integration_id=integration.id,
         )
+
+    def get_linked_issue_ids(self, event: Event, integration: Integration) -> Sequence[str]:
+        return self.get_linked_issues(event, integration).values_list("key", flat=True)
+
+    def has_linked_issue(self, event: Event, integration: Integration) -> bool:
+        return self.get_linked_issues(event, integration).exists()
 
 
 class ExternalIssue(Model):

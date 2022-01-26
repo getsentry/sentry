@@ -98,15 +98,6 @@ class IntegrationEventAction(EventAction):
         return self.form_cls(self.data, integrations=self.get_integrations())
 
 
-
-def get_linked_issue_ids(event, integration):
-    return _linked_issues(event, integration).values_list("key", flat=True)
-
-
-def has_linked_issue(event, integration):
-    return _linked_issues(event, integration).exists()
-
-
 def create_link(integration, installation, event, response):
     """
     After creating the event on a third-party service, create a link to the
@@ -175,7 +166,7 @@ def create_issue(event, futures):
         if data.get("dynamic_form_fields"):
             del data["dynamic_form_fields"]
 
-        if has_linked_issue(event, integration):
+        if ExternalIssue.objects.has_linked_issue(event, integration):
             logger.info(
                 f"{integration.provider}.rule_trigger.link_already_exists",
                 extra={
