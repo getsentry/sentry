@@ -40,7 +40,7 @@ runs:
         artifact: ${{ inputs.artifact }}__internal
         path: ${{ github.workspace }}/${{ inputs.path }}
         ignoreError: true
-        workflowEvent: push
+        workflowEvent: pull_request
 
     - name: Fetch existing report from master
       if: inputs.action != 'upload' && (steps.get-artifact-branch.outcome == 'skipped' || steps.get-artifact-branch.outputs.result == 'failed')
@@ -50,7 +50,8 @@ runs:
         branch: ${{ inputs.branch }}
         artifact: ${{ inputs.artifact }}
         path: ${{ github.workspace }}/${{ inputs.path }}
-        workflowEvent: push
+        workflowEvent: pull_request # temp for artifacts on branch
+        # workflowEvent: push
 
     # We re-upload the report that was from the master branch so that the same
     # report is always used within a PR.
