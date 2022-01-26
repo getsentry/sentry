@@ -696,5 +696,5 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
     if isinstance(input_, (int, float)):
         return input_
 
-    assert isinstance(input_, list), input_
+    assert isinstance(input_, (tuple, list)), input_
     return [_translate_conditions(org_id, item) for item in input_]
