@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
+import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -126,10 +127,13 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
 
   handleResults = (results, mappingKey?: string) => {
     if (mappingKey) {
+      const {queryResults} = this.state;
       this.setState({
         queryResults: {
-          ...this.state.queryResults,
-          [mappingKey]: results,
+          ...queryResults,
+          // This line will keep a running collection of the queries made on this mappingKey
+          // That way, no matter what they type after making a selection, we don't lose the result
+          [mappingKey]: uniqBy([...results, ...(queryResults[mappingKey] ?? [])], 'id'),
         },
       });
     }

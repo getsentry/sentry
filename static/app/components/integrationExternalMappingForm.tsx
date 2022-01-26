@@ -79,21 +79,6 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
         defaultOptions: this.getDefaultOptions(mapping),
         onResults: result => {
           onResults?.(result, isInline ? mapping?.externalName : mappingKey);
-          // TODO(Leander): The code below only fixes the problem when viewed, not when edited
-          // Pagination still has bugs for results not on initial return of the query
-
-          // if (
-          //   mapping &&
-          //   !result.find(entry => {
-          //     const id = type === 'user' ? entry.user.id : entry.id;
-          //     return id === mapping[`${type}Id`];
-          //   })
-          // ) {
-          //   return [
-          //     {id: mapping[`${type}Id`], name: mapping.sentryName},
-          //     ...sentryNamesMapper(result),
-          //   ].map(sentryNameToOption);
-          // }
           return sentryNamesMapper(result).map(sentryNameToOption);
         },
       },
