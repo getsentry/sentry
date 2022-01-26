@@ -13,6 +13,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.integrationdocs import iteritems
 
 
 class GitlabIntegrationTest(IntegrationTestCase):
@@ -347,8 +348,10 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
     }
 
     def setUp(self):
-        super(GitlabIntegrationInstanceTest, self).setUp()
-        self.init_path_without_guide = "%s%s" % (self.init_path, "?completed_installation_guide")
+        super().setUp()
+        self.init_path_without_guide = "{}{}".format(
+            self.init_path, "?completed_installation_guide"
+        )
 
     def assert_setup_flow(self, user_id="user_id_1"):
         resp = self.client.get(self.init_path)
@@ -370,7 +373,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         assert params["client_id"] == ["client_id"]
         # once we've asserted on it, switch to a singular values to make life
         # easier
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+        authorize_params = {k: v[0] for k, v in iteritems(params)}
 
         access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
@@ -385,7 +388,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         )
 
         resp = self.client.get(
-            u"{}?{}".format(
+            "{}?{}".format(
                 self.setup_path,
                 urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
             )
@@ -414,13 +417,13 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
 
-        assert integration.external_id == "gitlab.example.com:instance"
+        assert integration.external_id == "gitlab.example.com:_instance_"
         assert integration.name == "gitlab.example.com"
         assert integration.metadata == {
             "instance": "gitlab.example.com",
             "scopes": ["api"],
             "icon": None,
-            "domain_name": u"gitlab.example.com/",
+            "domain_name": "gitlab.example.com",
             "verify_ssl": True,
             "base_url": "https://gitlab.example.com",
             "webhook_secret": "secret-token",
@@ -437,7 +440,11 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
             idp=idp, user=self.user, external_id="gitlab.example.com:user_id_1"
         )
         assert identity.status == IdentityStatus.VALID
-        assert identity.data == {"access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
+        assert identity.data == {
+            "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+            "client_id": "client_id",
+            "client_secret": "client_secret",
+        }
 
     @responses.activate
     def test_get_group_id(self):

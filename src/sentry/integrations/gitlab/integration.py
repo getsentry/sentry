@@ -380,14 +380,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
             # from.
             "external_id": "{}:{}".format(hostname, group.get("id", "_instance_")),
             "metadata": {
-                "icon": group.get("avatar_url", None),
+                "icon": group.get("avatar_url"),
                 "instance": hostname,
-                "domain_name": u"{}/{}".format(hostname, group.get("full_path", "")).rtrim("/"),
+                "domain_name": "{}/{}".format(hostname, group.get("full_path", "")).rstrip("/"),
                 "scopes": scopes,
                 "verify_ssl": verify_ssl,
                 "base_url": base_url,
                 "webhook_secret": secret.hexdigest(),
-                "group_id": group.get("id", None),
+                "group_id": group.get("id"),
                 "include_subgroups": include_subgroups,
             },
             "user_identity": {

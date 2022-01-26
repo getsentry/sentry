@@ -30,7 +30,7 @@ class GitLabApiClientPath:
     project_hooks = "/projects/{project}/hooks"
     project_hook = "/projects/{project}/hooks/{hook_id}"
     project_search = "/projects/{project}/search"
-    projects = u"/projects"
+    projects = "/projects"
     user = "/user"
 
     @staticmethod
@@ -156,9 +156,11 @@ class GitLabApiClient(ApiClient):
         def gen_params_groups(page_number, page_size):
             # simple param returns limited fields for the project.
             # Really useful, because we often don't need most of the project information
-            return gen_params(page_number, page_size).update({
-                "include_subgroups": self.metadata.get("include_subgroups", False),
-            })
+            return gen_params(page_number, page_size).update(
+                {
+                    "include_subgroups": self.metadata.get("include_subgroups", False),
+                }
+            )
 
         def get_results(resp):
             return resp
