@@ -143,33 +143,38 @@ class GitLabApiClient(ApiClient):
         """
 
         def gen_params(page_number, page_size):
-            # simple param returns limited fields for the project.
+            # Simple param returns limited fields for the project.
             # Really useful, because we often don't need most of the project information
-            return {
+            params = {
                 "search": query,
                 "simple": simple,
                 "order_by": "last_activity_at",
                 "page": page_number + 1,  # page starts at 1
                 "per_page": page_size,
             }
-
-        def gen_params_groups(page_number, page_size):
-            # simple param returns limited fields for the project.
-            # Really useful, because we often don't need most of the project information
-            return gen_params(page_number, page_size).update(
-                {
-                    "include_subgroups": self.metadata.get("include_subgroups", False),
-                }
-            )
+            if group:
+                params.update(
+                    {
+                        "include_subgroups": self.metadata.get("include_subgroups", False),
+                    }
+                )
+            return params
 
         def get_results(resp):
             return resp
 
-        return self.get_with_pagination(
-            GitLabApiClientPath.group_projects.format(group=group),
-            gen_params=gen_params_groups if group else gen_params,
-            get_results=get_results,
-        )
+        if group:
+            return self.get_with_pagination(
+                GitLabApiClientPath.group_projects.format(group=group),
+                gen_params=gen_params,
+                get_results=get_results,
+            )
+        else:
+            return self.get_with_pagination(
+                GitLabApiClientPath.projects,
+                gen_params=gen_params,
+                get_results=get_results,
+            )
 
     def get_project(self, project_id):
         """Get project

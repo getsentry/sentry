@@ -371,8 +371,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         assert params["redirect_uri"] == ["http://testserver/extensions/gitlab/setup/"]
         assert params["response_type"] == ["code"]
         assert params["client_id"] == ["client_id"]
-        # once we've asserted on it, switch to a singular values to make life
-        # easier
+        # once we've asserted on it, switch to a singular values to make life easier
         authorize_params = {k: v[0] for k, v in iteritems(params)}
 
         access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
