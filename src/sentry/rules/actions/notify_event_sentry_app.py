@@ -132,7 +132,7 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
             valid_fields.add(field_name)
 
         # Ensure the payload we send matches the expectations set in the schema
-        extra_keys = set([setting["name"] for setting in incoming_settings]) - valid_fields
+        extra_keys = {setting["name"] for setting in incoming_settings} - valid_fields
         if extra_keys:
             extra_keys_string = ", ".join(extra_keys)
             raise ValidationError(
