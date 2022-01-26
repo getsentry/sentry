@@ -2,7 +2,6 @@ import * as React from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -63,83 +62,73 @@ class IssueListFilters extends React.Component<Props> {
     const hasSessions =
       !hasMultipleProjectsSelected &&
       (ProjectsStore.getById(`${selectedProjects[0]}`)?.hasSessions ?? false);
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
 
     return (
-      <Feature
-        features={['organizations:selection-filters-v2']}
-        organization={organization}
-      >
-        {({hasFeature}) => (
-          <FilterContainer>
-            <SearchContainer
-              hasProjectEnvFilter={hasFeature}
-              hasIssuePercentDisplay={hasIssuePercentDisplay}
-            >
-              <ClassNames>
-                {({css}) => (
-                  <GuideAnchor
-                    target="assigned_or_suggested_query"
-                    disabled={!isAssignedQuery}
-                    containerClassName={css`
-                      width: 100%;
-                    `}
-                  >
-                    <IssueListSearchBar
-                      organization={organization}
-                      query={query || ''}
-                      sort={sort}
-                      onSearch={onSearch}
-                      disabled={isSearchDisabled}
-                      excludeEnvironment
-                      supportedTags={tags}
-                      tagValueLoader={tagValueLoader}
-                      savedSearch={savedSearch}
-                      onSidebarToggle={onSidebarToggle}
-                    />
-                  </GuideAnchor>
-                )}
-              </ClassNames>
-
-              {hasFeature ? (
-                <ProjectEnvironmentFilters>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                </ProjectEnvironmentFilters>
-              ) : (
-                <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
-                  {hasIssuePercentDisplay && (
-                    <IssueListDisplayOptions
-                      onDisplayChange={onDisplayChange}
-                      display={display}
-                      hasMultipleProjectsSelected={hasMultipleProjectsSelected}
-                      hasSessions={hasSessions}
-                    />
-                  )}
-                  <IssueListSortOptions
-                    sort={sort}
-                    query={query}
-                    onSelect={onSortChange}
-                  />
-                </DropdownsWrapper>
-              )}
-            </SearchContainer>
-            {hasFeature && (
-              <IssueListDropdownsWrapper>
-                {hasFeature && <DatePageFilter />}
-                {hasIssuePercentDisplay && (
-                  <IssueListDisplayOptions
-                    onDisplayChange={onDisplayChange}
-                    display={display}
-                    hasMultipleProjectsSelected={hasMultipleProjectsSelected}
-                    hasSessions={hasSessions}
-                  />
-                )}
-                <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-              </IssueListDropdownsWrapper>
+      <FilterContainer>
+        <SearchContainer
+          hasPageFilters={hasPageFilters}
+          hasIssuePercentDisplay={hasIssuePercentDisplay}
+        >
+          <ClassNames>
+            {({css}) => (
+              <GuideAnchor
+                target="assigned_or_suggested_query"
+                disabled={!isAssignedQuery}
+                containerClassName={css`
+                  width: 100%;
+                `}
+              >
+                <IssueListSearchBar
+                  organization={organization}
+                  query={query || ''}
+                  sort={sort}
+                  onSearch={onSearch}
+                  disabled={isSearchDisabled}
+                  excludeEnvironment
+                  supportedTags={tags}
+                  tagValueLoader={tagValueLoader}
+                  savedSearch={savedSearch}
+                  onSidebarToggle={onSidebarToggle}
+                />
+              </GuideAnchor>
             )}
-          </FilterContainer>
+          </ClassNames>
+
+          {hasPageFilters ? (
+            <ProjectEnvironmentFilters>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+            </ProjectEnvironmentFilters>
+          ) : (
+            <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
+              {hasIssuePercentDisplay && (
+                <IssueListDisplayOptions
+                  onDisplayChange={onDisplayChange}
+                  display={display}
+                  hasMultipleProjectsSelected={hasMultipleProjectsSelected}
+                  hasSessions={hasSessions}
+                />
+              )}
+              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+            </DropdownsWrapper>
+          )}
+        </SearchContainer>
+        {hasPageFilters && (
+          <IssueListDropdownsWrapper>
+            <DatePageFilter />
+            {hasIssuePercentDisplay && (
+              <IssueListDisplayOptions
+                onDisplayChange={onDisplayChange}
+                display={display}
+                hasMultipleProjectsSelected={hasMultipleProjectsSelected}
+                hasSessions={hasSessions}
+              />
+            )}
+            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          </IssueListDropdownsWrapper>
         )}
-      </Feature>
+      </FilterContainer>
     );
   }
 }
@@ -152,17 +141,17 @@ const FilterContainer = styled('div')`
 
 const SearchContainer = styled('div')<{
   hasIssuePercentDisplay?: boolean;
-  hasProjectEnvFilter?: boolean;
+  hasPageFilters?: boolean;
 }>`
   display: inline-grid;
   gap: ${space(1)};
   width: 100%;
 
   ${p =>
-    p.hasProjectEnvFilter
+    p.hasPageFilters
       ? `
     @media (min-width: ${p.theme.breakpoints[1]}) {
-      grid-template-columns: 2fr 1fr;
+      grid-template-columns: 3fr 2fr;
     }
   `
       : `
