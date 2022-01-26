@@ -15,7 +15,7 @@ type Props = {
   data: Series[];
   previousData?: Series[];
   router: InjectedRouter;
-  statsPeriod: string | undefined;
+  statsPeriod: string | null | undefined;
   start: DateString;
   end: DateString;
   utc: boolean;

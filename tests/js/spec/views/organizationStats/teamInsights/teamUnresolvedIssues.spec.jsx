@@ -39,7 +39,7 @@ describe('TeamUnresolvedIssues', () => {
 
     // Project
     expect(screen.getByText('project-slug')).toBeInTheDocument();
-    expect(screen.getByText('0%')).toBeInTheDocument();
-    expect(issuesApi).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('14%')).toBeInTheDocument();
+    expect(issuesApi).toHaveBeenCalledTimes(1);
   });
 });

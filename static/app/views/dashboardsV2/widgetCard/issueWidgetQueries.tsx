@@ -29,8 +29,8 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   environment: string[];
   query?: string;
   sort?: string;
-  statsPeriod?: string;
-  groupStatsPeriod?: string;
+  statsPeriod?: string | null;
+  groupStatsPeriod?: string | null;
   cursor?: string;
   page?: number | string;
   display?: string;
@@ -123,7 +123,8 @@ class IssueWidgetQueries extends React.Component<Props, State> {
     GroupStore.add(tableResults);
     const transformedTableResults: TableDataRow[] = [];
     tableResults.forEach(group => {
-      const {id, shortId, title, lifetime, filtered, ...resultProps} = group;
+      const {id, shortId, title, lifetime, filtered, count, userCount, ...resultProps} =
+        group;
       const transformedResultProps: Omit<TableDataRow, 'id'> = {};
       Object.keys(resultProps)
         .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
@@ -133,6 +134,8 @@ class IssueWidgetQueries extends React.Component<Props, State> {
 
       const transformedTableResult: TableDataRow = {
         ...transformedResultProps,
+        events: count,
+        users: userCount,
         id,
         'issue.id': id,
         issue: shortId,
@@ -141,13 +144,13 @@ class IssueWidgetQueries extends React.Component<Props, State> {
 
       // Get lifetime stats
       if (lifetime) {
-        transformedTableResult.lifetimeCount = lifetime?.count;
-        transformedTableResult.lifetimeUserCount = lifetime?.userCount;
+        transformedTableResult.lifetimeEvents = lifetime?.count;
+        transformedTableResult.lifetimeUsers = lifetime?.userCount;
       }
       // Get filtered stats
       if (filtered) {
-        transformedTableResult.filteredCount = filtered?.count;
-        transformedTableResult.filteredUserCount = filtered?.userCount;
+        transformedTableResult.filteredEvents = filtered?.count;
+        transformedTableResult.filteredUsers = filtered?.userCount;
       }
 
       // Discover Url properties
@@ -177,7 +180,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         transformedTableResult.start = getUtcDateString(start);
         transformedTableResult.end = getUtcDateString(end);
       }
-      transformedTableResult.period = period;
+      transformedTableResult.period = period ?? '';
       transformedTableResults.push(transformedTableResult);
     });
     return transformedTableResults;

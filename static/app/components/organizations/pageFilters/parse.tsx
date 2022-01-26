@@ -171,7 +171,7 @@ type InputParams = {
 type ParsedParams = {
   start?: string;
   end?: string;
-  statsPeriod?: string;
+  statsPeriod?: string | null;
   utc?: string;
   [others: string]: Location['query'][string];
 };
@@ -187,7 +187,7 @@ type DateTimeNormalizeOptions = {
    * Include this default statsPeriod in the resulting parsed parameters when
    * no stats period is provided (or if it is an invalid stats period)
    */
-  defaultStatsPeriod?: string;
+  defaultStatsPeriod?: string | null;
   /**
    * Parse absolute date time (`start` / `end`) from the input parameters. When
    * set to false the start and end will always be `null`.
@@ -241,7 +241,8 @@ export function normalizeDateTimeParams(
   let coercedPeriod =
     getStatsPeriodValue(pageStatsPeriod) ||
     getStatsPeriodValue(statsPeriod) ||
-    getStatsPeriodValue(period);
+    getStatsPeriodValue(period) ||
+    null;
 
   const dateTimeStart = allowAbsoluteDatetime
     ? allowAbsolutePageDatetime
@@ -260,8 +261,8 @@ export function normalizeDateTimeParams(
 
   const object = {
     statsPeriod: coercedPeriod,
-    start: coercedPeriod ? null : dateTimeStart,
-    end: coercedPeriod ? null : dateTimeEnd,
+    start: coercedPeriod ? null : dateTimeStart ?? null,
+    end: coercedPeriod ? null : dateTimeEnd ?? null,
     // coerce utc into a string (it can be both: a string representation from
     // router, or a boolean from time range picker)
     utc: getUtcValue(pageUtc ?? utc),
