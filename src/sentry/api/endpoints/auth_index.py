@@ -118,10 +118,10 @@ class AuthIndexEndpoint(Endpoint):
                         "u2f_authentication.verification_failed",
                         extra={"user": request.user.id},
                     )
-            except ValueError:
+            except ValueError as err:
                 logger.warning(
                     "u2f_authentication.value_error",
-                    extra={"user": request.user.id},
+                    extra={"user": request.user.id, "error_message": err},
                 )
                 pass
             except LookupError:
