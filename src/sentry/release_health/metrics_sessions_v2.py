@@ -3,7 +3,9 @@ from the `metrics` dataset instead of `sessions`.
 
 Do not call this module directly. Use the `release_health` service instead. """
 import abc
+import logging
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import (
@@ -22,9 +24,18 @@ from typing import (
     cast,
 )
 
-from snuba_sdk import Column, Condition, Entity, Op, Query
-from snuba_sdk.expressions import Granularity
-from snuba_sdk.function import Function
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+)
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
 
@@ -45,8 +56,10 @@ from sentry.sentry_metrics.utils import (
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import TS_COL_GROUP, TS_COL_QUERY, get_intervals
-from sentry.snuba.sessions_v2 import QueryDefinition, finite_or_none
+from sentry.snuba.sessions_v2 import SNUBA_LIMIT, QueryDefinition, finite_or_none
 from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger(__name__)
 
 #: Referrers for snuba queries
 #: Referrers must be searchable, so no string interpolation here
@@ -326,10 +339,11 @@ def _get_snuba_query(
             pass
 
     full_groupby = set(groupby.values()) - remove_groupby
+
     if series:
         full_groupby.add(Column(TS_COL_GROUP))
 
-    return Query(
+    query_args = dict(
         dataset=Dataset.Metrics.value,
         match=Entity(entity_key.value),
         select=list(columns),
@@ -337,6 +351,13 @@ def _get_snuba_query(
         where=conditions,
         granularity=Granularity(query.rollup),
     )
+
+    if series:
+        # Set higher limit and order by to be consistent with sessions_v2
+        query_args["limit"] = Limit(SNUBA_LIMIT)
+        query_args["orderby"] = [OrderBy(Column(TS_COL_GROUP), Direction.DESC)]
+
+    return Query(**query_args)
 
 
 def _get_snuba_query_data(
@@ -369,6 +390,9 @@ def _get_snuba_query_data(
         )
         referrer = REFERRERS[metric_key][query_type]
         query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
+
+        if len(query_data) == SNUBA_LIMIT:
+            logger.error("metrics_sessions_v2.snuba_limit_exceeded")
 
         yield (metric_key, query_data)
 
@@ -548,11 +572,15 @@ def run_sessions_query(
     span_op: str,
 ) -> SessionsQueryResult:
     """Convert a QueryDefinition to multiple snuba queries and reformat the results"""
-    data, metric_to_output_field = _fetch_data(org_id, query)
+    # This is necessary so that we do not mutate the query object shared between different
+    # backend runs
+    query_clone = deepcopy(query)
+
+    data, metric_to_output_field = _fetch_data(org_id, query_clone)
 
     data_points = _flatten_data(org_id, data)
 
-    intervals = list(get_intervals(query))
+    intervals = list(get_intervals(query_clone))
     timestamp_index = {timestamp.isoformat(): index for index, timestamp in enumerate(intervals)}
 
     def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
@@ -566,8 +594,10 @@ def run_sessions_query(
 
     groups: MutableMapping[GroupKey, Group] = defaultdict(
         lambda: {
-            "totals": {field: default_for(field) for field in query.raw_fields},
-            "series": {field: len(intervals) * [default_for(field)] for field in query.raw_fields},
+            "totals": {field: default_for(field) for field in query_clone.raw_fields},
+            "series": {
+                field: len(intervals) * [default_for(field)] for field in query_clone.raw_fields
+            },
         }
     )
 
@@ -618,9 +648,9 @@ def run_sessions_query(
         return dt.isoformat().replace("+00:00", "Z")
 
     return {
-        "start": format_datetime(query.start),
-        "end": format_datetime(query.end),
-        "query": query.query,
+        "start": format_datetime(query_clone.start),
+        "end": format_datetime(query_clone.end),
+        "query": query_clone.query,
         "intervals": [format_datetime(dt) for dt in intervals],
         "groups": groups_as_list,
     }
@@ -667,5 +697,5 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
     if isinstance(input_, (int, float)):
         return input_
 
-    assert isinstance(input_, list), input_
+    assert isinstance(input_, (tuple, list)), input_
     return [_translate_conditions(org_id, item) for item in input_]

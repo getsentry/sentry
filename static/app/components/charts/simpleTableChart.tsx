@@ -22,6 +22,8 @@ type Props = {
   metadata: TableData['meta'] | undefined;
   data: TableData['data'] | undefined;
   className?: string;
+  getCustomFieldRenderer?: typeof getFieldRenderer;
+  fieldHeaderMap?: Record<string, string>;
 };
 
 class SimpleTableChart extends Component<Props> {
@@ -31,17 +33,20 @@ class SimpleTableChart extends Component<Props> {
     tableMeta: NonNullable<TableData['meta']>,
     columns: ReturnType<typeof decodeColumnOrder>
   ) {
-    const {location, organization} = this.props;
+    const {location, organization, getCustomFieldRenderer} = this.props;
 
     return columns.map(column => {
-      const fieldRenderer = getFieldRenderer(column.name, tableMeta);
+      const fieldRenderer =
+        getCustomFieldRenderer?.(column.name, tableMeta) ??
+        getFieldRenderer(column.name, tableMeta);
       const rendered = fieldRenderer(row, {organization, location});
       return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
     });
   }
 
   render() {
-    const {className, loading, fields, metadata, data, title} = this.props;
+    const {className, loading, fields, metadata, data, title, fieldHeaderMap} =
+      this.props;
     const meta = metadata ?? {};
     const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
@@ -52,10 +57,11 @@ class SimpleTableChart extends Component<Props> {
           isLoading={loading}
           headers={columns.map((column, index) => {
             const align = fieldAlignment(column.name, column.type, meta);
+            const header = fieldHeaderMap?.[column.name] ?? column.key;
             return (
               <HeadCell key={index} align={align}>
-                <Tooltip title={column.key}>
-                  <StyledTruncate value={column.key} maxLength={30} expandable={false} />
+                <Tooltip title={header}>
+                  <StyledTruncate value={header} maxLength={30} expandable={false} />
                 </Tooltip>
               </HeadCell>
             );

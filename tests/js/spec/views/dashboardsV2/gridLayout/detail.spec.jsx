@@ -5,12 +5,13 @@ import {
   act,
   mountWithTheme as rtlMountWithTheme,
   screen,
+  userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {constructGridItemKey} from 'sentry/views/dashboardsV2/dashboard';
-import * as gridUtils from 'sentry/views/dashboardsV2/gridLayout/utils';
+import {constructGridItemKey} from 'sentry/views/dashboardsV2/layoutUtils';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -134,7 +135,7 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockVisit;
+    let wrapper, initialData, widgets, mockVisit, mockPut;
 
     const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
     beforeEach(function () {
@@ -204,7 +205,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
-      MockApiClient.addMockResponse({
+      mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
@@ -295,7 +296,7 @@ describe('Dashboards > Detail', function () {
         expect.objectContaining({
           data: expect.objectContaining({
             title: 'Custom Errors',
-            widgets: [widgets[0]],
+            widgets: [expect.objectContaining(widgets[0])],
           }),
         })
       );
@@ -334,7 +335,9 @@ describe('Dashboards > Detail', function () {
       await wrapper.update();
       const modal = await mountGlobalModal();
 
-      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(
+        expect.objectContaining(widgets[0])
+      );
     });
 
     it('shows add widget option', async function () {
@@ -447,6 +450,7 @@ describe('Dashboards > Detail', function () {
                 title: 'First Widget',
                 interval: '1d',
                 id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
               }
             ),
             TestStubs.Widget(
@@ -461,9 +465,6 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      jest
-        .spyOn(gridUtils, 'getDashboardLayout')
-        .mockReturnValueOnce([{i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6}]);
       rtlMountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -479,8 +480,7 @@ describe('Dashboards > Detail', function () {
       await screen.findByText('Second Widget');
     });
 
-    it('renders successfully if more layouts than stored widgets', async function () {
-      // A case where someone has async removed widgets from a dashboard
+    it('does not trigger request if layout not updated', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(
@@ -491,16 +491,13 @@ describe('Dashboards > Detail', function () {
                 title: 'First Widget',
                 interval: '1d',
                 id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
               }
             ),
           ],
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      jest.spyOn(gridUtils, 'getDashboardLayout').mockReturnValueOnce([
-        {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
-        {i: 'grid-item-2', x: 2, y: 0, w: 2, h: 2},
-      ]);
       rtlMountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -512,7 +509,48 @@ describe('Dashboards > Detail', function () {
       );
       await tick();
 
-      await screen.findByText('First Widget');
+      userEvent.click(screen.getByText('Edit Dashboard'));
+      userEvent.click(screen.getByText('Save and Finish'));
+      await tick();
+
+      expect(screen.getByText('Edit Dashboard')).toBeInTheDocument();
+      expect(mockPut).not.toHaveBeenCalled();
+    });
+
+    it('renders the custom resize handler for a widget', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      rtlMountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      userEvent.click(await screen.findByText('Edit Dashboard'));
+      const widget = screen.getByText('First Widget').closest('.react-grid-item');
+      const resizeHandle = within(widget).getByTestId('custom-resize-handle');
+
+      expect(resizeHandle).toBeVisible();
     });
   });
 });

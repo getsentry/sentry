@@ -490,23 +490,6 @@ export function generateFieldOptions({
     };
   });
 
-  if (tagKeys !== undefined && tagKeys !== null) {
-    tagKeys.sort();
-    tagKeys.forEach(tag => {
-      const tagValue =
-        fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
-          ? `tags[${tag}]`
-          : tag;
-      fieldOptions[`tag:${tag}`] = {
-        label: tag,
-        value: {
-          kind: FieldValueKind.TAG,
-          meta: {name: tagValue, dataType: 'string'},
-        },
-      };
-    });
-  }
-
   if (measurementKeys !== undefined && measurementKeys !== null) {
     measurementKeys.sort();
     measurementKeys.forEach(measurement => {
@@ -528,6 +511,23 @@ export function generateFieldOptions({
         value: {
           kind: FieldValueKind.BREAKDOWN,
           meta: {name: breakdownField, dataType: 'duration'},
+        },
+      };
+    });
+  }
+
+  if (tagKeys !== undefined && tagKeys !== null) {
+    tagKeys.sort();
+    tagKeys.forEach(tag => {
+      const tagValue =
+        fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
+          ? `tags[${tag}]`
+          : tag;
+      fieldOptions[`tag:${tag}`] = {
+        label: tag,
+        value: {
+          kind: FieldValueKind.TAG,
+          meta: {name: tagValue, dataType: 'string'},
         },
       };
     });
