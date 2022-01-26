@@ -358,6 +358,8 @@ def process_messages(
         new_payload_value["metric_id"] = mapping[metric_name]
         new_payload_value["retention_days"] = 90
 
+        del new_payload_value["name"]
+
         new_payload = KafkaPayload(
             key=message.payload.key,
             value=json.dumps(new_payload_value).encode(),

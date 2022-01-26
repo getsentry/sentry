@@ -178,6 +178,8 @@ def __translated_payload(
             "org_id": payload["org_id"],
         }
         return slim_payload
+
+    del payload["name"]
     return payload
 
 
