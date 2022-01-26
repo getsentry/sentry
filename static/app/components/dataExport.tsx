@@ -1,6 +1,5 @@
 import * as React from 'react';
 import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
@@ -8,7 +7,6 @@ import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import usePrevious from 'sentry/utils/usePrevious';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -40,14 +38,13 @@ function DataExport({
   payload,
   icon,
 }: DataExportProps): React.ReactElement {
-  const previousPayload = usePrevious(payload);
   const [inProgress, setInProgress] = React.useState(false);
 
   React.useEffect(() => {
-    if (!isEqual(payload, previousPayload)) {
+    if (inProgress) {
       setInProgress(false);
     }
-  }, [payload]);
+  }, [payload.queryType, payload.queryInfo]);
 
   const handleDataExport = React.useCallback(() => {
     setInProgress(true);
