@@ -570,7 +570,6 @@ backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
-    trail=False,
 )
 def prepare_reports(dry_run=False, *args, **kwargs):
     timestamp, duration = _fill_default_parameters(*args, **kwargs)
