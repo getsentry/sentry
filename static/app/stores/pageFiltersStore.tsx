@@ -3,55 +3,51 @@ import Reflux from 'reflux';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
-import {Organization, PageFilters} from 'sentry/types';
+import {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 
 import {CommonStoreInterface} from './types';
 
 type State = {
   selection: PageFilters;
-  organization: Organization | null;
+  pinnedFilters: Set<PinnedPageFilter>;
   isReady: boolean;
 };
 
 type Internals = {
   selection: PageFilters;
+  pinnedFilters: Set<PinnedPageFilter>;
   hasInitialState: boolean;
-  organization: Organization | null;
 };
 
 type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   reset(selection?: PageFilters): void;
   onReset(): void;
-  onSetOrganization(organization: Organization): void;
   onInitializeUrlState(newSelection: PageFilters): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
   updateDateTime(datetime: PageFilters['datetime']): void;
   updateEnvironments(environments: string[]): void;
+  pin(filter: PinnedPageFilter, pin: boolean): void;
 };
 
 const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterface = {
   selection: getDefaultSelection(),
+  pinnedFilters: new Set(),
   hasInitialState: false,
-  organization: null,
 
   init() {
     this.reset(this.selection);
     this.listenTo(PageFiltersActions.reset, this.onReset);
     this.listenTo(PageFiltersActions.initializeUrlState, this.onInitializeUrlState);
-    this.listenTo(PageFiltersActions.setOrganization, this.onSetOrganization);
     this.listenTo(PageFiltersActions.updateProjects, this.updateProjects);
     this.listenTo(PageFiltersActions.updateDateTime, this.updateDateTime);
     this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments);
+    this.listenTo(PageFiltersActions.pin, this.pin);
   },
 
   reset(selection) {
     this._hasInitialState = false;
     this.selection = selection || getDefaultSelection();
-  },
-
-  onSetOrganization(organization) {
-    this.organization = organization;
   },
 
   /**
@@ -65,9 +61,9 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
 
   getState() {
     const isReady = this._hasInitialState;
-    const {selection, organization} = this;
+    const {selection, pinnedFilters} = this;
 
-    return {selection, isReady, organization};
+    return {selection, pinnedFilters, isReady};
   },
 
   onReset() {
@@ -109,6 +105,16 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
       ...this.selection,
       environments: environments ?? [],
     };
+    this.trigger(this.getState());
+  },
+
+  pin(filter, pin) {
+    if (pin) {
+      this.pinnedFilters.add(filter);
+    } else {
+      this.pinnedFilters.delete(filter);
+    }
+
     this.trigger(this.getState());
   },
 };

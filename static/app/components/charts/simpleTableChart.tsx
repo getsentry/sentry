@@ -20,6 +20,7 @@ type Props = {
   metadata: TableData['meta'] | undefined;
   data: TableData['data'] | undefined;
   className?: string;
+  getCustomFieldRenderer?: typeof getFieldRenderer;
 };
 
 class SimpleTableChart extends Component<Props> {
@@ -29,10 +30,12 @@ class SimpleTableChart extends Component<Props> {
     tableMeta: NonNullable<TableData['meta']>,
     columns: ReturnType<typeof decodeColumnOrder>
   ) {
-    const {location, organization} = this.props;
+    const {location, organization, getCustomFieldRenderer} = this.props;
 
     return columns.map(column => {
-      const fieldRenderer = getFieldRenderer(column.name, tableMeta);
+      const fieldRenderer =
+        getCustomFieldRenderer?.(column.name, tableMeta) ??
+        getFieldRenderer(column.name, tableMeta);
       const rendered = fieldRenderer(row, {organization, location});
       return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
     });

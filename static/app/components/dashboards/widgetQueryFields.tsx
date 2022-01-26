@@ -258,7 +258,7 @@ function WidgetQueryFields({
                 onClick={event => handleRemove(event, i)}
                 icon={<IconDelete />}
                 title={t('Remove this Y-Axis')}
-                label={t('Remove this Y-Axis')}
+                aria-label={t('Remove this Y-Axis')}
               />
             )}
           </QueryFieldWrapper>
@@ -271,7 +271,7 @@ function WidgetQueryFields({
           </Button>
           <Button
             size="small"
-            label={t('Add an Equation')}
+            aria-label={t('Add an Equation')}
             onClick={handleAddEquation}
             icon={<IconAdd isCircled />}
           >

@@ -88,7 +88,7 @@ const SourceMapsArtifactRow = ({
                     size="small"
                     icon={<IconDelete size="sm" />}
                     title={hasAccess ? t('Remove Artifact') : undefined}
-                    label={t('Remove Artifact')}
+                    aria-label={t('Remove Artifact')}
                     disabled={!hasAccess}
                   />
                 </Confirm>
