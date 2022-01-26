@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -37,6 +38,7 @@ type CodeOwnersAssociationMappings = {
 };
 
 type Props = AsyncComponent['props'] &
+  WithRouterProps &
   Pick<
     IntegrationExternalMappingForm['props'],
     | 'dataEndpoint'
@@ -69,13 +71,19 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
+    const {organization, integration} = this.props;
     return [
       [
         'associationMappings',
         `/organizations/${organization.slug}/codeowners-associations/`,
+        {query: {provider: integration.provider.key}},
       ],
     ];
+  }
+
+  get isFirstPage(): boolean {
+    const {cursor} = this.props.location.query;
+    return cursor && (cursor.split(':')[1] === '0' ?? false);
   }
 
   get unassociatedMappings(): ExternalActorSuggestion[] {
@@ -93,9 +101,12 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
 
   get allMappings(): ExternalActorMappingOrSuggestion[] {
     const {mappings} = this.props;
+    if (!this.isFirstPage) {
+      return mappings;
+    }
     const {newlyAssociatedMappings} = this.state;
     const inlineMappings = this.unassociatedMappings.map(mapping => {
-      // If this mapping has been changed, replace it with the new version from its change
+      // If this mapping has been changed, replace it with the new version from its change's response
       // The new version will be used in IntegrationExternalMappingForm to update the apiMethod and apiEndpoint
       const newlyAssociatedMapping = newlyAssociatedMappings.find(
         ({externalName}) => externalName === mapping.externalName
@@ -185,7 +196,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {integration, mappings, type, onCreate, pageLinks} = this.props;
+    const {integration, type, onCreate, pageLinks} = this.props;
     return (
       <Fragment>
         <Panel>
@@ -224,7 +235,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
             </HeaderLayout>
           </PanelHeader>
           <PanelBody>
-            {!mappings.length && (
+            {!this.allMappings.length && (
               <EmptyMessage icon={getIntegrationIcon(integration.provider.key, 'lg')}>
                 {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
               </EmptyMessage>
@@ -260,7 +271,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
   }
 }
 
-export default IntegrationExternalMappings;
+export default withRouter(IntegrationExternalMappings);
 
 const AddButton = styled(Button)`
   text-transform: capitalize;
