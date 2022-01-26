@@ -582,9 +582,10 @@ def prepare_reports(dry_run=False, *args, **kwargs):
         RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item)
     ):
         prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
-        if i % 10000:
+        if i % 10000 == 0:
             logger.info(
-                f"Scheduled prepare_organization_report for org {organization_id}. Total scheduled: {i}"
+                "reports.scheduled_prepare_organization_report",
+                extra={"organization_id": organization_id, "total_scheduled": i},
             )
 
     logger.info("reports.finish_prepare_report")
