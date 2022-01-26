@@ -33,6 +33,10 @@ type Props = {
    * Whether this is a submenu
    */
   isSubmenu: boolean;
+  /*
+   * Title to display on top of the menu
+   */
+  menuTitle?: string;
   /**
    * If this is a submenu, it will in some cases need to close the root menu
    * (e.g. when a submenu item is clicked).
@@ -54,6 +58,7 @@ function Menu({
   closeOnSelect = true,
   triggerRef,
   isSubmenu,
+  menuTitle,
   closeRootMenu,
   closeCurrentSubmenu,
   isDismissable = true,
@@ -184,6 +189,7 @@ function Menu({
       <MenuControl
         items={node.value.children as MenuItemProps[]}
         trigger={trigger}
+        menuTitle={node.value.submenuTitle}
         placement="right"
         offset={-4}
         crossOffset={4}
@@ -234,6 +240,7 @@ function Menu({
         {...mergeProps(overlayProps, positionProps, keyboardProps)}
       >
         <MenuWrap ref={menuRef} {...modifiedMenuProps}>
+          {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
           {renderCollection(stateCollection)}
         </MenuWrap>
       </Overlay>
@@ -249,6 +256,9 @@ const Overlay = styled('div')`
   background: ${p => p.theme.backgroundElevated};
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   font-size: ${p => p.theme.fontSizeMedium};
+
+  /* Override z-index from useOverlayPosition */
+  z-index: ${p => p.theme.zIndex.dropdown} !important;
 `;
 
 const MenuWrap = styled('ul')`
@@ -259,6 +269,16 @@ const MenuWrap = styled('ul')`
   &:focus {
     outline: none;
   }
+`;
+
+const MenuTitle = styled('div')`
+  font-weight: 600;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.headingColor};
+  white-space: nowrap;
+  padding: ${space(0.25)} ${space(1.5)} ${space(0.75)};
+  margin-bottom: ${space(0.5)};
+  border-bottom: solid 1px ${p => p.theme.innerBorder};
 `;
 
 const Separator = styled('li')`

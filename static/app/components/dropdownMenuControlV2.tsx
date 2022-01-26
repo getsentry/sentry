@@ -1,4 +1,11 @@
-import {ElementType, HTMLAttributes, ReactNode, RefObject, useRef} from 'react';
+import {
+  ElementType,
+  HTMLAttributes,
+  MouseEvent,
+  ReactNode,
+  RefObject,
+  useRef,
+} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
@@ -12,7 +19,9 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import Menu from 'sentry/components/dropdownMenuV2';
 
 type TriggerProps = {
-  props: HTMLAttributes<HTMLButtonElement>;
+  props: HTMLAttributes<HTMLButtonElement> & {
+    onClick?: (e: MouseEvent) => void;
+  };
   ref: RefObject<HTMLButtonElement>;
 };
 
@@ -42,6 +51,14 @@ type Props = {
    * features won't work correctly.
    */
   trigger?: (props: TriggerProps) => ReactNode;
+  /**
+   * Whether the trigger is disabled
+   */
+  isDisabled?: boolean;
+  /**
+   * Title to put on top of
+   */
+  menuTitle?: string;
   /**
    * Whether this is a submenu.
    */
@@ -75,6 +92,7 @@ function MenuControl({
   trigger,
   triggerLabel,
   triggerProps = {},
+  isDisabled,
   isSubmenu = false,
   closeRootMenu,
   closeCurrentSubmenu,
@@ -88,7 +106,11 @@ function MenuControl({
    * See: https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
    */
   const state = useMenuTriggerState(props);
-  const {menuTriggerProps, menuProps} = useMenuTrigger({type: 'menu'}, state, ref);
+  const {menuTriggerProps, menuProps} = useMenuTrigger(
+    {type: 'menu', isDisabled},
+    state,
+    ref
+  );
   const {buttonProps} = useButton(
     {
       ...menuTriggerProps,
@@ -108,7 +130,13 @@ function MenuControl({
       return trigger({props: buttonProps, ref});
     }
     return (
-      <DropdownButton ref={ref} isOpen={isOpen} {...triggerProps} {...buttonProps}>
+      <DropdownButton
+        ref={ref}
+        isOpen={isOpen}
+        disabled={isDisabled}
+        {...triggerProps}
+        {...buttonProps}
+      >
         {triggerLabel}
       </DropdownButton>
     );

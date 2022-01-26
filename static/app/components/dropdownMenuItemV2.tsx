@@ -20,9 +20,10 @@ import space from 'sentry/styles/space';
 
 export type MenuItemProps = {
   key: string;
-  label: string;
+  label: ReactNode;
   details?: string;
   isSubmenu?: boolean;
+  submenuTitle?: string;
   showDividers?: boolean;
   leadingItems?: ReactNode;
   trailingItems?: ReactNode;
@@ -151,24 +152,27 @@ function MenuItem(
       <Wrap
         ref={ref}
         as={renderAs}
+        isDisabled={isDisabled}
         {...props}
         {...(isSubmenuTrigger && {role: 'menuitemradio'})}
       >
         <InnerWrap isFocused={isFocused} role="presentation">
-          {leadingItems && <LeadingItems>{leadingItems}</LeadingItems>}
+          {leadingItems && (
+            <LeadingItems isDisabled={isDisabled}>{leadingItems}</LeadingItems>
+          )}
           <ContentWrap
             isFocused={isFocused}
             showDividers={showDividers}
             role="presentation"
           >
             <LabelWrap role="presentation">
-              <Label {...labelProps} aria-hidden="true">
+              <Label isDisabled={isDisabled} {...labelProps} aria-hidden="true">
                 {label}
               </Label>
               {details && <Details {...descriptionProps}>{details}</Details>}
             </LabelWrap>
             {(trailingItems || isSubmenuTrigger) && (
-              <TrailingItems>
+              <TrailingItems isDisabled={isDisabled}>
                 {trailingItems}
                 {isSubmenuTrigger && (
                   <IconChevron size="xs" direction="right" aria-hidden="true" />
@@ -184,11 +188,13 @@ function MenuItem(
 
 export default forwardRef<RefObject<HTMLElement> | null, Props>(MenuItem);
 
-const Wrap = styled('li')`
+const Wrap = styled('li')<{isDisabled?: boolean}>`
   list-style-type: none;
   margin: 0;
   padding: 0 ${space(0.5)};
   cursor: pointer;
+
+  ${p => p.isDisabled && `cursor: initial;`}
 
   :focus-visible {
     outline: none;
@@ -205,7 +211,7 @@ const InnerWrap = styled('div')<{isFocused: boolean}>`
   ${p => p.isFocused && `background: ${p.theme.hover}; z-index: 1;`}
 `;
 
-const LeadingItems = styled('div')`
+const LeadingItems = styled('div')<{isDisabled?: boolean}>`
   display: flex;
   align-items: center;
   height: 1.4em;
@@ -213,6 +219,8 @@ const LeadingItems = styled('div')`
   padding: ${space(1)} 0;
   margin-top: ${space(1)};
   margin-right: ${space(0.5)};
+
+  ${p => p.isDisabled && `opacity: 0.5;`}
 `;
 
 const ContentWrap = styled('div')<{isFocused: boolean; showDividers?: boolean}>`
@@ -244,23 +252,27 @@ const LabelWrap = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const Label = styled('p')`
+const Label = styled('p')<{isDisabled?: boolean}>`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
+
+  ${p => p.isDisabled && `color: ${p.theme.subText};`}
 `;
 
 const Details = styled('p')`
-  font-size: 14px;
-  line-height: 1.2;
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  line-height: 1.2;
   margin-bottom: 0;
 `;
 
-const TrailingItems = styled('div')`
+const TrailingItems = styled('div')<{isDisabled?: boolean}>`
   display: flex;
   align-items: center;
   height: 1.4em;
   gap: ${space(1)};
   margin-right: ${space(0.5)};
+
+  ${p => p.isDisabled && `opacity: 0.5;`}
 `;
