@@ -24,7 +24,6 @@ import {
   DateString,
   Organization,
   PageFilters,
-  RelativePeriod,
   SelectValue,
   TagCollection,
 } from 'sentry/types';
@@ -78,7 +77,7 @@ export type DashboardWidgetModalOptions = {
   source: DashboardWidgetSource;
   start?: DateString;
   end?: DateString;
-  statsPeriod?: RelativePeriod | string;
+  statsPeriod?: string | null;
   selectedWidgets?: WidgetTemplate[];
   onAddLibraryWidget?: (widgets: Widget[]) => void;
 };
@@ -550,7 +549,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const querySelection: PageFilters = statsPeriod
       ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
       : start && end
-      ? {...selection, datetime: {start, end, period: '', utc: null}}
+      ? {...selection, datetime: {start, end, period: null, utc: null}}
       : selection;
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
