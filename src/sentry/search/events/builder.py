@@ -1082,6 +1082,9 @@ class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
             limit=self.limit,
         )
 
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        return raw_snql_query(self.get_snql_query(), referrer, use_cache)
+
 
 class TopEventsQueryBuilder(TimeseriesQueryBuilder):
     """Create one of two top events queries, which is used for the Top Period &
