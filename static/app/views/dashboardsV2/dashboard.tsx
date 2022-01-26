@@ -107,7 +107,12 @@ class Dashboard extends Component<Props, State> {
       // If the user clicks "Cancel" and the dashboard resets,
       // recalculate the layout to revert to the unmodified state
       const dashboardLayout = getDashboardLayout(props.dashboard.widgets);
-      if (!isEqual(dashboardLayout, state.layouts[DESKTOP])) {
+      if (
+        !isEqual(
+          dashboardLayout.map(pickDefinedStoreKeys),
+          state.layouts[DESKTOP].map(pickDefinedStoreKeys)
+        )
+      ) {
         return {
           ...state,
           layouts: {
