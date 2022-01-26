@@ -68,7 +68,7 @@ function TrendChart({
       ...location,
       query: {
         ...location.query,
-        trendsUnselectedSeries: unselected,
+        unselectedSeries: unselected,
       },
     };
     browserHistory.push(to);
@@ -82,7 +82,7 @@ function TrendChart({
   const legend = {
     right: 10,
     top: 0,
-    selected: getSeriesSelection(location, 'trendsUnselectedSeries'),
+    selected: getSeriesSelection(location),
   };
 
   const datetimeSelection = {start, end, period};
