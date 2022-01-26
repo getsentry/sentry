@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.urls import reverse
 from exam import fixture
 
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
@@ -326,6 +326,89 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         self.run_test(SEMVER_ALIAS, query="test@1.", expected=[("test@1.0.0.0", None)])
         self.run_test(
             SEMVER_ALIAS, query="test", expected=[("test@2.0.0.0", None), ("test@1.0.0.0", None)]
+        )
+
+    def test_release_filter_for_all_releases(self):
+        self.create_release(version="aaa@1.0")
+        self.create_release(version="aab@1.0")
+        self.create_release(version="aba@1.0")
+        self.create_release(version="abc@1.0")
+        self.create_release(version="bac@1.0")
+
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1"},
+            expected=[
+                ("aaa@1.0", None),
+                ("aab@1.0", None),
+                ("aba@1.0", None),
+                ("abc@1.0", None),
+                ("bac@1.0", None),
+            ],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1", "query": "a"},
+            expected=[("aaa@1.0", None), ("aab@1.0", None), ("aba@1.0", None), ("abc@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1", "query": "b"},
+            expected=[("bac@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1", "query": "aa"},
+            expected=[("aaa@1.0", None), ("aab@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1", "query": "aba"},
+            expected=[("aba@1.0", None)],
+        )
+
+    def test_release_filter_for_all_releases_with_env_and_project_filters(self):
+        proj2 = self.create_project()
+
+        env1 = self.create_environment(name="dev", project=self.project)
+        env2 = self.create_environment(name="prod", project=self.project)
+        env3 = self.create_environment(name="test", project=proj2)
+
+        self.create_release(version="aaa@1.0", environments=[env1, env2])
+        self.create_release(version="aab@1.0", environments=[env1])
+        self.create_release(version="aba@1.0", project=proj2, environments=[env3])
+
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={"includeSessions": "1", "project": [self.project.id]},
+            expected=[("aaa@1.0", None), ("aab@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={
+                "includeSessions": "1",
+                "project": [self.project.id],
+                "environment": [env1.name],
+            },
+            expected=[("aaa@1.0", None), ("aab@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={
+                "includeSessions": "1",
+                "project": [self.project.id],
+                "environment": [env2.name],
+            },
+            expected=[("aaa@1.0", None)],
+        )
+        self.run_test(
+            RELEASE_ALIAS,
+            qs_params={
+                "includeSessions": "1",
+                "project": [self.project.id, proj2.id],
+                "environment": [env2.name, env3.name],
+            },
+            expected=[("aaa@1.0", None), ("aba@1.0", None)],
         )
 
 
