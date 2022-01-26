@@ -45,7 +45,6 @@ describe('DatePageFilter', function () {
       expect.objectContaining({query: {statsPeriod: '7d'}})
     );
     expect(PageFiltersStore.getState()).toEqual({
-      organization: null,
       isReady: true,
       pinnedFilters: new Set(),
       selection: {
