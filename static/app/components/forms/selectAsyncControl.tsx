@@ -114,7 +114,6 @@ class SelectAsyncControl extends React.Component<SelectAsyncControlProps> {
         ref={forwardedRef}
         value={value}
         defaultOptions={defaultOptions}
-        cacheOptions
         loadOptions={this.handleLoadOptions}
         onInputChange={this.handleInputChange}
         async
