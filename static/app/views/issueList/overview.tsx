@@ -528,6 +528,7 @@ class IssueListOverview extends React.Component<Props, State> {
         issuesLoading: true,
         queryCount: 0,
         itemsRemoved: 0,
+        reviewedIds: [],
         error: null,
       });
     }
@@ -600,6 +601,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         if (isForReviewQuery(query)) {
           GroupStore.remove(this.state.reviewedIds);
+          // this.setState({reviewedIds: []});
         }
 
         this.fetchStats(data.map((group: BaseGroup) => group.id));
