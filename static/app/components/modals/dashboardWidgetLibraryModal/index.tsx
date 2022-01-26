@@ -7,6 +7,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
 import {DashboardDetails, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
@@ -43,7 +44,7 @@ function DashboardWidgetLibraryModal({
   const [errored, setErrored] = useState(false);
 
   function handleSubmit() {
-    onAddWidget([...dashboard.widgets, ...selectedWidgets]);
+    onAddWidget([...dashboard.widgets, ...selectedWidgets.map(assignTempId)]);
     closeModal();
   }
 
