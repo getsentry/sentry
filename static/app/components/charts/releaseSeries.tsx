@@ -32,7 +32,7 @@ type ReleaseConditions = {
   end: DateString;
   project: Readonly<number[]>;
   environment: Readonly<string[]>;
-  statsPeriod?: string;
+  statsPeriod?: string | null;
   cursor?: string;
   query?: string;
 };
@@ -71,7 +71,7 @@ type Props = WithRouterProps & {
   environments: Readonly<string[]>;
   start: DateString;
   end: DateString;
-  period?: string;
+  period?: string | null;
   utc?: boolean | null;
   releases?: ReleaseMetaBasic[] | null;
   tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
