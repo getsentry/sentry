@@ -79,6 +79,32 @@ type Truncateable = {
   truncate?: number | boolean;
 };
 
+interface TooltipOption
+  extends Omit<TooltipComponentOption, 'valueFormatter'>,
+    Truncateable {
+  filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
+  formatAxisLabel?: (
+    value: number,
+    isTimestamp: boolean,
+    utc: boolean,
+    showTimeInTooltip: boolean,
+    addSecondsToTimeFormat: boolean,
+    bucketSize: number | undefined,
+    seriesParamsOrParam: TooltipComponentFormatterCallbackParams
+  ) => string;
+  valueFormatter?: (
+    value: number,
+    label?: string,
+    seriesParams?: TooltipComponentFormatterCallback<any>
+  ) => string;
+  nameFormatter?: (name: string) => string;
+  markerFormatter?: (marker: string, label?: string) => string;
+  /**
+   * Array containing seriesNames that need to be indented
+   */
+  indentLabels?: string[];
+}
+
 type Props = {
   options?: EChartsOption;
   /**
@@ -120,33 +146,7 @@ type Props = {
   /**
    * Tooltip options
    */
-  tooltip?: TooltipComponentOption &
-    Truncateable & {
-      filter?: (
-        value: number,
-        seriesParam: TooltipComponentOption['formatter']
-      ) => boolean;
-      formatAxisLabel?: (
-        value: number,
-        isTimestamp: boolean,
-        utc: boolean,
-        showTimeInTooltip: boolean,
-        addSecondsToTimeFormat: boolean,
-        bucketSize: number | undefined,
-        seriesParamsOrParam: TooltipComponentFormatterCallbackParams
-      ) => string;
-      valueFormatter?: (
-        value: number,
-        label?: string,
-        seriesParams?: TooltipComponentFormatterCallback<any>
-      ) => string | number;
-      nameFormatter?: (name: string) => string;
-      markerFormatter?: (marker: string, label?: string) => string;
-      /**
-       * Array containing seriesNames that need to be indented
-       */
-      indentLabels?: string[];
-    };
+  tooltip?: TooltipOption;
   /**
    * DataZoom (allows for zooming of chart)
    */

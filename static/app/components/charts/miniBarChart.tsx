@@ -9,7 +9,7 @@ import {getFormattedDate} from 'sentry/utils/dates';
 
 import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
-import {getTooltipArrow, truncationFormatter} from './utils';
+import {truncationFormatter} from './utils';
 
 type Marker = {
   name: string;
@@ -141,7 +141,7 @@ function MiniBarChart({
           time,
           '</div>',
           '</div>',
-          getTooltipArrow(),
+          '<div class="tooltip-arrow"></div>',
         ].join('');
       },
     };

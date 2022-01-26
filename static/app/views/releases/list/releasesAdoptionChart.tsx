@@ -21,7 +21,6 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {
   getDiffInMinutes,
-  getTooltipArrow,
   ONE_WEEK,
   truncationFormatter,
 } from 'sentry/components/charts/utils';
@@ -274,7 +273,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                 .join(''),
                               '</div>',
                               `<div class="tooltip-date">${intervalStart} &mdash; ${intervalEnd}</div>`,
-                              getTooltipArrow(),
+                              '<div class="tooltip-arrow"></div>',
                             ].join('');
                           },
                         }}

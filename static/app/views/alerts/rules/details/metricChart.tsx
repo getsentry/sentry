@@ -18,7 +18,6 @@ import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
-import {getTooltipArrow} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
@@ -148,7 +147,7 @@ function createIncidentSeries(
       }`,
       `</div></div>`,
       `<div class="tooltip-date">${time}</div>`,
-      getTooltipArrow(),
+      '<div class="tooltip-arrow"></div>',
     ].join('');
   };
 
@@ -690,7 +689,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                               Math.sign(changePercentage) === 1 ? '+' : '-'
                             }${Math.abs(changePercentage).toFixed(2)}%</span>`,
                           `</div>`,
-                          getTooltipArrow(),
+                          '<div class="tooltip-arrow"></div>',
                         ]
                           .filter(e => e)
                           .join('');

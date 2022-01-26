@@ -6,7 +6,6 @@ import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
-import {getTooltipArrow} from './utils';
 
 const FILLER_NAME = '__filler';
 
@@ -92,7 +91,7 @@ export default class PercentageAreaChart extends React.Component<Props> {
                 .join(''),
               '</div>',
               `<div class="tooltip-date">${date}</div>`,
-              getTooltipArrow(),
+              '<div class="tooltip-arrow"></div>',
             ].join('');
           },
         }}
