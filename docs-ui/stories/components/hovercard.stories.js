@@ -1,4 +1,4 @@
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 
 export default {
   title: 'Components/Tooltips/Hovercard',
@@ -7,14 +7,17 @@ export default {
     header: 'Header',
     body: 'Body',
     position: 'top',
-    show: true,
   },
   argTypes: {
     tipColor: {control: 'color'},
+    show: {
+      type: 'select',
+      options: [undefined, false, true],
+    },
   },
 };
 
-export const _Hovercard = ({...args}) => (
+export const _OldHovercard = ({...args}) => (
   <div
     style={{
       height: 300,
@@ -26,7 +29,8 @@ export const _Hovercard = ({...args}) => (
     <Hovercard {...args}>Hover over me</Hovercard>
   </div>
 );
-_Hovercard.parameters = {
+
+_OldHovercard.parameters = {
   docs: {
     description: {
       story:
