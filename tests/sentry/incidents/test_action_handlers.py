@@ -675,12 +675,13 @@ class SentryAppAlerRuleUIComponentActionHandlerTest(FireTest, TestCase):
             type=AlertRuleTriggerAction.Type.SENTRY_APP,
             target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
             sentry_app=self.sentry_app,
-            sentry_app_config={
-                "channel": "#santry",
-                "workspace": "santrysantrysantry",
-                "tag": "triage",
-                "assignee": "Nisanthan Nanthakumar",
-            },
+            sentry_app_config=[
+                {"name": "channel", "value": "#santry"},
+                {"name": "workspace_name", "value": "santrysantrysantry"},
+                {"name": "tag", "value": "triage"},
+                {"name": "assignee", "value": "Nisanthan Nanthakumar"},
+                {"name": "teamId", "value": 1},
+            ],
         )
 
         responses.add(
@@ -700,12 +701,13 @@ class SentryAppAlerRuleUIComponentActionHandlerTest(FireTest, TestCase):
         # Check that the Alert Rule UI Component settings are returned
         assert json.loads(data)["data"]["metric_alert"]["alert_rule"]["triggers"][0]["actions"][0][
             "settings"
-        ] == {
-            "channel": "#santry",
-            "workspace": "santrysantrysantry",
-            "tag": "triage",
-            "assignee": "Nisanthan Nanthakumar",
-        }
+        ] == [
+            {"name": "channel", "value": "#santry"},
+            {"name": "workspace_name", "value": "santrysantrysantry"},
+            {"name": "tag", "value": "triage"},
+            {"name": "assignee", "value": "Nisanthan Nanthakumar"},
+            {"name": "teamId", "value": 1},
+        ]
 
     def test_fire_metric_alert(self):
         self.run_fire_test()
