@@ -218,7 +218,7 @@ const DashboardGrid = styled('div')`
   grid-template-rows: repeat(3, max-content);
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 

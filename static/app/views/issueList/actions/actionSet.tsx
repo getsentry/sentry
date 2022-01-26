@@ -133,7 +133,7 @@ function ActionSet({
         key="actions"
         customTitle={
           <ActionButton
-            label={t('Open more issue actions')}
+            aria-label={t('Open more issue actions')}
             icon={<IconEllipsis size="xs" />}
           />
         }

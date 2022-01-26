@@ -50,7 +50,7 @@ const Rules = React.forwardRef(function RulesList(
             <TextOverflow>{getListItemDescription(rule)}</TextOverflow>
             {onEditRule && (
               <Button
-                label={t('Edit Rule')}
+                aria-label={t('Edit Rule')}
                 size="small"
                 onClick={onEditRule(id)}
                 icon={<IconEdit />}
@@ -59,7 +59,7 @@ const Rules = React.forwardRef(function RulesList(
             )}
             {onDeleteRule && (
               <Button
-                label={t('Delete Rule')}
+                aria-label={t('Delete Rule')}
                 size="small"
                 onClick={onDeleteRule(id)}
                 icon={<IconDelete />}

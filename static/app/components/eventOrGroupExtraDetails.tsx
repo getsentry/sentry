@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
@@ -89,7 +90,7 @@ function EventOrGroupExtraDetails({
       )}
       {logger && (
         <LoggerAnnotation>
-          <Link
+          <GlobalSelectionLink
             to={{
               pathname: issuesPath,
               query: {
@@ -98,7 +99,7 @@ function EventOrGroupExtraDetails({
             }}
           >
             {logger}
-          </Link>
+          </GlobalSelectionLink>
         </LoggerAnnotation>
       )}
       {annotations?.map((annotation, key) => (

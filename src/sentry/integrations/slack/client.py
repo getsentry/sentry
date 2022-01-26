@@ -78,7 +78,9 @@ class SlackClient(ApiClient):  # type: ignore
     ) -> BaseApiResponse:
         # TODO(meredith): Slack actually supports json now for the chat.postMessage so we
         # can update that so we don't have to pass json=False here
-        response = self._request(method, path, headers=headers, data=data, params=params, json=json)
+        response: BaseApiResponse = self._request(
+            method, path, headers=headers, data=data, params=params, json=json
+        )
         if not response.json.get("ok"):
-            raise ApiError(response.get("error", ""))
+            raise ApiError(response.get("error", ""))  # type: ignore
         return response
