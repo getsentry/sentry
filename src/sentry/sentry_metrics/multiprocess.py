@@ -222,7 +222,7 @@ class ProduceStep(ProcessingStep[MessageBatch]):
         # time we spend committing when we commit once per message
         # instead of batching commits
         self.__commit_start = time.time()
-        self.__commit_duration_sum = 0
+        self.__commit_duration_sum = 0.0
         self.__metrics = get_metrics()
 
     def poll(self) -> None:
