@@ -113,7 +113,7 @@ class MetricsBatchBuilder:
             return False
 
 
-class BatchMessages(ProcessingStep[KafkaPayload]):
+class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
     """
     First processing step in the MetricsConsumerStrategyFactory.
     Keeps track of a batch of messages (using the MetricsBatchBuilder)
@@ -188,7 +188,7 @@ else:
         future: Future
 
 
-class ProduceStep(ProcessingStep[MessageBatch]):
+class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     """
     Step that produces to the snuba-metrics topic, collecting the futures returned by
     the producer. Continously checks to see if futures are done, and once that's the case
@@ -385,7 +385,7 @@ def process_messages(
     return new_messages
 
 
-class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):
+class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
     def __init__(
         self,
         max_batch_size: int,
