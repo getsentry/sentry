@@ -102,7 +102,14 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
         schema = alert_rule_component.schema.get("settings")
         for required_field in schema.get("required_fields", []):
             field_name = required_field.get("name")
-            field_value = incoming_settings.get(field_name)
+            field_value = next(
+                (
+                    setting["value"]
+                    for setting in incoming_settings
+                    if setting["name"] == field_name
+                ),
+                None,
+            )
             if not field_value:
                 raise ValidationError(
                     f"{sentry_app.name} is missing required settings field: '{field_name}'"
@@ -113,12 +120,19 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
         # Ensure optional fields are valid
         for optional_field in schema.get("optional_fields", []):
             field_name = optional_field.get("name")
-            field_value = incoming_settings.get(field_name)
+            field_value = next(
+                (
+                    setting["value"]
+                    for setting in incoming_settings
+                    if setting["name"] == field_name
+                ),
+                None,
+            )
             validate_field(field_value, optional_field, sentry_app.name)
             valid_fields.add(field_name)
 
         # Ensure the payload we send matches the expectations set in the schema
-        extra_keys = incoming_settings.keys() - valid_fields
+        extra_keys = set([setting["name"] for setting in incoming_settings]) - valid_fields
         if extra_keys:
             extra_keys_string = ", ".join(extra_keys)
             raise ValidationError(

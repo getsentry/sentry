@@ -33,7 +33,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     id = serializers.IntegerField(required=False)
     type = serializers.CharField()
     target_type = serializers.CharField()
-    sentry_app_config = serializers.JSONField(required=False)
+    sentry_app_config = serializers.JSONField(required=False)  # array of dicts
     sentry_app_installation_uuid = serializers.CharField(required=False)
 
     class Meta:
