@@ -140,6 +140,8 @@ def compare_datetime(
 
     if type(sessions) != type(metrics):
         return f"field {path} inconsistent types return sessions={type(sessions)}, metrics={type(metrics)}"
+
+    dd = None
     if isinstance(sessions, str):
         assert isinstance(metrics, str)
         try:
@@ -151,7 +153,7 @@ def compare_datetime(
     elif isinstance(sessions, datetime):
         assert isinstance(metrics, datetime)
         dd = abs(sessions - metrics)
-    if dd > timedelta(seconds=rollup):
+    if dd != timedelta(seconds=0):
         return f"field {path} failed to mach datetimes sessions={sessions}, metrics={metrics}"
 
     return None
@@ -174,19 +176,8 @@ def compare_counters(
         return f"invalid field {path} value={metrics}, from metrics, only positive values are expected. "
     if sessions < 0:
         return f"sessions ERROR, Invalid field {path} value = {sessions}, from sessions, only positive values are expected. "
-    if (sessions <= 10 and metrics > 10) or (metrics <= 10 and sessions > 10):
-        if abs(sessions - metrics) > 4:
-            return f"fields with different values at {path} sessions={sessions}, metrics={metrics}"
-        else:
-            return None
-    if metrics <= 10:
-        if abs(sessions - metrics) > 3:
-            return f"fields with different values at {path} sessions={sessions}, metrics={metrics}"
-        else:
-            return None
-    else:
-        if float(abs(sessions - metrics)) / metrics > 0.05:
-            return f"fields with different values at {path} sessions={sessions}, metrics={metrics}"
+    if sessions != metrics:
+        return f"fields with different values at {path} sessions={sessions}, metrics={metrics}"
     return None
 
 
@@ -209,7 +200,7 @@ def compare_ratios(
         return f"sessions ERROR, Invalid field {path} value = {sessions}, from sessions, only positive values are expected. "
     if sessions == metrics == 0.0:
         return None
-    if float(abs(sessions - metrics)) / max(metrics, sessions) > 0.01:
+    if sessions != metrics:
         return f"fields with different values at {path} sessions={sessions}, metrics={metrics}"
     return None
 
