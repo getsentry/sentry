@@ -267,8 +267,6 @@ class Dashboard extends Component<Props, State> {
     // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
     // RGL doesn't provide a handler for post animation layout change
     setTimeout(forceCheck, 400);
-      forceCheck();
-    }, 400);
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
