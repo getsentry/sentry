@@ -60,28 +60,21 @@ from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, resolve_colu
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
-class QueryBuilder:
+class QueryComplier:
     """Builds a snql query"""
 
     def __init__(
         self,
         dataset: Dataset,
         params: ParamsType,
-        query: Optional[str] = None,
-        selected_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
         auto_fields: bool = False,
         auto_aggregations: bool = False,
-        use_aggregate_conditions: bool = False,
         functions_acl: Optional[List[str]] = None,
-        array_join: Optional[str] = None,
         limit: Optional[int] = 50,
         offset: Optional[int] = 0,
         limitby: Optional[Tuple[str, int]] = None,
         turbo: bool = False,
         sample_rate: Optional[float] = None,
-        partial: bool = False,
         equation_config: Optional[Dict[str, bool]] = None,
     ):
         self.dataset = dataset
@@ -115,18 +108,6 @@ class QueryBuilder:
         ) = self.load_config()
 
         self.limitby = self.resolve_limitby(limitby)
-
-        # TODO(wmak): Refactor snuba/metrics.py to call QueryBuilder correctly.
-        if not partial:
-            self.where, self.having = self.resolve_conditions(
-                query, use_aggregate_conditions=use_aggregate_conditions
-            )
-            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-            self.where += self.resolve_params()
-            self.columns = self.resolve_select(selected_columns, equations)
-            self.orderby = self.resolve_orderby(orderby)
-            self.groupby = self.resolve_groupby()
-            self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
     def load_config(
         self,
@@ -1037,7 +1018,60 @@ class QueryBuilder:
         )
 
 
-class TimeseriesQueryBuilder(QueryBuilder):
+class QueryBuilder(QueryComplier):
+    def __init__(
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
+        auto_fields: bool = False,
+        auto_aggregations: bool = False,
+        use_aggregate_conditions: bool = False,
+        functions_acl: Optional[List[str]] = None,
+        array_join: Optional[str] = None,
+        limit: Optional[int] = 50,
+        offset: Optional[int] = 0,
+        limitby: Optional[Tuple[str, int]] = None,
+        turbo: bool = False,
+        sample_rate: Optional[float] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
+    ):
+        super().__init__(
+            dataset=dataset,
+            params=params,
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            functions_acl=functions_acl,
+            limit=limit,
+            offset=offset,
+            limitby=limitby,
+            turbo=turbo,
+            sample_rate=sample_rate,
+            equation_config=equation_config,
+        )
+
+        self.resolve_query(
+            query, use_aggregate_conditions, selected_columns, equations, orderby, array_join
+        )
+
+    def resolve_query(
+        self, query, use_aggregate_conditions, selected_columns, equations, orderby, array_join
+    ):
+        self.where, self.having = self.resolve_conditions(
+            query, use_aggregate_conditions=use_aggregate_conditions
+        )
+        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+        self.where += self.resolve_params()
+        self.columns = self.resolve_select(selected_columns, equations)
+        self.orderby = self.resolve_orderby(orderby)
+        self.groupby = self.resolve_groupby()
+        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
+
+
+class TimeseriesQueryBuilder(QueryComplier):
     time_column = Column("time")
 
     def __init__(
@@ -1054,15 +1088,16 @@ class TimeseriesQueryBuilder(QueryBuilder):
         super().__init__(
             dataset,
             params,
-            query=query,
-            selected_columns=selected_columns,
-            equations=equations,
+            auto_fields=False,
             functions_acl=functions_acl,
-            limit=limit,
             equation_config={"auto_add": True, "aggregates_only": True},
         )
 
+        self.resolve_query(query, limit, selected_columns, equations)
+
         self.granularity = Granularity(granularity)
+
+        # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
 
     @property
@@ -1071,6 +1106,15 @@ class TimeseriesQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery("Cannot query a timeseries without a Y-Axis")
         # Casting for now since QueryFields/QueryFilter are only partially typed
         return self.aggregates
+
+    def resolve_query(self, query, limit, selected_columns, equations):
+        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
+
+        self.limit = None if limit is None else Limit(limit)
+
+        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+        self.where += self.resolve_params()
+        self.columns = self.resolve_select(selected_columns, equations)
 
     def get_snql_query(self) -> Query:
         return Query(
