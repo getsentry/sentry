@@ -104,8 +104,8 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     queries: [
       {
         name: '',
-        conditions: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
-        fields: ['issue', 'assignee', 'count', 'title'],
+        conditions: 'is:unresolved is:for_review',
+        fields: ['issue', 'assignee', 'events', 'title'],
         orderby: 'date',
       },
     ],
