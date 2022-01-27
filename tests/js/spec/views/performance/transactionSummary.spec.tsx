@@ -407,6 +407,24 @@ describe('Performance > TransactionSummary', function () {
       match: [MockApiClient.matchQuery({groupBy: undefined})],
     });
 
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: null,
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: undefined,
+          field: [
+            'p50(sentry.transactions.transaction.duration)',
+            'p75(sentry.transactions.transaction.duration)',
+            'p95(sentry.transactions.transaction.duration)',
+            'p99(sentry.transactions.transaction.duration)',
+            'max(sentry.transactions.transaction.duration)',
+          ],
+        }),
+      ],
+    });
+
     const {organization, router, routerContext} = initializeData({
       project: TestStubs.Project({teams, platform: 'javascript'}),
       query: {
@@ -505,6 +523,24 @@ describe('Performance > TransactionSummary', function () {
       url: `/organizations/org-slug/metrics/data/`,
       body: TestStubs.MetricsField({field}),
       match: [MockApiClient.matchQuery({groupBy: undefined})],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: null,
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: undefined,
+          field: [
+            'p50(sentry.transactions.transaction.duration)',
+            'p75(sentry.transactions.transaction.duration)',
+            'p95(sentry.transactions.transaction.duration)',
+            'p99(sentry.transactions.transaction.duration)',
+            'max(sentry.transactions.transaction.duration)',
+          ],
+        }),
+      ],
     });
 
     const {organization, router, routerContext} = initializeData();

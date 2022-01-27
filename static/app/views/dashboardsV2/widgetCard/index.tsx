@@ -27,7 +27,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {Widget, WidgetType} from '../types';
-import {ISSUE_FIELDS} from '../widget/issueWidget/fields';
+import {ISSUE_FIELD_TO_HEADER_MAP, ISSUE_FIELDS} from '../widget/issueWidget/fields';
 
 import WidgetCardChart from './chart';
 import IssueWidgetQueries from './issueWidgetQueries';
@@ -157,6 +157,7 @@ class WidgetCard extends React.Component<Props> {
         data={transformedResults}
         organization={organization}
         getCustomFieldRenderer={getIssueFieldRenderer}
+        fieldHeaderMap={ISSUE_FIELD_TO_HEADER_MAP}
       />
     );
   }

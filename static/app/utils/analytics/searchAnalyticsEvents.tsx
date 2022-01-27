@@ -7,6 +7,7 @@ type SearchEventBase = {
 type OpenEvent = {};
 type SelectEvent = {result_type: string; source_type: string; query?: string};
 type QueryEvent = {query: string};
+type ProjectSelectorEvent = {path: string};
 
 export type SearchEventParameters = {
   'search.searched': SearchEventBase & {search_source?: string};
@@ -24,6 +25,18 @@ export type SearchEventParameters = {
   'settings_search.query': QueryEvent;
   'command_palette.query': QueryEvent;
   'sidebar_help.query': QueryEvent;
+  'projectselector.direct_selection': ProjectSelectorEvent;
+  'projectselector.update': ProjectSelectorEvent & {
+    count: number;
+    multi: boolean;
+  };
+  'projectselector.clear': ProjectSelectorEvent;
+  'projectselector.toggle': ProjectSelectorEvent & {
+    action: 'added' | 'removed';
+  };
+  'projectselector.multi_button_clicked': ProjectSelectorEvent & {
+    button_type: 'all' | 'my';
+  };
 };
 
 export type SearchEventKey = keyof SearchEventParameters;
@@ -42,4 +55,9 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'settings_search.query': 'settings_search Query',
   'command_palette.query': 'command_palette Query',
   'sidebar_help.query': 'sidebar_help Query',
+  'projectselector.direct_selection': 'Project Selector: Direct Selection',
+  'projectselector.update': 'Project Selector: Update',
+  'projectselector.clear': 'Project Selector: Clear',
+  'projectselector.toggle': 'Project Selector: Toggle',
+  'projectselector.multi_button_clicked': 'Project Selector: Multi Button Clicked',
 };
