@@ -226,7 +226,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
                         icon={<IconAdd size="xs" isCircled />}
                         disabled={!hasAccess}
                       >
-                        {tct('Add [type] Mapping', {type})}
+                        <ButtonText>{tct('Add [type] Mapping', {type})}</ButtonText>
                       </AddButton>
                     </Tooltip>
                   </ButtonColumn>
@@ -275,6 +275,11 @@ export default withRouter(IntegrationExternalMappings);
 
 const AddButton = styled(Button)`
   text-transform: capitalize;
+  height: inherit;
+`;
+
+const ButtonText = styled('div')`
+  white-space: break-spaces;
 `;
 
 const Layout = styled('div')`
@@ -283,7 +288,7 @@ const Layout = styled('div')`
   padding: ${space(1)};
   width: 100%;
   align-items: center;
-  grid-template-columns: 2.5fr 50px 2.5fr 1fr;
+  grid-template-columns: 2.25fr 50px 2.75fr 100px;
   grid-template-areas: 'external-name arrow sentry-name button';
 `;
 
@@ -302,6 +307,7 @@ const IconEllipsisVertical = styled(IconEllipsis)`
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
+  min-width: ${p => p.size}px;
   margin-right: ${space(2)};
 `;
 
