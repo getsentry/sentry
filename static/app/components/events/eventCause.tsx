@@ -4,7 +4,7 @@ import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'sentry/api';
-import CommitRow from 'sentry/components/commitRow';
+import {CommitRow} from 'sentry/components/commitRow';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
