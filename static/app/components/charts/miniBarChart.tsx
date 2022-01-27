@@ -53,6 +53,11 @@ type Props = Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> & {
   markers?: Marker[];
 
   /**
+   * Whether not we show a MarkLine label
+   */
+  showMarkLineLabel?: boolean;
+
+  /**
    * Whether timestamps are should be shown in UTC or local timezone.
    */
   utc?: boolean;
@@ -86,6 +91,7 @@ function MiniBarChart({
   colors,
   stacked = false,
   labelYAxisExtents = false,
+  showMarkLineLabel = false,
   height,
   ...props
 }: Props) {
@@ -202,8 +208,8 @@ function MiniBarChart({
       // Offset to ensure there is room for the marker symbols at the
       // default size.
       top: labelYAxisExtents ? 6 : 0,
-      bottom: markers || labelYAxisExtents ? 4 : 0,
-      left: markers ? 8 : 4,
+      bottom: markers || labelYAxisExtents || showMarkLineLabel ? 4 : 0,
+      left: markers ? 8 : showMarkLineLabel ? 35 : 4,
       right: markers ? 4 : 0,
     },
     xAxis: {

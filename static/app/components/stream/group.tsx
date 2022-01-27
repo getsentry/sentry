@@ -420,6 +420,7 @@ class StreamGroup extends React.Component<Props, State> {
                 statsPeriod={statsPeriod!}
                 data={data}
                 showSecondaryPoints={showSecondaryPoints}
+                showMarkLine
               />
             )}
           </ChartWrapper>
@@ -750,7 +751,7 @@ const MenuItemText = styled('div')`
 `;
 
 const ChartWrapper = styled('div')`
-  width: 160px;
+  width: 200px;
   margin: 0 ${space(2)};
   align-self: center;
 `;
