@@ -38,6 +38,7 @@ function GroupChart({
 
   const markLinePoint = stats.map(point => point[1]);
   const formattedMarkLine = formatAbbreviatedNumber(Math.max(...markLinePoint));
+
   let colors: string[] | undefined = undefined;
   let emphasisColors: string[] | undefined = undefined;
 
@@ -82,9 +83,9 @@ function GroupChart({
   }
 
   return (
-    <LazyLoad debounce={50} height={height}>
+    <LazyLoad debounce={50} height={showMarkLine ? 30 : height}>
       <MiniBarChart
-        height={height}
+        height={showMarkLine ? 30 : height}
         isGroupedByDate
         showTimeInTooltip
         series={series}
