@@ -33,7 +33,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {transformMetricsToArea} from 'sentry/views/performance/landing/widgets/transforms/transformMetricsToArea';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 type ContainerProps = WithRouterProps & {
   organization: Organization;
@@ -58,7 +57,7 @@ type Props = Pick<
     chartOptions: Record<string, any>;
     series: React.ComponentProps<typeof LineChart>['series'];
   };
-  statsPeriod?: string;
+  statsPeriod?: string | null;
   start?: Date;
   end?: Date;
 };
@@ -327,9 +326,9 @@ function SidebarChartsContainer({
             {
               location,
               fields,
-              chartSetting: PerformanceWidgetSetting.FAILURE_RATE_AREA,
             },
-            failureRateRequestProps
+            failureRateRequestProps,
+            true
           );
 
           const failureRateSerie = failureRateData.data.map(values => ({
@@ -357,7 +356,6 @@ function SidebarChartsContainer({
                   {
                     location,
                     fields,
-                    chartSetting: PerformanceWidgetSetting.TPM_AREA,
                   },
                   tpmRequestProps
                 );
