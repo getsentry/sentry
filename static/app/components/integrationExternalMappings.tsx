@@ -83,7 +83,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
 
   get isFirstPage(): boolean {
     const {cursor} = this.props.location.query;
-    return cursor && (cursor.split(':')[1] === '0' ?? false);
+    return cursor ? cursor?.split(':')[1] === '0' : true;
   }
 
   get unassociatedMappings(): ExternalActorSuggestion[] {
