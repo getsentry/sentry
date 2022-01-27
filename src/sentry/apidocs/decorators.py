@@ -2,7 +2,7 @@ from typing import Any, Callable
 
 from sentry.api.base import Endpoint
 
-from .preprocessor import HTTP_METHODS_SET, PUBLIC_ENDPOINTS
+from .hooks import HTTP_METHODS_SET, PUBLIC_ENDPOINTS
 
 
 def declare_public(methods: HTTP_METHODS_SET) -> Callable[[Any], Any]:

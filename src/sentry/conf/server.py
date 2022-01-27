@@ -891,7 +891,8 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
-        "PREPROCESSING_HOOKS": ["sentry.apidocs.preprocessor.custom_preprocessing_hook"],
+        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
+        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "DISABLE_ERRORS_AND_WARNINGS": False,
         "COMPONENT_SPLIT_REQUEST": False,
         "COMPONENT_SPLIT_PATCH": False,
