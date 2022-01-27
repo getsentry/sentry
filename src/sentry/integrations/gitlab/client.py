@@ -158,6 +158,13 @@ class GitLabApiClient(ApiClient):
                         "include_subgroups": self.metadata.get("include_subgroups", False),
                     }
                 )
+            else:
+                params.update(
+                    {
+                        "membership": True,
+                    }
+                )
+
             return params
 
         def get_results(resp):
