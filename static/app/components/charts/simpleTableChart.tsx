@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import Tooltip from 'sentry/components/tooltip';
+import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -55,9 +57,12 @@ class SimpleTableChart extends Component<Props> {
           isLoading={loading}
           headers={columns.map((column, index) => {
             const align = fieldAlignment(column.name, column.type, meta);
+            const header = fieldHeaderMap?.[column.name] ?? column.key;
             return (
               <HeadCell key={index} align={align}>
-                {fieldHeaderMap?.[column.name] ?? column.name}
+                <Tooltip title={header}>
+                  <StyledTruncate value={header} maxLength={30} expandable={false} />
+                </Tooltip>
               </HeadCell>
             );
           })}
@@ -70,6 +75,10 @@ class SimpleTableChart extends Component<Props> {
     );
   }
 }
+
+const StyledTruncate = styled(Truncate)`
+  white-space: nowrap;
+`;
 
 const StyledPanelTable = styled(PanelTable)`
   border-radius: 0;
