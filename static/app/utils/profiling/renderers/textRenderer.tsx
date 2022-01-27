@@ -81,7 +81,7 @@ class TextRenderer {
       // This rect gets discarded after each render which is wasteful
       const frameInConfigSpace = new Rect(
         frame.start,
-        this.flamegraph.inverted ? configSpace.height - frame.depth + 1 : frame.depth,
+        this.flamegraph.inverted ? configSpace.height - frame.depth + 1 : frame.depth + 1,
         frame.end - frame.start,
         1
       );

@@ -129,7 +129,7 @@ export class CanvasPoolManager {
     args: ArgumentTypes<FlamegraphEvents[K]>
   ): void {
     for (const scheduler of this.schedulers) {
-      scheduler.dispatch(event, args);
+      scheduler.dispatch(event, ...args);
     }
   }
 

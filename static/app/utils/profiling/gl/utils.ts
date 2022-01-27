@@ -185,6 +185,10 @@ export class Rect {
     this.size = vec2.fromValues(width, height);
   }
 
+  isValid(): boolean {
+    return this.toMatrix().every(n => !isNaN(n));
+  }
+
   static Empty(): Rect {
     return new Rect(0, 0, 0, 0);
   }
@@ -466,6 +470,9 @@ export function computeClampedConfigView(
   height: {max: number; min: number},
   inverted: boolean
 ) {
+  if (!newConfigView.isValid()) {
+    throw new Error(newConfigView.toString());
+  }
   const clampedWidth = clamp(newConfigView.width, width.min, width.max);
   const clampedHeight = clamp(newConfigView.height, height.min, height.max);
 

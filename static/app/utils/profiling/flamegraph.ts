@@ -25,6 +25,7 @@ export class Flamegraph {
   configSpace: Rect = new Rect(0, 0, 0, 0);
 
   formatter: (value: number) => string;
+  frameIndex: Record<string, FlamegraphFrame> = {};
 
   constructor(
     profile: Profile,
