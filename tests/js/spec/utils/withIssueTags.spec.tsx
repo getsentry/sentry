@@ -66,9 +66,6 @@ describe('withIssueTags HoC', function () {
 
     expect(screen.getByText(/assigned: me, \[me, none\]/)).toBeInTheDocument();
 
-    // expect(tagsProp.assigned_or_suggested).toBeTruthy();
-    // expect(tagsProp.assigned_or_suggested.values).toEqual(['me', '[me, none]']);
-
     act(() => {
       TeamStore.loadInitialData([
         TestStubs.Team({slug: 'best-team-na', name: 'Best Team NA', isMember: true}),
