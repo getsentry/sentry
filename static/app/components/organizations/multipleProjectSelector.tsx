@@ -42,6 +42,7 @@ type Props = WithRouterProps & {
     isOpen: boolean;
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  pinned?: boolean;
 };
 
 type State = {
@@ -204,6 +205,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       footerMessage,
       customDropdownButton,
       customLoadingIndicator,
+      pinned,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -280,6 +282,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                 message={footerMessage}
               />
             )}
+            pinned={pinned}
           >
             {({getActorProps, selectedProjects, isOpen}) => {
               if (customDropdownButton) {
