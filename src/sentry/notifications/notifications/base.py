@@ -88,16 +88,16 @@ class BaseNotification(abc.ABC):
     def get_notification_title(self) -> str:
         raise NotImplementedError
 
-    def get_title_link(self) -> str | None:
+    def get_title_link(self, recipient: Team | User) -> str | None:
         raise NotImplementedError
 
-    def build_attachment_title(self) -> str:
+    def build_attachment_title(self, recipient: Team | User) -> str:
         raise NotImplementedError
 
     def build_notification_footer(self, recipient: Team | User) -> str:
         raise NotImplementedError
 
-    def get_message_description(self) -> Any:
+    def get_message_description(self, recipient: Team | User) -> Any:
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
 
@@ -126,8 +126,15 @@ class BaseNotification(abc.ABC):
     def get_callback_data(self) -> Mapping[str, Any] | None:
         return None
 
-    def record_analytics(self, event_name: str, **kwargs: Any) -> None:
-        analytics.record(event_name, **kwargs)
+    @property
+    def analytics_instance(self) -> Any | None:
+        """
+        Returns an instance for that can be used for analytics such as an organization or project
+        """
+        return None
+
+    def record_analytics(self, event_name: str, *args: Any, **kwargs: Any) -> None:
+        analytics.record(event_name, *args, **kwargs)
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         # may want to explicitly pass in the parameters for this event
@@ -140,6 +147,7 @@ class BaseNotification(abc.ABC):
         if self.analytics_event:
             self.record_analytics(
                 self.analytics_event,
+                self.analytics_instance,
                 providers=provider.name.lower(),
                 **self.get_custom_analytics_params(recipient),
             )
