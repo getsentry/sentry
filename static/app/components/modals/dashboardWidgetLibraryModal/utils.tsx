@@ -8,6 +8,6 @@ export function setWidgetLibraryVisit() {
   const visits = localStorage.getItem(WIDGET_LIBRARY_VISITS);
   localStorage.setItem(
     WIDGET_LIBRARY_VISITS,
-    visits === null ? '0' : `${(parseInt(visits, 10) || 0) + 1}`
+    visits === null ? '1' : `${(parseInt(visits, 10) || 0) + 1}`
   );
 }
