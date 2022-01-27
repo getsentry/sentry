@@ -35,6 +35,9 @@ import {Widget} from '../types';
 
 import WidgetQueries from './widgetQueries';
 
+const BIG_NUMBER_WIDGET_DEFAULT_HEIGHT = 200;
+const BIG_NUMBER_WIDGET_DEFAULT_WIDTH = 400;
+
 type TableResultProps = Pick<
   WidgetQueries['state'],
   'errorMessage' | 'loading' | 'tableResults'
@@ -127,6 +130,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
+    const {organization, widget} = this.props;
+
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
       const fields = Object.keys(tableMeta ?? {});
@@ -142,7 +147,42 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
       const rendered = fieldRenderer(dataRow);
 
-      return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
+      const isModalWidget = !!!(widget.id || widget.tempId);
+      if (!!!organization.features.includes('dashboard-grid-layout') || isModalWidget) {
+        return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
+      }
+
+      const widthToHeightRatio =
+        widget.layout?.w && widget.layout?.h ? widget.layout.w / widget.layout.h : 1;
+
+      const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
+
+      // heuristics to maintain an aspect ratio that works
+      // most of the time.
+      const w =
+        widget.layout?.w && widget.layout?.h
+          ? widthToHeightRatio * 400
+          : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
+
+      const fontSize =
+        widthToHeightRatio < 1
+          ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * widthToHeightRatio
+          : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
+
+      return (
+        <BigNumber fontSize={fontSize} key={`big_number:${result.title}`}>
+          <svg
+            width="100%"
+            height="100%"
+            viewBox={`0 0 ${w} ${h}`}
+            preserveAspectRatio="xMinYMin meet"
+          >
+            <foreignObject x="0" y="0" width="100%" height="100%">
+              {rendered}
+            </foreignObject>
+          </svg>
+        </BigNumber>
+      );
     });
   }
 
@@ -352,9 +392,14 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface200};
 `;
 
-const BigNumber = styled('div')`
-  font-size: 32px;
+const BigNumber = styled('div')<{fontSize?: number}>`
+  resize: both;
   line-height: 1;
+  display: inline-flex;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  font-size: ${p => (p.fontSize ? `${p.fontSize}px` : '32px')};
   color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
   * {
