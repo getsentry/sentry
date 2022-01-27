@@ -181,7 +181,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
             preserveAspectRatio="xMinYMin meet"
           >
             <foreignObject x="0" y="0" width="100%" height="100%">
-              <Tooltip title={rendered} showOnEllipsis>
+              <Tooltip title={rendered} showOnOverflow>
                 {rendered}
               </Tooltip>
             </foreignObject>

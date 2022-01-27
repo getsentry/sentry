@@ -82,7 +82,7 @@ type Props = DefaultProps & {
   /**
    * Only display the tooltip if the content overflows
    */
-  showOnEllipsis?: boolean;
+  showOnOverflow?: boolean;
 
   className?: string;
 };
@@ -113,6 +113,10 @@ function computeOriginFromArrow(
     default:
       return {originX: `50%`, originY: '100%'};
   }
+}
+
+function isOverflown(el: Element): boolean {
+  return el.scrollWidth > el.clientWidth || Array.from(el.children).some(isOverflown);
 }
 
 class Tooltip extends React.Component<Props, State> {
@@ -148,7 +152,7 @@ class Tooltip extends React.Component<Props, State> {
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
   delayHideTimeout: number | null = null;
-  isEllipsis: boolean = false;
+  isOverflow: boolean = false;
 
   getPortal = memoize((usesGlobalPortal): HTMLElement => {
     if (usesGlobalPortal) {
@@ -174,9 +178,9 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleOpen = () => {
-    const {delay, showOnEllipsis} = this.props;
+    const {delay, showOnOverflow} = this.props;
 
-    if (showOnEllipsis && !this.isEllipsis) {
+    if (showOnOverflow && !this.isOverflow) {
       return;
     }
 
@@ -209,7 +213,7 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   renderTrigger(children: React.ReactNode, ref: React.Ref<HTMLElement>) {
-    const {showOnEllipsis} = this.props;
+    const {showOnOverflow} = this.props;
     const propList: {[key: string]: any} = {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
@@ -243,8 +247,8 @@ class Tooltip extends React.Component<Props, State> {
           if (typeof ref === 'function') {
             ref(el);
           }
-          if (showOnEllipsis) {
-            this.isEllipsis = Boolean(el && isOverflown(el));
+          if (showOnOverflow) {
+            this.isOverflow = Boolean(el && isOverflown(el));
           }
         }}
       >
@@ -426,7 +430,3 @@ const TooltipArrow = styled('span')`
 `;
 
 export default Tooltip;
-
-function isOverflown(el: Element): boolean {
-  return el.scrollWidth > el.clientWidth || Array.from(el.children).some(isOverflown);
-}
