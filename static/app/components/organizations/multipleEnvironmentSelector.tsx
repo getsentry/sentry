@@ -4,7 +4,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
-import PageFiltersActions from 'sentry/actions/pageFiltersActions';
+import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
@@ -226,7 +226,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
   }
 
   handlePinClick = () => {
-    PageFiltersActions.pin('environments', !this.props.pinned);
+    pinFilter('environments', !this.props.pinned);
   };
 
   render() {
