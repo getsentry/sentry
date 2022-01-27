@@ -32,7 +32,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
     return filtered
 
 
-def custom_postprocessing_hook(result, generator, **kwargs):
+def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
     for path, endpoints in result["paths"].items():
         for method_info in endpoints.values():
             if method_info.get("tags") is None:
