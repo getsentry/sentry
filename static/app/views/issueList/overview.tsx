@@ -102,6 +102,7 @@ type Props = {
 type State = {
   groupIds: string[];
   reviewedIds: string[];
+  forReview: boolean;
   selectAllActive: boolean;
   realtimeActive: boolean;
   pageLinks: string;
@@ -158,6 +159,7 @@ class IssueListOverview extends React.Component<Props, State> {
     return {
       groupIds: [],
       reviewedIds: [],
+      forReview: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -210,7 +212,7 @@ class IssueListOverview extends React.Component<Props, State> {
       }
     }
 
-    if (prevState.itemsRemoved !== this.state.itemsRemoved) {
+    if (prevState.forReview !== this.state.forReview) {
       this.fetchData();
     }
 
@@ -525,6 +527,7 @@ class IssueListOverview extends React.Component<Props, State> {
       this.setState({
         issuesLoading: true,
         queryCount: 0,
+        itemsRemoved: 0,
         reviewedIds: [],
         error: null,
       });
@@ -535,6 +538,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
     this.setState({
       queryCount: 0,
+      itemsRemoved: 0,
       error: null,
     });
 
@@ -639,7 +643,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this.resumePolling();
 
-        this.setState({itemsRemoved: 0});
+        this.setState({forReview: false});
       },
     });
   };
@@ -966,6 +970,7 @@ class IssueListOverview extends React.Component<Props, State> {
         },
         itemsRemoved: itemsRemoved + inInboxCount,
         reviewedIds: itemIds,
+        forReview: true,
       });
     }
   };
