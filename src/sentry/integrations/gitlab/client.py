@@ -153,35 +153,21 @@ class GitLabApiClient(ApiClient):
                 "per_page": page_size,
             }
             if group:
-                params.update(
-                    {
-                        "include_subgroups": self.metadata.get("include_subgroups", False),
-                    }
-                )
+                extra_params = {"include_subgroups": self.metadata.get("include_subgroups", False)}
             else:
-                params.update(
-                    {
-                        "membership": True,
-                    }
-                )
+                extra_params = {"membership": True}
 
-            return params
+            return params.update(extra_params)
 
         def get_results(resp):
             return resp
 
         if group:
-            return self.get_with_pagination(
-                GitLabApiClientPath.group_projects.format(group=group),
-                gen_params=gen_params,
-                get_results=get_results,
-            )
+            path = GitLabApiClientPath.group_projects.format(group=group)
         else:
-            return self.get_with_pagination(
-                GitLabApiClientPath.projects,
-                gen_params=gen_params,
-                get_results=get_results,
-            )
+            path = GitLabApiClientPath.projects
+
+        return self.get_with_pagination(path, gen_params, get_results)
 
     def get_project(self, project_id):
         """Get project
