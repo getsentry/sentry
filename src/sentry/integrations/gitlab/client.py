@@ -157,7 +157,8 @@ class GitLabApiClient(ApiClient):
             else:
                 extra_params = {"membership": True}
 
-            return params.update(extra_params)
+            params.update(extra_params)
+            return params
 
         def get_results(resp):
             return resp
