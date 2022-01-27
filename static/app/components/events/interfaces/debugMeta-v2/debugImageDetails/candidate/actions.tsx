@@ -1,19 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Role from 'app/components/acl/role';
-import ActionButton from 'app/components/actions/button';
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconDownload, IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {CandidateDownloadStatus, ImageCandidate} from 'app/types/debugImage';
+import Access from 'sentry/components/acl/access';
+import {Role} from 'sentry/components/acl/role';
+import ActionButton from 'sentry/components/actions/button';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import DropdownLink from 'sentry/components/dropdownLink';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete, IconDownload, IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {CandidateDownloadStatus, ImageCandidate} from 'sentry/types/debugImage';
 
 const noPermissionToDownloadDebugFilesInfo = t(
   'You do not have permission to download debug files'
@@ -62,7 +62,7 @@ function Actions({
                 caret={false}
                 customTitle={
                   <ActionButton
-                    label={t('Actions')}
+                    aria-label={t('Actions')}
                     disabled={deleted}
                     icon={<IconEllipsis size="sm" />}
                   />

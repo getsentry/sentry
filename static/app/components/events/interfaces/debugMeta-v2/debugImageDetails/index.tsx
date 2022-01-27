@@ -4,20 +4,20 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {DebugFile, DebugFileFeature} from 'app/types/debugFiles';
-import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
-import {Event} from 'app/types/event';
-import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
-import theme from 'app/utils/theme';
-import {getFileType} from 'app/views/settings/projectDebugFiles/utils';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {DebugFile, DebugFileFeature} from 'sentry/types/debugFiles';
+import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
+import {Event} from 'sentry/types/event';
+import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
+import theme from 'sentry/utils/theme';
+import {getFileType} from 'sentry/views/settings/projectDebugFiles/utils';
 
 import {getFileName} from '../utils';
 
@@ -352,14 +352,14 @@ export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Title = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   max-width: calc(100% - 40px);

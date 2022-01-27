@@ -4,21 +4,21 @@ import moment from 'moment';
 
 import codesworth from 'sentry-images/spot/codesworth.svg';
 
-import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import CommitRow from 'app/components/commitRow';
-import {DataSection} from 'app/components/events/styles';
-import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Commit, Organization, Project, RepositoryStatus} from 'app/types';
-import {Event} from 'app/types/event';
-import {IssueEventKey} from 'app/utils/analytics/issueAnalyticsEvents';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import getDynamicText from 'app/utils/getDynamicText';
-import {promptCanShow, promptIsDismissed} from 'app/utils/promptIsDismissed';
-import withApi from 'app/utils/withApi';
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import {CommitRow} from 'sentry/components/commitRow';
+import {DataSection} from 'sentry/components/events/styles';
+import {Panel} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Commit, Organization, Project, RepositoryStatus} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {IssueEventKey} from 'sentry/utils/analytics/issueAnalyticsEvents';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {promptCanShow, promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import withApi from 'sentry/utils/withApi';
 
 const EXAMPLE_COMMITS = ['dec0de', 'de1e7e', '5ca1ed'];
 
@@ -243,7 +243,7 @@ const Description = styled('div')`
 const ButtonList = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   justify-self: end;
   margin-bottom: 16px;

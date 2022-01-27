@@ -2,27 +2,27 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Client} from 'app/api';
-import {SectionHeading} from 'app/components/charts/styles';
-import DateTime from 'app/components/dateTime';
-import Duration from 'app/components/duration';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Link from 'app/components/links/link';
-import {Panel, PanelBody} from 'app/components/panels';
-import SeenByList from 'app/components/seenByList';
-import TimeSince from 'app/components/timeSince';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {alertDetailsLink} from 'app/views/alerts/details';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
+import {Client} from 'sentry/api';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import DateTime from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Link from 'sentry/components/links/link';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import SeenByList from 'sentry/components/seenByList';
+import TimeSince from 'sentry/components/timeSince';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {alertDetailsLink} from 'sentry/views/alerts/details';
+import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import {
   ActivityType,
   Incident,
   IncidentActivityType,
   IncidentStatus,
   IncidentStatusMethod,
-} from 'app/views/alerts/types';
+} from 'sentry/views/alerts/types';
 
 export function getTriggerName(value: string | null) {
   if (value === `${IncidentStatus.WARNING}`) {

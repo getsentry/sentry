@@ -5,34 +5,34 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import PickProjectToContinue from 'app/components/pickProjectToContinue';
-import {PAGE_URL_PARAM, URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconInfo, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
+import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
+import {IconInfo, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {
   Deploy,
-  GlobalSelection,
   Organization,
+  PageFilters,
   ReleaseMeta,
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
   SessionField,
-} from 'app/types';
-import {formatVersion} from 'app/utils/formatters';
-import routeTitleGen from 'app/utils/routeTitle';
-import {getCount} from 'app/utils/sessions';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+} from 'sentry/types';
+import {formatVersion} from 'sentry/utils/formatters';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import {getCount} from 'sentry/utils/sessions';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import AsyncView from 'sentry/views/asyncView';
 
 import {getReleaseBounds, ReleaseBounds} from '../utils';
 
@@ -56,7 +56,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   releaseMeta: ReleaseMeta;
 };
 
@@ -121,7 +121,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
         {
           query: {
             adoptionStages: 1,
-            ...getParams(this.pickLocationQuery(location)),
+            ...normalizeDateTimeParams(this.pickLocationQuery(location)),
           },
         },
       ],
@@ -349,7 +349,7 @@ class ReleasesDetailContainer extends AsyncComponent<
     }
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         lockedMessageSubject={t('release')}
         shouldForceProject={projects.length === 1}
         forceProject={
@@ -362,7 +362,7 @@ class ReleasesDetailContainer extends AsyncComponent<
         showDateSelector={false}
       >
         <ReleasesDetail {...this.props} releaseMeta={releaseMeta} />
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 }
@@ -375,8 +375,8 @@ const ProjectsFooterMessage = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: min-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 export {ReleaseContext, ReleasesDetailContainer};
-export default withGlobalSelection(withOrganization(ReleasesDetailContainer));
+export default withPageFilters(withOrganization(ReleasesDetailContainer));

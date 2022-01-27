@@ -1,50 +1,52 @@
-import React, {memo, useEffect, useState} from 'react';
+import {memo, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import uniq from 'lodash/uniq';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import ErrorBoundary from 'app/components/errorBoundary';
-import EventContexts from 'app/components/events/contexts';
-import EventContextSummary from 'app/components/events/contextSummary/contextSummary';
-import EventDevice from 'app/components/events/device';
-import EventErrors, {Error} from 'app/components/events/errors';
-import EventAttachments from 'app/components/events/eventAttachments';
-import EventCause from 'app/components/events/eventCause';
-import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
-import EventDataSection from 'app/components/events/eventDataSection';
-import EventExtraData from 'app/components/events/eventExtraData/eventExtraData';
-import EventSdk from 'app/components/events/eventSdk';
-import EventTags from 'app/components/events/eventTags/eventTags';
-import EventGroupingInfo from 'app/components/events/groupingInfo';
-import EventPackageData from 'app/components/events/packageData';
-import RRWebIntegration from 'app/components/events/rrwebIntegration';
-import EventSdkUpdates from 'app/components/events/sdkUpdates';
-import {DataSection} from 'app/components/events/styles';
-import EventUserFeedback from 'app/components/events/userFeedback';
-import ExternalLink from 'app/components/links/externalLink';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import EventContexts from 'sentry/components/events/contexts';
+import EventContextSummary from 'sentry/components/events/contextSummary';
+import EventDevice from 'sentry/components/events/device';
+import EventErrors, {Error} from 'sentry/components/events/errors';
+import EventAttachments from 'sentry/components/events/eventAttachments';
+import EventCause from 'sentry/components/events/eventCause';
+import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import EventExtraData from 'sentry/components/events/eventExtraData/eventExtraData';
+import EventSdk from 'sentry/components/events/eventSdk';
+import EventTags from 'sentry/components/events/eventTags/eventTags';
+import EventGroupingInfo from 'sentry/components/events/groupingInfo';
+import EventPackageData from 'sentry/components/events/packageData';
+import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
+import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
+import {DataSection} from 'sentry/components/events/styles';
+import EventUserFeedback from 'sentry/components/events/userFeedback';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
+  Entry,
+  EntryType,
+  Event,
   ExceptionValue,
   Group,
   IssueAttachment,
   Organization,
   Project,
   SharedViewOrganization,
-} from 'app/types';
-import {DebugFile} from 'app/types/debugFiles';
-import {Image} from 'app/types/debugImage';
-import {Entry, EntryType, Event} from 'app/types/event';
-import {Thread} from 'app/types/events';
-import {isNotSharedOrganization} from 'app/types/utils';
-import {defined, objectIsEmpty} from 'app/utils';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import {projectProcessingIssuesMessages} from 'app/views/settings/project/projectProcessingIssues';
+  Thread,
+} from 'sentry/types';
+import {DebugFile} from 'sentry/types/debugFiles';
+import {Image} from 'sentry/types/debugImage';
+import {isNotSharedOrganization} from 'sentry/types/utils';
+import {defined, objectIsEmpty} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
@@ -230,6 +232,7 @@ const EventEntries = memo(
         setIsLoading(false);
         return;
       }
+
       if (proGuardImage) {
         Sentry.withScope(function (s) {
           s.setLevel(Sentry.Severity.Warning);
@@ -263,20 +266,6 @@ const EventEntries = memo(
               ),
             }
           ),
-        });
-
-        // This capture will be removed once we're confident with the level of effectiveness
-        Sentry.withScope(function (s) {
-          s.setLevel(Sentry.Severity.Warning);
-          if (event.sdk) {
-            s.setTag('offending.event.sdk.name', event.sdk.name);
-            s.setTag('offending.event.sdk.version', event.sdk.version);
-          }
-          Sentry.captureMessage(
-            !proGuardImage
-              ? 'No Proguard is used at all, but a frame did match the regex'
-              : "Displaying ProGuard warning 'proguard_potentially_misconfigured_plugin' for suspected event"
-          );
         });
       }
 

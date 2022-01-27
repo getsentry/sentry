@@ -3,36 +3,39 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 import * as qs from 'query-string';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import Access from 'app/components/acl/access';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import RepositoryProjectPathConfigForm from 'app/components/repositoryProjectPathConfigForm';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import RepositoryProjectPathConfigForm from 'sentry/components/repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
   ButtonColumn,
   InputPathColumn,
   NameRepoColumn,
   OutputPathColumn,
-} from 'app/components/repositoryProjectPathConfigRow';
-import Tooltip from 'app/components/tooltip';
-import {IconAdd} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+} from 'sentry/components/repositoryProjectPathConfigRow';
+import Tooltip from 'sentry/components/tooltip';
+import {IconAdd} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   Integration,
   Organization,
   Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'app/types';
-import {getIntegrationIcon, trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+} from 'sentry/types';
+import {
+  getIntegrationIcon,
+  trackIntegrationAnalytics,
+} from 'sentry/utils/integrationUtil';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = AsyncComponent['props'] & {
   integration: Integration;

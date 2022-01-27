@@ -1,7 +1,7 @@
-import {NewQuery, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
-import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
+import {NewQuery, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 /**
  * Gets the URL for a discover view of the rule with the following default
  * parameters:
@@ -21,8 +21,9 @@ export function getIncidentRuleDiscoverUrl(opts: {
   start?: string;
   end?: string;
   extraQueryParams?: Partial<NewQuery>;
+  fields?: string[];
 }) {
-  const {orgSlug, projects, rule, eventType, start, end, extraQueryParams} = opts;
+  const {orgSlug, projects, rule, eventType, start, end, extraQueryParams, fields} = opts;
   const eventTypeTagFilter = eventType && rule?.query ? eventType : '';
 
   if (!projects || !projects.length || !rule || (!start && !end)) {
@@ -41,10 +42,11 @@ export function getIncidentRuleDiscoverUrl(opts: {
       .filter(({slug}) => rule.projects.includes(slug))
       .map(({id}) => Number(id)),
     version: 2,
-    fields:
-      rule.dataset === Dataset.ERRORS
-        ? ['issue', 'count()', 'count_unique(user)']
-        : ['transaction', rule.aggregate],
+    fields: fields
+      ? fields
+      : rule.dataset === Dataset.ERRORS
+      ? ['issue', 'count()', 'count_unique(user)']
+      : ['transaction', rule.aggregate],
     start,
     end,
     ...extraQueryParams,

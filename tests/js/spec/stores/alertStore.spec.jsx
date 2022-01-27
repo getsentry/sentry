@@ -1,6 +1,6 @@
-import AlertStore from 'app/stores/alertStore';
+import AlertStore from 'sentry/stores/alertStore';
 
-jest.mock('app/utils/localStorage');
+jest.mock('sentry/utils/localStorage');
 
 describe('AlertStore', function () {
   beforeEach(function () {

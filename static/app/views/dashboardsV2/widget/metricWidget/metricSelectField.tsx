@@ -1,13 +1,12 @@
 import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
-import SelectControl from 'app/components/forms/selectControl';
-import Highlight from 'app/components/highlight';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import SelectField from 'app/views/settings/components/forms/selectField';
-
-import {MetricMeta} from './types';
+import SelectControl from 'sentry/components/forms/selectControl';
+import Highlight from 'sentry/components/highlight';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import {MetricMeta} from 'sentry/types';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 type Props = {
   metricMetas: MetricMeta[];

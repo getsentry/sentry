@@ -1,19 +1,19 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import {MultiControlProps} from 'app/components/forms/multiSelectControl';
-import TeamSelector from 'app/components/forms/teamSelector';
-import HookOrDefault from 'app/components/hookOrDefault';
-import {PanelItem} from 'app/components/panels';
-import RoleSelectControl from 'app/components/roleSelectControl';
-import Tag from 'app/components/tag';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconClose} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Member, MemberRole, Organization} from 'app/types';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import {MultiControlProps} from 'sentry/components/forms/multiSelectControl';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {PanelItem} from 'sentry/components/panels';
+import RoleSelectControl from 'sentry/components/roleSelectControl';
+import Tag from 'sentry/components/tag';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Member, MemberRole, Organization} from 'sentry/types';
 
 type Props = {
   inviteRequest: Member;
@@ -173,7 +173,7 @@ const JoinRequestIndicator = styled(Tag)`
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 220px max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 `;
 
@@ -206,7 +206,7 @@ const TeamSelectControl = styled(TeamSelector)`
 const ButtonGroup = styled('div')`
   display: inline-grid;
   grid-template-columns: repeat(2, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 export default InviteRequestRow;

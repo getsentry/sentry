@@ -1,6 +1,6 @@
 /* eslint no-script-url:0 */
 
-import marked from 'app/utils/marked';
+import marked from 'sentry/utils/marked';
 
 function expectMarkdown(test) {
   expect(marked(test[0])).toEqual('<p>' + test[1] + '</p>\n');

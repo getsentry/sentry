@@ -1,6 +1,7 @@
 import itertools
 
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import status_checks
@@ -13,7 +14,7 @@ from sentry.utils.hashlib import md5_text
 class SystemHealthEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         if not is_active_superuser(request):
             return Response()
 

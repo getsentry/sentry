@@ -1,5 +1,8 @@
 import logging
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.project_release_files import ReleaseFilesMixin
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -7,7 +10,7 @@ from sentry.models import Release
 
 
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseFilesMixin):
-    def get(self, request, organization, version):
+    def get(self, request: Request, organization, version) -> Response:
         """
         List an Organization Release's Files
         ````````````````````````````````````
@@ -29,7 +32,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
 
         return self.get_releasefiles(request, release, organization.id)
 
-    def post(self, request, organization, version):
+    def post(self, request: Request, organization, version) -> Response:
         """
         Upload a New Organization Release File
         ``````````````````````````````````````

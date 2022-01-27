@@ -2,53 +2,47 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import NotFound from 'app/components/errors/notFound';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import {BorderlessEventEntries} from 'app/components/events/eventEntries';
-import EventMessage from 'app/components/events/eventMessage';
-import EventVitals from 'app/components/events/eventVitals';
-import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
-import FileSize from 'app/components/fileSize';
-import * as Layout from 'app/components/layouts/thirds';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import TagsTable from 'app/components/tagsTable';
-import {IconOpen} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {Event, EventTag} from 'app/types/event';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {FIELD_TAGS} from 'app/utils/discover/fields';
-import {eventDetailsRoute} from 'app/utils/discover/urls';
-import {getMessage} from 'app/utils/events';
-import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+import Feature from 'sentry/components/acl/feature';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import NotFound from 'sentry/components/errors/notFound';
+import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
+import EventMessage from 'sentry/components/events/eventMessage';
+import EventVitals from 'sentry/components/events/eventVitals';
+import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
+import FileSize from 'sentry/components/fileSize';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import TagsTable from 'sentry/components/tagsTable';
+import {IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {Event, EventTag} from 'sentry/types/event';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {formatTagKey} from 'sentry/utils/discover/fields';
+import {eventDetailsRoute} from 'sentry/utils/discover/urls';
+import {getMessage} from 'sentry/utils/events';
+import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import TraceMetaQuery, {
   TraceMetaQueryChildrenProps,
-} from 'app/utils/performance/quickTrace/traceMetaQuery';
-import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/types';
-import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
-import Projects from 'app/utils/projects';
-import EventMetas from 'app/views/performance/transactionDetails/eventMetas';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
+import Projects from 'sentry/utils/projects';
+import EventMetas from 'sentry/views/performance/transactionDetails/eventMetas';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import DiscoverBreadcrumb from '../breadcrumb';
 import {generateTitle, getExpandedResults} from '../utils';
 
 import LinkedIssue from './linkedIssue';
-
-/**
- * Some tag keys should never be formatted as `tag[...]`
- * when used as a filter because they are predefined.
- */
-const EXCLUDED_TAG_KEYS = new Set(['release']);
 
 type Props = Pick<
   RouteComponentProps<{eventSlug: string}, {}>,
@@ -101,16 +95,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return this.props.eventSlug.split(':')[0];
   }
 
-  generateTagKey = (tag: EventTag) => {
-    // Some tags may be normalized from context, but not all of them are.
-    // This supports a user making a custom tag with the same name as one
-    // that comes from context as all of these are also tags.
-    if (tag.key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(tag.key)) {
-      return `tags[${tag.key}]`;
-    }
-    return tag.key;
-  };
-
   generateTagUrl = (tag: EventTag) => {
     const {eventView, organization} = this.props;
     const {event} = this.state;
@@ -121,7 +105,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     if (eventReference.id) {
       delete (eventReference as any).id;
     }
-    const tagKey = this.generateTagKey(tag);
+    const tagKey = formatTagKey(tag.key);
     const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
     return nextView.getResultsViewUrlTarget(organization.slug);
   };
@@ -317,7 +301,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       );
     }
 
-    return super.renderError(error, true, true);
+    return super.renderError(error, true);
   }
 
   getEventSlug = (): string => {
@@ -344,7 +328,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         orgSlug={organization.slug}
         projectSlug={projectSlug}
       >
-        {super.renderComponent()}
+        {super.renderComponent() as React.ReactChild}
       </SentryDocumentTitle>
     );
   }

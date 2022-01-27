@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import ContextBlock from 'app/components/events/contexts/contextBlock';
-import {Event} from 'app/types/event';
+import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {Event} from 'sentry/types/event';
 
 import getUnknownData from '../getUnknownData';
 

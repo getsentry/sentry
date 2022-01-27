@@ -1,20 +1,25 @@
+from __future__ import annotations
+
+from typing import Any, Mapping, Sequence
+
 from django.urls import reverse
 
 from sentry.integrations.issues import IssueBasicMixin
+from sentry.models import ExternalIssue, Group, User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
 
-class GitHubIssueBasic(IssueBasicMixin):
-    def make_external_key(self, data):
+class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
+    def make_external_key(self, data: Mapping[str, Any]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 
-    def get_issue_url(self, key):
+    def get_issue_url(self, key: str) -> str:
         domain_name, user = self.model.metadata["domain_name"].split("/")
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
-    def after_link_issue(self, external_issue, **kwargs):
+    def after_link_issue(self, external_issue: ExternalIssue, **kwargs: Any) -> None:
         data = kwargs["data"]
         client = self.get_client()
 
@@ -32,13 +37,15 @@ class GitHubIssueBasic(IssueBasicMixin):
             except ApiError as e:
                 raise IntegrationError(self.message_from_error(e))
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["repo"]
 
-    def create_default_repo_choice(self, default_repo):
-        return (default_repo, default_repo.split("/")[1])
+    def create_default_repo_choice(self, default_repo: str) -> tuple[str, str]:
+        return default_repo, default_repo.split("/")[1]
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    def get_create_issue_config(
+        self, group: Group, user: User, **kwargs: Any
+    ) -> Sequence[Mapping[str, Any]]:
         kwargs["link_referrer"] = "github_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
@@ -50,7 +57,8 @@ class GitHubIssueBasic(IssueBasicMixin):
             "sentry-extensions-github-search", args=[org.slug, self.model.id]
         )
 
-        return (
+        # TODO(mgaeta): inline these lists.
+        out: Sequence[Mapping[str, Any]] = (
             [
                 {
                     "name": "repo",
@@ -75,8 +83,9 @@ class GitHubIssueBasic(IssueBasicMixin):
                 }
             ]
         )
+        return out
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
         client = self.get_client()
 
         repo = data.get("repo")
@@ -104,7 +113,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             "repo": repo,
         }
 
-    def get_link_issue_config(self, group, **kwargs):
+    def get_link_issue_config(self, group: Group, **kwargs: Any) -> Sequence[Mapping[str, Any]]:
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         org = group.organization
@@ -143,11 +152,11 @@ class GitHubIssueBasic(IssueBasicMixin):
                 ),
                 "type": "textarea",
                 "required": False,
-                "help": ("Leave blank if you don't want to " "add a comment to the GitHub issue."),
+                "help": "Leave blank if you don't want to add a comment to the GitHub issue.",
             },
         ]
 
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
         data = kwargs["data"]
         repo = data.get("repo")
         issue_num = data.get("externalIssue")
@@ -172,23 +181,23 @@ class GitHubIssueBasic(IssueBasicMixin):
             "repo": repo,
         }
 
-    def get_allowed_assignees(self, repo):
+    def get_allowed_assignees(self, repo: str) -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:
             response = client.get_assignees(repo)
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         users = tuple((u["login"], u["login"]) for u in response)
 
         return (("", "Unassigned"),) + users
 
-    def get_repo_issues(self, repo):
+    def get_repo_issues(self, repo: str) -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:
             response = client.get_issues(repo)
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         issues = tuple((i["number"], "#{} {}".format(i["number"], i["title"])) for i in response)
 

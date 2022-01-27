@@ -1,9 +1,9 @@
 import {action} from '@storybook/addon-actions';
 
-import Button from 'app/components/button';
-import GlobalModal from 'app/components/globalModal';
-import FeatureTourModal from 'app/components/modals/featureTourModal';
-import {IconEdit} from 'app/icons';
+import Button from 'sentry/components/button';
+import GlobalModal from 'sentry/components/globalModal';
+import FeatureTourModal from 'sentry/components/modals/featureTourModal';
+import {IconEdit} from 'sentry/icons';
 
 export default {
   title: 'Views/Modals/Feature Tour Modal',

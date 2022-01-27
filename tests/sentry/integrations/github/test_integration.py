@@ -370,7 +370,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
-        base_error = "Error Communicating with GitHub (HTTP 404): %s" % (API_ERRORS[404])
+        base_error = f"Error Communicating with GitHub (HTTP 404): {API_ERRORS[404]}"
         assert (
             installation.message_from_error(
                 ApiError("Not Found", code=404, url="https://api.github.com/repos/scefali")
@@ -381,6 +381,51 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert (
             installation.message_from_error(ApiError("Not Found", code=404, url=url))
             == base_error
-            + " Please also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
-            % url
+            + f" Please also confirm that the commits associated with the following URL have been pushed to GitHub: {url}"
         )
+
+    @responses.activate
+    def test_github_prevent_install_until_pending_deletion_is_complete(self):
+        self._stub_github()
+        # First installation should be successful
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        oi = OrganizationIntegration.objects.get(
+            integration=integration, organization=self.organization
+        )
+        # set installation to pending deletion
+        oi.status = ObjectStatus.PENDING_DELETION
+        oi.save()
+
+        # New Installation
+        self.installation_id = "install_2"
+
+        self._stub_github()
+
+        resp = self.client.get(
+            "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/integrations/integration-pending-deletion.html")
+
+        # Assert payload returned to main window
+        assert (
+            b'{"success":false,"data":{"error":"GitHub installation pending deletion."}}'
+            in resp.content
+        )
+
+        # Delete the original Integration
+        oi.delete()
+        integration.delete()
+
+        # Try again and should be successful
+        resp = self.client.get(
+            "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
+        )
+        self.assertDialogSuccess(resp)
+        integration = Integration.objects.get(external_id=self.installation_id)
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization=self.organization, integration=integration
+        ).exists()

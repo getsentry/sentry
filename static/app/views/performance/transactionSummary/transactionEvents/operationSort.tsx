@@ -1,4 +1,4 @@
-import {Component, ComponentClass, ReactPortal} from 'react';
+import {Component} from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import {browserHistory} from 'react-router';
@@ -6,17 +6,17 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 import * as PopperJS from 'popper.js';
 
-import {GetActorPropsFn} from 'app/components/dropdownMenu';
-import MenuItem from 'app/components/menuItem';
-import Radio from 'app/components/radio';
-import {t} from 'app/locale';
-import {TableData} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import MenuItem from 'sentry/components/menuItem';
+import Radio from 'sentry/components/radio';
+import {t} from 'sentry/locale';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
 type Props = {
-  title: ComponentClass<TitleProps>;
+  title: React.ComponentClass<TitleProps>;
   eventView: EventView;
   tableMeta: TableData['meta'];
   location: Location;
@@ -162,7 +162,7 @@ class OperationSort extends Component<Props, State> {
   render() {
     const {title: Title} = this.props;
     const {isOpen} = this.state;
-    const menu: ReactPortal | null = isOpen ? this.renderMenu() : null;
+    const menu: React.ReactPortal | null = isOpen ? this.renderMenu() : null;
 
     return (
       <Manager>
@@ -262,7 +262,7 @@ const MenuItemContent = styled('div')`
 const RadioLabel = styled('label')`
   display: grid;
   cursor: pointer;
-  grid-gap: 0.25em 0.5em;
+  gap: 0.25em 0.5em;
   grid-template-columns: max-content auto;
   align-items: center;
   outline: none;

@@ -2,9 +2,9 @@ import * as React from 'react';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
 
-import Button from 'app/components/button';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
+import Button from 'sentry/components/button';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 type DefaultProps = {
   /**

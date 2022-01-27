@@ -3,38 +3,39 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import Card from 'app/components/card';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import {HeaderTitle} from 'app/components/charts/styles';
-import {getInterval} from 'app/components/charts/utils';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Link from 'app/components/links/link';
-import Placeholder from 'app/components/placeholder';
-import QuestionTooltip from 'app/components/questionTooltip';
-import Sparklines from 'app/components/sparklines';
-import SparklinesLine from 'app/components/sparklines/line';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import Card from 'sentry/components/card';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import {getInterval} from 'sentry/components/charts/utils';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import Sparklines from 'sentry/components/sparklines';
+import SparklinesLine from 'sentry/components/sparklines/line';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   Column,
   generateFieldAsString,
   getAggregateAlias,
   WebVital,
-} from 'app/utils/discover/fields';
-import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
+} from 'sentry/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
   VitalsData,
-} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {decodeList} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
-import useApi from 'app/utils/useApi';
+} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeList} from 'sentry/utils/queryString';
+import theme from 'sentry/utils/theme';
+import useApi from 'sentry/utils/useApi';
 
 import ColorBar from '../vitalDetail/colorBar';
 import {
@@ -146,7 +147,7 @@ function GenericCards(props: GenericCardsProps) {
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
-  const globalSelection = eventView.getGlobalSelection();
+  const globalSelection = eventView.getPageFilters();
   const start = globalSelection.datetime.start
     ? getUtcToLocalDateObject(globalSelection.datetime.start)
     : undefined;
@@ -353,6 +354,7 @@ type VitalBarProps = {
   showDurationDetail?: boolean;
   showVitalPercentNames?: boolean;
   showDetail?: boolean;
+  showTooltip?: boolean;
   barHeight?: number;
 };
 
@@ -367,6 +369,7 @@ export function VitalBar(props: VitalBarProps) {
     showDurationDetail = false,
     showVitalPercentNames = false,
     showDetail = true,
+    showTooltip = false,
     barHeight,
   } = props;
 
@@ -406,11 +409,26 @@ export function VitalBar(props: VitalBarProps) {
 
   return (
     <React.Fragment>
-      {showBar && <ColorBar barHeight={barHeight} colorStops={colorStops} />}
+      {showBar && (
+        <StyledTooltip
+          title={
+            <VitalPercents
+              vital={vital}
+              percents={percents}
+              showVitalPercentNames
+              hideTooltips={showTooltip}
+            />
+          }
+          disabled={!showTooltip}
+          position="bottom"
+        >
+          <ColorBar barHeight={barHeight} colorStops={colorStops} />
+        </StyledTooltip>
+      )}
       {showDetail && (
         <BarDetail>
           {showDurationDetail && p75 && (
-            <div data-test-id="vital-bar-p75">
+            <div>
               {t('The p75 for all transactions is ')}
               <strong>{p75}</strong>
             </div>
@@ -471,6 +489,10 @@ const StyledCard = styled(Card)<{minHeight?: number}>`
   align-items: flex-start;
   margin-bottom: ${space(2)};
   ${p => p.minHeight && `min-height: ${p.minHeight}px`};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  width: 100%;
 `;
 
 function getP75(data: VitalData | null, vitalName: WebVital): string {

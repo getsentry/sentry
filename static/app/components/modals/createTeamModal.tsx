@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {createTeam} from 'app/actionCreators/teams';
-import CreateTeamForm from 'app/components/teams/createTeamForm';
-import {t} from 'app/locale';
-import {Organization, Team} from 'app/types';
-import useApi from 'app/utils/useApi';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {createTeam} from 'sentry/actionCreators/teams';
+import CreateTeamForm from 'sentry/components/teams/createTeamForm';
+import {t} from 'sentry/locale';
+import {Organization, Team} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
 
 type Props = ModalRenderProps & {
   organization: Organization;

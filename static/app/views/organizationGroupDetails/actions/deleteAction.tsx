@@ -1,21 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import ActionButton from 'app/components/actions/button';
-import MenuHeader from 'app/components/actions/menuHeader';
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import {IconChevron, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import ActionButton from 'sentry/components/actions/button';
+import MenuHeader from 'sentry/components/actions/menuHeader';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import DropdownLink from 'sentry/components/dropdownLink';
+import {IconChevron, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {analytics} from 'sentry/utils/analytics';
 
 type Props = {
   organization: Organization;
@@ -89,7 +89,9 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
       >
         <DeleteButton
           disabled={disabled}
-          label={t('Delete issue')}
+          title={t('Deletes the issue. A new issue will be created if it happens again.')}
+          tooltipProps={{delay: 300}}
+          aria-label={t('Delete issue')}
           icon={<IconDelete size="xs" />}
         />
       </Confirm>
@@ -99,7 +101,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
         customTitle={
           <ActionButton
             disabled={disabled}
-            label={t('More delete options')}
+            aria-label={t('More delete options')}
             icon={<IconChevron direction="down" size="xs" />}
           />
         }

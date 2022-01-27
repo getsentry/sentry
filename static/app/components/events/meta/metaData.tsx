@@ -1,9 +1,9 @@
 import * as React from 'react';
 import isNil from 'lodash/isNil';
 
-import ErrorBoundary from 'app/components/errorBoundary';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {Meta} from 'app/types';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {Meta} from 'sentry/types';
 
 type Props<Values, K extends Extract<keyof Values, string>> = {
   object: Values;

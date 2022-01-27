@@ -5,21 +5,21 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {Client} from 'app/api';
-import DateTime from 'app/components/dateTime';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import GroupListHeader from 'app/components/issues/groupListHeader';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination, {CursorHandler} from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
-import StreamGroup from 'app/components/stream/group';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {tct} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import {GroupResolution} from 'app/types';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import DateTime from 'sentry/components/dateTime';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import GroupListHeader from 'sentry/components/issues/groupListHeader';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import StreamGroup from 'sentry/components/stream/group';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {tct} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import {GroupResolution} from 'sentry/types';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import withApi from 'sentry/utils/withApi';
 
 type CustomGroup = GroupResolution & {
   eventID: string;

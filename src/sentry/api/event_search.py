@@ -296,8 +296,12 @@ class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")
     BOOLEAN_OR = "OR"
 
     @staticmethod
+    def is_or_operator(value):
+        return value == SearchBoolean.BOOLEAN_OR
+
+    @staticmethod
     def is_operator(value):
-        return value == SearchBoolean.BOOLEAN_AND or value == SearchBoolean.BOOLEAN_OR
+        return value == SearchBoolean.BOOLEAN_AND or SearchBoolean.is_or_operator(value)
 
 
 class ParenExpression(namedtuple("ParenExpression", "children")):
@@ -1048,14 +1052,11 @@ default_config = SearchConfig(
     date_keys={
         "start",
         "end",
-        "first_seen",
-        "last_seen",
+        "last_seen()",
         "time",
         "timestamp",
         "timestamp.to_hour",
         "timestamp.to_day",
-        "transaction.start_time",
-        "transaction.end_time",
     },
     boolean_keys={
         "error.handled",

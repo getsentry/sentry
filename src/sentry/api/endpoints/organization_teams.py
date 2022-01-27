@@ -2,6 +2,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -60,7 +61,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         # allow child routes to supply own serializer, used in SCIM teams route
         return TeamSerializer()
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Teams
         ````````````````````````````
@@ -106,6 +107,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
                 elif key == "slug":
                     queryset = queryset.filter(slug__in=value)
+                elif key == "id":
+                    queryset = queryset.filter(id__in=value)
                 else:
                     queryset = queryset.none()
 
@@ -121,10 +124,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def should_add_creator_to_team(self, request):
+    def should_add_creator_to_team(self, request: Request):
         return request.user.is_authenticated
 
-    def post(self, request, organization, **kwargs):
+    def post(self, request: Request, organization, **kwargs) -> Response:
         """
         Create a new Team
         ``````````````````

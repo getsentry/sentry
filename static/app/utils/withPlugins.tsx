@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import {fetchPlugins} from 'app/actionCreators/plugins';
-import PluginsStore from 'app/stores/pluginsStore';
-import {Organization, Plugin, Project} from 'app/types';
-import {defined} from 'app/utils';
-import getDisplayName from 'app/utils/getDisplayName';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
+import {fetchPlugins} from 'sentry/actionCreators/plugins';
+import PluginsStore from 'sentry/stores/pluginsStore';
+import {Organization, Plugin, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import getDisplayName from 'sentry/utils/getDisplayName';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProject from 'sentry/utils/withProject';
 
 type WithPluginProps = {
   organization: Organization;

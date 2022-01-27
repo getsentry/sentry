@@ -1,46 +1,27 @@
-import {Fragment, FunctionComponent, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import _EventsRequest from 'app/components/charts/eventsRequest';
-import {getInterval} from 'app/components/charts/utils';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
-import _DurationChart from 'app/views/performance/charts/chart';
+import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {getInterval} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
+import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import withApi from 'sentry/utils/withApi';
+import _DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import {QueryDefinition, WidgetDataResult} from '../types';
+import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
-import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
-
-type Props = {
-  chartSetting: PerformanceWidgetSetting;
-  chartDefinition: ChartDefinition;
-
-  title: string;
-  titleTooltip: string;
-  fields: string[];
-  chartColor?: string;
-
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-
-  ContainerActions: FunctionComponent<{isLoading: boolean}>;
-};
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
 };
 
-export function SingleFieldAreaWidget(props: Props) {
+export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const {ContainerActions} = props;
-  const globalSelection = props.eventView.getGlobalSelection();
+  const globalSelection = props.eventView.getPageFilters();
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -51,27 +32,33 @@ export function SingleFieldAreaWidget(props: Props) {
     () => ({
       fields: props.fields[0],
       component: provided => (
-        <EventsRequest
-          {...pick(provided, eventsRequestQueryProps)}
-          limit={1}
-          includePrevious
-          includeTransformedData
-          partial
-          currentSeriesNames={[field]}
-          query={props.eventView.getQueryWithAdditionalConditions()}
-          interval={getInterval(
-            {
-              start: provided.start,
-              end: provided.end,
-              period: provided.period,
-            },
-            'medium'
+        <QueryBatchNode batchProperty="yAxis">
+          {({queryBatching}) => (
+            <EventsRequest
+              {...pick(provided, eventsRequestQueryProps)}
+              limit={1}
+              queryBatching={queryBatching}
+              includePrevious
+              includeTransformedData
+              partial
+              currentSeriesNames={[field]}
+              previousSeriesNames={[`previous ${field}`]}
+              query={provided.eventView.getQueryWithAdditionalConditions()}
+              interval={getInterval(
+                {
+                  start: provided.start,
+                  end: provided.end,
+                  period: provided.period,
+                },
+                'medium'
+              )}
+            />
           )}
-        />
+        </QueryBatchNode>
       ),
       transform: transformEventsRequestToArea,
     }),
-    [props.eventView, field, props.organization.slug]
+    [props.chartSetting]
   );
 
   const Queries = {
@@ -82,7 +69,11 @@ export function SingleFieldAreaWidget(props: Props) {
     <GenericPerformanceWidget<DataType>
       {...props}
       Subtitle={() => (
-        <Subtitle>{t('Compared to last %s ', globalSelection.datetime.period)}</Subtitle>
+        <Subtitle>
+          {globalSelection.datetime.period
+            ? t('Compared to last %s ', globalSelection.datetime.period)
+            : t('Compared to the last period')}
+        </Subtitle>
       )}
       HeaderActions={provided => (
         <Fragment>
@@ -103,10 +94,11 @@ export function SingleFieldAreaWidget(props: Props) {
               {...provided}
               disableMultiAxis
               disableXAxis
+              definedAxisTicks={4}
               chartColors={props.chartColor ? [props.chartColor] : undefined}
             />
           ),
-          height: 160,
+          height: props.chartHeight,
         },
       ]}
     />
@@ -114,13 +106,13 @@ export function SingleFieldAreaWidget(props: Props) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
-const DurationChart = withRouter(_DurationChart);
-const Subtitle = styled('span')`
+export const DurationChart = withRouter(_DurationChart);
+export const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const HighlightNumber = styled('div')<{color?: string}>`
+export const HighlightNumber = styled('div')<{color?: string}>`
   color: ${p => p.color};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

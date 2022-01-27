@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {defined} from 'app/utils';
+import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
 import FormField from './formField';

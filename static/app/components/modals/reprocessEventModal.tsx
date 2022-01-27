@@ -1,17 +1,17 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import ExternalLink from 'app/components/links/externalLink';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
-import Form from 'app/views/settings/components/forms/form';
-import NumberField from 'app/views/settings/components/forms/numberField';
-import RadioField from 'app/views/settings/components/forms/radioField';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Group, Organization} from 'sentry/types';
+import Form from 'sentry/views/settings/components/forms/form';
+import NumberField from 'sentry/views/settings/components/forms/numberField';
+import RadioField from 'sentry/views/settings/components/forms/radioField';
 
 const impacts = [
   tct(
@@ -135,7 +135,7 @@ const Introduction = styled('p')`
 `;
 
 const StyledList = styled(List)`
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin-bottom: ${space(4)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

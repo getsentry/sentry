@@ -1,12 +1,12 @@
 import {createContext, useEffect, useState} from 'react';
 
-import {Organization, Project} from 'app/types';
+import {Organization, Project} from 'sentry/types';
 import {
   AppStoreConnectCredentialsStatus,
   AppStoreConnectStatusData,
-} from 'app/types/debugFiles';
-import {getAppStoreValidationErrorMessage} from 'app/utils/appStoreValidationErrorMessage';
-import useApi from 'app/utils/useApi';
+} from 'sentry/types/debugFiles';
+import {getAppStoreValidationErrorMessage} from 'sentry/utils/appStoreValidationErrorMessage';
+import useApi from 'sentry/utils/useApi';
 
 export type AppStoreConnectContextProps =
   | Record<string, AppStoreConnectStatusData>

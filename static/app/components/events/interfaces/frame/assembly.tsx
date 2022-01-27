@@ -1,50 +1,50 @@
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import theme from 'sentry/utils/theme';
+import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 
-interface Props {
+type Props = {
   name?: string;
   version?: string;
   culture?: string;
   publicKeyToken?: string;
   filePath?: string | null;
+};
+
+function Assembly({name, version, culture, publicKeyToken, filePath}: Props) {
+  return (
+    <AssemblyWrapper>
+      <AssemblyInfo>
+        <Caption>Assembly:</Caption>
+        {name || '-'}
+      </AssemblyInfo>
+      <AssemblyInfo>
+        <Caption>{t('Version')}:</Caption>
+        {version || '-'}
+      </AssemblyInfo>
+      <AssemblyInfo>
+        <Caption>{t('Culture')}:</Caption>
+        {culture || '-'}
+      </AssemblyInfo>
+      <AssemblyInfo>
+        <Caption>PublicKeyToken:</Caption>
+        {publicKeyToken || '-'}
+      </AssemblyInfo>
+
+      {filePath && (
+        <FilePathInfo>
+          <Caption>{t('Path')}:</Caption>
+          <Tooltip title={filePath}>
+            <TextCopyInput rtl>{filePath}</TextCopyInput>
+          </Tooltip>
+        </FilePathInfo>
+      )}
+    </AssemblyWrapper>
+  );
 }
-
-const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => (
-  <AssemblyWrapper>
-    <AssemblyInfo>
-      <Caption>Assembly:</Caption>
-      {name || '-'}
-    </AssemblyInfo>
-    <AssemblyInfo>
-      <Caption>{t('Version')}:</Caption>
-      {version || '-'}
-    </AssemblyInfo>
-    <AssemblyInfo>
-      <Caption>{t('Culture')}:</Caption>
-      {culture || '-'}
-    </AssemblyInfo>
-    <AssemblyInfo>
-      <Caption>PublicKeyToken:</Caption>
-      {publicKeyToken || '-'}
-    </AssemblyInfo>
-
-    {filePath && (
-      <FilePathInfo>
-        <Caption>{t('Path')}:</Caption>
-        <Tooltip title={filePath}>
-          <TextCopyInput rtl>{filePath}</TextCopyInput>
-        </Tooltip>
-      </FilePathInfo>
-    )}
-  </AssemblyWrapper>
-);
-
-// TODO(ts): we should be able to delete these after disabling react/prop-types rule in tsx functional components
 
 const AssemblyWrapper = styled('div')`
   font-size: 80%;
@@ -80,8 +80,10 @@ const FilePathInfo = styled('div')`
       width: auto;
     }
   }
-  button > span {
-    padding: 2px 5px;
+  button {
+    min-height: 20px;
+    height: 20px;
+    padding: ${space(1)};
   }
   svg {
     width: 11px;

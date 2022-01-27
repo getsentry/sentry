@@ -1,10 +1,8 @@
-import {ComponentProps} from 'react';
-
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import Tooltip from 'app/components/tooltip';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import Tooltip from 'sentry/components/tooltip';
 
 type DropdownItemProps = Pick<
-  ComponentProps<typeof DropdownItem>,
+  React.ComponentProps<typeof DropdownItem>,
   'disabled' | 'title'
 > & {
   label: string;

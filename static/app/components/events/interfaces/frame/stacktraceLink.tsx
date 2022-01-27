@@ -1,28 +1,32 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
-import {openModal} from 'app/actionCreators/modal';
-import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import Access from 'app/components/acl/access';
-import AsyncComponent from 'app/components/asyncComponent';
-import {Body, Header, Hovercard} from 'app/components/hovercard';
-import {IconInfo} from 'app/icons';
-import {IconClose} from 'app/icons/iconClose';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import {openModal} from 'sentry/actionCreators/modal';
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import {ResponseMeta} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {Body, Header, Hovercard} from 'sentry/components/hovercard';
+import {IconInfo} from 'sentry/icons';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   Frame,
   Integration,
   Organization,
   Project,
   RepositoryProjectPathConfigWithIntegration,
-} from 'app/types';
-import {Event} from 'app/types/event';
-import {getIntegrationIcon, trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import {promptIsDismissed} from 'app/utils/promptIsDismissed';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {
+  getIntegrationIcon,
+  trackIntegrationAnalytics,
+} from 'sentry/utils/integrationUtil';
+import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
@@ -142,11 +146,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     ];
   }
 
-  onRequestError(error, args) {
-    Sentry.withScope(scope => {
-      scope.setExtra('errorInfo', args);
-      Sentry.captureException(new Error(error));
-    });
+  onRequestError(resp: ResponseMeta) {
+    handleXhrErrorResponse('Unable to fetch stack trace link')(resp);
   }
 
   getDefaultState(): State {
@@ -325,7 +326,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
         <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
-          {getIntegrationIcon(config.provider.key)}
+          <StyledIconWrapper>{getIntegrationIcon(config.provider.key)}</StyledIconWrapper>
           <OpenInName>{config.provider.name}</OpenInName>
         </OpenInLink>
       </OpenInContainer>
@@ -356,6 +357,11 @@ export {StacktraceLink};
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
+`;
+
+const StyledIconWrapper = styled('span')`
+  color: inherit;
+  line-height: 0;
 `;
 
 const StyledIconClose = styled(IconClose)`

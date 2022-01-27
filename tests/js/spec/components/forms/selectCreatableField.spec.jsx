@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {changeInputValue, openMenu} from 'sentry-test/select-new';
 
-import {Form, SelectCreatableField} from 'app/components/forms';
+import {Form, SelectCreatableField} from 'sentry/components/forms';
 
 describe('SelectCreatableField', function () {
   it('can add user input into select field when using options', function () {
@@ -18,7 +18,7 @@ describe('SelectCreatableField', function () {
 
     // Click on create option
     openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option div').simulate('click');
+    wrapper.find('SelectControl Option Label').simulate('click');
 
     // Is active hidden input value
     expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
@@ -40,7 +40,7 @@ describe('SelectCreatableField', function () {
 
     // Click on create option
     openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option div').simulate('click');
+    wrapper.find('SelectControl Option Label').simulate('click');
 
     // Is active hidden input value
     expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
@@ -62,7 +62,7 @@ describe('SelectCreatableField', function () {
 
     // Click on create option
     openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option div').simulate('click');
+    wrapper.find('SelectControl Option Label').simulate('click');
 
     // Is active hidden input value
     expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
@@ -88,7 +88,7 @@ describe('SelectCreatableField', function () {
 
     // Click on create option
     openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option div').simulate('click');
+    wrapper.find('SelectControl Option Label').simulate('click');
 
     wrapper.find('Form').simulate('submit');
     expect(submitMock).toHaveBeenCalledWith(

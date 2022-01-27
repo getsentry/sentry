@@ -2,14 +2,14 @@ import {RouteComponentProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import Breadcrumbs from 'app/components/breadcrumbs';
-import Button from 'app/components/button';
-import PageHeading from 'app/components/pageHeading';
-import {IconEdit} from 'app/icons';
-import {t} from 'app/locale';
-import {PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Button from 'sentry/components/button';
+import PageHeading from 'sentry/components/pageHeading';
+import {IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageHeader} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 
 import {isIssueAlert} from '../../utils';
 
@@ -73,7 +73,7 @@ const AlertBreadcrumbs = styled(Breadcrumbs)`
 const Controls = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const Details = styled(PageHeader)`
@@ -82,7 +82,7 @@ const Details = styled(PageHeader)`
 
   grid-template-columns: max-content auto;
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   grid-auto-flow: column;
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {

@@ -10,6 +10,7 @@ from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param, service_hooks
 from sentry.mediators.param import if_param
 from sentry.models import ApiToken, SentryAppComponent, SentryAppInstallation, ServiceHook
+from sentry.models.integrationfeature import IntegrationFeature, IntegrationTypes
 from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 
 from .mixin import SentryAppMixin
@@ -30,10 +31,12 @@ class Updater(Mediator, SentryAppMixin):
     allowed_origins = Param(Iterable, required=False)
     popularity = Param(int, required=False)
     user = Param("sentry.models.User")
+    features = Param(Iterable, required=False)
 
     def call(self):
         self._update_name()
         self._update_author()
+        self._update_features()
         self._update_status()
         self._update_scopes()
         self._update_events()
@@ -48,6 +51,17 @@ class Updater(Mediator, SentryAppMixin):
         self._update_popularity()
         self.sentry_app.save()
         return self.sentry_app
+
+    @if_param("features")
+    def _update_features(self):
+        if not self.user.is_superuser and self.sentry_app.status == SentryAppStatus.PUBLISHED:
+            raise APIError("Cannot update features on a published integration.")
+
+        IntegrationFeature.objects.clean_update(
+            incoming_features=list(self.features),
+            target=self.sentry_app,
+            target_type=IntegrationTypes.SENTRY_APP,
+        )
 
     @if_param("name")
     def _update_name(self):

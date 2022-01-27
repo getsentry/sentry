@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import {createProject} from 'app/actionCreators/projects';
-import TeamStore from 'app/stores/teamStore';
-import OnboardingPlatform from 'app/views/onboarding/platform';
+import {createProject} from 'sentry/actionCreators/projects';
+import TeamStore from 'sentry/stores/teamStore';
+import OnboardingPlatform from 'sentry/views/onboarding/platform';
 
-jest.mock('app/actionCreators/projects');
+jest.mock('sentry/actionCreators/projects');
 
 describe('OnboardingWelcome', function () {
   it('calls onUpdate when setting the platform', function () {

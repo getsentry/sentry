@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
+import ProcessingIssueHint from 'sentry/components/stream/processingIssueHint';
 
 describe('ProcessingIssueHint', function () {
   let issue, wrapper;

@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {NotificationSettingsObject} from 'app/views/settings/account/notifications/constants';
-import NotificationSettingsByOrganization from 'app/views/settings/account/notifications/notificationSettingsByOrganization';
+import {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
+import NotificationSettingsByOrganization from 'sentry/views/settings/account/notifications/notificationSettingsByOrganization';
 
 const createWrapper = (notificationSettings: NotificationSettingsObject) => {
   const {organization, routerContext} = initializeOrg();
@@ -12,6 +12,7 @@ const createWrapper = (notificationSettings: NotificationSettingsObject) => {
       notificationSettings={notificationSettings}
       organizations={[organization]}
       onChange={jest.fn()}
+      onSubmitSuccess={jest.fn()}
     />,
     routerContext
   );

@@ -125,6 +125,21 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
 
+    def test_query_by_id(self):
+        team1 = self.create_team(organization=self.organization, name="foo")
+        team2 = self.create_team(organization=self.organization, name="bar")
+        self.login_as(user=self.user)
+
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:{team1.id}"
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:{team1.id}+id:{team2.id}"
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
 
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"

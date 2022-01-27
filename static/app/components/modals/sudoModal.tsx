@@ -2,19 +2,19 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import U2fContainer from 'app/components/u2f/u2fContainer';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
-import Form from 'app/views/settings/components/forms/form';
-import InputField from 'app/views/settings/components/forms/inputField';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import U2fContainer from 'sentry/components/u2f/u2fContainer';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import withApi from 'sentry/utils/withApi';
+import Form from 'sentry/views/settings/components/forms/form';
+import InputField from 'sentry/views/settings/components/forms/inputField';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
 
@@ -86,7 +86,6 @@ class SudoModal extends React.Component<Props, State> {
     const {superuser} = this.props;
     const {error} = this.state;
     const user = ConfigStore.get('user');
-
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>

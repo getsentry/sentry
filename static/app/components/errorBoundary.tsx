@@ -3,11 +3,11 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Alert from 'app/components/alert';
-import DetailedError from 'app/components/errors/detailedError';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import getDynamicText from 'app/utils/getDynamicText';
+import Alert from 'sentry/components/alert';
+import DetailedError from 'sentry/components/errors/detailedError';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 type DefaultProps = {
   mini: boolean;

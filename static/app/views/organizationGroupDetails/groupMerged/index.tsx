@@ -1,16 +1,16 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
-import GroupingActions from 'app/actions/groupingActions';
-import Alert from 'app/components/alert';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
-import {Group, Organization, Project} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import withOrganization from 'app/utils/withOrganization';
+import GroupingActions from 'sentry/actions/groupingActions';
+import Alert from 'sentry/components/alert';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
+import {Group, Organization, Project} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedList from './mergedList';
 
@@ -84,7 +84,7 @@ class GroupMergedView extends Component<Props, State> {
       query: this.state.query,
     };
 
-    return `/issues/${groupId}/hashes/?${queryString.stringify(queryParams)}`;
+    return `/issues/${groupId}/hashes/?${qs.stringify(queryParams)}`;
   }
 
   fetchData = () => {

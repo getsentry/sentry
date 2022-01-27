@@ -1,4 +1,4 @@
-import AutoSelectText from 'app/components/autoSelectText';
+import AutoSelectText from 'sentry/components/autoSelectText';
 
 export default {
   title: 'Utilities/Text/Auto Select',

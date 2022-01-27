@@ -2,9 +2,9 @@ import {useRef} from 'react';
 import {useHotkeys} from 'react-hotkeys-hook';
 import styled from '@emotion/styled';
 
-import Search from 'app/components/search';
-import {IconSearch} from 'app/icons';
-import {t} from 'app/locale';
+import Search from 'sentry/components/search';
+import {IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 const MIN_SEARCH_LENGTH = 1;
 const MAX_RESULTS = 10;

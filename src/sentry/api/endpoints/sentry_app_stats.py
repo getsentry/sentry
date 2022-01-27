@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import StatsMixin
@@ -9,7 +10,7 @@ from sentry.models import SentryAppInstallation
 class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
     permission_classes = (SentryAppStatsPermission,)
 
-    def get(self, request, sentry_app):
+    def get(self, request: Request, sentry_app) -> Response:
         """
         :qparam float since
         :qparam float until

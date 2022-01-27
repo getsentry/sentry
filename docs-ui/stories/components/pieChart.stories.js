@@ -1,4 +1,4 @@
-import PieChart from 'app/components/charts/pieChart';
+import PieChart from 'sentry/components/charts/pieChart';
 
 export default {
   title: 'Components/Data Visualization/Charts/Pie Chart',
@@ -7,7 +7,7 @@ export default {
 
 export const _PieChart = () => (
   <PieChart
-    startDate={new Date()}
+    selectOnRender
     series={[
       {
         seriesName: 'Browsers',

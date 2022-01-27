@@ -27,6 +27,8 @@ def get_unreal_crash_apple_file():
 class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
     # `~/.sentry/config.yml` and run `sentry devservices up`
+    # Also running locally, it might be necessary to set the
+    # `system.internal-url-prefix` option instead of `system.url-prefix`.
 
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):

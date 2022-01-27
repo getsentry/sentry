@@ -4,27 +4,27 @@ import range from 'lodash/range';
 import moment from 'moment';
 import * as qs from 'query-string';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import * as Layout from 'app/components/layouts/thirds';
-import Link from 'app/components/links/link';
-import {t, tn} from 'app/locale';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
+import {t, tn} from 'sentry/locale';
 import {
-  GlobalSelection,
   Group,
   GroupStats,
   Organization,
+  PageFilters,
   SavedQueryVersions,
-} from 'app/types';
-import {getUtcDateString} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import useApi from 'app/utils/useApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import Input from 'app/views/settings/components/forms/controls/input';
+} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import useApi from 'sentry/utils/useApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
-  selection: GlobalSelection;
+  selection: PageFilters;
   params: {orgId: string};
   organization: Organization;
 };
@@ -201,7 +201,7 @@ function SessionPercentWrapper(props: Props) {
   );
 }
 
-export default withGlobalSelection(withOrganization(SessionPercentWrapper));
+export default withPageFilters(withOrganization(SessionPercentWrapper));
 
 const StyledInput = styled(Input)`
   width: 100px;

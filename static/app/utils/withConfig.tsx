@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import ConfigStore from 'app/stores/configStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
-import {Config} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {Config} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedConfigProps = {
   config: Config;

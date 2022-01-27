@@ -4,6 +4,7 @@ from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_text
 from rest_framework.authentication import BasicAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.request import Request
 from sentry_relay import UnpackError
 
 from sentry import options
@@ -70,14 +71,14 @@ def relay_from_id(request, relay_id):
 
 
 class QuietBasicAuthentication(BasicAuthentication):
-    def authenticate_header(self, request):
+    def authenticate_header(self, request: Request):
         return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
 class StandardAuthentication(QuietBasicAuthentication):
     token_name = None
 
-    def authenticate(self, request):
+    def authenticate(self, request: Request):
         auth = get_authorization_header(request).split()
 
         if not auth or auth[0].lower() != self.token_name:
@@ -94,7 +95,7 @@ class StandardAuthentication(QuietBasicAuthentication):
 
 
 class RelayAuthentication(BasicAuthentication):
-    def authenticate(self, request):
+    def authenticate(self, request: Request):
         relay_id = get_header_relay_id(request)
         relay_sig = get_header_relay_signature(request)
         if not relay_id:
@@ -125,6 +126,8 @@ class RelayAuthentication(BasicAuthentication):
 
 
 class ApiKeyAuthentication(QuietBasicAuthentication):
+    token_name = b"basic"
+
     def authenticate_credentials(self, userid, password, request=None):
         # We don't use request, but it needs to be passed through to DRF 3.7+.
         if password:
@@ -154,7 +157,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     For example, the request to exchange a Grant Code for an Api Token.
     """
 
-    def authenticate(self, request):
+    def authenticate(self, request: Request):
         if not request.json_body:
             raise AuthenticationFailed("Invalid request")
 
@@ -183,7 +186,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 class TokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
-    def authenticate_credentials(self, request, token_str):
+    def authenticate_credentials(self, request: Request, token_str):
         token = SystemToken.from_request(request, token_str)
         try:
             token = (
@@ -215,7 +218,7 @@ class TokenAuthentication(StandardAuthentication):
 class DSNAuthentication(StandardAuthentication):
     token_name = b"dsn"
 
-    def authenticate_credentials(self, request, token):
+    def authenticate_credentials(self, request: Request, token):
         try:
             key = ProjectKey.from_dsn(token)
         except ProjectKey.DoesNotExist:

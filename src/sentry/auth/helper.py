@@ -1,10 +1,13 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Optional, Tuple
+from functools import cached_property
+from typing import Any, Dict, Mapping, Optional, Tuple, Union
 from uuid import uuid4
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.http import HttpResponseRedirect
@@ -18,6 +21,7 @@ from django.views import View
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
+from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
     get_verification_value_from_key,
@@ -34,7 +38,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     User,
-    UserEmail,
 )
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
@@ -80,20 +83,46 @@ class AuthHelperSessionStore(PipelineSessionStore):
         self.request.session.modified = True
 
 
-Identity = Mapping[str, Any]
+def using_okta_migration_workaround(
+    organization: Organization, user: User, auth_provider: Optional[AuthProvider]
+) -> bool:
+    # XXX(leedongwei): Workaround for migrating Okta instance
+    # TODO: Delete after workaround is not needed
+    has_flag = features.has("organizations:sso-migration", organization, actor=user)
+    has_provider = auth_provider and (auth_provider.provider in ("okta", "saml2"))
+    return has_flag and has_provider
 
 
-@dataclass(eq=True, frozen=True)
+@dataclass
 class AuthIdentityHandler:
 
     auth_provider: Optional[AuthProvider]
     provider: Provider
     organization: Organization
     request: HttpRequest
+    identity: Mapping[str, Any]
 
-    @property
-    def user(self) -> Any:
+    @cached_property
+    def user(self) -> Union[User, AnonymousUser]:
+        email = self.identity.get("email")
+        if email:
+            try:
+                user = resolve_email_to_user(email)
+            except AmbiguousUserFromEmail as e:
+                user = e.users[0]
+                self.warn_about_ambiguous_email(email, e.users, user)
+            if user is not None:
+                return user
         return self.request.user
+
+    @staticmethod
+    def warn_about_ambiguous_email(email: str, users: Tuple[User], chosen_user: User):
+        with sentry_sdk.push_scope() as scope:
+            scope.level = "warning"
+            scope.set_tag("email", email)
+            scope.set_extra("user_ids", [user.id for user in users])
+            scope.set_extra("chosen_user", chosen_user.id)
+            sentry_sdk.capture_message("Handling identity from ambiguous email address")
 
     class _NotCompletedSecurityChecks(Exception):
         pass
@@ -119,13 +148,12 @@ class AuthIdentityHandler:
         self,
         state: AuthHelperSessionStore,
         auth_identity: AuthIdentity,
-        identity: Identity,
     ) -> HttpResponseRedirect:
         # TODO(dcramer): this is very similar to attach
         now = timezone.now()
         auth_identity.update(
             data=self.provider.update_identity(
-                new_data=identity.get("data", {}), current_data=auth_identity.data
+                new_data=self.identity.get("data", {}), current_data=auth_identity.data
             ),
             last_verified=now,
             last_synced=now,
@@ -156,7 +184,7 @@ class AuthIdentityHandler:
             tags={
                 "provider": self.provider.key,
                 "organization_id": self.organization.id,
-                "user_id": self.user.id,
+                "user_id": user.id,
             },
             skip_internal=False,
             sample_rate=1.0,
@@ -164,7 +192,7 @@ class AuthIdentityHandler:
 
         if not is_active_superuser(self.request):
             # set activeorg to ensure correct redirect upon logging in
-            self.request.session["activeorg"] = self.organization.slug
+            auth.set_active_org(self.request, self.organization.slug)
         return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
     def _handle_new_membership(self, auth_identity: AuthIdentity) -> Optional[OrganizationMember]:
@@ -225,16 +253,12 @@ class AuthIdentityHandler:
             return None
 
     @transaction.atomic
-    def handle_attach_identity(
-        self,
-        identity: Identity,
-        member: Optional[OrganizationMember] = None,
-    ) -> AuthIdentity:
+    def handle_attach_identity(self, member: Optional[OrganizationMember] = None) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
         # prioritize identifying by the SSO provider's user ID
-        auth_identity = self._get_auth_identity(ident=identity["id"])
+        auth_identity = self._get_auth_identity(ident=self.identity["id"])
         if auth_identity is None:
             # otherwise look for an already attached identity
             # this can happen if the SSO provider's internal ID changes
@@ -245,8 +269,8 @@ class AuthIdentityHandler:
             auth_identity = AuthIdentity.objects.create(
                 auth_provider=self.auth_provider,
                 user=self.user,
-                ident=identity["id"],
-                data=identity.get("data", {}),
+                ident=self.identity["id"],
+                data=self.identity.get("data", {}),
             )
         else:
             auth_is_new = False
@@ -263,9 +287,9 @@ class AuthIdentityHandler:
             now = timezone.now()
             auth_identity.update(
                 user=self.user,
-                ident=identity["id"],
+                ident=self.identity["id"],
                 data=self.provider.update_identity(
-                    new_data=identity.get("data", {}), current_data=auth_identity.data
+                    new_data=self.identity.get("data", {}), current_data=auth_identity.data
                 ),
                 last_verified=now,
                 last_synced=now,
@@ -279,8 +303,8 @@ class AuthIdentityHandler:
                     "user_id": self.user.id,
                     "auth_identity_user_id": auth_identity.user.id,
                     "auth_provider_id": self.auth_provider.id,
-                    "idp_identity_id": identity["id"],
-                    "idp_identity_email": identity.get("email"),
+                    "idp_identity_id": self.identity["id"],
+                    "idp_identity_email": self.identity.get("email"),
                 },
             )
 
@@ -337,22 +361,6 @@ class AuthIdentityHandler:
         except OrganizationMember.DoesNotExist:
             return self._handle_new_membership(auth_identity)
 
-    @staticmethod
-    def _get_user(identity: Identity) -> Optional[User]:
-        email = identity.get("email")
-        if email is None:
-            return None
-
-        # TODO(dcramer): its possible they have multiple accounts and at
-        # least one is managed (per the check below)
-        try:
-            return User.objects.filter(
-                id__in=UserEmail.objects.filter(email__iexact=email).values("user"),
-                is_active=True,
-            ).first()
-        except IndexError:
-            return None
-
     def _respond(
         self,
         template: str,
@@ -382,18 +390,28 @@ class AuthIdentityHandler:
 
         return response
 
-    def has_verified_account(self, identity: Identity, verification_value: Dict[str, Any]) -> bool:
-        acting_user = self._get_user(identity)
-
+    def has_verified_account(self, verification_value: Dict[str, Any]) -> bool:
         return (
-            verification_value["email"] == identity["email"]
-            and verification_value["user_id"] == acting_user.id
+            verification_value["email"] == self.identity["email"]
+            and verification_value["user_id"] == self.user.id
         )
+
+    @property
+    def _logged_in_user(self) -> Optional[User]:
+        """The user, if they have authenticated on this session."""
+        return self.request.user if self.request.user.is_authenticated else None
+
+    @property
+    def _app_user(self) -> Optional[User]:
+        """The user, if they are represented persistently in our app."""
+        return self.user if isinstance(self.user, User) else None
+
+    def _has_usable_password(self):
+        return self._app_user and self._app_user.has_usable_password()
 
     def handle_unknown_identity(
         self,
         state: AuthHelperSessionStore,
-        identity: Identity,
     ) -> HttpResponseRedirect:
         """
         Flow is activated upon a user logging in to where an AuthIdentity is
@@ -411,55 +429,66 @@ class AuthIdentityHandler:
         - Should I create a new user based on this identity?
         """
         op = self.request.POST.get("op")
-        if not self.user.is_authenticated:
-            acting_user = self._get_user(identity)
-            login_form = AuthenticationForm(
+        login_form = (
+            None
+            if self._logged_in_user
+            else AuthenticationForm(
                 self.request,
                 self.request.POST if self.request.POST.get("op") == "login" else None,
-                initial={"username": acting_user.username if acting_user else None},
+                initial={"username": self._app_user and self._app_user.username},
             )
-        else:
-            acting_user = self.user
-            login_form = None
+        )
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False
         if self.request.session.get("confirm_account_verification_key"):
             verification_key = self.request.session.get("confirm_account_verification_key")
             verification_value = get_verification_value_from_key(verification_key)
             if verification_value:
-                is_account_verified = self.has_verified_account(identity, verification_value)
+                is_account_verified = self.has_verified_account(verification_value)
 
-        if acting_user and identity.get("email_verified") or is_account_verified:
+        is_new_account = not self.user.is_authenticated  # stateful
+        if self._app_user and self.identity.get("email_verified") or is_account_verified:
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
             has_membership = OrganizationMember.objects.filter(
-                user=acting_user, organization=self.organization
+                user=self._app_user, organization=self.organization
             ).exists()
             if has_membership:
                 try:
-                    self._login(acting_user)
+                    self._login(self.user)
                 except self._NotCompletedSecurityChecks:
-                    # adding is_account_verified to the check below in order to redirect to 2fa when the user migrates their idp but has 2fa enabled, otherwise it would stop them from linking their sso provider
-                    if acting_user.has_usable_password() or is_account_verified:
+                    # adding is_account_verified to the check below in order to redirect
+                    # to 2fa when the user migrates their idp but has 2fa enabled,
+                    # otherwise it would stop them from linking their sso provider
+                    if (
+                        self._has_usable_password()
+                        or is_account_verified
+                        or using_okta_migration_workaround(
+                            self.organization, self.user, self.auth_provider
+                        )
+                    ):
                         return self._post_login_redirect()
                     else:
-                        acting_user = None
+                        is_new_account = True
                 else:
                     # assume they've confirmed they want to attach the identity
                     op = "confirm"
+            elif is_account_verified:
+                op = "confirm"
             else:
                 # force them to create a new account
-                acting_user = None
-        # without a usable password they can't login, so let's clear the acting_user
-        elif acting_user and not acting_user.has_usable_password():
-            acting_user = None
+                is_new_account = True
+        # without a usable password they can't login, so default to a new account
+        elif not self._has_usable_password():
+            is_new_account = True
 
-        if op == "confirm" and self.user.is_authenticated:
-            auth_identity = self.handle_attach_identity(identity)
+        auth_identity = None
+        if op == "confirm" and self.user.is_authenticated or is_account_verified:
+            auth_identity = self.handle_attach_identity()
         elif op == "newuser":
-            auth_identity = self.handle_new_user(identity)
-        elif op == "login" and not self.user.is_authenticated:
+            auth_identity = self.handle_new_user()
+        elif op == "login" and not self._logged_in_user:
             # confirm authentication, login
             op = None
             if login_form.is_valid():
@@ -480,14 +509,14 @@ class AuthIdentityHandler:
             op = None
 
         if not op:
-            existing_user, template = self._dispatch_to_confirmation(identity)
+            existing_user, template = self._dispatch_to_confirmation(is_new_account)
 
             context = {
-                "identity": identity,
+                "identity": self.identity,
                 "provider": self.provider_name,
-                "identity_display_name": identity.get("name") or identity.get("email"),
-                "identity_identifier": identity.get("email") or identity.get("id"),
-                "existing_user": existing_user or acting_user,
+                "identity_display_name": self.identity.get("name") or self.identity.get("email"),
+                "identity_identifier": self.identity.get("email") or self.identity.get("id"),
+                "existing_user": existing_user,
             }
             if login_form:
                 context["login_form"] = login_form
@@ -505,8 +534,7 @@ class AuthIdentityHandler:
         state.clear()
 
         if not is_active_superuser(self.request):
-            # set activeorg to ensure correct redirect upon logging in
-            self.request.session["activeorg"] = self.organization.slug
+            auth.set_active_org(self.request, self.organization.slug)
         return self._post_login_redirect()
 
     @property
@@ -517,28 +545,29 @@ class AuthIdentityHandler:
             # A blank character is needed to prevent an HTML span from collapsing
             return " "
 
-    def _dispatch_to_confirmation(self, identity: Identity) -> Tuple[Optional[User], str]:
-        if self.user.is_authenticated:
-            return self.user, "auth-confirm-link"
+    def _dispatch_to_confirmation(self, is_new_account: bool) -> Tuple[Optional[User], str]:
+        if self._logged_in_user:
+            return self._logged_in_user, "auth-confirm-link"
 
         if features.has("organizations:idp-automatic-migration", self.organization):
-            existing_user = self._get_user(identity)
-            if existing_user and not existing_user.has_usable_password():
+            if self._app_user and not self._has_usable_password():
                 send_one_time_account_confirm_link(
-                    existing_user,
+                    self._app_user,
                     self.organization,
                     self.auth_provider,
-                    identity["email"],
-                    identity["id"],
+                    self.identity["email"],
+                    self.identity["id"],
                 )
-                return existing_user, "auth-confirm-account"
+                return self.user, "auth-confirm-account"
 
         self.request.session.set_test_cookie()
-        return None, "auth-confirm-identity"
+        return None if is_new_account else self.user, "auth-confirm-identity"
 
-    def handle_new_user(self, identity: Identity) -> AuthIdentity:
+    def handle_new_user(self) -> AuthIdentity:
         user = User.objects.create(
-            username=uuid4().hex, email=identity["email"], name=identity.get("name", "")[:200]
+            username=uuid4().hex,
+            email=self.identity["email"],
+            name=self.identity.get("name", "")[:200],
         )
 
         if settings.TERMS_URL and settings.PRIVACY_URL:
@@ -549,12 +578,12 @@ class AuthIdentityHandler:
                 auth_identity = AuthIdentity.objects.create(
                     auth_provider=self.auth_provider,
                     user=user,
-                    ident=identity["id"],
-                    data=identity.get("data", {}),
+                    ident=self.identity["id"],
+                    data=self.identity.get("data", {}),
                 )
         except IntegrityError:
-            auth_identity = self._get_auth_identity(ident=identity["id"])
-            auth_identity.update(user=user, data=identity.get("data", {}))
+            auth_identity = self._get_auth_identity(ident=self.identity["id"])
+            auth_identity.update(user=user, data=self.identity.get("data", {}))
 
         user.send_confirm_emails(is_new_user=True)
         provider = self.auth_provider.provider if self.auth_provider else None
@@ -674,17 +703,18 @@ class AuthHelper(Pipeline):
             response = self._finish_login_pipeline(identity)
         elif self.state.flow == self.FLOW_SETUP_PROVIDER:
             response = self._finish_setup_pipeline(identity)
+        else:
+            raise Exception(f"Unrecognized flow value: {self.state.flow}")
 
         return response
 
-    @property
-    def auth_handler(self):
+    def auth_handler(self, identity: Mapping[str, Any]):
         return AuthIdentityHandler(
-            self.provider_model, self.provider, self.organization, self.request
+            self.provider_model, self.provider, self.organization, self.request, identity
         )
 
     @transaction.atomic
-    def _finish_login_pipeline(self, identity: Identity):
+    def _finish_login_pipeline(self, identity: Mapping[str, Any]):
         """
         The login flow executes both with anonymous and authenticated users.
 
@@ -720,11 +750,11 @@ class AuthHelper(Pipeline):
                 except AuthIdentity.DoesNotExist:
                     auth_identity = None
 
+            auth_handler = self.auth_handler(identity)
             if not auth_identity:
-                # XXX(leedongwei): Workaround for migrating Okta instance
-                if features.has(
-                    "organizations:sso-migration", self.organization, actor=self.request.user
-                ) and (auth_provider.provider == "okta" or auth_provider.provider == "saml2"):
+                if using_okta_migration_workaround(
+                    self.organization, self.request.user, auth_provider
+                ):
                     identity["email_verified"] = True
 
                     logger.info(
@@ -738,7 +768,7 @@ class AuthHelper(Pipeline):
                         },
                     )
 
-                return self.auth_handler.handle_unknown_identity(self.state, identity)
+                return auth_handler.handle_unknown_identity(self.state)
 
             # If the User attached to this AuthIdentity is not active,
             # we want to clobber the old account and take it over, rather than
@@ -747,13 +777,13 @@ class AuthHelper(Pipeline):
                 # Current user is also not logged in, so we have to
                 # assume unknown.
                 if not self.request.user.is_authenticated:
-                    return self.auth_handler.handle_unknown_identity(self.state, identity)
-                auth_identity = self.auth_handler.handle_attach_identity(identity)
+                    return auth_handler.handle_unknown_identity(self.state)
+                auth_identity = auth_handler.handle_attach_identity()
 
-            return self.auth_handler.handle_existing_identity(self.state, auth_identity, identity)
+            return auth_handler.handle_existing_identity(self.state, auth_identity)
 
     @transaction.atomic
-    def _finish_setup_pipeline(self, identity: Identity):
+    def _finish_setup_pipeline(self, identity: Mapping[str, Any]):
         """
         The setup flow creates the auth provider as well as an identity linked
         to the active user.
@@ -781,7 +811,7 @@ class AuthHelper(Pipeline):
             organization=self.organization, provider=self.provider.key, config=config
         )
 
-        self.auth_handler.handle_attach_identity(identity, om)
+        self.auth_handler(identity).handle_attach_identity(om)
 
         auth.mark_sso_complete(request, self.organization.id)
 

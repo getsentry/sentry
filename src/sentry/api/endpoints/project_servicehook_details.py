@@ -1,5 +1,7 @@
 from django.db import transaction
 from rest_framework import status
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -10,7 +12,7 @@ from sentry.models import AuditLogEntryEvent, ServiceHook
 
 
 class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
-    def get(self, request, project, hook_id):
+    def get(self, request: Request, project, hook_id) -> Response:
         """
         Retrieve a Service Hook
         ```````````````````````
@@ -30,7 +32,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
         return self.respond(serialize(hook, request.user))
 
-    def put(self, request, project, hook_id):
+    def put(self, request: Request, project, hook_id) -> Response:
         """
         Update a Service Hook
         `````````````````````
@@ -83,7 +85,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
 
         return self.respond(serialize(hook, request.user))
 
-    def delete(self, request, project, hook_id):
+    def delete(self, request: Request, project, hook_id) -> Response:
         """
         Remove a Service Hook
         `````````````````````

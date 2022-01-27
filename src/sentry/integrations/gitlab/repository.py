@@ -1,23 +1,10 @@
-import logging
-
-from sentry.models import Integration
-from sentry.plugins import providers
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.shared_integrations.exceptions import ApiError
 
 
-class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
+class GitlabRepositoryProvider(IntegrationRepositoryProvider):
     name = "Gitlab"
-    logger = logging.getLogger("sentry.integrations.gitlab")
-
-    def get_installation(self, integration_id, organization_id):
-        if integration_id is None:
-            raise IntegrationError(f"{self.name} requires an integration id.")
-
-        integration_model = Integration.objects.get(
-            id=integration_id, organizations=organization_id, provider="gitlab"
-        )
-
-        return integration_model.get_installation(organization_id)
+    repo_provider = "gitlab"
 
     def get_repository_data(self, organization, config):
         installation = self.get_installation(config.get("installation"), organization.id)
@@ -29,7 +16,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         try:
             project = client.get_project(repo_id)
         except Exception as e:
-            installation.raise_error(e)
+            raise installation.raise_error(e)
         config.update(
             {
                 "instance": instance,
@@ -46,11 +33,10 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()
-        hook_id = None
         try:
             hook_id = client.create_project_webhook(data["project_id"])
         except Exception as e:
-            installation.raise_error(e)
+            raise installation.raise_error(e)
         return {
             "name": data["name"],
             "external_id": data["external_id"],
@@ -73,10 +59,10 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         except ApiError as e:
             if e.code == 404:
                 return
-            installation.raise_error(e)
+            raise installation.raise_error(e)
 
     def compare_commits(self, repo, start_sha, end_sha):
-        """Fetch the commit list and diffed files between two shas"""
+        """Fetch the commit list and diffed files between two SHAs"""
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         try:
@@ -87,7 +73,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
                 res = client.compare_commits(repo.config["project_id"], start_sha, end_sha)
                 return self._format_commits(client, repo, res["commits"])
         except Exception as e:
-            installation.raise_error(e)
+            raise installation.raise_error(e)
 
     def _format_commits(self, client, repo, commit_list):
         """Convert GitLab commits into our internal format"""

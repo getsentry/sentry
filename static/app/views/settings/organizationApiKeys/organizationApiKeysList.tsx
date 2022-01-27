@@ -2,19 +2,19 @@ import {Fragment} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import AlertLink from 'app/components/alertLink';
-import AutoSelectText from 'app/components/autoSelectText';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import {PanelTable} from 'app/components/panels';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {inputStyles} from 'app/styles/input';
-import recreateRoute from 'app/utils/recreateRoute';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import AlertLink from 'sentry/components/alertLink';
+import AutoSelectText from 'sentry/components/autoSelectText';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
+import {PanelTable} from 'sentry/components/panels';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {inputStyles} from 'sentry/styles/input';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {DeprecatedApiKey} from './types';
 

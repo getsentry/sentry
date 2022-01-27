@@ -1,3 +1,4 @@
+import logging
 from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Union
@@ -5,6 +6,7 @@ from typing import Dict, Optional, Union
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
+from snuba_sdk.legacy import json_to_snql
 
 from sentry import analytics, quotas
 from sentry.auth.access import SystemAccess
@@ -34,7 +36,7 @@ from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.fields import resolve_field
 from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.entity_subscription import get_entity_subscription_for_dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -44,8 +46,8 @@ from sentry.snuba.subscriptions import (
     create_snuba_query,
     update_snuba_query,
 )
-from sentry.snuba.tasks import build_snuba_filter
-from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, is_measurement
+from sentry.utils import json, metrics
+from sentry.utils.snuba import is_measurement, raw_snql_query
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -55,6 +57,8 @@ NOT_SET = object()
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
+
+logger = logging.getLogger(__name__)
 
 
 class AlreadyDeletedError(Exception):
@@ -275,7 +279,9 @@ def delete_comment(activity):
     return activity.delete()
 
 
-def build_incident_query_params(incident, start=None, end=None, windowed_stats=False):
+def build_incident_query_params(
+    incident, entity_subscription, start=None, end=None, windowed_stats=False
+):
     params = {}
     params["start"], params["end"] = calculate_incident_time_range(
         incident, start, end, windowed_stats=windowed_stats
@@ -288,23 +294,26 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
         params["project_id"] = project_ids
 
     snuba_query = incident.alert_rule.snuba_query
-    snuba_filter = build_snuba_filter(
-        QueryDatasets(snuba_query.dataset),
+    snuba_filter = entity_subscription.build_snuba_filter(
         snuba_query.query,
-        snuba_query.aggregate,
         snuba_query.environment,
-        snuba_query.event_types,
         params=params,
     )
+    time_conditions = [
+        [entity_subscription.time_col, ">=", snuba_filter.start],
+        [entity_subscription.time_col, "<", snuba_filter.end],
+    ]
 
     return {
-        "dataset": Dataset(snuba_query.dataset),
-        "start": snuba_filter.start,
-        "end": snuba_filter.end,
-        "conditions": snuba_filter.conditions,
+        "dataset": snuba_query.dataset,
+        "project": project_ids,
+        "project_id": project_ids,
+        "conditions": snuba_filter.conditions + time_conditions,
         "filter_keys": snuba_filter.filter_keys,
         "having": [],
         "aggregations": snuba_filter.aggregations,
+        "limit": 10000,
+        **entity_subscription.get_entity_extra_params(),
     }
 
 
@@ -349,37 +358,60 @@ def get_incident_aggregates(
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     windowed_stats: bool = False,
-    use_alert_aggregate: bool = False,
-    dataset: QueryDatasets = QueryDatasets.EVENTS,
 ) -> Dict[str, Union[float, int]]:
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
-    If `use_alert_aggregate` is True, calculates just the aggregate that the alert is
-    for, and returns as the `count` key.
-    If False, returns two values:
-    - count: Total count of events
-    - unique_users: Total number of unique users
     """
-    query_params = build_incident_query_params(incident, start, end, windowed_stats)
-    if dataset == QueryDatasets.SESSIONS:
-        query_params["aggregations"][0][2] = "count"
-        if not use_alert_aggregate:
-            query_params["aggregations"][1] = ("identity", "users", "unique_users")
-        snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
-        results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
-        if use_alert_aggregate:
-            results[0]["data"][0]["count"] = round((1 - results[0]["data"][0]["count"]) * 100, 3)
-    else:
-        if not use_alert_aggregate:
-            query_params["aggregations"] = [
-                ("count()", "", "count"),
-                ("uniq", "tags[sentry:user]", "unique_users"),
-            ]
-        else:
-            query_params["aggregations"][0][2] = "count"
-        snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
-        results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
-    return results[0]["data"][0]
+    snuba_query = incident.alert_rule.snuba_query
+    entity_subscription = get_entity_subscription_for_dataset(
+        dataset=QueryDatasets(snuba_query.dataset),
+        aggregate=snuba_query.aggregate,
+        time_window=snuba_query.time_window,
+        extra_fields={"org_id": incident.organization.id, "event_types": snuba_query.event_types},
+    )
+
+    query_params = build_incident_query_params(
+        incident, entity_subscription, start, end, windowed_stats
+    )
+    query_params["aggregations"][0][2] = "count"
+
+    try:
+        snql_query = json_to_snql(query_params, entity_subscription.entity_key.value)
+        snql_query.validate()
+    except Exception as e:
+        logger.error(
+            "incidents.get_incident_aggregates.snql.parsing.error",
+            extra={
+                "error": str(e),
+                "params": json.dumps(query_params),
+                "dataset": snuba_query.dataset,
+            },
+        )
+        metrics.incr(
+            "incidents.get_incident_aggregates.snql.parsing.error",
+            tags={"dataset": snuba_query.dataset, "entity": entity_subscription.entity_key.value},
+        )
+        raise e
+
+    try:
+        results = raw_snql_query(snql_query, referrer="incidents.get_incident_aggregates")
+    except Exception as e:
+        logger.error(
+            "incidents.get_incident_aggregates.snql.query.error",
+            extra={
+                "error": str(e),
+                "params": json.dumps(query_params),
+                "dataset": snuba_query.dataset,
+            },
+        )
+        metrics.incr(
+            "incidents.get_incident_aggregates.snql.query.error",
+            tags={"dataset": snuba_query.dataset, "entity": entity_subscription.entity_key.value},
+        )
+        raise e
+
+    aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
+    return aggregated_result[0]
 
 
 def subscribe_to_incident(incident, user):
@@ -554,7 +586,7 @@ def update_alert_rule(
     dataset=None,
     projects=None,
     name=None,
-    owner=None,
+    owner=NOT_SET,
     query=None,
     aggregate=None,
     time_window=None,
@@ -626,8 +658,10 @@ def update_alert_rule(
         updated_query_fields["dataset"] = dataset
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
-    if owner is not None:
-        updated_fields["owner"] = owner.resolve_to_actor()
+    if owner is not NOT_SET:
+        if owner is not None:
+            owner = owner.resolve_to_actor()
+        updated_fields["owner"] = owner
     if comparison_delta is not NOT_SET:
         resolution = DEFAULT_ALERT_RULE_RESOLUTION
         if comparison_delta is not None:
@@ -1270,7 +1304,9 @@ def get_available_action_integrations_for_org(organization):
         for registration in AlertRuleTriggerAction.get_registered_types()
         if registration.integration_provider is not None
     ]
-    return Integration.objects.filter(organizations=organization, provider__in=providers)
+    return Integration.objects.get_active_integrations(organization.id).filter(
+        provider__in=providers
+    )
 
 
 def get_pagerduty_services(organization, integration_id):
@@ -1329,7 +1365,7 @@ def translate_aggregate_field(aggregate, reverse=False):
 
 def get_slack_actions_with_async_lookups(organization, user, data):
     try:
-        from sentry.incidents.endpoints.serializers import AlertRuleTriggerActionSerializer
+        from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
 
         slack_actions = []
         for trigger in data["triggers"]:

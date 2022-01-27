@@ -1,12 +1,12 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import {Panel} from 'app/components/panels';
-import {IconInfo} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import {Panel} from 'sentry/components/panels';
+import {IconInfo} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type DefaultProps = {
   message: React.ReactNode;
@@ -57,7 +57,7 @@ const StyledAlert = styled(Alert)`
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: min-content auto max-content;
   align-items: center;
 `;

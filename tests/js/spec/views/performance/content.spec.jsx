@@ -4,16 +4,24 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as globalSelection from 'app/actionCreators/globalSelection';
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {OrganizationContext} from 'app/views/organizationContext';
-import PerformanceContent from 'app/views/performance/content';
-import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
-import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
+import * as pageFilters from 'sentry/actionCreators/pageFilters';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import PerformanceContent from 'sentry/views/performance/content';
+import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
+import {vitalAbbreviations} from 'sentry/views/performance/vitalDetail/utils';
 
 const FEATURES = ['transaction-event', 'performance-view'];
+
+function WrappedComponent({organization, location}) {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <PerformanceContent organization={organization} location={location} />
+    </OrganizationContext.Provider>
+  );
+}
 
 function initializeData(projects, query, features = FEATURES) {
   const organization = TestStubs.Organization({
@@ -68,9 +76,9 @@ describe('Performance > Content', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
-    act(() => void TeamStore.loadInitialData([]));
+    act(() => void TeamStore.loadInitialData([], false, null));
     browserHistory.push = jest.fn();
-    jest.spyOn(globalSelection, 'updateDateTime');
+    jest.spyOn(pageFilters, 'updateDateTime');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -254,7 +262,7 @@ describe('Performance > Content', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
-    globalSelection.updateDateTime.mockRestore();
+    pageFilters.updateDateTime.mockRestore();
   });
 
   it('renders basic UI elements', async function () {
@@ -262,7 +270,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -280,6 +288,7 @@ describe('Performance > Content', function () {
     // Chart and Table should render.
     expect(wrapper.find('ChartFooter')).toHaveLength(1);
     expect(wrapper.find('Table')).toHaveLength(1);
+    wrapper.unmount();
   });
 
   it('renders onboarding state when the selected project has no events', async function () {
@@ -290,7 +299,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: [1]});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -304,6 +313,35 @@ describe('Performance > Content', function () {
     // Chart and table should not show.
     expect(wrapper.find('ChartFooter')).toHaveLength(0);
     expect(wrapper.find('Table')).toHaveLength(0);
+    wrapper.unmount();
+  });
+
+  it('renders onboarding state for new landing when the selected project has no events', async function () {
+    const projects = [
+      TestStubs.Project({id: 1, firstTransactionEvent: false}),
+      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+    ];
+    const data = initializeData(projects, {project: [1]}, [
+      ...FEATURES,
+      'performance-landing-widgets',
+    ]);
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+
+    // onboarding should show.
+    expect(wrapper.find('Onboarding')).toHaveLength(1);
+
+    // Chart and table should not show.
+    expect(wrapper.find('ChartFooter')).toHaveLength(0);
+    expect(wrapper.find('Table')).toHaveLength(0);
+    wrapper.unmount();
   });
 
   it('does not render onboarding for "my projects"', async function () {
@@ -314,7 +352,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: ['-1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -323,6 +361,7 @@ describe('Performance > Content', function () {
     await tick();
 
     expect(wrapper.find('Onboarding')).toHaveLength(0);
+    wrapper.unmount();
   });
 
   it('forwards conditions to transaction summary', async function () {
@@ -330,7 +369,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -346,23 +385,26 @@ describe('Performance > Content', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           transaction: '/apple/cart',
-          query: 'sentry:yes transaction.duration:<15m event.type:transaction',
+          query: 'sentry:yes transaction.duration:<15m',
         }),
       })
     );
+    wrapper.unmount();
   });
 
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
-    mountWithTheme(
-      <PerformanceContent
+    const wrapper = mountWithTheme(
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
     await tick();
-    expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
+    wrapper.update();
+    expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
+    wrapper.unmount();
   });
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
@@ -372,7 +414,7 @@ describe('Performance > Content', function () {
     });
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -383,7 +425,7 @@ describe('Performance > Content', function () {
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
 
-    expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
+    expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -394,6 +436,7 @@ describe('Performance > Content', function () {
         },
       })
     );
+    wrapper.unmount();
   });
 
   it('Default page (transactions) without trends feature will not update filters if none are set', async function () {
@@ -403,8 +446,8 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {view: undefined});
 
-    mountWithTheme(
-      <PerformanceContent
+    const wrapper = mountWithTheme(
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -413,13 +456,14 @@ describe('Performance > Content', function () {
     await tick();
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
+    wrapper.unmount();
   });
 
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
 
-    mountWithTheme(
-      <PerformanceContent
+    const wrapper = mountWithTheme(
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -428,13 +472,14 @@ describe('Performance > Content', function () {
     await tick();
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
+    wrapper.unmount();
   });
 
   it('Tags are replaced with trends default query if navigating to trends', async function () {
     const data = initializeTrendsData({query: 'device.family:Mac'}, false);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -453,6 +498,7 @@ describe('Performance > Content', function () {
         },
       })
     );
+    wrapper.unmount();
   });
 
   it('Vitals cards are not shown with overview feature without frontend platform', async function () {
@@ -462,7 +508,7 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -472,6 +518,7 @@ describe('Performance > Content', function () {
 
     const vitalsContainer = wrapper.find('VitalsContainer');
     expect(vitalsContainer).toHaveLength(0);
+    wrapper.unmount();
   });
 
   it('Vitals cards are shown with overview feature with frontend platform project', async function () {
@@ -487,7 +534,7 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
@@ -507,6 +554,7 @@ describe('Performance > Content', function () {
       const link = wrapper.find(selector);
       expect(link).toHaveLength(1);
     }
+    wrapper.unmount();
   });
 
   it('Display Create Sample Transaction Button with feature flag on', async function () {
@@ -517,16 +565,19 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {view: undefined});
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
+      <WrappedComponent
         organization={data.organization}
         location={data.router.location}
       />,
       data.routerContext
     );
+    await tick();
+    wrapper.update();
 
     expect(
       wrapper.find('Button[data-test-id="create-sample-transaction-btn"]').exists()
     ).toBe(true);
+    wrapper.unmount();
   });
 
   it('Displays new landing component with feature flag on', async function () {
@@ -536,17 +587,17 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={data.organization}>
-        <PerformanceContent
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </OrganizationContext.Provider>,
+      <WrappedComponent
+        organization={data.organization}
+        location={data.router.location}
+      />,
       data.routerContext
     );
+    await tick();
 
     expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
       true
     );
+    wrapper.unmount();
   });
 });

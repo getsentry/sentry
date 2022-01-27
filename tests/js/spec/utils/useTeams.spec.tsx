@@ -1,8 +1,8 @@
 import {act, renderHook} from '@testing-library/react-hooks';
 
-import OrganizationStore from 'app/stores/organizationStore';
-import TeamStore from 'app/stores/teamStore';
-import useTeams from 'app/utils/useTeams';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import TeamStore from 'sentry/stores/teamStore';
+import useTeams from 'sentry/utils/useTeams';
 
 describe('useTeams', function () {
   const org = TestStubs.Organization();
@@ -10,7 +10,7 @@ describe('useTeams', function () {
   const mockTeams = [TestStubs.Team()];
 
   it('provides teams from the team store', function () {
-    act(() => void TeamStore.loadInitialData(mockTeams));
+    TeamStore.loadInitialData(mockTeams);
 
     const {result} = renderHook(() => useTeams());
     const {teams} = result.current;
@@ -19,9 +19,8 @@ describe('useTeams', function () {
   });
 
   it('loads more teams when using onSearch', async function () {
-    act(() => void TeamStore.loadInitialData(mockTeams));
-    act(() => void OrganizationStore.onUpdate(org, {replace: true}));
-
+    TeamStore.loadInitialData(mockTeams);
+    OrganizationStore.onUpdate(org, {replace: true});
     const newTeam2 = TestStubs.Team({id: '2', slug: 'test-team2'});
     const newTeam3 = TestStubs.Team({id: '3', slug: 'test-team3'});
 
@@ -59,7 +58,7 @@ describe('useTeams', function () {
   it('provides only the users teams', async function () {
     const userTeams = [TestStubs.Team({isMember: true})];
     const nonUserTeams = [TestStubs.Team({isMember: false})];
-    act(() => void TeamStore.loadInitialData([...userTeams, ...nonUserTeams]));
+    TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
 
     const {result} = renderHook(props => useTeams(props), {
       initialProps: {provideUserTeams: true},
@@ -71,7 +70,7 @@ describe('useTeams', function () {
   });
 
   it('provides only the specified slugs', async function () {
-    act(() => void TeamStore.loadInitialData(mockTeams));
+    TeamStore.loadInitialData(mockTeams);
     const teamFoo = TestStubs.Team({slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
@@ -93,7 +92,7 @@ describe('useTeams', function () {
   });
 
   it('only loads slugs when needed', async function () {
-    act(() => void TeamStore.loadInitialData(mockTeams));
+    TeamStore.loadInitialData(mockTeams);
 
     const {result} = renderHook(props => useTeams(props), {
       initialProps: {slugs: [mockTeams[0].slug]},
@@ -102,5 +101,54 @@ describe('useTeams', function () {
     const {teams, initiallyLoaded} = result.current;
     expect(initiallyLoaded).toBe(true);
     expect(teams).toEqual(expect.arrayContaining(mockTeams));
+  });
+
+  it('can load teams by id', async function () {
+    const requestedTeams = [TestStubs.Team({id: '2', slug: 'requested-team'})];
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'GET',
+      body: requestedTeams,
+    });
+
+    TeamStore.loadInitialData(mockTeams);
+
+    const {result, waitFor} = renderHook(props => useTeams(props), {
+      initialProps: {ids: ['2']},
+    });
+
+    expect(result.current.initiallyLoaded).toBe(false);
+    expect(mockRequest).toHaveBeenCalled();
+
+    await waitFor(() => expect(result.current.teams.length).toBe(1));
+
+    const {teams} = result.current;
+    expect(teams).toEqual(expect.arrayContaining(requestedTeams));
+  });
+
+  it('only loads ids when needed', async function () {
+    TeamStore.loadInitialData(mockTeams);
+
+    const {result} = renderHook(props => useTeams(props), {
+      initialProps: {ids: [mockTeams[0].id]},
+    });
+
+    const {teams, initiallyLoaded} = result.current;
+    expect(initiallyLoaded).toBe(true);
+    expect(teams).toEqual(expect.arrayContaining(mockTeams));
+  });
+
+  it('correctly returns hasMore before and after store update', async function () {
+    TeamStore.reset();
+    const {result, waitFor} = renderHook(() => useTeams());
+
+    const {teams, hasMore} = result.current;
+    expect(hasMore).toBe(null);
+    expect(teams).toEqual(expect.arrayContaining([]));
+
+    act(() => TeamStore.loadInitialData(mockTeams, false, null));
+    await waitFor(() => expect(result.current.teams.length).toBe(1));
+
+    expect(result.current.hasMore).toBe(false);
   });
 });

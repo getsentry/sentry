@@ -1,14 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import NavTabs from 'app/components/navTabs';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {AuthConfig} from 'app/types';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NavTabs from 'sentry/components/navTabs';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AuthConfig} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
 
 import LoginForm from './loginForm';
 import RegisterForm from './registerForm';
@@ -152,7 +152,7 @@ const FormWrapper = styled('div')<{hasAuthProviders: boolean}>`
 const formFooterClass = `
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   justify-items: end;
   border-top: none;

@@ -1,11 +1,11 @@
 from datetime import timedelta
 
 from django.urls import reverse
+from django.utils.translation import ugettext as _
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, get_incident_aggregates
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus, IncidentTrigger
-from sentry.snuba.models import QueryDatasets
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -40,12 +40,10 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
 
     status = INCIDENT_STATUS[incident_status_info(incident, metric_value, action, method)]
 
-    dataset = None
     agg_display_key = alert_rule.snuba_query.aggregate
 
     if CRASH_RATE_ALERT_AGGREGATE_ALIAS in alert_rule.snuba_query.aggregate:
         agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
-        dataset = QueryDatasets.SESSIONS
 
     agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
 
@@ -66,23 +64,23 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
         else:
             start, end = None, None
 
-        get_incident_args = {
-            "incident": incident,
-            "start": start,
-            "end": end,
-            "use_alert_aggregate": True,
-        }
-        if dataset:
-            get_incident_args.update({"dataset": dataset})
-        metric_value = get_incident_aggregates(**get_incident_args)["count"]
+        metric_value = get_incident_aggregates(incident=incident, start=start, end=end).get("count")
     time_window = alert_rule.snuba_query.time_window // 60
 
     if agg_text.startswith("%"):
-        metric_and_agg_text = f"{metric_value}{agg_text}"
+        if metric_value is not None:
+            metric_and_agg_text = f"{metric_value}{agg_text}"
+        else:
+            metric_and_agg_text = f"No{agg_text[1:]}"
     else:
         metric_and_agg_text = f"{metric_value} {agg_text}"
 
-    text = f"{metric_and_agg_text} in the last {time_window} minutes"
+    interval = "minute" if time_window == 1 else "minutes"
+    text = _("%(metric_and_agg_text)s in the last %(time_window)d %(interval)s") % {
+        "metric_and_agg_text": metric_and_agg_text,
+        "time_window": time_window,
+        "interval": interval,
+    }
     if alert_rule.snuba_query.query != "":
         text += f"\nFilter: {alert_rule.snuba_query.query}"
 

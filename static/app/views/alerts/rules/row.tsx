@@ -2,27 +2,27 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
-import Access from 'app/components/acl/access';
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import DateTime from 'app/components/dateTime';
-import DropdownLink from 'app/components/dropdownLink';
-import ErrorBoundary from 'app/components/errorBoundary';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
-import {IconArrow, IconDelete, IconEllipsis, IconSettings} from 'app/icons';
-import {t, tct} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Actor, Organization, Project} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import type {Color} from 'app/utils/theme';
-import {AlertRuleThresholdType} from 'app/views/alerts/incidentRules/types';
+import Access from 'sentry/components/acl/access';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import DateTime from 'sentry/components/dateTime';
+import DropdownLink from 'sentry/components/dropdownLink';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
+import {IconArrow, IconDelete, IconEllipsis, IconSettings} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Actor, Organization, Project} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import type {Color} from 'sentry/utils/theme';
+import {AlertRuleThresholdType} from 'sentry/views/alerts/incidentRules/types';
 
 import AlertBadge from '../alertBadge';
 import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
@@ -186,7 +186,9 @@ function RuleListRow({
         </FlexCenter>
         <AlertNameAndStatus>
           <AlertName>{alertLink}</AlertName>
-          {!isIssueAlert(rule) && renderLastIncidentDate()}
+          <AlertIncidentDate>
+            {!isIssueAlert(rule) && renderLastIncidentDate()}
+          </AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
       <FlexCenter>{renderAlertRuleStatus()}</FlexCenter>
@@ -329,6 +331,10 @@ const AlertName = styled('div')`
   }
 `;
 
+const AlertIncidentDate = styled('div')`
+  color: ${p => p.theme.gray300};
+`;
+
 const ProjectBadgeContainer = styled('div')`
   width: 100%;
 `;
@@ -339,6 +345,7 @@ const ProjectBadge = styled(IdBadge)`
 
 const StyledDateTime = styled(DateTime)`
   font-variant-numeric: tabular-nums;
+  color: ${p => p.theme.gray300};
 `;
 
 const TriggerText = styled('div')`

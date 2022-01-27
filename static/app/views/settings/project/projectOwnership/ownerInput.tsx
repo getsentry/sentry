@@ -2,15 +2,15 @@ import * as React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import {inputStyles} from 'app/styles/input';
-import {Organization, Project, Team} from 'app/types';
-import {defined} from 'app/utils';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {inputStyles} from 'sentry/styles/input';
+import {Organization, Project, Team} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import RuleBuilder from './ruleBuilder';
 

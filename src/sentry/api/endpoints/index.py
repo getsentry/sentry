@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -8,7 +9,7 @@ from sentry.utils.functional import extract_lazy_object
 class IndexEndpoint(Endpoint):
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         if request.user.is_authenticated:
             user = serialize(extract_lazy_object(request.user), request.user)
         else:

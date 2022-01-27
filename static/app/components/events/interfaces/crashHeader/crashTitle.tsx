@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 
 type Props = {
   title: string;

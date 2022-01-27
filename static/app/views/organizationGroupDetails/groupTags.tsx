@@ -3,21 +3,21 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import Count from 'app/components/count';
-import DeviceName from 'app/components/deviceName';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import ExternalLink from 'app/components/links/externalLink';
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Version from 'app/components/version';
-import {t, tct} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Group, TagWithTopValues} from 'app/types';
-import {percent} from 'app/utils';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import Count from 'sentry/components/count';
+import DeviceName from 'sentry/components/deviceName';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Version from 'sentry/components/version';
+import {t, tct} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Group, TagWithTopValues} from 'sentry/types';
+import {percent} from 'sentry/utils';
 
 type Props = AsyncComponent['props'] & {
   baseUrl: string;

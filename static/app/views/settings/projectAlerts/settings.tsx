@@ -1,20 +1,20 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import AlertLink from 'app/components/alertLink';
-import Button from 'app/components/button';
-import {PanelAlert} from 'app/components/panels';
-import PluginList from 'app/components/pluginList';
-import {fields} from 'app/data/forms/projectAlerts';
-import {IconMail} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, Plugin, Project} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import AlertLink from 'sentry/components/alertLink';
+import Button from 'sentry/components/button';
+import {PanelAlert} from 'sentry/components/panels';
+import PluginList from 'sentry/components/pluginList';
+import {fields} from 'sentry/data/forms/projectAlerts';
+import {IconMail} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, Plugin, Project} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type RouteParams = {orgId: string; projectId: string};
 type Props = RouteComponentProps<RouteParams, {}> &

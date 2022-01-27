@@ -1,11 +1,11 @@
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 import {
   BreadcrumbLevelType,
   BreadcrumbType,
   Crumb,
   RawCrumb,
-} from 'app/types/breadcrumbs';
-import {defined} from 'app/utils';
+} from 'sentry/types/breadcrumbs';
+import {defined} from 'sentry/utils';
 
 function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
   if (breadcrumb.type === BreadcrumbType.EXCEPTION) {

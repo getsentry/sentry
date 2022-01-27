@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownButton from 'app/components/dropdownButton';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import {EventGroupingConfig} from 'app/types';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import DropdownButton from 'sentry/components/dropdownButton';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import {EventGroupingConfig} from 'sentry/types';
 
 import {GroupingConfigItem} from '.';
 

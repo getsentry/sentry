@@ -1,4 +1,4 @@
-import {getTeamParams} from 'app/views/alerts/rules/teamFilter';
+import {getTeamParams} from 'sentry/views/alerts/rules/teamFilter';
 
 describe('getTeamParams', () => {
   it('should use default teams', () => {

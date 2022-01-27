@@ -1,51 +1,32 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
-import DropdownMenu from 'app/components/dropdownMenu';
-import HookOrDefault from 'app/components/hookOrDefault';
-import HeaderItem from 'app/components/organizations/headerItem';
-import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
-import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
-import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
-import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconCalendar} from 'app/icons';
-import space from 'app/styles/space';
-import {DateString, Organization} from 'app/types';
-import {defined} from 'app/utils';
-import {analytics} from 'app/utils/analytics';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import HeaderItem from 'sentry/components/organizations/headerItem';
+import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
+import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
+import SelectorItems from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItems';
+import DateSummary from 'sentry/components/organizations/timeRangeSelector/dateSummary';
+import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {IconCalendar} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {DateString, Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {analytics} from 'sentry/utils/analytics';
 import {
+  getDateWithTimezoneInUtc,
+  getInternalDate,
   getLocalToSystem,
   getPeriodAgo,
   getUserTimezone,
   getUtcToSystem,
   parsePeriodToHours,
-} from 'app/utils/dates';
-import getDynamicText from 'app/utils/getDynamicText';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-
-// Strips timezone from local date, creates a new moment date object with timezone
-// Then returns as a Date object
-const getDateWithTimezoneInUtc = (date, utc) =>
-  moment
-    .tz(
-      moment(date).local().format('YYYY-MM-DD HH:mm:ss'),
-      utc ? 'UTC' : getUserTimezone()
-    )
-    .utc()
-    .toDate();
-
-const getInternalDate = (date, utc) => {
-  if (utc) {
-    return getUtcToSystem(date);
-  }
-  return new Date(
-    moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
-  );
-};
+} from 'sentry/utils/dates';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 const DateRangeHook = HookOrDefault({
   hookName: 'component:header-date-range',
@@ -102,7 +83,7 @@ type Props = WithRouterProps & {
   /**
    * Relative date value
    */
-  relative: string;
+  relative: string | null;
 
   /**
    * Override defaults from DEFAULT_RELATIVE_PERIODS
@@ -143,6 +124,11 @@ type Props = WithRouterProps & {
    * Set an optional default value to prefill absolute date with
    */
   defaultAbsolute?: {start?: Date; end?: Date};
+
+  /**
+   * The maximum number of days in the past you can pick
+   */
+  maxPickableDays?: number;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -366,6 +352,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       hint,
       label,
       relativeOptions,
+      maxPickableDays,
     } = this.props;
     const {start, end, relative} = this.state;
 
@@ -435,6 +422,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                       utc={this.state.utc}
                       onChange={this.handleSelectDateRange}
                       onChangeUtc={this.handleUseUtc}
+                      maxPickableDays={maxPickableDays}
                     />
                     <SubmitRow>
                       <MultipleSelectorSubmitRow

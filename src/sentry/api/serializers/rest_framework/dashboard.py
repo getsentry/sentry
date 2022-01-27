@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 from django.db.models import Max
 from rest_framework import serializers
 
+from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns, resolve_equation_list
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -11,6 +13,7 @@ from sentry.models import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetTypes,
 )
 from sentry.search.events.fields import get_function_alias, resolve_field_list
 from sentry.search.events.filter import get_filter
@@ -45,6 +48,37 @@ def is_table_display_type(display_type):
         display_type
         == DashboardWidgetDisplayTypes.as_text_choices()[DashboardWidgetDisplayTypes.TABLE][0]
     )
+
+
+class LayoutField(serializers.Field):
+    STORE_KEYS = {
+        "x",
+        "y",
+        "w",
+        "h",
+        "min_w",
+        "max_w",
+        "min_h",
+        "max_h",
+    }
+
+    def to_internal_value(self, data):
+        if data is None:
+            return None
+
+        layout_to_store = {}
+        for key in self.STORE_KEYS:
+            value = data.get(key)
+            if value is None:
+                continue
+
+            if not isinstance(value, int):
+                raise serializers.ValidationError(f"Expected number for: {key}")
+            layout_to_store[key] = value
+
+        # Store the layout with camel case dict keys because they'll be
+        # served as camel case in outgoing responses anyways
+        return convert_dict_key_case(layout_to_store, snake_to_camel_case)
 
 
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
@@ -91,6 +125,15 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             resolved_equations = []
 
         try:
+            parse_search_query(conditions)
+        except InvalidSearchQuery as err:
+            # We don't know if the widget that this query belongs to is an
+            # Issue widget or Discover widget. Pass the error back to the
+            # Widget serializer to decide if whether or not to raise this
+            # error based on the Widget's type
+            data["issue_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
+
+        try:
             # When using the eps/epm functions, they require an interval argument
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds
@@ -104,14 +147,20 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
             snuba_filter = get_filter(conditions, params=params)
         except InvalidSearchQuery as err:
-            raise serializers.ValidationError({"conditions": f"Invalid conditions: {err}"})
+            data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
+            return data
 
         if orderby:
             snuba_filter.orderby = get_function_alias(orderby)
         try:
             resolve_field_list(fields, snuba_filter, resolved_equations=resolved_equations)
         except InvalidSearchQuery as err:
-            raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
+            # We don't know if the widget that this query belongs to is an
+            # Issue widget or Discover widget. Pass the error back to the
+            # Widget serializer to decide if whether or not to raise this
+            # error based on the Widget's type
+            data["discover_query_error"] = {"fields": f"Invalid fields: {err}"}
+
         return data
 
     def _get_attr(self, data, attr, empty_value=None):
@@ -132,9 +181,16 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     )
     interval = serializers.CharField(required=False, max_length=10)
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
+    widget_type = serializers.ChoiceField(
+        choices=DashboardWidgetTypes.as_text_choices(), required=False
+    )
+    layout = LayoutField(required=False, allow_null=True)
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
+
+    def validate_widget_type(self, widget_type):
+        return DashboardWidgetTypes.get_id_for_type_name(widget_type)
 
     validate_id = validate_id
 
@@ -144,6 +200,27 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         return interval
 
     def validate(self, data):
+        query_errors = []
+        has_query_error = False
+        if data.get("queries"):
+            # Check each query to see if they have an issue or discover error depending on the type of the widget
+            for query in data.get("queries"):
+                if (
+                    data.get("widget_type") == DashboardWidgetTypes.ISSUE
+                    and "issue_query_error" in query
+                ):
+                    query_errors.append(query["issue_query_error"])
+                    has_query_error = True
+                elif (
+                    "widget_type" not in data
+                    or data.get("widget_type") == DashboardWidgetTypes.DISCOVER
+                ) and "discover_query_error" in query:
+                    query_errors.append(query["discover_query_error"])
+                    has_query_error = True
+                else:
+                    query_errors.append({})
+        if has_query_error:
+            raise serializers.ValidationError({"queries": query_errors})
         if not data.get("id"):
             if not data.get("queries"):
                 raise serializers.ValidationError(
@@ -241,7 +318,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             display_type=widget_data["display_type"],
             title=widget_data["title"],
             interval=widget_data.get("interval", "5m"),
+            widget_type=widget_data["widget_type"]
+            if "widget_type" in widget_data
+            else DashboardWidgetTypes.DISCOVER,
             order=order,
+            detail={"layout": widget_data.get("layout")},
         )
         new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
@@ -258,10 +339,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
     def update_widget(self, widget, data, order):
+        prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
+        widget.widget_type = data.get("widget_type", widget.widget_type)
         widget.order = order
+        widget.detail = {"layout": data.get("layout", prev_layout)}
         widget.save()
 
         if "queries" in data:

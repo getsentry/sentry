@@ -116,12 +116,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:chart-unfurls",
-            ]
-        ):
+        with self.feature(["organizations:discover-basic"]):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert (
@@ -155,12 +150,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:chart-unfurls",
-            ]
-        ):
+        with self.feature(["organizations:discover-basic"]):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert (
@@ -195,12 +185,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:chart-unfurls",
-            ]
-        ):
+        with self.feature(["organizations:discover-basic"]):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert (
@@ -235,12 +220,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:chart-unfurls",
-            ]
-        ):
+        with self.feature(["organizations:discover-basic"]):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert (
@@ -296,8 +276,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
-                "organizations:discover-top-events",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
@@ -363,8 +341,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
-                "organizations:discover-top-events",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
@@ -408,8 +384,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
-                "organizations:discover-top-events",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
@@ -428,6 +402,52 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"].keys()) == 2
         first_key = list(chart_data["stats"].keys())[0]
         assert len(chart_data["stats"][first_key]["data"]) == 288
+
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_top_daily_events_renders_bar_chart(self, mock_generate_chart):
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
+            project_id=self.project.id,
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=dailytop5&topEvents=2"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            [
+                "organizations:discover",
+                "organizations:discover-basic",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_DAILY
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "count()"
+        assert len(chart_data["stats"].keys()) == 2
+        first_key = list(chart_data["stats"].keys())[0]
+        # Two buckets
+        assert len(chart_data["stats"][first_key]["data"]) == 2
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_short_url_without_project_ids(self, mock_generate_chart):
@@ -467,7 +487,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
@@ -509,7 +528,6 @@ class UnfurlTest(TestCase):
             [
                 "organizations:discover",
                 "organizations:discover-basic",
-                "organizations:chart-unfurls",
             ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
@@ -555,12 +573,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature(
-            [
-                "organizations:discover-basic",
-                "organizations:chart-unfurls",
-            ]
-        ):
+        with self.feature(["organizations:discover-basic"]):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert (

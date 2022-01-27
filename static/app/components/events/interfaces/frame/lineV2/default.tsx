@@ -1,11 +1,10 @@
-import {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
-import {IconRefresh} from 'app/icons/iconRefresh';
-import {tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Frame} from 'app/types';
-import {defined} from 'app/utils';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
+import {tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Frame} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import DefaultTitle from '../defaultTitle';
 
@@ -17,7 +16,7 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    onMouseDown?: MouseEventHandler<HTMLDivElement>;
+    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
     onClick?: () => void;
     timesRepeated?: number;
   };

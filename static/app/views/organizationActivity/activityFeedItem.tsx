@@ -1,22 +1,22 @@
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
-import ActivityAvatar from 'app/components/activity/item/avatar';
-import CommitLink from 'app/components/commitLink';
-import Duration from 'app/components/duration';
-import IssueLink from 'app/components/issueLink';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import PullRequestLink from 'app/components/pullRequestLink';
-import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
-import VersionHoverCard from 'app/components/versionHoverCard';
-import {t, tct, tn} from 'app/locale';
-import MemberListStore from 'app/stores/memberListStore';
-import TeamStore from 'app/stores/teamStore';
-import space from 'app/styles/space';
-import {Activity, GroupActivity, Organization} from 'app/types';
-import marked from 'app/utils/marked';
+import ActivityAvatar from 'sentry/components/activity/item/avatar';
+import CommitLink from 'sentry/components/commitLink';
+import Duration from 'sentry/components/duration';
+import IssueLink from 'sentry/components/issueLink';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import PullRequestLink from 'sentry/components/pullRequestLink';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {t, tct, tn} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
+import TeamStore from 'sentry/stores/teamStore';
+import space from 'sentry/styles/space';
+import {Activity, GroupActivity, Organization} from 'sentry/types';
+import marked from 'sentry/utils/marked';
 
 const defaultProps = {
   defaultClipped: false,
@@ -386,7 +386,7 @@ class ActivityItem extends Component<Props, State> {
 
 export default styled(ActivityItem)`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: max-content auto;
   position: relative;
   margin: 0;

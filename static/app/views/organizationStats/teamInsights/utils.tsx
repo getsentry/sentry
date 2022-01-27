@@ -1,8 +1,8 @@
 import chunk from 'lodash/chunk';
 import moment from 'moment';
 
-import BaseChart from 'app/components/charts/baseChart';
-import {SeriesDataUnit} from 'app/types/echarts';
+import BaseChart from 'sentry/components/charts/baseChart';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
 
 /**
  * Buckets a week of sequential days into one data unit
@@ -51,8 +51,8 @@ export const barAxisLabel = (
     axisLabel: {
       showMaxLabel: true,
       showMinLabel: true,
-      formatter: (date: number) => {
-        return moment(new Date(date)).format('MMM D');
+      formatter: (date: string) => {
+        return moment(new Date(Number(date))).format('MMM D');
       },
     },
   };

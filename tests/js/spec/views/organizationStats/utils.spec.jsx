@@ -1,10 +1,10 @@
-import {DataCategory} from 'app/types';
+import {DataCategory} from 'sentry/types';
 import {
   BILLION,
   formatUsageWithUnits,
   GIGABYTE,
   MILLION,
-} from 'app/views/organizationStats/utils';
+} from 'sentry/views/organizationStats/utils';
 
 describe('formatUsageWithUnits', function () {
   it('returns correct strings for Errors', function () {

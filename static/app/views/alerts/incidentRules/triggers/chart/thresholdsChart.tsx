@@ -1,26 +1,27 @@
 import {PureComponent} from 'react';
 import color from 'color';
-import {EChartOption} from 'echarts';
+import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
-import AreaChart, {AreaChartSeries} from 'app/components/charts/areaChart';
-import Graphic from 'app/components/charts/components/graphic';
-import {defaultFormatAxisLabel} from 'app/components/charts/components/tooltip';
-import {LineChartSeries} from 'app/components/charts/lineChart';
-import LineSeries from 'app/components/charts/series/lineSeries';
-import space from 'app/styles/space';
-import {GlobalSelection} from 'app/types';
-import {ReactEchartsRef, Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
-import {checkChangeStatus} from 'app/views/alerts/changeAlerts/comparisonMarklines';
+import AreaChart, {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import Graphic from 'sentry/components/charts/components/graphic';
+import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import LineSeries from 'sentry/components/charts/series/lineSeries';
+import CHART_PALETTE from 'sentry/constants/chartPalette';
+import space from 'sentry/styles/space';
+import {PageFilters} from 'sentry/types';
+import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import theme from 'sentry/utils/theme';
+import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
   alertTooltipValueFormatter,
   isSessionAggregate,
   shouldScaleAlertChart,
-} from 'app/views/alerts/utils';
+} from 'sentry/views/alerts/utils';
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
@@ -40,7 +41,7 @@ type Props = DefaultProps & {
   maxValue?: number;
   minValue?: number;
   comparisonSeriesName?: string;
-} & Partial<GlobalSelection['datetime']>;
+} & Partial<PageFilters['datetime']>;
 
 type State = {
   width: number;
@@ -146,7 +147,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
    */
   updateDimensions = () => {
     const chartRef = this.ref?.getEchartsInstance?.();
-    if (!chartRef) {
+    if (!chartRef || !chartRef.getWidth?.()) {
       return;
     }
 
@@ -239,6 +240,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         position: [yAxisSize, position],
         shape: {y1: 1, y2: 1, x1: graphAreaMargin, x2: graphAreaWidth},
         style: LINE_STYLE,
+        silent: true,
         z: 100,
       },
 
@@ -251,6 +253,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             {
               type: 'rect',
               draggable: false,
+              silent: true,
 
               position:
                 isResolution !== isInverted
@@ -355,7 +358,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
           showTimeInTooltip: boolean,
           addSecondsToTimeFormat: boolean,
           bucketSize: number | undefined,
-          seriesParamsOrParam: EChartOption.Tooltip.Format | EChartOption.Tooltip.Format[]
+          seriesParamsOrParam: TooltipComponentFormatterCallbackParams
         ) => {
           const date = defaultFormatAxisLabel(
             value,
@@ -438,9 +441,10 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ])
           ),
         })}
+        colors={CHART_PALETTE[0]}
         series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}
-        additionalSeries={[
-          ...comparisonDataWithoutRecentBucket.map(({data: _data, ...otherSeriesProps}) =>
+        additionalSeries={comparisonDataWithoutRecentBucket.map(
+          ({data: _data, ...otherSeriesProps}) =>
             LineSeries({
               name: comparisonSeriesName,
               data: _data.map(({name, value}) => [name, value]),
@@ -451,8 +455,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
               animationDuration: 0,
               ...otherSeriesProps,
             })
-          ),
-        ]}
+        )}
         onFinished={() => {
           // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
           // any graphics related to the triggers (e.g. the threshold areas + boundaries)

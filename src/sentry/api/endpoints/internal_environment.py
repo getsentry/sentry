@@ -1,6 +1,7 @@
 import sys
 
 from django.conf import settings
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -11,7 +12,7 @@ from sentry.app import env
 class InternalEnvironmentEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         reserved = ("PASSWORD", "SECRET", "KEY")
         config = []
         for k in sorted(dir(settings)):

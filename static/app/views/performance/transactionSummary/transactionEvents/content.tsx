@@ -3,18 +3,18 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Button from 'app/components/button';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import SearchBar from 'app/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import * as Layout from 'app/components/layouts/thirds';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
+import Button from 'sentry/components/button';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import SearchBar from 'sentry/components/events/searchBar';
+import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
 import {SetStateAction} from '../types';
@@ -36,6 +36,15 @@ type Props = {
   setError: SetStateAction<string | undefined>;
 };
 
+const transactionsListTitles = [
+  t('event id'),
+  t('user'),
+  t('operation duration'),
+  t('total duration'),
+  t('trace id'),
+  t('timestamp'),
+];
+
 function EventsContent(props: Props) {
   const {
     location,
@@ -48,15 +57,6 @@ function EventsContent(props: Props) {
   } = props;
 
   const eventView = originalEventView.clone();
-
-  const transactionsListTitles = [
-    t('event id'),
-    t('user'),
-    t('operation duration'),
-    t('total duration'),
-    t('trace id'),
-    t('timestamp'),
-  ];
 
   if (webVital) {
     transactionsListTitles.splice(3, 0, t(webVital));
@@ -102,7 +102,7 @@ function Search(props: Props) {
   } = props;
 
   const handleSearch = (query: string) => {
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });

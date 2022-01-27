@@ -1,5 +1,5 @@
-import IssueList from 'app/components/issueList';
-import {t} from 'app/locale';
+import IssueList from 'sentry/components/issueList';
+import {t} from 'sentry/locale';
 
 import {Monitor} from './types';
 

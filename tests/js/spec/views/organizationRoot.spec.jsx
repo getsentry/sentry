@@ -1,15 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import {setLastRoute} from 'app/actionCreators/navigation';
-import {setActiveProject} from 'app/actionCreators/projects';
-import {OrganizationRoot} from 'app/views/organizationRoot';
+import {setActiveProject} from 'sentry/actionCreators/projects';
+import OrganizationRoot from 'sentry/views/organizationRoot';
 
-jest.mock('app/actionCreators/projects', () => ({
+jest.mock('sentry/actionCreators/projects', () => ({
   setActiveProject: jest.fn(),
-}));
-
-jest.mock('app/actionCreators/navigation', () => ({
-  setLastRoute: jest.fn(),
 }));
 
 describe('OrganizationRoot', function () {
@@ -17,29 +12,5 @@ describe('OrganizationRoot', function () {
     mountWithTheme(<OrganizationRoot location={{}}>{null}</OrganizationRoot>);
 
     expect(setActiveProject).toHaveBeenCalledWith(null);
-  });
-
-  it('calls `setLastRoute` when unmounted', function () {
-    const wrapper = mountWithTheme(
-      <OrganizationRoot location={{pathname: '/org-slug/dashboard/'}}>
-        {null}
-      </OrganizationRoot>
-    );
-
-    wrapper.unmount();
-
-    expect(setLastRoute).toHaveBeenCalledWith('/org-slug/dashboard/');
-  });
-
-  it('calls `setLastRoute` when unmounted with query string', function () {
-    const wrapper = mountWithTheme(
-      <OrganizationRoot location={{pathname: '/org-slug/dashboard/', search: '?test=1'}}>
-        {null}
-      </OrganizationRoot>
-    );
-
-    wrapper.unmount();
-
-    expect(setLastRoute).toHaveBeenCalledWith('/org-slug/dashboard/?test=1');
   });
 });

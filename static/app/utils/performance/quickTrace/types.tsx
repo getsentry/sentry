@@ -1,9 +1,9 @@
-import {EventTag, Measurement} from 'app/types/event';
+import {EventTag, Measurement} from 'sentry/types/event';
 import {
   DiscoverQueryProps,
   GenericChildrenProps,
-} from 'app/utils/discover/genericDiscoverQuery';
-import {Theme} from 'app/utils/theme';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import {Theme} from 'sentry/utils/theme';
 
 /**
  * `EventLite` represents the type of a simplified event from
@@ -71,7 +71,7 @@ export type TraceProps = {
   traceId: string;
   start?: string;
   end?: string;
-  statsPeriod?: string;
+  statsPeriod?: string | null;
 };
 
 export type TraceRequestProps = DiscoverQueryProps & TraceProps;

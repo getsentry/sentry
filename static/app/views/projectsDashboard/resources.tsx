@@ -5,12 +5,12 @@ import breadcrumbsImg from 'sentry-images/spot/breadcrumbs-generic.svg';
 import docsImg from 'sentry-images/spot/code-arguments-tags-mirrored.svg';
 import releasesImg from 'sentry-images/spot/releases.svg';
 
-import PageHeading from 'app/components/pageHeading';
-import ResourceCard from 'app/components/resourceCard';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import PageHeading from 'sentry/components/pageHeading';
+import ResourceCard from 'sentry/components/resourceCard';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 type Props = {
   organization: Organization;
@@ -55,7 +55,7 @@ const ResourcesWrapper = styled('div')`
 const ResourceCards = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));

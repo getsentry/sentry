@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 
-import ProjectActions from 'app/actions/projectActions';
-import TeamActions from 'app/actions/teamActions';
-import {Project, Team} from 'app/types';
+import ProjectActions from 'sentry/actions/projectActions';
+import TeamActions from 'sentry/actions/teamActions';
+import {Project, Team} from 'sentry/types';
 
 import {CommonStoreInterface} from './types';
 

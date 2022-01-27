@@ -1,13 +1,13 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
-import Tooltip from 'app/components/tooltip';
-import {IconFilter} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Frame} from 'app/types';
-import {defined} from 'app/utils';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
+import Tooltip from 'sentry/components/tooltip';
+import {IconFilter} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Frame} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import FunctionName from './functionName';
 import GroupingIndicator from './groupingIndicator';

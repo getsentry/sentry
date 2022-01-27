@@ -1,25 +1,25 @@
 import * as React from 'react';
-import DocumentTitle from 'react-document-title';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import GroupStore from 'app/stores/groupStore';
-import {PageContent} from 'app/styles/organization';
-import {AvatarProject, Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {getMessage, getTitle} from 'app/utils/events';
-import Projects from 'app/utils/projects';
-import recreateRoute from 'app/utils/recreateRoute';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
+import GroupStore from 'sentry/stores/groupStore';
+import {PageContent} from 'sentry/styles/organization';
+import {AvatarProject, Group, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {getMessage, getTitle} from 'sentry/utils/events';
+import Projects from 'sentry/utils/projects';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import withApi from 'sentry/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
@@ -547,8 +547,8 @@ class GroupDetails extends React.Component<Props, State> {
     const {project} = this.state;
 
     return (
-      <DocumentTitle title={this.getTitle()}>
-        <GlobalSelectionHeader
+      <SentryDocumentTitle noSuffix title={this.getTitle()}>
+        <PageFiltersContainer
           skipLoadLastUsed
           forceProject={project}
           showDateSelector={false}
@@ -558,8 +558,8 @@ class GroupDetails extends React.Component<Props, State> {
           showProjectSettingsLink
         >
           <PageContent>{this.renderPageContent()}</PageContent>
-        </GlobalSelectionHeader>
-      </DocumentTitle>
+        </PageFiltersContainer>
+      </SentryDocumentTitle>
     );
   }
 }

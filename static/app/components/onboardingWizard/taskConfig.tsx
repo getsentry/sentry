@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import {taskIsDone} from 'app/components/onboardingWizard/utils';
-import {sourceMaps} from 'app/data/platformCategories';
-import {t} from 'app/locale';
-import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
-import space from 'app/styles/space';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {sourceMaps} from 'sentry/data/platformCategories';
+import {t} from 'sentry/locale';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
+import space from 'sentry/styles/space';
 import {
   OnboardingSupplementComponentProps,
   OnboardingTask,
@@ -14,9 +14,9 @@ import {
   OnboardingTaskKey,
   Organization,
   Project,
-} from 'app/types';
-import EventWaiter from 'app/utils/eventWaiter';
-import withApi from 'app/utils/withApi';
+} from 'sentry/types';
+import EventWaiter from 'sentry/utils/eventWaiter';
+import withApi from 'sentry/utils/withApi';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
@@ -98,7 +98,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: t('Create another project'),
       description: t(
-        'Easy, right? Don’t stop at one. Set up another project to keep things running smoothly in both the frontend and backend.'
+        'Easy, right? Don’t stop at one. Set up another project and send it events to keep things running smoothly in both the frontend and backend.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],

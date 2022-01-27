@@ -1,4 +1,5 @@
-import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import LoadingTriangle from 'sentry/components/loadingTriangle';
 
 export default {
   title: 'Components/Loading Indicators',
@@ -15,13 +16,11 @@ export const All = () => (
       Mini
       <LoadingIndicator mini />
     </div>
-    <div style={{position: 'relative'}}>
+    <div>
       Triangle
-      <LoadingIndicator triangle />
-    </div>
-    <div style={{position: 'relative'}}>
-      Finished
-      <LoadingIndicator finished />
+      <div style={{position: 'relative'}}>
+        <LoadingTriangle />
+      </div>
     </div>
   </div>
 );
@@ -52,7 +51,7 @@ Mini.parameters = {
 
 export const Triangle = () => (
   <div style={{paddingBottom: 300}}>
-    <LoadingIndicator triangle>Loading message</LoadingIndicator>
+    <LoadingTriangle>Loading message</LoadingTriangle>
   </div>
 );
 
@@ -61,21 +60,6 @@ Triangle.parameters = {
   docs: {
     description: {
       story: 'Triangle loading indicator. Be aware it has negative margins.',
-    },
-  },
-};
-
-export const Finished = () => (
-  <div style={{paddingBottom: 300}}>
-    <LoadingIndicator finished>Finished message</LoadingIndicator>
-  </div>
-);
-
-Finished.storyName = 'Finished';
-Finished.parameters = {
-  docs: {
-    description: {
-      story: 'Add finished loading',
     },
   },
 };

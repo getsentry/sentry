@@ -1,32 +1,31 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import DropdownButton from 'app/components/dropdownButton';
-import MenuItem from 'app/components/menuItem';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark} from 'app/icons/iconCheckmark';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import DropdownButton from 'sentry/components/dropdownButton';
+import MenuItem from 'sentry/components/menuItem';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import {
   DynamicSamplingInnerName,
   DynamicSamplingRule,
   DynamicSamplingRules,
-} from 'app/types/dynamicSampling';
-import {defined} from 'app/utils';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import NumberField from 'app/views/settings/components/forms/numberField';
+} from 'sentry/types/dynamicSampling';
+import {defined} from 'sentry/utils';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import NumberField from 'sentry/views/settings/components/forms/numberField';
 
 import Conditions from './conditions';
-import handleXhrErrorResponse from './handleXhrErrorResponse';
-import {isLegacyBrowser} from './utils';
+import {getErrorMessage, isLegacyBrowser} from './utils';
 
 type ConditionsProps = React.ComponentProps<typeof Conditions>['conditions'];
 
@@ -138,11 +137,16 @@ function RuleModal({
       );
       closeModal();
     } catch (error) {
-      convertErrorXhrResponse(handleXhrErrorResponse(error, currentRuleIndex));
+      convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
     }
   }
 
-  function convertErrorXhrResponse(error: ReturnType<typeof handleXhrErrorResponse>) {
+  function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
+    if (typeof error === 'string') {
+      addErrorMessage(error);
+      return;
+    }
+
     switch (error.type) {
       case 'sampleRate':
         setData({...data, errors: {...errors, sampleRate: error.message}});
@@ -297,7 +301,7 @@ export default RuleModal;
 
 const Fields = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 const StyledMenuItem = styled(MenuItem)`

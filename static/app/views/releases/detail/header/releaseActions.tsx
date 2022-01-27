@@ -3,23 +3,23 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {archiveRelease, restoreRelease} from 'app/actionCreators/release';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import MenuItem from 'app/components/menuItem';
-import NavigationButtonGroup from 'app/components/navigationButtonGroup';
-import TextOverflow from 'app/components/textOverflow';
-import Tooltip from 'app/components/tooltip';
-import {IconEllipsis} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Release, ReleaseMeta} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {formatVersion} from 'app/utils/formatters';
+import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import DropdownLink from 'sentry/components/dropdownLink';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import MenuItem from 'sentry/components/menuItem';
+import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
+import TextOverflow from 'sentry/components/textOverflow';
+import Tooltip from 'sentry/components/tooltip';
+import {IconEllipsis} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Release, ReleaseMeta} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {formatVersion} from 'sentry/utils/formatters';
 
 import {isReleaseArchived} from '../../utils';
 
@@ -159,7 +159,7 @@ function ReleaseActions({
       <StyledDropdownLink
         caret={false}
         anchorRight={window.innerWidth > 992}
-        title={<ActionsButton icon={<IconEllipsis />} label={t('Actions')} />}
+        title={<ActionsButton icon={<IconEllipsis />} aria-label={t('Actions')} />}
       >
         {isReleaseArchived(release) ? (
           <Confirm

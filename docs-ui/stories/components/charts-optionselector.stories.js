@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import OptionSelector from 'app/components/charts/optionSelector';
-import space from 'app/styles/space';
+import OptionSelector from 'sentry/components/charts/optionSelector';
+import space from 'sentry/styles/space';
 
 const options = [
   {value: 'all', label: 'All things'},

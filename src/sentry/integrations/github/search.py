@@ -1,13 +1,14 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.github.integration import build_repository_query
-from sentry.models import Integration
+from sentry.models import Integration, Organization
 from sentry.shared_integrations.exceptions import ApiError
 
 
-class GitHubSearchEndpoint(IntegrationEndpoint):
-    def get(self, request, organization, integration_id):
+class GitHubSearchEndpoint(IntegrationEndpoint):  # type: ignore
+    def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
         try:
             integration = Integration.objects.get(organizations=organization, id=integration_id)
         except Integration.DoesNotExist:

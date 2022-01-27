@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import SidebarDropdown from 'app/components/sidebar/sidebarDropdown';
-import ConfigStore from 'app/stores/configStore';
+import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
+import ConfigStore from 'sentry/stores/configStore';
 
 function renderDropdown(props) {
   const user = ConfigStore.get('user');

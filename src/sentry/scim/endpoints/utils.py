@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.negotiation import BaseContentNegotiation
+from rest_framework.request import Request
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models import AuthProvider
@@ -18,7 +19,7 @@ class SCIMFilterError(ValueError):
 class SCIMClientNegotiation(BaseContentNegotiation):
     # SCIM uses the content type "application/json+scim"
     # which is just json for our purposes.
-    def select_parser(self, request, parsers):
+    def select_parser(self, request: Request, parsers):
         """
         Select the first parser in the `.parser_classes` list.
         """
@@ -26,7 +27,7 @@ class SCIMClientNegotiation(BaseContentNegotiation):
             if parser.media_type in SCIM_CONTENT_TYPES:
                 return parser
 
-    def select_renderer(self, request, renderers, format_suffix):
+    def select_renderer(self, request: Request, renderers, format_suffix):
         """
         Select the first renderer in the `.renderer_classes` list.
         """
@@ -57,7 +58,7 @@ class SCIMQueryParamSerializer(serializers.Serializer):
 
 
 class OrganizationSCIMPermission(OrganizationPermission):
-    def has_object_permission(self, request, view, organization):
+    def has_object_permission(self, request: Request, view, organization):
         result = super().has_object_permission(request, view, organization)
         # The scim endpoints should only be used in conjunction with a SAML2 integration
         if not result:
@@ -95,7 +96,7 @@ class SCIMEndpoint(OrganizationEndpoint):
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"
 
-    def add_cursor_headers(self, request, response, cursor_result):
+    def add_cursor_headers(self, request: Request, response, cursor_result):
         pass
 
     def list_api_format(self, results, total_results, start_index):
@@ -107,7 +108,7 @@ class SCIMEndpoint(OrganizationEndpoint):
             "Resources": results,
         }
 
-    def get_query_parameters(self, request):
+    def get_query_parameters(self, request: Request):
         serializer = SCIMQueryParamSerializer(data=request.GET)
         if not serializer.is_valid():
             if "filter" in serializer.errors:

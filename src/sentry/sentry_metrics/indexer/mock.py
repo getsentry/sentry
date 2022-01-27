@@ -2,23 +2,25 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, Optional
 
+from sentry.sentry_metrics.sessions import SessionMetricKey
+
 from .base import StringIndexer
 
 _STRINGS = (
-    "abnormal",
     "crashed",
     "environment",
     "errored",
     "healthy",
     "production",
     "release",
-    "session.duration",
+    SessionMetricKey.SESSION_DURATION.value,
     "session.status",
-    "session",
+    SessionMetricKey.SESSION.value,
     "staging",
-    "user",
+    SessionMetricKey.USER.value,
     "init",
-    "session.error",
+    SessionMetricKey.SESSION_ERROR.value,
+    "abnormal",
 )
 
 
@@ -27,7 +29,7 @@ class SimpleIndexer(StringIndexer):
     """Simple indexer with in-memory store. Do not use in production."""
 
     def __init__(self) -> None:
-        self._counter = itertools.count()
+        self._counter = itertools.count(start=1)
         self._strings: DefaultDict[str, int] = defaultdict(self._counter.__next__)
         self._reverse: Dict[int, str] = {}
 

@@ -8,21 +8,21 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
-import EmailField from 'app/views/settings/components/forms/emailField';
-import Form from 'app/views/settings/components/forms/form';
+} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import EmailField from 'sentry/views/settings/components/forms/emailField';
+import Form from 'sentry/views/settings/components/forms/form';
 
 type Props = ModalRenderProps & {
   api: Client;
@@ -206,7 +206,7 @@ class SuggestProjectModal extends Component<Props, State> {
 
 const ModalContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 
   code {
     word-break: break-word;

@@ -73,8 +73,8 @@
 async function app() {
   // We won't need initalizeMainImport until we complete bootstrapping.
   // Initaite the fetch, just don't await it until we need it.
-  const initalizeMainImport = import('app/bootstrap/initializeMain');
-  const bootstrapImport = import('app/bootstrap');
+  const initalizeMainImport = import('sentry/bootstrap/initializeMain');
+  const bootstrapImport = import('sentry/bootstrap');
 
   const {bootstrap} = await bootstrapImport;
   const config = await bootstrap();

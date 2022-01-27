@@ -1,12 +1,12 @@
 import {useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
-import {Client} from 'app/api';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import useApi from 'app/utils/useApi';
+import {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import useApi from 'sentry/utils/useApi';
 
 import {AlertRuleStatus, Incident} from '../types';
 import {fetchIncident} from '../utils';

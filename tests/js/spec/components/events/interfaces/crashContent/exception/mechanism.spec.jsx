@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ExceptionMechanism from 'app/components/events/interfaces/crashContent/exception/mechanism';
+import ExceptionMechanism from 'sentry/components/events/interfaces/crashContent/exception/mechanism';
 
 describe('ExceptionMechanism', () => {
   describe('basic attributes', () => {

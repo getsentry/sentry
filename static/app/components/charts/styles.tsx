@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 export const SubHeading = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
@@ -15,7 +15,7 @@ export const SubHeading = styled('h3')`
 export const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -53,9 +53,9 @@ export const ChartControls = styled('div')`
 export const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.textColor};
+  gap: ${space(1)};
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
   align-items: center;
 `;
 
@@ -72,7 +72,7 @@ export const HeaderTitleLegend = styled(HeaderTitle)`
 export const HeaderValue = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: baseline;
   background-color: ${p => p.theme.background};
   position: absolute;

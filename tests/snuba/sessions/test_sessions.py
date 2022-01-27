@@ -444,21 +444,15 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             )
         )
 
-        if isinstance(self.backend, MetricsReleaseHealthBackend):
-            truncation = {"second": 0}
-        else:
-            truncation = {"minute": 0}
-
         expected_formatted_lower_bound = (
             datetime.utcfromtimestamp(self.session_started - 3600 * 2)
-            .replace(**truncation)
+            .replace(minute=0)
             .isoformat()[:19]
             + "Z"
         )
 
         expected_formatted_upper_bound = (
-            datetime.utcfromtimestamp(self.session_started).replace(**truncation).isoformat()[:19]
-            + "Z"
+            datetime.utcfromtimestamp(self.session_started).replace(minute=0).isoformat()[:19] + "Z"
         )
 
         # Test for self.session_release
@@ -987,7 +981,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             )
 
     def test_get_current_and_previous_crash_free_rates(self):
-        now = timezone.now()
+        now = timezone.now().replace(minute=15, second=23)
         last_24h_start = now - 24 * timedelta(hours=1)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
 
@@ -998,7 +992,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             current_end=now,
             previous_start=last_48h_start,
             previous_end=last_24h_start,
-            rollup=86400,
+            rollup=3600,
         )
 
         assert data == {
@@ -1011,7 +1005,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
-        now = timezone.now()
+        now = timezone.now().replace(minute=15, second=23)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
         last_72h_start = now - 3 * 24 * timedelta(hours=1)
         last_96h_start = now - 4 * 24 * timedelta(hours=1)
@@ -1023,7 +1017,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             current_end=last_48h_start,
             previous_start=last_96h_start,
             previous_end=last_72h_start,
-            rollup=86400,
+            rollup=3600,
         )
 
         assert data == {
@@ -1381,10 +1375,18 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             end=self.now_dt,
         )
 
-        assert len(actual) == 2
+        assert set(actual) == {(p1.id, 3), (p2.id, 1)}
 
-        for t in [(p1.id, 3), (p2.id, 1)]:
-            assert t in actual
+        for eids in ([], None):
+            actual = self.backend.get_num_sessions_per_project(
+                project_ids=[self.project.id, self.another_project.id],
+                environment_ids=eids,
+                rollup=60,
+                start=self._2_h_ago_dt,
+                end=self.now_dt,
+            )
+
+            assert set(actual) == {(p1.id, 4), (p2.id, 2)}
 
 
 class CheckNumberOfSessionsMetrics(ReleaseHealthMetricsTestCase, CheckNumberOfSessions):

@@ -1,20 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Role from 'app/components/acl/role';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import FileSize from 'app/components/fileSize';
-import Tag from 'app/components/tag';
-import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
-import {IconClock, IconDelete, IconDownload} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {DebugFile} from 'app/types/debugFiles';
+import Access from 'sentry/components/acl/access';
+import {Role} from 'sentry/components/acl/role';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import FileSize from 'sentry/components/fileSize';
+import Tag from 'sentry/components/tag';
+import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
+import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {DebugFile} from 'sentry/types/debugFiles';
 
 import {getFeatureTooltip, getFileType} from './utils';
 
@@ -192,7 +192,7 @@ const StyledFileSize = styled(FileSize)`
 
 const TimeWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
   flex: 2;
   align-items: center;

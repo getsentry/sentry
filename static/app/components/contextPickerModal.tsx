@@ -3,21 +3,21 @@ import ReactDOM from 'react-dom';
 import {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import AsyncComponent from 'app/components/asyncComponent';
-import SelectControl from 'app/components/forms/selectControl';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import OrganizationsStore from 'app/stores/organizationsStore';
-import OrganizationStore from 'app/stores/organizationStore';
-import space from 'app/styles/space';
-import {Integration, Organization, Project} from 'app/types';
-import Projects from 'app/utils/projects';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
-import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import SelectControl from 'sentry/components/forms/selectControl';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import space from 'sentry/styles/space';
+import {Integration, Organization, Project} from 'sentry/types';
+import Projects from 'sentry/utils/projects';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';
 
 type Props = ModalRenderProps & {
   /**
@@ -254,7 +254,7 @@ class ContextPickerModal extends Component<Props> {
     }
     return (
       <components.Option label={label} {...props}>
-        <IdBadge
+        <ProjectBadgeOption
           project={project}
           avatarSize={20}
           displayName={label}
@@ -546,6 +546,10 @@ export default ContextPickerModalContainer;
 
 const StyledSelectControl = styled(SelectControl)`
   margin-top: ${space(1)};
+`;
+
+const ProjectBadgeOption = styled(IdBadge)`
+  margin: ${space(1)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

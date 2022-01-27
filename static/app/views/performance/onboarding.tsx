@@ -12,19 +12,19 @@ import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
+} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal, {
   TourImage,
   TourStep,
   TourText,
-} from 'app/components/modals/featureTourModal';
-import OnboardingPanel from 'app/components/onboardingPanel';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import useApi from 'app/utils/useApi';
+} from 'sentry/components/modals/featureTourModal';
+import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useApi from 'sentry/utils/useApi';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';

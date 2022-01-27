@@ -1,4 +1,4 @@
-import BasePlugin from 'app/plugins/basePlugin';
+import BasePlugin from 'sentry/plugins/basePlugin';
 
 class DefaultPlugin extends BasePlugin {
   static displayName = 'DefaultPlugin';

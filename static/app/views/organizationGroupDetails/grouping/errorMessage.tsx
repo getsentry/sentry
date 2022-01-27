@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import FeatureBadge from 'app/components/featureBadge';
-import LoadingError from 'app/components/loadingError';
-import {Panel} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import {Group, Organization, Project} from 'app/types';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeatureBadge from 'sentry/components/featureBadge';
+import LoadingError from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import {Group, Organization, Project} from 'sentry/types';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type ErrorCode =
   | 'issue_not_hierarchical'

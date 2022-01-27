@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconDelete} from 'app/icons/iconDelete';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DynamicSamplingInnerName, LegacyBrowser} from 'app/types/dynamicSampling';
-import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldRequiredBadge';
-import TextareaField from 'app/views/settings/components/forms/textareaField';
+import Button from 'sentry/components/button';
+import {IconDelete} from 'sentry/icons/iconDelete';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
+import FieldRequiredBadge from 'sentry/views/settings/components/forms/field/fieldRequiredBadge';
+import TextareaField from 'sentry/views/settings/components/forms/textareaField';
 
 import {getInnerNameLabel} from '../utils';
 
@@ -90,7 +90,7 @@ function Conditions({conditions, orgSlug, projectId, onDelete, onChange}: Props)
               <Button
                 onClick={() => onDelete(index)}
                 icon={<IconDelete />}
-                label={t('Delete Condition')}
+                aria-label={t('Delete Condition')}
               />
             </RightCell>
             {displayLegacyBrowsers && (

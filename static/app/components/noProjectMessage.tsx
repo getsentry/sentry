@@ -4,29 +4,27 @@ import styled from '@emotion/styled';
 /* TODO: replace with I/O when finished */
 import img from 'sentry-images/spot/hair-on-fire.svg';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import PageHeading from 'app/components/pageHeading';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import withProjects from 'app/utils/withProjects';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import PageHeading from 'sentry/components/pageHeading';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import useProjects from 'sentry/utils/useProjects';
 
 type Props = React.PropsWithChildren<{
   organization: Organization;
-  projects: Project[];
-  loadingProjects: boolean;
   superuserNeedsToBeProjectMember?: boolean;
 }>;
 
 function NoProjectMessage({
   children,
   organization,
-  projects,
-  loadingProjects,
   superuserNeedsToBeProjectMember,
 }: Props) {
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+
   const orgSlug = organization.slug;
   const canCreateProject = organization.access.includes('project:write');
   const canJoinTeam = organization.access.includes('team:read');
@@ -39,7 +37,7 @@ function NoProjectMessage({
       ? !!projects?.some(p => p.hasAccess)
       : !!projects?.some(p => p.isMember && p.hasAccess);
 
-  if (hasProjectAccess || loadingProjects) {
+  if (hasProjectAccess || !projectsLoaded) {
     return <Fragment>{children}</Fragment>;
   }
 
@@ -105,21 +103,20 @@ const HelpMessage = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const Flex = styled('div')`
+const Wrapper = styled('div')`
   display: flex;
-`;
-
-const Wrapper = styled(Flex)`
   flex: 1;
   align-items: center;
   justify-content: center;
 `;
 
-const HeightWrapper = styled(Flex)`
+const HeightWrapper = styled('div')`
+  display: flex;
   height: 350px;
 `;
 
-const Content = styled(Flex)`
+const Content = styled('div')`
+  display: flex;
   flex-direction: column;
   justify-content: center;
   margin-left: 40px;
@@ -129,4 +126,4 @@ const Actions = styled(ButtonBar)`
   width: fit-content;
 `;
 
-export default withProjects(NoProjectMessage);
+export default NoProjectMessage;

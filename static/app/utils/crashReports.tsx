@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import {t, tct} from 'app/locale';
-import {defined} from 'app/utils';
+import {t, tct} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 
 export function formatStoreCrashReports(
   value: number | null | '',

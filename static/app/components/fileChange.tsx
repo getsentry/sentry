@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import AvatarList from 'app/components/avatar/avatarList';
-import FileIcon from 'app/components/fileIcon';
-import {ListGroupItem} from 'app/components/listGroup';
-import TextOverflow from 'app/components/textOverflow';
-import space from 'app/styles/space';
-import {AvatarUser, CommitAuthor} from 'app/types';
+import AvatarList from 'sentry/components/avatar/avatarList';
+import FileIcon from 'sentry/components/fileIcon';
+import {ListGroupItem} from 'sentry/components/listGroup';
+import TextOverflow from 'sentry/components/textOverflow';
+import space from 'sentry/styles/space';
+import {AvatarUser, CommitAuthor} from 'sentry/types';
 
 type Props = {
   filename: string;
@@ -34,7 +34,7 @@ const FileItem = styled(ListGroupItem)`
 const Filename = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin-right: ${space(3)};
   align-items: center;
   grid-template-columns: max-content 1fr;

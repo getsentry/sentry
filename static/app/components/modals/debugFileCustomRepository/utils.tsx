@@ -1,14 +1,14 @@
 import * as Sentry from '@sentry/react';
 
-import ExternalLink from 'app/components/links/externalLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {
   AWS_REGIONS,
   DEBUG_SOURCE_CASINGS,
   DEBUG_SOURCE_LAYOUTS,
-} from 'app/data/debugFileSources';
-import {t, tct} from 'app/locale';
-import {CustomRepoType} from 'app/types/debugFiles';
-import {Field} from 'app/views/settings/components/forms/type';
+} from 'sentry/data/debugFileSources';
+import {t, tct} from 'sentry/locale';
+import {CustomRepoType} from 'sentry/types/debugFiles';
+import {Field} from 'sentry/views/settings/components/forms/type';
 
 function objectToChoices(obj: Record<string, string>): [key: string, value: string][] {
   return Object.entries(obj).map(([key, value]) => [key, t(value)]);

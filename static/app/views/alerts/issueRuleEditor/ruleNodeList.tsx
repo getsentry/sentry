@@ -1,24 +1,24 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'app/components/featureBadge';
-import SelectControl from 'app/components/forms/selectControl';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import FeatureBadge from 'sentry/components/featureBadge';
+import SelectControl from 'sentry/components/forms/selectControl';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import {
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
-} from 'app/types/alerts';
+} from 'sentry/types/alerts';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
-} from 'app/views/alerts/changeAlerts/constants';
-import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
+} from 'sentry/views/alerts/changeAlerts/constants';
+import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import RuleNode from './ruleNode';
 
@@ -147,6 +147,14 @@ class RuleNodeList extends React.Component<Props> {
     const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
       actions.map(node => {
         const isNew = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+
+        if (node.id.includes('NotifyEmailAction')) {
+          return {
+            value: node.id,
+            label: t('Issue Owners, Team, or Member'),
+          };
+        }
+
         return {
           value: node.id,
           label: (
@@ -165,6 +173,17 @@ class RuleNodeList extends React.Component<Props> {
         (acc, curr) => {
           if (curr.actionType === 'ticket') {
             acc.ticket.push(curr);
+          } else if (curr.id.includes('event_frequency')) {
+            acc.frequency.push(curr);
+          } else if (
+            curr.id.includes('sentry.rules.conditions') &&
+            !curr.id.includes('event_frequency')
+          ) {
+            acc.change.push(curr);
+          } else if (curr.id.includes('sentry.integrations')) {
+            acc.notifyIntegration.push(curr);
+          } else if (curr.id.includes('notify_event')) {
+            acc.notifyIntegration.push(curr);
           } else {
             acc.notify.push(curr);
           }
@@ -172,19 +191,25 @@ class RuleNodeList extends React.Component<Props> {
         },
         {
           notify: [] as IssueAlertRuleActionTemplate[],
+          notifyIntegration: [] as IssueAlertRuleActionTemplate[],
           ticket: [] as IssueAlertRuleActionTemplate[],
+          change: [] as IssueAlertRuleConditionTemplate[],
+          frequency: [] as IssueAlertRuleConditionTemplate[],
         }
       );
 
       options = Object.entries(grouped)
         .filter(([_, values]) => values.length)
         .map(([key, values]) => {
-          const label =
-            key === 'ticket'
-              ? t('Create new\u{2026}')
-              : t('Send notification to\u{2026}');
+          const label = {
+            notify: t('Send notification to\u{2026}'),
+            notifyIntegration: t('Notify integration\u{2026}'),
+            ticket: t('Create new\u{2026}'),
+            change: t('Issue state change'),
+            frequency: t('Issue frequency'),
+          };
 
-          return {label, options: createSelectOptions(values)};
+          return {label: label[key], options: createSelectOptions(values)};
         });
     }
 
@@ -228,7 +253,7 @@ const StyledSelectControl = styled(SelectControl)`
 const RuleNodes = styled('div')`
   display: grid;
   margin-bottom: ${space(1)};
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     grid-auto-flow: row;

@@ -1,11 +1,11 @@
 from django.core.signing import BadSignature, SignatureExpired
-from django.db import IntegrityError
 from django.urls import reverse
-from django.utils import timezone
 from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import Identity, IdentityStatus
+from sentry.models import Identity
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
@@ -34,7 +34,7 @@ def build_linking_url(integration, organization, teams_user_id, team_id, tenant_
 class MsTeamsLinkIdentityView(BaseView):
     @transaction_start("MsTeamsLinkIdentityView")
     @never_cache
-    def handle(self, request, signed_params):
+    def handle(self, request: Request, signed_params) -> Response:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):
@@ -57,18 +57,9 @@ class MsTeamsLinkIdentityView(BaseView):
                 context={"organization": organization, "provider": integration.get_provider()},
             )
 
-        defaults = {"status": IdentityStatus.VALID, "date_verified": timezone.now()}
-        try:
-            identity, created = Identity.objects.get_or_create(
-                idp=idp,
-                user=request.user,
-                external_id=params["teams_user_id"],
-                defaults=defaults,
-            )
-            if not created:
-                identity.update(**defaults)
-        except IntegrityError:
-            Identity.objects.reattach(idp, params["teams_user_id"], request.user, defaults)
+        Identity.objects.link_identity(
+            user=request.user, idp=idp, external_id=params["teams_user_id"]
+        )
 
         card = build_linked_card()
         client = MsTeamsClient(integration)

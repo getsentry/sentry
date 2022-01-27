@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import AdminSettings from 'app/views/admin/adminSettings';
+import {Client} from 'sentry/api';
+import AdminSettings from 'sentry/views/admin/adminSettings';
 
 // TODO(dcramer): this doesnt really test anything as we need to
 // mock the API Response/wait on it

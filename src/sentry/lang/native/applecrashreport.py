@@ -162,7 +162,10 @@ class AppleCrashReport:
             return ""
         binary_images = map(
             lambda i: self._convert_debug_meta_to_binary_image_row(debug_image=i),
-            sorted(self.debug_images, key=lambda i: parse_addr(i["image_addr"])),
+            sorted(
+                filter(lambda i: "image_addr" in i, self.debug_images),
+                key=lambda i: parse_addr(i["image_addr"]),
+            ),
         )
         return "Binary Images:\n" + "\n".join(binary_images)
 

@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
+import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 
 describe('SentryAppDetailsModal', function () {
   let wrapper;
@@ -12,7 +12,7 @@ describe('SentryAppDetailsModal', function () {
   const installButton = 'Button[data-test-id="install"]';
   let sentryAppInteractionRequest;
 
-  function render() {
+  function mount() {
     return mountWithTheme(
       <SentryAppDetailsModal
         sentryApp={sentryApp}
@@ -45,7 +45,7 @@ describe('SentryAppDetailsModal', function () {
       body: {},
     });
 
-    wrapper = render();
+    wrapper = mount();
   });
 
   it('renders', () => {
@@ -81,7 +81,7 @@ describe('SentryAppDetailsModal', function () {
   describe('when the User does not have permission to install Integrations', () => {
     beforeEach(() => {
       org = {...org, access: []};
-      wrapper = render();
+      wrapper = mount();
     });
 
     it('does not display the Install button', () => {
@@ -92,7 +92,7 @@ describe('SentryAppDetailsModal', function () {
   describe('when the Integration is installed', () => {
     beforeEach(() => {
       isInstalled = true;
-      wrapper = render();
+      wrapper = mount();
     });
 
     it('disabled the Install button', () => {
@@ -103,7 +103,7 @@ describe('SentryAppDetailsModal', function () {
   describe('when the Integration requires no permissions', () => {
     beforeEach(() => {
       sentryApp = {...sentryApp, scopes: []};
-      wrapper = render();
+      wrapper = mount();
     });
 
     it('does not render permissions', () => {

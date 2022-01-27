@@ -1,16 +1,22 @@
 import * as React from 'react';
 
-import ModalActions from 'app/actions/modalActions';
-import type {ModalTypes} from 'app/components/globalModal';
-import type {DashboardIssueWidgetModalOptions} from 'app/components/modals/addDashboardIssueWidgetModal';
-import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
-import {DashboardWidgetLibraryModalOptions} from 'app/components/modals/dashboardWidgetLibraryModal';
-import type {DashboardWidgetQuerySelectorModalOptions} from 'app/components/modals/dashboardWidgetQuerySelectorModal';
-import {InviteRow} from 'app/components/modals/inviteMembersModal/types';
-import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
-import {Group, IssueOwnership, Organization, Project, SentryApp, Team} from 'app/types';
-import {AppStoreConnectStatusData, CustomRepoType} from 'app/types/debugFiles';
-import {Event} from 'app/types/event';
+import ModalActions from 'sentry/actions/modalActions';
+import type {ModalTypes} from 'sentry/components/globalModal';
+import type {DashboardWidgetModalOptions} from 'sentry/components/modals/addDashboardWidgetModal';
+import {DashboardWidgetLibraryModalOptions} from 'sentry/components/modals/dashboardWidgetLibraryModal';
+import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
+import {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
+import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
+import {
+  Group,
+  IssueOwnership,
+  Organization,
+  Project,
+  SentryApp,
+  Team,
+} from 'sentry/types';
+import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import {Event} from 'sentry/types/event';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
@@ -52,7 +58,7 @@ type inviteMembersModalOptions = {
 };
 
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
-  const mod = await import('app/components/modals/sudoModal');
+  const mod = await import('sentry/components/modals/sudoModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
@@ -62,7 +68,7 @@ export async function openEmailVerification({
   onClose,
   ...args
 }: emailVerificationModalOptions = {}) {
-  const mod = await import('app/components/modals/emailVerificationModal');
+  const mod = await import('sentry/components/modals/emailVerificationModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
@@ -78,7 +84,7 @@ type OpenDiffModalOptions = {
 };
 
 export async function openDiffModal(options: OpenDiffModalOptions) {
-  const mod = await import('app/components/modals/diffModal');
+  const mod = await import('sentry/components/modals/diffModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
@@ -97,7 +103,7 @@ type CreateTeamModalOptions = {
 };
 
 export async function openCreateTeamModal(options: CreateTeamModalOptions) {
-  const mod = await import('app/components/modals/createTeamModal');
+  const mod = await import('sentry/components/modals/createTeamModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />);
@@ -123,21 +129,21 @@ export type EditOwnershipRulesModalOptions = {
 };
 
 export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
-  const mod = await import('app/components/modals/createOwnershipRuleModal');
+  const mod = await import('sentry/components/modals/createOwnershipRuleModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
-  const mod = await import('app/components/modals/editOwnershipRulesModal');
+  const mod = await import('sentry/components/modals/editOwnershipRulesModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
 export async function openCommandPalette(options: ModalOptions = {}) {
-  const mod = await import('app/components/modals/commandPalette');
+  const mod = await import('sentry/components/modals/commandPalette');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
@@ -148,7 +154,7 @@ type RecoveryModalOptions = {
 };
 
 export async function openRecoveryOptions(options: RecoveryModalOptions) {
-  const mod = await import('app/components/modals/recoveryOptionsModal');
+  const mod = await import('sentry/components/modals/recoveryOptionsModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />);
@@ -161,14 +167,14 @@ export type TeamAccessRequestModalOptions = {
 };
 
 export async function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
-  const mod = await import('app/components/modals/teamAccessRequestModal');
+  const mod = await import('sentry/components/modals/teamAccessRequestModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
 export async function redirectToProject(newProjectSlug: string) {
-  const mod = await import('app/components/modals/redirectToProject');
+  const mod = await import('sentry/components/modals/redirectToProject');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
@@ -180,7 +186,7 @@ type HelpSearchModalOptions = {
 };
 
 export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
-  const mod = await import('app/components/modals/helpSearchModal');
+  const mod = await import('sentry/components/modals/helpSearchModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
@@ -195,7 +201,9 @@ export type SentryAppDetailsModalOptions = {
 };
 
 type DebugFileSourceModalOptions = {
+  organization: Organization;
   sourceType: CustomRepoType;
+  appStoreConnectSourcesQuantity: number;
   onSave: (data: Record<string, any>) => Promise<void>;
   appStoreConnectStatusData?: AppStoreConnectStatusData;
   onClose?: () => void;
@@ -206,9 +214,7 @@ export async function openDebugFileSourceModal({
   onClose,
   ...restOptions
 }: DebugFileSourceModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "DebugFileCustomRepository" */ 'app/components/modals/debugFileCustomRepository'
-  );
+  const mod = await import('sentry/components/modals/debugFileCustomRepository');
 
   const {default: Modal, modalCss} = mod;
   openModal(deps => <Modal {...deps} {...restOptions} />, {
@@ -221,24 +227,15 @@ export async function openInviteMembersModal({
   onClose,
   ...args
 }: inviteMembersModalOptions = {}) {
-  const mod = await import('app/components/modals/inviteMembersModal');
+  const mod = await import('sentry/components/modals/inviteMembersModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
 }
 
 export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
-  const mod = await import('app/components/modals/addDashboardWidgetModal');
+  const mod = await import('sentry/components/modals/addDashboardWidgetModal');
   const {default: Modal, modalCss} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
-}
-
-export async function openAddDashboardIssueWidgetModal(
-  options: DashboardIssueWidgetModalOptions
-) {
-  const issuesModal = await import('app/components/modals/addDashboardIssueWidgetModal');
-  const {default: Modal, modalCss} = issuesModal;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
@@ -247,7 +244,7 @@ export async function openReprocessEventModal({
   onClose,
   ...options
 }: ReprocessEventModalOptions & {onClose?: () => void}) {
-  const mod = await import('app/components/modals/reprocessEventModal');
+  const mod = await import('sentry/components/modals/reprocessEventModal');
 
   const {default: Modal} = mod;
 
@@ -255,7 +252,7 @@ export async function openReprocessEventModal({
 }
 
 export async function demoSignupModal(options: ModalOptions = {}) {
-  const mod = await import('app/components/modals/demoSignUp');
+  const mod = await import('sentry/components/modals/demoSignUp');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
@@ -264,7 +261,7 @@ export async function demoSignupModal(options: ModalOptions = {}) {
 export async function openDashboardWidgetQuerySelectorModal(
   options: DashboardWidgetQuerySelectorModalOptions
 ) {
-  const mod = await import('app/components/modals/dashboardWidgetQuerySelectorModal');
+  const mod = await import('sentry/components/modals/dashboardWidgetQuerySelectorModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
@@ -273,7 +270,7 @@ export async function openDashboardWidgetQuerySelectorModal(
 export async function openDashboardWidgetLibraryModal(
   options: DashboardWidgetLibraryModalOptions
 ) {
-  const mod = await import('app/components/modals/dashboardWidgetLibraryModal');
+  const mod = await import('sentry/components/modals/dashboardWidgetLibraryModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});

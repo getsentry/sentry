@@ -1,24 +1,25 @@
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import {
   installSentryApp,
   uninstallSentryApp,
-} from 'app/actionCreators/sentryAppInstallations';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import CircleIndicator from 'app/components/circleIndicator';
-import Confirm from 'app/components/confirm';
-import {IconSubtract} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'app/types';
-import {toPermissions} from 'app/utils/consolidatedScopes';
-import {getSentryAppInstallStatus} from 'app/utils/integrationUtil';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/actionCreators/sentryAppInstallations';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import CircleIndicator from 'sentry/components/circleIndicator';
+import Confirm from 'sentry/components/confirm';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
+import {IconSubtract} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'sentry/types';
+import {toPermissions} from 'sentry/utils/consolidatedScopes';
+import {getSentryAppInstallStatus} from 'sentry/utils/integrationUtil';
+import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import SplitInstallationIdModal from './SplitInstallationIdModal';
@@ -276,6 +277,10 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   // no configurations for sentry apps
   renderConfigurations() {
     return null;
+  }
+
+  renderIntegrationIcon() {
+    return <SentryAppIcon sentryApp={this.sentryApp} size={50} />;
   }
 }
 

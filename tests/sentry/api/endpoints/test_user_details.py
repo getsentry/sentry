@@ -120,7 +120,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
 
-    def test_superuser_cannot_change_is_active(self):
+    def test_superuser_can_change_is_active(self):
         superuser = self.create_user(email="b@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
@@ -131,7 +131,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert resp.data["id"] == str(self.user.id)
 
         user = User.objects.get(id=self.user.id)
-        assert user.is_active
+        assert not user.is_active
 
     def test_superuser_with_permission_can_change_is_active(self):
         superuser = self.create_user(email="b@example.com", is_superuser=True)

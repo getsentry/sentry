@@ -10,45 +10,45 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
-import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import TeamSelector from 'app/components/forms/teamSelector';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import LoadingMask from 'app/components/loadingMask';
-import {Panel, PanelBody} from 'app/components/panels';
-import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
-import {IconChevron, IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Environment, OnboardingTaskKey, Organization, Project, Team} from 'app/types';
+} from 'sentry/actionCreators/indicator';
+import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
+import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import LoadingMask from 'sentry/components/loadingMask';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
+import {IconChevron, IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Environment, OnboardingTaskKey, Organization, Project, Team} from 'sentry/types';
 import {
   IssueAlertRule,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
-} from 'app/types/alerts';
-import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
-import {getDisplayName} from 'app/utils/environment';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import recreateRoute from 'app/utils/recreateRoute';
-import routeTitleGen from 'app/utils/routeTitle';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/types/alerts';
+import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {getDisplayName} from 'sentry/utils/environment';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
-} from 'app/views/alerts/changeAlerts/constants';
-import AsyncView from 'app/views/asyncView';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import SelectField from 'app/views/settings/components/forms/selectField';
+} from 'sentry/views/alerts/changeAlerts/constants';
+import AsyncView from 'sentry/views/asyncView';
+import Input from 'sentry/views/settings/components/forms/controls/input';
+import Field from 'sentry/views/settings/components/forms/field';
+import Form from 'sentry/views/settings/components/forms/form';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import RuleNodeList from './ruleNodeList';
 import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
@@ -585,7 +585,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               frequency: `${frequency}`,
             }}
             submitDisabled={!hasAccess || !canEdit}
-            submitLabel={isSavedAlertRule(rule) ? t('Save Rule') : t('Save Rule')}
+            submitLabel={t('Save Rule')}
             extraButton={
               isSavedAlertRule(rule) ? (
                 <Confirm
@@ -727,6 +727,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                             <RuleNodeList
                               nodes={this.getConditions()}
                               items={conditions ?? []}
+                              selectType="grouped"
                               placeholder={
                                 hasFeature
                                   ? t('Add optional trigger...')
@@ -945,7 +946,7 @@ const StepConnector = styled('div')`
   height: 100%;
   top: 28px;
   left: 19px;
-  border-right: 1px ${p => p.theme.gray300} dashed;
+  border-right: 1px ${p => p.theme.gray200} dashed;
 `;
 
 const StepLead = styled('div')`

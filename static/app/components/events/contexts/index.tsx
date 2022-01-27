@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
-import {Group} from 'app/types';
-import {Event} from 'app/types/event';
-import {objectIsEmpty} from 'app/utils';
+import {Group} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {objectIsEmpty} from 'sentry/utils';
 
 import Chunk from './chunk';
 

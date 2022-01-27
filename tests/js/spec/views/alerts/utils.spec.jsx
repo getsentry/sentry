@@ -4,14 +4,14 @@ import {
   Dataset,
   Datasource,
   SessionsAggregate,
-} from 'app/views/alerts/incidentRules/types';
+} from 'sentry/views/alerts/incidentRules/types';
 import {
   alertAxisFormatter,
   alertTooltipValueFormatter,
   getQueryDatasource,
   isSessionAggregate,
-} from 'app/views/alerts/utils';
-import {getIncidentDiscoverUrl} from 'app/views/alerts/utils/getIncidentDiscoverUrl';
+} from 'sentry/views/alerts/utils';
+import {getIncidentDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentDiscoverUrl';
 
 describe('Alert utils', function () {
   const {org, projects} = initializeOrg();

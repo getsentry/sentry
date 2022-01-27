@@ -1,4 +1,4 @@
-import {isWebpackChunkLoadingError} from 'app/utils';
+import {isWebpackChunkLoadingError} from 'sentry/utils';
 
 const MAX_RETRIES = 2;
 

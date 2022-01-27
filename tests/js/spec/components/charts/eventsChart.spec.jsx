@@ -2,15 +2,15 @@ import {chart, doZoom, mockZoomRange} from 'sentry-test/charts';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import * as globalSelection from 'app/actionCreators/globalSelection';
-import EventsChart from 'app/components/charts/eventsChart';
-import WorldMapChart from 'app/components/charts/worldMapChart';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
+import * as globalSelection from 'sentry/actionCreators/pageFilters';
+import EventsChart from 'sentry/components/charts/eventsChart';
+import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
-jest.mock('app/components/charts/eventsRequest', () => jest.fn(() => null));
+jest.mock('sentry/components/charts/eventsRequest', () => jest.fn(() => null));
 jest.spyOn(globalSelection, 'updateDateTime');
 jest.mock(
-  'app/components/charts/eventsGeoRequest',
+  'sentry/components/charts/eventsGeoRequest',
   () =>
     ({children}) =>
       children({
@@ -134,7 +134,7 @@ describe('EventsChart', function () {
 
     // Restore history
     chartZoomInstance.handleZoomRestore();
-    chartZoomInstance.handleChartFinished();
+    chartZoomInstance.handleChartFinished({}, chart);
     expect(chartZoomInstance.currentPeriod).toEqual({
       period: '14d',
       start: null,

@@ -4,6 +4,7 @@ from typing import List, Mapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
@@ -38,6 +39,7 @@ from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.snuba import discover
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.compat import map
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
@@ -137,7 +139,27 @@ def inbox_search(
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
 
-    def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(10, 1),
+            RateLimitCategory.USER: RateLimit(10, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
+        },
+        "PUT": {
+            RateLimitCategory.IP: RateLimit(5, 5),
+            RateLimitCategory.USER: RateLimit(5, 5),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
+        },
+        "DELETE": {
+            RateLimitCategory.IP: RateLimit(5, 5),
+            RateLimitCategory.USER: RateLimit(5, 5),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
+        },
+    }
+
+    def _search(
+        self, request: Request, organization, projects, environments, extra_query_kwargs=None
+    ):
         query_kwargs = build_query_params_from_request(
             request, organization, projects, environments
         )
@@ -155,7 +177,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     @track_slo_response("workflow")
     @rate_limit_endpoint(limit=10, window=1)
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Issues
         `````````````````````````````
@@ -328,8 +350,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         return response
 
     @track_slo_response("workflow")
-    @rate_limit_endpoint(limit=10, window=1)
-    def put(self, request, organization):
+    @rate_limit_endpoint(limit=5, window=5)
+    def put(self, request: Request, organization) -> Response:
         """
         Bulk Mutate a List of Issues
         ````````````````````````````
@@ -411,8 +433,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         )
 
     @track_slo_response("workflow")
-    @rate_limit_endpoint(limit=10, window=1)
-    def delete(self, request, organization):
+    @rate_limit_endpoint(limit=5, window=5)
+    def delete(self, request: Request, organization) -> Response:
         """
         Bulk Remove a List of Issues
         ````````````````````````````

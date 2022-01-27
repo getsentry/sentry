@@ -1,24 +1,22 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import LogoSentry from 'app/components/logoSentry';
-import {t} from 'app/locale';
-import PreferencesStore from 'app/stores/preferencesStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
-import space from 'app/styles/space';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LogoSentry from 'sentry/components/logoSentry';
+import {t} from 'sentry/locale';
+import PreferencesStore from 'sentry/stores/preferencesStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
   urlAttachQueryParams,
-} from 'app/utils/demoMode';
-import getCookie from 'app/utils/getCookie';
+} from 'sentry/utils/demoMode';
 
 export default function DemoHeader() {
+  const sandboxData = window.SandboxData;
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
-  const saasOrgSlug = getCookie('saas_org_slug');
-
   const extraSearchParams = extraQueryParameter();
 
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
@@ -50,19 +48,19 @@ export default function DemoHeader() {
       </RequestDemoBtn>
       <GetStarted
         onClick={() => {
-          const url = saasOrgSlug
-            ? `https://sentry.io/settings/${saasOrgSlug}/billing/checkout/`
-            : urlAttachQueryParams(
-                'https://sentry.io/signup/',
-                extraQueryParameterWithEmail()
-              );
+          const url =
+            sandboxData?.cta?.url ||
+            urlAttachQueryParams(
+              'https://sentry.io/signup/',
+              extraQueryParameterWithEmail()
+            );
 
           // Using window.open instead of href={} because we need to read `email`
           // from localStorage when the user clicks the button.
           window.open(url, '_blank');
 
           trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
-            is_upgrade: !!saasOrgSlug,
+            cta: sandboxData?.cta?.id,
             organization: null,
           });
         }}
@@ -70,10 +68,10 @@ export default function DemoHeader() {
         rel="noreferrer noopener"
       >
         <GetStartedTextLong>
-          {saasOrgSlug ? t('Upgrade Now') : t('Sign Up for Free')}
+          {sandboxData?.cta?.title || t('Sign Up for Free')}
         </GetStartedTextLong>
         <GetStartedTextShort>
-          {saasOrgSlug ? t('Upgrade') : t('Sign Up')}
+          {sandboxData?.cta?.shortTitle || t('Sign Up')}
         </GetStartedTextShort>
       </GetStarted>
     </Wrapper>
@@ -90,7 +88,7 @@ const Wrapper = styled('div')<{collapsed: boolean}>`
   text-transform: uppercase;
   align-items: center;
   white-space: nowrap;
-  gap: 3rem;
+  gap: ${space(4)};
 
   margin-left: calc(
     -1 * ${p => (p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth)}

@@ -2,9 +2,10 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import F, Q
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, roles
+from sentry import features, ratelimits, roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -24,7 +25,7 @@ from sentry.models import (
 from sentry.models.authenticator import available_authenticators
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
-from sentry.utils import metrics, ratelimits
+from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
 from .organization_member_details import get_allowed_roles
@@ -104,7 +105,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         queryset = (
             OrganizationMember.objects.filter(
                 Q(user__is_active=True) | Q(user__isnull=True),
@@ -193,7 +194,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Add a Member to Organization
         ````````````````````````````

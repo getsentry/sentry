@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import TeamKeyTransactionField from 'app/utils/discover/teamKeyTransactionField';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import TeamKeyTransactionField from 'sentry/utils/discover/teamKeyTransactionField';
 
 async function clickTeamKeyTransactionDropdown(wrapper) {
   wrapper.find('IconStar').simulate('click');

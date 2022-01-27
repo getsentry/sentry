@@ -3,16 +3,16 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import Count from 'app/components/count';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import SidebarSection from 'app/components/sidebarSection';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t, tn} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {CrashFreeTimeBreakdown, Organization} from 'app/types';
-import {defined} from 'app/utils';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Count from 'sentry/components/count';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import SidebarSection from 'sentry/components/sidebarSection';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {t, tn} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {CrashFreeTimeBreakdown, Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import {displayCrashFreePercent} from '../../../utils';
 
@@ -36,10 +36,12 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
     return [
       [
         'releaseStats',
-        `/projects/${organization.slug}/${projectSlug}/releases/${version}/stats/`,
+        `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
+          version
+        )}/stats/`,
         {
           query: {
-            ...getParams(
+            ...normalizeDateTimeParams(
               pick(location.query, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])
             ),
             type: 'sessions',

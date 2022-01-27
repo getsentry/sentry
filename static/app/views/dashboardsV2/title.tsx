@@ -1,7 +1,7 @@
-import EditableText from 'app/components/editableText';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import EditableText from 'sentry/components/editableText';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {DashboardDetails} from './types';
 
@@ -28,7 +28,6 @@ function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {
           }
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
           errorMessage={t('Please set a title for this dashboard')}
-          successMessage={t('Dashboard title updated successfully')}
         />
       )}
     </div>

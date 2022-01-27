@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import EventView from 'app/utils/discover/eventView';
-import SpanOpsQuery from 'app/utils/performance/suspectSpans/spanOpsQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import SpanOpsQuery from 'sentry/utils/performance/suspectSpans/spanOpsQuery';
 import {
   SpanSortOthers,
   SpanSortPercentiles,
-} from 'app/views/performance/transactionSummary/transactionSpans/types';
+} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
 describe('SuspectSpansQuery', function () {
   let eventView, location;

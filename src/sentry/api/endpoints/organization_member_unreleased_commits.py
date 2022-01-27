@@ -34,8 +34,12 @@ order by c1.date_added desc
 quote_name = connections["default"].ops.quote_name
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
-    def get(self, request, organization, member):
+    def get(self, request: Request, organization, member) -> Response:
         email_list = list(
             UserEmail.objects.filter(user=member.user_id, is_verified=True).values_list(
                 "email", flat=True

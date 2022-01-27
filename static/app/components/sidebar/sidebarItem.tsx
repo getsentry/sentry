@@ -3,13 +3,13 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'app/components/featureBadge';
-import HookOrDefault from 'app/components/hookOrDefault';
-import Link from 'app/components/links/link';
-import TextOverflow from 'app/components/textOverflow';
-import Tooltip from 'app/components/tooltip';
-import localStorage from 'app/utils/localStorage';
-import {Theme} from 'app/utils/theme';
+import FeatureBadge from 'sentry/components/featureBadge';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import Link from 'sentry/components/links/link';
+import TextOverflow from 'sentry/components/textOverflow';
+import Tooltip from 'sentry/components/tooltip';
+import localStorage from 'sentry/utils/localStorage';
+import {Theme} from 'sentry/utils/theme';
 
 import {SidebarOrientation} from './types';
 
@@ -214,7 +214,7 @@ const StyledSidebarItem = styled(Link)`
 
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.white};
   }
 
   &.focus-visible {
@@ -277,7 +277,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
     height: ${theme.sidebar.smallBadgeSize};
     border-radius: ${theme.sidebar.smallBadgeSize};
     line-height: ${theme.sidebar.smallBadgeSize};
-    box-shadow: 0 3px 3px ${theme.sidebar.background};
+    box-shadow: ${theme.sidebar.boxShadow};
   `;
 };
 

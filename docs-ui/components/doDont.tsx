@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {IconCheckmark, IconClose} from 'app/icons';
-import space from 'app/styles/space';
+import {IconCheckmark, IconClose} from 'sentry/icons';
+import space from 'sentry/styles/space';
 
 type BoxContent = {
   text: string;

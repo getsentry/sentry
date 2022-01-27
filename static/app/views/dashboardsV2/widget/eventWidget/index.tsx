@@ -5,27 +5,33 @@ import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 import set from 'lodash/set';
 
-import {validateWidget} from 'app/actionCreators/dashboards';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import WidgetQueryFields from 'app/components/dashboards/widgetQueryFields';
-import SelectControl from 'app/components/forms/selectControl';
-import * as Layout from 'app/components/layouts/thirds';
-import {PanelAlert} from 'app/components/panels';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, TagCollection} from 'app/types';
-import {defined} from 'app/utils';
-import {explodeField, generateFieldAsString} from 'app/utils/discover/fields';
-import Measurements from 'app/utils/measurements/measurements';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import withTags from 'app/utils/withTags';
-import AsyncView from 'app/views/asyncView';
-import WidgetCard from 'app/views/dashboardsV2/widgetCard';
-import {generateFieldOptions} from 'app/views/eventsV2/utils';
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import WidgetQueryFields from 'sentry/components/dashboards/widgetQueryFields';
+import SelectControl from 'sentry/components/forms/selectControl';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {PanelAlert} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters, TagCollection} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {explodeField, generateFieldAsString} from 'sentry/utils/discover/fields';
+import Measurements from 'sentry/utils/measurements/measurements';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import withTags from 'sentry/utils/withTags';
+import AsyncView from 'sentry/views/asyncView';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
-import {DashboardDetails, DisplayType, Widget, WidgetQuery} from '../../types';
+import {
+  DashboardDetails,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from '../../types';
 import BuildStep from '../buildStep';
 import BuildSteps from '../buildSteps';
 import ChooseDataSetStep from '../choseDataStep';
@@ -44,7 +50,7 @@ const newQuery = {
 
 type Props = AsyncView['props'] & {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   dashboardTitle: DashboardDetails['title'];
   tags: TagCollection;
   isEditing: boolean;
@@ -59,6 +65,7 @@ type Props = AsyncView['props'] & {
 type State = AsyncView['state'] & {
   title: string;
   displayType: DisplayType;
+  widgetType: WidgetType;
   interval: string;
   queries: Widget['queries'];
   widgetErrors?: Record<string, any>;
@@ -75,6 +82,7 @@ class EventWidget extends AsyncView<Props, State> {
         ...super.getDefaultState(),
         title: t('Custom %s Widget', displayTypes[DisplayType.AREA]),
         displayType: DisplayType.AREA,
+        widgetType: WidgetType.DISCOVER,
         interval: '5m',
         queries: [{...newQuery}],
       };
@@ -84,6 +92,7 @@ class EventWidget extends AsyncView<Props, State> {
       ...super.getDefaultState(),
       title: widget.title,
       displayType: widget.displayType,
+      widgetType: widget.widgetType,
       interval: widget.interval,
       queries: normalizeQueries(widget.displayType, widget.queries),
       widgetErrors: undefined,
@@ -168,6 +177,7 @@ class EventWidget extends AsyncView<Props, State> {
       const widgetData: Widget = pick(this.state, [
         'title',
         'displayType',
+        'widgetType',
         'interval',
         'queries',
       ]);
@@ -208,7 +218,7 @@ class EventWidget extends AsyncView<Props, State> {
       dashboardTitle,
       onDelete,
     } = this.props;
-    const {title, displayType, queries, interval, widgetErrors} = this.state;
+    const {title, displayType, queries, interval, widgetType, widgetErrors} = this.state;
     const orgSlug = organization.slug;
 
     const explodedFields = queries[0].fields.map(field => explodeField({field}));
@@ -259,10 +269,12 @@ class EventWidget extends AsyncView<Props, State> {
                   api={this.api}
                   organization={organization}
                   selection={selection}
-                  widget={{title, queries, displayType, interval}}
+                  widget={{title, queries, displayType, interval, widgetType}}
                   isEditing={false}
+                  widgetLimitReached={false}
                   onDelete={() => undefined}
                   onEdit={() => undefined}
+                  onDuplicate={() => undefined}
                   renderErrorMessage={errorMessage =>
                     typeof errorMessage === 'string' && (
                       <PanelAlert type="error">{errorMessage}</PanelAlert>
@@ -294,6 +306,7 @@ class EventWidget extends AsyncView<Props, State> {
                 const amendedFieldOptions = fieldOptions(measurementKeys);
                 const buildStepContent = (
                   <WidgetQueryFields
+                    widgetType={WidgetType.DISCOVER}
                     style={{padding: 0}}
                     errors={this.getFirstQueryError('fields')}
                     displayType={displayType}
@@ -335,7 +348,7 @@ class EventWidget extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(withGlobalSelection(withTags(EventWidget)));
+export default withOrganization(withPageFilters(withTags(EventWidget)));
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
@@ -343,5 +356,5 @@ const StyledPageContent = styled(PageContent)`
 
 const VisualizationWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
 `;

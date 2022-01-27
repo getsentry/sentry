@@ -1,11 +1,11 @@
-import React, {memo} from 'react';
+import {memo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {BreadcrumbType, Crumb} from 'app/types/breadcrumbs';
-import {Event} from 'app/types/event';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import {Event} from 'sentry/types/event';
 
 import Category from './category';
 import Data from './data';

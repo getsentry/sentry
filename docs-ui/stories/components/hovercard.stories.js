@@ -1,4 +1,4 @@
-import Hovercard from 'app/components/hovercard';
+import Hovercard from 'sentry/components/hovercard';
 
 export default {
   title: 'Components/Tooltips/Hovercard',

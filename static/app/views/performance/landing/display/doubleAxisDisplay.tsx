@@ -3,13 +3,13 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Panel} from 'app/components/panels';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
+import {Panel} from 'sentry/components/panels';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
 
 import _Footer from '../../charts/footer';
 import {AxisOption} from '../../data';
@@ -103,7 +103,7 @@ function DoubleAxisDisplay(props: Props) {
 const DoubleChartContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
   min-height: 282px;
 `;
 

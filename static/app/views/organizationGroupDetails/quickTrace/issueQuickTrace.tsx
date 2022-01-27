@@ -2,25 +2,25 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ErrorBoundary from 'app/components/errorBoundary';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import Placeholder from 'app/components/placeholder';
-import QuickTrace from 'app/components/quickTrace';
-import {generateTraceTarget} from 'app/components/quickTrace/utils';
-import {IconClose, IconInfo} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
-import {promptIsDismissed} from 'app/utils/promptIsDismissed';
-import withApi from 'app/utils/withApi';
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
+import QuickTrace from 'sentry/components/quickTrace';
+import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
+import {IconClose, IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
@@ -127,6 +127,7 @@ class IssueQuickTrace extends Component<Props, State> {
             })}
             <Button
               priority="link"
+              size="zero"
               title={t('Dismiss for a month')}
               onClick={this.snoozePrompt}
             >

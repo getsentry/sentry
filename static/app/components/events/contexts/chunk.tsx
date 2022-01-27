@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import EventDataSection from 'app/components/events/eventDataSection';
-import {t} from 'app/locale';
-import plugins from 'app/plugins';
-import {Group} from 'app/types';
-import {Event} from 'app/types/event';
-import {defined, toTitleCase} from 'app/utils';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import {t} from 'sentry/locale';
+import plugins from 'sentry/plugins';
+import {Group} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {defined, toTitleCase} from 'sentry/utils';
 
 import {getContextComponent, getSourcePlugin} from './utils';
 

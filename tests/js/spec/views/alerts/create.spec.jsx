@@ -10,17 +10,17 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as memberActionCreators from 'app/actionCreators/members';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
-import AlertsContainer from 'app/views/alerts';
-import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvider';
-import ProjectAlertsCreate from 'app/views/alerts/create';
+import * as memberActionCreators from 'sentry/actionCreators/members';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import AlertsContainer from 'sentry/views/alerts';
+import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProvider';
+import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
-jest.unmock('app/utils/recreateRoute');
+jest.unmock('sentry/utils/recreateRoute');
 jest.mock('react-router');
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startTransaction: jest.fn(() => ({
       setTag: jest.fn(),
@@ -34,7 +34,7 @@ jest.mock('app/utils/analytics', () => ({
 }));
 
 describe('ProjectAlertsCreate', function () {
-  TeamStore.loadInitialData([]);
+  TeamStore.loadInitialData([], false, null);
   const projectAlertRuleDetailsRoutes = [
     {
       path: '/organizations/:orgId/alerts/',
@@ -128,7 +128,7 @@ describe('ProjectAlertsCreate', function () {
     ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = mountWithTheme(
-      <AlertsContainer organization={organization} params={params}>
+      <AlertsContainer>
         <AlertBuilderProjectProvider params={params}>
           <ProjectAlertsCreate
             params={params}
@@ -142,7 +142,7 @@ describe('ProjectAlertsCreate', function () {
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
     mockRouterPush(wrapper, router);
 

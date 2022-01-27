@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 
-import {ButtonLabel} from 'app/components/button';
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl, {Content} from 'app/components/dropdownControl';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import Tooltip from 'app/components/tooltip';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {PlatformType, SelectValue} from 'app/types';
+import {ButtonLabel} from 'sentry/components/button';
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownControl, {Content} from 'sentry/components/dropdownControl';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {PlatformType, SelectValue} from 'sentry/types';
 
 export enum DisplayOption {
   ABSOLUTE_ADDRESSES = 'absolute-addresses',
@@ -28,6 +28,7 @@ type Props = {
   hasAbsoluteFilePaths: boolean;
   hasAbsoluteAddresses: boolean;
   hasAppOnlyFrames: boolean;
+  raw: boolean;
 };
 
 function DisplayOptions({
@@ -39,9 +40,21 @@ function DisplayOptions({
   hasAbsoluteAddresses,
   hasAppOnlyFrames,
   platform,
+  raw,
 }: Props) {
   function getDisplayOptions(): SelectValue<string>[] {
     if (platform === 'objc' || platform === 'native' || platform === 'cocoa') {
+      if (raw) {
+        return [
+          {
+            label: t('Unsymbolicated'),
+            value: DisplayOption.MINIFIED,
+            disabled: !hasMinified,
+            tooltip: !hasMinified ? t('Unsymbolicated version not available') : undefined,
+          },
+        ];
+      }
+
       return [
         {
           label: t('Unsymbolicated'),
@@ -78,6 +91,17 @@ function DisplayOptions({
           value: DisplayOption.FULL_STACK_TRACE,
           disabled: !hasAppOnlyFrames,
           tooltip: !hasAppOnlyFrames ? t('Only full version available') : undefined,
+        },
+      ];
+    }
+
+    if (raw) {
+      return [
+        {
+          label: t('Minified'),
+          value: DisplayOption.MINIFIED,
+          disabled: !hasMinified,
+          tooltip: !hasMinified ? t('Minified version not available') : undefined,
         },
       ];
     }
@@ -119,7 +143,11 @@ function DisplayOptions({
           hideBottomBorder={false}
         >
           {tct('[activeOptionsQuantity] Active', {
-            activeOptionsQuantity: activeDisplayOptions.length,
+            activeOptionsQuantity: raw
+              ? activeDisplayOptions.includes(DisplayOption.MINIFIED)
+                ? 1
+                : 0
+              : activeDisplayOptions.length,
           })}
         </OptionsButton>
       )}
@@ -175,17 +203,9 @@ const Wrapper = styled(DropdownControl)`
     width: 100%;
     max-width: 100%;
   }
-  grid-column: 1/-1;
-  grid-row: 3/3;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-column: 2/2;
-    grid-row: 2/2;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-column: auto;
-    grid-row: auto;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: 1/-1;
   }
 `;
 
@@ -245,7 +265,7 @@ const OptionsButton = styled(DropdownButton)`
 `;
 
 const OptionList = styled(List)`
-  grid-gap: 0;
+  gap: 0;
 `;
 
 const ItemContent = styled('div')<{isChecked: boolean; isDisabled: boolean}>`

@@ -3,21 +3,21 @@ import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import {IconChevron, IconSearch} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {DisplayModes} from 'app/utils/discover/types';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {Widget} from 'app/views/dashboardsV2/types';
-import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
-import {DisplayType} from 'app/views/dashboardsV2/widget/utils';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import {IconChevron, IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import withApi from 'sentry/utils/withApi';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import {Widget} from 'sentry/views/dashboardsV2/types';
+import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
+import {DisplayType} from 'sentry/views/dashboardsV2/widget/utils';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
   organization: Organization;
@@ -28,7 +28,7 @@ type Props = ModalRenderProps &
   DashboardWidgetQuerySelectorModalOptions & {
     api: Client;
     organization: Organization;
-    selection: GlobalSelection;
+    selection: PageFilters;
   };
 
 class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
@@ -44,9 +44,9 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
       const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
       // Pull a max of 3 valid Y-Axis from the widget
       const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-      discoverLocation.query.yAxis = query.fields
-        .filter(field => yAxisOptions.includes(field))
-        .slice(0, 3);
+      discoverLocation.query.yAxis = [
+        ...new Set(query.fields.filter(field => yAxisOptions.includes(field))),
+      ].slice(0, 3);
       switch (widget.displayType) {
         case DisplayType.BAR:
           discoverLocation.query.display = DisplayModes.BAR;
@@ -131,7 +131,7 @@ const Container = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: start;
   flex-grow: 1;
   border-radius: ${p => p.theme.borderRadius};
@@ -150,4 +150,4 @@ export const modalCss = css`
   margin: 70px auto;
 `;
 
-export default withApi(withGlobalSelection(DashboardWidgetQuerySelectorModal));
+export default withApi(withPageFilters(DashboardWidgetQuerySelectorModal));

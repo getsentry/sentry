@@ -1,8 +1,7 @@
-import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 import ReleasesDropdown from './releasesDropdown';
@@ -46,23 +45,21 @@ function ReleasesSortOptions({
           [ReleasesSortOption.SESSIONS_24_HOURS]: {label: t('Active Sessions')},
           [ReleasesSortOption.CRASH_FREE_SESSIONS]: {label: t('Crash Free Sessions')},
         }),
-  } as ComponentProps<typeof ReleasesDropdown>['options'];
+  } as React.ComponentProps<typeof ReleasesDropdown>['options'];
 
   if (organization.features.includes('semver')) {
     sortOptions[ReleasesSortOption.BUILD] = {label: t('Build Number')};
     sortOptions[ReleasesSortOption.SEMVER] = {label: t('Semantic Version')};
   }
 
-  if (organization.features.includes('release-adoption-stage')) {
-    const isDisabled = environments.length !== 1;
-    sortOptions[ReleasesSortOption.ADOPTION] = {
-      label: t('Date Adopted'),
-      disabled: isDisabled,
-      tooltip: isDisabled
-        ? t('Select one environment to use this sort option.')
-        : undefined,
-    };
-  }
+  const isDisabled = environments.length !== 1;
+  sortOptions[ReleasesSortOption.ADOPTION] = {
+    label: t('Date Adopted'),
+    disabled: isDisabled,
+    tooltip: isDisabled
+      ? t('Select one environment to use this sort option.')
+      : undefined,
+  };
 
   return (
     <StyledReleasesDropdown

@@ -1,4 +1,4 @@
-import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
+import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 
 describe('DisplayReprocessEventAction', function () {
   const orgFeatures = ['reprocessing-v2'];

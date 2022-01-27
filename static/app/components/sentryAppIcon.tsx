@@ -1,44 +1,15 @@
-import {
-  IconCalixa,
-  IconClickup,
-  IconGeneric,
-  IconKomodor,
-  IconLinear,
-  IconRookout,
-  IconShortcut,
-  IconSpikesh,
-  IconTaskcall,
-  IconTeamwork,
-} from 'app/icons';
-import {SentryAppComponent} from 'app/types';
+import React from 'react';
+
+import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
+import {AvatarSentryApp} from 'sentry/types';
 
 type Props = {
-  slug: SentryAppComponent['sentryApp']['slug'];
+  size: number;
+  sentryApp: AvatarSentryApp;
 };
 
-const SentryAppIcon = ({slug}: Props) => {
-  switch (slug) {
-    case 'calixa':
-      return <IconCalixa size="md" />;
-    case 'clickup':
-      return <IconClickup size="md" />;
-    case 'komodor':
-      return <IconKomodor size="md" />;
-    case 'linear':
-      return <IconLinear size="md" />;
-    case 'rookout':
-      return <IconRookout size="md" />;
-    case 'shortcut':
-      return <IconShortcut size="md" />;
-    case 'spikesh':
-      return <IconSpikesh size="md" />;
-    case 'taskcall':
-      return <IconTaskcall size="md" />;
-    case 'teamwork':
-      return <IconTeamwork size="md" />;
-    default:
-      return <IconGeneric size="md" />;
-  }
+const SentryAppIcon = ({sentryApp, size}: Props) => {
+  return <SentryAppAvatar sentryApp={sentryApp} size={size} isColor />;
 };
 
-export {SentryAppIcon};
+export default SentryAppIcon;

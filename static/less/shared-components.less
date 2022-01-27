@@ -387,10 +387,6 @@ table.table.key-value {
 */
 
 @loader-size: 64px;
-@check-height: 32px;
-@check-width: 16px;
-@check-left: (@loader-size / 6 + @loader-size / 12);
-@check-thickness: 6px;
 
 .loading {
   margin: 6em auto;
@@ -415,33 +411,11 @@ table.table.key-value {
 
   .loading-indicator {
     position: relative;
-    border: @check-thickness solid @white-darkest;
+    border: 6px solid @white-darkest;
     border-left-color: @purple;
     -webkit-animation: loading 0.5s infinite linear;
     animation: loading 0.55s infinite linear;
     margin: 0 auto;
-
-    .checkmark {
-      &.draw:after {
-        animation-duration: 800ms;
-        animation-timing-function: ease;
-        animation-name: checkmark;
-        transform: scaleX(-1) rotate(135deg);
-      }
-
-      &:after {
-        opacity: 1;
-        height: @check-height;
-        width: @check-width;
-        transform-origin: left top;
-        border-right: @check-thickness solid @green;
-        border-top: @check-thickness solid @green;
-        content: '';
-        left: 10px;
-        top: 30px;
-        position: absolute;
-      }
-    }
   }
 
   .loading-indicator,
@@ -454,36 +428,6 @@ table.table.key-value {
   .loading-message {
     margin-top: 20px;
     text-align: center;
-  }
-
-  .load-complete {
-    -webkit-animation: none;
-    animation: none;
-    border-color: @green;
-    transition: border 500ms ease-out;
-  }
-}
-
-@keyframes checkmark {
-  0% {
-    height: 0;
-    width: 0;
-    opacity: 1;
-  }
-  20% {
-    height: 0;
-    width: @check-width;
-    opacity: 1;
-  }
-  40% {
-    height: @check-height;
-    width: @check-width;
-    opacity: 1;
-  }
-  100% {
-    height: @check-height;
-    width: @check-width;
-    opacity: 1;
   }
 }
 
@@ -1214,37 +1158,6 @@ header + .alert {
   &.anchor-right {
     li {
       margin: 0 0 0 30px;
-    }
-  }
-}
-
-/**
-* Project nav
-* ============================================================================
-*/
-
-ul.radio-inputs {
-  list-style: none;
-  position: relative;
-  display: inline-block;
-  margin-bottom: 10px;
-
-  li.radio {
-    margin-top: 0;
-    margin-right: 10px;
-    margin-bottom: 10px;
-    margin-left: 0;
-    display: block;
-    font-weight: normal;
-
-    label {
-      padding-left: 25px;
-
-      input {
-        margin-left: -25px;
-        margin-top: 4px;
-        vertical-align: middle;
-      }
     }
   }
 }

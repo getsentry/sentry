@@ -1,10 +1,9 @@
 import Reflux from 'reflux';
 
-import NavigationActions from 'app/actions/navigationActions';
-import OrganizationActions from 'app/actions/organizationActions';
-import OrganizationsActions from 'app/actions/organizationsActions';
-import ProjectActions from 'app/actions/projectActions';
-import {Organization, Project} from 'app/types';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import OrganizationsActions from 'sentry/actions/organizationsActions';
+import ProjectActions from 'sentry/actions/projectActions';
+import {Organization, Project} from 'sentry/types';
 
 type OrgTypes = Organization | null;
 
@@ -13,14 +12,12 @@ type State = {
   lastProject: Project | null;
   organization: OrgTypes;
   environment: string | string[] | null;
-  lastRoute: string | null;
 };
 
 type LatestContextStoreInterface = {
   state: State;
   reset(): void;
   get(): State;
-  onSetLastRoute(route: string): void;
   onUpdateOrganization(organization: OrgTypes): void;
   onSetActiveOrganization(organization: OrgTypes): void;
   onSetActiveProject(project: Project | null): void;
@@ -41,7 +38,6 @@ const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
     lastProject: null,
     organization: null,
     environment: null,
-    lastRoute: null,
   },
 
   get() {
@@ -55,7 +51,6 @@ const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
     this.listenTo(OrganizationsActions.update, this.onUpdateOrganization);
     this.listenTo(OrganizationActions.update, this.onUpdateOrganization);
-    this.listenTo(NavigationActions.setLastRoute, this.onSetLastRoute);
   },
 
   reset() {
@@ -64,18 +59,8 @@ const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
       lastProject: null,
       organization: null,
       environment: null,
-      lastRoute: null,
     };
     return this.state;
-  },
-
-  onSetLastRoute(route) {
-    this.state = {
-      ...this.state,
-      lastRoute: route,
-    };
-
-    this.trigger(this.state);
   },
 
   onUpdateOrganization(org) {

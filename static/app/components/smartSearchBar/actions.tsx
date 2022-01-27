@@ -1,16 +1,16 @@
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
-import {pinSearch, unpinSearch} from 'app/actionCreators/savedSearches';
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import MenuItem from 'app/components/menuItem';
-import {IconAdd, IconPin, IconSliders} from 'app/icons';
-import {t} from 'app/locale';
-import {SavedSearch, SavedSearchType} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import CreateSavedSearchModal from 'app/views/issueList/createSavedSearchModal';
+import {openModal} from 'sentry/actionCreators/modal';
+import {pinSearch, unpinSearch} from 'sentry/actionCreators/savedSearches';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import MenuItem from 'sentry/components/menuItem';
+import {IconAdd, IconPin, IconSliders} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {SavedSearch, SavedSearchType} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
 
 import SmartSearchBar from './index';
 import {removeSpace} from './utils';

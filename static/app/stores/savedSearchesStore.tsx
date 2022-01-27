@@ -1,8 +1,8 @@
 import findIndex from 'lodash/findIndex';
 import Reflux from 'reflux';
 
-import SavedSearchesActions from 'app/actions/savedSearchesActions';
-import {SavedSearch, SavedSearchType} from 'app/types';
+import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
+import {SavedSearch, SavedSearchType} from 'sentry/types';
 
 type State = {
   savedSearches: SavedSearch[];

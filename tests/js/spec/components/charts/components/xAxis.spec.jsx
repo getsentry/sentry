@@ -1,5 +1,5 @@
-import XAxis from 'app/components/charts/components/xAxis';
-import theme from 'app/utils/theme';
+import XAxis from 'sentry/components/charts/components/xAxis';
+import theme from 'sentry/utils/theme';
 
 jest.mock('moment', () => {
   const moment = jest.requireActual('moment-timezone');

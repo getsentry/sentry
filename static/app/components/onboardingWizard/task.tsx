@@ -4,19 +4,19 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import moment from 'moment';
 
-import {navigateTo} from 'app/actionCreators/navigation';
-import Avatar from 'app/components/avatar';
-import Button from 'app/components/button';
-import Card from 'app/components/card';
-import LetterAvatar from 'app/components/letterAvatar';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconClose, IconLock, IconSync} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import testableTransition from 'app/utils/testableTransition';
-import withOrganization from 'app/utils/withOrganization';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import Avatar from 'sentry/components/avatar';
+import Button from 'sentry/components/button';
+import Card from 'sentry/components/card';
+import LetterAvatar from 'sentry/components/letterAvatar';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import testableTransition from 'sentry/utils/testableTransition';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import SkipConfirm from './skipConfirm';
 import {taskIsDone} from './utils';
@@ -165,7 +165,7 @@ const TaskCard = styled(Card)`
 const IncompleteTitle = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-weight: 600;
 `;
@@ -211,7 +211,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const StyledIconClose = styled(IconClose)`

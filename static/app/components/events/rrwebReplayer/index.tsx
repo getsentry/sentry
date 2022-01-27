@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 import BaseRRWebReplayer from './rrWebReplayer';
 
@@ -112,7 +112,7 @@ const RRWebReplayer = styled(BaseRRWebReplayer)`
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: max-content;
-    grid-gap: ${space(0.75)};
+    gap: ${space(0.75)};
     align-items: center;
     justify-content: center;
     font-size: ${p => p.theme.fontSizeSmall};

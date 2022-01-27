@@ -1,4 +1,5 @@
 from django.http import Http404
+from rest_framework.request import Request
 
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
@@ -14,7 +15,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
 
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def convert_args(self, request, organization_slug, integration_id, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, integration_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         self.validate_integration_id(integration_id)

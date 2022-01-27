@@ -2,18 +2,18 @@ import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {User} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import FormModel from 'app/views/settings/components/forms/model';
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {User} from 'sentry/types';
+import AsyncView from 'sentry/views/asyncView';
+import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import FormModel from 'sentry/views/settings/components/forms/model';
+import {JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 const userEditForm: JsonFormObject = {
   title: 'User details',
@@ -208,7 +208,7 @@ class AdminUserEdit extends AsyncView<Props, State> {
 const ModalFooter = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-content: end;
   padding: 20px 30px;
   margin: 20px -30px -30px;

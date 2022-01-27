@@ -3,19 +3,19 @@ import {useTheme} from '@emotion/react';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
-import AreaChart from 'app/components/charts/areaChart';
-import ChartZoom from 'app/components/charts/chartZoom';
-import LineChart from 'app/components/charts/lineChart';
-import {DateString} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import {aggregateOutputType} from 'app/utils/discover/fields';
+import AreaChart from 'sentry/components/charts/areaChart';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import LineChart from 'sentry/components/charts/lineChart';
+import {DateString} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 type Props = {
   data: Series[];
   previousData?: Series[];
   router: InjectedRouter;
-  statsPeriod: string | undefined;
+  statsPeriod: string | null | undefined;
   start: DateString;
   end: DateString;
   utc: boolean;
@@ -23,6 +23,7 @@ type Props = {
   grid?: AreaChart['props']['grid'];
   disableMultiAxis?: boolean;
   disableXAxis?: boolean;
+  definedAxisTicks?: number;
   chartColors?: string[];
   loading: boolean;
   isLineChart?: boolean;
@@ -69,6 +70,7 @@ function Chart({
   grid,
   disableMultiAxis,
   disableXAxis,
+  definedAxisTicks,
   chartColors,
   isLineChart,
 }: Props) {
@@ -83,6 +85,7 @@ function Chart({
   const durationOnly = data.every(
     value => aggregateOutputType(value.seriesName) === 'duration'
   );
+
   const dataMax = durationOnly ? computeAxisMax(data) : undefined;
 
   const xAxes = disableMultiAxis
@@ -101,6 +104,7 @@ function Chart({
   const yAxes = disableMultiAxis
     ? [
         {
+          splitNumber: definedAxisTicks,
           axisLabel: {
             color: theme.chartLabel,
             formatter(value: number) {
@@ -170,7 +174,10 @@ function Chart({
     colors: [colors[0], colors[1]] as string[],
     tooltip: {
       valueFormatter: (value, seriesName) => {
-        return tooltipFormatter(value, seriesName);
+        return tooltipFormatter(
+          value,
+          data && data.length ? data[0].seriesName : seriesName
+        );
       },
       nameFormatter(value: string) {
         return value === 'epm()' ? 'tpm()' : value;
@@ -190,6 +197,14 @@ function Chart({
     xAxisIndex: i,
   }));
 
+  const xAxis = disableXAxis
+    ? {
+        show: false,
+        axisLabel: {show: true, margin: 0},
+        axisLine: {show: false},
+      }
+    : undefined;
+
   return (
     <ChartZoom
       router={router}
@@ -207,8 +222,7 @@ function Chart({
               {...zoomRenderProps}
               series={series}
               previousPeriod={previousData}
-              xAxis={disableXAxis ? {show: false} : undefined}
-              {...areaChartProps}
+              xAxis={xAxis}
             />
           );
         }
@@ -219,7 +233,7 @@ function Chart({
             {...zoomRenderProps}
             series={series}
             previousPeriod={previousData}
-            xAxis={disableXAxis ? {show: false} : undefined}
+            xAxis={xAxis}
             {...areaChartProps}
           />
         );

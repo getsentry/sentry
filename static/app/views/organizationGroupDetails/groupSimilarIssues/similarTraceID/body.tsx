@@ -1,16 +1,16 @@
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody} from 'app/components/panels';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 
 import List from './list';
 

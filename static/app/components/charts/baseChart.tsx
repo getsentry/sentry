@@ -1,13 +1,31 @@
+import 'echarts/lib/component/grid';
+import 'echarts/lib/component/graphic';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
+import type {
+  AxisPointerComponentOption,
+  ECharts,
+  EChartsOption,
+  GridComponentOption,
+  LegendComponentOption,
+  LineSeriesOption,
+  SeriesOption,
+  TooltipComponentFormatterCallback,
+  TooltipComponentFormatterCallbackParams,
+  TooltipComponentOption,
+  VisualMapComponentOption,
+  XAXisComponentOption,
+  YAXisComponentOption,
+} from 'echarts';
+import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
-import space from 'app/styles/space';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
+import space from 'sentry/styles/space';
 import {
   EChartChartReadyHandler,
   EChartClickHandler,
@@ -20,9 +38,9 @@ import {
   EChartRestoreHandler,
   ReactEchartsRef,
   Series,
-} from 'app/types/echarts';
-import {defined} from 'app/utils';
-import {Theme} from 'app/utils/theme';
+} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
+import type {Theme} from 'sentry/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
@@ -61,19 +79,45 @@ type Truncateable = {
   truncate?: number | boolean;
 };
 
+interface TooltipOption
+  extends Omit<TooltipComponentOption, 'valueFormatter'>,
+    Truncateable {
+  filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
+  formatAxisLabel?: (
+    value: number,
+    isTimestamp: boolean,
+    utc: boolean,
+    showTimeInTooltip: boolean,
+    addSecondsToTimeFormat: boolean,
+    bucketSize: number | undefined,
+    seriesParamsOrParam: TooltipComponentFormatterCallbackParams
+  ) => string;
+  valueFormatter?: (
+    value: number,
+    label?: string,
+    seriesParams?: TooltipComponentFormatterCallback<any>
+  ) => string;
+  nameFormatter?: (name: string) => string;
+  markerFormatter?: (marker: string, label?: string) => string;
+  /**
+   * Array containing seriesNames that need to be indented
+   */
+  indentLabels?: string[];
+}
+
 type Props = {
-  options?: EChartOption;
+  options?: EChartsOption;
   /**
    * Chart Series
    * This is different than the interface to higher level charts, these need to
    * be an array of ECharts "Series" components.
    */
-  series?: EChartOption.Series[];
+  series?: SeriesOption[];
   /**
    * Additional Chart Series
    * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
    */
-  additionalSeries?: EChartOption.SeriesLine[];
+  additionalSeries?: LineSeriesOption[];
   /**
    * Array of color codes to use in charts. May also take a function which is
    * provided with the current theme
@@ -84,11 +128,11 @@ type Props = {
    *
    * Additionally a `truncate` option
    */
-  xAxis?: (EChartOption.XAxis & Truncateable) | null;
+  xAxis?: (XAXisComponentOption & Truncateable) | null;
   /**
    * Must be explicitly `null` to disable yAxis
    */
-  yAxis?: EChartOption.YAxis | null;
+  yAxis?: YAXisComponentOption | null;
   /**
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
    * objects to customize yAxis properties
@@ -102,58 +146,35 @@ type Props = {
   /**
    * Tooltip options
    */
-  tooltip?: EChartOption.Tooltip &
-    Truncateable & {
-      filter?: (value: number, seriesParam: EChartOption.Tooltip.Format) => boolean;
-      formatAxisLabel?: (
-        value: number,
-        isTimestamp: boolean,
-        utc: boolean,
-        showTimeInTooltip: boolean,
-        addSecondsToTimeFormat: boolean,
-        bucketSize: number | undefined,
-        seriesParamsOrParam: EChartOption.Tooltip.Format | EChartOption.Tooltip.Format[]
-      ) => string;
-      valueFormatter?: (
-        value: number,
-        label?: string,
-        seriesParams?: EChartOption.Tooltip.Format
-      ) => string | number;
-      nameFormatter?: (name: string) => string;
-      markerFormatter?: (marker: string, label?: string) => string;
-      /**
-       * Array containing seriesNames that need to be indented
-       */
-      indentLabels?: string[];
-    };
+  tooltip?: TooltipOption;
   /**
    * DataZoom (allows for zooming of chart)
    */
-  dataZoom?: EChartOption['dataZoom'];
+  dataZoom?: EChartsOption['dataZoom'];
   /**
    * Axis pointer options
    */
-  axisPointer?: EChartOption.AxisPointer;
+  axisPointer?: AxisPointerComponentOption;
   /**
    * Toolbox options
    */
-  toolBox?: EChartOption['toolbox'];
+  toolBox?: EChartsOption['toolbox'];
   /**
    * Graphic options
    */
-  graphic?: EChartOption['graphic'];
+  graphic?: EChartsOption['graphic'];
   /**
    * ECharts Grid options. multiple grids allow multiple sub-graphs.
    */
-  grid?: EChartOption.Grid | EChartOption.Grid[];
+  grid?: GridComponentOption | GridComponentOption[];
   /**
    * ECharts Visual Map Options.
    */
-  visualMap?: EChartOption.VisualMap | EChartOption.VisualMap[];
+  visualMap?: VisualMapComponentOption | VisualMapComponentOption[];
   /**
    * Chart legend
    */
-  legend?: EChartOption.Legend & Truncateable;
+  legend?: LegendComponentOption & Truncateable;
   /**
    * Chart height
    */
@@ -235,7 +256,7 @@ type Props = {
   /**
    * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
    */
-  period?: string;
+  period?: string | null;
   /**
    * Formats dates as UTC?
    */
@@ -250,9 +271,19 @@ type Props = {
    */
   transformSinglePointToBar?: boolean;
   /**
+   * If true and there's only one datapoint in series.data, we show a horizontal line to increase the visibility
+   * Similarly to single point bar in area charts a flat line for line charts makes it easy to spot the single data point.
+   */
+  transformSinglePointToLine?: boolean;
+  /**
    * Inline styles
    */
   style?: React.CSSProperties;
+
+  /**
+   * If true, ignores height value and auto-scales chart to fit container height.
+   */
+  autoHeightResize?: boolean;
 };
 
 function BaseChartUnwrapped({
@@ -296,6 +327,7 @@ function BaseChartUnwrapped({
   yAxis = {},
   xAxis = {},
 
+  autoHeightResize = false,
   height = 200,
   width = 'auto',
   renderer = 'svg',
@@ -303,11 +335,12 @@ function BaseChartUnwrapped({
   lazyUpdate = false,
   isGroupedByDate = false,
   transformSinglePointToBar = false,
+  transformSinglePointToLine = false,
   onChartReady = () => {},
 }: Props) {
   const theme = useTheme();
 
-  const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
+  const hasSinglePoints = (series as LineSeriesOption[] | undefined)?.every(
     s => Array.isArray(s.data) && s.data.length <= 1
   );
 
@@ -321,12 +354,32 @@ function BaseChartUnwrapped({
 
   const transformedSeries =
     (hasSinglePoints && transformSinglePointToBar
-      ? (series as EChartOption.SeriesLine[] | undefined)?.map(s => ({
+      ? (series as LineSeriesOption[] | undefined)?.map(s => ({
           ...s,
           type: 'bar',
           barWidth: 40,
           barGap: 0,
           itemStyle: {...(s.areaStyle ?? {})},
+        }))
+      : hasSinglePoints && transformSinglePointToLine
+      ? (series as LineSeriesOption[] | undefined)?.map(s => ({
+          ...s,
+          type: 'line',
+          itemStyle: {...(s.lineStyle ?? {})},
+          markLine:
+            s?.data?.[0]?.[1] !== undefined
+              ? MarkLine({
+                  silent: true,
+                  lineStyle: {
+                    type: 'solid',
+                    width: 1.5,
+                  },
+                  data: [{yAxis: s?.data?.[0]?.[1]}],
+                  label: {
+                    show: false,
+                  },
+                })
+              : undefined,
         }))
       : series) ?? [];
 
@@ -343,6 +396,7 @@ function BaseChartUnwrapped({
           color: previousPeriodColors ? previousPeriodColors[seriesIndex] : theme.gray200,
         },
         stack: 'previous',
+        animation: false,
       })
     ) ?? [];
 
@@ -398,10 +452,10 @@ function BaseChartUnwrapped({
       )
     : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
-  // Maybe changing the series type to types/echarts Series[] would be a better
-  // solution and can't use ignore for multiline blocks
-  const seriesValid = series && series[0]?.data && series[0].data.length > 1;
-  const seriesData = seriesValid ? series[0].data : undefined;
+  const seriesData =
+    Array.isArray(series?.[0]?.data) && series[0].data.length > 1
+      ? series[0].data
+      : undefined;
   const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
   const tooltipOrNone =
@@ -434,7 +488,7 @@ function BaseChartUnwrapped({
   };
 
   const chartStyles = {
-    height: getDimensionValue(height),
+    height: autoHeightResize ? '100%' : getDimensionValue(height),
     width: getDimensionValue(width),
     ...style,
   };
@@ -465,7 +519,7 @@ function BaseChartUnwrapped({
   );
 
   return (
-    <ChartContainer>
+    <ChartContainer autoHeightResize={autoHeightResize}>
       <ReactEchartsCore
         ref={forwardedRef}
         echarts={echarts}
@@ -475,7 +529,12 @@ function BaseChartUnwrapped({
         onChartReady={onChartReady}
         onEvents={eventsMap}
         style={chartStyles}
-        opts={{height, width, renderer, devicePixelRatio}}
+        opts={{
+          height: autoHeightResize ? 'auto' : height,
+          width,
+          renderer,
+          devicePixelRatio,
+        }}
         option={chartOption}
       />
     </ChartContainer>
@@ -484,16 +543,20 @@ function BaseChartUnwrapped({
 
 // Contains styling for chart elements as we can't easily style those
 // elements directly
-const ChartContainer = styled('div')`
+const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
+  ${p => p.autoHeightResize && 'height: 100%;'}
+
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-date {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     font-family: ${p => p.theme.text.family};
     font-variant-numeric: tabular-nums;
-    background: ${p => p.theme.gray500};
     padding: ${space(1)} ${space(2)};
     border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  }
+  .tooltip-series {
+    border-bottom: none;
   }
   .tooltip-series-solo {
     border-radius: ${p => p.theme.borderRadius};
@@ -503,7 +566,7 @@ const ChartContainer = styled('div')`
   }
   .tooltip-label strong {
     font-weight: normal;
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.textColor};
   }
   .tooltip-label-indent {
     margin-left: ${space(3)};
@@ -514,7 +577,7 @@ const ChartContainer = styled('div')`
     align-items: baseline;
   }
   .tooltip-date {
-    border-top: 1px solid ${p => p.theme.gray400};
+    border-top: solid 1px ${p => p.theme.innerBorder};
     text-align: center;
     position: relative;
     width: auto;
@@ -523,23 +586,31 @@ const ChartContainer = styled('div')`
   .tooltip-arrow {
     top: 100%;
     left: 50%;
-    border: 0px solid transparent;
-    content: ' ';
-    height: 0;
-    width: 0;
     position: absolute;
     pointer-events: none;
-    border-top-color: ${p => p.theme.gray500};
-    border-width: 8px;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid ${p => p.theme.backgroundElevated};
     margin-left: -8px;
+    &:before {
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid ${p => p.theme.translucentBorder};
+      content: '';
+      display: block;
+      position: absolute;
+      top: -7px;
+      left: -8px;
+      z-index: -1;
+    }
   }
 
   .echarts-for-react div:first-of-type {
     width: 100% !important;
   }
 
-  .echarts-for-react tspan {
-    font-variant-numeric: tabular-nums;
+  .echarts-for-react text {
+    font-variant-numeric: tabular-nums !important;
   }
 
   /* Tooltip description styling */

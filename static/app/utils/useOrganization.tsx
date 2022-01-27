@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 
-import {OrganizationContext} from 'app/views/organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function useOrganization() {
   const organization = useContext(OrganizationContext);

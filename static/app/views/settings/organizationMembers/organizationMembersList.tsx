@@ -3,30 +3,30 @@ import {RouteComponentProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {resendMemberInvite} from 'app/actionCreators/members';
-import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
-import Button from 'app/components/button';
-import DropdownMenu from 'app/components/dropdownMenu';
-import HookOrDefault from 'app/components/hookOrDefault';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {MEMBER_ROLES} from 'app/constants';
-import {IconSliders} from 'app/icons';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {Member, MemberRole, Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import routeTitleGen from 'app/utils/routeTitle';
-import theme from 'app/utils/theme';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {resendMemberInvite} from 'sentry/actionCreators/members';
+import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
+import Button from 'sentry/components/button';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {MEMBER_ROLES} from 'sentry/constants';
+import {IconSliders} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {Member, MemberRole, Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import theme from 'sentry/utils/theme';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
 import {
   RenderSearch,
   SearchWrapper,
-} from 'app/views/settings/components/defaultSearchBar';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+} from 'sentry/views/settings/components/defaultSearchBar';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import MembersFilter from './components/membersFilter';
 import InviteRequestRow from './inviteRequestRow';
@@ -390,7 +390,7 @@ const StyledMembersFilter = styled(MembersFilter)`
 const StyledPanelItem = styled('div')`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
   width: 100%;
 `;

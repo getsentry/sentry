@@ -12,11 +12,13 @@ import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 import {useTheme} from '@emotion/react';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconChevron, IconClose} from 'app/icons';
-import space from 'app/styles/space';
-import {Choices, SelectValue} from 'app/types';
-import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconChevron, IconClose} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {Choices, SelectValue} from 'sentry/types';
+import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
+
+import Option from './selectOption';
 
 function isGroupedOptions<OptionType>(
   maybe:
@@ -75,6 +77,16 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    * Used by MultiSelectControl.
    */
   multiple?: boolean;
+  /**
+   * Show line dividers between options
+   */
+  showDividers?: boolean;
+  /**
+   * If false (default), checkmarks/checkboxes will be vertically centered
+   * wrt the first line of the label text. If true, they will be centered
+   * wrt the entire height of the option wrap.
+   */
+  verticallyCenterCheckWrap?: boolean;
   /**
    * Handler for changes. Narrower than the types in react-select.
    */
@@ -135,23 +147,15 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         color: theme.formText,
         background: theme.background,
         border: `1px solid ${theme.border}`,
-        boxShadow: `inset ${theme.dropShadowLight}`,
+        boxShadow: theme.dropShadowLight,
       },
       borderRadius: theme.borderRadius,
-      transition: 'border 0.1s linear',
+      transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
       minHeight: '40px',
-      '&:hover': {
-        borderColor: theme.border,
-      },
       ...(state.isFocused && {
-        border: `1px solid ${theme.border}`,
-        boxShadow: 'rgba(209, 202, 216, 0.5) 0 0 0 3px',
-      }),
-      ...(state.menuIsOpen && {
-        borderBottomLeftRadius: '0',
-        borderBottomRightRadius: '0',
-        boxShadow: 'none',
+        borderColor: theme.focusBorder,
+        boxShadow: `${theme.focusBorder} 0 0 0 1px`,
       }),
       ...(state.isDisabled && {
         borderColor: theme.border,
@@ -167,30 +171,22 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     menu: (provided: React.CSSProperties) => ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
-      marginTop: '-1px',
-      background: theme.background,
+      background: theme.backgroundElevated,
       border: `1px solid ${theme.border}`,
-      borderRadius: `0 0 ${theme.borderRadius} ${theme.borderRadius}`,
-      borderTop: `1px solid ${theme.border}`,
-      boxShadow: theme.dropShadowLight,
+      borderRadius: theme.borderRadius,
+      boxShadow: theme.dropShadowHeavy,
+      width: 'auto',
+      minWidth: '100%',
     }),
-    option: (provided: React.CSSProperties, state: any) => ({
+    option: (provided: React.CSSProperties) => ({
       ...provided,
-      lineHeight: '1.5',
       fontSize: theme.fontSizeMedium,
       cursor: 'pointer',
-      color: state.isFocused
-        ? theme.textColor
-        : state.isSelected
-        ? theme.background
-        : theme.textColor,
-      backgroundColor: state.isFocused
-        ? theme.focus
-        : state.isSelected
-        ? theme.active
-        : 'transparent',
-      '&:active': {
-        backgroundColor: theme.active,
+      color: theme.textColor,
+      background: 'transparent',
+      padding: `0 ${space(0.5)}`,
+      ':active': {
+        background: 'transparent',
       },
     }),
     valueContainer: (provided: React.CSSProperties) => ({
@@ -251,14 +247,16 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...provided,
       lineHeight: '1.5',
       fontWeight: 600,
-      backgroundColor: theme.backgroundSecondary,
-      color: theme.textColor,
+      color: theme.subText,
       marginBottom: 0,
-      padding: `${space(1)} ${space(1.5)}`,
+      padding: `${space(0.5)} ${space(1.5)}`,
     }),
     group: (provided: React.CSSProperties) => ({
       ...provided,
-      padding: 0,
+      paddingTop: 0,
+      ':last-of-type': {
+        paddingBottom: 0,
+      },
     }),
   };
 
@@ -341,6 +339,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     MultiValueRemove,
     LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
+    Option,
   };
 
   return (
@@ -354,8 +353,13 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       value={mappedValue}
       isMulti={props.multiple || props.multi}
       isDisabled={props.isDisabled || props.disabled}
+      showDividers={props.showDividers}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus === undefined ? true : props.openMenuOnFocus}
+      blurInputOnSelect={!props.multiple && !props.multi}
+      closeMenuOnSelect={!(props.multiple || props.multi)}
+      hideSelectedOptions={false}
+      tabSelectsValue={false}
       {...rest}
     />
   );

@@ -2,6 +2,7 @@ from django import forms
 from django.http.response import Http404
 from django.urls import reverse
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -30,7 +31,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         except KeyError:
             raise ResourceDoesNotExist
 
-    def get(self, request, project, plugin_id):
+    def get(self, request: Request, project, plugin_id) -> Response:
         plugin = self._get_plugin(plugin_id)
 
         try:
@@ -40,11 +41,11 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             context["config_error"] = str(e)
             context["auth_url"] = reverse("socialauth_associate", args=[plugin.slug])
 
-        if context["isDeprecated"] and context["isHidden"]:
+        if context["isDeprecated"]:
             raise Http404
         return Response(context)
 
-    def post(self, request, project, plugin_id):
+    def post(self, request: Request, project, plugin_id) -> Response:
         """
         Enable plugin, Test plugin or Reset plugin values
         """
@@ -84,7 +85,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
         return Response(status=201)
 
-    def delete(self, request, project, plugin_id):
+    def delete(self, request: Request, project, plugin_id) -> Response:
         """
         Disable plugin
         """
@@ -105,7 +106,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
         return Response(status=204)
 
-    def put(self, request, project, plugin_id):
+    def put(self, request: Request, project, plugin_id) -> Response:
         plugin = self._get_plugin(plugin_id)
 
         config = [

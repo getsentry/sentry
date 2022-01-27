@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import IssueSyncListElement from 'app/components/issueSyncListElement';
+import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 
-describe('AlertLink', function () {
+describe('IssueSyncListElement', function () {
   it('renders', function () {
     const wrapper = mountWithTheme(<IssueSyncListElement integrationType="github" />);
     expect(wrapper).toSnapshot();

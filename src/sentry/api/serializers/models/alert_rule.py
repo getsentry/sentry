@@ -72,7 +72,10 @@ class AlertRuleSerializer(Serializer):
         for alert_rule in alert_rules.values():
             if alert_rule.owner_id:
                 type = actor_type_to_string(alert_rule.owner.type)
-                result[alert_rule]["owner"] = f"{type}:{resolved_actors[type][alert_rule.owner_id]}"
+                if alert_rule.owner_id in resolved_actors[type]:
+                    result[alert_rule][
+                        "owner"
+                    ] = f"{type}:{resolved_actors[type][alert_rule.owner_id]}"
 
         if "original_alert_rule" in self.expand:
             snapshot_activities = AlertRuleActivity.objects.filter(
@@ -182,4 +185,4 @@ class CombinedRuleSerializer(Serializer):
             attrs["type"] = "rule"
             return attrs
         else:
-            raise AssertionError("Invalid rule to serialize: %r" % type(obj))
+            raise AssertionError(f"Invalid rule to serialize: {type(obj)}")

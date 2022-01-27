@@ -1,8 +1,8 @@
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 export const tableLayout = `
   display: grid;
   grid-template-columns: auto 140px 140px;
-  grid-gap ${space(1)};
+  gap ${space(1)};
   align-items: center;
 `;

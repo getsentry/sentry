@@ -1,7 +1,7 @@
 import * as React from 'react';
-import DocumentTitle from 'react-document-title';
 
-import AsyncComponent from 'app/components/asyncComponent';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 
 type AsyncViewState = AsyncComponent['state'];
 type AsyncViewProps = AsyncComponent['props'];
@@ -15,11 +15,10 @@ export default class AsyncView<
   }
 
   render() {
-    const title = this.getTitle();
     return (
-      <DocumentTitle title={`${title ? `${title} - ` : ''}Sentry`}>
+      <SentryDocumentTitle title={this.getTitle()}>
         {this.renderComponent() as React.ReactChild}
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

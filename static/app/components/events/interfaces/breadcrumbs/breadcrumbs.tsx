@@ -8,12 +8,12 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {PanelTable} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconSwitch} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Crumb} from 'app/types/breadcrumbs';
+import {PanelTable} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconSwitch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Crumb} from 'sentry/types/breadcrumbs';
 
 import Breadcrumb from './breadcrumb';
 
@@ -229,7 +229,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
 const Time = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   cursor: pointer;
 `;
 

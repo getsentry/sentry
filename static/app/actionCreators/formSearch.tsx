@@ -1,9 +1,9 @@
 import flatMap from 'lodash/flatMap';
 import flatten from 'lodash/flatten';
 
-import FormSearchActions from 'app/actions/formSearchActions';
-import {FormSearchField} from 'app/stores/formSearchStore';
-import {Field, JsonFormObject} from 'app/views/settings/components/forms/type';
+import FormSearchActions from 'sentry/actions/formSearchActions';
+import {FormSearchField} from 'sentry/stores/formSearchStore';
+import {Field, JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 type Params = {
   route: string;

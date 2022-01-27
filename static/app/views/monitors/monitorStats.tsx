@@ -1,9 +1,9 @@
-import AsyncComponent from 'app/components/asyncComponent';
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import {Panel, PanelBody} from 'app/components/panels';
-import {t} from 'app/locale';
-import theme from 'app/utils/theme';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import theme from 'sentry/utils/theme';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {Monitor, MonitorStat} from './types';
 

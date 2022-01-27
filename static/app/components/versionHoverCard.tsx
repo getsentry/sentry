@@ -1,25 +1,25 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import AvatarList from 'app/components/avatar/avatarList';
-import Button from 'app/components/button';
-import Clipboard from 'app/components/clipboard';
-import Hovercard from 'app/components/hovercard';
-import LastCommit from 'app/components/lastCommit';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import RepoLabel from 'app/components/repoLabel';
-import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
-import {IconCopy} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Deploy, Organization, Release, Repository} from 'app/types';
-import {defined} from 'app/utils';
-import withApi from 'app/utils/withApi';
-import withRelease from 'app/utils/withRelease';
-import withRepositories from 'app/utils/withRepositories';
+import {Client} from 'sentry/api';
+import AvatarList from 'sentry/components/avatar/avatarList';
+import Button from 'sentry/components/button';
+import Clipboard from 'sentry/components/clipboard';
+import Hovercard from 'sentry/components/hovercard';
+import LastCommit from 'sentry/components/lastCommit';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import RepoLabel from 'sentry/components/repoLabel';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import {IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Deploy, Organization, Release, Repository} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import withApi from 'sentry/utils/withApi';
+import withRelease from 'sentry/utils/withRelease';
+import withRepositories from 'sentry/utils/withRepositories';
 
 type Props = {
   api: Client;
@@ -112,7 +112,7 @@ class VersionHoverCard extends React.Component<Props, State> {
       ),
       body: (
         <div>
-          <div className="row row-flex">
+          <div className="row">
             <div className="col-xs-4">
               <h6>{t('New Issues')}</h6>
               <div className="count-since">{release.newGroups}</div>

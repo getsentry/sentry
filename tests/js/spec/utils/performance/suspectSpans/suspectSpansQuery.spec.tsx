@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import EventView from 'app/utils/discover/eventView';
-import SuspectSpansQuery from 'app/utils/performance/suspectSpans/suspectSpansQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {
   SpanSortOthers,
   SpanSortPercentiles,
-} from 'app/views/performance/transactionSummary/transactionSpans/types';
+} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
 describe('SuspectSpansQuery', function () {
   let eventView, location;
@@ -45,7 +45,7 @@ describe('SuspectSpansQuery', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches data with the right ops filter', async function () {
+  it('fetches data with the right op filter', async function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -59,6 +59,50 @@ describe('SuspectSpansQuery', function () {
         orgSlug="test-org"
         eventView={eventView}
         spanOps={['op1']}
+      >
+        {() => null}
+      </SuspectSpansQuery>
+    );
+
+    expect(getMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches data with the right group filter', async function () {
+    const getMock = MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events-spans-performance/',
+      // just asserting that the data is being fetched, no need for actual data here
+      body: [],
+      match: [MockApiClient.matchQuery({spanGroup: ['aaaaaaaaaaaaaaaa']})],
+    });
+
+    mountWithTheme(
+      <SuspectSpansQuery
+        location={location}
+        orgSlug="test-org"
+        eventView={eventView}
+        spanGroups={['aaaaaaaaaaaaaaaa']}
+      >
+        {() => null}
+      </SuspectSpansQuery>
+    );
+
+    expect(getMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches data with the right per suspect param', async function () {
+    const getMock = MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events-spans-performance/',
+      // just asserting that the data is being fetched, no need for actual data here
+      body: [],
+      match: [MockApiClient.matchQuery({perSuspect: 1})],
+    });
+
+    mountWithTheme(
+      <SuspectSpansQuery
+        location={location}
+        orgSlug="test-org"
+        eventView={eventView}
+        perSuspect={1}
       >
         {() => null}
       </SuspectSpansQuery>

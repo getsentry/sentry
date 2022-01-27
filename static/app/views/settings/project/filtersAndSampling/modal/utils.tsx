@@ -1,14 +1,15 @@
 import {css} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 import {
   DynamicSamplingConditionLogicalInner,
   DynamicSamplingInnerName,
   DynamicSamplingInnerOperator,
+  DynamicSamplingRule,
   LegacyBrowser,
-} from 'app/types/dynamicSampling';
-import theme from 'app/utils/theme';
+} from 'sentry/types/dynamicSampling';
+import theme from 'sentry/utils/theme';
 
 import {LEGACY_BROWSER_LIST} from '../utils';
 
@@ -155,4 +156,52 @@ export function getNewCondition(
       ignoreCase: true,
     },
   };
+}
+
+const unexpectedErrorMessage = t(
+  'An internal error occurred while saving dynamic sampling rule'
+);
+
+type ResponseJSONDetailed = {
+  detail: string[];
+};
+
+type ResponseJSON = {
+  dynamicSampling?: {
+    rules: Array<Partial<DynamicSamplingRule>>;
+  };
+};
+
+export function getErrorMessage(
+  error: {
+    responseJSON?: ResponseJSON | ResponseJSONDetailed;
+  },
+  currentRuleIndex: number
+) {
+  const detailedErrorResponse = (error.responseJSON as undefined | ResponseJSONDetailed)
+    ?.detail;
+
+  if (detailedErrorResponse) {
+    // This is a temp solution until we enable error rules again, therefore it does not need translation
+    return detailedErrorResponse[0];
+  }
+
+  const errorResponse = error.responseJSON as undefined | ResponseJSON;
+
+  if (!errorResponse) {
+    return unexpectedErrorMessage;
+  }
+
+  const responseErrors = errorResponse.dynamicSampling?.rules[currentRuleIndex] ?? {};
+
+  const [type, _value] = Object.entries(responseErrors)[0];
+
+  if (type === 'sampleRate') {
+    return {
+      type: 'sampleRate',
+      message: t('Ensure this value is a floating number between 0 and 100'),
+    };
+  }
+
+  return unexpectedErrorMessage;
 }

@@ -1,13 +1,13 @@
-import {cloneElement, Fragment, MouseEvent, useState} from 'react';
+import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Frame, Group, PlatformType} from 'app/types';
-import {Event} from 'app/types/event';
-import {StacktraceType} from 'app/types/stacktrace';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Frame, Group, PlatformType} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {StacktraceType} from 'sentry/types/stacktrace';
 
 import Line from '../../frame/lineV2';
 import {getImageRange, parseAddress} from '../../utils';
@@ -86,12 +86,12 @@ function StackTraceContent({
     return minGroupingLevel <= groupingCurrentLevel;
   }
 
-  function handleToggleAddresses(mouseEvent: MouseEvent<SVGElement>) {
+  function handleToggleAddresses(mouseEvent: React.MouseEvent<SVGElement>) {
     mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
     setShowingAbsoluteAddresses(!showingAbsoluteAddresses);
   }
 
-  function handleToggleFunctionName(mouseEvent: MouseEvent<SVGElement>) {
+  function handleToggleFunctionName(mouseEvent: React.MouseEvent<SVGElement>) {
     mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
     setShowCompleteFunctionName(!showCompleteFunctionName);
   }
@@ -258,7 +258,7 @@ function StackTraceContent({
 export default StackTraceContent;
 
 const StyledList = styled(List)`
-  grid-gap: 0;
+  gap: 0;
   position: relative;
   overflow: hidden;
   z-index: 1;

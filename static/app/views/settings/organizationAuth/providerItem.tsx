@@ -1,19 +1,19 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Button from 'app/components/button';
-import Hovercard from 'app/components/hovercard';
-import {PanelItem} from 'app/components/panels';
-import Tag from 'app/components/tag';
-import {IconLock} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {AuthProvider} from 'app/types';
-import {FeatureDisabledHooks} from 'app/types/hooks';
-import {descopeFeatureName} from 'app/utils';
+import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Button from 'sentry/components/button';
+import Hovercard from 'sentry/components/hovercard';
+import {PanelItem} from 'sentry/components/panels';
+import Tag from 'sentry/components/tag';
+import {IconLock} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AuthProvider} from 'sentry/types';
+import {FeatureDisabledHooks} from 'sentry/types/hooks';
+import {descopeFeatureName} from 'sentry/utils';
 
 type RenderInstallButtonProps = {
   /**
@@ -151,7 +151,7 @@ const ProviderInfo = styled('div')`
   flex: 1;
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 
 const ProviderLogo = styled('div')`

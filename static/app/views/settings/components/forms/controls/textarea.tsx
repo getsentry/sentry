@@ -3,8 +3,8 @@ import TextareaAutosize from 'react-autosize-textarea';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {inputStyles} from 'app/styles/input';
-import space from 'app/styles/space';
+import {inputStyles} from 'sentry/styles/input';
+import space from 'sentry/styles/space';
 
 type InputProps = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
 type Props = Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css'> &

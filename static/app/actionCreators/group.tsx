@@ -1,12 +1,12 @@
 import * as Sentry from '@sentry/react';
 import isNil from 'lodash/isNil';
 
-import GroupActions from 'app/actions/groupActions';
-import {Client, RequestCallbacks, RequestOptions} from 'app/api';
-import GroupStore from 'app/stores/groupStore';
-import {Actor, Group, Member, Note, User} from 'app/types';
-import {buildTeamId, buildUserId} from 'app/utils';
-import {uniqueId} from 'app/utils/guid';
+import GroupActions from 'sentry/actions/groupActions';
+import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
+import GroupStore from 'sentry/stores/groupStore';
+import {Actor, Group, Member, Note, User} from 'sentry/types';
+import {buildTeamId, buildUserId} from 'sentry/utils';
+import {uniqueId} from 'sentry/utils/guid';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 type AssignToUserParams = {

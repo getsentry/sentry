@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {SectionContents} from 'app/components/events/eventDataSection';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
+import {SectionContents} from 'sentry/components/events/eventDataSection';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 import EventTags from '../eventTags/eventTags';
 

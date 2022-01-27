@@ -2,15 +2,15 @@ import {Component} from 'react';
 import {createFilter} from 'react-select';
 import debounce from 'lodash/debounce';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
-import withApi from 'app/utils/withApi';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import Form from 'app/views/settings/components/forms/form';
-import FormModel from 'app/views/settings/components/forms/model';
-import {Field, FieldValue} from 'app/views/settings/components/forms/type';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
+import withApi from 'sentry/utils/withApi';
+import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromConfig';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormModel from 'sentry/views/settings/components/forms/model';
+import {Field, FieldValue} from 'sentry/views/settings/components/forms/type';
 
 // 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
@@ -28,10 +28,11 @@ export type SchemaFormConfig = {
   uri: string;
   required_fields?: FieldFromSchema[];
   optional_fields?: FieldFromSchema[];
+  description: string | null;
 };
 
 // only need required_fields and optional_fields
-type State = Omit<SchemaFormConfig, 'uri'> & {
+type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
 };
 

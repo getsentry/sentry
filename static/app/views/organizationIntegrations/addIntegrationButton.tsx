@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import Button from 'app/components/button';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import {IntegrationWithConfig} from 'app/types';
+import Button from 'sentry/components/button';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import {IntegrationWithConfig} from 'sentry/types';
 
 import AddIntegration from './addIntegration';
 

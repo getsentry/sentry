@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Login from 'app/views/auth/login';
+import Login from 'sentry/views/auth/login';
 
 describe('Login', function () {
   afterAll(function () {

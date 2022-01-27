@@ -1,14 +1,14 @@
 import * as React from 'react';
-import {EChartOption} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 
-import {Series} from 'app/types/echarts';
+import {Series} from 'sentry/types/echarts';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
 
-type ChartProps = React.ComponentProps<typeof BaseChart>;
+type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
-export type AreaChartSeries = Series & Omit<EChartOption.SeriesLine, 'data' | 'name'>;
+export type AreaChartSeries = Series & Omit<LineSeriesOption, 'data' | 'name'>;
 
 type Props = Omit<ChartProps, 'series'> & {
   series: AreaChartSeries[];

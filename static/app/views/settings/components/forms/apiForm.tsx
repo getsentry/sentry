@@ -1,9 +1,9 @@
 import {Component} from 'react';
 
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import Form from 'app/views/settings/components/forms/form';
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import Form from 'sentry/views/settings/components/forms/form';
 
 type Props = Form['props'] & {
   onSubmit?: (data: Record<string, any>) => void;

@@ -2,14 +2,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import space from 'app/styles/space';
-import Alert from 'app/components/alert';
-import withOrganization from 'app/utils/withOrganization';
-import {t} from 'app/locale';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import space from 'sentry/styles/space';
+import Alert from 'sentry/components/alert';
+import withOrganization from 'sentry/utils/withOrganization';
+import {t} from 'sentry/locale';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import IntegrationServerlessRow from './integrationServerlessRow';
 

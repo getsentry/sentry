@@ -19,6 +19,7 @@ type TestStubFixtures = {
   AuthProviders: OverridableStubList;
   Authenticators: SimpleStub;
   AllAuthenticators: SimpleStub;
+  BuiltInSymbolSources: OverridableStubList;
   BitbucketIntegrationConfig: SimpleStub;
   Broadcast: OverridableStub;
   Commit: OverridableStub;
@@ -29,6 +30,7 @@ type TestStubFixtures = {
   DebugSymbols: OverridableStub;
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
+  DocIntegration: OverridableStub;
   Entries: SimpleStub;
   Event: OverridableStub;
   EventEntry: OverridableStub;
@@ -60,6 +62,10 @@ type TestStubFixtures = {
   JiraIntegrationProvider: OverridableStub;
   Member: OverridableStub;
   Members: OverridableStubList;
+  MetricsField: OverridableStub;
+  MetricsFieldByTransactionStatus: OverridableStub;
+  MetricsFieldByMeasurementRating: OverridableStub;
+  MetricsFieldsByMeasurementRating: OverridableStub;
   OrgOwnedApps: SimpleStub;
   Organization: OverridableStub;
   OrganizationEvent: OverridableStub;
@@ -109,6 +115,7 @@ type TestStubFixtures = {
   Team: OverridableStub;
   TeamAlertsTriggered: SimpleStub;
   TeamIssuesReviewed: SimpleStub;
+  TeamIssuesBreakdown: SimpleStub;
   TeamResolutionTime: SimpleStub;
   Tombstones: OverridableStubList;
   UpdateSdkAndEnableIntegrationSuggestion: SimpleStub;

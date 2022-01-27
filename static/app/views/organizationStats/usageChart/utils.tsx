@@ -1,8 +1,8 @@
 import moment from 'moment';
 
-import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {DataCategory, IntervalPeriod} from 'app/types';
-import {parsePeriodToHours} from 'app/utils/dates';
+import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
+import {DataCategory, IntervalPeriod} from 'sentry/types';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {formatUsageWithUnits} from '../utils';
 
@@ -18,8 +18,8 @@ export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
  * Ensure that this method is idempotent and doesn't change the moment object
  * that is passed in
  *
- * If hours are not shown, this method will need to use UTC to avoid oddities
- * caused by the user being ahead/behind UTC.
+ * Use the `useUtc` parameter to get the UTC date for the provided
+ * moment instance.
  */
 export function getDateFromMoment(
   m: moment.Moment,
@@ -28,7 +28,9 @@ export function getDateFromMoment(
 ) {
   const days = parsePeriodToHours(interval) / 24;
   if (days >= 1) {
-    return moment.utc(m).format(FORMAT_DATETIME_DAILY);
+    return useUtc
+      ? moment.utc(m).format(FORMAT_DATETIME_DAILY)
+      : m.format(FORMAT_DATETIME_DAILY);
   }
 
   const parsedInterval = parseStatsPeriod(interval);
@@ -49,11 +51,11 @@ export function getDateFromUnixTimestamp(timestamp: number) {
 export function getXAxisDates(
   dateStart: string,
   dateEnd: string,
-  dateUtc: boolean = true,
+  dateUtc: boolean = false,
   interval: IntervalPeriod = '1d'
 ): string[] {
   const range: string[] = [];
-  const start = moment(dateStart).utc().startOf('h');
+  const start = moment(dateStart).startOf('h');
   const end = moment(dateEnd).startOf('h');
 
   if (!start.isValid() || !end.isValid()) {

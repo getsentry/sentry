@@ -1,6 +1,6 @@
-import {RenderProps} from 'app/components/charts/eventsRequest';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {defined} from 'app/utils';
+import {RenderProps} from 'sentry/components/charts/eventsRequest';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {defined} from 'sentry/utils';
 
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
 
@@ -9,13 +9,15 @@ export function transformEventsRequestToVitals<T extends WidgetDataConstraint>(
   results: RenderProps,
   _: QueryDefinitionWithKey<T>
 ) {
-  const {start, end, utc, interval, statsPeriod} = getParams(widgetProps.location.query);
+  const {start, end, utc, interval, statsPeriod} = normalizeDateTimeParams(
+    widgetProps.location.query
+  );
 
   const data = results.results ?? [];
 
   const childData = {
     ...results,
-    isLoading: results.loading,
+    isLoading: results.loading || results.reloading,
     isErrored: results.errored,
     hasData: defined(data) && !!data.length && !!data[0].data.length,
     data,

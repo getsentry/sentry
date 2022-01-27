@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import SidebarPanelActions from 'app/actions/sidebarPanelActions';
-import {SidebarPanelKey} from 'app/components/sidebar/types';
+import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 
 import {CommonStoreInterface} from './types';
 

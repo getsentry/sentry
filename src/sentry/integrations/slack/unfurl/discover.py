@@ -11,7 +11,7 @@ from sentry.api import client
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation
-from sentry.integrations.slack.message_builder.discover import build_discover_attachment
+from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.models import ApiKey, Integration
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
@@ -103,7 +103,7 @@ def unfurl_discover(
         # If the link shared is an org w/o the slack integration do not unfurl
         if not org:
             continue
-        if not features.has("organizations:chart-unfurls", org):
+        if not features.has("organizations:discover-basic", org):
             continue
 
         params = link.args["query"]
@@ -161,17 +161,14 @@ def unfurl_discover(
             params.setlist("interval", ["1d"])
 
         if "top5" in display_mode:
-            if features.has("organizations:discover-top-events", org):
-                params.setlist(
-                    "topEvents",
-                    params.getlist("topEvents")
-                    or to_list(saved_query.get("topEvents", f"{TOP_N}")),
-                )
-            else:
-                params.setlist("topEvents", [f"{TOP_N}"])
+            params.setlist(
+                "topEvents",
+                params.getlist("topEvents") or to_list(saved_query.get("topEvents", f"{TOP_N}")),
+            )
 
             y_axis = params.getlist("yAxis")[0]
-            display_mode = get_top5_display_mode(y_axis)
+            if display_mode != "dailytop5":
+                display_mode = get_top5_display_mode(y_axis)
 
         else:
             # topEvents param persists in the URL in some cases, we want to discard
@@ -218,10 +215,10 @@ def unfurl_discover(
             )
             continue
 
-        unfurls[link.url] = build_discover_attachment(
+        unfurls[link.url] = SlackDiscoverMessageBuilder(
             title=link.args["query"].get("name", "Dashboards query"),
             chart_url=url,
-        )
+        ).build()
 
     analytics.record(
         "integrations.slack.chart_unfurl",

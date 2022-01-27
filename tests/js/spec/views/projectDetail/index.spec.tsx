@@ -1,21 +1,17 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  mountWithTheme,
-  screen,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
-import {getByTextContent} from 'sentry-test/utils';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import ProjectDetails from 'app/views/projectDetail/projectDetail';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import ProjectDetails from 'sentry/views/projectDetail/projectDetail';
 
 describe('ProjectDetail', function () {
   const {routerContext, organization, project, router} = initializeOrg();
   const params = {...router.params, projectId: project.slug};
 
   beforeEach(() => {
-    GlobalSelectionStore.reset();
+    PageFiltersStore.reset();
     ProjectsStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
@@ -56,8 +52,6 @@ describe('ProjectDetail', function () {
         {context: routerContext}
       );
 
-      await waitForElementToBeRemoved(() => screen.getByText('Loading\u2026'));
-
       expect(
         screen.queryByText(
           'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped.',
@@ -93,11 +87,11 @@ describe('ProjectDetail', function () {
         {context: routerContext}
       );
 
-      await waitForElementToBeRemoved(() => screen.getByText('Loading\u2026'));
-
       expect(
-        getByTextContent(
-          'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.'
+        await screen.findByText(
+          textWithMarkupMatcher(
+            'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.'
+          )
         )
       ).toBeInTheDocument();
     });

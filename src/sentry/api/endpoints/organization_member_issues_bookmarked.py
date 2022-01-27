@@ -1,9 +1,11 @@
+from rest_framework.request import Request
+
 from sentry.api.bases import OrganizationIssuesEndpoint
 from sentry.models import Group
 
 
 class OrganizationMemberIssuesBookmarkedEndpoint(OrganizationIssuesEndpoint):
-    def get_queryset(self, request, organization, member, project_list):
+    def get_queryset(self, request: Request, organization, member, project_list):
         return (
             Group.objects.filter(
                 bookmark_set__user=member.user, bookmark_set__project__in=project_list

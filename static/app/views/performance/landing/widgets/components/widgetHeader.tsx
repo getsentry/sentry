@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import QuestionTooltip from 'app/components/questionTooltip';
-import space from 'app/styles/space';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import TextOverflow from 'sentry/components/textOverflow';
+import space from 'sentry/styles/space';
 
 import {
   GenericPerformanceWidgetProps,
@@ -17,20 +18,15 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
-        <div>
-          <StyledHeaderTitleLegend data-test-id="performance-widget-title">
-            <div className="truncate">{title}</div>
-            <QuestionTooltip position="top" size="sm" title={titleTooltip} />
-          </StyledHeaderTitleLegend>
-        </div>
-        <div>{Subtitle ? <Subtitle {...props} /> : null}</div>
+        <StyledHeaderTitleLegend data-test-id="performance-widget-title">
+          <TextOverflow>{title}</TextOverflow>
+          <QuestionTooltip position="top" size="sm" title={titleTooltip} />
+        </StyledHeaderTitleLegend>
+        {Subtitle ? <Subtitle {...props} /> : null}
       </TitleContainer>
-
-      {HeaderActions && (
-        <HeaderActionsContainer>
-          {HeaderActions && <HeaderActions {...props} />}
-        </HeaderActionsContainer>
-      )}
+      <HeaderActionsContainer>
+        {HeaderActions && <HeaderActions {...props} />}
+      </HeaderActionsContainer>
     </WidgetHeaderContainer>
   );
 }
@@ -43,12 +39,15 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
 const TitleContainer = styled('div')`
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
 `;
 
 const WidgetHeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
+  gap: ${space(1)};
 `;
+
 const HeaderActionsContainer = styled('div')`
   display: flex;
   gap: ${space(1)};

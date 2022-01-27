@@ -1,4 +1,4 @@
-import {ColumnType, WebVital} from 'app/utils/discover/fields';
+import {ColumnType, WebVital} from 'sentry/utils/discover/fields';
 
 export type Vital = {
   slug: string;

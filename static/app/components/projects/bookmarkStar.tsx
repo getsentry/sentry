@@ -1,13 +1,13 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {update} from 'app/actionCreators/projects';
-import {IconStar} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import useApi from 'app/utils/useApi';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {update} from 'sentry/actionCreators/projects';
+import {IconStar} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import useApi from 'sentry/utils/useApi';
 
 type Props = {
   organization: Organization;

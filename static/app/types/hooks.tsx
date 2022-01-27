@@ -1,13 +1,19 @@
-import React from 'react';
 import {Route, RouteComponentProps} from 'react-router';
 
-import {ChildrenRenderFn} from 'app/components/acl/feature';
-import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
-import SidebarItem from 'app/components/sidebar/sidebarItem';
-import {IntegrationProvider, Member, Organization, Project, User} from 'app/types';
-import {ExperimentKey} from 'app/types/experiments';
-import {NavigationItem, NavigationSection} from 'app/views/settings/types';
+import {ChildrenRenderFn} from 'sentry/components/acl/feature';
+import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
+import SelectorItems from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItems';
+import SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {
+  Integration,
+  IntegrationProvider,
+  Member,
+  Organization,
+  Project,
+  User,
+} from 'sentry/types';
+import {ExperimentKey} from 'sentry/types/experiments';
+import {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -48,28 +54,46 @@ export type RouteHooks = {
  * These components have plan specific overrides in getsentry
  */
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
+
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
+
 type GlobalNotificationProps = {className: string; organization?: Organization};
+
 type DisabledMemberViewProps = RouteComponentProps<{orgId: string}, {}>;
+
 type MemberListHeaderProps = {
   members: Member[];
   organization: Organization;
 };
-type DisabledAppStoreConnectItem = {
-  disabled: boolean;
-  onTrialStarted: () => void;
-  children: React.ReactElement;
-};
+
+type DisabledAppStoreConnectMultiple = {organization: Organization};
+type DisabledCustomSymbolSources = {organization: Organization};
+
 type DisabledMemberTooltipProps = {children: React.ReactNode};
+
 type DashboardHeadersProps = {organization: Organization};
+
 type CodeOwnersHeaderProps = {
   addCodeOwner: () => void;
   handleRequest: () => void;
 };
+
+type FirstPartyIntegrationAlertProps = {
+  integrations: Integration[];
+  wrapWithContainer?: boolean;
+  hideCTA?: boolean;
+};
+
+type FirstPartyIntegrationAdditionalCTAProps = {
+  integrations: Integration[];
+};
+
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
+  'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
@@ -77,9 +101,10 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
-  'component:disabled-app-store-connect-item': () => React.ComponentType<DisabledAppStoreConnectItem>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
+  'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
 };
 
 /**
@@ -98,14 +123,14 @@ export type CustomizationHooks = {
  */
 export type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
-  'analytics:track-event': AnalyticsTrackEvent;
   'analytics:track-event-v2': AnalyticsTrackEventV2;
-  'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'metrics:event': MetricsEvent;
 
-  // TODO(epurkhiser): This is deprecated and should be replaced
+  // TODO(scefali): Below are deprecated and should be replaced
   'analytics:event': LegacyAnalyticsEvent;
+  'analytics:track-event': AnalyticsTrackEvent;
+  'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
 };
 
 /**
@@ -116,7 +141,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:configure-distributed-tracing': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
-  'feature-disabled:custom-symbol-sources': FeatureDisabledHook;
   'feature-disabled:data-forwarding': FeatureDisabledHook;
   'feature-disabled:discard-groups': FeatureDisabledHook;
   'feature-disabled:discover-page': FeatureDisabledHook;

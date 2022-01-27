@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {disablePlugin, enablePlugin, fetchPlugins} from 'app/actionCreators/plugins';
-import ProjectPlugins from 'app/views/settings/projectPlugins';
+import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
+import ProjectPlugins from 'sentry/views/settings/projectPlugins';
 
-jest.mock('app/actionCreators/plugins', () => ({
+jest.mock('sentry/actionCreators/plugins', () => ({
   fetchPlugins: jest.fn().mockResolvedValue([]),
   enablePlugin: jest.fn(),
   disablePlugin: jest.fn(),

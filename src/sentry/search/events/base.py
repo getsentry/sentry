@@ -48,7 +48,7 @@ class QueryBase:
 
         return {p.slug: p.id for p in project_slugs}
 
-    def aliased_column(self, name: str, alias: str) -> SelectType:
+    def aliased_column(self, name: str) -> SelectType:
         """Given an unresolved sentry name and an expected alias, return a snql
         column that will be aliased to the expected alias.
 
@@ -67,13 +67,13 @@ class QueryBase:
         #
         # Additionally, tags of the form `tags[...]` can't be aliased again
         # because it confuses the sdk.
-        if alias == resolved:
+        if name == resolved:
             return column
 
         # If the expected aliases differs from the resolved snuba column,
         # make sure to alias the expression appropriately so we get back
         # the column with the correct names.
-        return AliasedExpression(column, alias)
+        return AliasedExpression(column, name)
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.

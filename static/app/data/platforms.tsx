@@ -1,7 +1,7 @@
 import platforms from 'integration-docs-platforms';
 
-import {t} from 'app/locale';
-import {PlatformIntegration} from 'app/types';
+import {t} from 'sentry/locale';
+import {PlatformIntegration} from 'sentry/types';
 
 import {tracing} from './platformCategories';
 

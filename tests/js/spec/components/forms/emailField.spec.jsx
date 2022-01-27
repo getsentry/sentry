@@ -1,28 +1,28 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import {EmailField, Form} from 'app/components/forms';
+import {EmailField, Form} from 'sentry/components/forms';
 
 describe('EmailField', function () {
   describe('render()', function () {
     it('renders', function () {
-      const wrapper = mountWithTheme(<EmailField name="fieldName" />);
-      expect(wrapper).toSnapshot();
+      const {container} = mountWithTheme(<EmailField name="fieldName" />);
+      expect(container).toSnapshot();
     });
 
     it('renders with value', function () {
-      const wrapper = mountWithTheme(
+      const {container} = mountWithTheme(
         <EmailField name="fieldName" value="foo@example.com" />
       );
-      expect(wrapper).toSnapshot();
+      expect(container).toSnapshot();
     });
 
     it('renders with form context', function () {
-      const wrapper = mountWithTheme(
+      const {container} = mountWithTheme(
         <Form initialData={{fieldName: 'foo@example.com'}}>
           <EmailField name="fieldName" />
         </Form>
       );
-      expect(wrapper).toSnapshot();
+      expect(container).toSnapshot();
     });
   });
 });

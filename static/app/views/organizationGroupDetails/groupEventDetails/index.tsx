@@ -1,17 +1,17 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
-import {Client} from 'app/api';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
-import {Environment, GlobalSelection, Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
+import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
+import {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
+import {Environment, Group, Organization, PageFilters, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ReprocessingStatus} from '../utils';
 
@@ -23,7 +23,7 @@ type Props = RouteComponentProps<
 > & {
   api: Client;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   project: Project;
   group: Group;
   event: Event;
@@ -80,4 +80,4 @@ export class GroupEventDetailsContainer extends Component<Props, State> {
   }
 }
 
-export default withApi(withOrganization(withGlobalSelection(GroupEventDetailsContainer)));
+export default withApi(withOrganization(withPageFilters(GroupEventDetailsContainer)));

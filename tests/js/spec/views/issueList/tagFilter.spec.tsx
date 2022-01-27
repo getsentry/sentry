@@ -5,7 +5,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import IssueListTagFilter from 'app/views/issueList/tagFilter';
+import IssueListTagFilter from 'sentry/views/issueList/tagFilter';
 
 describe('IssueListTagFilter', function () {
   MockApiClient.clearMockResponses();
@@ -57,7 +57,7 @@ describe('IssueListTagFilter', function () {
     userEvent.type(input, 'foo');
 
     // waits for the loading indicator to disappear
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // the result has a length of 2, because when performing a search,
     // an element containing the same value is present in the rendered HTML markup

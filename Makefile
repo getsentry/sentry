@@ -10,6 +10,7 @@ drop-db \
 create-db \
 apply-migrations \
 reset-db \
+setup-apple-m1 \
 setup-git \
 node-version-check \
 install-js-dev \
@@ -28,6 +29,7 @@ setup-pyenv:
 
 build-js-po: node-version-check
 	mkdir -p build
+	rm -rf node_modules/.cache/babel-loader
 	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
 
 build: locale
@@ -38,17 +40,24 @@ merge-locale-catalogs: build-js-po
 	./bin/merge-catalogs en
 
 compile-locale:
+	$(PIP) install Babel
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
 
-locale: merge-locale-catalogs compile-locale
-
-sync-transifex: merge-locale-catalogs
+install-transifex:
 	$(PIP) install transifex-client
+
+push-transifex: merge-locale-catalogs install-transifex
 	tx push -s
+
+pull-transifex: install-transifex
 	tx pull -a
 
-update-transifex: sync-transifex compile-locale
+# Update transifex with new strings that need to be translated
+update-transifex: push-transifex
+
+# Pulls new translations from transifex and compiles for usage
+update-local-locales: pull-transifex compile-locale
 
 build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
@@ -103,7 +112,7 @@ test-python-ci:
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py tests/sentry/search/events -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
 backend-typing:

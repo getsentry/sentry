@@ -1,11 +1,11 @@
 import {Component, useState} from 'react';
 import {action} from '@storybook/addon-actions';
 
-import Note from 'app/components/activity/note';
-import SentryTypes from 'app/sentryTypes';
-import ConfigStore from 'app/stores/configStore';
-import MemberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
+import Note from 'sentry/components/activity/note';
+import SentryTypes from 'sentry/sentryTypes';
+import ConfigStore from 'sentry/stores/configStore';
+import MemberListStore from 'sentry/stores/memberListStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 const user = {
   username: 'billy@sentry.io',

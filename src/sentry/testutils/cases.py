@@ -97,6 +97,7 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
@@ -111,7 +112,7 @@ from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
-from .skips import requires_snuba, requires_snuba_metrics
+from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -381,9 +382,13 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         Simulate an API call to the test case's URI and method.
 
         :param params:
+            Note: These names are intentionally a little funny to prevent name
+             collisions with real API arguments.
+            * extra_headers: (Optional) Dict mapping keys to values that will be
+             passed as request headers.
             * qs_params: (Optional) Dict mapping keys to values that will be
-             url-encoded into a API call's query string. Note: The name is
-             intentionally a little funny to prevent name collisions.
+             url-encoded into a API call's query string.
+            * raw_data: (Optional) Sometimes we want to precompute the JSON body.
         :returns Response object
         """
         if self.endpoint is None:
@@ -396,9 +401,16 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             query_string = urlencode(params.pop("qs_params"), doseq=True)
             url = f"{url}?{query_string}"
 
+        headers = params.pop("extra_headers", {})
+        raw_data = params.pop("raw_data", None)
+        if raw_data and isinstance(raw_data, bytes):
+            raw_data = raw_data.decode("utf-8")
+        if raw_data and isinstance(raw_data, str):
+            raw_data = json.loads(raw_data)
+        data = raw_data or params
         method = params.pop("method", self.method).lower()
 
-        return getattr(self.client, method)(url, format="json", data=params)
+        return getattr(self.client, method)(url, format="json", data=data, **headers)
 
     def get_valid_response(self, *args, **params):
         """Deprecated. Calls `get_response` (see above) and asserts a specific status code."""
@@ -955,13 +967,9 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
-@requires_snuba_metrics
 class SessionMetricsTestCase(SnubaTestCase):
     """Store metrics instead of sessions"""
 
-    # NOTE: This endpoint does not exist yet, but we need something alike
-    # because /tests/<dataset>/insert always writes to the default entity
-    # (in the case of metrics, that's "metrics_sets")
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
     def store_session(self, session):
@@ -977,29 +985,41 @@ class SessionMetricsTestCase(SnubaTestCase):
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            self._push_metric(session, "counter", "session", {"session.status": "init"}, +1)
+            self._push_metric(
+                session, "counter", SessionMetricKey.SESSION, {"session.status": "init"}, +1
+            )
             if not user_is_nil:
-                self._push_metric(session, "set", "user", {"session.status": "init"}, user)
+                self._push_metric(
+                    session, "set", SessionMetricKey.USER, {"session.status": "init"}, user
+                )
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            self._push_metric(session, "set", "session.error", {}, session["session_id"])
+            self._push_metric(
+                session, "set", SessionMetricKey.SESSION_ERROR, {}, session["session_id"]
+            )
             if not user_is_nil:
-                self._push_metric(session, "set", "user", {"session.status": "errored"}, user)
+                self._push_metric(
+                    session, "set", SessionMetricKey.USER, {"session.status": "errored"}, user
+                )
 
         if status in ("abnormal", "crashed"):  # fatal
-            self._push_metric(session, "counter", "session", {"session.status": status}, +1)
+            self._push_metric(
+                session, "counter", SessionMetricKey.SESSION, {"session.status": status}, +1
+            )
             if not user_is_nil:
-                self._push_metric(session, "set", "user", {"session.status": status}, user)
+                self._push_metric(
+                    session, "set", SessionMetricKey.USER, {"session.status": status}, user
+                )
 
         if status != "ok":  # terminal
             if session["duration"] is not None:
                 self._push_metric(
                     session,
                     "distribution",
-                    "session.duration",
+                    SessionMetricKey.SESSION_DURATION,
                     {"session.status": status},
                     session["duration"],
                 )
@@ -1009,10 +1029,10 @@ class SessionMetricsTestCase(SnubaTestCase):
             self.store_session(session)
 
     @classmethod
-    def _push_metric(cls, session, type, name, tags, value):
-        def metric_id(name):
-            res = indexer.record(name)
-            assert res is not None, name
+    def _push_metric(cls, session, type, key: SessionMetricKey, tags, value):
+        def metric_id(key: SessionMetricKey):
+            res = indexer.record(key.value)
+            assert res is not None, key
             return res
 
         def tag_key(name):
@@ -1044,7 +1064,7 @@ class SessionMetricsTestCase(SnubaTestCase):
         msg = {
             "org_id": session["org_id"],
             "project_id": session["project_id"],
-            "metric_id": metric_id(name),
+            "metric_id": metric_id(key),
             "timestamp": session["started"],
             "tags": {**base_tags, **extra_tags},
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
@@ -1052,14 +1072,14 @@ class SessionMetricsTestCase(SnubaTestCase):
             "retention_days": 90,
         }
 
-        cls._send(msg, entity=f"metrics_{type}s")
+        cls._send_buckets([msg], entity=f"metrics_{type}s")
 
     @classmethod
-    def _send(cls, msg, entity):
+    def _send_buckets(cls, buckets, entity):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
-                data=json.dumps([msg]),
+                data=json.dumps(buckets),
             ).status_code
             == 200
         )
@@ -1294,6 +1314,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
                 expected_widget.display_type
             )
+        if "layout" in data:
+            assert data["layout"] == expected_widget.detail["layout"]
 
     def create_user_member_role(self):
         self.user = self.create_user(is_superuser=False)
@@ -1346,9 +1368,8 @@ class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
         self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
-        with self.feature({"organizations:sso-scim": True}):
-            self.auth_provider.enable_scim(self.user)
-            self.auth_provider.save()
+        self.auth_provider.enable_scim(self.user)
+        self.auth_provider.save()
         self.login_as(user=self.user)
 
 

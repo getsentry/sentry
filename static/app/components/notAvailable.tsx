@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import {defined} from 'app/utils';
+import Tooltip from 'sentry/components/tooltip';
+import {defined} from 'sentry/utils';
 
 type Props = {
   tooltip?: React.ReactNode;

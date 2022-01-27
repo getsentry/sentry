@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import Tag from 'app/components/tag';
-import {IconClock, IconDelete, IconFire, IconIssues, IconWarning} from 'app/icons';
-import {toTitleCase} from 'app/utils';
-import theme from 'app/utils/theme';
+import Tag from 'sentry/components/tag';
+import {IconClock, IconDelete, IconFire, IconIssues, IconWarning} from 'sentry/icons';
+import {toTitleCase} from 'sentry/utils';
+import theme from 'sentry/utils/theme';
 
 export default {
   title: 'Components/Tags',

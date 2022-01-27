@@ -1,4 +1,4 @@
-import {Frame} from 'app/types';
+import {Frame} from 'sentry/types';
 
 export enum STACK_VIEW {
   RAW = 'raw',

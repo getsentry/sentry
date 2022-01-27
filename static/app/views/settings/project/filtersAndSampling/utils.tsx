@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
-import {DynamicSamplingInnerName, LegacyBrowser} from 'app/types/dynamicSampling';
+import {t} from 'sentry/locale';
+import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
 
 // TODO(PRISCILA): Update this link as soon as we have one for dynamic sampling
 export const DYNAMIC_SAMPLING_DOC_LINK =

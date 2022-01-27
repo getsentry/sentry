@@ -1,4 +1,4 @@
-import highlightFuseMatches, {getFuseMatches} from 'app/utils/highlightFuseMatches';
+import highlightFuseMatches, {getFuseMatches} from 'sentry/utils/highlightFuseMatches';
 
 describe('highlightFuseMatches', function () {
   const matchObj = {

@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.team import TeamEndpoint
@@ -27,7 +28,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class TeamDetailsEndpoint(TeamEndpoint):
-    def get(self, request, team):
+    def get(self, request: Request, team) -> Response:
         """
         Retrieve a Team
         ```````````````
@@ -56,7 +57,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
             serialize(team, request.user, ModelTeamSerializer(collapse=collapse, expand=expand))
         )
 
-    def put(self, request, team):
+    def put(self, request: Request, team) -> Response:
         """
         Update a Team
         `````````````
@@ -89,7 +90,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @sudo_required
-    def delete(self, request, team):
+    def delete(self, request: Request, team) -> Response:
         """
         Delete a Team
         `````````````

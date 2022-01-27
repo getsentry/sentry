@@ -1,12 +1,12 @@
 import {Location} from 'history';
 
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
@@ -31,7 +31,6 @@ function TransactionTags(props: Props) {
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={TagsPageContent}
-      features={['performance-tag-page']}
     />
   );
 }
@@ -47,12 +46,25 @@ function getDocumentTitle(transactionName: string): string {
   return [t('Summary'), t('Tags')].join(' \u2014 ');
 }
 
-function generateEventView(location: Location, transactionName: string): EventView {
+function generateEventView({
+  location,
+  transactionName,
+  isMetricsData,
+}: {
+  location: Location;
+  transactionName: string;
+  isMetricsData: boolean;
+}): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-  conditions
-    .setFilterValues('event.type', ['transaction'])
-    .setFilterValues('transaction', [transactionName]);
+
+  // event.type is not a valid metric tag, so it will be added to the query only
+  // in case the metric switch is disabled (for now).
+  if (!isMetricsData) {
+    conditions.setFilterValues('event.type', ['transaction']);
+  }
+
+  conditions.setFilterValues('transaction', [transactionName]);
 
   const eventView = EventView.fromNewQueryWithLocation(
     {

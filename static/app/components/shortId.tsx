@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import AutoSelectText from 'app/components/autoSelectText';
-import Link from 'app/components/links/link';
+import AutoSelectText from 'sentry/components/autoSelectText';
+import Link from 'sentry/components/links/link';
 
 type Props = {
   shortId: string;
@@ -36,7 +36,7 @@ const StyledShortId = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   display: grid;
   grid-auto-flow: column;
-  grid-gap: 0.5em;
+  gap: 0.5em;
   align-items: center;
   justify-content: flex-end;
 `;

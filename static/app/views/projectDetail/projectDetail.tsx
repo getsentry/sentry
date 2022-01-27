@@ -1,36 +1,39 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
-import {updateProjects} from 'app/actionCreators/globalSelection';
-import {fetchOrganizationDetails} from 'app/actionCreators/organization';
-import {fetchTagValues} from 'app/actionCreators/tags';
-import Feature from 'app/components/acl/feature';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import CreateAlertButton from 'app/components/createAlertButton';
-import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
-import GlobalEventProcessingAlert from 'app/components/globalEventProcessingAlert';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import IdBadge from 'app/components/idBadge';
-import * as Layout from 'app/components/layouts/thirds';
-import LoadingError from 'app/components/loadingError';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
-import TextOverflow from 'app/components/textOverflow';
-import {IconSettings} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import routeTitleGen from 'app/utils/routeTitle';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withProjects from 'app/utils/withProjects';
-import AsyncView from 'app/views/asyncView';
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
+import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
+import Feature from 'sentry/components/acl/feature';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import CreateAlertButton from 'sentry/components/createAlertButton';
+import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
+import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
+import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import IdBadge from 'sentry/components/idBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
+import TextOverflow from 'sentry/components/textOverflow';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {IconSettings} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import withProjects from 'sentry/utils/withProjects';
+import AsyncView from 'sentry/views/asyncView';
 
+import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import ProjectScoreCards from './projectScoreCards/projectScoreCards';
 import ProjectCharts from './projectCharts';
 import ProjectFilters from './projectFilters';
@@ -49,7 +52,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   projects: Project[];
   loadingProjects: boolean;
-  selection: GlobalSelection;
+  selection: PageFilters;
 };
 
 type State = AsyncView['state'];
@@ -175,10 +178,12 @@ class ProjectDetail extends AsyncView<Props, State> {
     const project = this.project;
     const {query} = location.query;
     const hasPerformance = organization.features.includes('performance-view');
+    const hasDiscover = organization.features.includes('discover-basic');
     const hasTransactions = hasPerformance && project?.firstTransactionEvent;
     const isProjectStabilized = this.isProjectStabilized();
     const visibleCharts = ['chart1'];
     const hasSessions = project?.hasSessions ?? null;
+    const hasOnlyBasicChart = !hasPerformance && !hasDiscover && !hasSessions;
 
     if (hasTransactions || hasSessions) {
       visibleCharts.push('chart2');
@@ -193,10 +198,16 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         disableMultipleProjectSelection
         skipLoadLastUsed
         onUpdateProjects={this.handleProjectChange}
+        relativeDateOptions={
+          hasOnlyBasicChart
+            ? pick(DEFAULT_RELATIVE_PERIODS, ERRORS_BASIC_CHART_PERIODS)
+            : undefined
+        }
+        showAbsolute={!hasOnlyBasicChart}
       >
         <NoProjectMessage organization={organization}>
           <StyledPageContent>
@@ -243,7 +254,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   />
                   <Button
                     icon={<IconSettings />}
-                    label={t('Settings')}
+                    aria-label={t('Settings')}
                     to={`/settings/${params.orgId}/projects/${params.projectId}/`}
                   />
                 </ButtonBar>
@@ -329,7 +340,7 @@ class ProjectDetail extends AsyncView<Props, State> {
             </Layout.Body>
           </StyledPageContent>
         </NoProjectMessage>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
   }
 }
@@ -369,4 +380,4 @@ StyledGlobalAppStoreConnectUpdateAlert.defaultProps = {
   Wrapper: p => <Layout.Main fullWidth {...p} />,
 };
 
-export default withProjects(withGlobalSelection(ProjectDetail));
+export default withProjects(withPageFilters(ProjectDetail));

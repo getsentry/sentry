@@ -157,8 +157,8 @@ def record_first_event(project, event, **kwargs):
     except IndexError:
         return
 
-    # Only counts if it's a new project and platform
-    if oot.project_id != project.id and oot.data.get("platform", event.platform) != event.platform:
+    # Only counts if it's a new project
+    if oot.project_id != project.id:
         rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,

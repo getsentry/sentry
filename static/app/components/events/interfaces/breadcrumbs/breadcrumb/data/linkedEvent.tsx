@@ -1,17 +1,17 @@
 import {useEffect, useState} from 'react';
 import {InjectedRouter, PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Placeholder from 'app/components/placeholder';
-import ShortId from 'app/components/shortId';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {EventIdResponse, Group, Organization, Project} from 'app/types';
-import useApi from 'app/utils/useApi';
-import useSessionStorage from 'app/utils/useSessionStorage';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Placeholder from 'sentry/components/placeholder';
+import ShortId from 'sentry/components/shortId';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {EventIdResponse, Group, Organization, Project} from 'sentry/types';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import useApi from 'sentry/utils/useApi';
+import useSessionStorage from 'sentry/utils/useSessionStorage';
 
 type StoredLinkedEvent = {
   shortId: string;
@@ -26,6 +26,10 @@ type Props = {
   router: InjectedRouter;
   route: PlainRoute;
 };
+
+const errorMessage = t(
+  'An error occurred while fetching the data of the breadcrumb event link'
+);
 
 function LinkedEvent({orgSlug, eventId, route, router}: Props) {
   const [storedLinkedEvent, setStoredLinkedEvent, removeStoredLinkedEvent] =
@@ -67,10 +71,8 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
         return;
       }
 
-      addErrorMessage(
-        t('An error occurred while fetching the data of the breadcrumb event link')
-      );
-      Sentry.captureException(error);
+      addErrorMessage(errorMessage);
+      handleXhrErrorResponse(errorMessage)(error);
 
       // do nothing. The link won't be displayed
     }
@@ -96,10 +98,9 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
         return;
       }
 
-      addErrorMessage(
-        t('An error occurred while fetching the data of the breadcrumb event link')
-      );
-      Sentry.captureException(error);
+      addErrorMessage(errorMessage);
+      handleXhrErrorResponse('An error occurred while fetching an issue')(error);
+
       // do nothing. The link won't be displayed
     }
   }

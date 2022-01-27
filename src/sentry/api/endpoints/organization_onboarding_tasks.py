@@ -1,4 +1,5 @@
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -13,7 +14,7 @@ class OnboardingTaskPermission(OrganizationPermission):
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
     permission_classes = (OnboardingTaskPermission,)
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         try:
             task_id = OrganizationOnboardingTask.TASK_LOOKUP_BY_KEY[request.data["task"]]
         except KeyError:

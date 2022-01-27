@@ -2,26 +2,26 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Clipboard from 'app/components/clipboard';
-import DateTime from 'app/components/dateTime';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
-import {IconCopy} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {OrganizationSummary} from 'app/types';
-import {Event} from 'app/types/event';
-import {getShortEventId} from 'app/utils/events';
-import {getDuration} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
+import Clipboard from 'sentry/components/clipboard';
+import DateTime from 'sentry/components/dateTime';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {OrganizationSummary} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {getShortEventId} from 'sentry/utils/events';
+import {getDuration} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   QuickTraceQueryChildrenProps,
   TraceMeta,
-} from 'app/utils/performance/quickTrace/types';
-import {isTransaction} from 'app/utils/performance/quickTrace/utils';
-import Projects from 'app/utils/projects';
-import theme from 'app/utils/theme';
+} from 'sentry/utils/performance/quickTrace/types';
+import {isTransaction} from 'sentry/utils/performance/quickTrace/utils';
+import Projects from 'sentry/utils/projects';
+import theme from 'sentry/utils/theme';
 
 import QuickTraceMeta from './quickTraceMeta';
 import {MetaData} from './styles';
@@ -168,7 +168,7 @@ const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
   display: grid;
   grid-template-columns: repeat(${p => (p.type === 'transaction' ? 3 : 2)}, 1fr);
   grid-template-rows: repeat(2, auto);
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

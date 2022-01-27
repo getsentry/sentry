@@ -6,12 +6,12 @@ import styled from '@emotion/styled';
 import {createFocusTrap, FocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {closeModal as actionCloseModal} from 'app/actionCreators/modal';
-import {ROOT_ELEMENT} from 'app/constants';
-import ModalStore from 'app/stores/modalStore';
-import space from 'app/styles/space';
-import getModalPortal from 'app/utils/getModalPortal';
-import testableTransition from 'app/utils/testableTransition';
+import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
+import {ROOT_ELEMENT} from 'sentry/constants';
+import ModalStore from 'sentry/stores/modalStore';
+import space from 'sentry/styles/space';
+import getModalPortal from 'sentry/utils/getModalPortal';
+import testableTransition from 'sentry/utils/testableTransition';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
@@ -214,7 +214,7 @@ const fullPageCss = css`
 const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.modal};
-  background: ${p => p.theme.gray500};
+  background: ${p => p.theme.black};
   will-change: opacity;
   transition: opacity 200ms;
   pointer-events: none;
@@ -250,8 +250,8 @@ const Content = styled('div')`
   padding: ${space(4)};
   background: ${p => p.theme.background};
   border-radius: 8px;
-  border: ${p => p.theme.modalBorder};
-  box-shadow: ${p => p.theme.modalBoxShadow};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
+  position: relative;
 `;
 
 type State = {

@@ -13,10 +13,37 @@ from sentry.db.models import (
     FlexibleForeignKey,
     Model,
 )
+from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.manager import BaseManager
 from sentry.signals import integration_added
 from sentry.tasks.code_owners import update_code_owners_schema
 
 logger = logging.getLogger(__name__)
+
+
+class DocIntegration(Model):
+    """
+    Document based integrations can be found in Sentry, but are installed via code change.
+    """
+
+    __include_in_export__ = False
+
+    name = models.CharField(max_length=64)
+    slug = models.CharField(max_length=64, unique=True)
+    author = models.CharField(max_length=255)
+    description = models.TextField()
+    url = models.URLField()
+    popularity = models.PositiveSmallIntegerField(null=True, default=1)
+    # Quickly hide/show integration, used for logo uploads
+    is_draft = models.BooleanField(default=True)
+
+    # Allow future extensions by adding more metadata.
+    # To start, only { resources: [{title, link}] }
+    metadata = JSONField(null=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_docintegration"
 
 
 class PagerDutyService(DefaultFieldsModel):
@@ -53,7 +80,9 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
 
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
+    organization_integration = FlexibleForeignKey(
+        "sentry.OrganizationIntegration", on_delete=models.CASCADE
+    )
     stack_root = models.TextField()
     source_root = models.TextField()
     default_branch = models.TextField(null=True)
@@ -75,6 +104,8 @@ class OrganizationIntegration(DefaultFieldsModel):
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices()
     )
+    # after the grace period, we will mark the status as disabled
+    grace_period_end = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         app_label = "sentry"
@@ -97,6 +128,15 @@ class ProjectIntegration(Model):
         unique_together = (("project", "integration"),)
 
 
+class IntegrationManager(BaseManager):
+    def get_active_integrations(self, organization_id: str):
+        return self.filter(
+            status=ObjectStatus.ACTIVE,
+            organizationintegration__status=ObjectStatus.ACTIVE,
+            organizationintegration__organization_id=organization_id,
+        )
+
+
 class Integration(DefaultFieldsModel):
     __include_in_export__ = False
 
@@ -116,6 +156,8 @@ class Integration(DefaultFieldsModel):
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices(), null=True
     )
+
+    objects = IntegrationManager()
 
     class Meta:
         app_label = "sentry"

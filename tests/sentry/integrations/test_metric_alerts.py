@@ -8,6 +8,7 @@ from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
+from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
 
 
@@ -116,8 +117,6 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         self._5_min_ago = to_timestamp(self.now - timedelta(minutes=5))
         self.date_started = self.now - timedelta(minutes=120)
-        for _ in range(2):
-            self.store_session(self.build_session(status="exited", started=self._5_min_ago))
 
     def create_incident_and_related_objects(self, field="sessions"):
         self.alert_rule = self.create_alert_rule(
@@ -138,6 +137,8 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         self.action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=self.incident
         )
+        for _ in range(2):
+            self.store_session(self.build_session(status="exited", started=self._5_min_ago))
 
     def test_with_incident_trigger_sessions(self):
         self.create_incident_and_related_objects()
@@ -187,3 +188,55 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
+
+    def test_with_incident_where_no_sessions_exist(self):
+        alert_rule = self.create_alert_rule(
+            query="",
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+            dataset=QueryDatasets.SESSIONS,
+            time_window=60,
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 95)
+        incident = self.create_incident(
+            self.organization,
+            title="Incident #2",
+            projects=[self.project],
+            alert_rule=alert_rule,
+            status=IncidentStatus.CLOSED.value,
+            date_started=self.now,
+        )
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        data = incident_attachment_info(incident, None, action, method="fire")
+
+        assert data["title"] == f"Critical: {alert_rule.name}"
+        assert data["status"] == "Critical"
+        assert data["text"] == "No sessions crash free rate in the last 60 minutes"
+
+
+@freeze_time("2021-10-18 13:00:00+00:00")
+class IncidentAttachmentInfoTestForMetricsCrashRateAlerts(
+    IncidentAttachmentInfoTestForCrashRateAlerts, SessionMetricsTestCase
+):
+    def create_incident_and_related_objects(self, field="sessions"):
+        self.alert_rule = self.create_alert_rule(
+            query="",
+            aggregate=f"percentage({field}_crashed, {field}) AS _crash_rate_alert_aggregate",
+            dataset=QueryDatasets.METRICS,
+            time_window=60,
+        )
+        self.incident = self.create_incident(
+            self.organization,
+            title="Incident #1",
+            projects=[self.project],
+            alert_rule=self.alert_rule,
+            status=IncidentStatus.CLOSED.value,
+            date_started=self.now - timedelta(minutes=120),
+        )
+        trigger = self.create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 95)
+        self.action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=self.incident
+        )
+        for _ in range(2):
+            self.store_session(self.build_session(status="exited", started=self._5_min_ago))

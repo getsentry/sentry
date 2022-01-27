@@ -3,19 +3,19 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconFlag} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import {getExactDuration} from 'app/utils/formatters';
-import InputControl from 'app/views/settings/components/forms/controls/input';
-import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
-import Form from 'app/views/settings/components/forms/form';
-import FormField from 'app/views/settings/components/forms/formField';
-import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {IconFlag} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import {getExactDuration} from 'sentry/utils/formatters';
+import InputControl from 'sentry/views/settings/components/forms/controls/input';
+import RangeSlider from 'sentry/views/settings/components/forms/controls/rangeSlider';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormField from 'sentry/views/settings/components/forms/formField';
+import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,
@@ -222,7 +222,7 @@ const RateLimitRow = styled('div')`
   display: grid;
   grid-template-columns: 2fr 1fr 2fr;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const EventsIn = styled('small')`

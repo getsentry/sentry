@@ -2,21 +2,25 @@ import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
-import {doEventsRequest} from 'app/actionCreators/events';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import LoadingPanel from 'app/components/charts/loadingPanel';
-import {canIncludePreviousPeriod, isMultiSeriesStats} from 'app/components/charts/utils';
-import {t} from 'app/locale';
+import {doEventsRequest} from 'sentry/actionCreators/events';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {
+  canIncludePreviousPeriod,
+  isMultiSeriesStats,
+} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
 import {
   DateString,
   EventsStats,
   EventsStatsData,
   MultiSeriesEventsStats,
   OrganizationSummary,
-} from 'app/types';
-import {Series, SeriesDataUnit} from 'app/types/echarts';
-import {stripEquationPrefix} from 'app/utils/discover/fields';
+} from 'sentry/types';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
 export type TimeSeriesData = {
   // timeseries data
@@ -54,7 +58,7 @@ type DefaultProps = {
    *
    * e.g. 24h, 7d, 30d
    */
-  period?: string;
+  period?: string | null;
   /**
    * Absolute start date for query
    */
@@ -174,6 +178,18 @@ type EventsRequestPartialProps = {
    * A unique name for what's triggering this request, see organization_events_stats for an allowlist
    */
   referrer?: string;
+  /**
+   * A container for query batching data and functions.
+   */
+  queryBatching?: QueryBatching;
+  /**
+   * Extra query parameters to be added.
+   */
+  queryExtras?: Record<string, string>;
+  /**
+   * Allows overridding the pathname.
+   */
+  generatePathname?: (org: OrganizationSummary) => string;
 };
 
 type TimeAggregationProps =
@@ -192,7 +208,14 @@ type EventsRequestState = {
   fetchedWithPrevious: boolean;
 };
 
-const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
+const propNamesToIgnore = [
+  'api',
+  'children',
+  'organization',
+  'loading',
+  'queryBatching',
+  'generatePathname',
+];
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 

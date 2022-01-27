@@ -1,17 +1,17 @@
 import * as React from 'react';
 
-import Feature from 'app/components/acl/feature';
-import OptionCheckboxSelector from 'app/components/charts/optionCheckboxSelector';
-import OptionSelector from 'app/components/charts/optionSelector';
+import Feature from 'sentry/components/acl/feature';
+import OptionCheckboxSelector from 'sentry/components/charts/optionCheckboxSelector';
+import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
-} from 'app/components/charts/styles';
-import {t} from 'app/locale';
-import {Organization, SelectValue} from 'app/types';
-import {TOP_EVENT_MODES} from 'app/utils/discover/types';
+} from 'sentry/components/charts/styles';
+import {t} from 'sentry/locale';
+import {Organization, SelectValue} from 'sentry/types';
+import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 type Props = {
   organization: Organization;
@@ -66,23 +66,15 @@ export default function ChartFooter({
           onChange={onDisplayChange}
           menuWidth="170px"
         />
-        <Feature organization={organization} features={['discover-top-events']}>
-          {({hasFeature}) => {
-            if (hasFeature && TOP_EVENT_MODES.includes(displayMode)) {
-              return (
-                <OptionSelector
-                  title={t('Limit')}
-                  selected={topEvents}
-                  options={topEventOptions}
-                  onChange={onTopEventsChange}
-                  menuWidth="60px"
-                  featureType="new"
-                />
-              );
-            }
-            return null;
-          }}
-        </Feature>
+        {TOP_EVENT_MODES.includes(displayMode) && (
+          <OptionSelector
+            title={t('Limit')}
+            selected={topEvents}
+            options={topEventOptions}
+            onChange={onTopEventsChange}
+            menuWidth="60px"
+          />
+        )}
         <Feature
           organization={organization}
           features={['connect-discover-and-dashboards']}

@@ -1,24 +1,21 @@
-import {Fragment, FunctionComponent, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
-import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import _EventsRequest from 'app/components/charts/eventsRequest';
-import {getInterval} from 'app/components/charts/utils';
-import Count from 'app/components/count';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import Truncate from 'app/components/truncate';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
-import _DurationChart from 'app/views/performance/charts/chart';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
-import {getPerformanceDuration} from 'app/views/performance/utils';
+import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {getInterval} from 'sentry/components/charts/utils';
+import Count from 'sentry/components/count';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import Truncate from 'sentry/components/truncate';
+import {t, tct} from 'sentry/locale';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
+import _DurationChart from 'sentry/views/performance/charts/chart';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils';
 
 import {excludeTransaction} from '../../utils';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
@@ -31,24 +28,9 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import {QueryDefinition, WidgetDataResult} from '../types';
+import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps} from '../utils';
-import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
-
-type Props = {
-  title: string;
-  titleTooltip: string;
-  fields: string[];
-  chartColor?: string;
-
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  chartSetting: PerformanceWidgetSetting;
-  chartDefinition: ChartDefinition;
-
-  ContainerActions: FunctionComponent<{isLoading: boolean}>;
-};
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -60,28 +42,35 @@ const slowList = [
   PerformanceWidgetSetting.SLOW_DB_OPS,
   PerformanceWidgetSetting.SLOW_BROWSER_OPS,
   PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+];
+
+// Most N Frames, low population, and count vs. duration so treated separately from 'slow' widgets.
+const framesList = [
   PerformanceWidgetSetting.MOST_SLOW_FRAMES,
   PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
 ];
 
-export function LineChartListWidget(props: Props) {
+export function LineChartListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions} = props;
+
+  const field = props.fields[0];
 
   if (props.fields.length !== 1) {
     throw new Error(
       `Line chart list widget can only accept a single field (${props.fields})`
     );
   }
-  const field = props.fields[0];
 
   const isSlowestType = slowList.includes(props.chartSetting);
+  const isFramesType = framesList.includes(props.chartSetting);
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
       fields: field,
       component: provided => {
-        const eventView = props.eventView.clone();
+        const eventView = provided.eventView.clone();
+
         eventView.sorts = [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
@@ -98,13 +87,13 @@ export function LineChartListWidget(props: Props) {
           eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
           eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
           eventView.query = mutableSearch.formatString();
-        } else if (isSlowestType) {
+        } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
           eventView.fields = [
             {field: 'transaction'},
             {field: 'project.id'},
             {field: 'epm()'},
-            {field},
+            ...props.fields.map(f => ({field: f})),
           ];
         } else {
           // Most related errors
@@ -118,12 +107,14 @@ export function LineChartListWidget(props: Props) {
             eventView={eventView}
             location={props.location}
             limit={3}
+            cursor="0:0:1"
+            noPagination
           />
         );
       },
       transform: transformDiscoverToList,
     }),
-    [props.eventView, field, props.organization.slug]
+    [props.chartSetting]
   );
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
@@ -185,7 +176,7 @@ export function LineChartListWidget(props: Props) {
       },
       transform: transformEventsRequestToArea,
     };
-  }, [props.eventView, field, props.organization.slug, selectedListIndex]);
+  }, [props.chartSetting, selectedListIndex]);
 
   const Queries = {
     list: listQuery,
@@ -213,7 +204,7 @@ export function LineChartListWidget(props: Props) {
               isLineChart
             />
           ),
-          height: 160,
+          height: props.chartHeight,
         },
         {
           component: provided => (
@@ -247,7 +238,7 @@ export function LineChartListWidget(props: Props) {
                   orgSlug: props.organization.slug,
                   projectID: listItem['project.id'] as string,
                   transaction,
-                  query: props.eventView.getGlobalSelectionQuery(),
+                  query: props.eventView.getPageFiltersQuery(),
                   additionalQuery,
                 });
 
@@ -259,13 +250,14 @@ export function LineChartListWidget(props: Props) {
                   slowest: getPerformanceDuration(listItem[fieldString] as number),
                 };
                 const rightValue =
-                  valueMap[isSlowestType ? 'slowest' : props.chartSetting];
+                  valueMap[isSlowestType ? 'slowest' : props.chartSetting] ??
+                  listItem[fieldString];
 
                 switch (props.chartSetting) {
                   case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget} className="truncate">
+                        <GrowLink to={transactionTarget}>
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>
@@ -286,7 +278,7 @@ export function LineChartListWidget(props: Props) {
                   case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget} className="truncate">
+                        <GrowLink to={transactionTarget}>
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>
@@ -301,9 +293,27 @@ export function LineChartListWidget(props: Props) {
                       </Fragment>
                     );
                   default:
+                    if (typeof rightValue === 'number') {
+                      return (
+                        <Fragment>
+                          <GrowLink to={transactionTarget}>
+                            <Truncate value={transaction} maxLength={40} />
+                          </GrowLink>
+                          <RightAlignedCell>
+                            <Count value={rightValue} />
+                          </RightAlignedCell>
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        </Fragment>
+                      );
+                    }
                     return (
                       <Fragment>
-                        <GrowLink to={transactionTarget} className="truncate">
+                        <GrowLink to={transactionTarget}>
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>{rightValue}</RightAlignedCell>
@@ -317,7 +327,7 @@ export function LineChartListWidget(props: Props) {
               })}
             />
           ),
-          height: 200,
+          height: 124,
           noPadding: true,
         },
       ]}

@@ -21,6 +21,7 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
+PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack"]
 
 
 def build_incident_attachment(action, incident, metric_value=None, method=None):
@@ -142,9 +143,14 @@ class NotifyEventServiceAction(EventAction):
         self.form_fields = {
             "service": {
                 "type": "choice",
-                "choices": [[i.slug, i.title] for i in self.get_services()],
+                "choices": [[i.slug, self.transform_title(i.title)] for i in self.get_services()],
             }
         }
+
+    def transform_title(self, title):
+        if title in PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS:
+            return f"(Legacy) {title}"
+        return title
 
     def after(self, event, state):
         service = self.get_option("service")

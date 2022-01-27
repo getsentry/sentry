@@ -1,12 +1,13 @@
 import * as React from 'react';
 import * as Sentry from '@sentry/react';
 
-import TeamAvatar from 'app/components/avatar/teamAvatar';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import Tooltip from 'app/components/tooltip';
-import MemberListStore from 'app/stores/memberListStore';
-import TeamStore from 'app/stores/teamStore';
-import {Actor} from 'app/types';
+import TeamAvatar from 'sentry/components/avatar/teamAvatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Tooltip from 'sentry/components/tooltip';
+import MemberListStore from 'sentry/stores/memberListStore';
+import {Actor} from 'sentry/types';
+import Teams from 'sentry/utils/teams';
 
 type DefaultProps = {
   hasTooltip: boolean;
@@ -40,8 +41,17 @@ class ActorAvatar extends React.Component<Props> {
     }
 
     if (actor.type === 'team') {
-      const team = TeamStore.getById(actor.id);
-      return <TeamAvatar team={team} {...props} />;
+      return (
+        <Teams ids={[actor.id]}>
+          {({initiallyLoaded, teams}) =>
+            initiallyLoaded ? (
+              <TeamAvatar team={teams[0]} {...props} />
+            ) : (
+              <LoadingIndicator mini />
+            )
+          }
+        </Teams>
+      );
     }
 
     Sentry.withScope(scope => {

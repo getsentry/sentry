@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 
 import U2fInterface from './u2finterface';
 
@@ -14,7 +14,7 @@ const MESSAGES = {
   ),
 };
 
-type InterfaceProps = U2fInterface['props'];
+type InterfaceProps = React.ComponentProps<typeof U2fInterface>;
 
 type Props = Omit<InterfaceProps, 'silentIfUnsupported' | 'flowMode'> & {
   displayMode: 'signin' | 'enroll' | 'sudo';

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import {t} from 'sentry/locale';
+import AsyncView from 'sentry/views/asyncView';
 
 type Data = {
   groups: [groupName: string, grouppedWarnings: string[]][];

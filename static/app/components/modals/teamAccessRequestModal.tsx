@@ -1,13 +1,16 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps, TeamAccessRequestModalOptions} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  ModalRenderProps,
+  TeamAccessRequestModalOptions,
+} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import withApi from 'sentry/utils/withApi';
 
 type Props = ModalRenderProps &
   TeamAccessRequestModalOptions & {
@@ -78,7 +81,7 @@ class CreateTeamAccessRequest extends Component<Props, State> {
 const ButtonGroup = styled('div')`
   display: grid;
   grid-template-columns: max-content max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 export default withApi(CreateTeamAccessRequest);

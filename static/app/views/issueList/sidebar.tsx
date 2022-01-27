@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconClose} from 'app/icons/iconClose';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Tag, TagCollection} from 'app/types';
-import {objToQuery, QueryObj, queryToObj} from 'app/utils/stream';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SidebarSection from 'sentry/components/sidebarSection';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Tag, TagCollection} from 'sentry/types';
+import {objToQuery, QueryObj, queryToObj} from 'sentry/utils/stream';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import IssueListTagFilter from './tagFilter';
 import {TagValueLoader} from './types';
@@ -113,11 +115,9 @@ class IssueListSidebar extends React.Component<Props, State> {
           <LoadingIndicator />
         ) : (
           <React.Fragment>
-            <StreamTagFilter>
-              <StyledHeader>{t('Text')}</StyledHeader>
+            <SidebarSection title={t('Text')}>
               <form onSubmit={this.onTextFilterSubmit}>
-                <input
-                  className="form-control"
+                <Input
                   placeholder={t('Search title and culprit text body')}
                   onChange={this.onTextChange}
                   value={this.state.textFilter}
@@ -127,7 +127,7 @@ class IssueListSidebar extends React.Component<Props, State> {
                 )}
               </form>
               <StyledHr />
-            </StreamTagFilter>
+            </SidebarSection>
 
             {map(tags, tag => (
               <IssueListTagFilter
@@ -165,15 +165,7 @@ const StyledIconClose = styled(IconClose)`
   }
 `;
 
-const StyledHeader = styled('h6')`
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(1)};
-`;
-
-const StreamTagFilter = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
 const StyledHr = styled('hr')`
   margin: ${space(2)} 0 0;
+  border-top: solid 1px ${p => p.theme.innerBorder};
 `;

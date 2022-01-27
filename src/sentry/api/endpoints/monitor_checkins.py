@@ -20,10 +20,14 @@ class CheckInSerializer(serializers.Serializer):
     duration = EmptyIntegerField(required=False, allow_null=True)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class MonitorCheckInsEndpoint(MonitorEndpoint):
     authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
 
-    def get(self, request, project, monitor):
+    def get(self, request: Request, project, monitor) -> Response:
         """
         Retrieve check-ins for an monitor
         `````````````````````````````````
@@ -45,7 +49,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request, project, monitor):
+    def post(self, request: Request, project, monitor) -> Response:
         """
         Create a new check-in for a monitor
         ```````````````````````````````````

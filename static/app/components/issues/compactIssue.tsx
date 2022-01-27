@@ -1,22 +1,22 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {bulkUpdate} from 'app/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import ErrorLevel from 'app/components/events/errorLevel';
-import Link from 'app/components/links/link';
-import {PanelItem} from 'app/components/panels';
-import {IconChat, IconMute, IconStar} from 'app/icons';
-import {t} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import space from 'app/styles/space';
-import {BaseGroup, Organization} from 'app/types';
-import {getMessage} from 'app/utils/events';
-import {Aliases} from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import {bulkUpdate} from 'sentry/actionCreators/group';
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import ErrorLevel from 'sentry/components/events/errorLevel';
+import Link from 'sentry/components/links/link';
+import {PanelItem} from 'sentry/components/panels';
+import {IconChat, IconMute, IconStar} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import space from 'sentry/styles/space';
+import {BaseGroup, Organization} from 'sentry/types';
+import {getMessage} from 'sentry/utils/events';
+import {Aliases} from 'sentry/utils/theme';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type HeaderProps = {
   organization: Organization;

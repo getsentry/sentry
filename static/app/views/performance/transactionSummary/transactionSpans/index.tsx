@@ -1,19 +1,19 @@
 import {Location} from 'history';
 
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
 
 import SpansContent from './content';
-import {SpanSortOthers, SpanSortPercentiles} from './types';
-import {getSuspectSpanSortFromLocation} from './utils';
+import {
+  generateSpansEventView,
+  SPAN_RELATIVE_PERIODS,
+  SPAN_RETENTION_DAYS,
+} from './utils';
 
 type Props = {
   location: Location;
@@ -31,33 +31,12 @@ function TransactionSpans(props: Props) {
       projects={projects}
       tab={Tab.Spans}
       getDocumentTitle={getDocumentTitle}
-      generateEventView={generateEventView}
+      generateEventView={generateSpansEventView}
       childComponent={SpansContent}
+      relativeDateOptions={SPAN_RELATIVE_PERIODS}
+      maxPickableDays={SPAN_RETENTION_DAYS}
     />
   );
-}
-
-function generateEventView(location: Location, transactionName: string): EventView {
-  const query = decodeScalar(location.query.query, '');
-  const conditions = new MutableSearch(query);
-  conditions
-    .setFilterValues('event.type', ['transaction'])
-    .setFilterValues('transaction', [transactionName]);
-
-  const eventView = EventView.fromNewQueryWithLocation(
-    {
-      id: undefined,
-      version: 2,
-      name: transactionName,
-      fields: [...Object.values(SpanSortOthers), ...Object.values(SpanSortPercentiles)],
-      query: conditions.formatString(),
-      projects: [],
-    },
-    location
-  );
-
-  const sort = getSuspectSpanSortFromLocation(location);
-  return eventView.withSorts([{field: sort.field, kind: 'desc'}]);
 }
 
 function getDocumentTitle(transactionName: string): string {

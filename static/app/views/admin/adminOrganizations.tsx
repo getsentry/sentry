@@ -1,8 +1,8 @@
 import {RouteComponentProps} from 'react-router';
 
-import Link from 'app/components/links/link';
-import ResultGrid from 'app/components/resultGrid';
-import {t} from 'app/locale';
+import Link from 'sentry/components/links/link';
+import ResultGrid from 'sentry/components/resultGrid';
+import {t} from 'sentry/locale';
 
 type Props = RouteComponentProps<{}, {}>;
 

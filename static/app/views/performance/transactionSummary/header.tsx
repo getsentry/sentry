@@ -1,24 +1,26 @@
 import * as React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
-import {GuideAnchor} from 'app/components/assistant/guideAnchor';
-import ButtonBar from 'app/components/buttonBar';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import FeatureBadge from 'app/components/featureBadge';
-import * as Layout from 'app/components/layouts/thirds';
-import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import HasMeasurementsQuery from 'app/utils/performance/vitals/hasMeasurementsQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import Breadcrumb from 'app/views/performance/breadcrumb';
+import Feature from 'sentry/components/acl/feature';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import ButtonBar from 'sentry/components/buttonBar';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import FeatureBadge from 'sentry/components/featureBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
+import {MetricsSwitch} from '../metricsSwitch';
 
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
@@ -211,6 +213,17 @@ class TransactionHeader extends React.Component<Props> {
     }
   }
 
+  handleSwitchMetrics = () => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: undefined,
+      },
+    });
+  };
+
   render() {
     const {organization, location, projectId, transactionName, currentTab} = this.props;
 
@@ -242,6 +255,7 @@ class TransactionHeader extends React.Component<Props> {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            <MetricsSwitch onSwitch={this.handleSwitchMetrics} />
             <Feature organization={organization} features={['incidents']}>
               {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
             </Feature>
@@ -258,16 +272,13 @@ class TransactionHeader extends React.Component<Props> {
               {t('Overview')}
             </ListLink>
             {this.renderWebVitalsTab()}
-            <Feature features={['organizations:performance-tag-page']}>
-              <ListLink
-                to={tagsTarget}
-                isActive={() => currentTab === Tab.Tags}
-                onClick={this.trackTabClick(Tab.Tags)}
-              >
-                {t('Tags')}
-                <FeatureBadge type="new" noTooltip />
-              </ListLink>
-            </Feature>
+            <ListLink
+              to={tagsTarget}
+              isActive={() => currentTab === Tab.Tags}
+              onClick={this.trackTabClick(Tab.Tags)}
+            >
+              {t('Tags')}
+            </ListLink>
             <Feature features={['organizations:performance-events-page']}>
               <ListLink
                 to={eventsTarget}

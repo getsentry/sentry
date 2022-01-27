@@ -1,16 +1,31 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/actions/button';
-import space from 'app/styles/space';
+import Button from 'sentry/components/actions/button';
+import space from 'sentry/styles/space';
 
-type Props = {buttonText: string} & Partial<
-  Pick<React.ComponentProps<typeof Button>, 'disabled' | 'onClick' | 'href'>
->;
+type Props = {
+  buttonText: string;
+  formProps?: Omit<React.HTMLProps<HTMLFormElement>, 'as'>;
+  formFields?: Array<{name: string; value: any}>;
+} & Partial<Pick<React.ComponentProps<typeof Button>, 'disabled' | 'onClick' | 'href'>>;
 
-export default function FooterWithButtons({buttonText, ...rest}: Props) {
+export default function FooterWithButtons({
+  buttonText,
+  formFields,
+  formProps,
+  ...rest
+}: Props) {
+  /**
+   * We use a form post here to replicate what we do with standard HTML views for the integration pipeline.
+   * Since this is a form post, we need to pass a hidden replica of the form inputs
+   * so we can submit this form instead of the one collecting the user inputs.
+   */
   return (
-    <Footer>
+    <Footer data-test-id="aws-lambda-footer-form" {...formProps}>
+      {formFields?.map(field => {
+        return <input type="hidden" key={field.name} {...field} />;
+      })}
       <Button priority="primary" type="submit" size="xsmall" {...rest}>
         {buttonText}
       </Button>

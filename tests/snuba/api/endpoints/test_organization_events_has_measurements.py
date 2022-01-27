@@ -6,12 +6,13 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
 
-class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
+class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.features = {}
 
     def do_request(self, query, features=None):
         if features is None:
@@ -19,6 +20,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "organizations:discover-basic": True,
                 "organizations:global-views": True,
             }
+        features.update(self.features)
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-has-measurements",
@@ -188,3 +190,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": True}
+
+
+class OrganizationEventsHasMeasurementsTestWithSnql(OrganizationEventsHasMeasurementsTest):
+    def setUp(self):
+        super().setUp()
+        self.features = {"organizations:performance-use-snql": True}

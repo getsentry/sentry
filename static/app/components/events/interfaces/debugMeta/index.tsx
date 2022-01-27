@@ -10,20 +10,20 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isNil from 'lodash/isNil';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import Checkbox from 'app/components/checkbox';
-import EventDataSection from 'app/components/events/eventDataSection';
-import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
-import {Panel, PanelBody} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
-import space from 'app/styles/space';
-import {Frame, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import DebugMetaStore, {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import space from 'sentry/styles/space';
+import {Frame, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {shouldSkipSection} from '../debugMeta-v2/utils';
 

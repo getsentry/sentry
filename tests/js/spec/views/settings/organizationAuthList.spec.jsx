@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import OrganizationAuthList from 'app/views/settings/organizationAuth/organizationAuthList';
+import OrganizationAuthList from 'sentry/views/settings/organizationAuth/organizationAuthList';
 
 describe('OrganizationAuthList', function () {
   it('renders with no providers', function () {

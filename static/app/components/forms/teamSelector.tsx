@@ -3,19 +3,19 @@ import {StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {addTeamToProject} from 'app/actionCreators/projects';
-import Button from 'app/components/button';
-import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
-import IdBadge from 'app/components/idBadge';
-import Tooltip from 'app/components/tooltip';
-import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {IconAdd, IconUser} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
-import useApi from 'app/utils/useApi';
-import useTeams from 'app/utils/useTeams';
-import withOrganization from 'app/utils/withOrganization';
+import {addTeamToProject} from 'sentry/actionCreators/projects';
+import Button from 'sentry/components/button';
+import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import IdBadge from 'sentry/components/idBadge';
+import Tooltip from 'sentry/components/tooltip';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {IconAdd, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project, Team} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
+import useTeams from 'sentry/utils/useTeams';
+import withOrganization from 'sentry/utils/withOrganization';
 
 const UnassignedWrapper = styled('div')`
   display: flex;
@@ -101,6 +101,8 @@ type TeamActor = {
 type TeamOption = {
   value: string | null;
   label: React.ReactNode;
+  trailingItems?: React.ReactNode;
+  trailingItemsSpanFullHeight?: boolean;
   searchKey: string;
   actor: TeamActor | null;
   disabled?: boolean;
@@ -186,24 +188,28 @@ function TeamSelector(props: Props) {
               <IdBadge team={team} />
             </Tooltip>
           </DisabledLabel>
-          <Tooltip
-            title={
-              canAddTeam
-                ? t('Add %s to project', `#${team.slug}`)
-                : t('You do not have permission to add team to project.')
-            }
-          >
-            <AddToProjectButton
-              type="button"
-              size="zero"
-              borderless
-              disabled={!canAddTeam}
-              onClick={() => handleAddTeamToProject(team)}
-              icon={<IconAdd isCircled />}
-            />
-          </Tooltip>
         </TeamOutsideProject>
       ),
+      trailingItems: (
+        <Tooltip
+          title={
+            canAddTeam
+              ? t('Add %s to project', `#${team.slug}`)
+              : t('You do not have permission to add team to project.')
+          }
+          containerDisplayMode="flex"
+        >
+          <AddToProjectButton
+            type="button"
+            size="zero"
+            borderless
+            disabled={!canAddTeam}
+            onClick={() => handleAddTeamToProject(team)}
+            icon={<IconAdd isCircled />}
+          />
+        </Tooltip>
+      ),
+      trailingItemsSpanFullHeight: true,
     };
   }
 
@@ -244,6 +250,7 @@ function TeamSelector(props: Props) {
         ...(multiple ? {} : placeholderSelectStyles),
         ...(styles ?? {}),
       }}
+      verticallyCenterCheckWrap
       isLoading={fetching}
       {...extraProps}
     />

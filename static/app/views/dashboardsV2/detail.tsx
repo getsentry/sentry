@@ -1,4 +1,5 @@
 import {cloneElement, Component, isValidElement} from 'react';
+import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -7,31 +8,37 @@ import {
   createDashboard,
   deleteDashboard,
   updateDashboard,
-} from 'app/actionCreators/dashboards';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {
-  openAddDashboardIssueWidgetModal,
-  openDashboardWidgetLibraryModal,
-} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import HookOrDefault from 'app/components/hookOrDefault';
-import * as Layout from 'app/components/layouts/thirds';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import Controls from './controls';
 import Dashboard from './dashboard';
-import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
+import {DEFAULT_STATS_PERIOD} from './data';
+import {getDashboardLayout} from './layoutUtils';
 import DashboardTitle from './title';
-import {DashboardDetails, DashboardListItem, DashboardState, Widget} from './types';
+import {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardState,
+  DashboardWidgetSource,
+  MAX_WIDGETS,
+  Widget,
+} from './types';
 import {cloneDashboard} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
@@ -51,7 +58,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   route: PlainRoute;
-  reloadData?: () => void;
+  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
 };
 
@@ -59,12 +66,16 @@ type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetToBeUpdated?: Widget;
+  layout: RGLLayout[];
+  widgetLimitReached: boolean;
 };
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
+    layout: getDashboardLayout(this.props.dashboard.widgets),
+    widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
   };
 
   componentDidMount() {
@@ -114,14 +125,19 @@ class DashboardDetail extends Component<Props, State> {
   updateModifiedDashboard(dashboardState: DashboardState) {
     const {dashboard} = this.props;
     switch (dashboardState) {
+      case DashboardState.PREVIEW:
       case DashboardState.CREATE:
-        return cloneDashboard(EMPTY_DASHBOARD);
       case DashboardState.EDIT:
         return cloneDashboard(dashboard);
       default: {
         return null;
       }
     }
+  }
+
+  get isPreview() {
+    const {dashboardState} = this.state;
+    return DashboardState.PREVIEW === dashboardState;
   }
 
   get isEditing() {
@@ -179,10 +195,14 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onRouteLeave = () => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+
     if (
       ![DashboardState.VIEW, DashboardState.PENDING_DELETE].includes(
         this.state.dashboardState
-      )
+      ) &&
+      !isEqual(modifiedDashboard, dashboard)
     ) {
       return UNSAVED_MESSAGE;
     }
@@ -190,10 +210,14 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onUnload = (event: BeforeUnloadEvent) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+
     if (
       [DashboardState.VIEW, DashboardState.PENDING_DELETE].includes(
         this.state.dashboardState
-      )
+      ) ||
+      isEqual(modifiedDashboard, dashboard)
     ) {
       return;
     }
@@ -232,7 +256,15 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCancel = () => {
-    const {organization, location, params} = this.props;
+    const {organization, dashboard, location, params} = this.props;
+    const {modifiedDashboard} = this.state;
+    if (!isEqual(modifiedDashboard, dashboard)) {
+      // Ignore no-alert here, so that the confirm on cancel matches onUnload & onRouteLeave
+      /* eslint no-alert:0 */
+      if (!confirm(UNSAVED_MESSAGE)) {
+        return;
+      }
+    }
     if (params.dashboardId) {
       trackAnalyticsEvent({
         eventKey: 'dashboards2.edit.cancel',
@@ -256,50 +288,69 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  handleUpdateWidgetList = (widgets: Widget[]) => {
+    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
+    const {modifiedDashboard} = this.state;
+    const newModifiedDashboard = {
+      ...cloneDashboard(modifiedDashboard || dashboard),
+      widgets,
+    };
+    this.setState({
+      modifiedDashboard: newModifiedDashboard,
+      widgetLimitReached: widgets.length >= MAX_WIDGETS,
+    });
+    if (this.isEditing || this.isPreview) {
+      return;
+    }
+    updateDashboard(api, organization.slug, newModifiedDashboard).then(
+      (newDashboard: DashboardDetails) => {
+        if (onDashboardUpdate) {
+          onDashboardUpdate(newDashboard);
+        }
+        addSuccessMessage(t('Dashboard updated'));
+        if (dashboard && newDashboard.id !== dashboard.id) {
+          browserHistory.replace({
+            pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+            query: {
+              ...location.query,
+            },
+          });
+          return;
+        }
+      },
+      () => undefined
+    );
+  };
+
+  handleAddCustomWidget = (widget: Widget) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    const newModifiedDashboard = modifiedDashboard || dashboard;
+    this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
+  };
+
   onAddWidget = () => {
-    const {organization, dashboard, api, reloadData, location} = this.props;
+    const {organization, dashboard} = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
-    openDashboardWidgetLibraryModal({
+    openAddDashboardWidgetModal({
       organization,
       dashboard,
-      onAddWidget: (widgets: Widget[]) => {
-        const modifiedDashboard = {
-          ...cloneDashboard(dashboard),
-          widgets,
-        };
-        updateDashboard(api, organization.slug, modifiedDashboard).then(
-          (newDashboard: DashboardDetails) => {
-            addSuccessMessage(t('Dashboard updated'));
-
-            if (reloadData) {
-              reloadData();
-            }
-            if (dashboard && newDashboard.id !== dashboard.id) {
-              browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                query: {
-                  ...location.query,
-                },
-              });
-              return;
-            }
-          },
-          () => undefined
-        );
-      },
+      onAddLibraryWidget: (widgets: Widget[]) => this.handleUpdateWidgetList(widgets),
+      source: DashboardWidgetSource.LIBRARY,
     });
   };
 
   onCommit = () => {
-    const {api, organization, location, dashboard, reloadData} = this.props;
+    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
+      case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
-          createDashboard(api, organization.slug, modifiedDashboard).then(
+          createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
@@ -309,7 +360,6 @@ class DashboardDetail extends Component<Props, State> {
               });
               this.setState({
                 dashboardState: DashboardState.VIEW,
-                modifiedDashboard: null,
               });
 
               // redirect to new dashboard
@@ -337,6 +387,9 @@ class DashboardDetail extends Component<Props, State> {
           }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              if (onDashboardUpdate) {
+                onDashboardUpdate(newDashboard);
+              }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalyticsEvent({
                 eventKey: 'dashboards2.edit.complete',
@@ -348,9 +401,6 @@ class DashboardDetail extends Component<Props, State> {
                 modifiedDashboard: null,
               });
 
-              if (reloadData) {
-                reloadData();
-              }
               if (dashboard && newDashboard.id !== dashboard.id) {
                 browserHistory.replace({
                   pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -394,37 +444,18 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onUpdateWidget = (widgets: Widget[]) => {
-    const {modifiedDashboard} = this.state;
-
-    if (modifiedDashboard === null) {
-      return;
-    }
     this.setState(
       (state: State) => ({
         ...state,
         widgetToBeUpdated: undefined,
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
         modifiedDashboard: {
-          ...state.modifiedDashboard!,
+          ...(state.modifiedDashboard || this.props.dashboard),
           widgets,
         },
       }),
       this.updateRouteAfterSavingWidget
     );
-  };
-
-  onAddIssueWidget = () => {
-    const {organization, dashboard} = this.props;
-
-    openAddDashboardIssueWidgetModal({
-      organization,
-      onAddWidget: widget => {
-        this.setState({
-          dashboardState: DashboardState.EDIT,
-          modifiedDashboard: cloneDashboard(dashboard),
-        });
-        this.onUpdateWidget([...dashboard.widgets, widget]);
-      },
-    });
   };
 
   renderWidgetBuilder(dashboard: DashboardDetails) {
@@ -442,11 +473,11 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDefaultDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
     return (
-      <GlobalSelectionHeader
+      <PageFiltersContainer
         skipLoadLastUsed={organization.features.includes('global-views')}
         defaultSelection={{
           datetime: {
@@ -473,8 +504,8 @@ class DashboardDetail extends Component<Props, State> {
                 onCommit={this.onCommit}
                 onAddWidget={this.onAddWidget}
                 onDelete={this.onDelete(dashboard)}
-                onAddIssueWidget={this.onAddIssueWidget}
                 dashboardState={dashboardState}
+                widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
             <HookHeader organization={organization} />
@@ -483,94 +514,118 @@ class DashboardDetail extends Component<Props, State> {
               dashboard={modifiedDashboard ?? dashboard}
               organization={organization}
               isEditing={this.isEditing}
+              widgetLimitReached={widgetLimitReached}
               onUpdate={this.onUpdateWidget}
               onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+              handleUpdateWidgetList={this.handleUpdateWidgetList}
+              handleAddCustomWidget={this.handleAddCustomWidget}
+              isPreview={this.isPreview}
               router={router}
               location={location}
             />
           </NoProjectMessage>
         </PageContent>
-      </GlobalSelectionHeader>
+      </PageFiltersContainer>
     );
+  }
+
+  getBreadcrumbLabel() {
+    const {organization, dashboard} = this.props;
+    const {dashboardState} = this.state;
+
+    let label = this.dashboardTitle;
+    if (dashboardState === DashboardState.CREATE) {
+      label = t('Create Dashboard');
+    } else if (this.isPreview) {
+      label = t('Preview Dashboard');
+    } else if (
+      organization.features.includes('dashboards-edit') &&
+      dashboard.id === 'default-overview'
+    ) {
+      label = t('Default Dashboard');
+    }
+    return label;
   }
 
   renderDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location, newWidget} =
       this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
     return (
-      <GlobalSelectionHeader
-        skipLoadLastUsed={organization.features.includes('global-views')}
-        defaultSelection={{
-          datetime: {
-            start: null,
-            end: null,
-            utc: false,
-            period: DEFAULT_STATS_PERIOD,
-          },
-        }}
-      >
-        <NoProjectMessage organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: t('Dashboards'),
-                    to: `/organizations/${organization.slug}/dashboards/`,
-                  },
-                  {
-                    label:
-                      dashboardState === DashboardState.CREATE
-                        ? t('Create Dashboard')
-                        : organization.features.includes('dashboards-edit') &&
-                          dashboard.id === 'default-overview'
-                        ? 'Default Dashboard'
-                        : this.dashboardTitle,
-                  },
-                ]}
-              />
-              <Layout.Title>
-                <DashboardTitle
-                  dashboard={modifiedDashboard ?? dashboard}
-                  onUpdate={this.setModifiedDashboard}
-                  isEditing={this.isEditing}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <Controls
-                organization={organization}
-                dashboards={dashboards}
-                onEdit={this.onEdit}
-                onCancel={this.onCancel}
-                onCommit={this.onCommit}
-                onAddWidget={this.onAddWidget}
-                onDelete={this.onDelete(dashboard)}
-                onAddIssueWidget={this.onAddIssueWidget}
-                dashboardState={dashboardState}
-              />
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <Dashboard
-                paramDashboardId={dashboardId}
-                dashboard={modifiedDashboard ?? dashboard}
-                organization={organization}
-                isEditing={this.isEditing}
-                onUpdate={this.onUpdateWidget}
-                onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
-                router={router}
-                location={location}
-                newWidget={newWidget}
-              />
-            </Layout.Main>
-          </Layout.Body>
-        </NoProjectMessage>
-      </GlobalSelectionHeader>
+      <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
+        <PageFiltersContainer
+          skipLoadLastUsed={organization.features.includes('global-views')}
+          defaultSelection={{
+            datetime: {
+              start: null,
+              end: null,
+              utc: false,
+              period: DEFAULT_STATS_PERIOD,
+            },
+          }}
+        >
+          <StyledPageContent>
+            <NoProjectMessage organization={organization}>
+              <Layout.Header>
+                <Layout.HeaderContent>
+                  <Breadcrumbs
+                    crumbs={[
+                      {
+                        label: t('Dashboards'),
+                        to: `/organizations/${organization.slug}/dashboards/`,
+                      },
+                      {
+                        label: this.getBreadcrumbLabel(),
+                      },
+                    ]}
+                  />
+                  <Layout.Title>
+                    <DashboardTitle
+                      dashboard={modifiedDashboard ?? dashboard}
+                      onUpdate={this.setModifiedDashboard}
+                      isEditing={this.isEditing}
+                    />
+                  </Layout.Title>
+                </Layout.HeaderContent>
+                <Layout.HeaderActions>
+                  <Controls
+                    organization={organization}
+                    dashboards={dashboards}
+                    onEdit={this.onEdit}
+                    onCancel={this.onCancel}
+                    onCommit={this.onCommit}
+                    onAddWidget={this.onAddWidget}
+                    onDelete={this.onDelete(dashboard)}
+                    dashboardState={dashboardState}
+                    widgetLimitReached={widgetLimitReached}
+                  />
+                </Layout.HeaderActions>
+              </Layout.Header>
+              <Layout.Body>
+                <Layout.Main fullWidth>
+                  <Dashboard
+                    paramDashboardId={dashboardId}
+                    dashboard={modifiedDashboard ?? dashboard}
+                    organization={organization}
+                    isEditing={this.isEditing}
+                    widgetLimitReached={widgetLimitReached}
+                    onUpdate={this.onUpdateWidget}
+                    handleUpdateWidgetList={this.handleUpdateWidgetList}
+                    handleAddCustomWidget={this.handleAddCustomWidget}
+                    onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
+                    router={router}
+                    location={location}
+                    newWidget={newWidget}
+                    isPreview={this.isPreview}
+                  />
+                </Layout.Main>
+              </Layout.Body>
+            </NoProjectMessage>
+          </StyledPageContent>
+        </PageFiltersContainer>
+      </SentryDocumentTitle>
     );
   }
 
@@ -594,8 +649,6 @@ const StyledPageHeader = styled('div')`
   grid-template-columns: minmax(0, 1fr);
   grid-row-gap: ${space(2)};
   align-items: center;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.textColor};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
@@ -603,6 +656,10 @@ const StyledPageHeader = styled('div')`
     grid-column-gap: ${space(2)};
     height: 40px;
   }
+`;
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
 `;
 
 export default withApi(withOrganization(DashboardDetail));

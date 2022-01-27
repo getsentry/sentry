@@ -1,12 +1,12 @@
-import ClippedBox from 'app/components/clippedBox';
-import ContextData from 'app/components/contextData';
-import ErrorBoundary from 'app/components/errorBoundary';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {t} from 'app/locale';
-import {Meta} from 'app/types';
-import {EntryRequest} from 'app/types/event';
-import {defined} from 'app/utils';
+import ClippedBox from 'sentry/components/clippedBox';
+import ContextData from 'sentry/components/contextData';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {t} from 'sentry/locale';
+import {Meta} from 'sentry/types';
+import {EntryRequest} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 
 import getTransformedData from './getTransformedData';
 

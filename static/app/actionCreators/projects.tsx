@@ -6,13 +6,13 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import ProjectActions from 'app/actions/projectActions';
-import {Client} from 'app/api';
-import {PlatformKey} from 'app/data/platformCategories';
-import {t, tct} from 'app/locale';
-import ProjectsStatsStore from 'app/stores/projectsStatsStore';
-import {Project, Team} from 'app/types';
+} from 'sentry/actionCreators/indicator';
+import ProjectActions from 'sentry/actions/projectActions';
+import {Client} from 'sentry/api';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {t, tct} from 'sentry/locale';
+import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import {Project, Team} from 'sentry/types';
 
 type UpdateParams = {
   orgId: string;

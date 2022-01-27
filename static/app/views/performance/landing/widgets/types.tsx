@@ -1,11 +1,10 @@
-import {FunctionComponent, ReactNode} from 'react';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import BaseChart from 'app/components/charts/baseChart';
-import {RenderProps} from 'app/components/charts/eventsRequest';
-import {DateString, Organization, OrganizationSummary} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {Client} from 'sentry/api';
+import BaseChart from 'sentry/components/charts/baseChart';
+import {RenderProps} from 'sentry/components/charts/eventsRequest';
+import {DateString, Organization, OrganizationSummary} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 
 import {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
 import {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
@@ -25,6 +24,23 @@ export enum GenericPerformanceWidgetDataType {
   trends = 'trends',
 }
 
+export type PerformanceWidgetProps = {
+  chartSetting: PerformanceWidgetSetting;
+  chartDefinition: ChartDefinition;
+  chartHeight: number;
+
+  title: string;
+  titleTooltip: string;
+  fields: string[];
+  chartColor?: string;
+
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+
+  ContainerActions: React.FC<{isLoading: boolean}>;
+};
+
 export interface WidgetDataResult {
   isLoading: boolean;
   isErrored: boolean;
@@ -35,13 +51,13 @@ export interface WidgetDataConstraint {
 }
 
 export type QueryChildren = {
-  children: (props: any) => ReactNode; // TODO(k-fish): Fix any type.
+  children: (props: any) => React.ReactNode; // TODO(k-fish): Fix any type.
 };
-export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
+export type QueryFC<T extends WidgetDataConstraint> = React.FC<
   QueryChildren & {
     fields?: string | string[];
     yAxis?: string | string[];
-    period?: string;
+    period?: string | null;
     start?: DateString;
     end?: DateString;
     project?: Readonly<number[]>;
@@ -49,6 +65,7 @@ export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
     team?: Readonly<string | string[]>;
     query?: string;
     orgSlug: string;
+    eventView: EventView;
     organization: OrganizationSummary;
     widgetData: T;
   }
@@ -60,12 +77,12 @@ export type QueryDefinition<
 > = {
   component: QueryFC<T>;
   fields: string | string[];
-  enabled?: (data: T) => boolean;
   transform: (
     props: GenericPerformanceWidgetProps<T>,
     results: any,
     queryDefinition: QueryDefinitionWithKey<T>
   ) => S; // TODO(k-fish): Fix any type.
+  enabled?: (data: T) => boolean;
 };
 export type Queries<T extends WidgetDataConstraint> = Record<
   string,
@@ -73,7 +90,7 @@ export type Queries<T extends WidgetDataConstraint> = Record<
 >;
 
 type Visualization<T> = {
-  component: FunctionComponent<{
+  component: React.FC<{
     widgetData: T;
     queryFields?: string;
     grid?: React.ComponentProps<typeof BaseChart>['grid'];
@@ -89,11 +106,11 @@ type Visualization<T> = {
 
 type Visualizations<T extends WidgetDataConstraint> = Readonly<Visualization<T>[]>; // Readonly because of index being used for React key.
 
-type HeaderActions<T> = FunctionComponent<{
+type HeaderActions<T> = React.FC<{
   widgetData: T;
 }>;
 
-type Subtitle<T> = FunctionComponent<{
+type Subtitle<T> = React.FC<{
   widgetData: T;
 }>;
 
@@ -116,7 +133,7 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   // Components
   Subtitle?: Subtitle<T>;
   HeaderActions?: HeaderActions<T>;
-  EmptyComponent?: FunctionComponent<{height?: number}>;
+  EmptyComponent?: React.FC<{height?: number}>;
 
   Queries: Queries<T>;
   Visualizations: Visualizations<T>;
@@ -141,8 +158,9 @@ export type QueryDefinitionWithKey<T extends WidgetDataConstraint> = QueryDefini
 export type QueryHandlerProps<T extends WidgetDataConstraint> = {
   api: Client;
   queries: QueryDefinitionWithKey<T>[];
-  children?: ReactNode;
+  eventView: EventView;
   queryProps: WidgetPropUnion<T>;
+  children?: React.ReactNode;
 } & WidgetDataProps<T>;
 
 export type WidgetPropUnion<T extends WidgetDataConstraint> =

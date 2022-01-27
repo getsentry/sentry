@@ -2,29 +2,29 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import SearchBar from 'app/components/events/searchBar';
-import SelectControl from 'app/components/forms/selectControl';
-import ListItem from 'app/components/list/listItem';
-import {Panel, PanelBody} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconQuestion} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Environment, Organization, SelectValue} from 'app/types';
-import {getDisplayName} from 'app/utils/environment';
-import theme from 'app/utils/theme';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import SearchBar from 'sentry/components/events/searchBar';
+import SelectControl from 'sentry/components/forms/selectControl';
+import ListItem from 'sentry/components/list/listItem';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconQuestion} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Environment, Organization, SelectValue} from 'sentry/types';
+import {getDisplayName} from 'sentry/utils/environment';
+import theme from 'sentry/utils/theme';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
-} from 'app/views/alerts/utils';
-import {AlertType, getFunctionHelpText} from 'app/views/alerts/wizard/options';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-import FormField from 'app/views/settings/components/forms/formField';
-import SelectField from 'app/views/settings/components/forms/selectField';
+} from 'sentry/views/alerts/utils';
+import {AlertType, getFunctionHelpText} from 'sentry/views/alerts/wizard/options';
+import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
+import FormField from 'sentry/views/settings/components/forms/formField';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {
   COMPARISON_DELTA_OPTIONS,
@@ -313,7 +313,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 <StyledSearchBar
                   searchSource="alert_builder"
                   defaultQuery={initialData?.query ?? ''}
-                  omitTags={['event.type']}
+                  omitTags={[
+                    'event.type',
+                    'release.version',
+                    'release.stage',
+                    'release.package',
+                    'release.build',
+                    'project',
+                  ]}
+                  includeSessionTagsValues={dataset === Dataset.SESSIONS}
                   disabled={disabled}
                   useFormWrapper={false}
                   organization={organization}
@@ -354,6 +362,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             <FormRow>
               <RadioGroup
                 style={{flex: 1}}
+                disabled={disabled}
                 choices={[
                   [AlertRuleComparisonType.COUNT, 'Count'],
                   [AlertRuleComparisonType.CHANGE, 'Percent Change'],

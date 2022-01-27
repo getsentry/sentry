@@ -2,7 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {defined} from 'app/utils';
+import {defined} from 'sentry/utils';
 
 const Context = styled('div')`
   display: inline;

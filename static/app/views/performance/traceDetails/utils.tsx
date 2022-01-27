@@ -1,9 +1,9 @@
 import {LocationDescriptor, Query} from 'history';
 
-import {PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {OrganizationSummary} from 'app/types';
-import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
-import {reduceTrace} from 'app/utils/performance/quickTrace/utils';
+import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
+import {OrganizationSummary} from 'sentry/types';
+import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 
 import {TraceInfo} from './types';
 

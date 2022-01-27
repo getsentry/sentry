@@ -3,20 +3,21 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import HeaderItem from 'app/components/organizations/headerItem';
-import PlatformList from 'app/components/platformList';
-import Tooltip from 'app/components/tooltip';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconProject} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {growIn} from 'app/styles/animations';
-import space from 'app/styles/space';
-import {MinimalProject, Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import Feature from 'sentry/components/acl/feature';
+import Button from 'sentry/components/button';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import Link from 'sentry/components/links/link';
+import HeaderItem from 'sentry/components/organizations/headerItem';
+import PlatformList from 'sentry/components/platformList';
+import Tooltip from 'sentry/components/tooltip';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {IconProject} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {growIn} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
+import {MinimalProject, Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import ProjectSelector from './projectSelector';
 
@@ -35,6 +36,12 @@ type Props = WithRouterProps & {
   showProjectSettingsLink?: boolean;
   lockedMessageSubject?: React.ReactNode;
   footerMessage?: React.ReactNode;
+  customDropdownButton?: (config: {
+    getActorProps: GetActorPropsFn;
+    selectedProjects: Project[];
+    isOpen: boolean;
+  }) => React.ReactElement;
+  customLoadingIndicator?: React.ReactNode;
 };
 
 type State = {
@@ -79,11 +86,10 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
    * Should perform an "update" callback
    */
   handleQuickSelect = (selected: Pick<Project, 'id'>) => {
-    analytics('projectselector.direct_selection', {
+    trackAdvancedAnalyticsEvent('projectselector.direct_selection', {
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
-
     const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
     this.props.onChange(value);
     this.doUpdate();
@@ -101,10 +107,11 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     }
 
     const {value} = this.props;
-    analytics('projectselector.update', {
+
+    trackAdvancedAnalyticsEvent('projectselector.update', {
       count: value.length,
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
       multi: this.multi,
     });
 
@@ -117,9 +124,9 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
    * Should perform an "update" callback
    */
   handleClear = () => {
-    analytics('projectselector.clear', {
+    trackAdvancedAnalyticsEvent('projectselector.clear', {
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
 
     this.props.onChange([]);
@@ -134,10 +141,10 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
   handleMultiSelect = (selected: Project[]) => {
     const {onChange, value} = this.props;
 
-    analytics('projectselector.toggle', {
+    trackAdvancedAnalyticsEvent('projectselector.toggle', {
       action: selected.length > value.length ? 'added' : 'removed',
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
 
     const selectedList = selected.map(({id}) => parseInt(id, 10)).filter(i => i);
@@ -195,6 +202,8 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       forceProject,
       showProjectSettingsLink,
       footerMessage,
+      customDropdownButton,
+      customLoadingIndicator,
     } = this.props;
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
@@ -230,13 +239,15 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
         {this.renderProjectName()}
       </StyledHeaderItem>
     ) : !isGlobalSelectionReady ? (
-      <StyledHeaderItem
-        data-test-id="global-header-project-selector-loading"
-        icon={<IconProject />}
-        loading
-      >
-        {t('Loading\u2026')}
-      </StyledHeaderItem>
+      customLoadingIndicator ?? (
+        <StyledHeaderItem
+          data-test-id="global-header-project-selector-loading"
+          icon={<IconProject />}
+          loading
+        >
+          {t('Loading\u2026')}
+        </StyledHeaderItem>
+      )
     ) : (
       <ClassNames>
         {({css}) => (
@@ -261,16 +272,29 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                 onShowAllProjects={() => {
                   this.handleQuickSelect({id: ALL_ACCESS_PROJECTS.toString()});
                   actions.close();
+                  trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                    button_type: 'all',
+                    path: getRouteStringFromRoutes(this.props.router.routes),
+                    organization,
+                  });
                 }}
                 onShowMyProjects={() => {
                   this.handleClear();
                   actions.close();
+                  trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                    button_type: 'my',
+                    path: getRouteStringFromRoutes(this.props.router.routes),
+                    organization,
+                  });
                 }}
                 message={footerMessage}
               />
             )}
           >
             {({getActorProps, selectedProjects, isOpen}) => {
+              if (customDropdownButton) {
+                return customDropdownButton({getActorProps, selectedProjects, isOpen});
+              }
               const hasSelected = !!selectedProjects.length;
               const title = hasSelected
                 ? selectedProjects.map(({slug}) => slug).join(', ')

@@ -1,4 +1,5 @@
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
@@ -49,7 +50,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
         except ValueError:
             raise OrganizationMember.DoesNotExist()
 
-    def get(self, request, organization, member_id):
+    def get(self, request: Request, organization, member_id) -> Response:
         try:
             member = self._get_member(organization, member_id)
         except OrganizationMember.DoesNotExist:
@@ -60,7 +61,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             status=status.HTTP_200_OK,
         )
 
-    def put(self, request, organization, member_id):
+    def put(self, request: Request, organization, member_id) -> Response:
         """
         Update an invite request to Organization
         ````````````````````````````````````````
@@ -130,7 +131,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationEndpoint):
             status=status.HTTP_200_OK,
         )
 
-    def delete(self, request, organization, member_id):
+    def delete(self, request: Request, organization, member_id) -> Response:
         """
         Delete an invite request to Organization
         ````````````````````````````````````````

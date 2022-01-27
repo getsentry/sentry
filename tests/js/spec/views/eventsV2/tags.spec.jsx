@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import EventView from 'app/utils/discover/eventView';
-import {Tags} from 'app/views/eventsV2/tags';
+import {Client} from 'sentry/api';
+import EventView from 'sentry/utils/discover/eventView';
+import {Tags} from 'sentry/views/eventsV2/tags';
 
 describe('Tags', function () {
   function generateUrl(key, value) {

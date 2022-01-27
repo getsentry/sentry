@@ -1,6 +1,6 @@
-import * as GroupActionCreators from 'app/actionCreators/group';
-import {Client} from 'app/api';
-import GroupingStore from 'app/stores/groupingStore';
+import * as GroupActionCreators from 'sentry/actionCreators/group';
+import {Client} from 'sentry/api';
+import GroupingStore from 'sentry/stores/groupingStore';
 
 describe('Grouping Store', function () {
   let trigger;

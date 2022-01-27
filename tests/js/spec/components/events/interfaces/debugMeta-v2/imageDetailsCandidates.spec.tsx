@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openModal} from 'app/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import DebugImageDetails, {
   modalCss,
-} from 'app/components/events/interfaces/debugMeta-v2/debugImageDetails';
-import {getFileName} from 'app/components/events/interfaces/debugMeta-v2/utils';
-import GlobalModal from 'app/components/globalModal';
+} from 'sentry/components/events/interfaces/debugMeta-v2/debugImageDetails';
+import {getFileName} from 'sentry/components/events/interfaces/debugMeta-v2/utils';
+import GlobalModal from 'sentry/components/globalModal';
 
 describe('Debug Meta - Image Details Candidates', function () {
   let wrapper: ReturnType<typeof mountWithTheme>;

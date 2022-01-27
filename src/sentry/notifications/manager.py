@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, MutableSet,
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.db.models.manager import BaseManager
+from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.helpers import (
     get_scope,
     get_scope_type,
@@ -298,20 +299,14 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         are subscribed to alerts. We check both the project level settings and
         global default settings.
         """
-        from sentry.models import Organization
-
         notification_settings = self.get_for_recipient_by_parent(type, parent, recipients)
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, recipients
         )
         mapping = defaultdict(set)
-        organization = parent if isinstance(parent, Organization) else parent.organization
-        should_use_slack_automatic = features.has(
-            "organizations:notification-slack-automatic", organization
-        )
         for recipient in recipients:
             providers = where_should_recipient_be_notified(
-                notification_settings_by_recipient, recipient, should_use_slack_automatic, type
+                notification_settings_by_recipient, recipient, type
             )
             for provider in providers:
                 mapping[provider].add(recipient)
@@ -395,3 +390,34 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     target_id=user.actor_id,
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )
+
+    def has_any_provider_settings(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> bool:
+        # Explicitly typing to satisfy mypy.
+        has_settings: bool = (
+            self._filter(provider=provider, target_ids={recipient.actor_id})
+            .filter(
+                value__in={
+                    NotificationSettingOptionValues.ALWAYS.value,
+                    NotificationSettingOptionValues.COMMITTED_ONLY.value,
+                    NotificationSettingOptionValues.SUBSCRIBE_ONLY.value,
+                }
+            )
+            .exists()
+        )
+        return has_settings
+
+    def enable_settings_for_user(
+        self,
+        recipient: User,
+        provider: ExternalProviders,
+        types: set[NotificationSettingTypes] | None = None,
+    ) -> None:
+        for type_ in types or NOTIFICATION_SETTINGS_ALL_SOMETIMES.keys():
+            self.update_settings(
+                provider=provider,
+                type=type_,
+                value=NOTIFICATION_SETTINGS_ALL_SOMETIMES[type_],
+                user=recipient,
+            )

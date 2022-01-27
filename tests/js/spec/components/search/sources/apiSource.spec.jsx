@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {ApiSource} from 'app/components/search/sources/apiSource';
+import {ApiSource} from 'sentry/components/search/sources/apiSource';
 
 describe('ApiSource', function () {
   let wrapper;
@@ -66,6 +66,10 @@ describe('ApiSource', function () {
     });
     MockApiClient.addMockResponse({
       url: '/sentry-apps/?status=published',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/doc-integrations/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -277,7 +281,7 @@ describe('ApiSource', function () {
 
     // The return values here are because of fuzzy search matching.
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(6);
+    expect(mock.mock.calls[1][0].results).toHaveLength(5);
   });
 
   it('render function is called with correct results when API requests partially succeed', async function () {
@@ -326,7 +330,7 @@ describe('ApiSource', function () {
 
     // The return values here are because of fuzzy search matching.
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(4);
+    expect(mock.mock.calls[1][0].results).toHaveLength(3);
   });
 
   it('render function is updated as query changes', async function () {
@@ -343,7 +347,7 @@ describe('ApiSource', function () {
 
     // The return values here are because of fuzzy search matching.
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(6);
+    expect(mock.mock.calls[1][0].results).toHaveLength(5);
     expect(mock.mock.calls[1][0].results[0].item.model.slug).toBe('foo-org');
 
     mock.mockClear();

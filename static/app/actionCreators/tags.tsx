@@ -1,12 +1,12 @@
 import {Query} from 'history';
 
-import AlertActions from 'app/actions/alertActions';
-import TagActions from 'app/actions/tagActions';
-import {Client} from 'app/api';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
-import TagStore from 'app/stores/tagStore';
-import {GlobalSelection, Tag} from 'app/types';
+import AlertActions from 'sentry/actions/alertActions';
+import TagActions from 'sentry/actions/tagActions';
+import {Client} from 'sentry/api';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
+import TagStore from 'sentry/stores/tagStore';
+import {PageFilters, Tag} from 'sentry/types';
 
 const MAX_TAGS = 1000;
 
@@ -27,15 +27,13 @@ function tagFetchSuccess(tags: Tag[] | undefined) {
 /**
  * Load an organization's tags based on a global selection value.
  */
-export function loadOrganizationTags(
-  api: Client,
-  orgId: string,
-  selection: GlobalSelection
-) {
+export function loadOrganizationTags(api: Client, orgId: string, selection: PageFilters) {
   TagStore.reset();
 
   const url = `/organizations/${orgId}/tags/`;
-  const query: Query = selection.datetime ? {...getParams(selection.datetime)} : {};
+  const query: Query = selection.datetime
+    ? {...normalizeDateTimeParams(selection.datetime)}
+    : {};
   query.use_cache = '1';
 
   if (selection.projects) {
@@ -87,7 +85,8 @@ export function fetchTagValues(
   search: string | null = null,
   projectIds: string[] | null = null,
   endpointParams: Query | null = null,
-  includeTransactions = false
+  includeTransactions = false,
+  includeSessions = false
 ) {
   const url = `/organizations/${orgId}/tags/${tagKey}/values/`;
 
@@ -111,6 +110,10 @@ export function fetchTagValues(
   }
   if (includeTransactions) {
     query.includeTransactions = '1';
+  }
+
+  if (includeSessions) {
+    query.includeSessions = '1';
   }
 
   return api.requestPromise(url, {

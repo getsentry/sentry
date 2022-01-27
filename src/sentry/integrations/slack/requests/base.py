@@ -1,23 +1,41 @@
-from typing import Any, Mapping, MutableMapping, Optional
+from __future__ import annotations
+
+import dataclasses
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from rest_framework import status as status_
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.models import Identity, IdentityProvider, Integration
+from sentry.models import Identity, IdentityProvider, Integration, User
 
 from ..utils import check_signing_secret, logger
 
 
+def _get_field_id_option(data: Mapping[str, Any], field_name: str) -> str | None:
+    id_option: str | None = data.get(f"{field_name}_id") or data.get(field_name, {}).get("id")
+    return id_option
+
+
+def get_field_id(data: Mapping[str, Any], field_name: str) -> str:
+    """
+    TODO(mgaeta): Hack to convert optional strings to string. SlackRequest
+     should be refactored to deserialize `data` in the constructor.
+    """
+    id_option = _get_field_id_option(data, field_name)
+    if not id_option:
+        raise RuntimeError
+    return id_option
+
+
+@dataclasses.dataclass(frozen=True)
 class SlackRequestError(Exception):
     """
     Something was invalid about the request from Slack.
-
     Includes the status the endpoint should return, based on the error.
     """
 
-    def __init__(self, status: int) -> None:
-        self.status = status
+    status: int
 
 
 class SlackRequest:
@@ -35,65 +53,49 @@ class SlackRequest:
 
     def __init__(self, request: Request) -> None:
         self.request = request
-        self.integration: Optional[Integration] = None
+        self._integration: Integration | None = None
         self._data: MutableMapping[str, Any] = {}
-        self._log_request()
 
     def validate(self) -> None:
         """
         Ensure everything is present to properly process this request
         """
+        self._log_request()
         self._authorize()
         self._validate_data()
         self._validate_integration()
+
+    def is_bot(self) -> bool:
+        """
+        If it's a message posted by our bot, we don't want to respond since that
+        will cause an infinite loop of messages.
+        """
+        return False
 
     def is_challenge(self) -> bool:
         return False
 
     @property
-    def has_identity(self) -> bool:
-        raise NotImplementedError
+    def integration(self) -> Integration:
+        if not self._integration:
+            raise RuntimeError
+        return self._integration
 
     @property
-    def type(self) -> str:
-        # Found in different places, so this is implemented in each request's
-        # specific object (``SlackEventRequest`` and ``SlackActionRequest``).
-        raise NotImplementedError
+    def channel_id(self) -> str:
+        return get_field_id(self.data, "channel")
 
     @property
-    def channel_id(self) -> Optional[str]:
-        """
-        Provide a normalized interface to ``channel_id``, which Action and Event
-        requests provide in different places.
-        """
-        # Explicitly typing to satisfy mypy.
-        channel_id: str = self.data.get("channel_id") or self.data.get("channel", {}).get("id")
-        return channel_id
-
-    @property
-    def response_url(self) -> Optional[str]:
-        """Provide an interface to ``response_url`` for convenience."""
-        return self.data.get("response_url")
+    def response_url(self) -> str:
+        return self.data.get("response_url", "")
 
     @property
     def team_id(self) -> str:
-        """
-        Provide a normalized interface to ``team_id``, which Action and Event
-        requests provide in different places.
-        """
-        # Explicitly typing to satisfy mypy.
-        team_id: str = self.data.get("team_id") or self.data.get("team", {}).get("id")
-        return team_id
+        return get_field_id(self.data, "team")
 
     @property
-    def user_id(self) -> Optional[str]:
-        """
-        Provide a normalized interface to ``user_id``, which Action and Event
-        requests provide in different places.
-        """
-        # Explicitly typing to satisfy mypy.
-        user_id: Optional[str] = self.data.get("user_id") or self.data.get("user", {}).get("id")
-        return user_id
+    def user_id(self) -> str:
+        return get_field_id(self.data, "user")
 
     @property
     def data(self) -> Mapping[str, Any]:
@@ -102,29 +104,23 @@ class SlackRequest:
         return self._data
 
     @property
-    def action_option(self) -> Optional[str]:
-        # Actions list may be empty when receiving a dialog response
-        action_list = self.data.get("actions", [])
-        action_option: Optional[str] = action_list and action_list[0].get("value", "")
-        return action_option
-
-    @property
     def logging_data(self) -> Mapping[str, str]:
+        _data = self.request.data
         data = {
-            "slack_team_id": self.team_id,
-            "slack_channel_id": self.data.get("channel", {}).get("id"),
-            "slack_user_id": self.data.get("user", {}).get("id"),
-            "slack_event_id": self.data.get("event_id"),
-            "slack_callback_id": self.data.get("callback_id"),
-            "slack_api_app_id": self.data.get("api_app_id"),
+            "slack_team_id": _get_field_id_option(_data, "team"),
+            "slack_channel_id": _get_field_id_option(_data, "channel"),
+            "slack_user_id": _get_field_id_option(_data, "user"),
+            "slack_event_id": _data.get("event_id"),
+            "slack_callback_id": _data.get("callback_id"),
+            "slack_api_app_id": _data.get("api_app_id"),
         }
 
-        if self.integration:
+        if self._integration:
             data["integration_id"] = self.integration.id
 
         return {k: v for k, v in data.items() if v}
 
-    def get_identity(self) -> Optional[Identity]:
+    def get_identity(self) -> Identity | None:
         try:
             idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
         except IdentityProvider.DoesNotExist as e:
@@ -174,7 +170,7 @@ class SlackRequest:
 
     def _validate_integration(self) -> None:
         try:
-            self.integration = Integration.objects.get(provider="slack", external_id=self.team_id)
+            self._integration = Integration.objects.get(provider="slack", external_id=self.team_id)
         except Integration.DoesNotExist:
             self._error("slack.action.invalid-team-id")
             raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
@@ -187,3 +183,47 @@ class SlackRequest:
 
     def _info(self, key: str) -> None:
         logger.info(key, extra={**self.logging_data})
+
+
+class SlackDMRequest(SlackRequest):
+    def __init__(self, request: Request) -> None:
+        super().__init__(request)
+        self.user: User | None = None
+
+    @property
+    def has_identity(self) -> bool:
+        return self.user is not None
+
+    @property
+    def identity_str(self) -> str | None:
+        return self.user.email if self.user else None
+
+    @property
+    def dm_data(self) -> Mapping[str, Any]:
+        raise NotImplementedError
+
+    @property
+    def type(self) -> str:
+        return self.dm_data.get("type", "")
+
+    @property
+    def text(self) -> str:
+        return self.dm_data.get("text", "")
+
+    @property
+    def channel_name(self) -> str:
+        return self.dm_data.get("channel_name", "")
+
+    def get_command_and_args(self) -> tuple[str, Sequence[str]]:
+        command = self.text.lower().split()
+        if not command:
+            return "", []
+        return command[0], command[1:]
+
+    def _validate_identity(self) -> None:
+        try:
+            identity = self.get_identity()
+        except IdentityProvider.DoesNotExist:
+            raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
+
+        self.user = identity.user if identity else None

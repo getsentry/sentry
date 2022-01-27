@@ -1,30 +1,32 @@
-import {ComponentProps, ReactNode} from 'react';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import ErrorBoundary from 'app/components/errorBoundary';
-import Hovercard from 'app/components/hovercard';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import Placeholder from 'app/components/placeholder';
-import QuickTrace from 'app/components/quickTrace';
-import {generateTraceTarget} from 'app/components/quickTrace/utils';
-import {t, tct, tn} from 'app/locale';
-import {AvatarProject, OrganizationSummary} from 'app/types';
-import {Event} from 'app/types/event';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {getConfigureTracingDocsLink} from 'app/utils/docs';
-import {getShortEventId} from 'app/utils/events';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import Hovercard from 'sentry/components/hovercard';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
+import QuickTrace from 'sentry/components/quickTrace';
+import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
+import {t, tct, tn} from 'sentry/locale';
+import {AvatarProject, OrganizationSummary} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
+import {getShortEventId} from 'sentry/utils/events';
 import {
   QuickTraceQueryChildrenProps,
   TraceMeta,
-} from 'app/utils/performance/quickTrace/types';
-import useOrganization from 'app/utils/useOrganization';
+} from 'sentry/utils/performance/quickTrace/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {MetaData} from './styles';
 
-type Props = Pick<ComponentProps<typeof QuickTrace>, 'errorDest' | 'transactionDest'> & {
+type Props = Pick<
+  React.ComponentProps<typeof QuickTrace>,
+  'errorDest' | 'transactionDest'
+> & {
   event: Event;
   location: Location;
   quickTrace: QuickTraceQueryChildrenProps | null;
@@ -62,8 +64,8 @@ export default function QuickTraceMeta({
   const traceId = event.contexts?.trace?.trace_id ?? null;
   const traceTarget = generateTraceTarget(event, organization);
 
-  let body: ReactNode;
-  let footer: ReactNode;
+  let body: React.ReactNode;
+  let footer: React.ReactNode;
 
   if (!traceId || !quickTrace || quickTrace.trace === null) {
     // this platform doesn't support performance don't show anything here
@@ -138,7 +140,13 @@ export default function QuickTraceMeta({
   );
 }
 
-export function QuickTraceMetaBase({body, footer}: {body: ReactNode; footer: ReactNode}) {
+export function QuickTraceMetaBase({
+  body,
+  footer,
+}: {
+  body: React.ReactNode;
+  footer: React.ReactNode;
+}) {
   return (
     <MetaData
       headingText={t('Trace Navigator')}

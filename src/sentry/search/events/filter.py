@@ -4,9 +4,11 @@ from datetime import datetime
 from functools import reduce
 from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
+import sentry_sdk
 from parsimonious.exceptions import ParseError
 from sentry_relay import parse_release as parse_release_relay
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk.column import Column
 from snuba_sdk.conditions import And, Condition, Op, Or
 from snuba_sdk.function import Function
 
@@ -46,6 +48,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
     SEMVER_WILDCARDS,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TIMESTAMP_FIELDS,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
 )
@@ -1088,6 +1091,9 @@ class QueryFilter(QueryFields):
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
         }
 
+    def add_conditions(self, conditions: List[Condition]) -> None:
+        self.where += conditions
+
     def parse_query(self, query: Optional[str]) -> ParsedTerms:
         """Given a user's query, string construct a list of filters that can be
         then used to construct the conditions of the Query"""
@@ -1111,23 +1117,22 @@ class QueryFilter(QueryFields):
     ) -> Tuple[List[WhereType], List[WhereType]]:
         parsed_terms = self.parse_query(query)
 
+        self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
         if any(
             isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
             for term in parsed_terms
         ):
-            where, having = self.resolve_boolean_conditions(parsed_terms)
-            if not use_aggregate_conditions:
-                having = []
+            where, having = self.resolve_boolean_conditions(parsed_terms, use_aggregate_conditions)
         else:
             where = self.resolve_where(parsed_terms)
-            having = self.resolve_having(parsed_terms) if use_aggregate_conditions else []
+            having = self.resolve_having(parsed_terms, use_aggregate_conditions)
         return where, having
 
     def resolve_boolean_conditions(
-        self, terms: ParsedTerms
+        self, terms: ParsedTerms, use_aggregate_conditions: bool
     ) -> Tuple[List[WhereType], List[WhereType]]:
         if len(terms) == 1:
-            return self.resolve_boolean_condition(terms[0])
+            return self.resolve_boolean_condition(terms[0], use_aggregate_conditions)
 
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
@@ -1172,8 +1177,8 @@ class QueryFilter(QueryFields):
             lhs, rhs = terms[:1], terms[1:]
             operator = And
 
-        lhs_where, lhs_having = self.resolve_boolean_conditions(lhs)
-        rhs_where, rhs_having = self.resolve_boolean_conditions(rhs)
+        lhs_where, lhs_having = self.resolve_boolean_conditions(lhs, use_aggregate_conditions)
+        rhs_where, rhs_having = self.resolve_boolean_conditions(rhs, use_aggregate_conditions)
 
         if operator == Or and (lhs_where or rhs_where) and (lhs_having or rhs_having):
             raise InvalidSearchQuery(
@@ -1202,17 +1207,17 @@ class QueryFilter(QueryFields):
             return [operator(conditions=combined_conditions)]
 
     def resolve_boolean_condition(
-        self, term: ParsedTerm
+        self, term: ParsedTerm, use_aggregate_conditions: bool
     ) -> Tuple[List[WhereType], List[WhereType]]:
         if isinstance(term, ParenExpression):
-            return self.resolve_boolean_conditions(term.children)
+            return self.resolve_boolean_conditions(term.children, use_aggregate_conditions)
 
         where, having = [], []
 
         if isinstance(term, SearchFilter):
             where = self.resolve_where([term])
         elif isinstance(term, AggregateFilter):
-            having = self.resolve_having([term])
+            having = self.resolve_having([term], use_aggregate_conditions)
 
         return where, having
 
@@ -1228,9 +1233,14 @@ class QueryFilter(QueryFields):
 
         return where_conditions
 
-    def resolve_having(self, parsed_terms: ParsedTerms) -> List[WhereType]:
+    def resolve_having(
+        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
+    ) -> List[WhereType]:
         """Given a list of parsed terms, construct their equivalent snql having
         conditions, filtering only for aggregate conditions"""
+
+        if not use_aggregate_conditions:
+            return []
 
         having_conditions: List[WhereType] = []
         for term in parsed_terms:
@@ -1315,9 +1325,6 @@ class QueryFilter(QueryFields):
         name = aggregate_filter.key.name
         value = aggregate_filter.value.value
 
-        if name in self.params.get("aliases", {}):
-            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
-
         value = (
             int(to_timestamp(value))
             if isinstance(value, datetime) and name != "timestamp"
@@ -1347,6 +1354,7 @@ class QueryFilter(QueryFields):
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
+        operator = search_filter.operator
         value = search_filter.value.value
 
         lhs = self.resolve_column(name)
@@ -1358,7 +1366,7 @@ class QueryFilter(QueryFields):
                 # be replaced with '\%%'.
                 return Condition(
                     lhs,
-                    Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
+                    Op.LIKE if operator == "=" else Op.NOT_LIKE,
                     # Slashes have to be double escaped so they are
                     # interpreted as a string literal.
                     search_filter.value.raw_value.replace("\\", "\\\\")
@@ -1369,23 +1377,19 @@ class QueryFilter(QueryFields):
             elif name in ARRAY_FIELDS and search_filter.is_in_filter:
                 return Condition(
                     Function("hasAny", [self.column(name), value]),
-                    Op.EQ if search_filter.operator == "IN" else Op.NEQ,
+                    Op.EQ if operator == "IN" else Op.NEQ,
                     1,
                 )
             elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
                 return Condition(
                     Function("notEmpty", [self.column(name)]),
-                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    Op.EQ if operator == "!=" else Op.NEQ,
                     1,
                 )
 
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
-        if isinstance(value, datetime) and name not in {
-            "timestamp",
-            "timestamp.to_hour",
-            "timestamp.to_day",
-        }:
+        if isinstance(value, datetime) and name not in TIMESTAMP_FIELDS:
             value = int(to_timestamp(value)) * 1000
 
         if name in {"trace.span", "trace.parent_span"}:
@@ -1402,11 +1406,26 @@ class QueryFilter(QueryFields):
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
 
+        if name in TIMESTAMP_FIELDS:
+            if (
+                operator in ["<", "<="]
+                and value < self.params["start"]
+                or operator in [">", ">="]
+                and value > self.params["end"]
+            ):
+                raise InvalidSearchQuery(
+                    "Filter on timestamp is outside of the selected date range."
+                )
+
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
-        if search_filter.key.is_tag:
-            name = ["ifNull", [name, "''"]]
+        if isinstance(lhs, Column) and lhs.subscriptable == "tags":
+            if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
+                sentry_sdk.set_tag("query.lhs", lhs)
+                sentry_sdk.set_tag("query.rhs", value)
+                sentry_sdk.capture_message("Tag value was not a string", level="error")
+                value = str(value)
             lhs = Function("ifNull", [lhs, ""])
 
         # Handle checks for existence

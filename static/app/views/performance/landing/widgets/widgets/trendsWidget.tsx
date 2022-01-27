@@ -1,16 +1,14 @@
-import {Fragment, FunctionComponent, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {withRouter} from 'react-router';
-import {Location} from 'history';
 
-import Truncate from 'app/components/truncate';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withProjects from 'app/utils/withProjects';
-import {CompareDurations} from 'app/views/performance/trends/changedTransactions';
-import {trendsTargetRoute} from 'app/views/performance/utils';
+import Button from 'sentry/components/button';
+import Truncate from 'sentry/components/truncate';
+import {t} from 'sentry/locale';
+import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withProjects from 'sentry/utils/withProjects';
+import {CompareDurations} from 'sentry/views/performance/trends/changedTransactions';
+import {handleTrendsClick, trendsTargetRoute} from 'sentry/views/performance/utils';
 
 import {Chart} from '../../../trends/chart';
 import {TrendChangeType, TrendFunctionField} from '../../../trends/types';
@@ -24,23 +22,8 @@ import SelectableList, {
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
 import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
-import {QueryDefinition, WidgetDataResult} from '../types';
-import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
-
-type Props = {
-  title: string;
-  titleTooltip: string;
-  fields: string[];
-  chartColor?: string;
-
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-  chartSetting: PerformanceWidgetSetting;
-  chartDefinition: ChartDefinition;
-
-  ContainerActions: FunctionComponent<{isLoading: boolean}>;
-};
+import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformTrendsDiscover>;
@@ -48,8 +31,8 @@ type DataType = {
 
 const fields = [{field: 'transaction'}, {field: 'project'}];
 
-export function TrendsWidget(props: Props) {
-  const {eventView: _eventView, ContainerActions} = props;
+export function TrendsWidget(props: PerformanceWidgetProps) {
+  const {eventView: _eventView, ContainerActions, location, organization} = props;
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
       ? TrendChangeType.IMPROVED
@@ -78,16 +61,18 @@ export function TrendsWidget(props: Props) {
       component: provided => (
         <TrendsDiscoverQuery
           {...provided}
-          eventView={eventView}
+          eventView={provided.eventView}
           location={props.location}
           trendChangeType={trendChangeType}
           trendFunctionField={trendFunctionField}
           limit={3}
+          cursor="0:0:1"
+          noPagination
         />
       ),
       transform: transformTrendsDiscover,
     }),
-    [eventView, trendChangeType]
+    [props.chartSetting, trendChangeType]
   );
 
   const Queries = {
@@ -98,7 +83,22 @@ export function TrendsWidget(props: Props) {
     <GenericPerformanceWidget<DataType>
       {...rest}
       Subtitle={() => <Subtitle>{t('Trending Transactions')}</Subtitle>}
-      HeaderActions={provided => <ContainerActions {...provided.widgetData.chart} />}
+      HeaderActions={provided => {
+        return (
+          <Fragment>
+            <div>
+              <Button
+                onClick={() => handleTrendsClick({location, organization})}
+                size="small"
+                data-test-id="view-all-button"
+              >
+                {t('View All')}
+              </Button>
+            </div>
+            <ContainerActions {...provided.widgetData.chart} />
+          </Fragment>
+        );
+      }}
       EmptyComponent={WidgetEmptyStateWarning}
       Queries={Queries}
       Visualizations={[
@@ -123,7 +123,7 @@ export function TrendsWidget(props: Props) {
             />
           ),
           bottomPadding: false,
-          height: 160,
+          height: props.chartHeight,
         },
         {
           component: provided => (
@@ -159,7 +159,7 @@ export function TrendsWidget(props: Props) {
               })}
             />
           ),
-          height: 200,
+          height: 124,
           noPadding: true,
         },
       ]}

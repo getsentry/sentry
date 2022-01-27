@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import MenuItem from 'app/components/menuItem';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization, SavedSearch} from 'app/types';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import MenuItem from 'sentry/components/menuItem';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization, SavedSearch} from 'sentry/types';
 
 import {getSortLabel} from './utils';
 
@@ -71,7 +71,7 @@ function SavedSearchMenuItem({
                 borderless
                 title={t('Delete this saved search')}
                 icon={<IconDelete />}
-                label={t('delete')}
+                aria-label={t('delete')}
                 size="zero"
               />
             </Confirm>

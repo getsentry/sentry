@@ -1,15 +1,15 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Client} from 'app/api';
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import LoadingError from 'app/components/loadingError';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {t} from 'app/locale';
-import {Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {Client} from 'sentry/api';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import LoadingError from 'sentry/components/loadingError';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import {Series} from 'sentry/types/echarts';
+import theme from 'sentry/utils/theme';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   api: Client;

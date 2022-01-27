@@ -2,16 +2,21 @@ import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import partition from 'lodash/partition';
 
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Tag from 'app/components/tag';
-import {IconWarning} from 'app/icons/iconWarning';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, ProjectSdkUpdates, SDKUpdatesSuggestion} from 'app/types';
-import getSdkUpdateSuggestion from 'app/utils/getSdkUpdateSuggestion';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
-import withSdkUpdates from 'app/utils/withSdkUpdates';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Tag from 'sentry/components/tag';
+import {IconWarning} from 'sentry/icons/iconWarning';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {
+  Organization,
+  Project,
+  ProjectSdkUpdates,
+  SDKUpdatesSuggestion,
+} from 'sentry/types';
+import getSdkUpdateSuggestion from 'sentry/utils/getSdkUpdateSuggestion';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
+import withSdkUpdates from 'sentry/utils/withSdkUpdates';
 
 import Alert from '../alert';
 import Collapsible from '../collapsible';
@@ -148,13 +153,13 @@ const UpdatesList = styled('div')`
   margin-top: ${space(3)};
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;
 
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   margin-bottom: ${space(0.25)};
   align-items: center;
 `;

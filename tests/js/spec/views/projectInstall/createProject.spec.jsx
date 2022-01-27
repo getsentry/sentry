@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import {CreateProject} from 'app/views/projectInstall/createProject';
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
-jest.mock('app/actionCreators/modal');
+jest.mock('sentry/actionCreators/modal');
 
 describe('CreateProject', function () {
   const teamNoAccess = {slug: 'test', id: '1', name: 'test', hasAccess: false};

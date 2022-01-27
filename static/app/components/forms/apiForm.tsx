@@ -4,12 +4,12 @@ import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import {APIRequestMethod, Client} from 'app/api';
-import Form from 'app/components/forms/form';
-import FormField from 'app/components/forms/formField';
-import FormState from 'app/components/forms/state';
-import {t} from 'app/locale';
+} from 'sentry/actionCreators/indicator';
+import {APIRequestMethod, Client} from 'sentry/api';
+import Form from 'sentry/components/forms/form';
+import FormField from 'sentry/components/forms/formField';
+import FormState from 'sentry/components/forms/state';
+import {t} from 'sentry/locale';
 
 type Props = Form['props'] & {
   omitDisabled?: boolean;

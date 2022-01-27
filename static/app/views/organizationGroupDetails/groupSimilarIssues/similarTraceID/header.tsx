@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import Clipboard from 'app/components/clipboard';
-import {IconCopy} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {getShortEventId} from 'app/utils/events';
+import Clipboard from 'sentry/components/clipboard';
+import {IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {getShortEventId} from 'sentry/utils/events';
 
 type Props = {
   traceID?: string;
@@ -31,7 +31,7 @@ export default Header;
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.gray300};
@@ -46,7 +46,7 @@ const Wrapper = styled('div')`
 const ClipboardWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   &:hover {
     cursor: pointer;

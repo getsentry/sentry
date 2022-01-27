@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Actor, Commit} from 'app/types';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import SuggestedOwnerHovercard from 'sentry/components/group/suggestedOwnerHovercard';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Actor, Commit} from 'sentry/types';
 
 import SidebarSection from '../sidebarSection';
 
@@ -62,6 +62,6 @@ const Subheading = styled('small')`
 
 const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 20px);
 `;

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import useTeams from 'app/utils/useTeams';
+import useTeams from 'sentry/utils/useTeams';
 
 type RenderProps = ReturnType<typeof useTeams>;
 

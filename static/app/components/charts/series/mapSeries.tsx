@@ -1,18 +1,15 @@
 import 'echarts/lib/chart/map';
 
-import {EChartOption} from 'echarts';
+import type {MapSeriesOption} from 'echarts';
 
-export default function MapSeries(
-  props: EChartOption.SeriesMap = {}
-): EChartOption.SeriesMap {
+export default function MapSeries(props: MapSeriesOption = {map: ''}): MapSeriesOption {
   return {
     roam: true,
-    itemStyle: {
-      // TODO(ts): label doesn't seem to exist on the emphasis? I have not
-      //           verified if removing this has an affect on the world chart.
-      emphasis: {label: {show: false}} as any,
-    },
     ...props,
+    emphasis: {
+      label: {show: false},
+      ...props.emphasis,
+    },
     type: 'map',
   };
 }

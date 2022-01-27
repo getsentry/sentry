@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -6,15 +6,17 @@ import {
   MetricsSwitch,
   MetricsSwitchContextContainer,
   useMetricsSwitch,
-} from 'app/views/performance/metricsSwitch';
+} from 'sentry/views/performance/metricsSwitch';
+
+const handleSwitch = jest.fn();
 
 function TestComponent() {
   const {isMetricsData} = useMetricsSwitch();
   return (
-    <React.Fragment>
-      <MetricsSwitch />
+    <Fragment>
+      <MetricsSwitch onSwitch={handleSwitch} />
       {isMetricsData ? 'using metrics' : 'using transactions'}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -27,7 +29,7 @@ describe('MetricsSwitch', () => {
   });
 
   it('MetricsSwitch is not visible to users without feature flag', () => {
-    const {container} = mountWithTheme(<MetricsSwitch />, {
+    const {container} = mountWithTheme(<MetricsSwitch onSwitch={handleSwitch} />, {
       organization: TestStubs.Organization(),
     });
     expect(container).toBeEmptyDOMElement();
@@ -46,6 +48,8 @@ describe('MetricsSwitch', () => {
     expect(screen.getByText('using transactions')).toBeInTheDocument();
 
     userEvent.click(screen.getByRole('checkbox'));
+
+    expect(handleSwitch).toHaveBeenCalled();
 
     expect(screen.getByText('using metrics')).toBeInTheDocument();
   });

@@ -1,15 +1,16 @@
 import logging
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api.base import StatsMixin
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
+from sentry.api.bases.sentryapps import COMPONENT_TYPES
 
 logger = logging.getLogger(__name__)
 
 TSDB_MODELS = [tsdb.models.sentry_app_viewed, tsdb.models.sentry_app_component_interacted]
-COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
 def get_component_interaction_key(sentry_app, component_type):
@@ -19,7 +20,7 @@ def get_component_interaction_key(sentry_app, component_type):
 class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
     permission_classes = (SentryAppStatsPermission,)
 
-    def get(self, request, sentry_app):
+    def get(self, request: Request, sentry_app) -> Response:
         """
         :qparam float since
         :qparam float until
@@ -48,7 +49,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
             }
         )
 
-    def post(self, request, sentry_app):
+    def post(self, request: Request, sentry_app) -> Response:
         """
         Increment a TSDB metric relating to Sentry App interactions
 
@@ -57,6 +58,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         """
         # Request should have identifier field stored in TSDBModel
         tsdb_field = request.data.get("tsdbField", "")
+        key = None
 
         model = getattr(tsdb.models, tsdb_field, None)
         if model is None or model not in TSDB_MODELS:

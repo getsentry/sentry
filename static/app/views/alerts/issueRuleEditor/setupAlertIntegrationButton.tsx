@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import ConfigStore from 'app/stores/configStore';
-import {Organization, Project} from 'app/types';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import ConfigStore from 'sentry/stores/configStore';
+import {Organization, Project} from 'sentry/types';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -53,9 +53,9 @@ export default class SetupAlertIntegrationButton extends AsyncComponent<Props, S
     }
 
     const config = ConfigStore.getConfig();
-    // link to docs to set up Slack for on-prem folks
+    // link to docs to set up Slack for self-hosted folks
     const referrerQuery = '?referrer=issue-alert-builder';
-    const buttonProps = config.isOnPremise
+    const buttonProps = config.isSelfHosted
       ? {
           href: `https://develop.sentry.dev/integrations/slack/${referrerQuery}`,
         }

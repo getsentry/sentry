@@ -1,25 +1,25 @@
 import * as React from 'react';
-import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
-import DemoModeGate from 'app/components/acl/demoModeGate';
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconDocs, IconLock, IconStack, IconSupport} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Organization} from 'app/types';
-import withLatestContext from 'app/utils/withLatestContext';
-import SettingsLayout from 'app/views/settings/components/settingsLayout';
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
+import DemoModeGate from 'sentry/components/acl/demoModeGate';
+import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {Organization} from 'sentry/types';
+import withLatestContext from 'sentry/utils/withLatestContext';
+import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
@@ -67,20 +67,22 @@ class SettingsIndex extends React.Component<Props> {
   render() {
     const {organization} = this.props;
     const user = ConfigStore.get('user');
-    const isOnPremise = ConfigStore.get('isOnPremise');
+    const isSelfHosted = ConfigStore.get('isSelfHosted');
 
     const organizationSettingsUrl =
       (organization && `/settings/${organization.slug}/`) || '';
 
     const supportLinkProps = {
-      isOnPremise,
+      isSelfHosted,
       href: LINKS.FORUM,
       to: `${organizationSettingsUrl}support`,
     };
-    const supportText = isOnPremise ? t('Community Forums') : t('Contact Support');
+    const supportText = isSelfHosted ? t('Community Forums') : t('Contact Support');
 
     return (
-      <DocumentTitle title={organization ? `${organization.slug} Settings` : 'Settings'}>
+      <SentryDocumentTitle
+        title={organization ? `${organization.slug} Settings` : 'Settings'}
+      >
         <SettingsLayout {...this.props}>
           <GridLayout>
             <DemoModeGate>
@@ -258,7 +260,7 @@ class SettingsIndex extends React.Component<Props> {
             </DemoModeGate>
           </GridLayout>
         </SettingsLayout>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }
@@ -338,7 +340,7 @@ const ExternalHomeLink = styled(
 `;
 
 type SupportLinkProps<T extends boolean> = {
-  isOnPremise: T;
+  isSelfHosted: T;
   href: string;
   to: string;
   isCentered?: boolean;
@@ -348,12 +350,12 @@ type SupportLinkProps<T extends boolean> = {
 
 const SupportLinkComponent = <T extends boolean>({
   isCentered,
-  isOnPremise,
+  isSelfHosted,
   href,
   to,
   ...props
 }: SupportLinkProps<T>) =>
-  isOnPremise ? (
+  isSelfHosted ? (
     <ExternalHomeLink isCentered={isCentered} href={href} {...props} />
   ) : (
     <HomeLink to={to} {...props} />
@@ -372,7 +374,7 @@ const OrganizationName = styled('div')`
 const GridLayout = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  grid-gap: 16px;
+  gap: 16px;
 `;
 
 const GridPanel = styled(Panel)`

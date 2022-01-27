@@ -119,4 +119,4 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
             )
             assert response["status"] == "success"
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)

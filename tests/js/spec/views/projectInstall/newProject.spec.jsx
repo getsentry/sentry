@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import NewProject from 'app/views/projectInstall/newProject';
+import {Client} from 'sentry/api';
+import NewProject from 'sentry/views/projectInstall/newProject';
 
 describe('NewProjectPlatform', function () {
   beforeEach(function () {

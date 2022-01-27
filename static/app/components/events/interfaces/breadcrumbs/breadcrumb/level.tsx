@@ -1,10 +1,10 @@
 import {memo} from 'react';
 import styled from '@emotion/styled';
 
-import Highlight from 'app/components/highlight';
-import Tag, {Background} from 'app/components/tag';
-import {t} from 'app/locale';
-import {BreadcrumbLevelType} from 'app/types/breadcrumbs';
+import Highlight from 'sentry/components/highlight';
+import Tag, {Background} from 'sentry/components/tag';
+import {t} from 'sentry/locale';
+import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 
 type Props = {
   level: BreadcrumbLevelType;

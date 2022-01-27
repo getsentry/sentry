@@ -3,6 +3,9 @@ from time import time
 from urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
@@ -41,7 +44,7 @@ class OAuth2Login(AuthView):
             "redirect_uri": redirect_uri,
         }
 
-    def dispatch(self, request, helper):
+    def dispatch(self, request: Request, helper) -> Response:
         if "code" in request.GET:
             return helper.next_step()
 
@@ -78,7 +81,7 @@ class OAuth2Callback(AuthView):
             "client_secret": self.client_secret,
         }
 
-    def exchange_token(self, request, helper, code):
+    def exchange_token(self, request: Request, helper, code):
         # TODO: this needs the auth yet
         data = self.get_token_params(code=code, redirect_uri=helper.get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)
@@ -87,7 +90,7 @@ class OAuth2Callback(AuthView):
             return dict(parse_qsl(body))
         return json.loads(body)
 
-    def dispatch(self, request, helper):
+    def dispatch(self, request: Request, helper) -> Response:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")

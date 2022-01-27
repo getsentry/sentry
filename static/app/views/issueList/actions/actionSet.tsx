@@ -1,17 +1,17 @@
 import styled from '@emotion/styled';
 
-import ActionLink from 'app/components/actions/actionLink';
-import ActionButton from 'app/components/actions/button';
-import IgnoreActions from 'app/components/actions/ignore';
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import DropdownLink from 'app/components/dropdownLink';
-import {IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import space from 'app/styles/space';
-import {Organization, Project, ResolutionStatus} from 'app/types';
-import Projects from 'app/utils/projects';
+import ActionLink from 'sentry/components/actions/actionLink';
+import ActionButton from 'sentry/components/actions/button';
+import IgnoreActions from 'sentry/components/actions/ignore';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import DropdownLink from 'sentry/components/dropdownLink';
+import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import space from 'sentry/styles/space';
+import {Organization, Project, ResolutionStatus} from 'sentry/types';
+import Projects from 'sentry/utils/projects';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -133,7 +133,7 @@ function ActionSet({
         key="actions"
         customTitle={
           <ActionButton
-            label={t('Open more issue actions')}
+            aria-label={t('Open more issue actions')}
             icon={<IconEllipsis size="xs" />}
           />
         }

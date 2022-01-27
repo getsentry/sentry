@@ -1,4 +1,4 @@
-import LogoSentry from 'app/components/logoSentry';
+import LogoSentry from 'sentry/components/logoSentry';
 
 export default {
   title: 'Assets/Logo',

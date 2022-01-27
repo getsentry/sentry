@@ -2,22 +2,22 @@ import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {ExternalTeam, Integration, Organization, Team} from 'app/types';
-import {toTitleCase} from 'app/utils';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import TextField from 'app/views/settings/components/forms/textField';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {ExternalTeam, Integration, Organization, Team} from 'sentry/types';
+import {toTitleCase} from 'sentry/utils';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import TextField from 'sentry/views/settings/components/forms/textField';
 
 type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
   organization: Organization;
@@ -153,7 +153,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
               <Button
                 size="small"
                 icon={<IconDelete size="md" />}
-                label={t('delete')}
+                aria-label={t('delete')}
                 disabled={!hasAccess}
               />
             </Confirm>

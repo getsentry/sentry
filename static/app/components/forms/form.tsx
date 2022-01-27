@@ -2,10 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Button from 'app/components/button';
-import FormContext, {FormContextData} from 'app/components/forms/formContext';
-import FormState from 'app/components/forms/state';
-import {t} from 'app/locale';
+import Button from 'sentry/components/button';
+import FormContext, {FormContextData} from 'sentry/components/forms/formContext';
+import FormState from 'sentry/components/forms/state';
+import {t} from 'sentry/locale';
 
 type FormProps = {
   cancelLabel?: string;

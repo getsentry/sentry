@@ -1,16 +1,16 @@
 import {Fragment, useState} from 'react';
 
-import AlertActions from 'app/actions/alertActions';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ErrorBoundary from 'app/components/errorBoundary';
-import Footer from 'app/components/footer';
-import {Body, Main} from 'app/components/layouts/thirds';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
-import useApi from 'app/utils/useApi';
-import withOrganization from 'app/utils/withOrganization';
+import AlertActions from 'sentry/actions/alertActions';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import Footer from 'sentry/components/footer';
+import {Body, Main} from 'sentry/components/layouts/thirds';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   organization: Organization;

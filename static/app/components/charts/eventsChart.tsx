@@ -1,35 +1,44 @@
 import * as React from 'react';
 import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
-import {EChartOption} from 'echarts/lib/echarts';
+import type {
+  EChartsOption,
+  LegendComponentOption,
+  XAXisComponentOption,
+  YAXisComponentOption,
+} from 'echarts';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import AreaChart from 'app/components/charts/areaChart';
-import BarChart from 'app/components/charts/barChart';
-import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import LineChart from 'app/components/charts/lineChart';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {Client} from 'sentry/api';
+import AreaChart from 'sentry/components/charts/areaChart';
+import BarChart from 'sentry/components/charts/barChart';
+import ChartZoom, {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import LineChart from 'sentry/components/charts/lineChart';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {
   getInterval,
   processTableResults,
   RELEASE_LINES_THRESHOLD,
-} from 'app/components/charts/utils';
-import WorldMapChart from 'app/components/charts/worldMapChart';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {DateString, OrganizationSummary} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {defined} from 'app/utils';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import {TableDataWithTitle} from 'app/utils/discover/discoverQuery';
-import {aggregateMultiPlotType, getEquation, isEquation} from 'app/utils/discover/fields';
-import {decodeList} from 'app/utils/queryString';
-import {Theme} from 'app/utils/theme';
+} from 'sentry/components/charts/utils';
+import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {DateString, OrganizationSummary} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {
+  aggregateMultiPlotType,
+  getEquation,
+  isEquation,
+} from 'sentry/utils/discover/fields';
+import {decodeList} from 'sentry/utils/queryString';
+import {Theme} from 'sentry/utils/theme';
 
 import EventsGeoRequest from './eventsGeoRequest';
 import EventsRequest from './eventsRequest';
@@ -37,7 +46,7 @@ import EventsRequest from './eventsRequest';
 type ChartComponent =
   | React.ComponentType<BarChart['props']>
   | React.ComponentType<AreaChart['props']>
-  | React.ComponentType<LineChart['props']>
+  | React.ComponentType<React.ComponentProps<typeof LineChart>>
   | React.ComponentType<React.ComponentProps<typeof WorldMapChart>>;
 
 type ChartProps = {
@@ -49,10 +58,10 @@ type ChartProps = {
   timeseriesData: Series[];
   showLegend?: boolean;
   minutesThresholdToDisplaySeconds?: number;
-  legendOptions?: EChartOption.Legend;
-  chartOptions?: Omit<EChartOption, 'xAxis' | 'yAxis'> & {
-    xAxis?: EChartOption.XAxis;
-    yAxis?: EChartOption.YAxis;
+  legendOptions?: LegendComponentOption;
+  chartOptions?: Omit<EChartsOption, 'xAxis' | 'yAxis'> & {
+    xAxis?: XAXisComponentOption;
+    yAxis?: YAXisComponentOption;
   };
   currentSeriesNames: string[];
   releaseSeries?: Series[];
@@ -197,6 +206,7 @@ class Chart extends React.Component<ChartProps, State> {
     const {seriesSelection} = this.state;
 
     let Component = this.getChartComponent();
+
     if (typeof Component === typeof WorldMapChart) {
       return this.renderWorldMap();
     }
@@ -338,7 +348,7 @@ export type EventsChartProps = {
   /**
    * Relative datetime expression. eg. 14d
    */
-  period?: string;
+  period?: string | null;
   /**
    * Absolute start date.
    */

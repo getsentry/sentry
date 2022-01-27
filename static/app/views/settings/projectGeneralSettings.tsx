@@ -5,29 +5,29 @@ import {
   changeProjectSlug,
   removeProject,
   transferProject,
-} from 'app/actionCreators/projects';
-import ProjectActions from 'app/actions/projectActions';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import {removeGlobalSelectionStorage} from 'app/components/organizations/globalSelectionHeader/utils';
-import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
-import {fields} from 'app/data/forms/projectGeneralSettings';
-import {t, tct} from 'app/locale';
-import ProjectsStore from 'app/stores/projectsStore';
-import {Organization, Project} from 'app/types';
-import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
-import recreateRoute from 'app/utils/recreateRoute';
-import routeTitleGen from 'app/utils/routeTitle';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
-import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {FieldValue} from 'app/views/settings/components/forms/model';
-import TextField from 'app/views/settings/components/forms/textField';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
+} from 'sentry/actionCreators/projects';
+import ProjectActions from 'sentry/actions/projectActions';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/utils';
+import {Panel, PanelAlert, PanelHeader} from 'sentry/components/panels';
+import {fields} from 'sentry/data/forms/projectGeneralSettings';
+import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {Organization, Project} from 'sentry/types';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
+import Field from 'sentry/views/settings/components/forms/field';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import {FieldValue} from 'sentry/views/settings/components/forms/model';
+import TextField from 'sentry/views/settings/components/forms/textField';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = AsyncView['props'] &
   RouteComponentProps<{orgId: string; projectId: string}, {}> & {
@@ -61,7 +61,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     const {orgId} = this.props.params;
     const project = this.state.data;
 
-    removeGlobalSelectionStorage(orgId);
+    removePageFiltersStorage(orgId);
 
     if (!project) {
       return;

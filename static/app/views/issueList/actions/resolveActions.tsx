@@ -1,5 +1,5 @@
-import ResolveActions from 'app/components/actions/resolve';
-import {Organization} from 'app/types';
+import ResolveActions from 'sentry/components/actions/resolve';
+import {Organization} from 'sentry/types';
 
 import {ConfirmAction} from './utils';
 

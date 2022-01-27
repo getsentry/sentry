@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ProjectSelector from 'app/components/organizations/projectSelector';
+import ProjectSelector from 'sentry/components/organizations/projectSelector';
 
 describe('ProjectSelector', function () {
   const testProject = TestStubs.Project({

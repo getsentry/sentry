@@ -6,6 +6,7 @@ from sentry.models import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetTypes,
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
@@ -18,14 +19,18 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
+            detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
         self.widget_1_data_1 = DashboardWidgetQuery.objects.create(
             widget=self.widget_1,
@@ -69,6 +74,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_dashboard(response.data, self.dashboard)
         assert len(response.data["widgets"]) == 2
         widgets = response.data["widgets"]
+        assert "layout" in widgets[0]
+        assert "layout" in widgets[1]
         self.assert_serialized_widget(widgets[0], self.widget_1)
         self.assert_serialized_widget(widgets[1], self.widget_2)
 
@@ -166,12 +173,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             order=2,
             title="Widget 3",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
         )
         self.widget_4 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=3,
             title="Widget 4",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
         )
         self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
 
@@ -611,6 +620,93 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             [self.widget_3.id, self.widget_2.id, self.widget_1.id, self.widget_4.id]
         )
 
+    def test_update_widget_layouts(self):
+        layouts = {
+            self.widget_1.id: {"x": 0, "y": 0, "w": 2, "h": 5},
+            self.widget_2.id: {"x": 2, "y": 0, "w": 1, "h": 1},
+            self.widget_3.id: {"x": 3, "y": 0, "w": 2, "h": 2},
+            self.widget_4.id: {"x": 0, "y": 5, "w": 2, "h": 5},
+        }
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {"id": widget.id, "layout": layouts[widget.id]}
+                    for widget in [self.widget_1, self.widget_2, self.widget_3, self.widget_4]
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        for widget in widgets:
+            assert widget["layout"] == layouts[int(widget["id"])]
+
+    def test_update_layout_with_invalid_data_fails(self):
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {
+                        "id": self.widget_1.id,
+                        "layout": {"x": "this type is unexpected", "y": 0, "w": 2, "h": 5},
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 400, response.data
+
+    def test_update_without_specifying_layout_does_not_change_saved_layout(self):
+        expected_layouts = {
+            self.widget_1.id: {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+            self.widget_2.id: {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2},
+            self.widget_3.id: None,
+            self.widget_4.id: None,
+        }
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {"id": widget.id}  # Not specifying layout for any widget
+                    for widget in [self.widget_1, self.widget_2, self.widget_3, self.widget_4]
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        for widget in widgets:
+            assert widget["layout"] == expected_layouts[int(widget["id"])]
+
+    def test_ignores_certain_keys_in_layout(self):
+        expected_layouts = {
+            self.widget_1.id: {"x": 0, "y": 0, "w": 1, "h": 1},
+            self.widget_2.id: {"x": 1, "y": 0, "w": 1, "h": 1},
+        }
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {
+                        "id": widget.id,
+                        "layout": {
+                            **expected_layouts[widget.id],
+                            "i": "this-should-be-ignored",
+                            "static": "don't want this",
+                            "moved": False,
+                        },
+                    }
+                    for widget in [self.widget_1, self.widget_2]
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        for widget in widgets:
+            assert widget["layout"] == expected_layouts[int(widget["id"])]
+
     def test_update_prebuilt_dashboard(self):
         data = {
             "title": "First dashboard",
@@ -674,6 +770,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ),
             title="Widget 200",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
         )
         response = self.do_request(
             "put",
@@ -693,6 +790,101 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400
         assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()
+
+    def test_add_issue_widget_valid_query(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Issues",
+                    "displayType": "table",
+                    "widgetType": "issue",
+                    "interval": "5m",
+                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:unresolved"}],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+    def test_add_issue_widget_invalid_query(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Issues",
+                    "displayType": "table",
+                    "widgetType": "issue",
+                    "interval": "5m",
+                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:())"}],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Parse error" in response.content
+
+    def test_add_discover_widget_invalid_issue_query(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Issues",
+                    "displayType": "table",
+                    "widgetType": "discover",
+                    "interval": "5m",
+                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:unresolved"}],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Invalid conditions" in response.content
+
+    def test_add_multiple_discover_and_issue_widget(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Unresolved Issues",
+                    "displayType": "table",
+                    "widgetType": "issue",
+                    "interval": "5m",
+                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:unresolved"}],
+                },
+                {
+                    "title": "Resolved Issues",
+                    "displayType": "table",
+                    "widgetType": "issue",
+                    "interval": "5m",
+                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:resolved"}],
+                },
+                {
+                    "title": "Transactions",
+                    "displayType": "table",
+                    "widgetType": "discover",
+                    "interval": "5m",
+                    "queries": [
+                        {"name": "", "fields": ["count()"], "conditions": "event.type:transaction"}
+                    ],
+                },
+                {
+                    "title": "Errors",
+                    "displayType": "table",
+                    "widgetType": "discover",
+                    "interval": "5m",
+                    "queries": [
+                        {"name": "", "fields": ["count()"], "conditions": "event.type:error"}
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
 
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):

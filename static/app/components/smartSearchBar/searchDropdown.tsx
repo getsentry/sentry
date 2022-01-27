@@ -1,10 +1,10 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 import {ItemType, SearchGroup, SearchItem} from './types';
 
@@ -115,10 +115,11 @@ const StyledSearchDropdown = styled('div')`
   right: -1px;
   z-index: ${p => p.theme.zIndex.dropdown};
   overflow: hidden;
+  margin-top: ${space(1)};
   background: ${p => p.theme.background};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const LoadingWrapper = styled('div')`
@@ -177,7 +178,7 @@ const SearchListItem = styled(ListItem)`
 
   &:hover,
   &.active {
-    background: ${p => p.theme.focus};
+    background: ${p => p.theme.hover};
   }
 `;
 

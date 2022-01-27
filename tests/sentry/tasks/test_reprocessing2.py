@@ -58,7 +58,11 @@ def reprocessing_feature(settings):
 @pytest.fixture
 def process_and_save(default_project, task_runner):
     def inner(data, seconds_ago=1):
+        # Set platform to native so all parts of reprocessing fire, symbolication will
+        # not happen without this set to certain values
         data.setdefault("platform", "native")
+        # Every request to snuba has a timestamp that's clamped in a curious way to
+        # ensure data consistency
         data.setdefault("timestamp", iso_format(before_now(seconds=seconds_ago)))
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
@@ -102,7 +106,20 @@ def test_basic(
     process_and_save,
     register_event_preprocessor,
     burst_task_runner,
+    monkeypatch,
 ):
+    from sentry import eventstream
+
+    tombstone_calls = 0
+    old_tombstone_fn = eventstream.tombstone_events_unsafe
+
+    def tombstone_called(*args, **kwargs):
+        nonlocal tombstone_calls
+        tombstone_calls += 1
+        old_tombstone_fn(*args, **kwargs)
+
+    monkeypatch.setattr("sentry.eventstream.tombstone_events_unsafe", tombstone_called)
+
     # Replace this with an int and nonlocal when we have Python 3
     abs_count = []
 
@@ -164,6 +181,13 @@ def test_basic(
     assert not Group.objects.filter(id=old_event.group_id).exists()
 
     assert is_group_finished(old_event.group_id)
+
+    # Old event is actually getting tombstoned
+    assert not get_event_by_processing_counter("x0")
+    if change_groups:
+        assert tombstone_calls == 1
+    else:
+        assert tombstone_calls == 0
 
 
 @pytest.mark.django_db
@@ -273,6 +297,7 @@ def test_max_events(
 
     burst(max_jobs=100)
 
+    event = None
     for i, event_id in enumerate(event_ids):
         event = eventstore.get_event_by_id(default_project.id, event_id)
         if max_events is not None and i < (len(event_ids) - max_events):

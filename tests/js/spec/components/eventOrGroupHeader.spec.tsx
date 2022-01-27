@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
-import {getByTextContent} from 'sentry-test/utils';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import {EventOrGroupType} from 'app/types';
+import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {EventOrGroupType} from 'sentry/types';
 
 const group = TestStubs.Group({
   level: 'error',
@@ -115,7 +115,9 @@ describe('EventOrGroupHeader', function () {
         {context: routerContext}
       );
 
-      expect(getByTextContent('in path/to/file.swift')).toBeInTheDocument();
+      expect(
+        screen.getByText(textWithMarkupMatcher('in path/to/file.swift'))
+      ).toBeInTheDocument();
     });
   });
 

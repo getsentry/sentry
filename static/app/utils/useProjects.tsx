@@ -1,15 +1,15 @@
 import {useEffect, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import ProjectActions from 'app/actions/projectActions';
-import {Client} from 'app/api';
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import {useLegacyStore} from 'app/stores/useLegacyStore';
-import {AvatarProject, Project} from 'app/types';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import RequestError from 'app/utils/requestError/requestError';
-import useApi from 'app/utils/useApi';
+import ProjectActions from 'sentry/actions/projectActions';
+import {Client} from 'sentry/api';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {AvatarProject, Project} from 'sentry/types';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
 
 type ProjectPlaceholder = AvatarProject;
 

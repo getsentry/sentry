@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import TeamNotificationSettings from 'app/views/settings/organizationTeams/teamNotifications';
+import TeamNotificationSettings from 'sentry/views/settings/organizationTeams/teamNotifications';
 
 const EXTERNAL_NAME = 'marcos';
 const EXAMPLE_EXTERNAL_TEAM = {

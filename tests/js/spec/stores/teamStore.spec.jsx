@@ -1,5 +1,5 @@
-import TeamActions from 'app/actions/teamActions';
-import TeamStore from 'app/stores/teamStore';
+import TeamActions from 'sentry/actions/teamActions';
+import TeamStore from 'sentry/stores/teamStore';
 
 describe('TeamStore', function () {
   const teamFoo = TestStubs.Team({
@@ -19,6 +19,7 @@ describe('TeamStore', function () {
         teams: [],
         loading: true,
         hasMore: null,
+        cursor: null,
         loadedUserTeams: false,
       });
 
@@ -28,7 +29,8 @@ describe('TeamStore', function () {
         teams: [teamBar, teamFoo],
         loading: false,
         hasMore: null,
-        loadedUserTeams: true,
+        cursor: null,
+        loadedUserTeams: false,
       });
     });
 
@@ -42,6 +44,24 @@ describe('TeamStore', function () {
       await tick();
       expect(TeamStore.getState()).toMatchObject({
         teams: [teamFoo],
+        loadedUserTeams: true,
+      });
+    });
+
+    it('stores cursor and hasMore correctly', async function () {
+      expect(TeamStore.getState()).toMatchObject({
+        teams: [],
+        hasMore: null,
+        cursor: null,
+        loadedUserTeams: false,
+      });
+
+      TeamActions.loadTeams([teamFoo], false, null);
+      await tick();
+      expect(TeamStore.getState()).toMatchObject({
+        teams: [teamFoo],
+        hasMore: false,
+        cursor: null,
         loadedUserTeams: true,
       });
     });

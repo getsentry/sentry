@@ -1,4 +1,5 @@
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
@@ -10,7 +11,7 @@ from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTrigge
 class ProjectAlertRuleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
-    def convert_args(self, request, alert_rule_id, *args, **kwargs):
+    def convert_args(self, request: Request, alert_rule_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
 
@@ -33,7 +34,7 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
 class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAlertRulePermission,)
 
-    def convert_args(self, request, alert_rule_id, *args, **kwargs):
+    def convert_args(self, request: Request, alert_rule_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
 
@@ -51,7 +52,7 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
 
 
 class OrganizationAlertRuleTriggerEndpoint(OrganizationAlertRuleEndpoint):
-    def convert_args(self, request, alert_rule_trigger_id, *args, **kwargs):
+    def convert_args(self, request: Request, alert_rule_trigger_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
         alert_rule = kwargs["alert_rule"]
@@ -70,7 +71,7 @@ class OrganizationAlertRuleTriggerEndpoint(OrganizationAlertRuleEndpoint):
 
 
 class OrganizationAlertRuleTriggerActionEndpoint(OrganizationAlertRuleTriggerEndpoint):
-    def convert_args(self, request, alert_rule_trigger_action_id, *args, **kwargs):
+    def convert_args(self, request: Request, alert_rule_trigger_action_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
         trigger = kwargs["alert_rule_trigger"]

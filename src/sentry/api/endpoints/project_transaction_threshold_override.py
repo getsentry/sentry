@@ -1,6 +1,7 @@
 from django.db import transaction
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases import ProjectTransactionThresholdOverridePermission
@@ -55,14 +56,14 @@ class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
 class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBase):
     permission_classes = (ProjectTransactionThresholdOverridePermission,)
 
-    def get_project(self, request, organization):
+    def get_project(self, request: Request, organization):
         projects = self.get_projects(request, organization)
         if len(projects) != 1:
             raise ParseError("Only 1 project per transaction threshold")
 
         return projects[0]
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
@@ -85,7 +86,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
             status.HTTP_200_OK,
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
@@ -126,7 +127,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 

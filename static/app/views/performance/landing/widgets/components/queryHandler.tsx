@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 
-import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 import {QueryDefinitionWithKey, QueryHandlerProps, WidgetDataConstraint} from '../types';
 
@@ -31,7 +31,7 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
   props: QueryHandlerProps<T> & {query: QueryDefinitionWithKey<T>}
 ) {
   const query = props.query;
-  const globalSelection = props.queryProps.eventView.getGlobalSelection();
+  const globalSelection = props.queryProps.eventView.getPageFilters();
   const start = globalSelection.datetime.start
     ? getUtcToLocalDateObject(globalSelection.datetime.start)
     : null;
@@ -60,6 +60,7 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
       environment={globalSelection.environments}
       organization={props.queryProps.organization}
       orgSlug={props.queryProps.organization.slug}
+      eventView={props.queryProps.eventView}
       query={props.queryProps.eventView.getQueryWithAdditionalConditions()}
       widgetData={props.widgetData}
     >

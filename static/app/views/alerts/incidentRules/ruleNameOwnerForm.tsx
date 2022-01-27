@@ -1,11 +1,11 @@
 import {PureComponent} from 'react';
 
-import TeamSelector from 'app/components/forms/teamSelector';
-import {Panel, PanelBody} from 'app/components/panels';
-import {t} from 'app/locale';
-import {Project, Team} from 'app/types';
-import FormField from 'app/views/settings/components/forms/formField';
-import TextField from 'app/views/settings/components/forms/textField';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {Project, Team} from 'sentry/types';
+import FormField from 'sentry/views/settings/components/forms/formField';
+import TextField from 'sentry/views/settings/components/forms/textField';
 
 type Props = {
   disabled: boolean;

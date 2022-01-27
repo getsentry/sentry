@@ -3,8 +3,8 @@ import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
-import {defined} from 'app/utils';
-import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
+import {defined} from 'sentry/utils';
+import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import FormPanel from './formPanel';
 import {Field, FieldObject, JsonFormObject} from './type';
@@ -44,7 +44,7 @@ class JsonForm extends React.Component<Props, State> {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (this.props.location.hash !== nextProps.location.hash) {
+    if (nextProps.location && this.props.location.hash !== nextProps.location.hash) {
       const hash = nextProps.location.hash;
       this.scrollToHash(hash);
       this.setState({highlighted: hash});

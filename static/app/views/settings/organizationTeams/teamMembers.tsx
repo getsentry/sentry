@@ -3,32 +3,32 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
-} from 'app/actionCreators/modal';
-import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
-import {Client} from 'app/api';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import Button from 'app/components/button';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import {Item} from 'app/components/dropdownAutoComplete/types';
-import DropdownButton from 'app/components/dropdownButton';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelHeader, PanelItem} from 'app/components/panels';
-import {IconSubtract, IconUser} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Config, Member, Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withConfig from 'app/utils/withConfig';
-import withOrganization from 'app/utils/withOrganization';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+} from 'sentry/actionCreators/modal';
+import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
+import {Client} from 'sentry/api';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import Button from 'sentry/components/button';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import DropdownButton from 'sentry/components/dropdownButton';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelHeader, PanelItem} from 'sentry/components/panels';
+import {IconSubtract, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Config, Member, Organization} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withConfig from 'sentry/utils/withConfig';
+import withOrganization from 'sentry/utils/withOrganization';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type RouteParams = {
   orgId: string;
@@ -273,7 +273,7 @@ class TeamMembers extends React.Component<Props, State> {
         size="small"
         icon={<IconSubtract size="xs" isCircled />}
         onClick={() => this.removeMember(member)}
-        label={t('Remove')}
+        aria-label={t('Remove')}
       >
         {t('Remove')}
       </Button>
@@ -328,7 +328,7 @@ const StyledMemberContainer = styled(PanelItem)`
 const StyledUserListElement = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   align-items: center;
 `;
 

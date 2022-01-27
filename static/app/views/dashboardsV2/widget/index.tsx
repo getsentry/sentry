@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import withOrganization from 'app/utils/withOrganization';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import WidgetBuilder from './widgetBuilder';
 
@@ -13,7 +13,7 @@ type Props = React.ComponentProps<typeof WidgetBuilder>;
 function WidgetBuilderContainer({organization, ...props}: Props) {
   return (
     <Feature
-      features={['metrics', 'dashboards-edit']}
+      features={['metrics', 'metrics-dashboards-ui', 'dashboards-edit']}
       organization={organization}
       renderDisabled={() => (
         <PageContent>

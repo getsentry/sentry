@@ -1,9 +1,9 @@
 import {LocationDescriptor} from 'history';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {IconNext, IconPrevious} from 'app/icons';
-import {t} from 'app/locale';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {IconNext, IconPrevious} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 type Props = {
   /**
@@ -37,7 +37,7 @@ const NavigationButtonGroup = ({
       size={size}
       to={links[0]}
       disabled={!hasPrevious}
-      label={t('Oldest')}
+      aria-label={t('Oldest')}
       icon={<IconPrevious size="xs" />}
       onClick={onOldestClick}
     />
@@ -51,7 +51,7 @@ const NavigationButtonGroup = ({
       size={size}
       to={links[3]}
       disabled={!hasNext}
-      label={t('Newest')}
+      aria-label={t('Newest')}
       icon={<IconNext size="xs" />}
       onClick={onNewestClick}
     />

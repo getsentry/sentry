@@ -1,33 +1,43 @@
-import {ReactNode} from 'react';
 import omit from 'lodash/omit';
 
+import {defined} from 'sentry/utils';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
-} from 'app/utils/discover/genericDiscoverQuery';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import withApi from 'sentry/utils/withApi';
 
 import {SuspectSpans} from './types';
 
 type SuspectSpansProps = {
-  spanOps: string[];
+  perSuspect?: number;
+  spanOps?: string[];
+  spanGroups?: string[];
 };
 
 type RequestProps = DiscoverQueryProps & SuspectSpansProps;
 
-type ChildrenProps = Omit<GenericChildrenProps<SuspectSpansProps>, 'tableData'> & {
+export type ChildrenProps = Omit<GenericChildrenProps<SuspectSpansProps>, 'tableData'> & {
   suspectSpans: SuspectSpans | null;
 };
 
 type Props = RequestProps & {
-  children: (props: ChildrenProps) => ReactNode;
+  children: (props: ChildrenProps) => React.ReactNode;
 };
 
 function getSuspectSpanPayload(props: RequestProps) {
-  const payload = {spanOp: props.spanOps};
-  const additionalPayload = omit(props.eventView.getEventsAPIPayload(props.location), [
-    'field',
-  ]);
+  const {perSuspect, spanOps, spanGroups} = props;
+  const payload = {perSuspect, spanOp: spanOps, spanGroup: spanGroups};
+  if (!defined(payload.perSuspect)) {
+    delete payload.perSuspect;
+  }
+  if (!defined(payload.spanOp)) {
+    delete payload.spanOp;
+  }
+  if (!defined(payload.spanGroup)) {
+    delete payload.spanGroup;
+  }
+  const additionalPayload = props.eventView.getEventsAPIPayload(props.location);
   return Object.assign(payload, additionalPayload);
 }
 
@@ -36,7 +46,6 @@ function SuspectSpansQuery(props: Props) {
     <GenericDiscoverQuery<SuspectSpans, SuspectSpansProps>
       route="events-spans-performance"
       getRequestPayload={getSuspectSpanPayload}
-      limit={4}
       {...omit(props, 'children')}
     >
       {({tableData, ...rest}) => {

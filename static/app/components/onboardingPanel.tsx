@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {Panel} from 'app/components/panels';
-import space from 'app/styles/space';
+import {Panel} from 'sentry/components/panels';
+import space from 'sentry/styles/space';
 
 type Props = React.PropsWithChildren<{
   image: React.ReactNode;

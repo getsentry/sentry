@@ -1,14 +1,14 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
-import Link from 'app/components/links/link';
-import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
-import {PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import space from 'app/styles/space';
-import {Organization, SentryApp} from 'app/types';
+import {openModal} from 'sentry/actionCreators/modal';
+import Link from 'sentry/components/links/link';
+import SentryAppPublishRequestModal from 'sentry/components/modals/sentryAppPublishRequestModal';
+import {PanelItem} from 'sentry/components/panels';
+import SentryAppIcon from 'sentry/components/sentryAppIcon';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, SentryApp} from 'sentry/types';
 
 import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 
@@ -47,7 +47,7 @@ export default class SentryApplicationRow extends PureComponent<Props> {
     return (
       <SentryAppItem data-test-id={app.slug}>
         <StyledFlex>
-          <PluginIcon size={36} pluginId={app.slug} />
+          <SentryAppIcon sentryApp={app} size={36} />
           <SentryAppBox>
             <SentryAppName hideStatus={this.hideStatus()}>
               <Link to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}>

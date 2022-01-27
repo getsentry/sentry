@@ -17,6 +17,10 @@ from sentry.utils import json
 logger = logging.getLogger("sentry.webhooks")
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class ReleaseWebhookView(View):
     def verify(self, plugin_id, project_id, token, signature):
         return constant_time_compare(
@@ -32,7 +36,7 @@ class ReleaseWebhookView(View):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    def _handle_builtin(self, request, project):
+    def _handle_builtin(self, request: Request, project):
         endpoint = f"/projects/{project.organization.slug}/{project.slug}/releases/"
 
         try:
@@ -61,7 +65,7 @@ class ReleaseWebhookView(View):
             status=resp.status_code, content=json.dumps(resp.data), content_type="application/json"
         )
 
-    def post(self, request, plugin_id, project_id, signature):
+    def post(self, request: Request, plugin_id, project_id, signature) -> Response:
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:

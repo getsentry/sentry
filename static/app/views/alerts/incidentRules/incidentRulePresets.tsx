@@ -1,9 +1,9 @@
-import Link from 'app/components/links/link';
-import {t} from 'app/locale';
-import {Project} from 'app/types';
-import {DisplayModes} from 'app/utils/discover/types';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
-import {getIncidentRuleDiscoverUrl} from 'app/views/alerts/utils/getIncidentRuleDiscoverUrl';
+import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {getIncidentRuleDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentRuleDiscoverUrl';
 
 type PresetCta = {
   /**
@@ -27,6 +27,7 @@ type PresetCtaOpts = {
   eventType?: string;
   start?: string;
   end?: string;
+  fields?: string[];
 };
 
 /**
@@ -39,6 +40,7 @@ export function makeDefaultCta({
   eventType,
   start,
   end,
+  fields,
 }: PresetCtaOpts): PresetCta {
   if (!rule) {
     return {
@@ -61,6 +63,7 @@ export function makeDefaultCta({
       start,
       end,
       extraQueryParams,
+      fields,
     }),
   };
 }

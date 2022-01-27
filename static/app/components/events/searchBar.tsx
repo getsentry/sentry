@@ -6,12 +6,12 @@ import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
-import {fetchTagValues} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import SmartSearchBar from 'app/components/smartSearchBar';
-import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
-import {Organization, SavedSearchType, TagCollection} from 'app/types';
-import {defined} from 'app/utils';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
+import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {
   Field,
   FIELD_TAGS,
@@ -20,10 +20,10 @@ import {
   isMeasurement,
   SEMVER_TAGS,
   TRACING_FIELDS,
-} from 'app/utils/discover/fields';
-import Measurements from 'app/utils/measurements/measurements';
-import withApi from 'app/utils/withApi';
-import withTags from 'app/utils/withTags';
+} from 'sentry/utils/discover/fields';
+import Measurements from 'sentry/utils/measurements/measurements';
+import withApi from 'sentry/utils/withApi';
+import withTags from 'sentry/utils/withTags';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -37,6 +37,7 @@ type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> 
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
   fields?: Readonly<Field[]>;
+  includeSessionTagsValues?: boolean;
 };
 
 class SearchBar extends React.PureComponent<SearchBarProps> {
@@ -58,7 +59,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
    */
   getEventFieldValues = memoize(
     (tag, query, endpointParams): Promise<string[]> => {
-      const {api, organization, projectIds} = this.props;
+      const {api, organization, projectIds, includeSessionTagsValues} = this.props;
       const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
@@ -76,7 +77,10 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
         endpointParams,
 
         // allows searching for tags on transactions as well
-        true
+        true,
+
+        // allows searching for tags on sessions as well
+        includeSessionTagsValues
       ).then(
         results =>
           flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),

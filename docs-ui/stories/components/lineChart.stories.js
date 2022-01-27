@@ -1,4 +1,4 @@
-import LineChart from 'app/components/charts/lineChart';
+import LineChart from 'sentry/components/charts/lineChart';
 
 export default {
   title: 'Components/Data Visualization/Charts/Line Chart',

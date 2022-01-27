@@ -3160,9 +3160,11 @@ FUNC 500c8 126 0 OAPIPELINE::GetOptimalMatrixMixFunction(OAPIPELINE::EAudioForma
 501e4 2 289 1582
 501e6 7 303 1582
 501ed 1 310 1582
+PUBLIC 501ee 0 <truncated> # Original file was truncated. The following record here fills the gap between 501ef-703390, as the new SymCache does not allow gaps in the middle of the file.
+PUBLIC 501ef 0 <truncated>
 PUBLIC 703390 0 AActor::IsPendingKillPending()
 PUBLIC 7036a0 0 AOnlineBeacon::IsRelevancyOwnerFor(AActor const *,AActor const *,AActor const *)
 PUBLIC 7036b0 0 FVoicePacketImpl::IsReliable()
 PUBLIC 7036c0 0 FOnlineVoiceImpl::IsRemotePlayerTalking(FUniqueNetId const &)
 PUBLIC 703700 0 FVoiceEngineImpl::IsRemotePlayerTalking(FUniqueNetId const &)
-FUNC 703800 1 0 <EOF>  # Original file was truncated. Added to prevent the last PUBLIC record covering the remainder of the file.
+FUNC 703800 1 0 <EOF> # Original file was truncated. Added to prevent the last PUBLIC record covering the remainder of the file.

@@ -1,20 +1,20 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
-import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import SuggestProjectModal from 'app/components/modals/suggestProjectModal';
-import {IconClose} from 'app/icons';
-import {tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {EntryRequest, Event} from 'app/types/event';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {promptIsDismissed} from 'app/utils/promptIsDismissed';
-import withApi from 'app/utils/withApi';
-import withProjects from 'app/utils/withProjects';
+import {openModal} from 'sentry/actionCreators/modal';
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import SuggestProjectModal from 'sentry/components/modals/suggestProjectModal';
+import {IconClose} from 'sentry/icons';
+import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {EntryRequest, Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import withApi from 'sentry/utils/withApi';
+import withProjects from 'sentry/utils/withProjects';
 
 const MOBILE_PLATFORMS = [
   'react-native',
@@ -214,7 +214,7 @@ export default withApi(withProjects(SuggestProjectCTA));
 const Content = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const StyledIconClose = styled(IconClose)`

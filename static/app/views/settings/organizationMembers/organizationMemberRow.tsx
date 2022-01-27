@@ -2,19 +2,19 @@ import {Fragment, PureComponent} from 'react';
 import {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'app/components/avatar/userAvatar';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import HookOrDefault from 'app/components/hookOrDefault';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {PanelItem} from 'app/components/panels';
-import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {AvatarUser, Member} from 'app/types';
-import isMemberDisabledFromLimit from 'app/utils/isMemberDisabledFromLimit';
-import recreateRoute from 'app/utils/recreateRoute';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PanelItem} from 'sentry/components/panels';
+import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AvatarUser, Member} from 'sentry/types';
+import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import recreateRoute from 'sentry/utils/recreateRoute';
 
 type Props = {
   params: Record<string, string>;
@@ -238,14 +238,14 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: minmax(150px, 2fr) minmax(90px, 1fr) minmax(120px, 1fr) 90px;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 `;
 
 const Section = styled('div')`
   display: inline-grid;
   grid-template-columns: max-content auto;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 

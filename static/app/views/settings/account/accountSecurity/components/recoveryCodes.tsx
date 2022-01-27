@@ -1,19 +1,19 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import Clipboard from 'app/components/clipboard';
-import Confirm from 'app/components/confirm';
+import Button from 'sentry/components/button';
+import Clipboard from 'sentry/components/clipboard';
+import Confirm from 'sentry/components/confirm';
 import {
   Panel,
   PanelAlert,
   PanelBody,
   PanelHeader,
   PanelItem,
-} from 'app/components/panels';
-import {IconCopy, IconDownload, IconPrint} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+} from 'sentry/components/panels';
+import {IconCopy, IconDownload, IconPrint} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   isEnrolled: boolean;
@@ -49,18 +49,18 @@ const RecoveryCodes = ({
 
         <Actions>
           <Clipboard hideUnsupported value={formattedCodes}>
-            <Button size="small" label={t('copy')}>
+            <Button size="small" aria-label={t('copy')}>
               <IconCopy />
             </Button>
           </Clipboard>
-          <Button size="small" onClick={printCodes} label={t('print')}>
+          <Button size="small" onClick={printCodes} aria-label={t('print')}>
             <IconPrint />
           </Button>
           <Button
             size="small"
             download="sentry-recovery-codes.txt"
             href={`data:text/plain;charset=utf-8,${formattedCodes}`}
-            label={t('download')}
+            aria-label={t('download')}
           >
             <IconDownload />
           </Button>
@@ -101,7 +101,7 @@ const CodeContainer = styled(Panel)`
 const Actions = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const Code = styled(PanelItem)`

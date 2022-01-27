@@ -2,18 +2,18 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import Count from 'app/components/count';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import EventAnnotation from 'app/components/events/eventAnnotation';
-import EventMessage from 'app/components/events/eventMessage';
-import Hovercard from 'app/components/hovercard';
-import Link from 'app/components/links/link';
-import TimeSince from 'app/components/timeSince';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Group} from 'app/types';
-import {getMessage} from 'app/utils/events';
+import Count from 'sentry/components/count';
+import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import EventAnnotation from 'sentry/components/events/eventAnnotation';
+import EventMessage from 'sentry/components/events/eventMessage';
+import Hovercard from 'sentry/components/hovercard';
+import Link from 'sentry/components/links/link';
+import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Group} from 'sentry/types';
+import {getMessage} from 'sentry/utils/events';
 
 type Props = {
   orgId: string;
@@ -121,7 +121,7 @@ const Section = styled('section')`
 const Grid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
 `;
 const HovercardEventMessage = styled(EventMessage)`
   font-size: 12px;

@@ -1,28 +1,25 @@
 import {Component} from 'react';
-import {withTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
-import {fetchTotalCount} from 'app/actionCreators/events';
-import EventsChart, {EventsChartProps} from 'app/components/charts/eventsChart';
-import {HeaderTitleLegend} from 'app/components/charts/styles';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {t} from 'app/locale';
-import {GlobalSelection} from 'app/types';
-import {axisLabelFormatter} from 'app/utils/discover/charts';
-import getDynamicText from 'app/utils/getDynamicText';
-import {Theme} from 'app/utils/theme';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {fetchTotalCount} from 'sentry/actionCreators/events';
+import EventsChart, {EventsChartProps} from 'sentry/components/charts/eventsChart';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t} from 'sentry/locale';
+import {PageFilters} from 'sentry/types';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 type Props = Omit<
   EventsChartProps,
-  keyof Omit<GlobalSelection, 'datetime'> | keyof GlobalSelection['datetime']
+  keyof Omit<PageFilters, 'datetime'> | keyof PageFilters['datetime']
 > & {
   title: string;
-  selection: GlobalSelection;
+  selection: PageFilters;
   onTotalValuesChange: (value: number | null) => void;
-  theme: Theme;
   help?: string;
   yAxis: string;
 };
@@ -48,7 +45,7 @@ class ProjectBaseEventsChart extends Component<Props> {
         query,
         environment: environments,
         project: projects.map(proj => String(proj)),
-        ...getParams(datetime),
+        ...normalizeDateTimeParams(datetime),
       });
       onTotalValuesChange(totals);
     } catch (err) {
@@ -67,7 +64,6 @@ class ProjectBaseEventsChart extends Component<Props> {
       query,
       field,
       title,
-      theme,
       help,
       ...eventsChartProps
     } = this.props;
@@ -105,7 +101,6 @@ class ProjectBaseEventsChart extends Component<Props> {
             grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
             yAxis: {
               axisLabel: {
-                color: theme.gray200,
                 formatter: (value: number) => axisLabelFormatter(value, yAxis),
               },
               scale: true,
@@ -118,4 +113,4 @@ class ProjectBaseEventsChart extends Component<Props> {
   }
 }
 
-export default withGlobalSelection(withTheme(ProjectBaseEventsChart));
+export default withPageFilters(ProjectBaseEventsChart);

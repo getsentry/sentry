@@ -14,6 +14,7 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
+from sentry.models.integrationfeature import IntegrationTypes
 from sentry.models.sentryapp import default_uuid, generate_slug
 
 from .mixin import SentryAppMixin
@@ -112,7 +113,10 @@ class Creator(Mediator, SentryAppMixin):
         # defaults to 'integrations-api'
         try:
             with transaction.atomic():
-                IntegrationFeature.objects.create(sentry_app=self.sentry_app)
+                IntegrationFeature.objects.create(
+                    target_id=self.sentry_app.id,
+                    target_type=IntegrationTypes.SENTRY_APP.value,
+                )
         except IntegrityError as e:
             self.log(sentry_app=self.sentry_app.slug, error_message=str(e))
 

@@ -1,13 +1,13 @@
-import {EChartOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import moment from 'moment';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
-import {defined, escape} from 'app/utils';
-import {parsePeriodToHours} from 'app/utils/dates';
-import {TableDataWithTitle} from 'app/utils/discover/discoverQuery';
-import {decodeList} from 'app/utils/queryString';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
+import {defined, escape} from 'sentry/utils';
+import {parsePeriodToHours} from 'sentry/utils/dates';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -25,7 +25,7 @@ export const ONE_HOUR = 60;
  */
 export const RELEASE_LINES_THRESHOLD = 50;
 
-export type DateTimeObject = Partial<GlobalSelection['datetime']>;
+export type DateTimeObject = Partial<PageFilters['datetime']>;
 
 export function truncationFormatter(
   value: string,
@@ -156,7 +156,7 @@ const MAX_PERIOD_HOURS_INCLUDE_PREVIOUS = 45 * 24;
 
 export function canIncludePreviousPeriod(
   includePrevious: boolean | undefined,
-  period: string | undefined
+  period: string | null | undefined
 ) {
   if (!includePrevious) {
     return false;
@@ -170,13 +170,24 @@ export function canIncludePreviousPeriod(
   return !!includePrevious;
 }
 
+export function shouldFetchPreviousPeriod({
+  includePrevious = true,
+  period,
+  start,
+  end,
+}: {
+  includePrevious?: boolean;
+} & Pick<DateTimeObject, 'start' | 'end' | 'period'>) {
+  return !start && !end && canIncludePreviousPeriod(includePrevious, period);
+}
+
 /**
  * Generates a series selection based on the query parameters defined by the location.
  */
 export function getSeriesSelection(
   location: Location,
   parameter = 'unselectedSeries'
-): EChartOption.Legend['selected'] {
+): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query[parameter]);
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;

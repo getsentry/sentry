@@ -1,17 +1,17 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import FeatureBadge from 'app/components/featureBadge';
-import SelectControl from 'app/components/forms/selectControl';
-import ExternalLink from 'app/components/links/externalLink';
-import {releaseHealth} from 'app/data/platformCategories';
-import {IconDelete, IconSettings} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Choices, Organization, Project} from 'app/types';
+import {openModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import FeatureBadge from 'sentry/components/featureBadge';
+import SelectControl from 'sentry/components/forms/selectControl';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {releaseHealth} from 'sentry/data/platformCategories';
+import {IconDelete, IconSettings} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Choices, Organization, Project} from 'sentry/types';
 import {
   AssigneeTargetType,
   IssueAlertRuleAction,
@@ -19,13 +19,13 @@ import {
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
   MailActionTargetType,
-} from 'app/types/alerts';
-import MemberTeamFields from 'app/views/alerts/issueRuleEditor/memberTeamFields';
-import SentryAppRuleModal from 'app/views/alerts/issueRuleEditor/sentryAppRuleModal';
-import TicketRuleModal from 'app/views/alerts/issueRuleEditor/ticketRuleModal';
-import {SchemaFormConfig} from 'app/views/organizationIntegrations/sentryAppExternalForm';
-import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
-import Input from 'app/views/settings/components/forms/controls/input';
+} from 'sentry/types/alerts';
+import MemberTeamFields from 'sentry/views/alerts/issueRuleEditor/memberTeamFields';
+import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRuleModal';
+import TicketRuleModal from 'sentry/views/alerts/issueRuleEditor/ticketRuleModal';
+import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 export type FormField = {
   // Type of form fields
@@ -447,7 +447,7 @@ class RuleNode extends React.Component<Props> {
           </Rule>
           <DeleteButton
             disabled={disabled}
-            label={t('Delete Node')}
+            aria-label={t('Delete Node')}
             onClick={this.handleDelete}
             type="button"
             size="small"

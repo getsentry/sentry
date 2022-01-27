@@ -1,8 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'app/stores/configStore';
-import OrganizationAuditLog from 'app/views/settings/organizationAuditLog';
+import ConfigStore from 'sentry/stores/configStore';
+import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', () => {
   const user = {

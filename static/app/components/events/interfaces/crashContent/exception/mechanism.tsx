@@ -5,16 +5,16 @@ import forOwn from 'lodash/forOwn';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 
-import Hovercard from 'app/components/hovercard';
-import ExternalLink from 'app/components/links/externalLink';
-import Pill from 'app/components/pill';
-import Pills from 'app/components/pills';
-import {IconInfo, IconOpen} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {StackTraceMechanism} from 'app/types/stacktrace';
-import {isUrl} from 'app/utils';
-import {Theme} from 'app/utils/theme';
+import Hovercard from 'sentry/components/hovercard';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Pill from 'sentry/components/pill';
+import Pills from 'sentry/components/pills';
+import {IconInfo, IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {StackTraceMechanism} from 'sentry/types/stacktrace';
+import {isUrl} from 'sentry/utils';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   data: StackTraceMechanism;

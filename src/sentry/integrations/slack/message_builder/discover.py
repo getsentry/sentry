@@ -12,8 +12,3 @@ class SlackDiscoverMessageBuilder(BlockSlackMessageBuilder):
         return self._build_blocks(
             self.get_image_block(self.chart_url, title=self.title, alt="Discover Chart")
         )
-
-
-def build_discover_attachment(title: str, chart_url: str) -> SlackBody:
-    """@deprecated"""
-    return SlackDiscoverMessageBuilder(title, chart_url).build()

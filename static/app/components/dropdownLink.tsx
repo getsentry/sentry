@@ -2,9 +2,9 @@ import * as React from 'react';
 import {css, useTheme} from '@emotion/react';
 import classNames from 'classnames';
 
-import DropdownMenu from 'app/components/dropdownMenu';
-import {IconChevron} from 'app/icons';
-import {Theme} from 'app/utils/theme';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import {IconChevron} from 'sentry/icons';
+import {Theme} from 'sentry/utils/theme';
 
 const getRootCss = (theme: Theme) => css`
   .dropdown-menu {
@@ -14,7 +14,7 @@ const getRootCss = (theme: Theme) => css`
       &:hover,
       &:focus {
         color: inherit;
-        background-color: ${theme.focus};
+        background-color: ${theme.hover};
       }
     }
 
@@ -29,7 +29,7 @@ const getRootCss = (theme: Theme) => css`
 
   .dropdown-submenu:hover > span {
     color: ${theme.textColor};
-    background: ${theme.focus};
+    background: ${theme.hover};
   }
 `;
 
@@ -99,6 +99,10 @@ function DropdownLink({
           open: isOpen,
         });
 
+        const {onClick: onClickActor, ...actorProps} = getActorProps({
+          className: cx,
+        });
+
         return (
           <span
             css={getRootCss(theme)}
@@ -106,11 +110,7 @@ function DropdownLink({
               className: topLevelCx,
             })}
           >
-            <a
-              {...getActorProps({
-                className: cx,
-              })}
-            >
+            <a onClick={disabled ? undefined : onClickActor} {...actorProps}>
               {customTitle || (
                 <div className="dropdown-actor-title">
                   {title}

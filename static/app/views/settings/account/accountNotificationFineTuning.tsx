@@ -2,31 +2,31 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {fields} from 'app/data/forms/accountNotificationSettings';
-import {t} from 'app/locale';
-import {Organization, Project, UserEmail} from 'app/types';
-import withOrganizations from 'app/utils/withOrganizations';
-import AsyncView from 'app/views/asyncView';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {fields} from 'sentry/data/forms/accountNotificationSettings';
+import {t} from 'sentry/locale';
+import {Organization, Project, UserEmail} from 'sentry/types';
+import withOrganizations from 'sentry/utils/withOrganizations';
+import AsyncView from 'sentry/views/asyncView';
 import {
   ACCOUNT_NOTIFICATION_FIELDS,
   FineTuneField,
-} from 'app/views/settings/account/notifications/fields';
-import NotificationSettingsByType from 'app/views/settings/account/notifications/notificationSettingsByType';
+} from 'sentry/views/settings/account/notifications/fields';
+import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {
   groupByOrganization,
   isGroupedByProject,
-} from 'app/views/settings/account/notifications/utils';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+} from 'sentry/views/settings/account/notifications/utils';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const PanelBodyLineItem = styled(PanelBody)`
-  font-size: 1.4rem;
+  font-size: 1rem;
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
@@ -169,7 +169,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
     const {params} = this.props;
     const {fineTuneType} = params;
 
-    if (['alerts', 'deploy', 'workflow', 'approval'].includes(fineTuneType)) {
+    if (['alerts', 'deploy', 'workflow', 'approval', 'quota'].includes(fineTuneType)) {
       return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
 

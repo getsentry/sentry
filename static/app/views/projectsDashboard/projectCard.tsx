@@ -2,38 +2,38 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
-import {loadStatsForProject} from 'app/actionCreators/projects';
-import {Client} from 'app/api';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import Placeholder from 'app/components/placeholder';
-import BookmarkStar from 'app/components/projects/bookmarkStar';
-import QuestionTooltip from 'app/components/questionTooltip';
+import {loadStatsForProject} from 'sentry/actionCreators/projects';
+import {Client} from 'sentry/api';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
+import BookmarkStar from 'sentry/components/projects/bookmarkStar';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import ScoreCard, {
   HeaderTitle,
   Score,
   ScorePanel,
   ScoreWrapper,
   Trend,
-} from 'app/components/scoreCard';
-import {releaseHealth} from 'app/data/platformCategories';
-import {IconArrow} from 'app/icons';
-import {t} from 'app/locale';
-import ProjectsStatsStore from 'app/stores/projectsStatsStore';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/components/scoreCard';
+import {releaseHealth} from 'sentry/data/platformCategories';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 import MissingReleasesButtons, {
   MissingReleaseButtonBar,
-} from 'app/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
   displayCrashFreePercent,
-} from 'app/views/releases/utils';
+} from 'sentry/views/releases/utils';
 
 import Chart from './chart';
 import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
@@ -311,6 +311,9 @@ const HeaderRow = styled('div')`
   grid-template-columns: 1fr auto;
   justify-content: space-between;
   align-items: center;
+
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
 `;
 
 const StyledProjectCard = styled('div')`
@@ -439,7 +442,7 @@ const NotAvailable = styled('div')`
   font-weight: normal;
   display: grid;
   grid-template-columns: auto auto;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   align-items: center;
 `;
 

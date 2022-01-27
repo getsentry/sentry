@@ -1,5 +1,3 @@
-import {ComponentProps} from 'react';
-
 import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
 import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
@@ -14,14 +12,14 @@ import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
-import FeatureBadge from 'app/components/featureBadge';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import FeatureBadge from 'sentry/components/featureBadge';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import {
   Dataset,
   EventTypes,
   SessionsAggregate,
-} from 'app/views/alerts/incidentRules/types';
+} from 'sentry/views/alerts/incidentRules/types';
 
 export type AlertType =
   | 'issues'
@@ -59,7 +57,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
 type AlertWizardCategory = {
   categoryHeading: string;
   options: AlertType[];
-  featureBadgeType?: ComponentProps<typeof FeatureBadge>['type'];
+  featureBadgeType?: React.ComponentProps<typeof FeatureBadge>['type'];
 };
 export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
   {
@@ -242,7 +240,7 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.ERROR,
   },
   users_experiencing_errors: {
-    aggregate: 'count_unique(tags[sentry:user])',
+    aggregate: 'count_unique(user)',
     dataset: Dataset.ERRORS,
     eventTypes: EventTypes.ERROR,
   },

@@ -1,6 +1,7 @@
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, SessionAuthentication
@@ -33,7 +34,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request, app_id):
+    def get(self, request: Request, app_id) -> Response:
         try:
             instance = ApiApplication.objects.get(
                 owner=request.user, client_id=app_id, status=ApiApplicationStatus.active
@@ -43,7 +44,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
 
         return Response(serialize(instance, request.user))
 
-    def put(self, request, app_id):
+    def put(self, request: Request, app_id) -> Response:
         try:
             instance = ApiApplication.objects.get(
                 owner=request.user, client_id=app_id, status=ApiApplicationStatus.active
@@ -73,7 +74,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
             return Response(serialize(instance, request.user), status=200)
         return Response(serializer.errors, status=400)
 
-    def delete(self, request, app_id):
+    def delete(self, request: Request, app_id) -> Response:
         try:
             instance = ApiApplication.objects.get(
                 owner=request.user, client_id=app_id, status=ApiApplicationStatus.active

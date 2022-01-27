@@ -2,11 +2,11 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import moment from 'moment';
 
-import {Client} from 'app/api';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import ResultGrid from 'app/components/resultGrid';
-import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
+import ResultGrid from 'sentry/components/resultGrid';
+import {t} from 'sentry/locale';
+import withApi from 'sentry/utils/withApi';
 
 const prettyDate = (x: string) => moment(x).format('ll LTS');
 

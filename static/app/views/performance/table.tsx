@@ -2,26 +2,30 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
-import Link from 'app/components/links/link';
-import Pagination from 'app/components/pagination';
-import Tooltip from 'app/components/tooltip';
-import {IconStar} from 'app/icons';
-import {tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import {TableColumn} from 'app/views/eventsV2/table/types';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumn,
+} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
+import Pagination from 'sentry/components/pagination';
+import Tooltip from 'sentry/components/tooltip';
+import {IconStar} from 'sentry/icons';
+import {tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import DiscoverOrMetricsQuery from 'sentry/utils/discover/discoverOrMetricsQuery';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
+import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import TransactionThresholdModal, {
   modalCss,
@@ -54,9 +58,8 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
-  summaryConditions?: string;
-
   projects: Project[];
+  summaryConditions?: string;
   columnTitles?: string[];
 };
 
@@ -187,7 +190,11 @@ class _Table extends React.Component<Props, State> {
           handleCellAction={this.handleCellAction(column, dataRow)}
           allowActions={allowActions}
         >
-          <Link to={target} onClick={this.handleSummaryClick}>
+          <Link
+            to={target}
+            onClick={this.handleSummaryClick}
+            style={{display: `block`, width: `100%`}}
+          >
             {rendered}
           </Link>
         </CellAction>
@@ -386,7 +393,7 @@ class _Table extends React.Component<Props, State> {
 
     return (
       <div>
-        <DiscoverQuery
+        <DiscoverOrMetricsQuery
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
@@ -415,7 +422,7 @@ class _Table extends React.Component<Props, State> {
               <Pagination pageLinks={pageLinks} />
             </React.Fragment>
           )}
-        </DiscoverQuery>
+        </DiscoverOrMetricsQuery>
       </div>
     );
   }

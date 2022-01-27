@@ -2,7 +2,7 @@ import {Component} from 'react';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
-import ConfigStore from 'app/stores/configStore';
+import ConfigStore from 'sentry/stores/configStore';
 
 type DefaultProps = {
   seconds: boolean;
@@ -57,8 +57,13 @@ class DateTime extends Component<Props> {
       return 'MM/DD/YYYY';
     }
 
-    // Oct 26, 2017 11:30
     if (clock24Hours) {
+      if (seconds) {
+        // Oct 26, 2017 11:30:30
+        return 'MMM D, YYYY HH:mm:ss';
+      }
+
+      // Oct 26, 2017 11:30
       return 'MMM D, YYYY HH:mm';
     }
 

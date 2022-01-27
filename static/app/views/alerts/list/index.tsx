@@ -3,26 +3,26 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
-import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import CreateAlertButton from 'app/components/createAlertButton';
-import * as Layout from 'app/components/layouts/thirds';
-import ExternalLink from 'app/components/links/externalLink';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconInfo} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Projects from 'app/utils/projects';
-import withOrganization from 'app/utils/withOrganization';
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import CreateAlertButton from 'sentry/components/createAlertButton';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import Projects from 'sentry/utils/projects';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import TeamFilter, {getTeamParams} from '../rules/teamFilter';
 import {Incident} from '../types';
@@ -215,7 +215,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           priority="primary"
           referrer="alert_stream"
         >
-          {t('Create Alert Rule')}
+          {t('Create Alert')}
         </CreateAlertButton>
       </Fragment>
     );
@@ -293,7 +293,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
-        <GlobalSelectionHeader organization={organization} showDateSelector={false}>
+        <PageFiltersContainer organization={organization} showDateSelector={false}>
           <AlertHeader organization={organization} router={router} activeTab="stream" />
           <StyledLayoutBody>
             <Layout.Main fullWidth>
@@ -308,7 +308,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
               {this.renderList()}
             </Layout.Main>
           </StyledLayoutBody>
-        </GlobalSelectionHeader>
+        </PageFiltersContainer>
       </SentryDocumentTitle>
     );
   }

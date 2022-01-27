@@ -1,24 +1,24 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {RequestOptions} from 'app/api';
-import AlertLink from 'app/components/alertLink';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tag from 'app/components/tag';
-import accountEmailsFields from 'app/data/forms/accountEmails';
-import {IconDelete, IconStack} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {UserEmail} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {RequestOptions} from 'sentry/api';
+import AlertLink from 'sentry/components/alertLink';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Tag from 'sentry/components/tag';
+import accountEmailsFields from 'sentry/data/forms/accountEmails';
+import {IconDelete, IconStack} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {UserEmail} from 'sentry/types';
+import AsyncView from 'sentry/views/asyncView';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/emails/';
 
@@ -186,7 +186,7 @@ const EmailRow = ({
       )}
       {!hideRemove && !isPrimary && (
         <Button
-          label={t('Remove email')}
+          aria-label={t('Remove email')}
           data-test-id="remove"
           priority="danger"
           size="small"
@@ -201,7 +201,7 @@ const EmailRow = ({
 const EmailTags = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 

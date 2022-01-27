@@ -1,17 +1,17 @@
 import {createContext, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconAnchor} from 'app/icons/iconAnchor';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {PlatformType, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {STACK_TYPE} from 'app/types/stacktrace';
-import {isNativePlatform} from 'app/utils/platform';
-import useApi from 'app/utils/useApi';
-import useOrganization from 'app/utils/useOrganization';
-import BooleanField from 'app/views/settings/components/forms/booleanField';
+import Button from 'sentry/components/button';
+import {IconAnchor} from 'sentry/icons/iconAnchor';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {PlatformType, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {STACK_TYPE} from 'sentry/types/stacktrace';
+import {isNativePlatform} from 'sentry/utils/platform';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import BooleanField from 'sentry/views/settings/components/forms/booleanField';
 
 import EventDataSection from '../eventDataSection';
 
@@ -81,13 +81,23 @@ function TraceEventDataSection({
   const {recentFirst, raw, activeDisplayOptions} = state;
 
   useEffect(() => {
-    if (raw || activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE)) {
+    if (
+      raw ||
+      (!defaultStateProps.fullStackTrace &&
+        !activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE)) ||
+      (defaultStateProps.fullStackTrace &&
+        activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE))
+    ) {
       return;
     }
 
     setState({
       ...state,
-      activeDisplayOptions: [...activeDisplayOptions, DisplayOption.FULL_STACK_TRACE],
+      activeDisplayOptions: !defaultStateProps.fullStackTrace
+        ? activeDisplayOptions.filter(
+            activeDisplayOption => activeDisplayOption !== DisplayOption.FULL_STACK_TRACE
+          )
+        : [...activeDisplayOptions, DisplayOption.FULL_STACK_TRACE],
     });
   }, [defaultStateProps.fullStackTrace]);
 
@@ -100,11 +110,13 @@ function TraceEventDataSection({
 
   const childProps = {recentFirst, raw, activeDisplayOptions};
 
+  const nativePlatform = isNativePlatform(platform);
+
   return (
     <EventDataSection
       type={type}
       title={
-        <Header raw={raw}>
+        <Header raw={raw} nativePlatform={nativePlatform}>
           {showPermalink ? (
             <div>
               <Permalink href={'#' + type} className="permalink">
@@ -117,65 +129,52 @@ function TraceEventDataSection({
           )}
           {!stackTraceNotFound && (
             <Fragment>
-              <RawContentWrapper>
-                <RawToggler
-                  name="raw-stack-trace"
-                  label={t('Raw')}
-                  hideControlState
-                  value={raw}
-                  onChange={() => setState({...state, raw: !raw})}
-                />
-                {raw && isNativePlatform(platform) && (
-                  <LargeScreenDownloadButton
-                    size="small"
-                    href={getDownloadHref()}
-                    title={t('Download raw stack trace file')}
-                  >
-                    {t('Download')}
-                  </LargeScreenDownloadButton>
-                )}
-              </RawContentWrapper>
-              {raw ? (
-                isNativePlatform(platform) && (
-                  <SmallScreenDownloadButton
-                    size="small"
-                    href={getDownloadHref()}
-                    title={t('Download raw stack trace file')}
-                  >
-                    {t('Download')}
-                  </SmallScreenDownloadButton>
-                )
-              ) : (
-                <Fragment>
-                  <SortOptions
-                    disabled={!hasNewestFirst}
-                    activeSortOption={
-                      recentFirst ? SortOption.RECENT_FIRST : SortOption.RECENT_LAST
-                    }
-                    onChange={newSortOption =>
-                      setState({
-                        ...state,
-                        recentFirst: newSortOption === SortOption.RECENT_FIRST,
-                      })
-                    }
-                  />
-                  <DisplayOptions
-                    platform={platform}
-                    hasAppOnlyFrames={hasAppOnlyFrames}
-                    hasAbsoluteAddresses={hasAbsoluteAddresses}
-                    hasAbsoluteFilePaths={hasAbsoluteFilePaths}
-                    hasVerboseFunctionNames={hasVerboseFunctionNames}
-                    hasMinified={hasMinified}
-                    activeDisplayOptions={activeDisplayOptions}
-                    onChange={newActiveDisplayOptions =>
-                      setState({
-                        ...state,
-                        activeDisplayOptions: newActiveDisplayOptions,
-                      })
-                    }
-                  />
-                </Fragment>
+              <RawToggler
+                name="raw-stack-trace"
+                label={t('Raw')}
+                hideControlState
+                value={raw}
+                onChange={() => setState({...state, raw: !raw})}
+              />
+              {raw && nativePlatform && (
+                <DownloadButton
+                  size="small"
+                  href={getDownloadHref()}
+                  title={t('Download raw stack trace file')}
+                >
+                  {t('Download')}
+                </DownloadButton>
               )}
+              {!raw && (
+                <SortOptions
+                  disabled={!hasNewestFirst}
+                  activeSortOption={
+                    recentFirst ? SortOption.RECENT_FIRST : SortOption.RECENT_LAST
+                  }
+                  onChange={newSortOption =>
+                    setState({
+                      ...state,
+                      recentFirst: newSortOption === SortOption.RECENT_FIRST,
+                    })
+                  }
+                />
+              )}
+              <DisplayOptions
+                raw={raw}
+                platform={platform}
+                hasAppOnlyFrames={hasAppOnlyFrames}
+                hasAbsoluteAddresses={hasAbsoluteAddresses}
+                hasAbsoluteFilePaths={hasAbsoluteFilePaths}
+                hasVerboseFunctionNames={hasVerboseFunctionNames}
+                hasMinified={hasMinified}
+                activeDisplayOptions={activeDisplayOptions}
+                onChange={newActiveDisplayOptions =>
+                  setState({
+                    ...state,
+                    activeDisplayOptions: newActiveDisplayOptions,
+                  })
+                }
+              />
             </Fragment>
           )}
         </Header>
@@ -193,24 +192,30 @@ function TraceEventDataSection({
 export {TraceEventDataSectionContext};
 export default TraceEventDataSection;
 
-const Header = styled('div')<{raw: boolean}>`
+const Header = styled('div')<{raw: boolean; nativePlatform: boolean}>`
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-template-rows: ${p => (p.raw ? 'repeat(2, 1f)' : 'repeat(3, 1fr)')};
-  grid-gap: ${space(1)};
+  grid-template-rows: ${p =>
+    p.raw && !p.nativePlatform ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'};
+  gap: ${space(1)};
   align-items: center;
   flex: 1;
   z-index: 3;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: ${p => (p.raw ? '1fr' : 'repeat(2, 1fr)')};
+    grid-template-columns: ${p =>
+      p.raw && !p.nativePlatform
+        ? '1fr max-content minmax(140px, auto)'
+        : 'repeat(2, 1fr)'};
+    grid-template-rows: ${p => (p.raw && !p.nativePlatform ? '1fr' : 'repeat(2, 1fr)')};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: ${p =>
       p.raw
-        ? '1fr repeat(2, max-content)'
+        ? p.nativePlatform
+          ? '1fr max-content max-content minmax(140px, auto)'
+          : '1fr max-content minmax(140px, auto)'
         : '1fr max-content minmax(159px, auto) minmax(140px, auto)'};
     grid-template-rows: 1fr;
   }
@@ -220,7 +225,7 @@ const RawToggler = styled(BooleanField)`
   padding: 0;
   display: grid;
   grid-template-columns: repeat(2, max-content);
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   border-bottom: none;
   justify-content: flex-end;
 
@@ -232,25 +237,9 @@ const RawToggler = styled(BooleanField)`
   }
 `;
 
-const RawContentWrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  justify-content: flex-end;
-`;
-
-const LargeScreenDownloadButton = styled(Button)`
-  display: none;
-  margin-left: ${space(1)};
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: block;
-  }
-`;
-
-const SmallScreenDownloadButton = styled(Button)`
-  display: block;
-  grid-column: 1/-1;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
+const DownloadButton = styled(Button)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: 1/-1;
   }
 `;
 

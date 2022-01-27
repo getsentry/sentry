@@ -5,22 +5,22 @@ import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import ErrorBoundary from 'app/components/errorBoundary';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import {ServiceHook} from 'app/types';
-import getDynamicText from 'app/utils/getDynamicText';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Field from 'app/views/settings/components/forms/field';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import ServiceHookSettingsForm from 'app/views/settings/project/serviceHookSettingsForm';
+} from 'sentry/actionCreators/indicator';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {ServiceHook} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import Field from 'sentry/views/settings/components/forms/field';
+import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
 
 type Params = {orgId: string; projectId: string; hookId: string};
 

@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.project_release_file_details import ReleaseFileDetailsMixin
@@ -13,7 +15,7 @@ class ReleaseFileSerializer(serializers.Serializer):
 class OrganizationReleaseFileDetailsEndpoint(
     OrganizationReleasesBaseEndpoint, ReleaseFileDetailsMixin
 ):
-    def get(self, request, organization, version, file_id):
+    def get(self, request: Request, organization, version, file_id) -> Response:
         """
         Retrieve an Organization Release's File
         ```````````````````````````````````````
@@ -43,7 +45,7 @@ class OrganizationReleaseFileDetailsEndpoint(
             check_permission_fn=lambda: request.access.has_scope("project:write"),
         )
 
-    def put(self, request, organization, version, file_id):
+    def put(self, request: Request, organization, version, file_id) -> Response:
         """
         Update an Organization Release's File
         `````````````````````````````````````
@@ -69,7 +71,7 @@ class OrganizationReleaseFileDetailsEndpoint(
 
         return self.update_releasefile(request, release, file_id)
 
-    def delete(self, request, organization, version, file_id):
+    def delete(self, request: Request, organization, version, file_id) -> Response:
         """
         Delete an Organization Release's File
         `````````````````````````````````````

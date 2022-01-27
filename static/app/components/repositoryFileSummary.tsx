@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import FileChange from 'app/components/fileChange';
-import {ListGroup, ListGroupItem} from 'app/components/listGroup';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {FilesByRepository} from 'app/types';
+import FileChange from 'sentry/components/fileChange';
+import {ListGroup, ListGroupItem} from 'sentry/components/listGroup';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {FilesByRepository} from 'sentry/types';
 
 type CollapsedProps = {
   onClick: React.MouseEventHandler<HTMLAnchorElement>;

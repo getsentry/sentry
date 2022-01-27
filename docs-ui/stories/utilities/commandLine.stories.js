@@ -1,4 +1,4 @@
-import CommandLine from 'app/components/commandLine';
+import CommandLine from 'sentry/components/commandLine';
 
 export default {
   title: 'Utilities/Command Line',

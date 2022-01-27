@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 
-import {Indicator} from 'app/actionCreators/indicator';
-import IndicatorActions from 'app/actions/indicatorActions';
-import {t} from 'app/locale';
+import {Indicator} from 'sentry/actionCreators/indicator';
+import IndicatorActions from 'sentry/actions/indicatorActions';
+import {t} from 'sentry/locale';
 
 import {CommonStoreInterface} from './types';
 

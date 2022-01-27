@@ -1,10 +1,10 @@
-import React, {ChangeEvent, KeyboardEvent, MouseEvent, useEffect, useState} from 'react';
+import {forwardRef as reactFowardRef, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
   name: string;
@@ -63,9 +63,9 @@ type Props = {
    * be triggered quite frequently
    */
   onBlur?: (
-    event: MouseEvent<HTMLInputElement> | KeyboardEvent<HTMLInputElement>
+    event: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
   ) => void;
-  onChange?: (value: Props['value'], event: ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (value: Props['value'], event: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   forwardRef?: React.Ref<HTMLDivElement>;
 };
@@ -118,17 +118,19 @@ function RangeSlider({
     return allowedValues[newSliderValue];
   }
 
-  function handleInput(e: ChangeEvent<HTMLInputElement>) {
+  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const newSliderValue = parseInt(e.target.value, 10);
     setSliderValue(newSliderValue);
     onChange?.(getActualValue(newSliderValue), e);
   }
 
-  function handleCustomInputChange(e: ChangeEvent<HTMLInputElement>) {
+  function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     setSliderValue(parseInt(e.target.value, 10) || 0);
   }
 
-  function handleBlur(e: MouseEvent<HTMLInputElement> | KeyboardEvent<HTMLInputElement>) {
+  function handleBlur(
+    e: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
+  ) {
     if (typeof onBlur !== 'function') {
       return;
     }
@@ -193,7 +195,7 @@ function RangeSlider({
   );
 }
 
-const RangeSliderContainer = React.forwardRef(function RangeSliderContainer(
+const RangeSliderContainer = reactFowardRef(function RangeSliderContainer(
   props: Props,
   ref: React.Ref<any>
 ) {
@@ -247,6 +249,7 @@ export const Slider = styled('input')<{hasLabel: boolean}>`
     -webkit-appearance: none;
     margin-top: -7px;
     border: 0;
+    transition: background 0.1s, box-shadow 0.1s;
   }
 
   &::-moz-range-thumb {
@@ -260,6 +263,7 @@ export const Slider = styled('input')<{hasLabel: boolean}>`
     -webkit-appearance: none;
     margin-top: -7px;
     border: 0;
+    transition: background 0.1s, box-shadow 0.1s;
   }
 
   &::-ms-thumb {
@@ -273,6 +277,7 @@ export const Slider = styled('input')<{hasLabel: boolean}>`
     -webkit-appearance: none;
     margin-top: -7px;
     border: 0;
+    transition: background 0.1s, box-shadow 0.1s;
   }
 
   &::-ms-fill-lower {
@@ -331,6 +336,29 @@ export const Slider = styled('input')<{hasLabel: boolean}>`
       cursor: default;
     }
   }
+
+  &:not([disabled])::-webkit-slider-runnable-track:hover {
+    background: ${p => p.theme.activeHover};
+  }
+  &:not([disabled])::-moz-range-thumb:hover {
+    background: ${p => p.theme.activeHover};
+  }
+  &:not([disabled])::-ms-thumb:hover {
+    background: ${p => p.theme.activeHover};
+  }
+
+  &:focus::-webkit-slider-thumb,
+  &.focus-visible::-webkit-slider-thumb {
+    box-shadow: ${p => p.theme.background} 0 0 0 3px, ${p => p.theme.focus} 0 0 0 6px;
+  }
+  &:focus::-moz-range-thumb,
+  &.focus-visible::-moz-range-thumb {
+    box-shadow: ${p => p.theme.background} 0 0 0 3px, ${p => p.theme.focus} 0 0 0 6px;
+  }
+  &:focus::-ms-thumb,
+  &.focus-visible::-ms-thumb {
+    box-shadow: ${p => p.theme.background} 0 0 0 3px, ${p => p.theme.focus} 0 0 0 6px;
+  }
 `;
 
 const Label = styled('label')`
@@ -344,5 +372,5 @@ const SliderAndInputWrapper = styled('div')<{showCustomInput?: boolean}>`
   align-items: center;
   grid-auto-flow: column;
   grid-template-columns: 4fr ${p => p.showCustomInput && '1fr'};
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;

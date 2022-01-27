@@ -1,5 +1,8 @@
+from django.core.signing import BadSignature, SignatureExpired
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import Identity
 from sentry.utils.http import absolute_uri
@@ -29,8 +32,14 @@ def build_unlinking_url(conversation_id, service_url, teams_user_id):
 class MsTeamsUnlinkIdentityView(BaseView):
     @transaction_start("MsTeamsUnlinkIdentityView")
     @never_cache
-    def handle(self, request, signed_params):
-        params = unsign(signed_params)
+    def handle(self, request: Request, signed_params) -> Response:
+        try:
+            params = unsign(signed_params)
+        except (SignatureExpired, BadSignature):
+            return render_to_response(
+                "sentry/integrations/msteams/expired-link.html",
+                request=request,
+            )
 
         if request.method != "POST":
             return render_to_response(

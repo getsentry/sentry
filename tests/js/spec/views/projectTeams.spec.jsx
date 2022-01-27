@@ -2,12 +2,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import * as modals from 'app/actionCreators/modal';
-import TeamStore from 'app/stores/teamStore';
-import App from 'app/views/app';
-import ProjectTeams from 'app/views/settings/project/projectTeams';
+import * as modals from 'sentry/actionCreators/modal';
+import TeamStore from 'sentry/stores/teamStore';
+import App from 'sentry/views/app';
+import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 
-jest.unmock('app/actionCreators/modal');
+jest.unmock('sentry/actionCreators/modal');
 
 describe('ProjectTeams', function () {
   let org;

@@ -1,4 +1,4 @@
-import {OrganizationSummary} from 'app/types';
+import {OrganizationSummary} from 'sentry/types';
 
 import EventView, {EventData} from './eventView';
 

@@ -1,5 +1,3 @@
-import {GridColumnOrder} from 'app/components/gridEditable';
-
 export enum SpanSortPercentiles {
   P50_EXCLUSIVE_TIME = 'p50ExclusiveTime',
   P75_EXCLUSIVE_TIME = 'p75ExclusiveTime',
@@ -9,6 +7,7 @@ export enum SpanSortPercentiles {
 
 export enum SpanSortOthers {
   COUNT = 'count',
+  AVG_OCCURRENCE = 'avgOccurrence',
   SUM_EXCLUSIVE_TIME = 'sumExclusiveTime',
 }
 
@@ -20,20 +19,6 @@ export type SpanSortOption = {
   field: SpanSort;
 };
 
-export type SuspectSpanTableColumnKeys =
-  | 'id'
-  | 'timestamp'
-  | 'transactionDuration'
-  | 'spanDuration'
-  | 'occurrences'
-  | 'cumulativeDuration'
-  | 'spans';
-
-export type SuspectSpanTableColumn = GridColumnOrder<SuspectSpanTableColumnKeys>;
-
-export type SuspectSpanDataRow = Record<SuspectSpanTableColumnKeys, any>;
-
 export type SpansTotalValues = {
   count: number;
-  sum_transaction_duration: number;
 };

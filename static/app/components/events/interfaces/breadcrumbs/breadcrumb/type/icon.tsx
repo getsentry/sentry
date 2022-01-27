@@ -11,8 +11,8 @@ import {
   IconTerminal,
   IconUser,
   IconWarning,
-} from 'app/icons';
-import {BreadcrumbType} from 'app/types/breadcrumbs';
+} from 'sentry/icons';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 type Props = {
   type: BreadcrumbType;

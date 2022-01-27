@@ -1,15 +1,15 @@
-import {memo, ReactNode} from 'react';
+import {memo} from 'react';
 
-import Role from 'app/components/acl/role';
-import {IssueAttachment, Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import {Role} from 'sentry/components/acl/role';
+import {IssueAttachment, Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   organization: Organization;
   projectId: string;
   eventId: string;
   attachment: IssueAttachment;
-  children: (downloadUrl: string | null) => ReactNode;
+  children: (downloadUrl: string | null) => React.ReactElement | null;
 };
 
 function AttachmentUrl({attachment, organization, eventId, projectId, children}: Props) {

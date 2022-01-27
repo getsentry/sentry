@@ -3,9 +3,9 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import EventView from 'app/utils/discover/eventView';
-import Table from 'app/views/performance/table';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
+import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
 
@@ -181,7 +181,7 @@ describe('Performance > Table', function () {
         statsPeriod: '14d',
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
-        query: 'event.type:transaction', // drops 'transaction:/api*' from the query
+        query: '', // drops 'transaction:/api*' and 'event.type:transaction' from the query
         unselectedSeries: 'p100()',
         showTransactions: undefined,
         display: undefined,

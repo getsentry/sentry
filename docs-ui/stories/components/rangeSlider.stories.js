@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import RangeSlider from 'sentry/views/settings/components/forms/controls/rangeSlider';
 
 export default {
   title: 'Components/Forms/Controls/Range Slider',

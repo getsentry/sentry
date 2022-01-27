@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {getSelector, openMenu, selectByValue} from 'sentry-test/select-new';
 
-import ModalActions from 'app/actions/modalActions';
-import RuleNode from 'app/views/alerts/issueRuleEditor/ruleNode';
+import ModalActions from 'sentry/actions/modalActions';
+import RuleNode from 'sentry/views/alerts/issueRuleEditor/ruleNode';
 
 describe('RuleNode', function () {
   let project;

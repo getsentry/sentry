@@ -2,7 +2,7 @@ import copy from 'copy-text-to-clipboard';
 
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ClipboardTooltip from 'app/components/clipboardTooltip';
+import ClipboardTooltip from 'sentry/components/clipboardTooltip';
 
 jest.mock('copy-text-to-clipboard');
 

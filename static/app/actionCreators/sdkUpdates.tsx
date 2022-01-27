@@ -1,5 +1,5 @@
-import SdkUpdatesActions from 'app/actions/sdkUpdatesActions';
-import {Client} from 'app/api';
+import SdkUpdatesActions from 'sentry/actions/sdkUpdatesActions';
+import {Client} from 'sentry/api';
 
 /**
  * Load SDK Updates for a specific organization

@@ -1,6 +1,8 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
+import pytz
 from django.urls import reverse
+from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
@@ -20,6 +22,7 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import (
     build_activity_context,
     generate_incident_activity_email,
+    handle_subscription_metrics_logger,
     handle_trigger_action,
     send_subscriber_notifications,
 )
@@ -187,3 +190,43 @@ class HandleTriggerActionTest(TestCase):
                 )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
             mock_handler.return_value.fire.assert_called_once_with(metric_value)
+
+
+class TestHandleSubscriptionMetricsLogger(TestCase):
+    @fixture
+    def rule(self):
+        return self.create_alert_rule()
+
+    @fixture
+    def subscription(self):
+        return self.rule.snuba_query.subscriptions.get()
+
+    def build_subscription_update(self):
+        timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
+        data = {"count": 100}
+        values = {"data": [data]}
+        return {
+            "subscription_id": self.subscription.subscription_id,
+            "values": values,
+            "timestamp": timestamp,
+            "interval": 1,
+            "partition": 1,
+            "offset": 1,
+        }
+
+    def test(self):
+        with patch("sentry.incidents.tasks.metrics") as metrics:
+            handle_subscription_metrics_logger(self.build_subscription_update(), self.subscription)
+            assert metrics.incr.call_args_list == [
+                call(
+                    "subscriptions.result.value",
+                    100,
+                    tags={
+                        "project_id": self.project.id,
+                        "project_slug": self.project.slug,
+                        "subscription_id": self.subscription.id,
+                        "time_window": 600,
+                    },
+                    sample_rate=1.0,
+                )
+            ]

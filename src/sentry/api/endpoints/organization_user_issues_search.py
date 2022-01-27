@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
@@ -9,7 +10,7 @@ from sentry.models import EventUser, Group, OrganizationMemberTeam, Project
 
 
 class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         email = request.GET.get("email")
 
         if email is None:

@@ -1,18 +1,17 @@
-import {Component} from 'react';
-
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   organization: Organization;
+  children: React.ReactChildren;
 };
 
-class DiscoverContainer extends Component<Props> {
-  renderNoAccess() {
+function DiscoverContainer({organization, children}: Props) {
+  function renderNoAccess() {
     return (
       <PageContent>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
@@ -20,20 +19,16 @@ class DiscoverContainer extends Component<Props> {
     );
   }
 
-  render() {
-    const {organization, children} = this.props;
-
-    return (
-      <Feature
-        features={['discover-basic']}
-        organization={organization}
-        hookName="feature-disabled:discover2-page"
-        renderDisabled={this.renderNoAccess}
-      >
-        {children}
-      </Feature>
-    );
-  }
+  return (
+    <Feature
+      features={['discover-basic']}
+      organization={organization}
+      hookName="feature-disabled:discover2-page"
+      renderDisabled={renderNoAccess}
+    >
+      {children}
+    </Feature>
+  );
 }
 
 export default withOrganization(DiscoverContainer);

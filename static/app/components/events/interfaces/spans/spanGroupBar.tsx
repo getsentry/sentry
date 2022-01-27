@@ -1,36 +1,40 @@
 import * as React from 'react';
 import countBy from 'lodash/countBy';
 
-import Count from 'app/components/count';
-import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
-import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
-import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
+import Count from 'sentry/components/count';
+import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
+import {
+  Row,
+  RowCell,
+  RowCellContainer,
+} from 'sentry/components/performance/waterfall/row';
+import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
   DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
-} from 'app/components/performance/waterfall/rowDivider';
+} from 'sentry/components/performance/waterfall/rowDivider';
 import {
   RowTitle,
   RowTitleContainer,
   SpanGroupRowTitleContent,
-} from 'app/components/performance/waterfall/rowTitle';
+} from 'sentry/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
   TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
-} from 'app/components/performance/waterfall/treeConnector';
+} from 'sentry/components/performance/waterfall/treeConnector';
 import {
   getDurationDisplay,
   getHumanDuration,
   toPercent,
-} from 'app/components/performance/waterfall/utils';
-import {t} from 'app/locale';
-import {EventTransaction} from 'app/types/event';
-import {defined} from 'app/utils';
-import theme from 'app/utils/theme';
+} from 'sentry/components/performance/waterfall/utils';
+import {t} from 'sentry/locale';
+import {EventTransaction} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import theme from 'sentry/utils/theme';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
@@ -229,7 +233,7 @@ class SpanGroupBar extends React.Component<Props> {
         // which does not exist.
         return null;
       }
-      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 2) * -1;
 
       return (
         <ConnectorBar
@@ -243,9 +247,9 @@ class SpanGroupBar extends React.Component<Props> {
     connectorBars.push(
       <ConnectorBar
         style={{
-          right: '16px',
+          right: '15px',
           height: `${ROW_HEIGHT / 2}px`,
-          bottom: `-${ROW_HEIGHT / 2}px`,
+          bottom: `-${ROW_HEIGHT / 2 + 1}px`,
           top: 'auto',
         }}
         key="collapsed-span-group-row-bottom"

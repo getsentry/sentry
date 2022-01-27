@@ -4,15 +4,15 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import PanelTable from 'app/components/panels/panelTable';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
-import {defined} from 'app/utils';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import PanelTable from 'sentry/components/panels/panelTable';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
+import {defined} from 'sentry/utils';
 
 import SearchBarAction from '../../searchBarAction';
 import SearchBarActionFilter from '../../searchBarAction/searchBarActionFilter';
@@ -388,7 +388,7 @@ const Header = styled('div')`
 const Title = styled('div')`
   padding-right: ${space(4)};
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: repeat(2, max-content);
   align-items: center;
   font-weight: 600;

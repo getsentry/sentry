@@ -384,3 +384,6 @@ register("performance.suspect-spans-ingestion.rollout-rate", default=0)
 # Sampling rate for controlled rollout of a change where ignest-consumer spawns
 # special save_event task for transactions avoiding the preprocess.
 register("store.save-transactions-ingest-consumer-rate", default=0.0)
+
+# Drop delete_old_primary_hash messages for a particular project.
+register("reprocessing2.drop-delete-old-primary-hash", default=[])

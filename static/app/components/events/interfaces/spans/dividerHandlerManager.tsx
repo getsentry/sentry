@@ -4,8 +4,8 @@ import {
   clamp,
   rectOfContent,
   toPercent,
-} from 'app/components/performance/waterfall/utils';
-import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
+} from 'sentry/components/performance/waterfall/utils';
+import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 // divider handle is positioned at 50% width from the left-hand side
 const DEFAULT_DIVIDER_POSITION = 0.4;

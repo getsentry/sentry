@@ -1,5 +1,5 @@
-import {EChartOption, ECharts} from 'echarts';
-import ReactEchartsCore from 'echarts-for-react/lib/core';
+import type {AxisPointerComponentOption, ECharts, LineSeriesOption} from 'echarts';
+import type ReactEchartsCore from 'echarts-for-react/lib/core';
 
 export type SeriesDataUnit = {
   value: number;
@@ -18,10 +18,10 @@ export type Series = {
     color: string;
     opacity: number;
   };
-  lineStyle?: EChartOption.LineStyle;
+  lineStyle?: AxisPointerComponentOption['lineStyle'];
   stack?: string; // https://echarts.apache.org/en/option.html#series-line.stack
   z?: number; // https://echarts.apache.org/en/option.html#series-line.z
-  markLine?: EChartOption.SeriesLine['markLine'];
+  markLine?: LineSeriesOption['markLine'];
 };
 
 export type ReactEchartsRef = ReactEchartsCore & {

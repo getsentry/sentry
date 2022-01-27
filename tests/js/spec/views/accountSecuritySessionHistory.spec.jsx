@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import SessionHistory from 'app/views/settings/account/accountSecurity/sessionHistory';
+import {Client} from 'sentry/api';
+import SessionHistory from 'sentry/views/settings/account/accountSecurity/sessionHistory';
 
 const ENDPOINT = '/users/me/ips/';
 const ORG_ENDPOINT = '/organizations/';

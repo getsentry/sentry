@@ -1,4 +1,5 @@
 from django.core.cache import cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -9,7 +10,7 @@ from sentry.utils.hashlib import hash_values
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Get list with release setup progress for a project
         1. tag an error

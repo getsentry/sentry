@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import EmailVerificationModal from 'app/components/modals/emailVerificationModal.tsx';
+import EmailVerificationModal from 'sentry/components/modals/emailVerificationModal.tsx';
 
 describe('Email Verification Modal', function () {
   let wrapper;

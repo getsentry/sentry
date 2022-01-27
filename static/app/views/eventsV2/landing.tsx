@@ -4,25 +4,26 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import {stringify} from 'query-string';
 
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import Switch from 'app/components/switchButton';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {Organization, SavedQuery, SelectValue} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {decodeScalar} from 'app/utils/queryString';
-import withOrganization from 'app/utils/withOrganization';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import {Title} from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import Switch from 'sentry/components/switchButton';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, SavedQuery, SelectValue} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import Banner from './banner';
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -293,9 +294,11 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  <GuideAnchor target="discover_landing_header">
-                    {t('Discover')}
-                  </GuideAnchor>
+                  <Title>
+                    <GuideAnchor target="discover_landing_header">
+                      {t('Discover')}
+                    </GuideAnchor>
+                  </Title>
                   <StyledButton
                     data-test-id="build-new-query"
                     to={to}
@@ -350,7 +353,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledActions = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: auto max-content min-content;
   align-items: center;
   margin-bottom: ${space(2)};

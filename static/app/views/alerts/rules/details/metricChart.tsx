@@ -2,47 +2,50 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
+import type {LineSeriesOption} from 'echarts';
 import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import Button from 'app/components/button';
-import ChartZoom from 'app/components/charts/chartZoom';
-import MarkArea from 'app/components/charts/components/markArea';
-import MarkLine from 'app/components/charts/components/markLine';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
-import LineSeries from 'app/components/charts/series/lineSeries';
-import SessionsRequest from 'app/components/charts/sessionsRequest';
-import {SectionHeading} from 'app/components/charts/styles';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import Button from 'sentry/components/button';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import MarkArea from 'sentry/components/charts/components/markArea';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
+import LineSeries from 'sentry/components/charts/series/lineSeries';
+import SessionsRequest from 'sentry/components/charts/sessionsRequest';
+import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
   StatsPeriodType,
-} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {AvatarProject, DateString, Organization, Project} from 'app/types';
-import {ReactEchartsRef, Series} from 'app/types/echarts';
-import {getUtcDateString} from 'app/utils/dates';
-import getDynamicText from 'app/utils/getDynamicText';
+} from 'sentry/components/organizations/pageFilters/parse';
+import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import Truncate from 'sentry/components/truncate';
+import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import {AvatarProject, DateString, Organization, Project} from 'sentry/types';
+import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {getUtcDateString} from 'sentry/utils/dates';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
-} from 'app/utils/sessions';
-import theme from 'app/utils/theme';
-import {checkChangeStatus} from 'app/views/alerts/changeAlerts/comparisonMarklines';
-import {alertDetailsLink} from 'app/views/alerts/details';
-import {COMPARISON_DELTA_OPTIONS} from 'app/views/alerts/incidentRules/constants';
-import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
-import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
-import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
+} from 'sentry/utils/sessions';
+import theme from 'sentry/utils/theme';
+import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
+import {alertDetailsLink} from 'sentry/views/alerts/details';
+import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
+import {makeDefaultCta} from 'sentry/views/alerts/incidentRules/incidentRulePresets';
+import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {
@@ -65,8 +68,8 @@ type Props = WithRouterProps & {
   organization: Organization;
   projects: Project[] | AvatarProject[];
   interval: string;
-  filter: React.ReactNode;
   query: string;
+  filter: string[] | null;
   orgId: string;
   handleZoom: (start: DateString, end: DateString) => void;
 };
@@ -90,7 +93,7 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
     markLine: MarkLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'dashed', width: 1},
-      data: [{yAxis: threshold} as any],
+      data: [{yAxis: threshold}],
       label: {
         show: false,
       },
@@ -111,7 +114,7 @@ function createStatusAreaSeries(
     markLine: MarkLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'solid', width: 4},
-      data: [[{coord: [startTime, yPosition]}, {coord: [endTime, yPosition]}] as any],
+      data: [[{coord: [startTime, yPosition]}, {coord: [endTime, yPosition]}]],
     }),
     data: [],
   };
@@ -126,16 +129,38 @@ function createIncidentSeries(
   dataPoint?: LineChartSeries['data'][0],
   seriesName?: string,
   aggregate?: string
-) {
+): LineChartSeries {
+  const formatter = ({value, marker}: any) => {
+    const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
+    return [
+      `<div class="tooltip-series"><div>`,
+      `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
+        incident.identifier
+      }</strong></span>${
+        dataPoint?.value
+          ? `${seriesName} ${alertTooltipValueFormatter(
+              dataPoint.value,
+              seriesName ?? '',
+              aggregate ?? ''
+            )}`
+          : ''
+      }`,
+      `</div></div>`,
+      `<div class="tooltip-date">${time}</div>`,
+      '<div class="tooltip-arrow"></div>',
+    ].join('');
+  };
+
   const series = {
     seriesName: 'Incident Line',
-    type: 'line',
+    type: 'line' as const,
     markLine: MarkLine({
       silent: false,
       lineStyle: {color: lineColor, type: 'solid'},
       data: [
         {
           xAxis: incidentTimestamp,
+          // @ts-expect-error onClick not in echart types
           onClick: () => {
             router.push({
               pathname: alertDetailsLink(organization, incident),
@@ -143,41 +168,25 @@ function createIncidentSeries(
             });
           },
         },
-      ] as any,
+      ],
       label: {
-        show: incident.identifier,
+        silent: true,
+        show: !!incident.identifier,
         position: 'insideEndBottom',
         formatter: incident.identifier,
         color: lineColor,
         fontSize: 10,
         fontFamily: 'Rubik',
-      } as any,
+      },
+      tooltip: {
+        formatter,
+      },
     }),
     data: [],
-  };
-  // tooltip conflicts with MarkLine types
-  (series.markLine as any).tooltip = {
-    trigger: 'item',
-    alwaysShowContent: true,
-    formatter: ({value, marker}) => {
-      const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
-      return [
-        `<div class="tooltip-series"><div>`,
-        `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
-          incident.identifier
-        }</strong></span>${
-          dataPoint?.value
-            ? `${seriesName} ${alertTooltipValueFormatter(
-                dataPoint.value,
-                seriesName ?? '',
-                aggregate ?? ''
-              )}`
-            : ''
-        }`,
-        `</div></div>`,
-        `<div class="tooltip-date">${time}</div>`,
-        `<div class="tooltip-arrow"></div>`,
-      ].join('');
+    tooltip: {
+      trigger: 'item' as const,
+      alwaysShowContent: true,
+      formatter,
     },
   };
 
@@ -222,7 +231,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
-  getRuleChangeSeries = (data: LineChartSeries[]): any[] => {
+  getRuleChangeSeries = (data: LineChartSeries[]): LineSeriesOption[] => {
     const {dateModified} = this.props.rule || {};
 
     if (!data.length || !data[0].data.length || !dateModified) {
@@ -243,7 +252,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         markLine: MarkLine({
           silent: true,
           lineStyle: {color: theme.gray200, type: 'solid', width: 1},
-          data: [{xAxis: ruleChanged} as any],
+          data: [{xAxis: ruleChanged}],
           label: {
             show: false,
           },
@@ -253,7 +262,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           itemStyle: {
             color: color(theme.gray100).alpha(0.42).rgb().string(),
           },
-          data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]] as any,
+          data: [[{xAxis: seriesStart}, {xAxis: ruleChanged}]],
         }),
         data: [],
       },
@@ -273,6 +282,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       eventType: query,
       start: timePeriod.start,
       end: timePeriod.end,
+      fields: ['issue', 'title', 'count()', 'count_unique(user)'],
     };
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);
@@ -325,7 +335,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       interval,
       handleZoom,
       filter,
-      query,
       incidents,
       rule,
       organization,
@@ -489,7 +498,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 itemStyle: {
                   color: color(selectedIncidentColor).alpha(0.42).rgb().string(),
                 },
-                data: [[{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}]] as any,
+                data: [[{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}]],
               }),
               data: [],
             });
@@ -512,20 +521,35 @@ class MetricChart extends React.PureComponent<Props, State> {
       maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
     }
 
+    if (!rule.comparisonDelta && rule.resolveThreshold) {
+      const resolveThresholdLine = createThresholdSeries(
+        theme.green300,
+        rule.resolveThreshold
+      );
+      series.push(resolveThresholdLine);
+      maxThresholdValue = Math.max(maxThresholdValue, rule.resolveThreshold);
+    }
+
     const comparisonSeriesName = capitalize(
       COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)?.label ||
         ''
     );
 
+    const queryFilter = filter?.join(' ');
+
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
           <ChartHeader>
-            <ChartTitle>
+            <HeaderTitleLegend>
               {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
-            </ChartTitle>
-            {query ? filter : null}
+            </HeaderTitleLegend>
           </ChartHeader>
+          <ChartFilters>
+            <StyledCircleIndicator size={8} />
+            <Filters>{rule.aggregate}</Filters>
+            <Truncate value={queryFilter ?? ''} maxLength={75} />
+          </ChartFilters>
           {getDynamicText({
             value: (
               <ChartZoom
@@ -544,7 +568,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                     grid={{
                       left: space(0.25),
                       right: space(2),
-                      top: space(2),
+                      top: space(3),
                       bottom: 0,
                     }}
                     yAxis={{
@@ -665,7 +689,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                               Math.sign(changePercentage) === 1 ? '+' : '-'
                             }${Math.abs(changePercentage).toFixed(2)}%</span>`,
                           `</div>`,
-                          `<div class="tooltip-arrow"></div>`,
+                          '<div class="tooltip-arrow"></div>',
                         ]
                           .filter(e => e)
                           .join('');
@@ -788,9 +812,28 @@ const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const ChartTitle = styled('header')`
-  display: flex;
-  flex-direction: row;
+const StyledCircleIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.formText};
+  height: ${space(1)};
+  margin-right: ${space(0.5)};
+`;
+
+const ChartFilters = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.textColor};
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+`;
+
+const Filters = styled('span')`
+  margin-right: ${space(1)};
 `;
 
 const ChartActions = styled(PanelFooter)`

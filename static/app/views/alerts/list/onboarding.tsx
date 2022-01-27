@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/alerts-empty-state.svg';
 
-import ButtonBar from 'app/components/buttonBar';
-import OnboardingPanel from 'app/components/onboardingPanel';
-import {t} from 'app/locale';
+import ButtonBar from 'sentry/components/buttonBar';
+import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {t} from 'sentry/locale';
 
 type Props = {
   actions: React.ReactNode;

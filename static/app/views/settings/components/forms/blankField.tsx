@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import Field from 'app/views/settings/components/forms/field';
+import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = Field['props'];
 

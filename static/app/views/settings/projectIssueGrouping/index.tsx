@@ -1,18 +1,18 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import ProjectActions from 'app/actions/projectActions';
-import Feature from 'app/components/acl/feature';
-import ExternalLink from 'app/components/links/externalLink';
-import {fields} from 'app/data/forms/projectIssueGrouping';
-import {t, tct} from 'app/locale';
-import {EventGroupingConfig, Organization, Project} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import ProjectActions from 'sentry/actions/projectActions';
+import Feature from 'sentry/components/acl/feature';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {fields} from 'sentry/data/forms/projectIssueGrouping';
+import {t, tct} from 'sentry/locale';
+import {EventGroupingConfig, Organization, Project} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import UpgradeGrouping from './upgradeGrouping';
 

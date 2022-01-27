@@ -8,11 +8,11 @@ type Props = {
 
 type NavProps = Omit<React.HTMLProps<HTMLUListElement>, keyof Props> & Props;
 
-function NavTabs(props: NavProps) {
-  const {underlined, className, ...tabProps} = props;
+function NavTabs({underlined, className, ...tabProps}: NavProps) {
   const mergedClassName = classnames('nav nav-tabs', className, {
     'border-bottom': underlined,
   });
+
   return <ul className={mergedClassName} {...tabProps} />;
 }
 

@@ -8,20 +8,20 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import CircleIndicator from 'app/components/circleIndicator';
-import DateTime from 'app/components/dateTime';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Authenticator, AuthenticatorDevice} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import RecoveryCodes from 'app/views/settings/account/accountSecurity/components/recoveryCodes';
-import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
-import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import CircleIndicator from 'sentry/components/circleIndicator';
+import DateTime from 'sentry/components/dateTime';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Authenticator, AuthenticatorDevice} from 'sentry/types';
+import AsyncView from 'sentry/views/asyncView';
+import RecoveryCodes from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
+import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
+import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/authenticators/';
 
@@ -210,7 +210,7 @@ const AuthenticatorActions = styled('div')`
 
 const AuthenticatorDates = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: max-content auto;
 `;
 

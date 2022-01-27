@@ -1,11 +1,11 @@
 import isString from 'lodash/isString';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
-import {escapeDoubleQuotes} from 'app/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
 
 // remove leading and trailing whitespace and remove double spaces
-export function formatQueryString(qs: string): string {
-  return qs.trim().replace(/\s+/g, ' ');
+export function formatQueryString(query: string): string {
+  return query.trim().replace(/\s+/g, ' ');
 }
 
 export function addQueryParamsToExistingUrl(
@@ -26,7 +26,7 @@ export function addQueryParamsToExistingUrl(
   const params = JSON.parse(JSON.stringify(queryParams));
   const query = {...Object.fromEntries(searchEntries), ...params};
 
-  return `${url.protocol}//${url.host}${url.pathname}?${queryString.stringify(query)}`;
+  return `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(query)}`;
 }
 
 type QueryValue = string | string[] | undefined | null;

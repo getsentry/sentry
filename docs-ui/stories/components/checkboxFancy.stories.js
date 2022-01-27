@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 
 export default {
   title: 'Components/Forms/Misc/Checkbox Fancy',

@@ -1,4 +1,5 @@
 import sentry_sdk
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -9,7 +10,7 @@ from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTea
 
 
 class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Users
         ````````````````````````````

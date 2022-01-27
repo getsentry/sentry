@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import AvatarList from 'app/components/avatar/avatarList';
-import {Member} from 'app/types';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import AvatarList from 'sentry/components/avatar/avatarList';
+import {Member} from 'sentry/types';
 
 type Props = AsyncComponent['props'] & {
   teamId: string;

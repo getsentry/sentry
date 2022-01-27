@@ -1,20 +1,21 @@
 import * as React from 'react';
 import {withTheme} from '@emotion/react';
-import echarts, {EChartOption} from 'echarts';
+import type {MapSeriesOption, TooltipComponentOption} from 'echarts';
+import * as echarts from 'echarts/core';
 import max from 'lodash/max';
 
-import {Series, SeriesDataUnit} from 'app/types/echarts';
-import {Theme} from 'app/utils/theme';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {Theme} from 'sentry/utils/theme';
 
 import VisualMap from './components/visualMap';
 import MapSeries from './series/mapSeries';
 import BaseChart from './baseChart';
 
-type ChartProps = React.ComponentProps<typeof BaseChart>;
+type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
 type MapChartSeriesDataUnit = Omit<SeriesDataUnit, 'name' | 'itemStyle'> & {
   // Docs for map itemStyle differ from Series data unit. See https://echarts.apache.org/en/option.html#series-map.data.itemStyle
-  itemStyle?: EChartOption.SeriesMap.DataObject['itemStyle'];
+  itemStyle?: MapSeriesOption['itemStyle'];
   name?: string;
 };
 
@@ -25,7 +26,7 @@ type MapChartSeries = Omit<Series, 'data'> & {
 type Props = Omit<ChartProps, 'series'> & {
   series: MapChartSeries[];
   theme: Theme;
-  seriesOptions?: EChartOption.SeriesMap;
+  seriesOptions?: MapSeriesOption;
   fromDiscover?: boolean;
   fromDiscoverQueryList?: boolean;
 };
@@ -54,11 +55,11 @@ class WorldMapChart extends React.Component<Props, State> {
 
   async componentDidMount() {
     const [countryToCodeMap, worldMap] = await Promise.all([
-      import('app/data/countryCodesMap'),
-      import('app/data/world.json'),
+      import('sentry/data/countryCodesMap'),
+      import('sentry/data/world.json'),
     ]);
 
-    echarts.registerMap('sentryWorld', worldMap.default);
+    echarts.registerMap('sentryWorld', worldMap.default as any);
 
     // eslint-disable-next-line
     this.setState({
@@ -99,12 +100,12 @@ class WorldMapChart extends React.Component<Props, State> {
         itemStyle: {
           areaColor: theme.gray200,
           borderColor: theme.backgroundSecondary,
-          emphasis: {
+        },
+        emphasis: {
+          itemStyle: {
             areaColor: theme.pink300,
           },
-        } as any, // TODO(ts): Echarts types aren't correct for these colors as they don't allow for basic strings
-        label: {
-          emphasis: {
+          label: {
             show: false,
           },
         },
@@ -119,9 +120,7 @@ class WorldMapChart extends React.Component<Props, State> {
     // Otherwise it should be 0-100
     const maxValue = max(series.map(({data}) => max(data.map(({value}) => value)))) || 1;
 
-    const tooltipFormatter: EChartOption.Tooltip.Formatter = (
-      format: EChartOption.Tooltip.Format | EChartOption.Tooltip.Format[]
-    ) => {
+    const tooltipFormatter: TooltipComponentOption['formatter'] = (format: any) => {
       const {marker, name, value} = Array.isArray(format) ? format[0] : format;
       // If value is NaN, don't show anything because we won't have a country code either
       if (isNaN(value as number)) {

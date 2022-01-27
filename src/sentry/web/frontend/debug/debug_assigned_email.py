@@ -1,10 +1,12 @@
+from rest_framework.request import Request
+
 from sentry.models import Activity
 
 from .mail import ActivityMailDebugView
 
 
 class DebugAssignedEmailView(ActivityMailDebugView):
-    def get_activity(self, request, event):
+    def get_activity(self, request: Request, event):
         return {
             "type": Activity.ASSIGNED,
             "user": request.user,
@@ -17,7 +19,7 @@ class DebugAssignedEmailView(ActivityMailDebugView):
 
 
 class DebugSelfAssignedEmailView(ActivityMailDebugView):
-    def get_activity(self, request, event):
+    def get_activity(self, request: Request, event):
         return {
             "type": Activity.ASSIGNED,
             "user": request.user,
@@ -30,7 +32,7 @@ class DebugSelfAssignedEmailView(ActivityMailDebugView):
 
 
 class DebugSelfAssignedTeamEmailView(ActivityMailDebugView):
-    def get_activity(self, request, event):
+    def get_activity(self, request: Request, event):
         return {
             "type": Activity.ASSIGNED,
             "user": request.user,

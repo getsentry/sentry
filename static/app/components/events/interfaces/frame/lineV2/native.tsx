@@ -1,11 +1,10 @@
-import {MouseEvent, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
-import {t} from 'app/locale';
-import {DebugMetaActions} from 'app/stores/debugMetaStore';
-import space from 'app/styles/space';
-import {Frame} from 'app/types';
+import {t} from 'sentry/locale';
+import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import space from 'sentry/styles/space';
+import {Frame} from 'sentry/types';
 
 import DebugImage from '../../debugMeta/debugImage';
 import {combineStatus} from '../../debugMeta/utils';
@@ -24,7 +23,7 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    onMouseDown?: MouseEventHandler<HTMLDivElement>;
+    onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
     onClick?: () => void;
     isFrameAfterLastNonApp?: boolean;
     includeSystemFrames?: boolean;
@@ -86,7 +85,7 @@ function Native({
     return addr;
   }
 
-  function scrollToImage(event: MouseEvent<HTMLAnchorElement>) {
+  function scrollToImage(event: React.MouseEvent<HTMLAnchorElement>) {
     event.stopPropagation(); // to prevent collapsing if collapsible
 
     if (instructionAddr) {
@@ -178,7 +177,7 @@ const PackageInfo = styled('span')`
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: auto 1fr;
   align-items: center;
   justify-content: flex-start;

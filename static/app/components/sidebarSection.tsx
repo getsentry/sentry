@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 type Props = {
   title: React.ReactNode;
@@ -29,7 +29,7 @@ const Wrapper = styled('div')`
 `;
 
 const Heading = styled('h6')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
   display: flex;
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;

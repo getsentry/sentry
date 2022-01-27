@@ -1,12 +1,12 @@
 import {useEffect} from 'react';
-import DocumentTitle from 'react-document-title';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
-import NotFound from 'app/components/errors/notFound';
-import Footer from 'app/components/footer';
-import Sidebar from 'app/components/sidebar';
-import {t} from 'app/locale';
+import NotFound from 'sentry/components/errors/notFound';
+import Footer from 'sentry/components/footer';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import Sidebar from 'sentry/components/sidebar';
+import {t} from 'sentry/locale';
 
 type Props = RouteComponentProps<{}, {}>;
 
@@ -33,7 +33,7 @@ function RouteNotFound({router, location}: Props) {
   }
 
   return (
-    <DocumentTitle title={t('Page Not Found')}>
+    <SentryDocumentTitle title={t('Page Not Found')}>
       <div className="app">
         <Sidebar location={location} />
         <div className="container">
@@ -45,7 +45,7 @@ function RouteNotFound({router, location}: Props) {
         </div>
         <Footer />
       </div>
-    </DocumentTitle>
+    </SentryDocumentTitle>
   );
 }
 

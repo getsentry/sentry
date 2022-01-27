@@ -2,14 +2,14 @@ import * as React from 'react';
 import {MultiValueProps, StylesConfig} from 'react-select';
 import {withTheme} from '@emotion/react';
 
-import Button from 'app/components/button';
-import SelectControl from 'app/components/forms/selectControl';
-import TeamSelector from 'app/components/forms/teamSelector';
-import RoleSelectControl from 'app/components/roleSelectControl';
-import {IconClose} from 'app/icons/iconClose';
-import {t} from 'app/locale';
-import {MemberRole, SelectValue} from 'app/types';
-import {Theme} from 'app/utils/theme';
+import Button from 'sentry/components/button';
+import SelectControl from 'sentry/components/forms/selectControl';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import RoleSelectControl from 'sentry/components/roleSelectControl';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import {MemberRole, SelectValue} from 'sentry/types';
+import {Theme} from 'sentry/utils/theme';
 
 import renderEmailValue from './renderEmailValue';
 import {InviteStatus} from './types';

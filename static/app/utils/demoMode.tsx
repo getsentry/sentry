@@ -1,8 +1,5 @@
-import getCookie from 'app/utils/getCookie';
-
 export function extraQueryParameter(): URLSearchParams {
-  // cookies that have = sign are quotes so extra quotes need to be removed
-  const extraQueryString = getCookie('extra_query_string')?.replaceAll('"', '') || '';
+  const extraQueryString = window.SandboxData?.extraQueryString || '';
   const extraQuery = new URLSearchParams(extraQueryString);
   return extraQuery;
 }

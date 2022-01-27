@@ -3,12 +3,12 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import GroupStore from 'app/stores/groupStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import GroupDetails from 'app/views/organizationGroupDetails';
+import GroupStore from 'sentry/stores/groupStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import GroupDetails from 'sentry/views/organizationGroupDetails';
 
-jest.unmock('app/utils/recreateRoute');
+jest.unmock('sentry/utils/recreateRoute');
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
@@ -110,7 +110,7 @@ describe('groupDetails', () => {
   afterEach(() => {
     act(() => ProjectsStore.reset());
     GroupStore.reset();
-    GlobalSelectionStore.reset();
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -185,10 +185,10 @@ describe('groupDetails', () => {
     expect(screen.queryByText('Group Details Mock')).not.toBeInTheDocument();
     await waitFor(() => {
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        '/organizations/org-slug/issues/new-id/?foo=bar#hash'
-      );
     });
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/new-id/?foo=bar#hash'
+    );
   });
 
   it('renders issue event error', async function () {

@@ -3,12 +3,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {action} from '@storybook/addon-actions';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownLink from 'app/components/dropdownLink';
-import NavigationButtonGroup from 'app/components/navigationButtonGroup';
-import {IconDelete} from 'app/icons/iconDelete';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownLink from 'sentry/components/dropdownLink';
+import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
+import {IconDelete} from 'sentry/icons/iconDelete';
 
 const Item = styled('span')`
   padding: 12px;
@@ -33,6 +33,7 @@ _Button.args = {
   priority: undefined,
   size: undefined,
   borderless: false,
+  translucentBorder: false,
   icon: false,
   busy: false,
   disabled: false,

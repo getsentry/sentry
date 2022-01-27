@@ -2,13 +2,13 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import NoProjectMessage from 'app/components/noProjectMessage';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {Organization, Project} from 'app/types';
-import Projects from 'app/utils/projects';
-import withOrganization from 'app/utils/withOrganization';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {Organization, Project} from 'sentry/types';
+import Projects from 'sentry/utils/projects';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import EventDetailsContent from './content';
 import FinishSetupAlert from './finishSetupAlert';

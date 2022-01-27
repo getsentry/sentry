@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -7,7 +8,7 @@ from sentry.models.project import Project, ProjectStatus
 
 
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request, organization, project_slug, event_id):
+    def get(self, request: Request, organization, project_slug, event_id) -> Response:
         """event_id is validated by a regex in the URL"""
         if not self.has_feature(organization, request):
             return Response(status=404)

@@ -4,7 +4,7 @@ import 'react-date-range/dist/theme/default.css';
 import {DateRangePicker as BaseDateRangePicker} from 'react-date-range';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 const DateRangePicker = styled(BaseDateRangePicker)`
   padding: 21px; /* this is specifically so we can align borders */
@@ -51,7 +51,7 @@ const DateRangePicker = styled(BaseDateRangePicker)`
   }
 
   .rdrDayInPreview {
-    background: ${p => p.theme.focus};
+    background: ${p => p.theme.hover};
   }
 
   .rdrMonth {

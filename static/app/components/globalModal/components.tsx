@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconClose} from 'app/icons/iconClose';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 const ModalHeader = styled('header')`
   position: relative;
@@ -31,13 +31,15 @@ const CloseButton = styled(Button)`
   right: 0;
   transform: translate(50%, -50%);
   border-radius: 50%;
+  border: none;
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
   height: 24px;
   width: 24px;
 `;
 
 CloseButton.defaultProps = {
-  label: t('Close Modal'),
+  ['aria-label']: t('Close Modal'),
   icon: <IconClose size="10px" />,
   size: 'zero',
 };

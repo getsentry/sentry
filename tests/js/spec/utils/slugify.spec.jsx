@@ -1,4 +1,4 @@
-import slugify from 'app/utils/slugify';
+import slugify from 'sentry/utils/slugify';
 
 describe('slugify', function () {
   it('forces to lowercase', function () {

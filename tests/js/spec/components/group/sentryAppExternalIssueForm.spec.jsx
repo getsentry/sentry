@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {changeInputValue, selectByValue} from 'sentry-test/select-new';
 
-import {Client} from 'app/api';
-import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {Client} from 'sentry/api';
+import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
+import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 const optionLabelSelector = label => `[label="${label}"]`;
 

@@ -2,13 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   DynamicSamplingCondition,
   DynamicSamplingConditionLogicalInner,
   DynamicSamplingConditionOperator,
-} from 'app/types/dynamicSampling';
+} from 'sentry/types/dynamicSampling';
 
 import {getInnerNameLabel, LEGACY_BROWSER_LIST} from '../../utils';
 
@@ -63,7 +63,7 @@ export default Conditions;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
 `;
 
 const Label = styled('span')`

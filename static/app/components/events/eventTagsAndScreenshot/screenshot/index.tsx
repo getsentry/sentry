@@ -1,18 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
-import Role from 'app/components/acl/role';
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import DropdownLink from 'app/components/dropdownLink';
-import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
-import {IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {EventAttachment, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Role} from 'sentry/components/acl/role';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import DropdownLink from 'sentry/components/dropdownLink';
+import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
+import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {EventAttachment, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 import DataSection from '../dataSection';
 
@@ -80,7 +80,7 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
               caret={false}
               customTitle={
                 <Button
-                  label={t('Actions')}
+                  aria-label={t('Actions')}
                   size="xsmall"
                   icon={<IconEllipsis size="xs" />}
                 />

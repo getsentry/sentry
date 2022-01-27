@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import EventDataSection, {SectionContents} from 'app/components/events/eventDataSection';
-import QuestionTooltip from 'app/components/questionTooltip';
-import space from 'app/styles/space';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import EventDataSection, {
+  SectionContents,
+} from 'sentry/components/events/eventDataSection';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import space from 'sentry/styles/space';
 
 type Props = {
   title: string;
@@ -40,7 +42,7 @@ export default DataSection;
 const TitleWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, max-content);
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   align-items: center;
   padding: ${space(0.75)} 0;
 `;

@@ -6,40 +6,40 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {updateSavedQueryVisit} from 'app/actionCreators/discoverSavedQueries';
-import {fetchTotalCount} from 'app/actionCreators/events';
-import {fetchProjectsCount} from 'app/actionCreators/projects';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import Confirm from 'app/components/confirm';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import SearchBar from 'app/components/events/searchBar';
-import * as Layout from 'app/components/layouts/thirds';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {MAX_QUERY_LENGTH} from 'app/constants';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, SavedQuery} from 'app/types';
-import {defined, generateQueryWithTag} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
+import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
+import {fetchTotalCount} from 'sentry/actionCreators/events';
+import {fetchProjectsCount} from 'sentry/actionCreators/projects';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Confirm from 'sentry/components/confirm';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import SearchBar from 'sentry/components/events/searchBar';
+import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconFlag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import {defined, generateQueryWithTag} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
-} from 'app/utils/discover/types';
-import localStorage from 'app/utils/localStorage';
-import {decodeList, decodeScalar} from 'app/utils/queryString';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/utils/discover/types';
+import localStorage from 'sentry/utils/localStorage';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {addRoutePerformanceContext} from '../performance/utils';
 
@@ -55,7 +55,7 @@ type Props = {
   router: InjectedRouter;
   location: Location;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   savedQuery?: SavedQuery;
   loading: boolean;
 };
@@ -301,7 +301,7 @@ class Results extends React.Component<Props, State> {
   handleSearch = (query: string) => {
     const {router, location} = this.props;
 
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });
@@ -422,7 +422,7 @@ class Results extends React.Component<Props, State> {
 
     const url = eventView.getResultsViewUrlTarget(organization.slug);
     url.query = generateQueryWithTag(url.query, {
-      key,
+      key: formatTagKey(key),
       value,
     });
     return url;
@@ -620,12 +620,12 @@ function ResultsContainer(props: Props) {
    */
 
   return (
-    <GlobalSelectionHeader
+    <PageFiltersContainer
       skipLoadLastUsed={props.organization.features.includes('global-views')}
     >
       <SavedQueryAPI {...props} />
-    </GlobalSelectionHeader>
+    </PageFiltersContainer>
   );
 }
 
-export default withApi(withOrganization(withGlobalSelection(ResultsContainer)));
+export default withApi(withOrganization(withPageFilters(ResultsContainer)));

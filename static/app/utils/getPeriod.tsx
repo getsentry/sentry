@@ -1,21 +1,22 @@
 import moment from 'moment';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {getUtcDateString} from 'app/utils/dates';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DateString} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
 
 type DateObject = {
   /**
    * Relative period string in format "<int><unit>" (e.g. 4d for 4 days)
    */
-  period?: string;
+  period?: string | null;
   /**
    * Starting date object
    */
-  start?: string | Date | null;
+  start?: DateString;
   /**
    * Ending date object
    */
-  end?: string | Date | null;
+  end?: DateString;
 };
 
 type Options = {
@@ -31,10 +32,10 @@ type Options = {
  *
  * Returns an object with either a period or start/end dates ({statsPeriod: string} or {start: string, end: string})
  */
-export const getPeriod = (
+export function getPeriod(
   {period, start, end}: DateObject,
   {shouldDoublePeriod}: Options = {}
-) => {
+) {
   if (!period && !start && !end) {
     period = DEFAULT_STATS_PERIOD;
   }
@@ -74,4 +75,4 @@ export const getPeriod = (
     start: formattedStart,
     end: formattedEnd,
   };
-};
+}

@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Device from 'app/components/events/contexts/device/device';
-import {commonDisplayResolutions} from 'app/components/events/contexts/device/utils';
-import User from 'app/components/events/contexts/user/user';
-import {FILTER_MASK} from 'app/constants';
+import Device from 'sentry/components/events/contexts/device/device';
+import {commonDisplayResolutions} from 'sentry/components/events/contexts/device/utils';
+import User from 'sentry/components/events/contexts/user/user';
+import {FILTER_MASK} from 'sentry/constants';
 
 describe('User', function () {
   it("displays filtered values but doesn't use them for avatar", function () {

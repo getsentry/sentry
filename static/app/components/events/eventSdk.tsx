@@ -1,7 +1,7 @@
-import EventDataSection from 'app/components/events/eventDataSection';
-import Annotated from 'app/components/events/meta/annotated';
-import {t} from 'app/locale';
-import {Event} from 'app/types/event';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import Annotated from 'sentry/components/events/meta/annotated';
+import {t} from 'sentry/locale';
+import {Event} from 'sentry/types/event';
 
 type Props = {
   sdk: NonNullable<Event['sdk']>;

@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Badge from 'app/components/badge';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import Clipboard from 'app/components/clipboard';
-import IdBadge from 'app/components/idBadge';
-import * as Layout from 'app/components/layouts/thirds';
-import ExternalLink from 'app/components/links/externalLink';
-import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
-import Tooltip from 'app/components/tooltip';
-import Version from 'app/components/version';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconCopy, IconOpen} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Release, ReleaseMeta, ReleaseProject} from 'app/types';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
+import Badge from 'sentry/components/badge';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Clipboard from 'sentry/components/clipboard';
+import IdBadge from 'sentry/components/idBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
+import Tooltip from 'sentry/components/tooltip';
+import Version from 'sentry/components/version';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {IconCopy, IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Release, ReleaseMeta, ReleaseProject} from 'sentry/types';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import ReleaseActions from './releaseActions';
 
@@ -92,7 +92,7 @@ const ReleaseHeader = ({
             {
               to: `/organizations/${organization.slug}/releases/`,
               label: t('Releases'),
-              preserveGlobalSelection: true,
+              preservePageFilters: true,
             },
             {label: t('Release Details')},
           ]}

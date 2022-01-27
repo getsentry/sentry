@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import DetailedError from 'app/components/errors/detailedError';
+import DetailedError from 'sentry/components/errors/detailedError';
 
 describe('DetailedError', function () {
   it('renders', function () {

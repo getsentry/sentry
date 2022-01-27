@@ -1,20 +1,20 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
-import Alert from 'app/components/alert';
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import SelectControl from 'app/components/forms/selectControl';
-import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
-import NarrowLayout from 'app/components/narrowLayout';
-import {IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
-import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import AsyncView from 'app/views/asyncView';
-import Field from 'app/views/settings/components/forms/field';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
+import Alert from 'sentry/components/alert';
+import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import SelectControl from 'sentry/components/forms/selectControl';
+import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
+import NarrowLayout from 'sentry/components/narrowLayout';
+import {IconFlag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+import AsyncView from 'sentry/views/asyncView';
+import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
@@ -27,6 +27,8 @@ type State = AsyncView['state'] & {
 };
 
 export default class SentryAppExternalInstallation extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getDefaultState() {
     const state = super.getDefaultState();
     return {

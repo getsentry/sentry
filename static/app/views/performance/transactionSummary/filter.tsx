@@ -2,19 +2,19 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {GuideAnchor} from 'app/components/assistant/guideAnchor';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl from 'app/components/dropdownControl';
-import {pickBarColor} from 'app/components/performance/waterfall/utils';
-import Radio from 'app/components/radio';
-import {IconFilter} from 'app/icons';
-import {t, tct} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {OrganizationSummary} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownControl from 'sentry/components/dropdownControl';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import Radio from 'sentry/components/radio';
+import {IconFilter} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {OrganizationSummary} from 'sentry/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 
-import {decodeHistogramZoom} from './transactionOverview/latencyChart';
+import {decodeHistogramZoom} from './transactionOverview/latencyChart/utils';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
@@ -26,6 +26,15 @@ export enum SpanOperationBreakdownFilter {
   Browser = 'browser',
   Resource = 'resource',
 }
+
+export const SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD: Partial<
+  Record<SpanOperationBreakdownFilter, string>
+> = {
+  [SpanOperationBreakdownFilter.Http]: 'spans.http',
+  [SpanOperationBreakdownFilter.Db]: 'spans.db',
+  [SpanOperationBreakdownFilter.Browser]: 'spans.browser',
+  [SpanOperationBreakdownFilter.Resource]: 'spans.resource',
+};
 
 const OPTIONS: SpanOperationBreakdownFilter[] = [
   SpanOperationBreakdownFilter.Http,

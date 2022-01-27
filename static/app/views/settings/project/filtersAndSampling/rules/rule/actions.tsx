@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconDownload, IconEdit, IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import DropdownLink from 'sentry/components/dropdownLink';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete, IconDownload, IconEdit, IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 const deleteRuleConfirmMessage = t(
   'Are you sure you wish to delete this dynamic sampling rule?'
@@ -39,7 +39,7 @@ function Actions({
     <Fragment>
       <StyledButtonbar gap={1}>
         <Button
-          label={t('Edit Rule')}
+          aria-label={t('Edit Rule')}
           size="small"
           onClick={onEditRule}
           icon={<IconEdit />}
@@ -53,7 +53,7 @@ function Actions({
           disabled={disabled}
         >
           <Button
-            label={t('Delete Rule')}
+            aria-label={t('Delete Rule')}
             size="small"
             icon={<IconDelete />}
             title={disabled ? deleteRuleMessage : undefined}
@@ -64,7 +64,7 @@ function Actions({
         caret={false}
         customTitle={
           <Button
-            label={t('Actions')}
+            aria-label={t('Actions')}
             icon={<IconEllipsis size="sm" />}
             size="xsmall"
             onClick={onOpenMenuActions}

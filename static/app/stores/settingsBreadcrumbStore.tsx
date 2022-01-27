@@ -1,8 +1,8 @@
 import {PlainRoute} from 'react-router';
 import Reflux from 'reflux';
 
-import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 type UpdateData = {
   routes: PlainRoute<any>[];

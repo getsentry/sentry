@@ -2,10 +2,12 @@ import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'app/locale';
-import ProjectsStore from 'app/stores/projectsStore';
-import {WebVital} from 'app/utils/discover/fields';
-import TransactionEvents from 'app/views/performance/transactionSummary/transactionEvents';
+import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {Organization} from 'sentry/types';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
 type Data = {
   features?: string[];
@@ -39,6 +41,19 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
+
+const WrappedComponent = ({
+  organization,
+  ...props
+}: Omit<React.ComponentProps<typeof TransactionEvents>, 'organization'> & {
+  organization: Organization;
+}) => {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <TransactionEvents organization={organization} {...props} />
+    </OrganizationContext.Provider>
+  );
+};
 
 describe('Performance > TransactionSummary', function () {
   enforceActOnUseLegacyStoreHook();
@@ -140,7 +155,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders basic UI elements when feature flagged', async function () {
     const initialData = initializeData({features: ['performance-events-page']});
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -163,7 +178,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders alert when not feature flagged', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -184,7 +199,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders relative span breakdown header when no filter selected', async function () {
     const initialData = initializeData({features: ['performance-events-page']});
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -202,7 +217,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders event column results correctly', async function () {
     const initialData = initializeData({features: ['performance-events-page']});
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -240,7 +255,7 @@ describe('Performance > TransactionSummary', function () {
       query: {webVital: WebVital.LCP},
     });
     const wrapper = mountWithTheme(
-      <TransactionEvents
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,

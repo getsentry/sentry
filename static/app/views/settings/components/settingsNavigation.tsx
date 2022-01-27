@@ -2,9 +2,9 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import space from 'app/styles/space';
-import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
-import {NavigationProps, NavigationSection} from 'app/views/settings/types';
+import space from 'sentry/styles/space';
+import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
+import {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 
 type DefaultProps = {
   /**

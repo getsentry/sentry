@@ -1,12 +1,12 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import EventView from 'app/utils/discover/eventView';
-import {DisplayModes} from 'app/utils/discover/types';
-import DiscoverBanner from 'app/views/eventsV2/banner';
-import {ALL_VIEWS} from 'app/views/eventsV2/data';
-import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
-import * as utils from 'app/views/eventsV2/savedQuery/utils';
+import EventView from 'sentry/utils/discover/eventView';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import DiscoverBanner from 'sentry/views/eventsV2/banner';
+import {ALL_VIEWS} from 'sentry/views/eventsV2/data';
+import SavedQueryButtonGroup from 'sentry/views/eventsV2/savedQuery';
+import * as utils from 'sentry/views/eventsV2/savedQuery/utils';
 
 const SELECTOR_BUTTON_SAVE_AS = 'button[aria-label="Save as"]';
 const SELECTOR_BUTTON_SAVED = '[data-test-id="discover2-savedquery-button-saved"]';
@@ -441,7 +441,10 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         savedQuery,
         yAxis
       );
-      wrapper.find('AddToDashboardButton').first().simulate('click');
+      wrapper
+        .find('Button[data-test-id="add-dashboard-widget-from-discover"]')
+        .first()
+        .simulate('click');
       await tick();
       await tick();
       const modal = await mountGlobalModal();
@@ -458,7 +461,10 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         savedQuery,
         yAxis
       );
-      wrapper.find('AddToDashboardButton').first().simulate('click');
+      wrapper
+        .find('Button[data-test-id="add-dashboard-widget-from-discover"]')
+        .first()
+        .simulate('click');
       await tick();
       await tick();
       const modal = await mountGlobalModal();
@@ -479,7 +485,10 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         savedQuery,
         [...yAxis, 'equation|count() + failure_count()']
       );
-      wrapper.find('AddToDashboardButton').first().simulate('click');
+      wrapper
+        .find('Button[data-test-id="add-dashboard-widget-from-discover"]')
+        .first()
+        .simulate('click');
       await tick();
       await tick();
       const modal = await mountGlobalModal();

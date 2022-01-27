@@ -2,15 +2,15 @@ import {
   createSavedQuery,
   deleteSavedQuery,
   updateSavedQuery,
-} from 'app/actionCreators/discoverSavedQueries';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {NewQuery, Organization, SavedQuery} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {DisplayModes} from 'app/utils/discover/types';
-import {DisplayType} from 'app/views/dashboardsV2/types';
+} from 'sentry/actionCreators/discoverSavedQueries';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import {NewQuery, Organization, SavedQuery} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import {DisplayType} from 'sentry/views/dashboardsV2/types';
 
 export function handleCreateQuery(
   api: Client,

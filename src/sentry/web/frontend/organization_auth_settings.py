@@ -5,6 +5,7 @@ from django.db.models import F
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
 
 from sentry import features, roles
 from sentry.auth import manager
@@ -71,7 +72,7 @@ class OrganizationAuthSettingsView(OrganizationView):
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
 
-    def _disable_provider(self, request, organization, auth_provider):
+    def _disable_provider(self, request: Request, organization, auth_provider):
         self.create_audit_entry(
             request,
             organization=organization,
@@ -95,7 +96,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             auth_provider.disable_scim(request.user)
         auth_provider.delete()
 
-    def handle_existing_provider(self, request, organization, auth_provider):
+    def handle_existing_provider(self, request: Request, organization, auth_provider):
         provider = auth_provider.get_provider()
 
         if request.method == "POST":
@@ -181,7 +182,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     @transaction.atomic
-    def handle(self, request, organization):
+    def handle(self, request: Request, organization) -> Response:
         try:
             auth_provider = AuthProvider.objects.get(organization=organization)
         except AuthProvider.DoesNotExist:

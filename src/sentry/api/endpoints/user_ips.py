@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.paginator import DateTimePaginator
@@ -7,7 +10,7 @@ from sentry.models import UserIP
 
 class UserIPsEndpoint(UserEndpoint):
     @sudo_required
-    def get(self, request, user):
+    def get(self, request: Request, user) -> Response:
         """
         Get list of IP addresses
         ````````````````````````

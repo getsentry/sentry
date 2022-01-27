@@ -1,10 +1,11 @@
 import * as React from 'react';
 import {Location} from 'history';
 
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 
 import {
   Body,
@@ -413,20 +414,22 @@ class GridEditable<
     const showHeader = title || headerButtons;
     return (
       <React.Fragment>
-        {showHeader && (
-          <Header>
-            {title && <HeaderTitle>{title}</HeaderTitle>}
-            {headerButtons && (
-              <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
-            )}
-          </Header>
-        )}
-        <Body>
-          <Grid data-test-id="grid-editable" ref={this.refGrid}>
-            <GridHead>{this.renderGridHead()}</GridHead>
-            <GridBody>{this.renderGridBody()}</GridBody>
-          </Grid>
-        </Body>
+        <React.Profiler id="GridEditable" onRender={onRenderCallback}>
+          {showHeader && (
+            <Header>
+              {title && <HeaderTitle>{title}</HeaderTitle>}
+              {headerButtons && (
+                <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
+              )}
+            </Header>
+          )}
+          <Body>
+            <Grid data-test-id="grid-editable" ref={this.refGrid}>
+              <GridHead>{this.renderGridHead()}</GridHead>
+              <GridBody>{this.renderGridBody()}</GridBody>
+            </Grid>
+          </Body>
+        </React.Profiler>
       </React.Fragment>
     );
   }

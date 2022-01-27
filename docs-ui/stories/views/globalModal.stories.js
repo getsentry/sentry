@@ -1,6 +1,6 @@
-import {openModal} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import GlobalModal from 'app/components/globalModal';
+import {openModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import GlobalModal from 'sentry/components/globalModal';
 
 export default {
   title: 'Views/Modals/Global Modal',

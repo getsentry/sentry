@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
@@ -19,7 +22,7 @@ class GroupEventAttachmentSerializer(EventAttachmentSerializer):
 
 
 class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
-    def get(self, request, group):
+    def get(self, request: Request, group) -> Response:
         """
         List Event Attachments
         ``````````````````````

@@ -1,9 +1,8 @@
-import {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import DropdownMenu from 'app/components/dropdownMenu';
-import {IconEllipsis} from 'app/icons';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import {IconEllipsis} from 'sentry/icons';
 
 const ContextMenu = ({children}) => (
   <DropdownMenu>
@@ -21,7 +20,7 @@ const ContextMenu = ({children}) => (
         >
           <DropdownTarget
             {...getActorProps<HTMLDivElement>({
-              onClick: (event: MouseEvent) => {
+              onClick: (event: React.MouseEvent) => {
                 event.stopPropagation();
                 event.preventDefault();
               },

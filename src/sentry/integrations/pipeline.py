@@ -91,7 +91,7 @@ class IntegrationPipeline(Pipeline):
         # Does this integration provide a user identity for the user setting up
         # the integration?
         identity = data.get("user_identity")
-
+        identity_model = None
         if identity:
             # Some identity providers may not be directly associated to the
             # external integration. Integrations may specify the external_id to
@@ -114,14 +114,13 @@ class IntegrationPipeline(Pipeline):
             }
 
             try:
-                identity_model, created = Identity.objects.get_or_create(
-                    idp=idp,
+                identity_model = Identity.objects.link_identity(
                     user=self.request.user,
+                    idp=idp,
                     external_id=identity["external_id"],
+                    should_reattach=False,
                     defaults=identity_data,
                 )
-                if not created:
-                    identity_model.update(**identity_data)
             except IntegrityError:
                 # If the external_id is already used for a different user then throw an error
                 # otherwise we have the same user with a new external id

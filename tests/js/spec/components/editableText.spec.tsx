@@ -2,7 +2,7 @@ import {createListeners} from 'sentry-test/createListeners';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import EditableText from 'app/components/editableText';
+import EditableText from 'sentry/components/editableText';
 
 const currentValue = 'foo';
 

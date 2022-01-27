@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import tocbot from 'tocbot';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 const Container = styled('div')`
   height: 100%;
@@ -57,35 +57,50 @@ const Heading = styled('p')`
   margin-bottom: ${space(1)};
 `;
 
-const TableOfContents = () => {
+type Props = {
+  /**
+   * When true, show empty container. We still want the container
+   * (as opposed to showing nothing at all) because it affects the
+   * page layout and we want to preserve the layout across pages.
+   */
+  hidden: boolean;
+};
+
+const TableOfContents = ({hidden}: Props) => {
   useEffect(() => {
-    /** Initialize Tocbot
+    /**
+     * Initialize Tocbot if it's not hidden
      * https://tscanlin.github.io/tocbot/
-     * */
-    tocbot.init({
-      tocSelector: '.toc-wrapper',
-      contentSelector: '.sbdocs-content',
-      headingSelector: 'h2',
-      headingsOffset: 40,
-      scrollSmoothOffset: -40,
-      /** Ignore headings that did not
-       * come from the main markdown code.
-       * */
-      ignoreSelector: ':not(.sbdocs), .hide-from-toc',
-      orderedList: false,
-      /** Prevent default linking behavior,
-       * leaving only the smooth scrolling.
-       *  */
-      onClick: () => false,
-    });
-  });
+     */
+    !hidden &&
+      tocbot.init({
+        tocSelector: '.toc-wrapper',
+        contentSelector: '.sbdocs-content',
+        headingSelector: 'h2',
+        headingsOffset: 40,
+        scrollSmoothOffset: -40,
+        /**
+         * Ignore headings that did not
+         * come from the main markdown code.
+         */
+        ignoreSelector: ':not(.sbdocs), .hide-from-toc',
+        orderedList: false,
+        /**
+         * Prevent default linking behavior,
+         * leaving only the smooth scrolling.
+         */
+        onClick: () => false,
+      });
+  }, [hidden]);
 
   return (
     <Container>
-      <Content>
-        <Heading>Contents</Heading>
-        <div className="toc-wrapper" />
-      </Content>
+      {!hidden && (
+        <Content>
+          <Heading>Contents</Heading>
+          <div className="toc-wrapper" />
+        </Content>
+      )}
     </Container>
   );
 };

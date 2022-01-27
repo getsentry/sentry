@@ -2,20 +2,21 @@ import {ASAP} from 'downsample/methods/ASAP';
 import {Location} from 'history';
 import moment from 'moment';
 
-import {getInterval} from 'app/components/charts/utils';
-import {t} from 'app/locale';
-import {Project} from 'app/types';
-import {Series, SeriesDataUnit} from 'app/types/echarts';
-import EventView from 'app/utils/discover/eventView';
+import {getInterval} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   AggregationKey,
   Field,
   generateFieldAsString,
   Sort,
-} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/utils/discover/fields';
+import {TransactionMetric} from 'sentry/utils/metrics/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import theme from 'sentry/utils/theme';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {
   NormalizedTrendsTransaction,
@@ -27,6 +28,14 @@ import {
   TrendsTransaction,
   TrendView,
 } from './types';
+
+export const trendParameterToMetricsField: Record<string, TransactionMetric> = {
+  [TrendColumnField.DURATION]: TransactionMetric.SENTRY_TRANSACTIONS_TRANSACTION_DURATION,
+  [TrendColumnField.LCP]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_LCP,
+  [TrendColumnField.FCP]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FCP,
+  [TrendColumnField.FID]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_FID,
+  [TrendColumnField.CLS]: TransactionMetric.SENTRY_TRANSACTIONS_MEASUREMENTS_CLS,
+};
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
 export const DEFAULT_MAX_DURATION = '15min';

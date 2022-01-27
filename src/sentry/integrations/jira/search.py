@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
@@ -17,7 +18,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             organizations=organization, id=integration_id, provider=self.provider
         )
 
-    def get(self, request, organization, integration_id):
+    def get(self, request: Request, organization, integration_id) -> Response:
         try:
             integration = self._get_integration(organization, integration_id)
         except Integration.DoesNotExist:

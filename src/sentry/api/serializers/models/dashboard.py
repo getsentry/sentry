@@ -7,6 +7,7 @@ from sentry.models import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetTypes,
 )
 
 
@@ -38,6 +39,10 @@ class DashboardWidgetSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dashboardId": str(obj.dashboard_id),
             "queries": attrs["queries"],
+            # Default to discover type if null
+            "widgetType": DashboardWidgetTypes.get_type_name(obj.widget_type)
+            or DashboardWidgetTypes.TYPE_NAMES[0],
+            "layout": obj.detail.get("layout") if obj.detail else None,
         }
 
 

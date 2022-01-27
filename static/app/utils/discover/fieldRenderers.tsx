@@ -4,21 +4,21 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
-import Count from 'app/components/count';
-import Duration from 'app/components/duration';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import UserBadge from 'app/components/idBadge/userBadge';
-import ExternalLink from 'app/components/links/externalLink';
-import {RowRectangle} from 'app/components/performance/waterfall/rowBar';
-import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
-import Tooltip from 'app/components/tooltip';
-import UserMisery from 'app/components/userMisery';
-import Version from 'app/components/version';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {defined, isUrl} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView, {EventData, MetaType} from 'app/utils/discover/eventView';
+import Count from 'sentry/components/count';
+import Duration from 'sentry/components/duration';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import UserBadge from 'sentry/components/idBadge/userBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
+import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import Tooltip from 'sentry/components/tooltip';
+import UserMisery from 'sentry/components/userMisery';
+import Version from 'sentry/components/version';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {defined, isUrl} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {
   AGGREGATIONS,
   getAggregateAlias,
@@ -27,16 +27,16 @@ import {
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-} from 'app/utils/discover/fields';
-import {getShortEventId} from 'app/utils/events';
-import {formatFloat, formatPercentage} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
-import Projects from 'app/utils/projects';
+} from 'sentry/utils/discover/fields';
+import {getShortEventId} from 'sentry/utils/events';
+import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import Projects from 'sentry/utils/projects';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
-} from 'app/views/performance/transactionSummary/filter';
+} from 'sentry/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
 import {
@@ -98,7 +98,7 @@ const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
  *
  * This mapping should match the output sentry.utils.snuba:get_json_type
  */
-const FIELD_FORMATTERS: FieldFormatters = {
+export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
     renderFunc: (field, data) => {

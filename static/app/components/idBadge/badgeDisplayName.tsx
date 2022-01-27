@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 const BadgeDisplayName = styled('span')<{hideOverflow?: string | boolean}>`
   ${p =>

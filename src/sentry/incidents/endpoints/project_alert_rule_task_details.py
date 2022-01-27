@@ -1,4 +1,5 @@
 from django.http import Http404
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
@@ -10,7 +11,7 @@ from sentry.integrations.slack import tasks
 class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
     permission_classes = [ProjectSettingPermission]
 
-    def get(self, request, project, task_uuid):
+    def get(self, request: Request, project, task_uuid) -> Response:
         """
         Retrieve the status of the async task
 

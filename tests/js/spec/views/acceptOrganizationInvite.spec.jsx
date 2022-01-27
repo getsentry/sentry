@@ -2,10 +2,10 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {logout} from 'app/actionCreators/account';
-import AcceptOrganizationInvite from 'app/views/acceptOrganizationInvite';
+import {logout} from 'sentry/actionCreators/account';
+import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
-jest.mock('app/actionCreators/account');
+jest.mock('sentry/actionCreators/account');
 
 const addMock = body =>
   MockApiClient.addMockResponse({
@@ -30,7 +30,7 @@ describe('AcceptOrganizationInvite', function () {
       TestStubs.routerContext()
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
 
     expect(joinButton.exists()).toBe(true);
     expect(joinButton.text()).toBe('Join the test-org organization');
@@ -42,7 +42,9 @@ describe('AcceptOrganizationInvite', function () {
 
     joinButton.simulate('click');
     expect(acceptMock).toHaveBeenCalled();
-    expect(wrapper.find('Button[label="join-organization"]').props().disabled).toBe(true);
+    expect(wrapper.find('Button[aria-label="join-organization"]').props().disabled).toBe(
+      true
+    );
 
     await tick();
     expect(browserHistory.replace).toHaveBeenCalledWith('/test-org/');
@@ -63,14 +65,14 @@ describe('AcceptOrganizationInvite', function () {
       TestStubs.routerContext()
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(false);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(false);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(false);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
   });
 
@@ -89,14 +91,14 @@ describe('AcceptOrganizationInvite', function () {
       TestStubs.routerContext()
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
   });
 
@@ -115,14 +117,14 @@ describe('AcceptOrganizationInvite', function () {
       TestStubs.routerContext()
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(false);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
   });
 
@@ -141,14 +143,14 @@ describe('AcceptOrganizationInvite', function () {
       TestStubs.routerContext()
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(false);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
   });
 

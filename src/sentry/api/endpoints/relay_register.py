@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.utils import timezone
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay import (
     UnpackErrorSignatureExpired,
@@ -36,7 +37,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         """
         Requests to Register a Relay
         ````````````````````````````
@@ -112,7 +113,7 @@ class RelayRegisterResponseEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         """
         Registers a Relay
         `````````````````

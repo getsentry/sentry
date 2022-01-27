@@ -1,6 +1,6 @@
-import SentryAppComponentsActions from 'app/actions/sentryAppComponentActions';
-import {Client} from 'app/api';
-import {SentryAppComponent} from 'app/types';
+import SentryAppComponentsActions from 'sentry/actions/sentryAppComponentActions';
+import {Client} from 'sentry/api';
+import {SentryAppComponent} from 'sentry/types';
 
 export async function fetchSentryAppComponents(
   api: Client,

@@ -3,11 +3,11 @@ import * as React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import Clipboard from 'app/components/clipboard';
-import {IconCopy} from 'app/icons';
-import {inputStyles} from 'app/styles/input';
-import {selectText} from 'app/utils/selectText';
+import Button from 'sentry/components/button';
+import Clipboard from 'sentry/components/clipboard';
+import {IconCopy} from 'sentry/icons';
+import {inputStyles} from 'sentry/styles/input';
+import {selectText} from 'sentry/utils/selectText';
 
 const Wrapper = styled('div')`
   display: flex;
@@ -118,7 +118,7 @@ class TextCopyInput extends React.Component<Props> {
           />
         </OverflowContainer>
         <Clipboard hideUnsupported value={children}>
-          <StyledCopyButton type="button" size="xsmall" onClick={this.handleCopyClick}>
+          <StyledCopyButton type="button" onClick={this.handleCopyClick}>
             <IconCopy />
           </StyledCopyButton>
         </Clipboard>

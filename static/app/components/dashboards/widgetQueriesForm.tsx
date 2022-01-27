@@ -2,39 +2,48 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import Button from 'app/components/button';
-import SearchBar from 'app/components/events/searchBar';
-import SelectControl from 'app/components/forms/selectControl';
-import {MAX_QUERY_LENGTH} from 'app/constants';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, SelectValue} from 'app/types';
+import Button from 'sentry/components/button';
+import SearchBar from 'sentry/components/events/searchBar';
+import SelectControl from 'sentry/components/forms/selectControl';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
-} from 'app/utils/discover/fields';
-import {Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
-import {generateFieldOptions} from 'app/views/eventsV2/utils';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
+  isEquation,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
+import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import Input from 'sentry/views/settings/components/forms/controls/input';
+import Field from 'sentry/views/settings/components/forms/field';
 
 import WidgetQueryFields from './widgetQueryFields';
 
 const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
   const options: SelectValue<string>[] = [];
+  let equations = 0;
   fields.forEach(field => {
-    const alias = getAggregateAlias(field);
-    options.push({label: t('%s asc', field), value: alias});
-    options.push({label: t('%s desc', field), value: `-${alias}`});
+    let alias = getAggregateAlias(field);
+    const label = stripEquationPrefix(field);
+    // Equations are referenced via a standard alias following this pattern
+    if (isEquation(field)) {
+      alias = `equation[${equations}]`;
+      equations += 1;
+    }
+    options.push({label: t('%s asc', label), value: alias});
+    options.push({label: t('%s desc', label), value: `-${alias}`});
   });
   return options;
 };
 
 type Props = {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   displayType: Widget['displayType'];
   queries: WidgetQuery[];
   errors?: Array<Record<string, any>>;
@@ -50,6 +59,8 @@ type Props = {
  * callback. This component's state should live in the parent.
  */
 class WidgetQueriesForm extends React.Component<Props> {
+  blurTimeout: number | null = null;
+
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
     const {queries, onChange} = this.props;
@@ -108,8 +119,23 @@ class WidgetQueriesForm extends React.Component<Props> {
                   projectIds={selection.projects}
                   query={widgetQuery.conditions}
                   fields={[]}
-                  onSearch={this.handleFieldChange(queryIndex, 'conditions')}
-                  onBlur={this.handleFieldChange(queryIndex, 'conditions')}
+                  onSearch={field => {
+                    // SearchBar will call handlers for both onSearch and onBlur
+                    // when selecting a value from the autocomplete dropdown. This can
+                    // cause state issues for the search bar in our use case. To prevent
+                    // this, we set a timer in our onSearch handler to block our onBlur
+                    // handler from firing if it is within 200ms, ie from clicking an
+                    // autocomplete value.
+                    this.blurTimeout = window.setTimeout(() => {
+                      this.blurTimeout = null;
+                    }, 200);
+                    return this.handleFieldChange(queryIndex, 'conditions')(field);
+                  }}
+                  onBlur={field => {
+                    if (!this.blurTimeout) {
+                      this.handleFieldChange(queryIndex, 'conditions')(field);
+                    }
+                  }}
                   useFormWrapper={false}
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />
@@ -135,7 +161,7 @@ class WidgetQueriesForm extends React.Component<Props> {
                     }}
                     icon={<IconDelete />}
                     title={t('Remove query')}
-                    label={t('Remove query')}
+                    aria-label={t('Remove query')}
                   />
                 )}
               </SearchConditionsWrapper>
@@ -155,6 +181,7 @@ class WidgetQueriesForm extends React.Component<Props> {
           </Button>
         )}
         <WidgetQueryFields
+          widgetType={WidgetType.DISCOVER}
           displayType={displayType}
           fieldOptions={fieldOptions}
           errors={this.getFirstQueryError('fields')}

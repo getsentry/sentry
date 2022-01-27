@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -15,7 +16,7 @@ class OrganizationIssuesEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
         # Must return a 'sort_by' selector for pagination that is a datetime
         return Group.objects.none()
 
-    def get(self, request, organization, member):
+    def get(self, request: Request, organization, member) -> Response:
         """
         Return a list of issues assigned to the given member.
         """

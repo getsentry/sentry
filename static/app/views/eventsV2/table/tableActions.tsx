@@ -1,18 +1,18 @@
 import * as React from 'react';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import DataExport, {ExportQueryType} from 'app/components/dataExport';
-import Hovercard from 'app/components/hovercard';
-import {IconDownload, IconStack, IconTag} from 'app/icons';
-import {t} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {TableData} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import Hovercard from 'sentry/components/hovercard';
+import {IconDownload, IconStack, IconTag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {OrganizationSummary} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
 
 import {downloadAsCsv} from '../utils';
 
@@ -105,7 +105,12 @@ function renderEditButton(canEdit: boolean, props: Props) {
 
 function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   return (
-    <Button size="small" onClick={onChangeShowTags} icon={<IconTag size="xs" />}>
+    <Button
+      data-test-id="toggle-show-tags"
+      size="small"
+      onClick={onChangeShowTags}
+      icon={<IconTag size="xs" />}
+    >
       {showTags ? t('Hide Tags') : t('Show Tags')}
     </Button>
   );

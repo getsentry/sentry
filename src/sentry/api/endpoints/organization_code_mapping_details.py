@@ -1,23 +1,23 @@
 from django.db.models.deletion import ProtectedError
 from django.http import Http404
 from rest_framework import status
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
 from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
 
 from .organization_code_mappings import (
-    NullableOrganizationIntegrationMixin,
+    OrganizationIntegrationMixin,
     RepositoryProjectPathConfigSerializer,
 )
 
 
-class OrganizationCodeMappingDetailsEndpoint(
-    OrganizationEndpoint, NullableOrganizationIntegrationMixin
-):
+class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def convert_args(self, request, organization_slug, config_id, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, config_id, *args, **kwargs)
 
         try:
@@ -32,7 +32,7 @@ class OrganizationCodeMappingDetailsEndpoint(
 
         return (args, kwargs)
 
-    def put(self, request, config_id, organization, config):
+    def put(self, request: Request, config_id, organization, config) -> Response:
         """
         Update a repository project path config
         ``````````````````
@@ -62,7 +62,7 @@ class OrganizationCodeMappingDetailsEndpoint(
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, config_id, organization, config):
+    def delete(self, request: Request, config_id, organization, config) -> Response:
         """
         Delete a repository project path config
 

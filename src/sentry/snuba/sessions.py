@@ -39,11 +39,12 @@ def _get_changed_project_release_model_adoptions(project_ids):
     # Find all releases with adoption in the last 48 hours
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "release", "users"],
+        selected_columns=["project_id", "release"],
         groupby=["release", "project_id"],
         start=start,
         referrer="sessions.get-adoption",
         filter_keys={"project_id": list(project_ids)},
+        orderby=["-project_id", "-release"],
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
@@ -171,6 +172,12 @@ def _get_project_releases_by_stability(
         "sessions": ["-sessions"],
         "users": ["-users"],
     }[scope]
+
+    # Partial tiebreaker to make comparisons in the release-health duplex
+    # backend more likely to succeed. A perfectly stable sorting would need to
+    # additionally sort by `release`, however in the metrics backend we can't
+    # sort by that the same way as in the sessions backend.
+    orderby.extend(["-project_id"])
 
     conditions = []
     if environments is not None:

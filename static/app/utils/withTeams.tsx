@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import {Team} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
-import useTeams from 'app/utils/useTeams';
+import {Team} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
+import useTeams from 'sentry/utils/useTeams';
 
 type InjectedTeamsProps = {
   teams?: Team[];

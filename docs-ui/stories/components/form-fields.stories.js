@@ -1,20 +1,21 @@
 import {action} from '@storybook/addon-actions';
 
-import {Panel} from 'app/components/panels';
-import Switch from 'app/components/switchButton';
-import NewBooleanField from 'app/views/settings/components/forms/booleanField';
-import CheckboxField from 'app/views/settings/components/forms/checkboxField';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
-import DatePickerField from 'app/views/settings/components/forms/datePickerField';
-import Form from 'app/views/settings/components/forms/form';
-import FormField from 'app/views/settings/components/forms/formField';
-import RadioBooleanField from 'app/views/settings/components/forms/radioBooleanField';
-import RadioField from 'app/views/settings/components/forms/radioField';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import TextareaField from 'app/views/settings/components/forms/textareaField';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import TextField from 'app/views/settings/components/forms/textField';
+import FileField from 'app/views/settings/components/forms/fileField';
+import {Panel} from 'sentry/components/panels';
+import Switch from 'sentry/components/switchButton';
+import NewBooleanField from 'sentry/views/settings/components/forms/booleanField';
+import CheckboxField from 'sentry/views/settings/components/forms/checkboxField';
+import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
+import RangeSlider from 'sentry/views/settings/components/forms/controls/rangeSlider';
+import DatePickerField from 'sentry/views/settings/components/forms/datePickerField';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormField from 'sentry/views/settings/components/forms/formField';
+import RadioBooleanField from 'sentry/views/settings/components/forms/radioBooleanField';
+import RadioField from 'sentry/views/settings/components/forms/radioField';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
+import TextareaField from 'sentry/views/settings/components/forms/textareaField';
+import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
+import TextField from 'sentry/views/settings/components/forms/textField';
 
 export default {
   title: 'Components/Forms/Fields',
@@ -200,6 +201,14 @@ export const _RadioField = () => (
     />
   </Form>
 );
+
+export const __FileField = () => (
+  <Form>
+    <FileField name="field" label="File Field" />
+  </Form>
+);
+
+__FileField.storyName = 'File';
 
 _RadioField.storyName = 'Radio';
 

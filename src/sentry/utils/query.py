@@ -131,7 +131,7 @@ class RangeQuerySetWrapper:
                 results = queryset
             elif self.desc:
                 results = queryset.filter(**{"%s__lte" % self.order_by: cur_value})
-            elif not self.desc:
+            else:
                 results = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
 
             results = list(results[0 : self.step])

@@ -1,13 +1,14 @@
-import * as React from 'react';
+import {forwardRef as reactForwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import mergeRefs from 'app/utils/mergeRefs';
-import {Theme} from 'app/utils/theme';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import space from 'sentry/styles/space';
+import mergeRefs from 'sentry/utils/mergeRefs';
+import {Theme} from 'sentry/utils/theme';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -28,7 +29,8 @@ type Props = {
   title?: React.ComponentProps<typeof Tooltip>['title'];
   external?: boolean;
   borderless?: boolean;
-  label?: string;
+  translucentBorder?: boolean;
+  'aria-label'?: string;
   tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
@@ -36,22 +38,34 @@ type Props = {
 
   // This is only used with `<ButtonBar>`
   barId?: string;
+  children?: React.ReactNode;
 };
 
-type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> & Props;
+type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref' | 'label'> &
+  Props;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
-class BaseButton extends React.Component<ButtonProps, {}> {
-  static defaultProps: ButtonProps = {
-    disabled: false,
-    align: 'center',
-  };
-
+function BaseButton({
+  size,
+  to,
+  busy,
+  href,
+  title,
+  icon,
+  children,
+  'aria-label': ariaLabel,
+  borderless,
+  translucentBorder,
+  align = 'center',
+  priority,
+  disabled = false,
+  tooltipProps,
+  onClick,
+  ...buttonProps
+}: Props) {
   // Intercept onClick and propagate
-  handleClick = (e: React.MouseEvent) => {
-    const {disabled, busy, onClick} = this.props;
-
+  function handleClick(e: React.MouseEvent) {
     // Don't allow clicks when disabled or busy
     if (disabled || busy) {
       e.preventDefault();
@@ -64,82 +78,58 @@ class BaseButton extends React.Component<ButtonProps, {}> {
     }
 
     onClick(e);
-  };
-
-  getUrl = <T extends Url>(prop: T): T | undefined =>
-    this.props.disabled ? undefined : prop;
-
-  render() {
-    const {
-      size,
-      to,
-      href,
-      title,
-      icon,
-      children,
-      label,
-      borderless,
-      align,
-      priority,
-      disabled,
-      tooltipProps,
-
-      // destructure from `buttonProps`
-      // not necessary, but just in case someone re-orders props
-      onClick: _onClick,
-      ...buttonProps
-    } = this.props;
-    // For `aria-label`
-    const screenReaderLabel =
-      label || (typeof children === 'string' ? children : undefined);
-
-    // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
-    // Let's use props to determine which to serve up, so we don't have to think about it.
-    // *Note* you must still handle tabindex manually.
-    const button = (
-      <StyledButton
-        aria-label={screenReaderLabel}
-        aria-disabled={disabled}
-        disabled={disabled}
-        to={this.getUrl(to)}
-        href={this.getUrl(href)}
-        size={size}
-        priority={priority}
-        borderless={borderless}
-        {...buttonProps}
-        onClick={this.handleClick}
-        role="button"
-      >
-        <ButtonLabel
-          align={align}
-          size={size}
-          priority={priority}
-          borderless={borderless}
-        >
-          {icon && (
-            <Icon size={size} hasChildren={!!children}>
-              {icon}
-            </Icon>
-          )}
-          {children}
-        </ButtonLabel>
-      </StyledButton>
-    );
-
-    // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
-    if (title) {
-      return (
-        <Tooltip skipWrapper={!disabled} {...tooltipProps} title={title}>
-          {button}
-        </Tooltip>
-      );
-    }
-
-    return button;
   }
+
+  function getUrl<T extends Url>(prop: T): T | undefined {
+    return disabled ? undefined : prop;
+  }
+
+  // For `aria-label`
+  const screenReaderLabel =
+    ariaLabel || (typeof children === 'string' ? children : undefined);
+
+  // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
+  // Let's use props to determine which to serve up, so we don't have to think about it.
+  // *Note* you must still handle tabindex manually.
+  const button = (
+    <StyledButton
+      aria-label={screenReaderLabel}
+      aria-disabled={disabled}
+      disabled={disabled}
+      to={getUrl(to)}
+      href={getUrl(href)}
+      size={size}
+      priority={priority}
+      borderless={borderless}
+      translucentBorder={translucentBorder}
+      {...buttonProps}
+      onClick={handleClick}
+      role="button"
+    >
+      <ButtonLabel align={align} size={size} borderless={borderless}>
+        {icon && (
+          <Icon size={size} hasChildren={!!children}>
+            {icon}
+          </Icon>
+        )}
+        {children}
+      </ButtonLabel>
+    </StyledButton>
+  );
+
+  // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
+  if (title) {
+    return (
+      <Tooltip skipWrapper {...tooltipProps} title={title}>
+        {button}
+      </Tooltip>
+    );
+  }
+
+  return button;
 }
 
-const Button = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
+const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
   <BaseButton forwardRef={ref} {...props} />
 ));
 
@@ -149,34 +139,42 @@ export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
 
-const getFontSize = ({size, priority, theme}: StyledButtonProps) => {
-  if (priority === 'link') {
-    return 'inherit';
-  }
-
-  switch (size) {
-    case 'xsmall':
-    case 'small':
-      return theme.fontSizeSmall;
-    default:
-      return theme.fontSizeMedium;
-  }
-};
-
 const getFontWeight = ({priority, borderless}: StyledButtonProps) =>
   `font-weight: ${priority === 'link' || borderless ? 'inherit' : 600};`;
 
-const getBoxShadow =
-  (active: boolean) =>
-  ({priority, borderless, disabled}: StyledButtonProps) => {
-    if (disabled || borderless || priority === 'link') {
-      return 'box-shadow: none';
-    }
+const getBoxShadow = ({
+  priority,
+  borderless,
+  translucentBorder,
+  disabled,
+  theme,
+}: StyledButtonProps) => {
+  const themeName = disabled ? 'disabled' : priority || 'default';
+  const {borderTranslucent} = theme.button[themeName];
+  const translucentBorderString = translucentBorder
+    ? `0 0 0 1px ${borderTranslucent},`
+    : '';
 
-    return `box-shadow: ${active ? 'inset' : ''} 0 2px rgba(0, 0, 0, 0.05)`;
-  };
+  if (disabled || borderless || priority === 'link') {
+    return 'box-shadow: none';
+  }
 
-const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) => {
+  return `
+      box-shadow: ${translucentBorderString} ${theme.dropShadowLight};
+      &:active {
+        box-shadow: ${translucentBorderString} inset ${theme.dropShadowLight};
+      }
+    `;
+};
+
+const getColors = ({
+  size,
+  priority,
+  disabled,
+  borderless,
+  translucentBorder,
+  theme,
+}: StyledButtonProps) => {
   const themeName = disabled ? 'disabled' : priority || 'default';
   const {
     color,
@@ -185,37 +183,61 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
     backgroundActive,
     border,
     borderActive,
+    focusBorder,
     focusShadow,
   } = theme.button[themeName];
 
   return css`
     color: ${color};
     background-color: ${background};
-    border: 1px solid
-      ${priority !== 'link' && !borderless && !!border ? border : 'transparent'};
+
+    border: 1px solid ${borderless ? 'transparent' : border};
+
+    ${translucentBorder && `border-width: 0;`}
 
     &:hover {
       color: ${color};
     }
 
+    ${size !== 'zero' &&
+    `
     &:hover,
     &:focus,
     &:active {
       color: ${colorActive || color};
       background: ${backgroundActive};
-      border-color: ${priority !== 'link' && !borderless && (borderActive || border)
-        ? borderActive || border
-        : 'transparent'};
-    }
+      border-color: ${borderless ? 'transparent' : borderActive};
+    }`}
 
     &.focus-visible {
-      ${focusShadow && `box-shadow: ${focusShadow} 0 0 0 3px;`}
+      border: 1px solid ${focusBorder};
+      box-shadow: ${focusBorder} 0 0 0 1px, ${focusShadow} 0 0 0 4px;
     }
   `;
 };
 
+const getSizeStyles = ({size, translucentBorder, theme}: StyledButtonProps) => {
+  const buttonSize = size === 'small' || size === 'xsmall' ? size : 'default';
+  const formStyles = theme.form[buttonSize];
+  const buttonPadding = theme.buttonPadding[buttonSize];
+
+  return {
+    ...formStyles,
+    ...buttonPadding,
+    // If using translucent borders, rewrite size styles to
+    // prevent layout shifts
+    ...(translucentBorder && {
+      height: formStyles.height - 2,
+      minHeight: formStyles.minHeight - 2,
+      paddingTop: buttonPadding.paddingTop - 1,
+      paddingBottom: buttonPadding.paddingBottom - 1,
+      margin: 1,
+    }),
+  };
+};
+
 const StyledButton = styled(
-  React.forwardRef<any, ButtonProps>(
+  reactForwardRef<any, ButtonProps>(
     (
       {forwardRef, size: _size, external, to, href, disabled, ...otherProps}: Props,
       forwardRefAlt
@@ -256,62 +278,36 @@ const StyledButton = styled(
   }
 )<Props>`
   display: inline-block;
-  line-height: 1;
   border-radius: ${p => p.theme.button.borderRadius};
-  padding: 0;
   text-transform: none;
   ${getFontWeight};
-  font-size: ${getFontSize};
   ${getColors};
-  ${getBoxShadow(false)};
+  ${getSizeStyles}
+  ${getBoxShadow};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
+  transition: background 0.1s, border 0.1s, box-shadow 0.1s;
 
-  &:active {
-    ${getBoxShadow(true)};
-  }
+  ${p => p.priority === 'link' && `font-size: inherit; padding: 0;`}
+  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
+
   &:focus {
     outline: none;
   }
-
-  ${p => (p.borderless || p.priority === 'link') && 'border-color: transparent'};
 `;
 
-/**
- * Get label padding determined by size
- */
-const getLabelPadding = ({
-  size,
-  priority,
-}: Pick<StyledButtonProps, 'size' | 'priority' | 'borderless'>) => {
-  if (priority === 'link') {
-    return '0';
-  }
-
-  switch (size) {
-    case 'zero':
-      return '0';
-    case 'xsmall':
-      return '5px 8px';
-    case 'small':
-      return '9px 12px';
-    default:
-      return '12px 16px';
-  }
-};
-
-const buttonLabelPropKeys = ['size', 'priority', 'borderless', 'align'];
-type ButtonLabelProps = Pick<ButtonProps, 'size' | 'priority' | 'borderless' | 'align'>;
+const buttonLabelPropKeys = ['size', 'borderless', 'align'];
+type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless' | 'align'>;
 
 const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
     typeof prop === 'string' && isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
 })<ButtonLabelProps>`
-  display: grid;
-  grid-auto-flow: column;
+  height: 100%;
+  display: flex;
   align-items: center;
   justify-content: ${p => p.align};
-  padding: ${getLabelPadding};
+  white-space: nowrap;
 `;
 
 type IconProps = {
@@ -325,14 +321,13 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
     return '0';
   }
 
-  return size && size.endsWith('small') ? '6px' : '8px';
+  return size === 'xsmall' ? '6px' : '8px';
 };
 
 const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
   display: flex;
   align-items: center;
   margin-right: ${getIconMargin};
-  height: ${getFontSize};
 `;
 
 /**

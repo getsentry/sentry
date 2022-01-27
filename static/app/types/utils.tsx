@@ -1,4 +1,4 @@
-import {Organization, SharedViewOrganization} from 'app/types';
+import {Organization, SharedViewOrganization} from 'sentry/types';
 
 // from:
 // - https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html#assertion-functions

@@ -856,7 +856,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
-        assert response.status_code == 400
+        assert response.status_code == 403
 
     def test_name_filter(self):
         self.setup_project_and_rules()
@@ -1076,3 +1076,34 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 4
         assert result[0]["latestIncident"]["id"] == str(crit_incident.id)
+
+    def test_non_existing_owner(self):
+        self.setup_project_and_rules()
+        team = self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule(
+            name="the best rule",
+            organization=self.org,
+            projects=[self.project],
+            date_added=before_now(minutes=1).replace(tzinfo=pytz.UTC),
+            owner=team.actor.get_actor_tuple(),
+        )
+        self.create_issue_alert_rule(
+            data={
+                "project": self.project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=2).replace(tzinfo=pytz.UTC),
+                "owner": team.actor,
+            }
+        )
+        team.delete()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10"}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        assert response.data[0]["id"] == str(alert_rule.id)
+        assert response.data[0]["owner"] is None

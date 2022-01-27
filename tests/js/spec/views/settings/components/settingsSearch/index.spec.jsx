@@ -1,11 +1,11 @@
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {navigateTo} from 'app/actionCreators/navigation';
-import FormSearchStore from 'app/stores/formSearchStore';
-import SettingsSearch from 'app/views/settings/components/settingsSearch';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import FormSearchStore from 'sentry/stores/formSearchStore';
+import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
-jest.mock('app/actionCreators/formSearch');
-jest.mock('app/actionCreators/navigation');
+jest.mock('sentry/actionCreators/formSearch');
+jest.mock('sentry/actionCreators/navigation');
 
 describe('SettingsSearch', function () {
   let orgsMock;
@@ -55,6 +55,10 @@ describe('SettingsSearch', function () {
     });
     MockApiClient.addMockResponse({
       url: '/sentry-apps/?status=published',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/doc-integrations/',
       body: [],
     });
   });

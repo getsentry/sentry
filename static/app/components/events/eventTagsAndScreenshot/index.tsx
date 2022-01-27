@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {DataSection} from 'app/components/events/styles';
-import space from 'app/styles/space';
+import {DataSection} from 'sentry/components/events/styles';
+import space from 'sentry/styles/space';
 
 import Screenshot from './screenshot';
 import Tags from './tags';
@@ -66,7 +66,7 @@ export default EventTagsAndScreenshots;
 
 const Wrapper = styled(DataSection)<{isBorderless: boolean}>`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     && {
@@ -78,7 +78,7 @@ const Wrapper = styled(DataSection)<{isBorderless: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(2)};
     grid-template-columns: 1fr auto;
-    grid-gap: ${space(4)};
+    gap: ${space(4)};
 
     > *:first-child {
       border-bottom: 0;

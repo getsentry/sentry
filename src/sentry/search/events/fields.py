@@ -2,9 +2,23 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Match,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import sentry_sdk
+from django.utils.functional import cached_property
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -70,7 +84,6 @@ MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
 ConditionalFunction = namedtuple("ConditionalFunction", "condition match fallback")
-FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
 ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")
 
 
@@ -2036,13 +2049,6 @@ FUNCTIONS = {
             result_type_fn=reflective_result_type(),
             redundant_grouping=True,
         ),
-        # Currently only being used by the baseline PoC
-        DiscoverFunction(
-            "absolute_delta",
-            required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
-            column=["abs", [["minus", [ArgValue("column"), ArgValue("target")]]], None],
-            default_result_type="duration",
-        ),
         # These range functions for performance trends, these aren't If functions
         # to avoid allowing arbitrary if statements
         # Not yet supported in Discover, and shouldn't be added to fields.tsx
@@ -2304,6 +2310,12 @@ class SnQLFunction(DiscoverFunction):
         self.validate_result_type(self.default_result_type)
 
 
+class FunctionDetails(NamedTuple):
+    field: str
+    instance: SnQLFunction
+    arguments: Mapping[str, NormalizedArg]
+
+
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
@@ -2328,7 +2340,7 @@ class QueryFields(QueryBase):
             TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
-            PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
+            PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
@@ -2544,7 +2556,13 @@ class QueryFields(QueryBase):
                             # in the json query syntax.
                             # TODO(snql-migration): Once the trends endpoint is using snql, we should update it
                             # and flip these conditions back
-                            Function(args["condition"], [args["middle"], self.column("timestamp")]),
+                            Function(
+                                args["condition"],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.column("timestamp"),
+                                ],
+                            ),
                         ],
                         alias,
                     ),
@@ -2564,7 +2582,10 @@ class QueryFields(QueryBase):
                             # see `percentile_range` for why this condition feels backwards
                             Function(
                                 args["condition"],
-                                [args["middle"], self.column("timestamp")],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.column("timestamp"),
+                                ],
                             ),
                         ],
                         alias,
@@ -2585,7 +2606,10 @@ class QueryFields(QueryBase):
                             # see `percentile_range` for why this condition feels backwards
                             Function(
                                 args["condition"],
-                                [args["middle"], self.column("timestamp")],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.column("timestamp"),
+                                ],
                             ),
                         ],
                         alias,
@@ -2601,7 +2625,10 @@ class QueryFields(QueryBase):
                             # see `percentile_range` for why this condition feels backwards
                             Function(
                                 args["condition"],
-                                [args["middle"], self.column("timestamp")],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.column("timestamp"),
+                                ],
                             ),
                         ],
                         alias,
@@ -2734,14 +2761,6 @@ class QueryFields(QueryBase):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "absolute_delta",
-                    required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
-                    snql_column=lambda args, alias: Function(
-                        "abs", [Function("minus", [args["column"], args["target"]])], alias
-                    ),
-                    default_result_type="duration",
-                ),
-                SnQLFunction(
                     "eps",
                     snql_aggregate=lambda args, alias: Function(
                         "divide", [Function("count", []), args["interval"]], alias
@@ -2786,12 +2805,74 @@ class QueryFields(QueryBase):
                     default_result_type="string",
                     private=True,
                 ),
-                # TODO: implement these
-                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "absolute_correlation",
+                    snql_aggregate=lambda _, alias: Function(
+                        "abs",
+                        [
+                            Function(
+                                "corr",
+                                [
+                                    Function("toUnixTimestamp", [self.column("timestamp")]),
+                                    self.column("transaction.duration"),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "histogram",
+                    required_args=[
+                        NumericColumn("column", allow_array_value=True),
+                        # the bucket_size and start_offset should already be adjusted
+                        # using the multiplier before it is passed here
+                        NumberRange("bucket_size", 0, None),
+                        NumberRange("start_offset", 0, None),
+                        NumberRange("multiplier", 1, None),
+                    ],
+                    # floor((x * multiplier - start_offset) / bucket_size) * bucket_size + start_offset
+                    snql_column=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "floor",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function(
+                                                        "minus",
+                                                        [
+                                                            Function(
+                                                                "multiply",
+                                                                [
+                                                                    args["column"],
+                                                                    args["multiplier"],
+                                                                ],
+                                                            ),
+                                                            args["start_offset"],
+                                                        ],
+                                                    ),
+                                                    args["bucket_size"],
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    args["bucket_size"],
+                                ],
+                            ),
+                            args["start_offset"],
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                    private=True,
+                ),
             ]
         }
 
@@ -2809,7 +2890,7 @@ class QueryFields(QueryBase):
             return []
 
         resolved_columns = []
-        stripped_columns = [column.strip() for column in selected_columns]
+        stripped_columns = [column.strip() for column in set(selected_columns)]
 
         if equations:
             _, _, parsed_equations = resolve_equation_list(
@@ -2885,7 +2966,7 @@ class QueryFields(QueryBase):
         field = tag_match.group("tag") if tag_match else raw_field
 
         if VALID_FIELD_PATTERN.match(field):
-            return self.aliased_column(field, raw_field) if alias else self.column(field)
+            return self.aliased_column(raw_field) if alias else self.column(raw_field)
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
@@ -2893,8 +2974,9 @@ class QueryFields(QueryBase):
         """Convert this tree of Operations to the equivalent snql functions"""
         lhs = self._resolve_equation_operand(equation.lhs)
         rhs = self._resolve_equation_operand(equation.rhs)
-        result = Function(equation.operator, [lhs, rhs], alias)
-        return result
+        if equation.operator == "divide":
+            rhs = Function("nullIf", [rhs, 0])
+        return Function(equation.operator, [lhs, rhs], alias)
 
     def _resolve_equation_operand(self, operand: OperandType) -> Union[SelectType, float]:
         if isinstance(operand, Operation):
@@ -2989,7 +3071,11 @@ class QueryFields(QueryBase):
         return function in self.function_converter
 
     def resolve_function(
-        self, function: str, match: Optional[Match[str]] = None, resolve_only: bool = False
+        self,
+        function: str,
+        match: Optional[Match[str]] = None,
+        resolve_only=False,
+        overwrite_alias: Optional[str] = None,
     ) -> SelectType:
         """Given a public function, resolve to the corresponding Snql function
 
@@ -2997,6 +3083,7 @@ class QueryFields(QueryBase):
         :param function: the public alias for a function eg. "p50(transaction.duration)"
         :param match: the Match so we don't have to run the regex twice
         :param resolve_only: whether we should add the aggregate to self.aggregates
+        :param overwrite_alias: ignore the alias in the parsed_function and use this string instead
         """
         if match is None:
             match = is_function(function)
@@ -3004,10 +3091,10 @@ class QueryFields(QueryBase):
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {function}")
 
-        if function in self.params.get("aliases", {}):
-            raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
-
         name, combinator_name, parsed_arguments, alias = self.parse_function(match)
+        if overwrite_alias is not None:
+            alias = overwrite_alias
+
         snql_function = self.function_converter[name]
 
         combinator = snql_function.find_combinator(combinator_name)
@@ -3030,7 +3117,16 @@ class QueryFields(QueryBase):
 
         for arg in snql_function.args:
             if isinstance(arg, ColumnArg):
-                arguments[arg.name] = self.resolve_column(arguments[arg.name])
+                if (
+                    arguments[arg.name] in NumericColumn.numeric_array_columns
+                    and isinstance(arg, NumericColumn)
+                    and not isinstance(combinator, SnQLArrayCombinator)
+                ):
+                    arguments[arg.name] = Function(
+                        "arrayJoin", [self.resolve_column(arguments[arg.name])]
+                    )
+                else:
+                    arguments[arg.name] = self.resolve_column(arguments[arg.name])
             if combinator is not None and combinator.is_applicable(arg.name):
                 arguments[arg.name] = combinator.apply(arguments[arg.name])
                 combinator_applied = True
@@ -3087,7 +3183,8 @@ class QueryFields(QueryBase):
         }
 
         # Try to reduce the size of the transform by using any existing conditions on projects
-        if len(self.projects_to_filter) > 0:
+        # Do not optimize projects list if conditions contain OR operator
+        if not self.has_or_condition and len(self.projects_to_filter) > 0:
             project_ids &= self.projects_to_filter
 
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
@@ -3113,7 +3210,8 @@ class QueryFields(QueryBase):
         columns = ["user.email", "user.username", "user.ip"]
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
 
-    def _resolve_project_threshold_config(self, _: str) -> SelectType:
+    @cached_property
+    def _resolve_project_threshold_config(self) -> SelectType:
         org_id = self.params.get("organization_id")
         project_ids = self.params.get("project_id")
 
@@ -3371,7 +3469,7 @@ class QueryFields(QueryBase):
                         Function(
                             "plus",
                             [
-                                Function("uniq", [self.column("user")]),
+                                Function("nullIf", [Function("uniq", [self.column("user")]), 0]),
                                 args["parameter_sum"],
                             ],
                         ),
@@ -3402,19 +3500,23 @@ class QueryFields(QueryBase):
             )
         )
 
-    def _resolve_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
+    def _resolve_aliased_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
+        """Given public aliases resolve division"""
+        return self.resolve_division(self.column(dividend), self.column(divisor), alias)
+
+    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
         return Function(
             "if",
             [
                 Function(
                     "greater",
-                    [self.column(divisor), 0],
+                    [divisor, 0],
                 ),
                 Function(
                     "divide",
                     [
-                        self.column(dividend),
-                        self.column(divisor),
+                        dividend,
+                        divisor,
                     ],
                 ),
                 None,
@@ -3423,19 +3525,19 @@ class QueryFields(QueryBase):
         )
 
     def _resolve_measurements_frames_slow_rate(self, _: str) -> SelectType:
-        return self._resolve_division(
+        return self._resolve_aliased_division(
             "measurements.frames_slow", "measurements.frames_total", MEASUREMENTS_FRAMES_SLOW_RATE
         )
 
     def _resolve_measurements_frames_frozen_rate(self, _: str) -> SelectType:
-        return self._resolve_division(
+        return self._resolve_aliased_division(
             "measurements.frames_frozen",
             "measurements.frames_total",
             MEASUREMENTS_FRAMES_FROZEN_RATE,
         )
 
     def _resolve_measurements_stall_percentage(self, _: str) -> SelectType:
-        return self._resolve_division(
+        return self._resolve_aliased_division(
             "measurements.stall_total_time", "transaction.duration", MEASUREMENTS_STALL_PERCENTAGE
         )
 

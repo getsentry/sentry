@@ -6,26 +6,26 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import TextOverflow from 'app/components/textOverflow';
-import Tooltip from 'app/components/tooltip';
-import Version from 'app/components/version';
-import {IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Artifact, Organization, Project} from 'app/types';
-import {formatVersion} from 'app/utils/formatters';
-import {decodeScalar} from 'app/utils/queryString';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+} from 'sentry/actionCreators/indicator';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import TextOverflow from 'sentry/components/textOverflow';
+import Tooltip from 'sentry/components/tooltip';
+import Version from 'sentry/components/version';
+import {IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Artifact, Organization, Project} from 'sentry/types';
+import {formatVersion} from 'sentry/utils/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
@@ -188,7 +188,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
                       <Button
                         icon={<IconDelete size="sm" />}
                         title={t('Remove All Artifacts')}
-                        label={t('Remove All Artifacts')}
+                        aria-label={t('Remove All Artifacts')}
                         disabled={!hasAccess}
                       />
                     </Confirm>

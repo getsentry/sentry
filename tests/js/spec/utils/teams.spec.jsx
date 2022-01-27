@@ -1,7 +1,7 @@
 import {act, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import TeamStore from 'app/stores/teamStore';
-import Teams from 'app/utils/teams';
+import TeamStore from 'sentry/stores/teamStore';
+import Teams from 'sentry/utils/teams';
 
 describe('utils.teams', function () {
   const renderer = jest.fn(() => null);

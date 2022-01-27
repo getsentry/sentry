@@ -1,26 +1,38 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, FrozenSet, Mapping, Optional, Sequence
+
 from sentry.utils.services import Service
 
 ANY = object()
 
+if TYPE_CHECKING:
+    from sentry.api.event_search import SearchFilter
+    from sentry.models import Environment, Project
+    from sentry.utils.cursors import Cursor, CursorResult
 
-class SearchBackend(Service):
+
+class SearchBackend(Service):  # type: ignore
     __read_methods__ = frozenset(["query"])
-    __write_methods__ = frozenset()
+    __write_methods__: FrozenSet[str] = frozenset()
     __all__ = __read_methods__ | __write_methods__
 
-    def __init__(self, **options):
+    def __init__(self, **options: Optional[Mapping[str, Any]]):
         pass
 
     def query(
         self,
-        projects,
-        tags=None,
-        environments=None,
-        sort_by="date",
-        limit=100,
-        cursor=None,
-        count_hits=False,
-        paginator_options=None,
-        **parameters,
-    ):
+        projects: Sequence[Project],
+        environments: Optional[Sequence[Environment]] = None,
+        sort_by: str = "date",
+        limit: int = 100,
+        cursor: Optional[Cursor] = None,
+        count_hits: bool = False,
+        paginator_options: Optional[Mapping[str, Any]] = None,
+        search_filters: Optional[Sequence[SearchFilter]] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        max_hits: Optional[int] = None,
+    ) -> CursorResult:
         raise NotImplementedError

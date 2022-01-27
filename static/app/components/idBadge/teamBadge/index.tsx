@@ -1,8 +1,8 @@
 import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 
-import TeamStore from 'app/stores/teamStore';
-import {Team} from 'app/types';
+import TeamStore from 'sentry/stores/teamStore';
+import {Team} from 'sentry/types';
 
 import Badge from './badge';
 

@@ -3,16 +3,16 @@ import pick from 'lodash/pick';
 import round from 'lodash/round';
 import moment from 'moment';
 
-import {DateTimeObject} from 'app/components/charts/utils';
-import ExternalLink from 'app/components/links/externalLink';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {PAGE_URL_PARAM, URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {desktop, mobile, PlatformKey} from 'app/data/platformCategories';
-import {t, tct} from 'app/locale';
-import {Release, ReleaseStatus} from 'app/types';
-import {Theme} from 'app/utils/theme';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {IssueSortOptions} from 'app/views/issueList/utils';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
+import {desktop, mobile, PlatformKey} from 'sentry/data/platformCategories';
+import {t, tct} from 'sentry/locale';
+import {Release, ReleaseStatus} from 'sentry/types';
+import {Theme} from 'sentry/utils/theme';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export const CRASH_FREE_DECIMAL_THRESHOLD = 95;
 
@@ -171,7 +171,7 @@ type GetReleaseParams = {
 };
 
 export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
-  const params = getParams(
+  const params = normalizeDateTimeParams(
     pick(location.query, [
       ...Object.values(URL_PARAM),
       ...Object.values(PAGE_URL_PARAM),

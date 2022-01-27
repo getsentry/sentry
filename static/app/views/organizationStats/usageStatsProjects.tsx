@@ -3,16 +3,16 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
-import SortLink, {Alignments, Directions} from 'app/components/gridEditable/sortLink';
-import Pagination from 'app/components/pagination';
-import SearchBar from 'app/components/searchBar';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DataCategory, Organization, Project} from 'app/types';
-import withProjects from 'app/utils/withProjects';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
+import Pagination from 'sentry/components/pagination';
+import SearchBar from 'sentry/components/searchBar';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DataCategory, Organization, Project} from 'sentry/types';
+import withProjects from 'sentry/utils/withProjects';
 
 import {Outcome, UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';

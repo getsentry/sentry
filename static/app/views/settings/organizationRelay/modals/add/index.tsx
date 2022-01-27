@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import ExternalLink from 'app/components/links/externalLink';
-import List from 'app/components/list';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 import ModalManager from '../modalManager';
 
@@ -60,5 +60,5 @@ export default Add;
 
 const StyledList = styled(List)`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;

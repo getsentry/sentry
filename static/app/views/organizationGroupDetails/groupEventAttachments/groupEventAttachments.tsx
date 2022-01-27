@@ -2,22 +2,25 @@ import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import pick from 'lodash/pick';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
-import {t} from 'app/locale';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
+import {IssueAttachment} from 'sentry/types';
 
 import GroupEventAttachmentsFilter from './groupEventAttachmentsFilter';
 import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 
 type Props = {
   projectSlug: string;
-} & WithRouterProps &
+} & WithRouterProps<{orgId: string; groupId: string}> &
   AsyncComponent['props'];
 
 type State = {
+  eventAttachments?: IssueAttachment[];
   deletedAttachments: string[];
 } & AsyncComponent['state'];
 
@@ -46,10 +49,29 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
     ];
   }
 
-  handleDelete = (deletedAttachmentId: string) => {
+  handleDelete = async (deletedAttachmentId: string) => {
+    const {params, projectSlug} = this.props;
+    const attachment = this.state?.eventAttachments?.find(
+      item => item.id === deletedAttachmentId
+    );
+    if (!attachment) {
+      return;
+    }
+
     this.setState(prevState => ({
       deletedAttachments: [...prevState.deletedAttachments, deletedAttachmentId],
     }));
+
+    try {
+      await this.api.requestPromise(
+        `/projects/${params.orgId}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/`,
+        {
+          method: 'DELETE',
+        }
+      );
+    } catch (error) {
+      addErrorMessage('An error occurred while deleteting the attachment');
+    }
   };
 
   renderNoQueryResults() {
@@ -80,7 +102,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
       return <LoadingIndicator />;
     }
 
-    if (eventAttachments.length > 0) {
+    if (eventAttachments && eventAttachments.length > 0) {
       return (
         <GroupEventAttachmentsTable
           attachments={eventAttachments}

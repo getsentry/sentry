@@ -1,6 +1,7 @@
 import logging
 
 from django.utils.crypto import get_random_string
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits
@@ -16,7 +17,7 @@ SETUP_WIZARD_CACHE_TIMEOUT = 600
 class SetupWizard(Endpoint):
     permission_classes = ()
 
-    def delete(self, request, wizard_hash=None):
+    def delete(self, request: Request, wizard_hash=None) -> Response:
         """
         This removes the cache content for a specific hash
         """
@@ -25,7 +26,7 @@ class SetupWizard(Endpoint):
             default_cache.delete(key)
             return Response(status=200)
 
-    def get(self, request, wizard_hash=None):
+    def get(self, request: Request, wizard_hash=None) -> Response:
         """
         This tries to retrieve and return the cache content if possible
         otherwise creates new cache

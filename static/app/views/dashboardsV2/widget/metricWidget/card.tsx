@@ -2,26 +2,34 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import {HeaderTitle} from 'app/components/charts/styles';
-import ErrorBoundary from 'app/components/errorBoundary';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, Project} from 'app/types';
+import {Client} from 'sentry/api';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {MetricQuery, Organization, PageFilters, Project} from 'sentry/types';
+
+import {DisplayType} from '../utils';
 
 import Chart from './chart';
 import StatsRequest from './statsRequest';
-import {MetricWidget} from './types';
+
+type MetricWidget = {
+  title: string;
+  displayType: DisplayType;
+  groupings: MetricQuery[];
+  searchQuery?: string;
+};
 
 type Props = {
   widget: MetricWidget;
   api: Client;
   location: Location;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   router: InjectedRouter;
   project: Project;
 };
@@ -39,7 +47,7 @@ function Card({widget, api, location, router, organization, project, selection}:
           api={api}
           location={location}
           organization={organization}
-          projectSlug={project.slug}
+          projectId={project.id}
           groupings={groupings}
           searchQuery={searchQuery}
           environments={selection.environments}

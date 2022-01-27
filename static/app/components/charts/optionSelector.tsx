@@ -2,18 +2,18 @@ import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
-import DropdownBubble from 'app/components/dropdownBubble';
-import DropdownButton from 'app/components/dropdownButton';
-import {DropdownItem} from 'app/components/dropdownControl';
-import DropdownMenu from 'app/components/dropdownMenu';
-import FeatureBadge from 'app/components/featureBadge';
-import Tooltip from 'app/components/tooltip';
-import Truncate from 'app/components/truncate';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {SelectValue} from 'app/types';
-import {defined} from 'app/utils';
+import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
+import DropdownBubble from 'sentry/components/dropdownBubble';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownItem} from 'sentry/components/dropdownControl';
+import DropdownMenu from 'sentry/components/dropdownMenu';
+import FeatureBadge from 'sentry/components/featureBadge';
+import Tooltip from 'sentry/components/tooltip';
+import Truncate from 'sentry/components/truncate';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {SelectValue} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 const defaultProps = {
   menuWidth: 'auto',
@@ -74,7 +74,7 @@ class OptionSelector extends Component<Props, State> {
           <DropdownMenu alwaysRenderMenu={false}>
             {({isOpen, getMenuProps, getActorProps}) => (
               <Fragment>
-                <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
+                <StyledDropdownButton {...getActorProps()} size="small" isOpen={isOpen}>
                   <TruncatedLabel>{String(selectedOption.label)}</TruncatedLabel>
                 </StyledDropdownButton>
                 <StyledDropdownBubble
@@ -140,8 +140,6 @@ const MenuContainer = styled('div')`
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
-  padding: ${space(1)} ${space(2)};
-  font-weight: normal;
   z-index: ${p => (p.isOpen ? p.theme.zIndex.dropdownAutocomplete.actor : 'auto')};
 `;
 

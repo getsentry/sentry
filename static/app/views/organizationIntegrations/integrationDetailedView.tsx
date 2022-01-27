@@ -1,21 +1,32 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {RequestOptions} from 'app/api';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import {IconFlag, IconOpen, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Integration, IntegrationProvider} from 'app/types';
-import {getAlertText} from 'app/utils/integrationUtil';
-import withOrganization from 'app/utils/withOrganization';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {RequestOptions} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {IconFlag, IconOpen, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
+import {getAlertText} from 'sentry/utils/integrationUtil';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import AddIntegrationButton from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
+
+const FirstPartyIntegrationAlert = HookOrDefault({
+  hookName: 'component:first-party-integration-alert',
+  defaultComponent: () => null,
+});
+
+const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
+  hookName: 'component:first-party-integration-additional-cta',
+  defaultComponent: () => null,
+});
 
 type State = {
   configurations: Integration[];
@@ -99,7 +110,13 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get installationStatus() {
-    return this.isEnabled ? 'Installed' : 'Not Installed';
+    const {configurations} = this.state;
+    if (
+      configurations.filter(i => i.organizationIntegrationStatus === 'disabled').length
+    ) {
+      return 'Disabled';
+    }
+    return configurations.length ? 'Installed' : 'Not Installed';
   }
 
   get integrationName() {
@@ -123,7 +140,12 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
     const origIntegrations = [...this.state.configurations];
 
-    const integrations = this.state.configurations.filter(i => i.id !== integration.id);
+    const integrations = this.state.configurations.map(i =>
+      i.id === integration.id
+        ? {...i, organizationIntegrationStatus: 'pending_deletion' as ObjectStatus}
+        : i
+    );
+
     this.setState({configurations: integrations});
 
     const options: RequestOptions = {
@@ -153,6 +175,23 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   handleExternalInstall = () => {
     this.trackIntegrationAnalytics('integrations.installation_start');
   };
+
+  renderAlert() {
+    return (
+      <FirstPartyIntegrationAlert
+        integrations={this.state.configurations ?? []}
+        hideCTA
+      />
+    );
+  }
+
+  renderAdditionalCTA() {
+    return (
+      <FirstPartyIntegrationAdditionalCTA
+        integrations={this.state.configurations ?? []}
+      />
+    );
+  }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     const {organization} = this.props;
@@ -216,6 +255,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     }
 
     const alertText = getAlertText(configurations);
+
     return (
       <Fragment>
         {alertText && (

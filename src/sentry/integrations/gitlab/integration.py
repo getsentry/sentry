@@ -4,6 +4,8 @@ from urllib.parse import urlparse
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.identity.gitlab import get_oauth_data, get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
@@ -203,7 +205,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if "goback" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
@@ -245,7 +247,7 @@ class InstallationConfigView(PipelineView):
 
 
 class InstallationGuideView(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if "completed_installation_guide" in request.GET:
             return pipeline.next_step()
         return render_to_response(

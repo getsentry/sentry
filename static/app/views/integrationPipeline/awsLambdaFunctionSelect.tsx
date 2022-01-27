@@ -4,17 +4,17 @@ import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
 import {Observer} from 'mobx-react';
 
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {PanelHeader} from 'app/components/panels';
-import Switch from 'app/components/switchButton';
-import Tooltip from 'app/components/tooltip';
-import {t, tn} from 'app/locale';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import FormModel from 'app/views/settings/components/forms/model';
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PanelHeader} from 'sentry/components/panels';
+import Switch from 'sentry/components/switchButton';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tn} from 'sentry/locale';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import FormModel from 'sentry/views/settings/components/forms/model';
+import {JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';
@@ -39,12 +39,11 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
     super(props);
     makeObservable(this, {allStatesToggled: computed});
   }
-
   state: State = {
     submitting: false,
   };
 
-  model = new FormModel({apiOptions: {baseUrl: window.location.origin}});
+  model = new FormModel();
 
   get initialData() {
     const {lambdaFunctions} = this.props;
@@ -72,8 +71,12 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
     return Object.values(this.model.getData()).every(val => val);
   }
 
+  get formFields() {
+    const data = this.model.getTransformedData();
+    return Object.entries(data).map(([name, value]) => ({name, value}));
+  }
+
   handleSubmit = () => {
-    this.model.saveForm();
     this.setState({submitting: true});
   };
 
@@ -155,10 +158,10 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
           {t('Decide which functions you would like to enable for Sentry monitoring')}
           <StyledForm
             initialData={this.initialData}
-            skipPreventDefault
             model={this.model}
             apiEndpoint="/extensions/aws_lambda/setup/"
             hideFooter
+            preventFormResetOnUnmount
           >
             <JsonForm renderHeader={() => FormHeader} forms={[formFields]} />
           </StyledForm>
@@ -178,9 +181,16 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
         <Observer>
           {() => (
             <FooterWithButtons
+              formProps={{
+                action: '/extensions/aws_lambda/setup/',
+                method: 'post',
+                onSubmit: this.handleSubmit,
+              }}
+              formFields={this.formFields}
               buttonText={t('Finish Setup')}
-              onClick={this.handleSubmit}
-              disabled={this.model.isError || this.model.isSaving}
+              disabled={
+                this.model.isError || this.model.isSaving || this.state.submitting
+              }
             />
           )}
         </Observer>

@@ -1,9 +1,9 @@
-import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import Annotated from 'app/components/events/meta/annotated';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {t} from 'app/locale';
-import {objectIsEmpty} from 'app/utils';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import Annotated from 'sentry/components/events/meta/annotated';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import {t} from 'sentry/locale';
+import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {
   data: {

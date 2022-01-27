@@ -29,6 +29,7 @@ interface Configuration extends webpack.Configuration {
 const {env} = process;
 
 // Environment configuration
+env.NODE_ENV = env.NODE_ENV ?? 'development';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
@@ -101,7 +102,7 @@ if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
     'module:babel-gettext-extractor',
     {
       fileName: 'build/javascript.po',
-      baseDirectory: path.join(__dirname, 'src/sentry'),
+      baseDirectory: path.join(__dirname),
       functionNames: {
         gettext: ['msgid'],
         ngettext: ['msgid', 'msgid_plural', 'count'],
@@ -221,12 +222,12 @@ let appConfig: Configuration = {
      *
      * The order here matters for `getsentry`
      */
-    app: ['app/utils/statics-setup', 'app'],
+    app: ['sentry/utils/statics-setup', 'sentry'],
 
     /**
      * Pipeline View for integrations
      */
-    pipeline: ['app/utils/statics-setup', 'app/views/integrationPipeline'],
+    pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -253,7 +254,7 @@ let appConfig: Configuration = {
         use: {
           loader: 'po-catalog-loader',
           options: {
-            referenceExtensions: ['.js', '.jsx'],
+            referenceExtensions: ['.js', '.jsx', '.tsx'],
             domain: 'sentry',
           },
         },
@@ -378,7 +379,9 @@ let appConfig: Configuration = {
 
   resolve: {
     alias: {
-      app: path.join(staticPrefix, 'app'),
+      'react-dom$': 'react-dom/profiling',
+      'scheduler/tracing': 'scheduler/tracing-profiling',
+      sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
@@ -546,6 +549,11 @@ if (IS_UI_DEV_ONLY) {
       rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
     },
   };
+  appConfig.optimization = {
+    runtimeChunk: 'single',
+  };
+  // TODO: remove target "web" when upgrading to webpack-dev-server v4
+  appConfig.target = 'web';
 }
 
 if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {

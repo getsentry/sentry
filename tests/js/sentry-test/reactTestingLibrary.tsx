@@ -8,9 +8,10 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import {Organization} from 'app/types';
-import {lightTheme} from 'app/utils/theme';
-import {OrganizationContext} from 'app/views/organizationContext';
+import GlobalModal from 'sentry/components/globalModal';
+import {Organization} from 'sentry/types';
+import {lightTheme} from 'sentry/utils/theme';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type ProviderOptions = {
   context?: Record<string, any>;
@@ -79,5 +80,9 @@ export * from '@testing-library/react';
  * More details: https://kentcdodds.com/blog/common-mistakes-with-react-testing-library#not-using-testing-libraryuser-event
  */
 const fireEvent = reactRtlFireEvent;
+
+export function mountGlobalModal(context) {
+  return mountWithTheme(<GlobalModal />, {context});
+}
 
 export {mountWithTheme, userEvent, fireEvent};

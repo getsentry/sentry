@@ -5,21 +5,21 @@ import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import Pagination from 'app/components/pagination';
-import {Panel} from 'app/components/panels';
-import {IconAdd, IconFlag} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
+} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Pagination from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels';
+import {IconAdd, IconFlag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 import KeyRow from './keyRow';
 

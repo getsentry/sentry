@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import Button from 'app/components/button';
-import {IconQuestion} from 'app/icons';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import AsyncView from 'app/views/asyncView';
+import Button from 'sentry/components/button';
+import {IconQuestion} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import AsyncView from 'sentry/views/asyncView';
 
 type Data = {
   environment: {
@@ -103,6 +103,6 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
 const VersionLabel = styled('dt')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;

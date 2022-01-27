@@ -3,21 +3,21 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {navigateTo} from 'app/actionCreators/navigation';
-import AutoComplete from 'app/components/autoComplete';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import SearchResult from 'app/components/search/searchResult';
-import SearchResultWrapper from 'app/components/search/searchResultWrapper';
-import SearchSources from 'app/components/search/sources';
-import ApiSource from 'app/components/search/sources/apiSource';
-import CommandSource from 'app/components/search/sources/commandSource';
-import FormSource from 'app/components/search/sources/formSource';
-import RouteSource from 'app/components/search/sources/routeSource';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import AutoComplete from 'sentry/components/autoComplete';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SearchResult from 'sentry/components/search/searchResult';
+import SearchResultWrapper from 'sentry/components/search/searchResultWrapper';
+import SearchSources from 'sentry/components/search/sources';
+import ApiSource from 'sentry/components/search/sources/apiSource';
+import CommandSource from 'sentry/components/search/sources/commandSource';
+import FormSource from 'sentry/components/search/sources/formSource';
+import RouteSource from 'sentry/components/search/sources/routeSource';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
 import {Result} from './sources/types';
 
@@ -109,10 +109,8 @@ class Search extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   componentDidMount() {
-    trackAnalyticsEvent({
-      eventKey: `${this.props.entryPoint}.open`,
-      eventName: `${this.props.entryPoint} Open`,
-      organization_id: null,
+    trackAdvancedAnalyticsEvent(`${this.props.entryPoint}.open`, {
+      organization: null,
     });
   }
 
@@ -120,14 +118,11 @@ class Search extends React.Component<Props> {
     if (!item) {
       return;
     }
-
-    trackAnalyticsEvent({
-      eventKey: `${this.props.entryPoint}.select`,
-      eventName: `${this.props.entryPoint} Select`,
+    trackAdvancedAnalyticsEvent(`${this.props.entryPoint}.select`, {
       query: state && state.inputValue,
       result_type: item.resultType,
       source_type: item.sourceType,
-      organization_id: null,
+      organization: null,
     });
 
     const {to, action, configUrl} = item;
@@ -167,11 +162,9 @@ class Search extends React.Component<Props> {
     if (!query) {
       return;
     }
-    trackAnalyticsEvent({
-      eventKey: `${this.props.entryPoint}.query`,
-      eventName: `${this.props.entryPoint} Query`,
+    trackAdvancedAnalyticsEvent(`${this.props.entryPoint}.query`, {
       query,
-      organization_id: null,
+      organization: null,
     });
   }, 200);
 

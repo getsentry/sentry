@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -9,7 +10,7 @@ from sentry.models import Relay
 class RelayDetailsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
-    def delete(self, request, relay_id):
+    def delete(self, request: Request, relay_id) -> Response:
         """
         Delete one Relay
         ````````````````

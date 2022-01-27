@@ -5,20 +5,20 @@ import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import Switch from 'app/components/switchButton';
-import Truncate from 'app/components/truncate';
-import {IconAdd, IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import {Organization, ServiceHook} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Field from 'app/views/settings/components/forms/field';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Switch from 'sentry/components/switchButton';
+import Truncate from 'sentry/components/truncate';
+import {IconAdd, IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, ServiceHook} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import AsyncView from 'sentry/views/asyncView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import Field from 'sentry/views/settings/components/forms/field';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {
   orgId: string;

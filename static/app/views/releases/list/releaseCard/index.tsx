@@ -4,19 +4,19 @@ import color from 'color';
 import {Location} from 'history';
 import partition from 'lodash/partition';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import Collapsible from 'app/components/collapsible';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import {Panel, PanelHeader} from 'app/components/panels';
-import TextOverflow from 'app/components/textOverflow';
-import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
-import Version from 'app/components/version';
-import {t, tct, tn} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, Release} from 'app/types';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import Collapsible from 'sentry/components/collapsible';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {Panel, PanelHeader} from 'sentry/components/panels';
+import TextOverflow from 'sentry/components/textOverflow';
+import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
+import Version from 'sentry/components/version';
+import {t, tct, tn} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters, Release} from 'sentry/types';
 
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import {ReleasesRequestRenderProps} from '../releasesRequest';
@@ -25,7 +25,7 @@ import ReleaseCardCommits from './releaseCardCommits';
 import ReleaseCardProjectRow from './releaseCardProjectRow';
 import ReleaseCardStatsPeriod from './releaseCardStatsPeriod';
 
-function getReleaseProjectId(release: Release, selection: GlobalSelection) {
+function getReleaseProjectId(release: Release, selection: PageFilters) {
   // if a release has only one project
   if (release.projects.length === 1) {
     return release.projects[0].id;
@@ -48,7 +48,7 @@ type Props = {
   organization: Organization;
   activeDisplay: ReleasesDisplayOption;
   location: Location;
-  selection: GlobalSelection;
+  selection: PageFilters;
   reloading: boolean;
   showHealthPlaceholders: boolean;
   isTopRelease: boolean;
@@ -135,7 +135,7 @@ class ReleaseCard extends Component<Props> {
         </ReleaseInfo>
 
         <ReleaseProjects>
-          <ReleaseProjectsHeader>
+          <ReleaseProjectsHeader lightText>
             <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
               <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
               {showReleaseAdoptionStages && (
@@ -260,7 +260,7 @@ const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 `;
 

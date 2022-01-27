@@ -8,6 +8,9 @@ from freezegun import freeze_time
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.models import Integration
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -636,6 +639,18 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             "30min, 1h, 2h, 4h, 12h and 24h"
         )
 
+    def test_simple_crash_rate_alerts_for_non_supported_aggregate(self):
+        self.valid_alert_rule.update({"aggregate": "count(sessions)"})
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_valid_response(
+                self.organization.slug, self.project.slug, status_code=400, **self.valid_alert_rule
+            )
+        assert (
+            resp.data["nonFieldErrors"][0]
+            == f"Only crash free percentage queries are supported for subscriptions"
+            f"over the {self.valid_alert_rule['dataset']} dataset"
+        )
+
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
@@ -680,3 +695,21 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             "user_id": self.user.id,
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
+
+
+@freeze_time()
+class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
+    endpoint = "sentry-api-0-project-alert-rules"
+    method = "post"
+
+    def setUp(self):
+        super().setUp()
+        self.valid_alert_rule["dataset"] = Dataset.Metrics.value
+        for tag in [
+            SessionMetricKey.SESSION.value,
+            SessionMetricKey.USER.value,
+            "session.status",
+            "init",
+            "crashed",
+        ]:
+            indexer.record(tag)

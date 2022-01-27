@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
-import echarts from 'echarts/lib/echarts';
+import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
-import config from 'app/chartcuterie/config';
-import {ChartType} from 'app/chartcuterie/types';
-import {getDimensionValue} from 'app/components/charts/utils';
-import space from 'app/styles/space';
+import config from 'sentry/chartcuterie/config';
+import {ChartType} from 'sentry/chartcuterie/types';
+import {getDimensionValue} from 'sentry/components/charts/utils';
+import space from 'sentry/styles/space';
 
 const {renderConfig} = config;
 

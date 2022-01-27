@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
@@ -41,7 +42,7 @@ class GzipChunk(BytesIO):
 class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         Return chunk upload parameters
         ``````````````````````````````
@@ -88,7 +89,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             }
         )
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         """
         Upload chunks and store them as FileBlobs
         `````````````````````````````````````````

@@ -1,5 +1,5 @@
-import {usePageError} from 'app/utils/performance/contexts/pageError';
-import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';

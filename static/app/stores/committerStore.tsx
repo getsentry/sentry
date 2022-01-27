@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import CommitterActions from 'app/actions/committerActions';
-import {Committer} from 'app/types';
+import CommitterActions from 'sentry/actions/committerActions';
+import {Committer} from 'sentry/types';
 
 type State = {
   // Use `getCommitterStoreKey` to generate key

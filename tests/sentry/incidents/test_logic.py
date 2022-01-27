@@ -9,6 +9,7 @@ from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.events import (
     IncidentCommentCreatedEvent,
@@ -72,6 +73,7 @@ from sentry.models.integration import Integration
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
+from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils import json
 
 
@@ -266,7 +268,7 @@ class BaseIncidentAggregatesTest(BaseIncidentsTest):
 
 class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
     def test_projects(self):
-        assert get_incident_aggregates(self.project_incident) == {"count": 4, "unique_users": 2}
+        assert get_incident_aggregates(self.project_incident) == {"count": 4}
 
 
 class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
@@ -275,6 +277,7 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         for _ in range(2):
             self.store_session(self.build_session(status="exited"))
+        self.dataset = QueryDatasets.SESSIONS
 
     def test_sessions(self):
         incident = self.create_incident(
@@ -285,14 +288,21 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
             [self.project],
             query="",
             time_window=1,
-            dataset=QueryDatasets.SESSIONS,
+            dataset=self.dataset,
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
         )
         incident.update(alert_rule=alert_rule)
-        assert get_incident_aggregates(incident, dataset=QueryDatasets.SESSIONS) == {
-            "count": 0.0,
-            "unique_users": 2,
-        }
+        incident_aggregates = get_incident_aggregates(incident)
+        assert "count" in incident_aggregates
+        assert incident_aggregates["count"] == 100.0
+
+
+class GetCrashRateMetricsIncidentAggregatesTest(
+    GetCrashRateIncidentAggregatesTest, SessionMetricsTestCase
+):
+    def setUp(self):
+        super().setUp()
+        self.dataset = QueryDatasets.METRICS
 
 
 @freeze_time()
@@ -844,6 +854,12 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             name="not updating owner",
         )
         assert alert_rule.owner.id == self.user.actor.id
+
+        update_alert_rule(
+            alert_rule=alert_rule,
+            owner=None,
+        )
+        assert alert_rule.owner is None
 
     def test_comparison_delta(self):
         comparison_delta = 60
@@ -1517,6 +1533,19 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
         other_integration = Integration.objects.create(external_id="12345", provider="random")
         other_integration.add_organization(self.organization)
         assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
+
+    def test_disabled_integration(self):
+        integration = Integration.objects.create(
+            external_id="1", provider="slack", status=ObjectStatus.DISABLED
+        )
+        integration.add_organization(self.organization)
+        assert list(get_available_action_integrations_for_org(self.organization)) == []
+
+    def test_disabled_org_integration(self):
+        integration = Integration.objects.create(external_id="1", provider="slack")
+        org_integration = integration.add_organization(self.organization)
+        org_integration.update(status=ObjectStatus.DISABLED)
+        assert list(get_available_action_integrations_for_org(self.organization)) == []
 
 
 class MetricTranslationTest(TestCase):

@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 import {preloadIcons} from 'platformicons';
 
-import Button from 'app/components/button';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import testableTransition from 'app/utils/testableTransition';
+import Button from 'sentry/components/button';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import testableTransition from 'sentry/utils/testableTransition';
 
 import FallingError from './components/fallingError';
 import WelcomeBackground from './components/welcomeBackground';

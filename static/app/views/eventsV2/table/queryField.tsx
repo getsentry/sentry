@@ -4,14 +4,14 @@ import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
-import Tag from 'app/components/tag';
-import Tooltip from 'app/components/tooltip';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {pulse} from 'app/styles/animations';
-import space from 'app/styles/space';
-import {SelectValue} from 'app/types';
+import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import Tag from 'sentry/components/tag';
+import Tooltip from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {pulse} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
+import {SelectValue} from 'sentry/types';
 import {
   AggregateParameter,
   AggregationKey,
@@ -20,8 +20,8 @@ import {
   DEPRECATED_FIELDS,
   QueryFieldValue,
   ValidateColumnTypes,
-} from 'app/utils/discover/fields';
-import Input from 'app/views/settings/components/forms/controls/input';
+} from 'sentry/utils/discover/fields';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import ArithmeticInput from './arithmeticInput';
 import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
@@ -105,8 +105,12 @@ class QueryField extends React.Component<Props> {
     Option: ({label, data, ...props}: OptionProps<OptionType>) => {
       return (
         <components.Option label={label} data={data} {...props}>
-          <span data-test-id="label">{label}</span>
-          {data.value && this.renderTag(data.value.kind, label)}
+          <InnerWrap isFocused={props.isFocused}>
+            <OptionLabelWrapper data-test-id="label">
+              {label}
+              {data.value && this.renderTag(data.value.kind, label)}
+            </OptionLabelWrapper>
+          </InnerWrap>
         </components.Option>
       );
     },
@@ -513,12 +517,12 @@ class QueryField extends React.Component<Props> {
         tagType = 'success';
         break;
       case FieldValueKind.MEASUREMENT:
-        text = 'measure';
-        tagType = 'info';
+        text = 'field';
+        tagType = 'highlight';
         break;
       case FieldValueKind.BREAKDOWN:
-        text = 'breakdown';
-        tagType = 'error';
+        text = 'field';
+        tagType = 'highlight';
         break;
       case FieldValueKind.TAG:
         text = kind;
@@ -637,7 +641,7 @@ const Container = styled('div')<{
     p.tripleLayout
       ? `grid-template-columns: 1fr 2fr;`
       : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 
   flex-grow: 1;
@@ -737,6 +741,22 @@ const ArithmeticError = styled(Tooltip)`
   color: ${p => p.theme.red300};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
+`;
+
+const InnerWrap = styled('div')<{isFocused: boolean}>`
+  display: flex;
+  padding: 0 ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  box-sizing: border-box;
+  width: 100%;
+  ${p => p.isFocused && `background: ${p.theme.hover};`}
+`;
+
+const OptionLabelWrapper = styled('span')`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: ${space(1)} 0;
 `;
 
 export {QueryField};

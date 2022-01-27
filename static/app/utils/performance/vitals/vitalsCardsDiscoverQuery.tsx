@@ -1,14 +1,14 @@
 import * as React from 'react';
 import pick from 'lodash/pick';
 
-import {MetaType} from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
+import {MetaType} from 'sentry/utils/discover/eventView';
+import {WebVital} from 'sentry/utils/discover/fields';
 import GenericDiscoverQuery, {
   DiscoverQueryPropsWithContext,
   GenericChildrenProps,
-} from 'app/utils/discover/genericDiscoverQuery';
-import {PERFORMANCE_URL_PARAM} from 'app/utils/performance/constants';
-import withApi from 'app/utils/withApi';
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
+import withApi from 'sentry/utils/withApi';
 
 export type TableDataRow = {
   id: string;

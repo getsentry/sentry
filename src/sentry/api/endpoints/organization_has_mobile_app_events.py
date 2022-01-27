@@ -3,7 +3,10 @@ from datetime import timedelta
 
 from django.core.cache import cache
 from django.utils import timezone
+from rest_framework.request import Request
+from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.snuba import discover
 
@@ -15,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         # cache is unique to an org
         cache_key = f"check_mobile_app_events:{organization.id}"
         cache_value = cache.get(cache_key)
@@ -29,7 +32,7 @@ class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
         return self.respond(cache_value["result"])
 
     # find a match not using the cache
-    def _get(self, request, organization):
+    def _get(self, request: Request, organization):
         projects = self.get_projects(request, organization)
         if len(projects) == 0:
             return None
@@ -51,6 +54,9 @@ class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
                     "project_id": [p.id for p in projects],
                 },
                 referrer="api.organization-has-mobile-app-events",
+                use_snql=features.has(
+                    "organizations:performance-use-snql", organization, actor=request.user
+                ),
             )
             data = result["data"]
             if not data:

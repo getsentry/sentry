@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-import GroupStore from 'app/stores/groupStore';
+import GroupStore from 'sentry/stores/groupStore';
 
 type SelectedGroupStoreInterface = {
   init(): void;

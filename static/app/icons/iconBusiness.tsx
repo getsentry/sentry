@@ -2,9 +2,9 @@ import * as React from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {uniqueId} from 'app/utils/guid';
+import {uniqueId} from 'sentry/utils/guid';
 
-import SvgIcon from './svgIcon';
+import SvgIcon, {SVGIconProps} from './svgIcon';
 
 type WrappedProps = {
   forwardRef: React.Ref<SVGSVGElement>;
@@ -56,7 +56,7 @@ function IconBusinessComponent({
   );
 }
 
-type Props = {
+interface Props extends SVGIconProps {
   /**
    * Renders a pink purple gradient on the icon
    */
@@ -66,9 +66,9 @@ type Props = {
    * Adds an animated shine to the icon
    */
   withShine?: boolean;
-} & React.ComponentProps<typeof SvgIcon>;
+}
 
-const IconBusiness = React.forwardRef((props: Props, ref: React.Ref<SVGSVGElement>) => (
+const IconBusiness = React.forwardRef<SVGSVGElement, Props>((props, ref) => (
   <IconBusinessComponent {...props} forwardRef={ref} />
 ));
 

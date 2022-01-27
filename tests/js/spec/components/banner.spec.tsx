@@ -1,6 +1,6 @@
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Banner from 'app/components/banner';
+import Banner from 'sentry/components/banner';
 
 describe('Banner', function () {
   it('can be dismissed', function () {

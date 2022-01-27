@@ -1,23 +1,24 @@
 import * as React from 'react';
+import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
-import ActionLink from 'app/components/actions/actionLink';
-import ButtonBar from 'app/components/buttonBar';
-import CustomResolutionModal from 'app/components/customResolutionModal';
-import DropdownLink from 'app/components/dropdownLink';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconChevron} from 'app/icons';
-import {t} from 'app/locale';
+import {openModal} from 'sentry/actionCreators/modal';
+import ActionLink from 'sentry/components/actions/actionLink';
+import ButtonBar from 'sentry/components/buttonBar';
+import CustomResolutionModal from 'sentry/components/customResolutionModal';
+import DropdownLink from 'sentry/components/dropdownLink';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {
   Organization,
   Release,
   ResolutionStatus,
   ResolutionStatusDetails,
   UpdateResolutionStatus,
-} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {formatVersion} from 'app/utils/formatters';
-import withOrganization from 'app/utils/withOrganization';
+} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {formatVersion} from 'sentry/utils/formatters';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import ActionButton from './button';
 import MenuHeader from './menuHeader';
@@ -52,11 +53,9 @@ class ResolveActions extends React.Component<Props> {
       status: ResolutionStatus.RESOLVED,
       statusDetails,
     });
-    trackAnalyticsEvent({
-      eventKey: 'resolve_issue',
-      eventName: 'Resolve Issue',
+    trackAdvancedAnalyticsEvent('resolve_issue', {
+      organization,
       release: 'anotherExisting',
-      organization_id: organization.id,
     });
   }
 
@@ -69,11 +68,9 @@ class ResolveActions extends React.Component<Props> {
           inRelease: latestRelease ? latestRelease.version : 'latest',
         },
       });
-    trackAnalyticsEvent({
-      eventKey: 'resolve_issue',
-      eventName: 'Resolve Issue',
+    trackAdvancedAnalyticsEvent('resolve_issue', {
+      organization,
       release: 'current',
-      organization_id: organization.id,
     });
   };
 
@@ -86,11 +83,9 @@ class ResolveActions extends React.Component<Props> {
           inNextRelease: true,
         },
       });
-    trackAnalyticsEvent({
-      eventKey: 'resolve_issue',
-      eventName: 'Resolve Issue',
+    trackAdvancedAnalyticsEvent('resolve_issue', {
+      organization,
       release: 'next',
-      organization_id: organization.id,
     });
   };
 
@@ -110,7 +105,7 @@ class ResolveActions extends React.Component<Props> {
         <ActionButton
           priority="primary"
           icon={<IconCheckmark size="xs" />}
-          label={t('Unresolve')}
+          aria-label={t('Unresolve')}
           disabled={isAutoResolved}
           onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
         />
@@ -149,8 +144,8 @@ class ResolveActions extends React.Component<Props> {
     return (
       <DropdownLink
         customTitle={
-          <ActionButton
-            label={t('More resolve options')}
+          <StyledActionButton
+            aria-label={t('More resolve options')}
             disabled={!projectSlug ? disabled : disableDropdown}
             icon={<IconChevron direction="down" size="xs" />}
           />
@@ -237,15 +232,24 @@ class ResolveActions extends React.Component<Props> {
     return (
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
-          <ActionLink
-            {...actionLinkProps}
-            type="button"
-            title={t('Resolve')}
-            icon={<IconCheckmark size="xs" />}
-            onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
+          <Tooltip
+            disabled={actionLinkProps.disabled}
+            title={t(
+              'Resolves the issue. The issue will get unresolved if it happens again.'
+            )}
+            delay={300}
           >
-            {t('Resolve')}
-          </ActionLink>
+            <ActionLink
+              {...actionLinkProps}
+              type="button"
+              title={t('Resolve')}
+              icon={<IconCheckmark size="xs" />}
+              onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
+              hasDropdown
+            >
+              {t('Resolve')}
+            </ActionLink>
+          </Tooltip>
           {this.renderDropdownMenu()}
         </ButtonBar>
       </Tooltip>
@@ -254,3 +258,7 @@ class ResolveActions extends React.Component<Props> {
 }
 
 export default withOrganization(ResolveActions);
+
+const StyledActionButton = styled(ActionButton)`
+  box-shadow: none;
+`;

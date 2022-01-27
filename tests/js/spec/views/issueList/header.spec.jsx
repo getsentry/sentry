@@ -1,10 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import IssueListHeader from 'app/views/issueList/header';
-import {Query} from 'app/views/issueList/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import IssueListHeader from 'sentry/views/issueList/header';
+import {Query} from 'sentry/views/issueList/utils';
 
-jest.mock('app/utils/analytics', () => ({
+jest.mock('sentry/utils/analytics', () => ({
   trackAnalyticsEvent: jest.fn(),
 }));
 

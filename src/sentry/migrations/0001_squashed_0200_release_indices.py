@@ -31,6 +31,7 @@ import sentry.models.sentryappinstallation
 import sentry.models.servicehook
 import sentry.models.user
 import sentry.models.useremail
+import sentry.utils.security
 
 
 def add_my_issues_search(apps, schema_editor):
@@ -3646,9 +3647,7 @@ class Migration(migrations.Migration):
                 ("email", models.EmailField(max_length=75)),
                 (
                     "validation_hash",
-                    models.CharField(
-                        default=sentry.models.useremail.default_validation_hash, max_length=32
-                    ),
+                    models.CharField(default=sentry.utils.security.get_secure_token, max_length=32),
                 ),
                 ("date_hash_added", models.DateTimeField(default=django.utils.timezone.now)),
                 ("is_verified", models.BooleanField(default=False)),

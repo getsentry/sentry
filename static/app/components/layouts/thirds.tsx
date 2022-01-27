@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import NavTabs from 'app/components/navTabs';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import NavTabs from 'sentry/components/navTabs';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
 
 /**
  * Base container for 66/33 containers.
@@ -14,15 +14,14 @@ export const Body = styled('div')`
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-columns: 66% auto;
-    align-content: start;
-    grid-gap: ${space(3)};
     padding: ${space(3)} ${space(4)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
+    align-content: start;
+    gap: ${space(3)};
   }
 `;
 
@@ -63,11 +62,9 @@ export const HeaderActions = styled('div')`
  * Heading container that includes margins.
  */
 export const Title = styled('h1')`
-  font-size: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  line-height: 1.2;
-  color: ${p => p.theme.textColor};
-  margin-top: ${space(3)};
+  ${p => p.theme.text.pageTitle};
+  color: ${p => p.theme.headingColor};
+  margin-top: ${space(2)};
   /* TODO(bootstrap) Remove important when bootstrap headings are removed */
   margin-bottom: 0 !important;
   min-height: 30px;
@@ -85,17 +82,21 @@ export const Title = styled('h1')`
  * Uses a horizontal layout in wide viewports to put space between
  * the headings and the actions container. In narrow viewports these elements
  * are stacked vertically.
+ *
+ * Use `noActionWrap` to disable wrapping if there are minimal actions.
  */
-export const Header = styled('div')`
+export const Header = styled('div')<{noActionWrap?: boolean}>`
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: ${p =>
+    !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
+
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: minmax(0, 1fr) auto;
     padding: ${space(2)} ${space(4)} 0 ${space(4)};
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 `;
 

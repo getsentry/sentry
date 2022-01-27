@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GroupTagValues from 'app/views/organizationGroupDetails/groupTagValues';
+import GroupTagValues from 'sentry/views/organizationGroupDetails/groupTagValues';
 
 describe('GroupTagValues', () => {
   const {routerContext, router, project} = initializeOrg({});

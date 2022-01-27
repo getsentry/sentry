@@ -1,11 +1,11 @@
-import ConfigStore from 'app/stores/configStore';
+import ConfigStore from 'sentry/stores/configStore';
 import {
   getTimeFormat,
   intervalToMilliseconds,
   parsePeriodToHours,
   setDateToTime,
   use24Hours,
-} from 'app/utils/dates';
+} from 'sentry/utils/dates';
 
 describe('utils.dates', function () {
   describe('setDateToTime', function () {

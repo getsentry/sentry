@@ -6,32 +6,35 @@ import {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {DateTimeObject} from 'app/components/charts/utils';
-import TeamSelector from 'app/components/forms/teamSelector';
-import * as Layout from 'app/components/layouts/thirds';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {ChangeData} from 'app/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DateString, RelativePeriod, TeamWithProjects} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import localStorage from 'app/utils/localStorage';
-import useOrganization from 'app/utils/useOrganization';
-import useTeams from 'app/utils/useTeams';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import TeamSelector from 'sentry/components/forms/teamSelector';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DateString, TeamWithProjects} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import localStorage from 'sentry/utils/localStorage';
+import useOrganization from 'sentry/utils/useOrganization';
+import useTeams from 'sentry/utils/useTeams';
 
 import Header from '../header';
 
 import DescriptionCard from './descriptionCard';
 import TeamAlertsTriggered from './teamAlertsTriggered';
+import TeamIssuesAge from './teamIssuesAge';
+import TeamIssuesBreakdown from './teamIssuesBreakdown';
 import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
 import TeamReleases from './teamReleases';
 import TeamResolutionTime from './teamResolutionTime';
 import TeamStability from './teamStability';
+import TeamUnresolvedIssues from './teamUnresolvedIssues';
 
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
 
@@ -96,7 +99,7 @@ function TeamInsightsOverview({location, router}: Props) {
     }
 
     return setStateOnUrl({
-      pageStatsPeriod: (relative as RelativePeriod) || undefined,
+      pageStatsPeriod: relative || undefined,
       pageStart: undefined,
       pageEnd: undefined,
       pageUtc: undefined,
@@ -104,7 +107,7 @@ function TeamInsightsOverview({location, router}: Props) {
   }
 
   function setStateOnUrl(nextState: {
-    pageStatsPeriod?: RelativePeriod;
+    pageStatsPeriod?: string | null;
     pageStart?: DateString;
     pageEnd?: DateString;
     pageUtc?: boolean | null;
@@ -131,7 +134,7 @@ function TeamInsightsOverview({location, router}: Props) {
       end,
       statsPeriod,
       utc: utcString,
-    } = getParams(query, {
+    } = normalizeDateTimeParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -170,6 +173,8 @@ function TeamInsightsOverview({location, router}: Props) {
       <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember />
     );
   }
+
+  const isInsightsV2 = organization.features.includes('team-insights-v2');
 
   return (
     <Fragment>
@@ -276,6 +281,7 @@ function TeamInsightsOverview({location, router}: Props) {
             >
               <TeamAlertsTriggered
                 organization={organization}
+                projects={projects}
                 teamSlug={currentTeam!.slug}
                 period={period}
                 start={start?.toString()}
@@ -285,22 +291,90 @@ function TeamInsightsOverview({location, router}: Props) {
             </DescriptionCard>
 
             <SectionTitle>{t('Team Activity')}</SectionTitle>
-            <DescriptionCard
-              title={t('Issues Reviewed')}
-              description={t(
-                'Issues triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
-              )}
-            >
-              <TeamIssuesReviewed
-                organization={organization}
-                projects={projects}
-                teamSlug={currentTeam!.slug}
-                period={period}
-                start={start?.toString()}
-                end={end?.toString()}
-                location={location}
-              />
-            </DescriptionCard>
+            {!isInsightsV2 && (
+              <DescriptionCard
+                title={t('Issues Reviewed')}
+                description={t(
+                  'Issues triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
+                )}
+              >
+                <TeamIssuesReviewed
+                  organization={organization}
+                  projects={projects}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start?.toString()}
+                  end={end?.toString()}
+                  location={location}
+                />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('All Unresolved Issues')}
+                description={t(
+                  'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or ignored in the past.'
+                )}
+              >
+                <TeamUnresolvedIssues
+                  projects={projects}
+                  organization={organization}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start}
+                  end={end}
+                  utc={utc}
+                />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('New and Returning Issues')}
+                description={t(
+                  'The new, regressed, and unignored issues that were assigned to your team.'
+                )}
+              >
+                <TeamIssuesBreakdown
+                  organization={organization}
+                  projects={projects}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start?.toString()}
+                  end={end?.toString()}
+                  location={location}
+                  statuses={['new', 'regressed', 'unignored']}
+                />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('Issues Triaged')}
+                description={t(
+                  'How many new and returning issues were reviewed by your team each week. Reviewing an issue includes marking as reviewed, resolving, assigning to another team, or deleting.'
+                )}
+              >
+                <TeamIssuesBreakdown
+                  organization={organization}
+                  projects={projects}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start?.toString()}
+                  end={end?.toString()}
+                  location={location}
+                  statuses={['resolved', 'ignored', 'deleted']}
+                />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
+                title={t('Age of Unresolved Issues')}
+                description={t(
+                  'How long ago since unresolved issues were first created.'
+                )}
+              >
+                <TeamIssuesAge organization={organization} teamSlug={currentTeam!.slug} />
+              </DescriptionCard>
+            )}
             <DescriptionCard
               title={t('Time to Resolution')}
               description={t(
@@ -318,9 +392,7 @@ function TeamInsightsOverview({location, router}: Props) {
             </DescriptionCard>
             <DescriptionCard
               title={t('Number of Releases')}
-              description={t(
-                'A breakdown showing how your team shipped releases over time.'
-              )}
+              description={t('The releases that were created in your team’s projects.')}
             >
               <TeamReleases
                 projects={projects}
@@ -352,7 +424,7 @@ const Body = styled(Layout.Body)`
 const ControlsWrapper = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -374,6 +446,8 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   }
 `;
 
-const SectionTitle = styled(Layout.Title)`
-  margin-bottom: ${space(1)} !important;
+const SectionTitle = styled('h2')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-top: ${space(2)};
+  margin-bottom: ${space(1)};
 `;

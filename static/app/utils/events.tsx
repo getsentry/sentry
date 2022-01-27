@@ -4,9 +4,9 @@ import {
   EventOrGroupType,
   GroupTombstone,
   TreeLabelPart,
-} from 'app/types';
-import {Event} from 'app/types/event';
-import {isMobilePlatform, isNativePlatform} from 'app/utils/platform';
+} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
   return !maybe.hasOwnProperty('type');

@@ -4,9 +4,9 @@ import {
   TermOperator,
   Token,
   TokenResult,
-} from 'app/components/searchSyntax/parser';
-import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'app/icons';
-import {t} from 'app/locale';
+} from 'sentry/components/searchSyntax/parser';
+import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 import {ItemType, SearchGroup, SearchItem} from './types';
 

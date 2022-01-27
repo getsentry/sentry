@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import FrameRegisters from 'app/components/events/interfaces/frame/frameRegisters';
-import FrameRegistersValue from 'app/components/events/interfaces/frame/frameRegisters/value';
+import FrameRegisters from 'sentry/components/events/interfaces/frame/frameRegisters';
+import FrameRegistersValue from 'sentry/components/events/interfaces/frame/frameRegisters/value';
 
 describe('FrameRegisters', () => {
   it('should render registers', () => {

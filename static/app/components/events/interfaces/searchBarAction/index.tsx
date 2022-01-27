@@ -1,8 +1,8 @@
 import {Children} from 'react';
 import styled from '@emotion/styled';
 
-import SearchBar from 'app/components/searchBar';
-import space from 'app/styles/space';
+import SearchBar from 'sentry/components/searchBar';
+import space from 'sentry/styles/space';
 
 type Props = {
   onChange: (value: string) => void;
@@ -33,14 +33,14 @@ export default SearchBarAction;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   width: 100%;
   margin-top: ${space(1)};
   position: relative;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     margin-top: 0;
-    grid-gap: 0;
+    gap: 0;
     grid-template-columns: ${p =>
       p.children && Children.toArray(p.children).length === 1
         ? '1fr'
@@ -63,7 +63,7 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
   width: 100%;
   position: relative;
   .search-input {
-    height: 32px;
+    height: 34px;
   }
   .search-clear-form,
   .search-input-icon {

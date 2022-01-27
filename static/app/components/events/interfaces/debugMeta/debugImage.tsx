@@ -2,16 +2,16 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import DebugFileFeature from 'app/components/debugFileFeature';
-import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
-import {PanelItem} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconCircle, IconFlag, IconSearch} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import DebugFileFeature from 'sentry/components/debugFileFeature';
+import {formatAddress, getImageRange} from 'sentry/components/events/interfaces/utils';
+import {PanelItem} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconCircle, IconFlag, IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 
 import {DebugImage as DebugImageType, DebugStatus} from './types';
 import {combineStatus, getFileName} from './utils';
@@ -269,7 +269,7 @@ const DebugImageItem = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeSmall};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
-    grid-gap: ${space(1)};
+    gap: ${space(1)};
     position: relative;
   }
 `;

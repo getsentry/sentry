@@ -144,10 +144,6 @@ def test_get_json_meta_type(field_alias, snuba_type, function, expected):
         ),
         ("min(measurements.foo)", ("min", ["measurements.foo"], None)),
         (
-            "absolute_delta(transaction.duration, 400)",
-            ("absolute_delta", ["transaction.duration", "400"], None),
-        ),
-        (
             "avg_range(transaction.duration, 0.5, 2020-03-13T15:14:15, 2020-03-14T15:14:15) AS p",
             (
                 "avg_range",
@@ -646,42 +642,6 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), divide(3600, 60))", None, "tpm"],
         ]
         assert result["groupby"] == []
-
-    def test_absolute_delta_function(self):
-        fields = ["absolute_delta(transaction.duration,100)", "id"]
-        result = resolve_field_list(fields, eventstore.Filter())
-        assert result["selected_columns"] == [
-            [
-                "abs",
-                [["minus", ["transaction.duration", 100.0]]],
-                "absolute_delta_transaction_duration_100",
-            ],
-            "id",
-            "project.id",
-            [
-                "transform",
-                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
-                "`project.name`",
-            ],
-        ]
-        assert result["aggregations"] == []
-        assert result["groupby"] == []
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["absolute_delta(transaction,100)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "absolute_delta(transaction,100): column argument invalid: transaction is not a duration column"
-            in str(err)
-        )
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["absolute_delta(transaction.duration,blah)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "absolute_delta(transaction.duration,blah): target argument invalid: blah is not a number"
-            in str(err)
-        )
 
     def test_eps_function(self):
         fields = ["eps(3600)"]
@@ -1644,7 +1604,10 @@ def resolve_snql_fieldlist(fields):
                 "quantileIf(0.50)",
                 [
                     Column("duration"),
-                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                    Function(
+                        "greater",
+                        [Function("toDateTime", ["2020-05-03T06:48:57"]), Column("timestamp")],
+                    ),
                 ],
                 "percentile_range_1",
             ),
@@ -1655,7 +1618,10 @@ def resolve_snql_fieldlist(fields):
                 "avgIf",
                 [
                     Column("duration"),
-                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                    Function(
+                        "greater",
+                        [Function("toDateTime", ["2020-05-03T06:48:57"]), Column("timestamp")],
+                    ),
                 ],
                 "avg_range_1",
             ),
@@ -1666,7 +1632,10 @@ def resolve_snql_fieldlist(fields):
                 "varSampIf",
                 [
                     Column("duration"),
-                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                    Function(
+                        "greater",
+                        [Function("toDateTime", ["2020-05-03T06:48:57"]), Column("timestamp")],
+                    ),
                 ],
                 "variance_range_1",
             ),
@@ -1676,7 +1645,10 @@ def resolve_snql_fieldlist(fields):
             Function(
                 "countIf",
                 [
-                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                    Function(
+                        "greater",
+                        [Function("toDateTime", ["2020-05-03T06:48:57"]), Column("timestamp")],
+                    ),
                 ],
                 "count_range_1",
             ),

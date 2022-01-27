@@ -1,7 +1,7 @@
 import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'app/stores/configStore';
-import withConfig from 'app/utils/withConfig';
+import ConfigStore from 'sentry/stores/configStore';
+import withConfig from 'sentry/utils/withConfig';
 
 describe('withConfig HoC', function () {
   it('adds config prop', async function () {
@@ -13,6 +13,6 @@ describe('withConfig HoC', function () {
 
     act(() => void ConfigStore.set('test', 'foo'));
 
-    expect(screen.queryByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
   });
 });

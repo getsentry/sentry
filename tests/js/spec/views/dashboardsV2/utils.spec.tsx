@@ -1,5 +1,5 @@
-import {DisplayType} from 'app/views/dashboardsV2/types';
-import {constructWidgetFromQuery} from 'app/views/dashboardsV2/utils';
+import {DisplayType} from 'sentry/views/dashboardsV2/types';
+import {constructWidgetFromQuery} from 'sentry/views/dashboardsV2/utils';
 
 describe('Dashboards util', () => {
   describe('constructWidgetFromQuery', () => {
@@ -34,6 +34,7 @@ describe('Dashboards util', () => {
           orderby: '',
         },
       ]);
+      expect(widget?.widgetType).toEqual('discover');
     });
     it('returns undefined if query is missing title', () => {
       baseQuery.title = '';

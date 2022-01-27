@@ -1,14 +1,14 @@
 [
   {
     "desc": "test date format with other name",
-    "query": "first_seen:>2015-05-18",
+    "query": "timestamp:>2015-05-18",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "date",
         "negated": false,
-        "key": {"type": "keySimple", "value": "first_seen", "quoted": false},
+        "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": ">",
         "value": {"type": "valueIso8601Date", "value": "2015-05-18T00:00:00.000Z"}
       },
@@ -16,14 +16,14 @@
     ]
   },
   {
-    "query": "first_seen:>2018-01-01T05:06:07+00:00",
+    "query": "timestamp.to_hour:>2018-01-01T05:06:07+00:00",
     "result": [
       {"type": "spaces", "value": ""},
       {
         "type": "filter",
         "filter": "date",
         "negated": false,
-        "key": {"type": "keySimple", "value": "first_seen", "quoted": false},
+        "key": {"type": "keySimple", "value": "timestamp.to_hour", "quoted": false},
         "operator": ">",
         "value": {"type": "valueIso8601Date", "value": "2018-01-01T05:06:07.000Z"}
       },

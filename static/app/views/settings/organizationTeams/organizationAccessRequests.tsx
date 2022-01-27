@@ -1,14 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {AccessRequest} from 'app/types';
-import withApi from 'app/utils/withApi';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AccessRequest} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
@@ -138,7 +138,7 @@ class OrganizationAccessRequests extends React.Component<Props, State> {
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: auto max-content;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   align-items: center;
 `;
 

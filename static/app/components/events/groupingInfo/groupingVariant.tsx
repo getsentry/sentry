@@ -2,16 +2,20 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import QuestionTooltip from 'app/components/questionTooltip';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconClose} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {EventGroupComponent, EventGroupVariant, EventGroupVariantType} from 'app/types';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {
+  EventGroupComponent,
+  EventGroupVariant,
+  EventGroupVariantType,
+} from 'sentry/types';
 
 import GroupingComponent from './groupingComponent';
 import {hasNonContributingComponent} from './utils';
@@ -292,7 +296,7 @@ const TextWithQuestionTooltip = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: max-content min-content;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
 `;
 
 const Hash = styled('span')`

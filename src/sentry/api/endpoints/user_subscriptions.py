@@ -16,8 +16,12 @@ class NewsletterValidator(serializers.Serializer):
     subscribed = serializers.BooleanField(required=True)
 
 
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
 class UserSubscriptionsEndpoint(UserEndpoint):
-    def get(self, request, user):
+    def get(self, request: Request, user) -> Response:
         """
         Retrieve Account Subscriptions
         `````````````````````````````````````
@@ -48,7 +52,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
             ]
         )
 
-    def put(self, request, user):
+    def put(self, request: Request, user) -> Response:
         """
         Update Account Subscriptions
         ````````````````````````````
@@ -79,7 +83,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
         newsletter.create_or_update_subscription(user, **kwargs)
         return self.respond(status=204)
 
-    def post(self, request, user):
+    def post(self, request: Request, user) -> Response:
         """
         Configure Newsletter Subscription
         `````````````````````````````````

@@ -2,11 +2,11 @@ import * as React from 'react';
 import {ClassNames} from '@emotion/react';
 import memoize from 'lodash/memoize';
 
-import {Client} from 'app/api';
-import SmartSearchBar from 'app/components/smartSearchBar';
-import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
-import {t} from 'app/locale';
-import {Organization, Project, Tag} from 'app/types';
+import {Client} from 'sentry/api';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import {MetricTagValue, Organization, Project, Tag} from 'sentry/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -19,11 +19,11 @@ type Props = Pick<
 > & {
   api: Client;
   orgSlug: Organization['slug'];
-  projectSlug: Project['slug'];
+  projectId: Project['id'];
   tags: string[];
 };
 
-function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: Props) {
+function SearchQueryField({api, orgSlug, projectId, tags, onSearch, onBlur}: Props) {
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
    */
@@ -32,17 +32,15 @@ function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: P
   }
 
   function fetchTagValues(tagKey: string) {
-    return api.requestPromise(
-      `/projects/${orgSlug}/${projectSlug}/metrics/tags/${tagKey}/`,
-      {
-        method: 'GET',
-      }
-    );
+    return api.requestPromise(`/organizations/${orgSlug}/metrics/tags/${tagKey}/`, {
+      method: 'GET',
+      query: {project: projectId},
+    });
   }
 
   function getTagValues(tag: Tag, _query: string): Promise<string[]> {
     return fetchTagValues(tag.key).then(
-      tagValues => tagValues,
+      tagValues => (tagValues as MetricTagValue[]).map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
       }

@@ -2,21 +2,21 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {TraceFullDetailedQuery} from 'app/utils/performance/quickTrace/traceFullQuery';
-import TraceMetaQuery from 'app/utils/performance/quickTrace/traceMetaQuery';
-import {TraceFullDetailed, TraceMeta} from 'app/utils/performance/quickTrace/types';
-import {decodeScalar} from 'app/utils/queryString';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import {Client} from 'sentry/api';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
+import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import {decodeScalar} from 'sentry/utils/queryString';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import TraceDetailsContent from './content';
 
@@ -37,7 +37,7 @@ class TraceSummary extends Component<Props> {
 
   getDateSelection() {
     const {location} = this.props;
-    const queryParams = getParams(location.query, {
+    const queryParams = normalizeDateTimeParams(location.query, {
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(queryParams.start);

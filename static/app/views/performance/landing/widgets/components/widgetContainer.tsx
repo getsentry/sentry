@@ -1,25 +1,28 @@
 import {useEffect, useState} from 'react';
-import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
-import MenuItem from 'app/components/menuItem';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import localStorage from 'app/utils/localStorage';
-import {usePerformanceDisplayType} from 'app/utils/performance/contexts/performanceDisplayContext';
-import useOrganization from 'app/utils/useOrganization';
-import withOrganization from 'app/utils/withOrganization';
-import ContextMenu from 'app/views/dashboardsV2/contextMenu';
-import {useMetricsSwitch} from 'app/views/performance/metricsSwitch';
-import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
+import MenuItem from 'sentry/components/menuItem';
+import {Panel, PanelBody} from 'sentry/components/panels';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import useOrganization from 'sentry/utils/useOrganization';
+import withOrganization from 'sentry/utils/withOrganization';
+import ContextMenu from 'sentry/views/dashboardsV2/contextMenu';
+import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
 
 import {GenericPerformanceWidgetDataType} from '../types';
+import {_setChartSetting, getChartSetting} from '../utils';
 import {PerformanceWidgetSetting, WIDGET_DEFINITIONS} from '../widgetDefinitions';
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
+import {LineChartListWidgetMetrics} from '../widgets/lineChartListWidgetMetrics';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
+import {SingleFieldAreaWidgetMetrics} from '../widgets/singleFieldAreaWidgetMetrics';
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
+import {VitalWidgetMetrics} from '../widgets/vitalWidgetMetrics';
 
 import {ChartRowProps} from './widgetChartRow';
 
@@ -30,63 +33,11 @@ type Props = {
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
   chartColor?: string;
-  forceDefaultChartSetting?: boolean; // Used for testing.
+  eventView: EventView;
+  forceDefaultChartSetting?: boolean;
+  rowChartSettings: PerformanceWidgetSetting[];
+  setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
 } & ChartRowProps;
-
-// Use local storage for chart settings for now.
-const getContainerLocalStorageObjectKey = 'landing-chart-container';
-const getContainerKey = (
-  index: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
-  height: number
-) => `landing-chart-container#${performanceType}#${height}#${index}`;
-
-function getWidgetStorageObject() {
-  const localObject = JSON.parse(
-    localStorage.getItem(getContainerLocalStorageObjectKey) || '{}'
-  );
-  return localObject;
-}
-
-function setWidgetStorageObject(localObject: Record<string, string>) {
-  localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
-}
-
-const getChartSetting = (
-  index: number,
-  height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
-  defaultType: PerformanceWidgetSetting,
-  forceDefaultChartSetting?: boolean // Used for testing.
-): PerformanceWidgetSetting => {
-  if (forceDefaultChartSetting) {
-    return defaultType;
-  }
-  const key = getContainerKey(index, performanceType, height);
-  const localObject = getWidgetStorageObject();
-  const value = localObject?.[key];
-
-  if (
-    value &&
-    Object.values(PerformanceWidgetSetting).includes(value as PerformanceWidgetSetting)
-  ) {
-    const _value: PerformanceWidgetSetting = value as PerformanceWidgetSetting;
-    return _value;
-  }
-  return defaultType;
-};
-const _setChartSetting = (
-  index: number,
-  height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
-  setting: PerformanceWidgetSetting
-) => {
-  const key = getContainerKey(index, performanceType, height);
-  const localObject = getWidgetStorageObject();
-  localObject[key] = setting;
-
-  setWidgetStorageObject(localObject);
-};
 
 function trackChartSettingChange(
   previousChartSetting: PerformanceWidgetSetting,
@@ -103,7 +54,15 @@ function trackChartSettingChange(
 }
 
 const _WidgetContainer = (props: Props) => {
-  const {organization, index, chartHeight, allowedCharts, ...rest} = props;
+  const {
+    organization,
+    index,
+    chartHeight,
+    allowedCharts,
+    rowChartSettings,
+    setRowChartSettings,
+    ...rest
+  } = props;
   const {isMetricsData} = useMetricsSwitch();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
@@ -125,6 +84,9 @@ const _WidgetContainer = (props: Props) => {
       _setChartSetting(index, chartHeight, performanceType, setting);
     }
     setChartSettingState(setting);
+    const newSettings = [...rowChartSettings];
+    newSettings[index] = setting;
+    setRowChartSettings(newSettings);
     trackChartSettingChange(
       chartSetting,
       setting,
@@ -137,7 +99,7 @@ const _WidgetContainer = (props: Props) => {
     setChartSettingState(_chartSetting);
   }, [rest.defaultChartSetting]);
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+  const chartDefinition = WIDGET_DEFINITIONS({organization, isMetricsData})[chartSetting];
   const widgetProps = {
     ...chartDefinition,
     chartSetting,
@@ -146,38 +108,86 @@ const _WidgetContainer = (props: Props) => {
       <WidgetContainerActions
         {...containerProps}
         allowedCharts={props.allowedCharts}
+        chartSetting={chartSetting}
         setChartSetting={setChartSetting}
+        rowChartSettings={rowChartSettings}
       />
     ),
   };
 
-  if (isMetricsData) {
-    return <h1>{t('Using metrics')}</h1>;
+  if (
+    isMetricsData &&
+    [
+      PerformanceWidgetSetting.DURATION_HISTOGRAM,
+      PerformanceWidgetSetting.LCP_HISTOGRAM,
+      PerformanceWidgetSetting.FCP_HISTOGRAM,
+      PerformanceWidgetSetting.FID_HISTOGRAM,
+      PerformanceWidgetSetting.MOST_IMPROVED,
+      PerformanceWidgetSetting.MOST_REGRESSED,
+      PerformanceWidgetSetting.MOST_RELATED_ERRORS,
+      PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+      PerformanceWidgetSetting.SLOW_HTTP_OPS,
+      PerformanceWidgetSetting.SLOW_DB_OPS,
+      PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+      PerformanceWidgetSetting.SLOW_BROWSER_OPS,
+    ].includes(widgetProps.chartSetting)
+  ) {
+    // TODO(metrics): Remove this once all widgets are converted
+    return (
+      <Panel style={{minHeight: '167px', marginBottom: 0}}>
+        <PanelBody withPadding>TODO: {widgetProps.title}</PanelBody>
+      </Panel>
+    );
   }
+
+  const passedProps = pick(props, [
+    'eventView',
+    'location',
+    'organization',
+    'chartHeight',
+  ]);
 
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.trends:
-      return <TrendsWidget {...props} {...widgetProps} />;
+      return <TrendsWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.area:
-      return <SingleFieldAreaWidget {...props} {...widgetProps} />;
+      if (isMetricsData) {
+        return <SingleFieldAreaWidgetMetrics {...passedProps} {...widgetProps} />;
+      }
+      return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.vitals:
-      return <VitalWidget {...props} {...widgetProps} />;
+      if (isMetricsData) {
+        return <VitalWidgetMetrics {...passedProps} {...widgetProps} />;
+      }
+      return <VitalWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.line_list:
-      return <LineChartListWidget {...props} {...widgetProps} />;
+      if (
+        isMetricsData &&
+        [
+          PerformanceWidgetSetting.MOST_SLOW_FRAMES,
+          PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
+        ].includes(widgetProps.chartSetting)
+      ) {
+        return <LineChartListWidgetMetrics {...passedProps} {...widgetProps} />;
+      }
+      return <LineChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.histogram:
-      return <HistogramWidget {...props} {...widgetProps} />;
+      return <HistogramWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
 };
 
 export const WidgetContainerActions = ({
+  chartSetting,
   setChartSetting,
   allowedCharts,
+  rowChartSettings,
 }: {
-  loading: boolean;
+  chartSetting: PerformanceWidgetSetting;
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
   allowedCharts: PerformanceWidgetSetting[];
+  rowChartSettings: PerformanceWidgetSetting[];
 }) => {
   const organization = useOrganization();
   const menuOptions: React.ReactNode[] = [];
@@ -189,6 +199,8 @@ export const WidgetContainerActions = ({
       <MenuItem
         key={setting}
         onClick={() => setChartSetting(setting)}
+        isActive={setting === chartSetting}
+        disabled={setting !== chartSetting && rowChartSettings.includes(setting)}
         data-test-id="performance-widget-menu-item"
       >
         {options.title}
@@ -196,17 +208,8 @@ export const WidgetContainerActions = ({
     );
   }
 
-  return (
-    <ChartActionContainer>
-      <ContextMenu>{menuOptions}</ContextMenu>
-    </ChartActionContainer>
-  );
+  return <ContextMenu>{menuOptions}</ContextMenu>;
 };
-
-const ChartActionContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
 
 const WidgetContainer = withOrganization(_WidgetContainer);
 

@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
@@ -21,7 +22,7 @@ class OrganizationSearchSerializer(serializers.Serializer):
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSearchPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List an Organization's saved searches
         `````````````````````````````````````
@@ -67,7 +68,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
 
         return Response(serialize(results, request.user))
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         serializer = OrganizationSearchSerializer(data=request.data)
 
         if serializer.is_valid():

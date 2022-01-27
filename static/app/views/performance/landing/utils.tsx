@@ -1,20 +1,20 @@
-import {ReactText} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
   getDuration,
-} from 'app/utils/formatters';
-import {HistogramData} from 'app/utils/performance/histogram/types';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/utils/formatters';
+import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
 import {Rectangle} from '../transactionSummary/transactionVitals/types';
@@ -61,8 +61,33 @@ export const LANDING_DISPLAYS = [
   },
 ];
 
+export const LANDING_V3_DISPLAYS = [
+  {
+    label: 'All Transactions',
+    field: LandingDisplayField.ALL,
+  },
+  {
+    label: 'Web Vitals',
+    field: LandingDisplayField.FRONTEND_PAGELOAD,
+  },
+  {
+    label: 'Frontend',
+    field: LandingDisplayField.FRONTEND_OTHER,
+  },
+  {
+    label: 'Backend',
+    field: LandingDisplayField.BACKEND,
+  },
+  {
+    label: 'Mobile',
+    field: LandingDisplayField.MOBILE,
+    isShown: (organization: Organization) =>
+      organization.features.includes('performance-mobile-vitals'),
+  },
+];
+
 export function excludeTransaction(
-  transaction: string | ReactText,
+  transaction: string | React.ReactText,
   props: {eventView: EventView; location: Location}
 ) {
   const {eventView, location} = props;
@@ -80,28 +105,40 @@ export function excludeTransaction(
   });
 }
 
-export function getCurrentLandingDisplay(
-  location: Location,
-  projects: Project[],
-  eventView?: EventView
-): LandingDisplay {
+export function getLandingDisplayFromParam(location: Location) {
   const landingField = decodeScalar(location?.query?.landingDisplay);
-  const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
-  if (display) {
-    return display;
-  }
 
+  const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
+  return display;
+}
+
+export function getDefaultDisplayForPlatform(projects: Project[], eventView?: EventView) {
   const defaultDisplayField = getDefaultDisplayFieldForPlatform(projects, eventView);
+
   const defaultDisplay = LANDING_DISPLAYS.find(
     ({field}) => field === defaultDisplayField
   );
   return defaultDisplay || LANDING_DISPLAYS[0];
 }
 
-export function handleLandingDisplayChange(
-  field: string,
+export function getCurrentLandingDisplay(
   location: Location,
   projects: Project[],
+  eventView?: EventView
+): LandingDisplay {
+  const display = getLandingDisplayFromParam(location);
+  if (display) {
+    return display;
+  }
+
+  return getDefaultDisplayForPlatform(projects, eventView);
+}
+
+export function handleLandingDisplayChange(
+  field: LandingDisplayField,
+  location: Location,
+  projects: Project[],
+  organization: Organization,
   eventView?: EventView
 ) {
   // Transaction op can affect the display and show no results if it is explicitly set.
@@ -110,7 +147,7 @@ export function handleLandingDisplayChange(
   searchConditions.removeFilter('transaction.op');
 
   const queryWithConditions = {
-    ...omit(location.query, 'landingDisplay'),
+    ...omit(location.query, ['landingDisplay', 'sort']),
     query: searchConditions.formatString(),
   };
 
@@ -118,11 +155,20 @@ export function handleLandingDisplayChange(
   delete queryWithConditions[RIGHT_AXIS_QUERY_KEY];
 
   const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
+  const currentDisplay = getCurrentLandingDisplay(location, projects, eventView).field;
 
-  const newQuery =
+  const newQuery: {query: string; landingDisplay?: LandingDisplayField} =
     defaultDisplay === field
       ? {...queryWithConditions}
       : {...queryWithConditions, landingDisplay: field};
+
+  trackAdvancedAnalyticsEvent('performance_views.landingv3.display_change', {
+    organization,
+    change_to_display: field,
+    default_display: defaultDisplay,
+    current_display: currentDisplay,
+    is_default: defaultDisplay === currentDisplay,
+  });
 
   browserHistory.push({
     pathname: location.pathname,
@@ -231,4 +277,11 @@ export function getDisplayAxes(options: AxisOption[], location: Location) {
     leftAxis,
     rightAxis,
   };
+}
+
+export function checkIsReactNative(eventView) {
+  // only react native should contain the stall percentage column
+  return Boolean(
+    eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
+  );
 }

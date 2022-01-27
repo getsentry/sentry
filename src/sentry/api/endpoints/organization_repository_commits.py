@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
@@ -6,7 +9,7 @@ from sentry.models import Commit, Repository
 
 
 class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
-    def get(self, request, organization, repo_id):
+    def get(self, request: Request, organization, repo_id) -> Response:
         """
         List a Repository's Commits
         ```````````````````````````

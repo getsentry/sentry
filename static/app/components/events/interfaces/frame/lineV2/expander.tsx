@@ -1,19 +1,18 @@
-import {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
-import {IconChevron} from 'app/icons/iconChevron';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {PlatformType} from 'app/types';
+import Button from 'sentry/components/button';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
+import {IconChevron} from 'sentry/icons/iconChevron';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {PlatformType} from 'sentry/types';
 
 import {isDotnet} from '../utils';
 
 type Props = {
   isExpandable: boolean;
   platform: PlatformType;
-  onToggleContext: (evt: MouseEvent) => void;
+  onToggleContext: (evt: React.MouseEvent) => void;
   isHoverPreviewed?: boolean;
   isExpanded?: boolean;
 };
@@ -33,6 +32,7 @@ function Expander({
     <StyledButton
       className="btn-toggle"
       css={isDotnet(platform) && {display: 'block !important'}} // remove important once we get rid of css files
+      size="zero"
       title={t('Toggle Context')}
       tooltipProps={
         isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined

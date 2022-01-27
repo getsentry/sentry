@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import {PanelAlert, PanelItem} from 'app/components/panels';
-import accountPasswordFields from 'app/data/forms/accountPassword';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/button';
+import {PanelAlert, PanelItem} from 'sentry/components/panels';
+import accountPasswordFields from 'sentry/data/forms/accountPassword';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
 type OnSubmitSuccess = Parameters<NonNullable<Form['props']['onSubmitSuccess']>>;
 

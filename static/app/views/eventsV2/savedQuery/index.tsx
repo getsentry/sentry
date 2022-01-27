@@ -4,31 +4,34 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Banner from 'app/components/banner';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import DropdownControl from 'app/components/dropdownControl';
-import FeatureBadge from 'app/components/featureBadge';
-import Hovercard from 'app/components/hovercard';
-import {IconDelete, IconStar} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, SavedQuery} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'app/utils/discover/eventView';
-import {DisplayModes} from 'app/utils/discover/types';
-import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
-import withApi from 'app/utils/withApi';
-import withProjects from 'app/utils/withProjects';
-import {WidgetQuery} from 'app/views/dashboardsV2/types';
-import InputControl from 'app/views/settings/components/forms/controls/input';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Banner from 'sentry/components/banner';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import DropdownControl from 'sentry/components/dropdownControl';
+import Hovercard from 'sentry/components/hovercard';
+import {IconDelete, IconStar} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project, SavedQuery} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import withApi from 'sentry/utils/withApi';
+import withProjects from 'sentry/utils/withProjects';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
+import InputControl from 'sentry/views/settings/components/forms/controls/input';
 
 import {
   displayModeToDisplayType,
@@ -232,10 +235,16 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   handleAddDashboardWidget = () => {
     const {organization, eventView, savedQuery, yAxis} = this.props;
+
+    const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+    const defaultTableColumns = eventView.fields.map(({field}) => field);
     const sort = eventView.sorts[0];
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
-      fields: yAxis && yAxis.length > 0 ? yAxis : ['count()'],
+      fields: [
+        ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+      ],
       conditions: eventView.query,
       orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };
@@ -247,13 +256,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     openAddDashboardWidgetModal({
       organization,
-      fromDiscover: true,
+      source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns: eventView.fields.map(({field}) => field),
+      defaultTableColumns,
       defaultTitle:
         savedQuery?.name ??
         (eventView.name !== 'All Events' ? eventView.name : undefined),
-      displayType: displayModeToDisplayType(eventView.display as DisplayModes),
+      displayType,
     });
   };
 
@@ -373,12 +382,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   renderButtonAddToDashboard() {
     return (
-      <AddToDashboardButton
+      <Button
         key="add-dashboard-widget-from-discover"
+        data-test-id="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
-        {t('Add to Dashboard')} <StyledFeatureBadge type="new" noTooltip />
-      </AddToDashboardButton>
+        {t('Add to Dashboard')}
+      </Button>
     );
   }
 
@@ -458,13 +468,4 @@ const IconUpdate = styled('div')`
   background-color: ${p => p.theme.yellow300};
 `;
 
-const AddToDashboardButton = styled(Button)`
-  span {
-    height: 38px;
-  }
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  overflow: auto;
-`;
 export default withProjects(withApi(SavedQueryButtonGroup));

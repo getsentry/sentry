@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
-import BaseBadge from 'app/components/idBadge/baseBadge';
-import Link from 'app/components/links/link';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
+import BaseBadge from 'sentry/components/idBadge/baseBadge';
+import Link from 'sentry/components/links/link';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type Project = NonNullable<BaseBadgeProps['project']>;

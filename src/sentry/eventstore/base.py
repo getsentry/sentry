@@ -106,7 +106,7 @@ class Filter:
         }
 
     def update_with(self, updates):
-        keys = ("selected_columns", "aggregations", "conditions", "orderby", "groupby")
+        keys = ("selected_columns", "aggregations", "conditions", "orderby", "groupby", "rollup")
         for key in keys:
             if key in updates:
                 setattr(self, key, updates[key])
@@ -146,6 +146,9 @@ class EventStorage(Service):
         """
         Fetches a list of events given a set of criteria.
 
+        Searches for error events, including security and default messages, but not for
+        transaction events. Returns an empty list if no events match the filter.
+
         Arguments:
         snuba_filter (Filter): Filter
         orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
@@ -183,7 +186,7 @@ class EventStorage(Service):
 
     def get_event_by_id(self, project_id, event_id, group_id=None):
         """
-        Gets a single event given a project_id and event_id.
+        Gets a single event of any event type given a project_id and event_id.
         Returns None if an event cannot be found.
 
         Arguments:

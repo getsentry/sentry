@@ -34,7 +34,7 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
 
     def load_page(self, url):
         self.browser.get(url)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     # def test_install_sentry_app(self):
     #     self.load_page(self.org_integration_settings_path)

@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 
 describe('DropdownAutoComplete', function () {
   const routerContext = TestStubs.routerContext();

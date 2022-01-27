@@ -1,10 +1,10 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import JsonViewer from 'app/components/events/attachmentViewers/jsonViewer';
-import {ViewerProps} from 'app/components/events/attachmentViewers/utils';
-import PanelAlert from 'app/components/panels/panelAlert';
-import {tct} from 'app/locale';
+import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
+import {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import {tct} from 'sentry/locale';
 
 type State = {
   showRawJson: boolean;

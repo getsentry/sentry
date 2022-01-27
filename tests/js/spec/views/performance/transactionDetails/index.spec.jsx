@@ -1,7 +1,7 @@
 import {cleanup, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import EventDetails from 'app/views/performance/transactionDetails';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import EventDetails from 'sentry/views/performance/transactionDetails';
 
 const alertText =
   'You are viewing a sample transaction. Configure performance to start viewing real transactions.';
@@ -27,7 +27,7 @@ describe('EventDetails', () => {
       />,
       {context: routerContext}
     );
-    expect(screen.queryByText(alertText)).toBeInTheDocument();
+    expect(screen.getByText(alertText)).toBeInTheDocument();
   });
 
   it('does not reender alert if already received transaction', () => {

@@ -11,7 +11,6 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SlackActivityNotificationTest
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.utils import json
 
@@ -183,7 +182,6 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
         assert "eric@localhost" in mail.outbox[0].body
 
     @responses.activate
-    @with_feature("organizations:slack-requests")
     def test_request_to_invite_slack(self):
         with self.tasks():
             self.get_success_response(
@@ -219,13 +217,13 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
             {
                 "text": "See Members & Requests",
                 "name": "See Members & Requests",
-                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack",
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack-user",
                 "type": "button",
             },
         ]
         assert (
             attachment["footer"]
-            == "You are receiving this notification because you're listed as an organization Manager | <http://testserver/settings/account/notifications/approval/?referrer=InviteRequestSlackUser|Notification Settings>"
+            == "You are receiving this notification because you're listed as an organization Manager | <http://testserver/settings/account/notifications/approval/?referrer=invite_request-slack-user|Notification Settings>"
         )
         member = OrganizationMember.objects.get(email="eric@localhost")
         assert json.loads(attachment["callback_id"]) == {

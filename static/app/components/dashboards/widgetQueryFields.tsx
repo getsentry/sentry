@@ -1,28 +1,29 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import Button from 'sentry/components/button';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   isLegalYAxisType,
   QueryFieldValue,
-} from 'app/utils/discover/fields';
-import {Widget} from 'app/views/dashboardsV2/types';
-import ColumnEditCollection from 'app/views/eventsV2/table/columnEditCollection';
-import {QueryField} from 'app/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'app/views/eventsV2/table/types';
-import {generateFieldOptions} from 'app/views/eventsV2/utils';
-import Field from 'app/views/settings/components/forms/field';
+} from 'sentry/utils/discover/fields';
+import {Widget} from 'sentry/views/dashboardsV2/types';
+import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
+import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import Field from 'sentry/views/settings/components/forms/field';
 
 type Props = {
   /**
-   * The widget type. Used to render different fieldsets.
+   * The widget display type. Used to render different fieldsets.
    */
   displayType: Widget['displayType'];
+  widgetType: Widget['widgetType'];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   /**
    * The field list for the widget.
@@ -41,6 +42,7 @@ type Props = {
 };
 
 function WidgetQueryFields({
+  widgetType,
   displayType,
   errors,
   fields,
@@ -99,28 +101,6 @@ function WidgetQueryFields({
     onChange(columns);
   }
 
-  if (displayType === 'table') {
-    return (
-      <Field
-        data-test-id="columns"
-        label={t('Columns')}
-        inline={false}
-        style={{padding: `${space(1)} 0`, ...(style ?? {})}}
-        error={errors?.fields}
-        flexibleControlStateSize
-        stacked
-        required
-      >
-        <StyledColumnEditCollection
-          columns={fields}
-          onChange={handleColumnChange}
-          fieldOptions={fieldOptions}
-          organization={organization}
-        />
-      </Field>
-    );
-  }
-
   // Any function/field choice for Big Number widgets is legal since the
   // data source is from an endpoint that is not timeseries-based.
   // The function/field choice for World Map widget will need to be numeric-like.
@@ -172,6 +152,36 @@ function WidgetQueryFields({
     return isLegalYAxisType(option.value.meta.dataType);
   };
 
+  const hideAddYAxisButton =
+    (['world_map', 'big_number'].includes(displayType) && fields.length === 1) ||
+    (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
+      fields.length === 3);
+
+  const canDelete = fields.length > 1;
+
+  if (displayType === 'table') {
+    return (
+      <Field
+        data-test-id="columns"
+        label={t('Columns')}
+        inline={false}
+        style={{padding: `${space(1)} 0`, ...(style ?? {})}}
+        error={errors?.fields}
+        flexibleControlStateSize
+        stacked
+        required
+      >
+        <StyledColumnEditCollection
+          columns={fields}
+          onChange={handleColumnChange}
+          fieldOptions={fieldOptions}
+          organization={organization}
+          source={widgetType}
+        />
+      </Field>
+    );
+  }
+
   if (displayType === 'top_n') {
     const fieldValue = fields[fields.length - 1];
     const columns = fields.slice(0, fields.length - 1);
@@ -219,13 +229,6 @@ function WidgetQueryFields({
     );
   }
 
-  const hideAddYAxisButton =
-    (['world_map', 'big_number'].includes(displayType) && fields.length === 1) ||
-    (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
-      fields.length === 3);
-
-  const canDelete = fields.length > 1;
-
   return (
     <Field
       data-test-id="y-axis"
@@ -255,7 +258,7 @@ function WidgetQueryFields({
                 onClick={event => handleRemove(event, i)}
                 icon={<IconDelete />}
                 title={t('Remove this Y-Axis')}
-                label={t('Remove this Y-Axis')}
+                aria-label={t('Remove this Y-Axis')}
               />
             )}
           </QueryFieldWrapper>
@@ -268,7 +271,7 @@ function WidgetQueryFields({
           </Button>
           <Button
             size="small"
-            label={t('Add an Equation')}
+            aria-label={t('Add an Equation')}
             onClick={handleAddEquation}
             icon={<IconAdd isCircled />}
           >

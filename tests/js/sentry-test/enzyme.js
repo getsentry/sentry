@@ -4,7 +4,7 @@ import {mount, shallow as enzymeShallow} from 'enzyme'; // eslint-disable-line n
 
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import {lightTheme} from 'app/utils/theme';
+import {lightTheme} from 'sentry/utils/theme';
 
 /**
  * @deprecated

@@ -2,9 +2,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import App from 'app/views/app';
-import OrganizationDeveloperSettings from 'app/views/settings/organizationDeveloperSettings/index';
+import {Client} from 'sentry/api';
+import App from 'sentry/views/app';
+import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function () {
   const org = TestStubs.Organization();
@@ -20,8 +20,8 @@ describe('Organization Developer Settings', function () {
   });
   const routerContext = TestStubs.routerContext();
 
-  const publishButtonSelector = 'StyledButton[aria-label="Publish"]';
-  const deleteButtonSelector = 'StyledButton[aria-label="Delete"]';
+  const publishButtonSelector = 'button[aria-label="Publish"]';
+  const deleteButtonSelector = 'button[aria-label="Delete"]';
 
   beforeEach(() => {
     Client.clearMockResponses();

@@ -90,7 +90,7 @@ class OrganizationPluginsTest(APITestCase):
             }
         ]
 
-    def test_disabled_proejct(self):
+    def test_disabled_project(self):
         plugins.get("trello").enable(self.projectA)
         plugins.get("trello").set_option("key", "some_value", self.projectA)
         self.projectA.status = 1

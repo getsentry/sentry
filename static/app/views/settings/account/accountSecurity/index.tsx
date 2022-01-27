@@ -1,27 +1,27 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {openEmailVerification} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import CircleIndicator from 'app/components/circleIndicator';
-import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Authenticator, OrganizationSummary} from 'app/types';
-import recreateRoute from 'app/utils/recreateRoute';
-import AsyncView from 'app/views/asyncView';
-import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
-import TwoFactorRequired from 'app/views/settings/account/accountSecurity/components/twoFactorRequired';
-import PasswordForm from 'app/views/settings/account/passwordForm';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Field from 'app/views/settings/components/forms/field';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {openEmailVerification} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import CircleIndicator from 'sentry/components/circleIndicator';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Authenticator, OrganizationSummary} from 'sentry/types';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import AsyncView from 'sentry/views/asyncView';
+import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
+import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
+import PasswordForm from 'sentry/views/settings/account/passwordForm';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import Field from 'sentry/views/settings/components/forms/field';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   authenticators: Authenticator[] | null;
@@ -192,7 +192,7 @@ class AccountSecurity extends AsyncView<Props> {
                             >
                               <Button
                                 size="small"
-                                label={t('delete')}
+                                aria-label={t('delete')}
                                 icon={<IconDelete />}
                               />
                             </RemoveConfirm>
@@ -235,7 +235,7 @@ const AuthenticatorTitle = styled('div')`
 const Actions = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const AuthenticatorStatus = styled(CircleIndicator)`

@@ -1,5 +1,5 @@
 import Cookies from 'js-cookie';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 type PendingInvite = {
   memberId: number;
@@ -14,5 +14,5 @@ export default function getPendingInvite(): PendingInvite | null {
     return null;
   }
 
-  return queryString.parse(data) as any;
+  return qs.parse(data) as any;
 }

@@ -1,6 +1,6 @@
-import Button from 'app/components/button';
-import Collapsible from 'app/components/collapsible';
-import {tn} from 'app/locale';
+import Button from 'sentry/components/button';
+import Collapsible from 'sentry/components/collapsible';
+import {tn} from 'sentry/locale';
 
 export default {
   title: 'Utilities/Hidden Content/Collapsible',

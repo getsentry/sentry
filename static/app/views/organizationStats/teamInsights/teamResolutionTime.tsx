@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import BarChart from 'app/components/charts/barChart';
-import {DateTimeObject} from 'app/components/charts/utils';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {getDuration} from 'app/utils/formatters';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import BarChart from 'sentry/components/charts/barChart';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {getDuration} from 'sentry/utils/formatters';
 
 import {barAxisLabel, convertDaySeriesToWeeks} from './utils';
 
@@ -43,7 +43,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/time-to-resolution/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -95,8 +95,8 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
             {
               seriesName: t('Time to Resolution'),
               data: seriesData,
-              // @ts-expect-error silent not included in bar series
               silent: true,
+              barCategoryGap: '5%',
             },
           ]}
         />

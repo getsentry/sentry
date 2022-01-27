@@ -1,5 +1,5 @@
-import EnvironmentActions from 'app/actions/environmentActions';
-import {Client} from 'app/api';
+import EnvironmentActions from 'sentry/actions/environmentActions';
+import {Client} from 'sentry/api';
 
 /**
  * Fetches all environments for an organization

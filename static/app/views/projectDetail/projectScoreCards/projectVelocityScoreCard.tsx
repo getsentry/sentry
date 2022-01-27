@@ -1,18 +1,18 @@
 import * as React from 'react';
 
-import {fetchAnyReleaseExistence} from 'app/actionCreators/projects';
-import AsyncComponent from 'app/components/asyncComponent';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
-import ScoreCard from 'app/components/scoreCard';
-import {IconArrow} from 'app/icons';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization} from 'app/types';
-import {defined} from 'app/utils';
-import {getPeriod} from 'app/utils/getPeriod';
+import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
+import ScoreCard from 'sentry/components/scoreCard';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {getPeriod} from 'sentry/utils/getPeriod';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
-import {shouldFetchPreviousPeriod} from '../utils';
 
 const API_LIMIT = 1000;
 
@@ -20,7 +20,7 @@ type Release = {version: string; date: string};
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   isProjectStabilized: boolean;
   query?: string;
 };
@@ -66,13 +66,19 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
           method: 'GET',
           query: {
             ...commonQuery,
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
     ];
 
-    if (shouldFetchPreviousPeriod(datetime)) {
+    if (
+      shouldFetchPreviousPeriod({
+        start: datetime.start,
+        end: datetime.end,
+        period: datetime.period,
+      })
+    ) {
       const {start: previousStart} = parseStatsPeriod(
         getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
           .statsPeriod!

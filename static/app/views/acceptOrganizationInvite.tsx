@@ -1,19 +1,19 @@
-import {Fragment, MouseEvent} from 'react';
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
-import {logout} from 'app/actionCreators/account';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import NarrowLayout from 'app/components/narrowLayout';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {logout} from 'sentry/actionCreators/account';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import NarrowLayout from 'sentry/components/narrowLayout';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
   orgSlug: string;
@@ -35,6 +35,8 @@ type State = AsyncView['state'] & {
 };
 
 class AcceptOrganizationInvite extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {memberId, token} = this.props.params;
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
@@ -48,7 +50,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     return `${path}?${urlEncode({next: window.location.pathname})}`;
   }
 
-  handleLogout = async (e: MouseEvent) => {
+  handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     await logout(this.api);
     window.location.replace(this.makeNextUrl('/auth/login/'));
@@ -133,7 +135,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           <ActionsLeft>
             {inviteDetails.needsSso && (
               <Button
-                label="sso-login"
+                aria-label="sso-login"
                 priority="primary"
                 href={this.makeNextUrl(`/auth/login/${inviteDetails.orgSlug}/`)}
               >
@@ -142,7 +144,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
             )}
             {!inviteDetails.requireSso && (
               <Button
-                label="create-account"
+                aria-label="create-account"
                 priority="primary"
                 href={this.makeNextUrl('/auth/register/')}
               >
@@ -210,7 +212,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     return (
       <Actions>
         <Button
-          label="join-organization"
+          aria-label="join-organization"
           priority="primary"
           disabled={accepting}
           onClick={this.handleAcceptInvite}

@@ -1,5 +1,5 @@
-import {EventAttachment} from 'app/types';
-import {Event} from 'app/types/event';
+import {EventAttachment} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 export type ViewerProps = {
   event: Event;

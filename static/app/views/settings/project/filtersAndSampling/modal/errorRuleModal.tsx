@@ -1,14 +1,14 @@
 import isEqual from 'lodash/isEqual';
 
-import {t} from 'app/locale';
+import {t} from 'sentry/locale';
 import {
   DynamicSamplingConditionOperator,
   DynamicSamplingInnerName,
   DynamicSamplingRule,
   DynamicSamplingRules,
   DynamicSamplingRuleType,
-} from 'app/types/dynamicSampling';
-import {defined} from 'app/utils';
+} from 'sentry/types/dynamicSampling';
+import {defined} from 'sentry/utils';
 
 import RuleModal from './ruleModal';
 import {getNewCondition} from './utils';

@@ -73,7 +73,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 integration=integration, organization=self.organization
             )
 
-            integration_url = f"organizations/{self.organization.slug}/rules/"
+            integration_url = f"organizations/{self.organization.slug}/alerts/rules/"
             assert integration_url in responses.calls[1].request.body.decode("utf-8")
             assert self.organization.name in responses.calls[1].request.body.decode("utf-8")
 

@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
-import CreateSavedSearchModal from 'app/views/issueList/createSavedSearchModal';
-import {IssueSortOptions} from 'app/views/issueList/utils';
+import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {
   let wrapper, organization, createMock;

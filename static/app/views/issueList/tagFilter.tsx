@@ -1,13 +1,13 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import SelectControl from 'app/components/forms/selectControl';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Tag, TagValue} from 'app/types';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import SelectControl from 'sentry/components/forms/selectControl';
+import SidebarSection from 'sentry/components/sidebarSection';
+import {t, tct} from 'sentry/locale';
+import {Tag, TagValue} from 'sentry/types';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import {TagValueLoader} from './types';
 
@@ -156,16 +156,9 @@ class IssueListTagFilter extends React.Component<Props, State> {
     const {options, isLoading} = this.state;
 
     return (
-      <StreamTagFilter>
-        <StyledHeader>{tag.key}</StyledHeader>
-
+      <SidebarSection title={tag.key}>
         {!!tag.isInput && (
-          <input
-            className="form-control"
-            type="text"
-            value={this.state.textValue}
-            onChange={this.handleChangeInput}
-          />
+          <Input value={this.state.textValue} onChange={this.handleChangeInput} />
         )}
 
         {!tag.isInput && (
@@ -191,18 +184,9 @@ class IssueListTagFilter extends React.Component<Props, State> {
             }
           />
         )}
-      </StreamTagFilter>
+      </SidebarSection>
     );
   }
 }
 
 export default IssueListTagFilter;
-
-const StreamTagFilter = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
-const StyledHeader = styled('h6')`
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(1)};
-`;

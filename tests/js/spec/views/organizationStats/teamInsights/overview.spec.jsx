@@ -5,15 +5,15 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
-import localStorage from 'app/utils/localStorage';
-import {OrganizationContext} from 'app/views/organizationContext';
-import TeamInsightsOverview from 'app/views/organizationStats/teamInsights/overview';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import localStorage from 'sentry/utils/localStorage';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import TeamInsightsOverview from 'sentry/views/organizationStats/teamInsights/overview';
 
-jest.mock('app/utils/localStorage');
-jest.mock('app/utils/isActiveSuperuser', () => ({
+jest.mock('sentry/utils/localStorage');
+jest.mock('sentry/utils/isActiveSuperuser', () => ({
   isActiveSuperuser: jest.fn(),
 }));
 
@@ -60,6 +60,38 @@ describe('TeamInsightsOverview', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/sessions/`,
+      body: {
+        start: '2021-10-30T00:00:00Z',
+        end: '2021-12-24T00:00:00Z',
+        query: '',
+        intervals: [],
+        groups: [
+          {
+            by: {project: 1, 'session.status': 'healthy'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'crashed'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'errored'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+          {
+            by: {project: 1, 'session.status': 'abnormal'},
+            totals: {'sum(session)': 0},
+            series: {'sum(session)': []},
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
@@ -90,12 +122,16 @@ describe('TeamInsightsOverview', () => {
       body: TestStubs.TeamAlertsTriggered(),
     });
     MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/alerts-triggered-index/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
       body: TestStubs.TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesReviewed(),
+      body: TestStubs.TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -107,17 +143,59 @@ describe('TeamInsightsOverview', () => {
       body: TestStubs.TeamAlertsTriggered(),
     });
     MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
       body: TestStubs.TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesReviewed(),
+      body: TestStubs.TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/teams/org-slug/${team2.slug}/release-count/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/teams/org-slug/${team2.slug}/issues/old/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/teams/org-slug/${team2.slug}/unresolved-issue-age/`,
+      body: [],
+    });
+    const unresolvedStats = {
+      '2021-12-10T00:00:00+00:00': {unresolved: 45},
+      '2021-12-11T00:00:00+00:00': {unresolved: 45},
+      '2021-12-12T00:00:00+00:00': {unresolved: 45},
+      '2021-12-13T00:00:00+00:00': {unresolved: 49},
+      '2021-12-14T00:00:00+00:00': {unresolved: 50},
+      '2021-12-15T00:00:00+00:00': {unresolved: 45},
+      '2021-12-16T00:00:00+00:00': {unresolved: 44},
+      '2021-12-17T00:00:00+00:00': {unresolved: 44},
+      '2021-12-18T00:00:00+00:00': {unresolved: 44},
+      '2021-12-19T00:00:00+00:00': {unresolved: 43},
+      '2021-12-20T00:00:00+00:00': {unresolved: 40},
+      '2021-12-21T00:00:00+00:00': {unresolved: 37},
+      '2021-12-22T00:00:00+00:00': {unresolved: 36},
+      '2021-12-23T00:00:00+00:00': {unresolved: 37},
+    };
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/all-unresolved-issues/`,
+      body: {
+        2: unresolvedStats,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team2.slug}/all-unresolved-issues/`,
+      body: {
+        3: unresolvedStats,
+      },
     });
   });
 
@@ -128,9 +206,13 @@ describe('TeamInsightsOverview', () => {
   function createWrapper() {
     const teams = [team1, team2, team3];
     const projects = [project1, project2];
-    const organization = TestStubs.Organization({teams, projects});
+    const organization = TestStubs.Organization({
+      teams,
+      projects,
+      features: ['team-insights-v2'],
+    });
     const context = TestStubs.routerContext([{organization}]);
-    TeamStore.loadInitialData(teams);
+    TeamStore.loadInitialData(teams, false, null);
 
     return mountWithTheme(
       <OrganizationContext.Provider value={organization}>
@@ -144,7 +226,7 @@ describe('TeamInsightsOverview', () => {
 
   it('defaults to first team', async () => {
     createWrapper();
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
@@ -152,7 +234,7 @@ describe('TeamInsightsOverview', () => {
 
   it('allows team switching', async () => {
     createWrapper();
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     userEvent.type(screen.getByText('#backend'), '{mouseDown}');
@@ -181,7 +263,7 @@ describe('TeamInsightsOverview', () => {
   it('shows users with no teams the join team button', () => {
     createWrapper();
     ProjectsStore.loadInitialData([{...project1, isMember: false}]);
-    TeamStore.loadInitialData([]);
+    TeamStore.loadInitialData([], false, null);
 
     expect(screen.getByText('Join a Team')).toBeInTheDocument();
   });

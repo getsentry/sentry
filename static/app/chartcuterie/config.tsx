@@ -8,7 +8,8 @@
  * into the configuration file loaded by the service.
  */
 
-import * as worldMap from 'app/data/world.json';
+// eslint-disable-next-line import/no-named-default
+import {default as worldMap} from 'sentry/data/world.json';
 
 import {discoverCharts} from './discover';
 import {ChartcuterieConfig, ChartType, RenderConfig, RenderDescriptor} from './types';

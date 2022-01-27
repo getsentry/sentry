@@ -1,4 +1,5 @@
 from django.http import Http404
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -21,7 +22,7 @@ class ProjectTeamsPermission(ProjectPermission):
 class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectTeamsPermission,)
 
-    def post(self, request, project, team_slug):
+    def post(self, request: Request, project, team_slug) -> Response:
         """
         Give a team access to a project
         ```````````````````````````````
@@ -41,7 +42,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         project.add_team(team)
         return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=201)
 
-    def delete(self, request, project, team_slug):
+    def delete(self, request: Request, project, team_slug) -> Response:
         """
         Revoke a team's access to a project
         ```````````````````````````````````

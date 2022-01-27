@@ -1,6 +1,6 @@
-import {TextField} from 'app/components/forms';
-import InternalStatChart from 'app/components/internalStatChart';
-import AsyncView from 'app/views/asyncView';
+import {TextField} from 'sentry/components/forms';
+import InternalStatChart from 'sentry/components/internalStatChart';
+import AsyncView from 'sentry/views/asyncView';
 
 type Config = {
   backend: string;

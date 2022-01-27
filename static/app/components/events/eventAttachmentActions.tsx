@@ -1,14 +1,14 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import {IconDelete, IconDownload, IconShow} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
@@ -45,7 +45,7 @@ class EventAttachmentActions extends Component<Props> {
           <Button
             size="xsmall"
             icon={<IconDelete size="xs" />}
-            label={t('Delete')}
+            aria-label={t('Delete')}
             disabled={!url}
             title={!url ? t('Insufficient permissions to delete attachments') : undefined}
           />
@@ -57,7 +57,7 @@ class EventAttachmentActions extends Component<Props> {
           href={url ? `${url}?download=1` : ''}
           disabled={!url}
           title={!url ? t('Insufficient permissions to download attachments') : undefined}
-          label={t('Download')}
+          aria-label={t('Download')}
         />
 
         {withPreviewButton && (

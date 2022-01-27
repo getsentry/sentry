@@ -3,22 +3,22 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {SectionHeading} from 'app/components/charts/styles';
-import SearchBar from 'app/components/events/searchBar';
-import * as Layout from 'app/components/layouts/thirds';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import QuestionTooltip from 'app/components/questionTooltip';
-import Radio from 'app/components/radio';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import SearchBar from 'sentry/components/events/searchBar';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import Radio from 'sentry/components/radio';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import SegmentExplorerQuery, {
   TableData,
-} from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
-import {decodeScalar} from 'app/utils/queryString';
-import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
+} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 import {SpanOperationBreakdownFilter} from '../filter';
 import {getTransactionField} from '../transactionOverview/tagExplorer';
@@ -102,7 +102,7 @@ const InnerContent = (
   const [tagSelected, _changeTagSelected] = useState(initialTag);
 
   const changeTagSelected = (tagKey: string) => {
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       tagKey,
     });
@@ -121,7 +121,7 @@ const InnerContent = (
   }, [initialTag]);
 
   const handleSearch = (query: string) => {
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });
@@ -249,7 +249,7 @@ const RadioLabel = styled('label')`
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const SidebarTagValue = styled('span')`
@@ -270,7 +270,7 @@ const ReversedLayoutBody = styled('div')`
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
-    grid-gap: ${space(3)};
+    gap: ${space(3)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {

@@ -2,17 +2,17 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import ExternalLink from 'app/components/links/externalLink';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {DebugFile} from 'app/types/debugFiles';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import {t, tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {DebugFile} from 'sentry/types/debugFiles';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import ProjectProguardRow from './projectProguardRow';
 

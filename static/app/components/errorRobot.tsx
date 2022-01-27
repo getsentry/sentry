@@ -3,15 +3,17 @@ import styled from '@emotion/styled';
 
 import robotBackground from 'sentry-images/spot/sentry-robot.png';
 
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import Link from 'app/components/links/link';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import withApi from 'app/utils/withApi';
-import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import DemoSandboxButton from 'sentry/components/demoSandboxButton';
+import Link from 'sentry/components/links/link';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {logExperiment} from 'sentry/utils/analytics';
+import withApi from 'sentry/utils/withApi';
+import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 type Props = {
   api: Client;
@@ -42,6 +44,10 @@ class ErrorRobot extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
+    logExperiment({
+      key: 'ViewSampleSandboxExperiment',
+      organization: this.props.org,
+    });
   }
 
   async fetchData() {
@@ -78,26 +84,49 @@ class ErrorRobot extends Component<Props, State> {
     const {loading, error, sampleIssueId} = this.state;
     const {org, project, gradient} = this.props;
 
-    const sampleLink =
-      project && (loading || error ? null : sampleIssueId) ? (
-        <p>
-          <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
-            {t('Or see your sample event')}
-          </Link>
-        </p>
-      ) : (
-        <p>
-          <CreateSampleEventButton
-            priority="link"
-            project={project}
-            source="issues_list"
-            disabled={!project}
-            title={!project ? t('Select a project to create a sample event') : undefined}
-          >
-            {t('Create a sample event')}
-          </CreateSampleEventButton>
-        </p>
+    let sampleLink;
+    if (org.experiments.ViewSampleSandboxExperiment) {
+      sampleLink = (
+        <DemoSandboxButton
+          scenario="oneIssue"
+          size="small"
+          priority="link"
+          clientData={{
+            cta: {
+              id: 'sample_issue',
+              title: t('Finish Setup'),
+              shortTitle: t('Setup'),
+              url: window.location.href,
+            },
+          }}
+        >
+          {t('See a Sample Event')}
+        </DemoSandboxButton>
       );
+    } else {
+      sampleLink =
+        project && (loading || error ? null : sampleIssueId) ? (
+          <p>
+            <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
+              {t('Or see your sample event')}
+            </Link>
+          </p>
+        ) : (
+          <p>
+            <CreateSampleEventButton
+              priority="link"
+              project={project}
+              source="issues_list"
+              disabled={!project}
+              title={
+                !project ? t('Select a project to create a sample event') : undefined
+              }
+            >
+              {t('Create a sample event')}
+            </CreateSampleEventButton>
+          </p>
+        );
+    }
 
     return (
       <ErrorRobotWrapper

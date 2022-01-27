@@ -1,4 +1,5 @@
 from django.db.models import Q
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.team import TeamEndpoint
@@ -7,7 +8,7 @@ from sentry.models import InviteStatus, OrganizationMember
 
 
 class TeamMembersEndpoint(TeamEndpoint):
-    def get(self, request, team):
+    def get(self, request: Request, team) -> Response:
         queryset = OrganizationMember.objects.filter(
             Q(user__is_active=True) | Q(user__isnull=True),
             organization=team.organization,

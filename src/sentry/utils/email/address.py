@@ -64,3 +64,8 @@ def is_valid_email_address(value: str) -> bool:
 def parse_email(email: str) -> str:
     matches = EMAIL_PARSER.search(email)
     return matches.group(1) if matches else ""
+
+
+def parse_user_name(email: str) -> str:
+    # captures content before angle bracket
+    return email.split("<")[0].strip()

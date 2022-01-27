@@ -1,16 +1,16 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import ProjectActions from 'app/actions/projectActions';
-import Link from 'app/components/links/link';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import projectSecurityAndPrivacyGroups from 'app/data/forms/projectSecurityAndPrivacyGroups';
-import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import ProjectActions from 'sentry/actions/projectActions';
+import Link from 'sentry/components/links/link';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import projectSecurityAndPrivacyGroups from 'sentry/data/forms/projectSecurityAndPrivacyGroups';
+import {t, tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import DataScrubbing from '../components/dataScrubbing';
 

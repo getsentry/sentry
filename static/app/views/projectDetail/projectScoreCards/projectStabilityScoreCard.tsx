@@ -1,29 +1,31 @@
 import * as React from 'react';
 import round from 'lodash/round';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import {getDiffInMinutes} from 'app/components/charts/utils';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import ScoreCard from 'app/components/scoreCard';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconArrow} from 'app/icons';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
-import {defined, percent} from 'app/utils';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
-import {getPeriod} from 'app/utils/getPeriod';
-import {displayCrashFreePercent, getCrashFreePercent} from 'app/views/releases/utils';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {
+  getDiffInMinutes,
+  shouldFetchPreviousPeriod,
+} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import ScoreCard from 'sentry/components/scoreCard';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
+import {defined, percent} from 'sentry/utils';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {getPeriod} from 'sentry/utils/getPeriod';
+import {displayCrashFreePercent, getCrashFreePercent} from 'sentry/views/releases/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
-} from 'app/views/releases/utils/sessionTerm';
+} from 'sentry/views/releases/utils/sessionTerm';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
-import {shouldFetchPreviousPeriod} from '../utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   isProjectStabilized: boolean;
   hasSessions: boolean | null;
   query?: string;
@@ -73,13 +75,19 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
         {
           query: {
             ...commonQuery,
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
     ];
 
-    if (shouldFetchPreviousPeriod(datetime)) {
+    if (
+      shouldFetchPreviousPeriod({
+        start: datetime.start,
+        end: datetime.end,
+        period: datetime.period,
+      })
+    ) {
       const doubledPeriod = getPeriod(
         {period, start: undefined, end: undefined},
         {shouldDoublePeriod: true}

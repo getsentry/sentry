@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from .constants import SCIM_SCHEMA_GROUP, SCIM_SCHEMA_USER
@@ -182,7 +183,7 @@ SCIM_SCHEMA_LIST = [SCIM_USER_ATTRIBUTES_SCHEMA, SCIM_GROUP_ATTRIBUTES_SCHEMA]
 
 
 class OrganizationSCIMSchemaIndex(SCIMEndpoint):
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         query_params = self.get_query_parameters(request)
 
         return Response(

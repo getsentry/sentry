@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import omit from 'lodash/omit';
 
-import DateTime from 'app/components/dateTime';
-import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
-import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {t} from 'app/locale';
+import DateTime from 'sentry/components/dateTime';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {t} from 'sentry/locale';
 
 export default {
   title: 'Components/PageTimeRangeSelector',

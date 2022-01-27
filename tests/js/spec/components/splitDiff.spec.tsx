@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import SplitDiff from 'app/components/splitDiff';
+import SplitDiff from 'sentry/components/splitDiff';
 
 describe('SplitDiff', function () {
   beforeEach(function () {});

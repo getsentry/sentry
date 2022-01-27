@@ -12,7 +12,12 @@ from sentry import options
 from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.models import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder, TopEventsQueryBuilder
+from sentry.search.events.builder import (
+    HistogramQueryBuilder,
+    QueryBuilder,
+    TimeseriesQueryBuilder,
+    TopEventsQueryBuilder,
+)
 from sentry.search.events.constants import CONFIGURABLE_AGGREGATES, DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import (
     FIELD_ALIASES,
@@ -23,7 +28,7 @@ from sentry.search.events.fields import (
     resolve_field_list,
 )
 from sentry.search.events.filter import get_filter
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import HistogramParams, ParamsType
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
@@ -53,6 +58,7 @@ from sentry.utils.snuba import (
 __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
+    "transform_results",
     "query",
     "prepare_discover_query",
     "timeseries_query",
@@ -206,6 +212,7 @@ def query(
     auto_aggregations=False,
     use_aggregate_conditions=False,
     conditions=None,
+    extra_snql_condition=None,
     functions_acl=None,
     use_snql=False,
 ):
@@ -233,6 +240,7 @@ def query(
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
                     any additional processing.
+    extra_snql_condition (Sequence[Condition]) Replacement for conditions while migrating to snql
     use_snql (bool) Whether to directly build the query in snql, instead of using the older
                     json construction
     """
@@ -257,6 +265,8 @@ def query(
             limit=limit,
             offset=offset,
         )
+        if extra_snql_condition is not None:
+            builder.add_conditions(extra_snql_condition)
         snql_query = builder.get_snql_query()
 
         result = raw_snql_query(snql_query, referrer)
@@ -475,6 +485,7 @@ def timeseries_query(
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
+    functions_acl: Optional[Sequence[str]] = None,
     use_snql: Optional[bool] = False,
 ):
     """
@@ -516,6 +527,7 @@ def timeseries_query(
                 query=query,
                 selected_columns=columns,
                 equations=equations,
+                functions_acl=functions_acl,
             )
             query_list = [base_builder]
             if comparison_delta:
@@ -638,7 +650,10 @@ def create_result_key(result_row, fields, issues) -> str:
     values = []
     for field in fields:
         if field == "issue.id":
-            values.append(issues.get(result_row["issue.id"], "unknown"))
+            issue_id = issues.get(result_row["issue.id"], "unknown")
+            if issue_id is None:
+                issue_id = "unknown"
+            values.append(issue_id)
         else:
             value = result_row.get(field)
             if isinstance(value, list):
@@ -670,6 +685,7 @@ def top_events_timeseries(
     allow_empty=True,
     zerofill_results=True,
     include_other=False,
+    functions_acl=None,
     use_snql=False,
 ):
     """
@@ -724,6 +740,7 @@ def top_events_timeseries(
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
             equations=equations,
+            functions_acl=functions_acl,
         )
         if len(top_events["data"]) == limit and include_other:
             other_events_builder = TopEventsQueryBuilder(
@@ -1315,11 +1332,6 @@ def get_facets(
     return results
 
 
-HistogramParams = namedtuple(
-    "HistogramParams", ["num_buckets", "bucket_size", "start_offset", "multiplier"]
-)
-
-
 def histogram_query(
     fields,
     user_query,
@@ -1335,7 +1347,9 @@ def histogram_query(
     limit_by=None,
     histogram_rows=None,
     extra_conditions=None,
+    extra_snql_condition=None,
     normalize_results=True,
+    use_snql=False,
 ):
     """
     API for generating histograms for numeric columns.
@@ -1360,6 +1374,7 @@ def histogram_query(
     :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
     :param int histogram_rows: Used to modify the limit when fetching multiple rows of buckets (performance facets).
     :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
+    :param [Condition] extra_snql_condition: Replacement for extra_condition while migrating to snql
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
 
@@ -1369,13 +1384,12 @@ def histogram_query(
         # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
     min_value, max_value = find_histogram_min_max(
-        fields, min_value, max_value, user_query, params, data_filter
+        fields, min_value, max_value, user_query, params, data_filter, use_snql
     )
 
     key_column = None
     array_column = None
-    histogram_function = None
-    conditions = []
+    field_names = None
     if len(fields) > 1:
         array_column = check_multihistogram_fields(fields)
         if array_column == "measurements":
@@ -1389,69 +1403,95 @@ def histogram_query(
                 "multihistogram expected either all measurements or all breakdowns"
             )
 
-        key_alias = get_function_alias(key_column)
         field_names = [histogram_function(field) for field in fields]
-        conditions.append([key_alias, "IN", field_names])
-
-    if extra_conditions:
-        conditions.extend(extra_conditions)
-
     histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
     histogram_column = get_histogram_column(fields, key_column, histogram_params, array_column)
-    histogram_alias = get_function_alias(histogram_column)
-
     if min_value is None or max_value is None:
         return normalize_histogram_results(
             fields, key_column, histogram_params, {"data": []}, array_column
         )
-    # make sure to bound the bins to get the desired range of results
-    if min_value is not None:
-        min_bin = histogram_params.start_offset
-        conditions.append([histogram_alias, ">=", min_bin])
-    if max_value is not None:
-        max_bin = histogram_params.start_offset + histogram_params.bucket_size * num_buckets
-        conditions.append([histogram_alias, "<=", max_bin])
 
-    columns = [] if key_column is None else [key_column]
-    groups = len(fields) if histogram_rows is None else histogram_rows
-    limit = groups * num_buckets
+    if use_snql:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
+        builder = HistogramQueryBuilder(
+            num_buckets,
+            histogram_column,
+            histogram_rows,
+            histogram_params,
+            key_column,
+            field_names,
+            group_by,
+            # Arguments for QueryBuilder
+            Dataset.Discover,
+            params,
+            query=user_query,
+            selected_columns=fields,
+            orderby=order_by,
+            limitby=limit_by,
+        )
+        if extra_snql_condition is not None:
+            builder.add_conditions(extra_snql_condition)
+        results = raw_snql_query(builder.get_snql_query(), referrer=referrer)
+    else:
+        conditions = []
+        if key_column is not None:
+            key_alias = get_function_alias(key_column)
+            conditions.append([key_alias, "IN", field_names])
 
-    histogram_query = prepare_discover_query(
-        selected_columns=columns + [histogram_column, "count()"],
-        conditions=conditions,
-        query=user_query,
-        params=params,
-        orderby=(order_by if order_by else []) + [histogram_alias],
-        functions_acl=["array_join", "histogram"],
-    )
+        if extra_conditions:
+            conditions.extend(extra_conditions)
 
-    snuba_filter = histogram_query.filter
+        histogram_alias = get_function_alias(histogram_column)
 
-    if group_by:
-        snuba_filter.groupby += group_by
+        # make sure to bound the bins to get the desired range of results
+        if min_value is not None:
+            min_bin = histogram_params.start_offset
+            conditions.append([histogram_alias, ">=", min_bin])
+        if max_value is not None:
+            max_bin = histogram_params.start_offset + histogram_params.bucket_size * num_buckets
+            conditions.append([histogram_alias, "<=", max_bin])
 
-    result = raw_query(
-        start=snuba_filter.start,
-        end=snuba_filter.end,
-        groupby=snuba_filter.groupby,
-        conditions=snuba_filter.conditions,
-        aggregations=snuba_filter.aggregations,
-        selected_columns=snuba_filter.selected_columns,
-        filter_keys=snuba_filter.filter_keys,
-        having=snuba_filter.having,
-        orderby=snuba_filter.orderby,
-        dataset=Dataset.Discover,
-        limitby=limit_by,
-        limit=limit,
-        referrer=referrer,
-    )
+        columns = [] if key_column is None else [key_column]
+        groups = len(fields) if histogram_rows is None else histogram_rows
+        limit = groups * num_buckets
 
-    results = transform_results(
-        result,
-        histogram_query.fields["functions"],
-        histogram_query.columns,
-        snuba_filter,
-    )
+        histogram_query = prepare_discover_query(
+            selected_columns=columns + [histogram_column, "count()"],
+            conditions=conditions,
+            query=user_query,
+            params=params,
+            orderby=(order_by if order_by else []) + [histogram_alias],
+            functions_acl=["array_join", "histogram"],
+        )
+
+        snuba_filter = histogram_query.filter
+
+        if group_by:
+            snuba_filter.groupby += group_by
+
+        result = raw_query(
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            groupby=snuba_filter.groupby,
+            conditions=snuba_filter.conditions,
+            aggregations=snuba_filter.aggregations,
+            selected_columns=snuba_filter.selected_columns,
+            filter_keys=snuba_filter.filter_keys,
+            having=snuba_filter.having,
+            orderby=snuba_filter.orderby,
+            dataset=Dataset.Discover,
+            limitby=limit_by,
+            limit=limit,
+            referrer=referrer,
+        )
+
+        results = transform_results(
+            result,
+            histogram_query.fields["functions"],
+            histogram_query.columns,
+            snuba_filter,
+        )
 
     if not normalize_results:
         return results
@@ -1516,7 +1556,9 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
 
 
-def find_histogram_min_max(fields, min_value, max_value, user_query, params, data_filter=None):
+def find_histogram_min_max(
+    fields, min_value, max_value, user_query, params, data_filter=None, use_snql=False
+):
     """
     Find the min/max value of the specified fields. If either min/max is already
     specified, it will be used and not queried for.
@@ -1552,6 +1594,7 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
         params=params,
         limit=1,
         referrer="api.organization-events-histogram-min-max",
+        use_snql=use_snql,
     )
 
     data = results.get("data")

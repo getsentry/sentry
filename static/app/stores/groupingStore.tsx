@@ -1,16 +1,16 @@
 import pick from 'lodash/pick';
 import Reflux from 'reflux';
 
-import {mergeGroups} from 'app/actionCreators/group';
+import {mergeGroups} from 'sentry/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-} from 'app/actionCreators/indicator';
-import GroupingActions from 'app/actions/groupingActions';
-import {Client} from 'app/api';
-import {Group, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
+} from 'sentry/actionCreators/indicator';
+import GroupingActions from 'sentry/actions/groupingActions';
+import {Client} from 'sentry/api';
+import {Group, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 // Between 0-100
 const MIN_SCORE = 0.6;

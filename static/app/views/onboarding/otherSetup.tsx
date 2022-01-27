@@ -4,17 +4,17 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import ExternalLink from 'app/components/links/externalLink';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import getDynamicText from 'app/utils/getDynamicText';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';

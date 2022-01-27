@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import TextOverflow from 'app/components/textOverflow';
-import {IconDelete, IconEdit} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconDelete, IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 import {MethodType, Rule, RuleType} from './types';
 import {getMethodLabel, getRuleLabel} from './utils';
@@ -50,7 +50,7 @@ const Rules = React.forwardRef(function RulesList(
             <TextOverflow>{getListItemDescription(rule)}</TextOverflow>
             {onEditRule && (
               <Button
-                label={t('Edit Rule')}
+                aria-label={t('Edit Rule')}
                 size="small"
                 onClick={onEditRule(id)}
                 icon={<IconEdit />}
@@ -59,7 +59,7 @@ const Rules = React.forwardRef(function RulesList(
             )}
             {onDeleteRule && (
               <Button
-                label={t('Delete Rule')}
+                aria-label={t('Delete Rule')}
                 size="small"
                 onClick={onDeleteRule(id)}
                 icon={<IconDelete />}

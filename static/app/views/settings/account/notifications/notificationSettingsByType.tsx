@@ -1,24 +1,27 @@
-import React from 'react';
+import {Fragment} from 'react';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import {t} from 'app/locale';
-import {Organization, OrganizationSummary} from 'app/types';
-import withOrganizations from 'app/utils/withOrganizations';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {t} from 'sentry/locale';
+import {Organization, OrganizationSummary} from 'sentry/types';
+import {OrganizationIntegration} from 'sentry/types/integrations';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withOrganizations from 'sentry/utils/withOrganizations';
 import {
+  ALL_PROVIDER_NAMES,
   CONFIRMATION_MESSAGE,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
-} from 'app/views/settings/account/notifications/constants';
-import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
-import {ACCOUNT_NOTIFICATION_FIELDS} from 'app/views/settings/account/notifications/fields';
-import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
-import NotificationSettingsByOrganization from 'app/views/settings/account/notifications/notificationSettingsByOrganization';
-import NotificationSettingsByProjects from 'app/views/settings/account/notifications/notificationSettingsByProjects';
+} from 'sentry/views/settings/account/notifications/constants';
+import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
+import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {
-  Identity,
-  OrganizationIntegration,
-} from 'app/views/settings/account/notifications/types';
-import UnlinkedAlert from 'app/views/settings/account/notifications/unlinkedAlert';
+  NOTIFICATION_SETTING_FIELDS,
+  QUOTA_FIELDS,
+} from 'sentry/views/settings/account/notifications/fields2';
+import NotificationSettingsByOrganization from 'sentry/views/settings/account/notifications/notificationSettingsByOrganization';
+import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
+import {Identity} from 'sentry/views/settings/account/notifications/types';
+import UnlinkedAlert from 'sentry/views/settings/account/notifications/unlinkedAlert';
 import {
   getCurrentDefault,
   getCurrentProviders,
@@ -31,12 +34,12 @@ import {
   isSufficientlyComplex,
   mergeNotificationSettings,
   providerListToString,
-} from 'app/views/settings/account/notifications/utils';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {FieldObject} from 'app/views/settings/components/forms/type';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+} from 'sentry/views/settings/account/notifications/utils';
+import Form from 'sentry/views/settings/components/forms/form';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
+import {Field} from 'sentry/views/settings/components/forms/type';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   notificationType: string;
@@ -48,6 +51,19 @@ type State = {
   identities: Identity[];
   organizationIntegrations: OrganizationIntegration[];
 } & AsyncComponent['state'];
+
+const typeMappedChildren = {
+  quota: ['quotaErrors', 'quotaTransactions', 'quotaAttachments', 'quotaWarnings'],
+};
+
+const getQueryParams = (notificationType: string) => {
+  // if we need multiple settings on this page
+  // then omit the type so we can load all settings
+  if (notificationType in typeMappedChildren) {
+    return null;
+  }
+  return {type: notificationType};
+};
 
 class NotificationSettingsByType extends AsyncComponent<Props, State> {
   getDefaultState(): State {
@@ -65,7 +81,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       [
         'notificationSettings',
         `/users/me/notification-settings/`,
-        {query: {type: notificationType}},
+        {query: getQueryParams(notificationType)},
       ],
       ['identities', `/users/me/identities/`, {query: {provider: 'slack'}}],
       [
@@ -74,6 +90,21 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         {query: {provider: 'slack'}},
       ],
     ];
+  }
+
+  componentDidMount() {
+    trackAdvancedAnalyticsEvent('notification_settings.tuning_page_viewed', {
+      organization: null,
+      notification_type: this.props.notificationType,
+    });
+  }
+
+  trackTuningUpdated(tuningFieldType: string) {
+    trackAdvancedAnalyticsEvent('notification_settings.updated_tuning_setting', {
+      organization: null,
+      notification_type: this.props.notificationType,
+      tuning_field_type: tuningFieldType,
+    });
   }
 
   /* Methods responsible for updating state and hitting the API. */
@@ -89,6 +120,39 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       notificationSettings,
       changedData
     );
+
+    this.setState({
+      notificationSettings: mergeNotificationSettings(
+        notificationSettings,
+        updatedNotificationSettings
+      ),
+    });
+
+    return updatedNotificationSettings;
+  };
+
+  getStateToPutForDependentSetting = (
+    changedData: NotificationSettingsByProviderObject,
+    notificationType: string
+  ) => {
+    const value = changedData[notificationType];
+    const {notificationSettings} = this.state;
+
+    // parent setting will control the which providers we send to
+    // just set every provider to the same value for the child/dependent setting
+    const userSettings = ALL_PROVIDER_NAMES.reduce((accum, provider) => {
+      accum[provider] = value;
+      return accum;
+    }, {});
+
+    // setting is a user-only setting
+    const updatedNotificationSettings = {
+      [notificationType]: {
+        user: {
+          me: userSettings,
+        },
+      },
+    };
 
     this.setState({
       notificationSettings: mergeNotificationSettings(
@@ -160,10 +224,14 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         getCurrentProviders(notificationType, notificationSettings)
       );
     }
+    const childTypes: string[] = typeMappedChildren[notificationType] || [];
+    childTypes.forEach(childType => {
+      initialData[childType] = getCurrentDefault(childType, notificationSettings);
+    });
     return initialData;
   }
 
-  getFields(): FieldObject[] {
+  getFields(): Field[] {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
@@ -171,7 +239,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       ? t('This is the default for all projects.')
       : t('This is the default for all organizations.');
 
-    const defaultField = Object.assign(
+    const defaultField: Field = Object.assign(
       {},
       NOTIFICATION_SETTING_FIELDS[notificationType],
       {
@@ -183,7 +251,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       defaultField.confirm = {never: CONFIRMATION_MESSAGE};
     }
 
-    const fields = [defaultField];
+    const fields: Field[] = [defaultField];
     if (!isEverythingDisabled(notificationType, notificationSettings)) {
       fields.push(
         Object.assign(
@@ -195,7 +263,26 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         )
       );
     }
-    return fields as FieldObject[];
+
+    // if a quota notification is not disabled, add in our dependent fields
+    if (
+      notificationType === 'quota' &&
+      !isEverythingDisabled(notificationType, notificationSettings)
+    ) {
+      fields.push(
+        ...QUOTA_FIELDS.map(field => ({
+          ...field,
+          type: 'select' as const,
+          getData: data =>
+            this.getStateToPutForDependentSetting(
+              data as NotificationSettingsByProviderObject,
+              field.name
+            ),
+        }))
+      );
+    }
+
+    return fields;
   }
 
   getUnlinkedOrgs = (): OrganizationSummary[] => {
@@ -228,7 +315,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const unlinkedOrgs = this.getUnlinkedOrgs();
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
         {hasSlack && unlinkedOrgs.length > 0 && (
@@ -240,6 +327,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
           apiMethod="PUT"
           apiEndpoint="/users/me/notification-settings/"
           initialData={this.getInitialData()}
+          onSubmitSuccess={() => this.trackTuningUpdated('general')}
         >
           <JsonForm
             title={
@@ -256,15 +344,17 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
               notificationType={notificationType}
               notificationSettings={notificationSettings}
               onChange={this.getStateToPutForParent}
+              onSubmitSuccess={() => this.trackTuningUpdated('project')}
             />
           ) : (
             <NotificationSettingsByOrganization
               notificationType={notificationType}
               notificationSettings={notificationSettings}
               onChange={this.getStateToPutForParent}
+              onSubmitSuccess={() => this.trackTuningUpdated('organization')}
             />
           ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,9 +1,14 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import {createTeam} from 'app/actionCreators/teams';
-import CreateTeamModal from 'app/components/modals/createTeamModal';
+import {createTeam} from 'sentry/actionCreators/teams';
+import CreateTeamModal from 'sentry/components/modals/createTeamModal';
 
-jest.mock('app/actionCreators/teams', () => ({
+jest.mock('sentry/actionCreators/teams', () => ({
   createTeam: jest.fn((...args) => new Promise(resolve => resolve(...args))),
 }));
 
@@ -18,10 +23,8 @@ describe('CreateTeamModal', function () {
     onSuccess.mockReset();
   });
 
-  afterEach(function () {});
-
   it('calls createTeam action creator on submit', async function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <CreateTeamModal
         Body={p => p.children}
         Header={p => p.children}
@@ -30,17 +33,13 @@ describe('CreateTeamModal', function () {
         onClose={onClose}
         onSuccess={onSuccess}
       />,
-      TestStubs.routerContext()
+      {context: TestStubs.routerContext()}
     );
 
-    wrapper
-      .find('CreateTeamForm Input[name="slug"]')
-      .simulate('change', {e: {target: {value: 'new-team'}}});
+    userEvent.type(screen.getByText('Team Name'), 'new-team');
+    userEvent.click(screen.getByLabelText('Create Team'));
 
-    wrapper.find('CreateTeamForm Form').simulate('submit');
-
-    expect(createTeam).toHaveBeenCalledTimes(1);
-    await tick();
+    await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));
     expect(onClose).toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledTimes(1);

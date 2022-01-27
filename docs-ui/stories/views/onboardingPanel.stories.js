@@ -1,5 +1,5 @@
-import OnboardingPanel from 'app/components/onboardingPanel';
-import {IconFire} from 'app/icons';
+import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {IconFire} from 'sentry/icons';
 
 export default {
   title: 'Views/Onboarding Panel',

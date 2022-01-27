@@ -1,3 +1,4 @@
+// eslint-disable-next-line simple-import-sort/imports
 import 'prismjs/themes/prism.css';
 
 import {createRef, RefObject, useEffect, useState} from 'react';
@@ -5,13 +6,18 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
 import Prism from 'prismjs';
+/**
+ * JSX syntax for Prism. This file uses Prism
+ * internally, so it must be imported after Prism.
+ */
+import 'prismjs/components/prism-jsx.min';
 
-import {IconCode} from 'app/icons';
-import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
+import {IconCode} from 'sentry/icons';
+import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 type Props = {
-  theme: Theme;
+  theme?: Theme;
   /**
    * Main code content gets passed as the children prop
    */
@@ -54,8 +60,8 @@ const Code = ({children, className, label}: Props) => {
   }
 
   useEffect(() => {
-    Prism.highlightElement(codeRef.current, true);
-  });
+    Prism.highlightElement(codeRef.current, false);
+  }, [children]);
 
   return (
     <Wrap className={className}>
@@ -64,7 +70,7 @@ const Code = ({children, className, label}: Props) => {
         {label && <Label>{label.replaceAll('_', ' ')}</Label>}
       </LabelWrap>
       <HighlightedCode className={className} ref={codeRef}>
-        <span>{children}</span>
+        {children}
       </HighlightedCode>
       <CopyButton onClick={handleCopyCode} disabled={copied}>
         {copied ? 'Copied' : 'Copy'}
@@ -76,11 +82,11 @@ const Code = ({children, className, label}: Props) => {
 export default Code;
 
 const Wrap = styled('pre')`
-  /** Increase specificity to override default styles */
+  /* Increase specificity to override default styles */
   && {
     position: relative;
     padding: ${space(2)};
-    padding-top: ${space(3)};
+    padding-top: ${space(4)};
     margin-top: ${space(4)};
     margin-bottom: ${space(2)};
     background: ${p => p.theme.bodyBackground};
@@ -90,6 +96,13 @@ const Wrap = styled('pre')`
   }
   & code {
     text-shadow: none;
+  }
+
+  /* Overwrite default Prism behavior to allow for code wrapping */
+  pre[class*='language-'],
+  code[class*='language-'] {
+    white-space: normal;
+    word-break: break-word;
   }
 `;
 
@@ -101,7 +114,7 @@ const LabelWrap = styled('div')`
   left: calc(${space(2)} - ${space(1)});
   transform: translateY(-50%);
   padding: ${space(0.25)} ${space(1)};
-  background: ${p => p.theme.bodyBackground};
+  background: ${p => p.theme.background};
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;

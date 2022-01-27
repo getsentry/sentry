@@ -1,16 +1,21 @@
 import * as React from 'react';
 import debounce from 'lodash/debounce';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import AsyncComponent from 'app/components/asyncComponent';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {tct} from 'app/locale';
-import {Choices, IntegrationIssueConfig, IssueConfigField, SelectValue} from 'app/types';
-import {FormField} from 'app/views/alerts/issueRuleEditor/ruleNode';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import Form from 'app/views/settings/components/forms/form';
-import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {tct} from 'sentry/locale';
+import {
+  Choices,
+  IntegrationIssueConfig,
+  IssueConfigField,
+  SelectValue,
+} from 'sentry/types';
+import {FormField} from 'sentry/views/alerts/issueRuleEditor/ruleNode';
+import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromConfig';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormModel, {FieldValue} from 'sentry/views/settings/components/forms/model';
 
 export type ExternalIssueAction = 'create' | 'link';
 
@@ -223,7 +228,7 @@ export default class AbstractExternalIssueForm<
       cb: (err: Error | null, result?: any) => void
     ) => {
       const {dynamicFieldValues} = this.state;
-      const query = queryString.stringify({
+      const query = qs.stringify({
         ...dynamicFieldValues,
         field: field.name,
         query: input,
@@ -331,7 +336,7 @@ export default class AbstractExternalIssueForm<
         <Header closeButton>{this.getTitle()}</Header>
         {this.renderNavTabs()}
         <Body>
-          {this.shouldRenderLoading() ? (
+          {this.shouldRenderLoading ? (
             this.renderLoading()
           ) : (
             <React.Fragment>

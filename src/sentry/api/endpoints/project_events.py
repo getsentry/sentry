@@ -1,12 +1,29 @@
+from datetime import timedelta
 from functools import partial
 
-from sentry import eventstore
+from django.utils import timezone
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class ProjectEventsEndpoint(ProjectEndpoint):
-    def get(self, request, project):
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+        }
+    }
+
+    @rate_limit_endpoint(limit=5, window=1)
+    def get(self, request: Request, project) -> Response:
         """
         List a Project's Events
         ```````````````````````
@@ -31,11 +48,17 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         if query:
             conditions.append([["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0])
 
+        event_filter = eventstore.Filter(conditions=conditions, project_ids=[project.id])
+        if features.has(
+            "organizations:project-event-date-limit", project.organization, actor=request.user
+        ):
+            event_filter.start = timezone.now() - timedelta(days=7)
+
         full = request.GET.get("full", False)
 
         data_fn = partial(
             eventstore.get_events,
-            filter=eventstore.Filter(conditions=conditions, project_ids=[project.id]),
+            filter=event_filter,
             referrer="api.project-events",
         )
 

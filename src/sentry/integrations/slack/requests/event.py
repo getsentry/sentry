@@ -1,26 +1,18 @@
-from typing import Any, List, Optional
+from __future__ import annotations
 
-from rest_framework import status
-from rest_framework.request import Request
+from typing import Any, Mapping
 
-from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
+from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.unfurl import LinkType, match_link
-from sentry.models import IdentityProvider
-from sentry.models.user import User
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
 
-def has_discover_links(links: List[str]) -> bool:
-    for link in links:
-        link_type, _ = match_link(link)
-        if link_type == LinkType.DISCOVER:
-            return True
-
-    return False
+def has_discover_links(links: list[str]) -> bool:
+    return any(match_link(link)[0] == LinkType.DISCOVER for link in links)
 
 
-class SlackEventRequest(SlackRequest):
+class SlackEventRequest(SlackDMRequest):
     """
     An Event request sent from Slack.
 
@@ -35,24 +27,13 @@ class SlackEventRequest(SlackRequest):
     Challenge requests will have a ``type`` of ``url_verification``.
     """
 
-    def __init__(self, request: Request) -> None:
-        super().__init__(request)
-        self.user: Optional[User] = None
-
-    @property
-    def has_identity(self) -> bool:
-        return self.identity_str is not None
-
-    @property
-    def identity_str(self) -> Optional[str]:
-        return self.user.email if self.user else None
-
     def validate(self) -> None:
         if self.is_challenge():
             # Challenge requests only include the Token and data to verify the
             # request, so only validate those.
+            self._info("slack.event.url_verification")
             self._authorize()
-            self._validate_data()
+            super(SlackDMRequest, self)._validate_data()
         else:
             # Non-Challenge requests need to validate everything plus the data
             # about the event.
@@ -60,33 +41,32 @@ class SlackEventRequest(SlackRequest):
             self._validate_event()
 
     def is_challenge(self) -> bool:
-        return self.data.get("type") == "url_verification"
+        """We need to call this before validation."""
+        _is_challenge: bool = self.request.data.get("type") == "url_verification"
+        return _is_challenge
 
     @property
-    def type(self) -> str:
-        return str(self.data.get("event", {}).get("type"))
+    def dm_data(self) -> Mapping[str, Any]:
+        return self.data.get("event", {})
 
     @property
-    def user_id(self) -> Optional[Any]:
-        data = self.request.data.get("event")
-        return data["user"]
+    def channel_id(self) -> str:
+        return self.dm_data.get("channel", "")
 
     @property
-    def text(self) -> Any:
-        data = self.request.data.get("event")
-        return data.get("text")
+    def user_id(self) -> str:
+        return self.dm_data.get("user", "")
 
     @property
-    def links(self) -> List[str]:
-        links = self.data.get("event", {}).get("links", [])
-        return [link["url"] for link in links if "url" in link]
+    def links(self) -> list[str]:
+        return [link["url"] for link in self.dm_data.get("links", []) if "url" in link]
 
     def _validate_event(self) -> None:
-        if not self.data.get("event"):
+        if not self.dm_data:
             self._error("slack.event.invalid-event-data")
             raise SlackRequestError(status=400)
 
-        if not self.data.get("event", {}).get("type"):
+        if not self.dm_data.get("type"):
             self._error("slack.event.invalid-event-type")
             raise SlackRequestError(status=400)
 
@@ -96,12 +76,10 @@ class SlackEventRequest(SlackRequest):
         if (self.text in COMMANDS) or (
             self.type == "link_shared" and has_discover_links(self.links)
         ):
-            try:
-                identity = self.get_identity()
-            except IdentityProvider.DoesNotExist:
-                raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
-
-            self.user = identity.user if identity else None
+            self._validate_identity()
 
     def _log_request(self) -> None:
         self._info(f"slack.event.{self.type}")
+
+    def is_bot(self) -> bool:
+        return bool(self.dm_data.get("bot_id"))

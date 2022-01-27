@@ -1,6 +1,6 @@
-import ExternalLink from 'app/components/links/externalLink';
-import {IconBitbucket, IconGithub, IconGitlab} from 'app/icons';
-import {PullRequest, Repository} from 'app/types';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
+import {PullRequest, Repository} from 'sentry/types';
 
 function renderIcon(repo: Repository) {
   if (!repo.provider) {

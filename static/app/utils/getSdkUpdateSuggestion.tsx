@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ExternalLink from 'app/components/links/externalLink';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {UpdateSdkSuggestion} from 'app/types';
-import {Event} from 'app/types/event';
+import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {UpdateSdkSuggestion} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 type Props = {
   sdk: Event['sdk'];

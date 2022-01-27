@@ -2,12 +2,12 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import Button from 'app/components/button';
-import {IconSearch} from 'app/icons';
-import {IconClose} from 'app/icons/iconClose';
-import {t} from 'app/locale';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import Input from 'app/views/settings/components/forms/controls/input';
+import Button from 'sentry/components/button';
+import {IconSearch} from 'sentry/icons';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type DefaultProps = {
   query: string;
@@ -120,7 +120,7 @@ class SearchBar extends React.PureComponent<Props, State> {
                 onClick={this.clearSearch}
                 size="xsmall"
                 icon={<IconClose />}
-                label={t('Clear')}
+                aria-label={t('Clear')}
               />
             )}
           </div>

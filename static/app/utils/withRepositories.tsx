@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import {getRepositories} from 'app/actionCreators/repositories';
-import RepositoryActions from 'app/actions/repositoryActions';
-import {Client} from 'app/api';
-import RepositoryStore from 'app/stores/repositoryStore';
-import {Organization, Repository} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
+import {getRepositories} from 'sentry/actionCreators/repositories';
+import RepositoryActions from 'sentry/actions/repositoryActions';
+import {Client} from 'sentry/api';
+import RepositoryStore from 'sentry/stores/repositoryStore';
+import {Organization, Repository} from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
 
 type DependentProps = {
   api: Client;

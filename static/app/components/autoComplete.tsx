@@ -10,7 +10,7 @@
  */
 import * as React from 'react';
 
-import DropdownMenu, {GetActorArgs, GetMenuArgs} from 'app/components/dropdownMenu';
+import DropdownMenu, {GetActorArgs, GetMenuArgs} from 'sentry/components/dropdownMenu';
 
 const defaultProps = {
   itemToString: () => '',

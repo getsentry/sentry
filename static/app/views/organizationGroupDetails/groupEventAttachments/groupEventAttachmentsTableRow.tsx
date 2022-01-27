@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import DateTime from 'app/components/dateTime';
-import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
-import FileSize from 'app/components/fileSize';
-import Link from 'app/components/links/link';
-import {t} from 'app/locale';
-import {IssueAttachment} from 'app/types';
-import AttachmentUrl from 'app/utils/attachmentUrl';
-import {types} from 'app/views/organizationGroupDetails/groupEventAttachments/types';
+import DateTime from 'sentry/components/dateTime';
+import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
+import FileSize from 'sentry/components/fileSize';
+import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
+import {IssueAttachment} from 'sentry/types';
+import AttachmentUrl from 'sentry/utils/attachmentUrl';
+import {types} from 'sentry/views/organizationGroupDetails/groupEventAttachments/types';
 
 type Props = {
   orgId: string;
@@ -56,13 +56,13 @@ const GroupEventAttachmentsTableRow = ({
           attachment={attachment}
         >
           {url =>
-            !isDeleted && (
+            !isDeleted ? (
               <EventAttachmentActions
                 url={url}
                 onDelete={onDelete}
                 attachmentId={attachment.id}
               />
-            )
+            ) : null
           }
         </AttachmentUrl>
       </ActionsWrapper>

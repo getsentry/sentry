@@ -2,21 +2,21 @@ import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import LoadingPanel from 'app/components/charts/loadingPanel';
-import {HeaderTitle} from 'app/components/charts/styles';
-import {getInterval} from 'app/components/charts/utils';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {Panel} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {IconWarning} from 'app/icons';
-import {Organization} from 'app/types';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import getDynamicText from 'app/utils/getDynamicText';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import {getInterval} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconWarning} from 'sentry/icons';
+import {Organization} from 'sentry/types';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import withApi from 'sentry/utils/withApi';
 
 import {getAxisOptions} from '../data';
 import {DoubleHeaderContainer, ErrorPanel} from '../styles';
@@ -46,7 +46,7 @@ class Container extends Component<Props> {
     const {api, organization, location, eventView, router} = this.props;
 
     // construct request parameters for fetching chart data
-    const globalSelection = eventView.getGlobalSelection();
+    const globalSelection = eventView.getPageFilters();
     const start = globalSelection.datetime.start
       ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : null;
@@ -54,7 +54,7 @@ class Container extends Component<Props> {
       ? getUtcToLocalDateObject(globalSelection.datetime.end)
       : null;
 
-    const {utc} = getParams(location.query);
+    const {utc} = normalizeDateTimeParams(location.query);
     const axisOptions = this.getChartParameters();
 
     const apiPayload = eventView.getEventsAPIPayload(location);

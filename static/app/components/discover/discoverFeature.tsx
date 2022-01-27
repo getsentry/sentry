@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Hovercard from 'app/components/hovercard';
-import {t} from 'app/locale';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Hovercard from 'sentry/components/hovercard';
+import {t} from 'sentry/locale';
 
 type Props = {
   children: ({hasFeature: boolean}) => React.ReactNode;

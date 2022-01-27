@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
@@ -27,7 +28,7 @@ class IncidentSerializer(serializers.Serializer):
 class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
     permission_classes = (IncidentPermission,)
 
-    def get(self, request, organization, incident):
+    def get(self, request: Request, organization, incident) -> Response:
         """
         Fetch an Incident.
         ``````````````````
@@ -37,7 +38,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
 
         return Response(data)
 
-    def put(self, request, organization, incident):
+    def put(self, request: Request, organization, incident) -> Response:
         serializer = IncidentSerializer(data=request.data)
         if serializer.is_valid():
             result = serializer.validated_data

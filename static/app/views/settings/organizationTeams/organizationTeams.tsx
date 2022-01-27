@@ -4,20 +4,20 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {AccessRequest, Organization} from 'app/types';
-import recreateRoute from 'app/utils/recreateRoute';
-import useTeams from 'app/utils/useTeams';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AccessRequest, Organization} from 'sentry/types';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import useTeams from 'sentry/utils/useTeams';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import AllTeamsList from './allTeamsList';
 import OrganizationAccessRequests from './organizationAccessRequests';
@@ -72,7 +72,7 @@ function OrganizationTeams({
 
   const [teamQuery, setTeamQuery] = useState('');
   const {initiallyLoaded} = useTeams({provideUserTeams: true});
-  const {teams, onSearch} = useTeams();
+  const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
 
   const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
   function handleSearch(query: string) {
@@ -130,12 +130,26 @@ function OrganizationTeams({
           />
         </PanelBody>
       </Panel>
+      {hasMore && (
+        <LoadMoreWrapper>
+          {fetching && <LoadingIndicator mini />}
+          <Button onClick={() => loadMore(teamQuery)}>{t('Show more')}</Button>
+        </LoadMoreWrapper>
+      )}
     </div>
   );
 }
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
+`;
+
+const LoadMoreWrapper = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  align-items: center;
+  justify-content: end;
+  grid-auto-flow: column;
 `;
 
 export default OrganizationTeams;

@@ -1,4 +1,4 @@
-import BarChart from 'app/components/charts/barChart';
+import BarChart from 'sentry/components/charts/barChart';
 
 export default {
   title: 'Components/Data Visualization/Charts/Bar Chart',

@@ -11,10 +11,16 @@ const StyledAction = styled('a')<{disabled?: boolean}>`
   ${p => p.disabled && 'cursor: not-allowed;'}
 `;
 
-const StyledActionButton = styled(ActionButton)`
+const StyledActionButton = styled(ActionButton)<{
+  disabled?: boolean;
+  hasDropdown?: boolean;
+}>`
   display: flex;
   align-items: center;
+  pointer-events: ${p => (p.disabled ? 'none' : 'auto')};
+
   ${p => p.disabled && 'cursor: not-allowed;'}
+  ${p => p.hasDropdown && `border-radius: ${p.theme.borderRadiusLeft}`};
 `;
 
 type ConfirmableActionProps = React.ComponentProps<typeof ConfirmableAction>;

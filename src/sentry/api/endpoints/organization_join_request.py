@@ -3,6 +3,7 @@ import logging
 from django.db import IntegrityError
 from django.db.models import Q
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -11,6 +12,7 @@ from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.signals import join_request_created
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,15 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
     # Disable authentication and permission requirements.
     permission_classes = []
 
-    def post(self, request, organization):
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.IP: RateLimit(5, 86400),
+            RateLimitCategory.USER: RateLimit(5, 86400),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 86400),
+        }
+    }
+
+    def post(self, request: Request, organization) -> Response:
         if organization.get_option("sentry:join_requests") is False:
             return Response(
                 {"detail": "Your organization does not allow join requests."}, status=403

@@ -1,14 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import DateTime from 'app/components/dateTime';
-import Tag from 'app/components/tag';
-import TimeSince, {getRelativeDate} from 'app/components/timeSince';
-import {t, tct} from 'app/locale';
-import {InboxDetails} from 'app/types';
-import {getDuration} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
-import {Theme} from 'app/utils/theme';
+import DateTime from 'sentry/components/dateTime';
+import Tag from 'sentry/components/tag';
+import TimeSince, {getRelativeDate} from 'sentry/components/timeSince';
+import {t, tct} from 'sentry/locale';
+import {InboxDetails} from 'sentry/types';
+import {getDuration} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {Theme} from 'sentry/utils/theme';
 
 const GroupInboxReason = {
   NEW: 0,
@@ -189,7 +189,7 @@ const TooltipDescription = styled('div')`
 `;
 
 const Separator = styled('span')<{type: keyof Theme['tag']}>`
-  color: ${p => p.theme.tag[p.type].iconColor};
+  color: ${p => p.theme.tag[p.type].border};
   opacity: 80%;
 `;
 

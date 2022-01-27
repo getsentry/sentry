@@ -4,17 +4,17 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import ErrorBoundary from 'app/components/errorBoundary';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import Tooltip from 'app/components/tooltip';
-import {IconMute, IconStar} from 'app/icons';
-import {tct} from 'app/locale';
-import {Group, GroupTombstone, Level, Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import {getLocation, getMessage} from 'app/utils/events';
-import withOrganization from 'app/utils/withOrganization';
-import {TagAndMessageWrapper} from 'app/views/organizationGroupDetails/unhandledTag';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import Tooltip from 'sentry/components/tooltip';
+import {IconMute, IconStar} from 'sentry/icons';
+import {tct} from 'sentry/locale';
+import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {getLocation, getMessage} from 'sentry/utils/events';
+import withOrganization from 'sentry/utils/withOrganization';
+import {TagAndMessageWrapper} from 'sentry/views/organizationGroupDetails/unhandledTag';
 
 import EventTitleError from './eventTitleError';
 

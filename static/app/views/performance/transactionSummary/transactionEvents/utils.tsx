@@ -1,7 +1,7 @@
 import {Location, Query} from 'history';
 
-import {t} from 'app/locale';
-import {decodeScalar} from 'app/utils/queryString';
+import {t} from 'sentry/locale';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {filterToField, SpanOperationBreakdownFilter} from '../filter';
 import {TransactionFilterOptions} from '../utils';

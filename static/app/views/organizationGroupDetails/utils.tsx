@@ -1,10 +1,10 @@
 import orderBy from 'lodash/orderBy';
 
-import {bulkUpdate} from 'app/actionCreators/group';
-import {Client} from 'app/api';
-import {t, tct} from 'app/locale';
-import {Group, GroupActivity} from 'app/types';
-import {Event} from 'app/types/event';
+import {bulkUpdate} from 'sentry/actionCreators/group';
+import {Client} from 'sentry/api';
+import {t, tct} from 'sentry/locale';
+import {Group, GroupActivity} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 
 /**
  * Fetches group data and mark as seen

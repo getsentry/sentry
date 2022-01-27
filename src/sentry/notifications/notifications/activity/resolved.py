@@ -6,6 +6,8 @@ from .base import GroupActivityNotification
 
 
 class ResolvedActivityNotification(GroupActivityNotification):
+    referrer_base = "resolved-activity"
+
     def get_activity_name(self) -> str:
         return "Resolved Issue"
 

@@ -31,7 +31,9 @@ class UserAuthenticatorEnrollTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
     def setUp(self):
+        super().setUp()
         self.login_as(user=self.user)
+        self.org = self.create_organization(owner=self.user, name="foo")
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
     def test_totp_can_enroll(self, validate_otp):
@@ -207,6 +209,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
     def test_u2f_can_enroll(self, try_enroll):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["system.url-prefix"] = "https://testserver"
+
         with self.settings(SENTRY_OPTIONS=new_options):
             resp = self.get_success_response("me", "u2f")
             assert resp.data["form"]
@@ -227,7 +230,16 @@ class UserAuthenticatorEnrollTest(APITestCase):
                 )
 
             assert try_enroll.call_count == 1
-            assert try_enroll.call_args == mock.call("challenge", "response", "device name")
+            mock_challenge = try_enroll.call_args.args[3]["challenge"]
+            assert try_enroll.call_args == mock.call(
+                "challenge",
+                "response",
+                "device name",
+                {
+                    "challenge": mock_challenge,
+                    "user_verification": "discouraged",
+                },
+            )
 
             assert_security_email_sent("mfa-added")
 
@@ -289,6 +301,8 @@ class AcceptOrganizationInviteTest(APITestCase):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["system.url-prefix"] = "https://testserver"
         with self.settings(SENTRY_OPTIONS=new_options):
+            self.session["webauthn_register_state"] = "state"
+            self.save_session()
             return self.get_success_response(
                 "me",
                 "u2f",
@@ -425,6 +439,8 @@ class AcceptOrganizationInviteTest(APITestCase):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["system.url-prefix"] = "https://testserver"
         with self.settings(SENTRY_OPTIONS=new_options):
+            self.session["webauthn_register_state"] = "state"
+            self.save_session()
             self.get_success_response(
                 "me",
                 "u2f",

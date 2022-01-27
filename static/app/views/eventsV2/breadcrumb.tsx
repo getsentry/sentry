@@ -1,12 +1,12 @@
 import {Component} from 'react';
 import {Location} from 'history';
 
-import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {Event} from 'app/types/event';
-import EventView from 'app/utils/discover/eventView';
-import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
+import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import EventView from 'sentry/utils/discover/eventView';
+import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 
 type DefaultProps = {
   event: Event | undefined;
@@ -32,7 +32,7 @@ class DiscoverBreadcrumb extends Component<Props> {
           query: {
             ...location.query,
             ...eventView.generateBlankQueryStringObject(),
-            ...eventView.getGlobalSelectionQuery(),
+            ...eventView.getPageFiltersQuery(),
           },
         }
       : null;

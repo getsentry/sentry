@@ -8,7 +8,7 @@ body:
       description: Where are you using our software?
       options:
         - SaaS (https://sentry.io/)
-        - self-hosted (`onpremise` deployment)
+        - self-hosted (https://develop.sentry.dev/self-hosted/)
     validations:
       required: true
   - type: input

@@ -1,19 +1,19 @@
 import {Component} from 'react';
 import {motion} from 'framer-motion';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {createProject} from 'app/actionCreators/projects';
-import ProjectActions from 'app/actions/projectActions';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import PlatformPicker from 'app/components/platformPicker';
-import {PlatformKey} from 'app/data/platformCategories';
-import {t, tct} from 'app/locale';
-import {Team} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'app/utils/withApi';
-import withTeams from 'app/utils/withTeams';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {createProject} from 'sentry/actionCreators/projects';
+import ProjectActions from 'sentry/actions/projectActions';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import PlatformPicker from 'sentry/components/platformPicker';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {t, tct} from 'sentry/locale';
+import {Team} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import withApi from 'sentry/utils/withApi';
+import withTeams from 'sentry/utils/withTeams';
 
 import StepHeading from './components/stepHeading';
 import {StepProps} from './types';

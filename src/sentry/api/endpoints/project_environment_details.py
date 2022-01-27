@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -12,7 +13,7 @@ class ProjectEnvironmentSerializer(serializers.Serializer):
 
 
 class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
-    def get(self, request, project, environment):
+    def get(self, request: Request, project, environment) -> Response:
         try:
             instance = EnvironmentProject.objects.select_related("environment").get(
                 project=project,
@@ -23,7 +24,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(instance, request.user))
 
-    def put(self, request, project, environment):
+    def put(self, request: Request, project, environment) -> Response:
         try:
             instance = EnvironmentProject.objects.select_related("environment").get(
                 project=project,

@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ConfigStore from 'app/stores/configStore';
-import OrganizationCreate from 'app/views/organizationCreate';
+import ConfigStore from 'sentry/stores/configStore';
+import OrganizationCreate from 'sentry/views/organizationCreate';
 
 describe('OrganizationCreate', function () {
   let privacyUrl, termsUrl;

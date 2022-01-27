@@ -1,7 +1,7 @@
-import {trimPackage} from 'app/components/events/interfaces/frame/utils';
-import {ExceptionValue, Frame} from 'app/types';
-import {StacktraceType} from 'app/types/stacktrace';
-import {defined, trim} from 'app/utils';
+import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
+import {ExceptionValue, Frame} from 'sentry/types';
+import {StacktraceType} from 'sentry/types/stacktrace';
+import {defined, trim} from 'sentry/utils';
 
 function getJavaScriptFrame(frame: Frame): string {
   let result = '';

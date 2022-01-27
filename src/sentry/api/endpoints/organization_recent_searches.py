@@ -1,5 +1,6 @@
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -23,7 +24,7 @@ class OrganizationRecentSearchPermission(OrganizationPermission):
 class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationRecentSearchPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         """
         List recent searches for a User within an Organization
         ``````````````````````````````````````````````````````
@@ -53,7 +54,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
 
         return Response(serialize(recent_searches, request.user))
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization) -> Response:
         serializer = RecentSearchSerializer(data=request.data)
 
         if serializer.is_valid():

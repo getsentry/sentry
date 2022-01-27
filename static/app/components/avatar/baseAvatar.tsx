@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
 
-import BackgroundAvatar from 'app/components/avatar/backgroundAvatar';
-import LetterAvatar from 'app/components/letterAvatar';
-import Tooltip from 'app/components/tooltip';
-import {Avatar} from 'app/types';
+import BackgroundAvatar from 'sentry/components/avatar/backgroundAvatar';
+import LetterAvatar from 'sentry/components/letterAvatar';
+import Tooltip from 'sentry/components/tooltip';
+import {Avatar} from 'sentry/types';
 
 import Gravatar from './gravatar';
 import {imageStyle, ImageStyleProps} from './styles';
@@ -25,8 +25,6 @@ const StyledBaseAvatar = styled('span')<{
   flex-shrink: 0;
   border-radius: ${p => (p.round ? '50%' : '3px')};
   border: ${p => (p.suggested ? `1px dashed ${p.theme.gray400}` : 'none')};
-  background-color: ${p =>
-    p.loaded ? p.theme.background : 'background-color: rgba(200, 200, 200, 0.1);'};
 `;
 
 const defaultProps: DefaultProps = {
@@ -69,7 +67,13 @@ type DefaultProps = {
   /**
    * Path to uploaded avatar (differs based on model type)
    */
-  uploadPath?: 'avatar' | 'team-avatar' | 'organization-avatar' | 'project-avatar';
+  uploadPath?:
+    | 'avatar'
+    | 'team-avatar'
+    | 'organization-avatar'
+    | 'project-avatar'
+    | 'sentry-app-avatar'
+    | 'doc-integration-avatar';
 };
 
 type BaseProps = DefaultProps & {
@@ -86,6 +90,7 @@ type BaseProps = DefaultProps & {
   gravatarId?: string;
   letterId?: string;
   title?: string;
+  backupAvatar?: React.ReactNode;
   /**
    * The content for the tooltip. Requires hasTooltip to display
    */
@@ -210,6 +215,11 @@ class BaseAvatar extends React.Component<Props, State> {
     return <BackgroundAvatar round={round} suggested={suggested} />;
   }
 
+  renderBackupAvatar() {
+    const {backupAvatar} = this.props;
+    return backupAvatar ?? this.renderLetterAvatar();
+  }
+
   render() {
     const {
       className,
@@ -248,7 +258,7 @@ class BaseAvatar extends React.Component<Props, State> {
           }}
           {...props}
         >
-          {this.state.showBackupAvatar && this.renderLetterAvatar()}
+          {this.state.showBackupAvatar && this.renderBackupAvatar()}
           {this.renderImg()}
         </StyledBaseAvatar>
       </Tooltip>

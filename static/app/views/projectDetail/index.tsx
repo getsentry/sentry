@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import withOrganization from 'app/utils/withOrganization';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import ProjectDetail from './projectDetail';
 

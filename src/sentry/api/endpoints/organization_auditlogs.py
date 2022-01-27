@@ -1,3 +1,6 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationAuditPermission
 from sentry.api.paginator import DateTimePaginator
@@ -10,7 +13,7 @@ EVENT_REVERSE_MAP = {v: k for k, v in AuditLogEntry._meta.get_field("event").cho
 class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAuditPermission,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization) -> Response:
         queryset = AuditLogEntry.objects.filter(organization=organization).select_related("actor")
 
         event = request.GET.get("event")

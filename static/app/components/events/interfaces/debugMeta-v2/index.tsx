@@ -9,21 +9,21 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {openModal, openReprocessEventModal} from 'app/actionCreators/modal';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
-import EventDataSection from 'app/components/events/eventDataSection';
-import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
-import {PanelTable} from 'app/components/panels';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {t} from 'app/locale';
-import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Group, Organization, Project} from 'app/types';
-import {Image, ImageStatus} from 'app/types/debugImage';
-import {Event} from 'app/types/event';
-import {defined} from 'app/utils';
+import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import EventDataSection from 'sentry/components/events/eventDataSection';
+import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
+import {PanelTable} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t} from 'sentry/locale';
+import DebugMetaStore, {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Group, Organization, Project} from 'sentry/types';
+import {Image, ImageStatus} from 'sentry/types/debugImage';
+import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 
 import SearchBarAction from '../searchBarAction';
 import SearchBarActionFilter from '../searchBarAction/searchBarActionFilter';
@@ -65,6 +65,7 @@ type State = {
   filteredImagesByFilter: Images;
   filterOptions: FilterOptions;
   scrollbarWidth: number;
+  isOpen: boolean;
   panelTableHeight?: number;
 };
 
@@ -81,6 +82,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   state: State = {
     searchTerm: '',
     scrollbarWidth: 0,
+    isOpen: false,
     filterOptions: {},
     filteredImages: [],
     filteredImagesByFilter: [],
@@ -99,7 +101,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0) {
+    if (
+      this.state.isOpen ||
+      (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0)
+    ) {
       this.getPanelBodyHeight();
     }
 
@@ -232,7 +237,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         : undefined;
 
     const mod = await import(
-      'app/components/events/interfaces/debugMeta-v2/debugImageDetails'
+      'sentry/components/events/interfaces/debugMeta-v2/debugImageDetails'
     );
 
     const {default: Modal, modalCss} = mod;
@@ -255,6 +260,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
         onClose: this.handleCloseImageDetailsModal,
       }
     );
+  };
+
+  toggleImagesLoaded = () => {
+    this.setState(state => ({
+      isOpen: !state.isOpen,
+    }));
   };
 
   getPanelBodyHeight() {
@@ -507,6 +518,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       searchTerm,
       filterOptions,
       scrollbarWidth,
+      isOpen,
       filteredImagesByFilter: filteredImages,
     } = this.state;
     const {data} = this.props;
@@ -518,8 +530,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
 
+    const actions = (
+      <ToggleButton onClick={this.toggleImagesLoaded} priority="link">
+        {isOpen ? t('Hide Details') : t('Show Details')}
+      </ToggleButton>
+    );
+
     return (
-      <StyledEventDataSection
+      <EventDataSection
         type="images-loaded"
         title={
           <TitleWrapper>
@@ -535,47 +553,41 @@ class DebugMeta extends React.PureComponent<Props, State> {
             />
           </TitleWrapper>
         }
-        actions={
-          <StyledSearchBarAction
-            placeholder={t('Search images loaded')}
-            onChange={value => this.handleChangeSearchTerm(value)}
-            query={searchTerm}
-            filter={
-              displayFilter ? (
-                <SearchBarActionFilter
-                  onChange={this.handleChangeFilter}
-                  options={filterOptions}
-                />
-              ) : undefined
-            }
-          />
-        }
+        actions={actions}
         wrapTitle={false}
         isCentered
       >
-        <StyledPanelTable
-          isEmpty={!filteredImages.length}
-          scrollbarWidth={scrollbarWidth}
-          headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
-          {...this.getEmptyMessage()}
-        >
-          <div ref={this.panelTableRef}>{this.renderList()}</div>
-        </StyledPanelTable>
-      </StyledEventDataSection>
+        {isOpen && (
+          <React.Fragment>
+            <StyledSearchBarAction
+              placeholder={t('Search images loaded')}
+              onChange={value => this.handleChangeSearchTerm(value)}
+              query={searchTerm}
+              filter={
+                displayFilter ? (
+                  <SearchBarActionFilter
+                    onChange={this.handleChangeFilter}
+                    options={filterOptions}
+                  />
+                ) : undefined
+              }
+            />
+            <StyledPanelTable
+              isEmpty={!filteredImages.length}
+              scrollbarWidth={scrollbarWidth}
+              headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
+              {...this.getEmptyMessage()}
+            >
+              <div ref={this.panelTableRef}>{this.renderList()}</div>
+            </StyledPanelTable>
+          </React.Fragment>
+        )}
+      </EventDataSection>
     );
   }
 }
 
 export default withRouter(DebugMeta);
-
-const StyledEventDataSection = styled(EventDataSection)`
-  padding-bottom: ${space(4)};
-
-  /* to increase specificity */
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding-bottom: ${space(2)};
-  }
-`;
 
 const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   overflow: hidden;
@@ -606,7 +618,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
 const TitleWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   align-items: center;
   padding: ${space(0.75)} 0;
 `;
@@ -627,4 +639,14 @@ const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
 
 const StyledSearchBarAction = styled(SearchBarAction)`
   z-index: 1;
+  margin-bottom: ${space(1)};
+`;
+
+const ToggleButton = styled(Button)`
+  font-weight: 700;
+  color: ${p => p.theme.subText};
+  &:hover,
+  &:focus {
+    color: ${p => p.theme.textColor};
+  }
 `;

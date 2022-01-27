@@ -3,24 +3,24 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import AsyncComponent from 'app/components/asyncComponent';
-import * as Layout from 'app/components/layouts/thirds';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconArrow} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Projects from 'app/utils/projects';
-import Teams from 'app/utils/teams';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconArrow} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import Projects from 'sentry/utils/projects';
+import Teams from 'sentry/utils/teams';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import AlertHeader from '../list/header';
 import {CombinedMetricIssueAlerts} from '../types';
@@ -33,7 +33,7 @@ const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-ale
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
 };
 
 type State = {
@@ -288,14 +288,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
-        <GlobalSelectionHeader
+        <PageFiltersContainer
           organization={organization}
           showDateSelector={false}
           showEnvironmentSelector={false}
         >
           <AlertHeader organization={organization} router={router} activeTab="rules" />
           {this.renderList()}
-        </GlobalSelectionHeader>
+        </PageFiltersContainer>
       </SentryDocumentTitle>
     );
   }
@@ -331,7 +331,7 @@ class AlertRulesListContainer extends Component<Props> {
   }
 }
 
-export default withGlobalSelection(AlertRulesListContainer);
+export default withPageFilters(AlertRulesListContainer);
 
 const StyledLayoutBody = styled(Layout.Body)`
   margin-bottom: -20px;
@@ -361,7 +361,7 @@ const StyledPanelTable = styled(PanelTable)`
     overflow: initial;
   }
 
-  grid-template-columns: auto 1.5fr 1fr 1fr 1fr auto;
+  grid-template-columns: 4fr auto 140px 60px 110px auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
 `;

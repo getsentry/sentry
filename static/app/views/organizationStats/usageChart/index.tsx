@@ -2,28 +2,31 @@ import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
-import {EChartOption} from 'echarts';
+import type {SeriesOption, TooltipComponentOption} from 'echarts';
 
-import BaseChart from 'app/components/charts/baseChart';
-import Legend from 'app/components/charts/components/legend';
-import Tooltip from 'app/components/charts/components/tooltip';
-import xAxis from 'app/components/charts/components/xAxis';
-import barSeries from 'app/components/charts/series/barSeries';
-import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Panel from 'app/components/panels/panel';
-import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {DataCategory, DataCategoryName, IntervalPeriod, SelectValue} from 'app/types';
-import {parsePeriodToHours, statsPeriodToDays} from 'app/utils/dates';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
-import commonTheme, {Theme} from 'app/utils/theme';
+import BaseChart from 'sentry/components/charts/baseChart';
+import Legend from 'sentry/components/charts/components/legend';
+import xAxis from 'sentry/components/charts/components/xAxis';
+import barSeries from 'sentry/components/charts/series/barSeries';
+import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
+import Placeholder from 'sentry/components/placeholder';
+import {DATA_CATEGORY_NAMES} from 'sentry/constants';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types';
+import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import commonTheme, {Theme} from 'sentry/utils/theme';
 
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
+
+type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 const COLOR_ERRORS = Color(commonTheme.dataCategory.errors).lighten(0.25).string();
 const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
@@ -32,23 +35,23 @@ const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
 const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
   .lighten(0.65)
   .string();
+
 const COLOR_DROPPED = commonTheme.red300;
-const COLOR_PROJECTED = commonTheme.gray100;
 const COLOR_FILTERED = commonTheme.pink100;
 
 export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
   {
-    label: DataCategoryName[DataCategory.ERRORS],
+    label: DATA_CATEGORY_NAMES[DataCategory.ERRORS],
     value: DataCategory.ERRORS,
     disabled: false,
   },
   {
-    label: DataCategoryName[DataCategory.TRANSACTIONS],
+    label: DATA_CATEGORY_NAMES[DataCategory.TRANSACTIONS],
     value: DataCategory.TRANSACTIONS,
     disabled: false,
   },
   {
-    label: DataCategoryName[DataCategory.ATTACHMENTS],
+    label: DATA_CATEGORY_NAMES[DataCategory.ATTACHMENTS],
     value: DataCategory.ATTACHMENTS,
     disabled: false,
   },
@@ -126,12 +129,12 @@ type Props = DefaultProps & {
   /**
    * Additional data to draw on the chart alongside usage
    */
-  chartSeries?: EChartOption.Series[];
+  chartSeries?: SeriesOption[];
 
   /**
    * Replace default tooltip
    */
-  chartTooltip?: EChartOption.Tooltip;
+  chartTooltip?: TooltipComponentOption;
 };
 
 type State = {
@@ -139,10 +142,10 @@ type State = {
 };
 
 export type ChartStats = {
-  accepted: NonNullable<EChartOption.SeriesBar['data']>;
-  dropped: NonNullable<EChartOption.SeriesBar['data']>;
-  projected: NonNullable<EChartOption.SeriesBar['data']>;
-  filtered?: NonNullable<EChartOption.SeriesBar['data']>;
+  accepted: NonNullable<SeriesOption['data']>;
+  dropped: NonNullable<SeriesOption['data']>;
+  projected: NonNullable<SeriesOption['data']>;
+  filtered?: NonNullable<SeriesOption['data']>;
 };
 
 export class UsageChart extends React.Component<Props, State> {
@@ -202,7 +205,8 @@ export class UsageChart extends React.Component<Props, State> {
   }
 
   get chartColors() {
-    const {dataCategory} = this.props;
+    const {dataCategory, theme} = this.props;
+    const COLOR_PROJECTED = theme.chartOther;
 
     if (dataCategory === DataCategory.ERRORS) {
       return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
@@ -307,7 +311,7 @@ export class UsageChart extends React.Component<Props, State> {
     const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
 
-    let series: EChartOption.Series[] = [
+    let series: SeriesOption[] = [
       barSeries({
         name: SeriesTypes.ACCEPTED,
         data: chartData.accepted as any, // TODO(ts)
@@ -339,7 +343,7 @@ export class UsageChart extends React.Component<Props, State> {
 
     // Additional series passed by parent component
     if (chartSeries) {
-      series = series.concat(chartSeries as EChartOption.Series[]);
+      series = series.concat(chartSeries as SeriesOption[]);
     }
 
     return series;
@@ -353,19 +357,19 @@ export class UsageChart extends React.Component<Props, State> {
       },
     ];
 
-    if (chartData.filtered && chartData.filtered.length > 0) {
+    if (chartData.filtered && (chartData.filtered as any[]).length > 0) {
       legend.push({
         name: SeriesTypes.FILTERED,
       });
     }
 
-    if (chartData.dropped.length > 0) {
+    if ((chartData.dropped as any[]).length > 0) {
       legend.push({
         name: SeriesTypes.DROPPED,
       });
     }
 
-    if (chartData.projected.length > 0) {
+    if ((chartData.projected as any[]).length > 0) {
       legend.push({
         name: SeriesTypes.PROJECTED,
       });
@@ -373,7 +377,7 @@ export class UsageChart extends React.Component<Props, State> {
     return legend;
   }
 
-  get chartTooltip() {
+  get chartTooltip(): ChartProps['tooltip'] {
     const {chartTooltip} = this.props;
 
     if (chartTooltip) {
@@ -382,12 +386,12 @@ export class UsageChart extends React.Component<Props, State> {
 
     const {tooltipValueFormatter} = this.chartMetadata;
 
-    return Tooltip({
+    return {
       // Trigger to axis prevents tooltip from redrawing when hovering
       // over individual bars
       trigger: 'axis',
       valueFormatter: tooltipValueFormatter,
-    });
+    };
   }
 
   renderChart() {
@@ -423,43 +427,48 @@ export class UsageChart extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
-        <BaseChart
-          colors={this.chartColors}
-          grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
-          xAxis={xAxis({
-            show: true,
-            type: 'category',
-            name: 'Date',
-            boundaryGap: true,
-            data: xAxisData,
-            axisTick: {
-              interval: xAxisTickInterval,
-              alignWithLabel: true,
-            },
-            axisLabel: {
-              interval: xAxisLabelInterval,
-              formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
-            },
-            theme,
-          })}
-          yAxis={{
-            min: 0,
-            minInterval: yAxisMinInterval,
-            axisLabel: {
-              formatter: yAxisFormatter,
-              color: theme.chartLabel,
-            },
-          }}
-          series={this.chartSeries}
-          tooltip={this.chartTooltip}
-          onLegendSelectChanged={() => {}}
-          legend={Legend({
-            right: 10,
-            top: 5,
-            data: this.chartLegend,
-            theme,
-          })}
-        />
+        {getDynamicText({
+          value: (
+            <BaseChart
+              colors={this.chartColors}
+              grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
+              xAxis={xAxis({
+                show: true,
+                type: 'category',
+                name: 'Date',
+                boundaryGap: true,
+                data: xAxisData,
+                axisTick: {
+                  interval: xAxisTickInterval,
+                  alignWithLabel: true,
+                },
+                axisLabel: {
+                  interval: xAxisLabelInterval,
+                  formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
+                },
+                theme,
+              })}
+              yAxis={{
+                min: 0,
+                minInterval: yAxisMinInterval,
+                axisLabel: {
+                  formatter: yAxisFormatter,
+                  color: theme.chartLabel,
+                },
+              }}
+              series={this.chartSeries}
+              tooltip={this.chartTooltip}
+              onLegendSelectChanged={() => {}}
+              legend={Legend({
+                right: 10,
+                top: 5,
+                data: this.chartLegend,
+                theme,
+              })}
+            />
+          ),
+          fixed: <Placeholder height="200px" />,
+        })}
       </React.Fragment>
     );
   }

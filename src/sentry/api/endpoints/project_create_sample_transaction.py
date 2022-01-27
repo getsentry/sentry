@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytz
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
@@ -67,7 +68,7 @@ class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
     # This is the same scope that allows members to view all issues for a project.
     permission_classes = (ProjectEventPermission,)
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         samples_root = os.path.join(DATA_ROOT, "samples")
         with open(os.path.join(samples_root, get_json_name(project))) as fp:
             data = json.load(fp)

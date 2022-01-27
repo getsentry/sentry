@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 describe('handleXhrErrorResponse', function () {
   const stringError = {responseJSON: {detail: 'Error'}, status: 400};

@@ -3,18 +3,24 @@ import * as React from 'react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {getSessionsInterval} from 'app/utils/sessions';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import {roundDuration} from 'app/views/releases/utils';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
+import {
+  MetricQuery,
+  Organization,
+  PageFilters,
+  Project,
+  SessionApiResponse,
+} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
+import {getSessionsInterval} from 'sentry/utils/sessions';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {roundDuration} from 'sentry/views/releases/utils';
 
-import {MetricQuery} from './types';
 import {fillChartDataFromMetricsResponse, getBreakdownChartData} from './utils';
 
 type FilteredGrouping = Required<Pick<MetricQuery, 'metricMeta' | 'aggregation'>> &
@@ -26,7 +32,7 @@ type RequestQuery = {
   query?: string;
   start?: string;
   end?: string;
-  period?: string;
+  period?: string | null;
   utc?: string;
 };
 
@@ -39,9 +45,9 @@ type ChildrenArgs = {
 type Props = {
   api: Client;
   organization: Organization;
-  projectSlug: Project['slug'];
-  environments: GlobalSelection['environments'];
-  datetime: GlobalSelection['datetime'];
+  projectId: Project['id'];
+  environments: PageFilters['environments'];
+  datetime: PageFilters['datetime'];
   location: Location;
   children: (args: ChildrenArgs) => React.ReactElement;
   groupings: MetricQuery[];
@@ -51,7 +57,7 @@ type Props = {
 function StatsRequest({
   api,
   organization,
-  projectSlug,
+  projectId,
   groupings,
   environments,
   datetime,
@@ -69,7 +75,7 @@ function StatsRequest({
 
   useEffect(() => {
     fetchData();
-  }, [projectSlug, environments, datetime, groupings, searchQuery]);
+  }, [projectId, environments, datetime, groupings, searchQuery]);
 
   function fetchData() {
     if (!filteredGroupings.length) {
@@ -79,7 +85,7 @@ function StatsRequest({
     setErrored(false);
     setIsLoading(true);
 
-    const requestExtraParams = getParams(
+    const requestExtraParams = normalizeDateTimeParams(
       pick(
         location.query,
         Object.values(URL_PARAM).filter(param => param !== URL_PARAM.PROJECT)
@@ -113,11 +119,11 @@ function StatsRequest({
         }
       }
 
-      const metricDataEndpoint = `/projects/${organization.slug}/${projectSlug}/metrics/data/`;
+      const metricDataEndpoint = `/organizations/${organization.slug}/metrics/data/?project=${projectId}`;
 
       if (!!groupBy?.length) {
         const groupByParameter = [...groupBy].join('&groupBy=');
-        return api.requestPromise(`${metricDataEndpoint}?groupBy=${groupByParameter}`, {
+        return api.requestPromise(`${metricDataEndpoint}&groupBy=${groupByParameter}`, {
           query,
         });
       }
@@ -158,7 +164,7 @@ function StatsRequest({
         field,
         chartData: breakDownChartData,
         valueFormatter:
-          metricMeta.name === 'session.duration'
+          metricMeta.name === SessionMetric.SENTRY_SESSIONS_SESSION_DURATION
             ? duration => roundDuration(duration ? duration / 1000 : 0)
             : undefined,
       });

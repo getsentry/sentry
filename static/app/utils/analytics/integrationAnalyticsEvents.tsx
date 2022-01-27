@@ -1,5 +1,5 @@
-import {StacktraceErrorMessage} from 'app/components/events/interfaces/frame/stacktraceLink';
-import {IntegrationType, PlatformType, SentryAppStatus} from 'app/types';
+import {StacktraceErrorMessage} from 'sentry/components/events/interfaces/frame/stacktraceLink';
+import {IntegrationType, PlatformType, SentryAppStatus} from 'sentry/types';
 
 // define the various event payloads
 type View = {

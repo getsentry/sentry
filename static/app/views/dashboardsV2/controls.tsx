@@ -1,18 +1,20 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import Hovercard from 'app/components/hovercard';
-import {IconAdd, IconEdit} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import Hovercard from 'sentry/components/hovercard';
+import Tooltip from 'sentry/components/tooltip';
+import {IconAdd, IconEdit} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-import {DashboardListItem, DashboardState} from './types';
+import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
   organization: Organization;
@@ -22,25 +24,14 @@ type Props = {
   onCommit: () => void;
   onDelete: () => void;
   onAddWidget: () => void;
-  onAddIssueWidget: () => void;
+  widgetLimitReached: boolean;
   dashboardState: DashboardState;
 };
 
 class Controls extends React.Component<Props> {
-  render() {
-    const {
-      organization,
-      dashboardState,
-      dashboards,
-      onEdit,
-      onCancel,
-      onCommit,
-      onDelete,
-      onAddWidget,
-      onAddIssueWidget,
-    } = this.props;
-
-    const cancelButton = (
+  renderCancelButton(label = t('Cancel')) {
+    const {onCancel} = this.props;
+    return (
       <Button
         data-test-id="dashboard-cancel"
         onClick={e => {
@@ -48,14 +39,27 @@ class Controls extends React.Component<Props> {
           onCancel();
         }}
       >
-        {t('Cancel')}
+        {label}
       </Button>
     );
+  }
+
+  render() {
+    const {
+      organization,
+      dashboardState,
+      dashboards,
+      widgetLimitReached,
+      onEdit,
+      onCommit,
+      onDelete,
+      onAddWidget,
+    } = this.props;
 
     if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
       return (
         <StyledButtonBar gap={1} key="edit-controls">
-          {cancelButton}
+          {this.renderCancelButton()}
           <Confirm
             priority="danger"
             message={t('Are you sure you want to delete this dashboard?')}
@@ -80,10 +84,10 @@ class Controls extends React.Component<Props> {
       );
     }
 
-    if (dashboardState === 'create') {
+    if (dashboardState === DashboardState.CREATE) {
       return (
         <StyledButtonBar gap={1} key="create-controls">
-          {cancelButton}
+          {this.renderCancelButton()}
           <Button
             data-test-id="dashboard-commit"
             onClick={e => {
@@ -93,6 +97,24 @@ class Controls extends React.Component<Props> {
             priority="primary"
           >
             {t('Save and Finish')}
+          </Button>
+        </StyledButtonBar>
+      );
+    }
+
+    if (dashboardState === DashboardState.PREVIEW) {
+      return (
+        <StyledButtonBar gap={1} key="preview-controls">
+          {this.renderCancelButton(t('Go Back'))}
+          <Button
+            data-test-id="dashboard-commit"
+            onClick={e => {
+              e.preventDefault();
+              onCommit();
+            }}
+            priority="primary"
+          >
+            {t('Add Dashboard')}
           </Button>
         </StyledButtonBar>
       );
@@ -109,7 +131,7 @@ class Controls extends React.Component<Props> {
                   e.preventDefault();
                   onEdit();
                 }}
-                icon={<IconEdit size="xs" />}
+                icon={<IconEdit />}
                 disabled={!hasFeature}
                 priority={
                   organization.features.includes('widget-library') ? 'default' : 'primary'
@@ -117,32 +139,31 @@ class Controls extends React.Component<Props> {
               >
                 {t('Edit Dashboard')}
               </Button>
-              {organization.features.includes('widget-library') ? (
-                <Button
-                  data-test-id="add-widget-library"
-                  priority="primary"
-                  icon={<IconAdd isCircled size="s" />}
-                  onClick={e => {
-                    e.preventDefault();
-                    onAddWidget();
-                  }}
+              {organization.features.includes('widget-library') && hasFeature ? (
+                <Tooltip
+                  title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  })}
+                  disabled={!!!widgetLimitReached}
                 >
-                  {t('Add Widget')}
-                </Button>
-              ) : null}
-              {organization.features.includes('issues-in-dashboards') ? (
-                <Button
-                  data-test-id="dashboard-add-issues-widget"
-                  priority="primary"
-                  icon={<IconAdd isCircled size="s" />}
-                  onClick={e => {
-                    e.preventDefault();
-                    onAddIssueWidget();
-                  }}
-                  disabled={!hasFeature}
-                >
-                  {t('Add Issue Widget')}
-                </Button>
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    disabled={widgetLimitReached}
+                    icon={<IconAdd isCircled />}
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'dashboards_views.widget_library.opened',
+                        {
+                          organization,
+                        }
+                      );
+                      onAddWidget();
+                    }}
+                  >
+                    {t('Add Widget')}
+                  </Button>
+                </Tooltip>
               ) : null}
             </React.Fragment>
           )}

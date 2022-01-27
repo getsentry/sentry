@@ -1,5 +1,6 @@
 from django.db.models import F
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -10,7 +11,7 @@ from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 
 
 class ProjectKeysEndpoint(ProjectEndpoint):
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         List a Project's Client Keys
         ````````````````````````````
@@ -40,7 +41,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request, project):
+    def post(self, request: Request, project) -> Response:
         """
         Create a new Client Key
         ```````````````````````

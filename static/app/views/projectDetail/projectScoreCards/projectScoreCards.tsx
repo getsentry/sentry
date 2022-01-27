@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters} from 'sentry/types';
 
 import ProjectApdexScoreCard from './projectApdexScoreCard';
 import ProjectStabilityScoreCard from './projectStabilityScoreCard';
@@ -9,7 +9,7 @@ import ProjectVelocityScoreCard from './projectVelocityScoreCard';
 
 type Props = {
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   isProjectStabilized: boolean;
   hasSessions: boolean | null;
   hasTransactions?: boolean;

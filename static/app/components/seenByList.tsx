@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import moment from 'moment';
 
-import AvatarList from 'app/components/avatar/avatarList';
-import Tooltip from 'app/components/tooltip';
-import {IconShow} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import {AvatarUser, User} from 'app/types';
-import {userDisplayName} from 'app/utils/formatters';
+import AvatarList from 'sentry/components/avatar/avatarList';
+import Tooltip from 'sentry/components/tooltip';
+import {IconShow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {AvatarUser, User} from 'sentry/types';
+import {userDisplayName} from 'sentry/utils/formatters';
 
 type Props = {
   // Avatar size
@@ -63,8 +62,8 @@ const SeenByList = ({
         )}
       />
       <IconWrapper iconPosition={iconPosition}>
-        <Tooltip title={iconTooltip}>
-          <IconShow size="sm" color="gray200" />
+        <Tooltip title={iconTooltip} skipWrapper>
+          <IconShow size="sm" color="subText" />
         </Tooltip>
       </IconWrapper>
     </SeenByWrapper>
@@ -79,13 +78,13 @@ const SeenByWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
 `;
 
 const IconWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
+  display: flex;
+  align-items: center;
   background-color: transparent;
   color: ${p => p.theme.textColor};
   height: 28px;
   width: 24px;
-  line-height: 26px;
   text-align: center;
-  padding-top: ${space(0.5)};
   ${p => (p.iconPosition === 'left' ? 'margin-right: 10px' : '')};
 `;
 

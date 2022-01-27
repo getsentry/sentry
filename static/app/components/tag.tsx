@@ -1,15 +1,16 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import {IconClose, IconOpen} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import theme, {Color, Theme} from 'app/utils/theme';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import {IconClose, IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import theme, {Color, Theme} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
 
@@ -81,7 +82,7 @@ function Tag({
             onClick={handleDismiss}
             size="zero"
             priority="link"
-            label={t('Dismiss')}
+            aria-label={t('Dismiss')}
           >
             <IconClose isCircled {...iconsProps} />
           </DismissButton>
@@ -94,6 +95,13 @@ function Tag({
     event.preventDefault();
     onDismiss?.();
   }
+
+  const trackClickEvent = () => {
+    trackAdvancedAnalyticsEvent('tag.clicked', {
+      is_clickable: defined(onClick) || defined(to) || defined(href),
+      organization: null,
+    });
+  };
 
   function tagIcon() {
     if (React.isValidElement(icon)) {
@@ -130,7 +138,11 @@ function Tag({
     return tag;
   }
 
-  return <TagWrapper {...props}>{tagWithParent()}</TagWrapper>;
+  return (
+    <TagWrapper {...props} onClick={trackClickEvent}>
+      {tagWithParent()}
+    </TagWrapper>
+  );
 }
 
 const TagWrapper = styled('span')`
@@ -143,6 +155,7 @@ export const Background = styled('div')<{type: keyof Theme['tag']}>`
   height: ${TAG_HEIGHT};
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
+  border: solid 1px ${p => p.theme.tag[p.type].border};
   padding: 0 ${space(1)};
 `;
 
@@ -152,7 +165,10 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
-  color: ${p => (['black', 'focus'].includes(p.type) ? p.theme.white : p.theme.gray500)};
+  color: ${p =>
+    ['black', 'white'].includes(p.type)
+      ? p.theme.tag[p.type].iconColor
+      : p.theme.textColor};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;

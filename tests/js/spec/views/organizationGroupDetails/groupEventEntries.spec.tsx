@@ -3,10 +3,10 @@ import {act} from 'react-dom/test-utils';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Error} from 'app/components/events/errors';
-import EventEntries from 'app/components/events/eventEntries';
-import {EntryType, Event} from 'app/types/event';
-import {OrganizationContext} from 'app/views/organizationContext';
+import {Error} from 'sentry/components/events/errors';
+import EventEntries from 'sentry/components/events/eventEntries';
+import {EntryType, Event} from 'sentry/types/event';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization, project} = initializeOrg();
 

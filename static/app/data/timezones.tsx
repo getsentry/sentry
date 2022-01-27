@@ -101,7 +101,7 @@ export default [
   ['Canada/Eastern', '(UTC-0500) Canada/Eastern'],
   ['Pacific/Easter', '(UTC-0500) Pacific/Easter'],
   ['US/Eastern', '(UTC-0500) US/Eastern'],
-  ['America/Caracas', '(UTC-0430) America/Caracas'],
+  ['America/Caracas', '(UTC-0400) America/Caracas'],
   ['America/Anguilla', '(UTC-0400) America/Anguilla'],
   ['America/Antigua', '(UTC-0400) America/Antigua'],
   ['America/Aruba', '(UTC-0400) America/Aruba'],

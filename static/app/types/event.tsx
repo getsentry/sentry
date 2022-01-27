@@ -1,20 +1,201 @@
-import {DebugImage} from 'app/components/events/interfaces/debugMeta/types';
-import {TraceContextType} from 'app/components/events/interfaces/spans/types';
+import {DebugImage} from 'sentry/components/events/interfaces/debugMeta/types';
+import {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import {PlatformKey} from 'sentry/data/platformCategories';
 
 import {RawCrumb} from './breadcrumbs';
-import {Thread} from './events';
-import {StacktraceType} from './stacktrace';
-import {
-  EventMetadata,
-  EventOrGroupType,
-  ExceptionType,
-  Frame,
-  IssueAttachment,
-  PlatformType,
-  Release,
-  SDKUpdatesSuggestion,
-} from '.';
+import {IssueAttachment} from './group';
+import {Release} from './release';
+import {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
 
+// TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
+export type PlatformType = PlatformKey | 'objc' | 'cocoa';
+
+export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+
+/**
+ * Grouping Configuration.
+ */
+export type EventGroupComponent = {
+  contributes: boolean;
+  hint: string | null;
+  id: string;
+  name: string | null;
+  values: EventGroupComponent[] | string[];
+};
+export type EventGroupingConfig = {
+  base: string | null;
+  changelog: string;
+  delegates: string[];
+  hidden: boolean;
+  id: string;
+  latest: boolean;
+  risk: number;
+  strategies: string[];
+};
+
+type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
+
+export enum EventGroupVariantType {
+  CUSTOM_FINGERPRINT = 'custom-fingerprint',
+  COMPONENT = 'component',
+  SALTED_COMPONENT = 'salted-component',
+}
+
+export type EventGroupVariant = {
+  description: string | null;
+  hash: string | null;
+  hashMismatch: boolean;
+  key: EventGroupVariantKey;
+  type: EventGroupVariantType;
+  values?: Array<string>;
+  client_values?: Array<string>;
+  matched_rule?: string;
+  component?: EventGroupComponent;
+  config?: EventGroupingConfig;
+};
+
+export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
+
+/**
+ * SDK Update metadata
+ */
+type EnableIntegrationSuggestion = {
+  type: 'enableIntegration';
+  integrationName: string;
+  enables: Array<SDKUpdatesSuggestion>;
+  integrationUrl?: string | null;
+};
+
+export type UpdateSdkSuggestion = {
+  type: 'updateSdk';
+  sdkName: string;
+  newSdkVersion: string;
+  enables: Array<SDKUpdatesSuggestion>;
+  sdkUrl?: string | null;
+};
+
+type ChangeSdkSuggestion = {
+  type: 'changeSdk';
+  newSdkName: string;
+  enables: Array<SDKUpdatesSuggestion>;
+  sdkUrl?: string | null;
+};
+
+export type SDKUpdatesSuggestion =
+  | EnableIntegrationSuggestion
+  | UpdateSdkSuggestion
+  | ChangeSdkSuggestion;
+
+/**
+ * Frames, Threads and Event interfaces.
+ */
+export interface Thread {
+  id: number;
+  crashed: boolean;
+  current: boolean;
+  rawStacktrace: RawStacktrace;
+  stacktrace: StacktraceType | null;
+  name?: string | null;
+}
+
+export type Frame = {
+  absPath: string | null;
+  colNo: number | null;
+  context: Array<[number, string]>;
+  errors: Array<any> | null;
+  filename: string | null;
+  function: string | null;
+  inApp: boolean;
+  instructionAddr: string | null;
+  lineNo: number | null;
+  module: string | null;
+  package: string | null;
+  platform: PlatformType | null;
+  rawFunction: string | null;
+  symbol: string | null;
+  symbolAddr: string | null;
+  trust: any | null;
+  vars: Record<string, any> | null;
+  symbolicatorStatus?: SymbolicatorStatus;
+  addrMode?: string;
+  origAbsPath?: string | null;
+  mapUrl?: string | null;
+  map?: string | null;
+  isSentinel?: boolean;
+  isPrefix?: boolean;
+  minGroupingLevel?: number;
+};
+
+export enum FrameBadge {
+  SENTINEL = 'sentinel',
+  PREFIX = 'prefix',
+  GROUPING = 'grouping',
+}
+
+export type ExceptionValue = {
+  type: string;
+  value: string;
+  threadId: number | null;
+  stacktrace: StacktraceType | null;
+  rawStacktrace: RawStacktrace;
+  mechanism: StackTraceMechanism | null;
+  module: string | null;
+  frames?: Frame[] | null;
+};
+
+export type ExceptionType = {
+  excOmitted: any | null;
+  hasSystemFrames: boolean;
+  values?: Array<ExceptionValue>;
+};
+
+export type TreeLabelPart =
+  | string
+  | {
+      function?: string;
+      package?: string;
+      type?: string;
+      classbase?: string;
+      filebase?: string;
+      datapath?: (string | number)[];
+      // is_sentinel is no longer being used,
+      // but we will still assess whether we will use this property in the near future.
+      is_sentinel?: boolean;
+      is_prefix?: boolean;
+    };
+
+// This type is incomplete
+export type EventMetadata = {
+  value?: string;
+  message?: string;
+  directive?: string;
+  type?: string;
+  title?: string;
+  uri?: string;
+  filename?: string;
+  origin?: string;
+  function?: string;
+  stripped_crash?: boolean;
+  current_tree_label?: TreeLabelPart[];
+  finest_tree_label?: TreeLabelPart[];
+  current_level?: number;
+  display_title_with_tree_label?: boolean;
+};
+
+export enum EventOrGroupType {
+  ERROR = 'error',
+  CSP = 'csp',
+  HPKP = 'hpkp',
+  EXPECTCT = 'expectct',
+  EXPECTSTAPLE = 'expectstaple',
+  DEFAULT = 'default',
+  TRANSACTION = 'transaction',
+}
+
+/**
+ * Event interface types.
+ */
 export enum EntryType {
   EXCEPTION = 'exception',
   MESSAGE = 'message',
@@ -240,3 +421,13 @@ export type EventError = Omit<EventBase, 'entries' | 'type'> & {
 };
 
 export type Event = EventError | EventTransaction | EventBase;
+
+// Response from EventIdLookupEndpoint
+// /organizations/${orgSlug}/eventids/${eventId}/
+export type EventIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  eventId: string;
+  event: Event;
+};

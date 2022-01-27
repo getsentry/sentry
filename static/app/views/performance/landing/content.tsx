@@ -3,20 +3,20 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import SearchBar from 'app/components/events/searchBar';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
-import {MAX_QUERY_LENGTH} from 'app/constants';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
-import Teams from 'app/utils/teams';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import SearchBar from 'sentry/components/events/searchBar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import {generateAggregateFields} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import Teams from 'sentry/utils/teams';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import Charts from '../charts/index';
 import {
@@ -37,6 +37,7 @@ import {
   REACT_NATIVE_COLUMN_TITLES,
 } from './data';
 import {
+  checkIsReactNative,
   getCurrentLandingDisplay,
   getDefaultDisplayFieldForPlatform,
   getDisplayAxes,
@@ -204,9 +205,7 @@ class LandingContent extends Component<Props, State> {
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
     // only react native should contain the stall percentage column
-    const isReactNative = Boolean(
-      eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
-    );
+    const isReactNative = checkIsReactNative(eventView);
     const columnTitles = isReactNative
       ? REACT_NATIVE_COLUMN_TITLES
       : MOBILE_COLUMN_TITLES;
@@ -327,7 +326,7 @@ class LandingContent extends Component<Props, State> {
 
 const SearchContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

@@ -3,17 +3,17 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Clipboard from 'app/components/clipboard';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import {IconCopy} from 'app/icons';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {formatVersion} from 'app/utils/formatters';
-import theme from 'app/utils/theme';
-import withOrganization from 'app/utils/withOrganization';
+import Clipboard from 'sentry/components/clipboard';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCopy} from 'sentry/icons';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {formatVersion} from 'sentry/utils/formatters';
+import theme from 'sentry/utils/theme';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   /**
@@ -29,9 +29,9 @@ type Props = {
    */
   anchor?: boolean;
   /**
-   * Should link to release page preserve user's global selection values
+   * Should link to release page preserve user's page filter values
    */
-  preserveGlobalSelection?: boolean;
+  preservePageFilters?: boolean;
   /**
    * Should there be a tooltip with raw version on hover
    */
@@ -41,7 +41,7 @@ type Props = {
    */
   withPackage?: boolean;
   /**
-   * Will add project ID to the linked url (can be overridden by preserveGlobalSelection).
+   * Will add project ID to the linked url (can be overridden by preservePageFilters).
    * If not provided and user does not have global-views enabled, it will try to take it from current url query.
    */
   projectId?: string;
@@ -56,7 +56,7 @@ const Version = ({
   version,
   organization,
   anchor = true,
-  preserveGlobalSelection,
+  preservePageFilters,
   tooltipRawVersion,
   withPackage,
   projectId,
@@ -68,7 +68,7 @@ const Version = ({
 
   let releaseDetailProjectId: null | undefined | string | string[];
   if (projectId) {
-    // we can override preserveGlobalSelection's project id
+    // we can override preservePageFilters's project id
     releaseDetailProjectId = projectId;
   } else if (!organization?.features.includes('global-views')) {
     // we need this for users without global-views, otherwise they might get `This release may not be in your selected project`
@@ -86,7 +86,7 @@ const Version = ({
         },
         className,
       };
-      if (preserveGlobalSelection) {
+      if (preservePageFilters) {
         return (
           <GlobalSelectionLink {...props}>
             <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
@@ -117,7 +117,7 @@ const Version = ({
 
       <Clipboard value={version}>
         <TooltipClipboardIconWrapper>
-          <IconCopy size="xs" color="white" />
+          <IconCopy size="xs" />
         </TooltipClipboardIconWrapper>
       </Clipboard>
     </TooltipContent>

@@ -7,9 +7,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import IncidentsList from 'app/views/alerts/list';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import IncidentsList from 'sentry/views/alerts/list';
 
 describe('IncidentsList', function () {
   let routerContext;
@@ -99,8 +99,8 @@ describe('IncidentsList', function () {
     expect(within(items[0]).getByText('First incident')).toBeInTheDocument();
     expect(within(items[1]).getByText('Second incident')).toBeInTheDocument();
 
-    // GlobalSelectionHeader loads projects + the Projects render-prop
-    // component to load projects for all rows.
+    // PageFiltersContainer loads projects + the Projects render-prop component
+    // to load projects for all rows.
     expect(projectMock).toHaveBeenCalledTimes(2);
 
     expect(projectMock).toHaveBeenLastCalledWith(
@@ -219,7 +219,7 @@ describe('IncidentsList', function () {
     };
 
     createWrapper({organization: noAccessOrg});
-    expect(screen.getByLabelText('Create Alert Rule')).toHaveAttribute(
+    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -229,7 +229,7 @@ describe('IncidentsList', function () {
     // Enabled with access
     createWrapper();
 
-    expect(screen.getByLabelText('Create Alert Rule')).toHaveAttribute(
+    expect(screen.getByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'false'
     );

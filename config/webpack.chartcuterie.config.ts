@@ -28,7 +28,7 @@ const config: webpack.Configuration = {
 
   target: 'node',
   entry: {
-    config: 'app/chartcuterie/config',
+    config: 'sentry/chartcuterie/config',
   },
 
   module: {

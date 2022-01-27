@@ -3,16 +3,16 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 import * as qs from 'query-string';
 
-import {addLoadingMessage} from 'app/actionCreators/indicator';
-import Alert from 'app/components/alert';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Project} from 'app/types';
-import Form from 'app/views/settings/components/forms/form';
-import FormModel from 'app/views/settings/components/forms/model';
-import SentryProjectSelectorField from 'app/views/settings/components/forms/sentryProjectSelectorField';
+import {addLoadingMessage} from 'sentry/actionCreators/indicator';
+import Alert from 'sentry/components/alert';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormModel from 'sentry/views/settings/components/forms/model';
+import SentryProjectSelectorField from 'sentry/views/settings/components/forms/sentryProjectSelectorField';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';

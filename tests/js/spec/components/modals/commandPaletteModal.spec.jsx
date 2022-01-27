@@ -1,12 +1,12 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {openCommandPalette} from 'app/actionCreators/modal';
-import {navigateTo} from 'app/actionCreators/navigation';
-import FormSearchStore from 'app/stores/formSearchStore';
-import App from 'app/views/app';
+import {openCommandPalette} from 'sentry/actionCreators/modal';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import FormSearchStore from 'sentry/stores/formSearchStore';
+import App from 'sentry/views/app';
 
-jest.mock('app/actionCreators/formSearch');
-jest.mock('app/actionCreators/navigation');
+jest.mock('sentry/actionCreators/formSearch');
+jest.mock('sentry/actionCreators/navigation');
 
 describe('Command Palette Modal', function () {
   let orgsMock;
@@ -49,6 +49,10 @@ describe('Command Palette Modal', function () {
     });
     MockApiClient.addMockResponse({
       url: '/sentry-apps/?status=published',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/doc-integrations/',
       body: [],
     });
     MockApiClient.addMockResponse({

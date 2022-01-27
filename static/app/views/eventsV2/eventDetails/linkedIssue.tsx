@@ -1,20 +1,20 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import {SectionHeading} from 'app/components/charts/styles';
-import Times from 'app/components/group/times';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Link from 'app/components/links/link';
-import Placeholder from 'app/components/placeholder';
-import SeenByList from 'app/components/seenByList';
-import ShortId from 'app/components/shortId';
-import GroupChart from 'app/components/stream/groupChart';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Group} from 'app/types';
+import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import Times from 'sentry/components/group/times';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
+import SeenByList from 'sentry/components/seenByList';
+import ShortId from 'sentry/components/shortId';
+import GroupChart from 'sentry/components/stream/groupChart';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Group} from 'sentry/types';
 
 type Props = {
   groupId: string;
@@ -40,7 +40,7 @@ class LinkedIssue extends AsyncComponent<
     return <Placeholder height="120px" bottomGutter={2} />;
   }
 
-  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+  renderError(error?: Error, disableLog = false): React.ReactNode {
     const {errors} = this.state;
     const hasNotFound = Object.values(errors).find(resp => resp && resp.status === 404);
     if (hasNotFound) {
@@ -51,7 +51,7 @@ class LinkedIssue extends AsyncComponent<
       );
     }
 
-    return super.renderError(error, disableLog, disableReport);
+    return super.renderError(error, disableLog);
   }
 
   renderBody() {

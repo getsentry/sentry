@@ -1,12 +1,12 @@
-import * as React from 'react';
+import {isValidElement, useEffect, useRef, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconClose, IconMenu} from 'app/icons';
-import {t} from 'app/locale';
-import {fadeIn, slideInLeft} from 'app/styles/animations';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import {IconClose, IconMenu} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {fadeIn, slideInLeft} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
@@ -17,100 +17,72 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{}, {}>;
 
-type State = {
-  /**
-   * This is used when the screen is small enough that the navigation should
-   * be hidden. On large screens this state will end up unused.
-   */
-  navVisible: boolean;
-  /**
-   * Offset mobile settings navigation by the height of main navigation,
-   * settings breadcrumbs and optional warnings.
-   */
-  navOffsetTop: number;
-};
+function SettingsLayout(props: Props) {
+  // This is used when the screen is small enough that the navigation should
+  // be hidden
+  //
+  // [!!] On large screens this state is totally unused!
+  const [navVisible, setNavVisible] = useState(false);
 
-class SettingsLayout extends React.Component<Props, State> {
-  state: State = {
-    navVisible: false,
-    navOffsetTop: 0,
-  };
+  // Offset mobile settings navigation by the height of main navigation,
+  // settings breadcrumbs and optional warnings.
+  const [navOffsetTop, setNavOffsetTop] = useState(0);
 
-  componentDidMount() {
-    // Close the navigation when navigating.
-    this.unlisten = browserHistory.listen(() => this.toggleNav(false));
-  }
+  const headerRef = useRef<HTMLDivElement>(null);
 
-  componentWillUnmount() {
-    this.unlisten();
-  }
-
-  unlisten!: () => void;
-  headerRef = React.createRef<HTMLDivElement>();
-
-  toggleNav(navVisible: boolean) {
-    // when the navigation is opened, body should be scroll-locked
-    this.toggleBodyScrollLock(navVisible);
-
-    this.setState({
-      navOffsetTop: this.headerRef.current?.getBoundingClientRect().bottom ?? 0,
-      navVisible,
-    });
-  }
-
-  toggleBodyScrollLock(lock: boolean) {
+  function toggleNav(visible: boolean) {
     const bodyElement = document.getElementsByTagName('body')[0];
 
-    if (window.scrollTo) {
-      window.scrollTo(0, 0);
-    }
-    bodyElement.classList[lock ? 'add' : 'remove']('scroll-lock');
+    window.scrollTo?.(0, 0);
+    bodyElement.classList[visible ? 'add' : 'remove']('scroll-lock');
+
+    setNavVisible(visible);
+    setNavOffsetTop(headerRef.current?.getBoundingClientRect().bottom ?? 0);
   }
 
-  render() {
-    const {params, routes, route, renderNavigation, children} = this.props;
-    const {navVisible, navOffsetTop} = this.state;
+  // Close menu when navigating away
+  useEffect(() => browserHistory.listen(() => toggleNav(false)), []);
 
-    // We want child's view's props
-    const childProps =
-      children && React.isValidElement(children) ? children.props : this.props;
-    const childRoutes = childProps.routes || routes || [];
-    const childRoute = childProps.route || route || {};
-    const shouldRenderNavigation = typeof renderNavigation === 'function';
+  const {renderNavigation, children, params, routes, route} = props;
 
-    return (
-      <SettingsColumn>
-        <SettingsHeader ref={this.headerRef}>
-          <HeaderContent>
-            {shouldRenderNavigation && (
-              <NavMenuToggle
-                priority="link"
-                label={t('Open the menu')}
-                icon={navVisible ? <IconClose aria-hidden /> : <IconMenu aria-hidden />}
-                onClick={() => this.toggleNav(!navVisible)}
-              />
-            )}
-            <StyledSettingsBreadcrumb
-              params={params}
-              routes={childRoutes}
-              route={childRoute}
-            />
-            <SettingsSearch />
-          </HeaderContent>
-        </SettingsHeader>
+  // We want child's view's props
+  const childProps = children && isValidElement(children) ? children.props : props;
+  const childRoutes = childProps.routes || routes || [];
+  const childRoute = childProps.route || route || {};
+  const shouldRenderNavigation = typeof renderNavigation === 'function';
 
-        <MaxWidthContainer>
+  return (
+    <SettingsColumn>
+      <SettingsHeader ref={headerRef}>
+        <HeaderContent>
           {shouldRenderNavigation && (
-            <SidebarWrapper isVisible={navVisible} offsetTop={navOffsetTop}>
-              {renderNavigation!()}
-            </SidebarWrapper>
+            <NavMenuToggle
+              priority="link"
+              aria-label={navVisible ? t('Close the menu') : t('Open the menu')}
+              icon={navVisible ? <IconClose aria-hidden /> : <IconMenu aria-hidden />}
+              onClick={() => toggleNav(!navVisible)}
+            />
           )}
-          <NavMask isVisible={navVisible} onClick={() => this.toggleNav(false)} />
-          <Content>{children}</Content>
-        </MaxWidthContainer>
-      </SettingsColumn>
-    );
-  }
+          <StyledSettingsBreadcrumb
+            params={params}
+            routes={childRoutes}
+            route={childRoute}
+          />
+          <SettingsSearch />
+        </HeaderContent>
+      </SettingsHeader>
+
+      <MaxWidthContainer>
+        {shouldRenderNavigation && (
+          <SidebarWrapper isVisible={navVisible} offsetTop={navOffsetTop}>
+            {renderNavigation!()}
+          </SidebarWrapper>
+        )}
+        <NavMask isVisible={navVisible} onClick={() => toggleNav(false)} />
+        <Content>{children}</Content>
+      </MaxWidthContainer>
+    </SettingsColumn>
+  );
 }
 
 const SettingsColumn = styled('div')`

@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import DropdownButton from 'app/components/dropdownButton';
-import {GetActorPropsFn} from 'app/components/dropdownMenu';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type Props = {
   isOpen: boolean;

@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ConfirmDelete from 'app/components/confirmDelete';
-import {IconDelete, IconStats, IconUpgrade} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, SentryApp} from 'app/types';
+import Button from 'sentry/components/button';
+import ConfirmDelete from 'sentry/components/confirmDelete';
+import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, SentryApp} from 'sentry/types';
 
 type Props = {
   org: Organization;
@@ -63,7 +63,7 @@ const ActionButtons = ({
         title={disableDeleteReason}
         size="small"
         icon={<IconDelete />}
-        label="Delete"
+        aria-label="Delete"
       />
     ) : (
       onDelete && (
@@ -73,7 +73,7 @@ const ActionButtons = ({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <StyledButton size="small" icon={<IconDelete />} label="Delete" />
+          <StyledButton size="small" icon={<IconDelete />} aria-label="Delete" />
         </ConfirmDelete>
       )
     )

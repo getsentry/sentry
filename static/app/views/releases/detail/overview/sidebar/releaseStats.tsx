@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import DeployBadge from 'app/components/deployBadge';
-import NotAvailable from 'app/components/notAvailable';
-import SidebarSection from 'app/components/sidebarSection';
-import TimeSince from 'app/components/timeSince';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Release, ReleaseProject} from 'app/types';
+import DeployBadge from 'sentry/components/deployBadge';
+import NotAvailable from 'sentry/components/notAvailable';
+import SidebarSection from 'sentry/components/sidebarSection';
+import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Release, ReleaseProject} from 'sentry/types';
 
 type Props = {
   organization: Organization;

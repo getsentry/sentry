@@ -2,10 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {MessageRow} from 'app/components/performance/waterfall/messageRow';
-import {pickBarColor} from 'app/components/performance/waterfall/utils';
-import {t, tct} from 'app/locale';
-import {Organization} from 'app/types';
+import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';

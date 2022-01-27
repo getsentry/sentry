@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Sum
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features, options, roles
@@ -44,7 +45,7 @@ class OrganizationSerializer(serializers.Serializer):
 class OrganizationIndexEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         """
         List your Organizations
         ```````````````````````
@@ -157,7 +158,7 @@ class OrganizationIndexEndpoint(Endpoint):
         )
 
     # XXX: endpoint useless for end-users as it needs user context.
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         """
         Create a New Organization
         `````````````````````````

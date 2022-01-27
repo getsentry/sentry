@@ -1,4 +1,4 @@
-import LazyLoad from 'app/components/lazyLoad';
+import LazyLoad from 'sentry/components/lazyLoad';
 
 export default {
   title: 'Utilities/Lazy Load',

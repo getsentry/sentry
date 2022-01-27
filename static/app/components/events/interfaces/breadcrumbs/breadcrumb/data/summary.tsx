@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import ContextData from 'app/components/contextData';
-import space from 'app/styles/space';
+import ContextData from 'sentry/components/contextData';
+import space from 'sentry/styles/space';
 
 type Props = {
   children: React.ReactNode;
@@ -38,7 +38,7 @@ const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
   display: grid;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   overflow: hidden;
 `;
 

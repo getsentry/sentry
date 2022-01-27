@@ -1,18 +1,18 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {Client} from 'sentry/api';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {Organization, PageFilters, Project} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import withProjects from 'sentry/utils/withProjects';
 
 import {generatePerformanceEventView} from '../data';
 
@@ -20,7 +20,7 @@ import TrendsContent from './content';
 
 type Props = RouteComponentProps<{}, {}> & {
   api: Client;
-  selection: GlobalSelection;
+  selection: PageFilters;
   organization: Organization;
   projects: Project[];
 };
@@ -30,25 +30,29 @@ type State = {
   error?: string;
 };
 
-class TrendsSummary extends React.Component<Props, State> {
+class TrendsSummary extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
       eventView: generatePerformanceEventView(
-        nextProps.organization,
         nextProps.location,
+        nextProps.organization,
         nextProps.projects,
-        true
+        {
+          isTrends: true,
+        }
       ),
     };
   }
 
   state: State = {
     eventView: generatePerformanceEventView(
-      this.props.organization,
       this.props.location,
+      this.props.organization,
       this.props.projects,
-      true
+      {
+        isTrends: true,
+      }
     ),
     error: undefined,
   };
@@ -88,9 +92,7 @@ class TrendsSummary extends React.Component<Props, State> {
   }
 }
 
-export default withOrganization(
-  withProjects(withGlobalSelection(withApi(TrendsSummary)))
-);
+export default withOrganization(withProjects(withPageFilters(withApi(TrendsSummary))));
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;

@@ -1,16 +1,15 @@
-import string
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict
 
 from django.urls import reverse
-from django.utils.crypto import get_random_string
 
 from sentry import options
 from sentry.models import AuthProvider, Organization, OrganizationMember, User
 from sentry.utils import json, metrics, redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
+from sentry.utils.security import get_secure_token
 
 _REDIS_KEY = "verificationKeyStorage"
 _TTL = timedelta(minutes=10)
@@ -56,7 +55,7 @@ class AccountConfirmLink:
     identity_id: str
 
     def __post_init__(self):
-        self.verification_code = get_random_string(32, string.ascii_letters + string.digits)
+        self.verification_code = get_secure_token()
         self.verification_key = f"auth:one-time-key:{self.verification_code}"
 
     def send_confirm_email(self) -> None:
@@ -81,13 +80,17 @@ class AccountConfirmLink:
             context=context,
         )
         msg.send_async([self.email])
-        metrics.incr("idpmigration.confirm_link_sent")
+        metrics.incr("idpmigration.confirm_link_sent", sample_rate=1.0)
 
     def store_in_redis(self) -> None:
         cluster = get_redis_cluster()
-        member_id = OrganizationMember.objects.get(
-            organization=self.organization, user=self.user
-        ).id
+
+        try:
+            member_id = OrganizationMember.objects.get(
+                organization=self.organization, user=self.user
+            ).id
+        except OrganizationMember.DoesNotExist:
+            member_id = None
 
         verification_value = {
             "user_id": self.user.id,
@@ -111,7 +114,8 @@ def get_verification_value_from_key(key: str) -> Dict[str, Any]:
         metrics.incr(
             "idpmigration.confirmation_success",
             tags={key: verification_value.get(key) for key in ("provider", "organization_id")},
+            sample_rate=1.0,
         )
     else:
-        metrics.incr("idpmigration.confirmation_failure")
+        metrics.incr("idpmigration.confirmation_failure", sample_rate=1.0)
     return verification_value

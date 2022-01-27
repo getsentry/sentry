@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 function EventTitleError() {
   return (

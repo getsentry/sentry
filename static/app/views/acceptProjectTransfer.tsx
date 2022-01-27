@@ -1,13 +1,13 @@
 import {RouteComponentProps} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import NarrowLayout from 'app/components/narrowLayout';
-import {t, tct} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import NarrowLayout from 'sentry/components/narrowLayout';
+import {t, tct} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import AsyncView from 'sentry/views/asyncView';
+import Form from 'sentry/views/settings/components/forms/form';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{}, {}>;
 
@@ -21,6 +21,8 @@ type State = {
 } & AsyncView['state'];
 
 class AcceptProjectTransfer extends AsyncView<Props, State> {
+  disableErrorReport = false;
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const query = this.props.location.query;
     return [['transferDetails', '/accept-transfer/', {query}]];

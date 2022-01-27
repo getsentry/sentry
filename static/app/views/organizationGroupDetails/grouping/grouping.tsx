@@ -1,25 +1,25 @@
-import React, {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
-import {Client} from 'app/api';
-import ExternalLink from 'app/components/links/externalLink';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {IconMegaphone} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {BaseGroup, Group, Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {IconMegaphone} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {BaseGroup, Group, Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import withApi from 'sentry/utils/withApi';
 import RangeSlider, {
   Slider,
-} from 'app/views/settings/components/forms/controls/rangeSlider';
+} from 'sentry/views/settings/components/forms/controls/rangeSlider';
 
 import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';
@@ -211,7 +211,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   if (error) {
     return (
-      <React.Fragment>
+      <Fragment>
         <ErrorMessage
           onRetry={fetchGroupingLevels}
           groupId={groupId}
@@ -221,7 +221,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
           hasProjectWriteAccess={organization.access.includes('project:write')}
         />
         <LinkFooter />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -323,7 +323,7 @@ const Footer = styled('p')`
 
 const Body = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -362,7 +362,7 @@ const Content = styled('div')<{isReloading: boolean}>`
 
 const SliderWrapper = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   grid-template-columns: max-content max-content;
   justify-content: space-between;
   align-items: flex-start;

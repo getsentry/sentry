@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import {IconChevron} from 'app/icons';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import {IconChevron} from 'sentry/icons';
+import space from 'sentry/styles/space';
 
 type Props = Omit<React.ComponentProps<typeof Button>, 'type' | 'priority'> & {
   /**
@@ -55,7 +55,7 @@ const DropdownButton = ({
     >
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}
-      {showChevron && <StyledChevron size="10px" direction={isOpen ? 'up' : 'down'} />}
+      {showChevron && <StyledChevron size="xs" direction={isOpen ? 'up' : 'down'} />}
     </StyledButton>
   );
 };
@@ -88,12 +88,11 @@ const StyledButton = styled(Button)<
 `;
 
 const LabelText = styled('span')`
+  font-weight: 400;
+  padding-right: ${space(0.75)};
   &:after {
     content: ':';
   }
-
-  font-weight: 400;
-  padding-right: ${space(0.75)};
 `;
 
 export default React.forwardRef<typeof Button, Props>((props, ref) => (

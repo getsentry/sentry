@@ -173,6 +173,7 @@ export function PublishedApps() {
       scopes: [],
       slug: 'clickup',
       status: 'published',
+      popularity: 9,
       uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526',
       verifyInstall: false,
       webhookUrl: 'http://localhost:7000',

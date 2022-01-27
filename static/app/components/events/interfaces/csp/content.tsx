@@ -1,5 +1,5 @@
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import {getMeta} from 'app/components/events/meta/metaProxy';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
 
 type Props = {
   data: Record<string, any>;

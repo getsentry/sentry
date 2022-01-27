@@ -1,4 +1,4 @@
-from sentry.constants import SentryAppStatus
+from sentry.constants import ObjectStatus, SentryAppStatus
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     build_action_response,
 )
@@ -167,5 +167,28 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             response = self.get_success_response(self.organization.slug)
 
         # There should be no ticket actions for Metric Alerts.
+        assert len(response.data) == 1
+        assert build_action_response(self.email) in response.data
+
+    def test_integration_disabled(self):
+        integration = Integration.objects.create(
+            external_id="1", provider="slack", status=ObjectStatus.DISABLED
+        )
+        integration.add_organization(self.organization)
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 1
+        assert build_action_response(self.email) in response.data
+
+    def test_org_integration_disabled(self):
+        integration = Integration.objects.create(external_id="1", provider="slack")
+        org_integration = integration.add_organization(self.organization)
+        org_integration.update(status=ObjectStatus.DISABLED)
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(self.organization.slug)
+
         assert len(response.data) == 1
         assert build_action_response(self.email) in response.data

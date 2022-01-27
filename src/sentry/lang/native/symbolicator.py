@@ -367,8 +367,13 @@ def parse_backfill_sources(sources_json, original_sources):
             if secret in source and source[secret] == {"hidden-secret": True}:
                 secret_value = safe.get_path(orig_by_id, source["id"], secret)
                 if secret_value is None:
-                    sentry_sdk.capture_message("Hidden secret not present in project options")
-                    raise InvalidSourcesError("Sources contain unknown hidden secret")
+                    with sentry_sdk.push_scope():
+                        sentry_sdk.set_tag("missing_secret", secret)
+                        sentry_sdk.set_tag("source_id", source["id"])
+                        sentry_sdk.capture_message(
+                            "Obfuscated symbol source secret does not have a corresponding saved value in project options"
+                        )
+                    raise InvalidSourcesError("Hidden symbol source secret is missing a value")
                 else:
                     source[secret] = secret_value
 
@@ -620,7 +625,7 @@ class SymbolicatorSession:
         params = {"timeout": self.timeout, "scope": self.project_id}
         with metrics.timer(
             "events.symbolicator.create_task",
-            tags={"path": path, "worker_id": self.get_worker_id()},
+            tags={"path": path},
         ):
             return self._request(method="post", path=path, params=params, **kwargs)
 
@@ -659,9 +664,7 @@ class SymbolicatorSession:
             "scope": self.project_id,
         }
 
-        with metrics.timer(
-            "events.symbolicator.query_task", tags={"worker_id": self.get_worker_id()}
-        ):
+        with metrics.timer("events.symbolicator.query_task"):
             return self._request("get", task_url, params=params)
 
     def healthcheck(self):

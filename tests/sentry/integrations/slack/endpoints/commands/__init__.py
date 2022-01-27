@@ -1,4 +1,6 @@
-from typing import Any, Mapping, Optional
+from __future__ import annotations
+
+from typing import Any, Mapping
 from urllib.parse import urlencode
 
 from django.urls import reverse
@@ -41,18 +43,19 @@ class SlackCommandsTest(APITestCase, TestCase):
                 "text": command,
                 "team_id": self.external_id,
                 "user_id": self.slack_id,
+                "channel_id": self.channel_id,
                 **kwargs,
             }
         )
         return json.loads(str(response.content.decode("utf-8")))
 
-    def find_identity(self) -> Optional[Identity]:
+    def find_identity(self) -> Identity | None:
         return find_identity(idp=self.idp, user=self.user)
 
     def link_user(self) -> None:
         return link_user(user=self.user, idp=self.idp, slack_id=self.slack_id)
 
-    def link_team(self, team: Optional[Team] = None) -> None:
+    def link_team(self, team: Team | None = None) -> None:
         return link_team(
             team=team or self.team,
             integration=self.integration,
@@ -61,7 +64,7 @@ class SlackCommandsTest(APITestCase, TestCase):
         )
 
     def get_slack_response(
-        self, payload: Mapping[str, str], status_code: Optional[str] = None
+        self, payload: Mapping[str, str], status_code: str | None = None
     ) -> Response:
         """Shadow get_success_response but with a non-JSON payload."""
         data = urlencode(payload).encode("utf-8")

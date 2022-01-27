@@ -1,15 +1,13 @@
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 type Props = {
   value: string | number;
   className?: string;
 };
 
-function Count(props: Props) {
-  const {value, className} = props;
-
+function Count({value, className}: Props) {
   return (
-    <span className={className} title={value.toLocaleString()}>
+    <span className={className} title={value?.toLocaleString()}>
       {formatAbbreviatedNumber(value)}
     </span>
   );

@@ -1,4 +1,4 @@
-import {Project} from 'app/types';
+import {Project} from 'sentry/types';
 
 export enum RuleType {
   PATTERN = 'pattern',

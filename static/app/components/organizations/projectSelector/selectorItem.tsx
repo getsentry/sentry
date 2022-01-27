@@ -2,20 +2,20 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
-import Highlight from 'app/components/highlight';
-import Hovercard from 'app/components/hovercard';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
-import BookmarkStar from 'app/components/projects/bookmarkStar';
-import {IconOpen, IconSettings} from 'app/icons';
-import {t} from 'app/locale';
-import {alertHighlight, pulse} from 'app/styles/animations';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Highlight from 'sentry/components/highlight';
+import Hovercard from 'sentry/components/hovercard';
+import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
+import PageFilterRow from 'sentry/components/organizations/pageFilterRow';
+import BookmarkStar from 'sentry/components/projects/bookmarkStar';
+import {IconOpen, IconSettings} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {alertHighlight, pulse} from 'sentry/styles/animations';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {analytics} from 'sentry/utils/analytics';
 
 const defaultProps = {
   multi: false,
@@ -103,7 +103,7 @@ class ProjectSelectorItem extends React.PureComponent<Props, State> {
         bookmarkHasChanged={bookmarkHasChanged}
         onAnimationEnd={this.clearAnimation}
       >
-        <GlobalSelectionHeaderRow
+        <PageFilterRow
           checked={isChecked}
           onCheckClick={this.handleClick}
           multi={multi}
@@ -145,7 +145,7 @@ class ProjectSelectorItem extends React.PureComponent<Props, State> {
           >
             <IconSettings />
           </StyledLink>
-        </GlobalSelectionHeaderRow>
+        </PageFilterRow>
       </BadgeAndActionsWrapper>
     );
   }

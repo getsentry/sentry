@@ -1,16 +1,16 @@
 import {Component} from 'react';
-import DocumentTitle from 'react-document-title';
 import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
-import ExternalLink from 'app/components/links/externalLink';
-import LoadingError from 'app/components/loadingError';
-import {t, tct} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
-import {Organization, Project} from 'app/types';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t, tct} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
+import {Organization, Project} from 'sentry/types';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProject from 'sentry/utils/withProject';
 
 const ERROR_NAME = 'Permission Denied';
 
@@ -36,7 +36,7 @@ class PermissionDenied extends Component<Props> {
 
   render() {
     return (
-      <DocumentTitle title={t('Permission Denied')}>
+      <SentryDocumentTitle title={t('Permission Denied')}>
         <PageContent>
           <LoadingError
             message={tct(
@@ -50,7 +50,7 @@ class PermissionDenied extends Component<Props> {
             )}
           />
         </PageContent>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

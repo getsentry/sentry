@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import moment from 'moment-timezone';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import Checkbox from 'app/components/checkbox';
-import DateTime from 'app/components/dateTime';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import ExternalLink from 'app/components/links/externalLink';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tag from 'app/components/tag';
-import {IconChevron, IconFlag, IconOpen} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'app/types';
-import {use24Hours} from 'app/utils/dates';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
+import DateTime from 'sentry/components/dateTime';
+import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Tag from 'sentry/components/tag';
+import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'sentry/types';
+import {use24Hours} from 'sentry/utils/dates';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
@@ -283,13 +283,13 @@ export default class RequestLog extends AsyncComponent<Props, State> {
             icon={<IconChevron direction="left" size="sm" />}
             onClick={this.handlePrevPage}
             disabled={!this.hasPrevPage}
-            label={t('Previous page')}
+            aria-label={t('Previous page')}
           />
           <Button
             icon={<IconChevron direction="right" size="sm" />}
             onClick={this.handleNextPage}
             disabled={!this.hasNextPage}
-            label={t('Next page')}
+            aria-label={t('Next page')}
           />
         </PaginationButtons>
       </React.Fragment>

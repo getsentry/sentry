@@ -2,12 +2,12 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {loadIncidents} from 'app/actionCreators/serviceIncidents';
-import Button from 'app/components/button';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {SentryServiceStatus} from 'app/types';
+import {loadIncidents} from 'sentry/actionCreators/serviceIncidents';
+import Button from 'sentry/components/button';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {SentryServiceStatus} from 'sentry/types';
 
 import List from '../list';
 import ListItem from '../list/listItem';

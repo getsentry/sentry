@@ -1,27 +1,36 @@
 import {browserHistory} from 'react-router';
-import {Location, LocationDescriptor, Query} from 'history';
+import {Location} from 'history';
 
-import Duration from 'app/components/duration';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {backend, frontend, mobile} from 'app/data/platformCategories';
+import Duration from 'sentry/components/duration';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {
-  GlobalSelection,
   Organization,
   OrganizationSummary,
+  PageFilters,
   Project,
   ReleaseProject,
-} from 'app/types';
-import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {statsPeriodToDays} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import {TRACING_FIELDS} from 'app/utils/discover/fields';
-import {getDuration} from 'app/utils/formatters';
-import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
-import {decodeScalar} from 'app/utils/queryString';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
+} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {statsPeriodToDays} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
+import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
+import {getDuration} from 'sentry/utils/formatters';
+import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {DEFAULT_MAX_DURATION} from './trends/utils';
+
+export const QUERY_KEYS = [
+  'environment',
+  'project',
+  'query',
+  'start',
+  'end',
+  'statsPeriod',
+] as const;
 
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
@@ -35,8 +44,10 @@ export enum PROJECT_PERFORMANCE_TYPE {
   MOBILE = 'mobile',
 }
 
+// The native SDK is equally used on clients and end-devices as on
+// backend, the default view should be "All Transactions".
 const FRONTEND_PLATFORMS: string[] = [...frontend];
-const BACKEND_PLATFORMS: string[] = [...backend];
+const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
@@ -95,6 +106,7 @@ export function platformAndConditionsToPerformanceType(
       return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
     }
   }
+
   return performanceType;
 }
 
@@ -220,50 +232,7 @@ export function removeTracingKeysFromSearch(
   return currentFilter;
 }
 
-export function getTransactionDetailsUrl(
-  organization: OrganizationSummary,
-  eventSlug: string,
-  transaction: string,
-  query: Query,
-  hash?: string
-): LocationDescriptor {
-  const target = {
-    pathname: `/organizations/${organization.slug}/performance/${eventSlug}/`,
-    query: {
-      ...query,
-      transaction,
-    },
-    hash,
-  };
-  if (!defined(hash)) {
-    delete target.hash;
-  }
-  return target;
-}
-
-export function getTransactionComparisonUrl({
-  organization,
-  baselineEventSlug,
-  regressionEventSlug,
-  transaction,
-  query,
-}: {
-  organization: OrganizationSummary;
-  baselineEventSlug: string;
-  regressionEventSlug: string;
-  transaction: string;
-  query: Query;
-}): LocationDescriptor {
-  return {
-    pathname: `/organizations/${organization.slug}/performance/compare/${baselineEventSlug}/${regressionEventSlug}/`,
-    query: {
-      ...query,
-      transaction,
-    },
-  };
-}
-
-export function addRoutePerformanceContext(selection: GlobalSelection) {
+export function addRoutePerformanceContext(selection: PageFilters) {
   const transaction = getCurrentSentryReactTransaction();
   const days = statsPeriodToDays(
     selection.datetime.period,

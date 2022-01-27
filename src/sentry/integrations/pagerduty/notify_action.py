@@ -1,15 +1,30 @@
 """
 Used for notifying a *specific* plugin
 """
+from __future__ import annotations
+
+from typing import Any, Mapping, Sequence
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.constants import ObjectStatus
+from sentry.models import Integration, PagerDutyService
 from sentry.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 
 from .client import PagerDutyClient
+
+
+def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | None:
+    value_option = cleaned_data.get(field)
+    if value_option is None:
+        return None
+
+    try:
+        return int(value_option)
+    except ValueError:
+        raise forms.ValidationError(_(f"Invalid {field}"), code="invalid")
 
 
 class PagerDutyNotifyServiceForm(forms.Form):
@@ -33,35 +48,40 @@ class PagerDutyNotifyServiceForm(forms.Form):
         self.fields["service"].choices = services
         self.fields["service"].widget.choices = self.fields["service"].choices
 
-    def clean(self):
-        cleaned_data = super().clean()
+    def _validate_service(self, service_id: int, integration_id: int | None) -> None:
+        params = {
+            "account": dict(self.fields["account"].choices).get(integration_id),
+            "service": dict(self.fields["service"].choices).get(service_id),
+        }
 
-        integration_id = cleaned_data.get("account")
-        if integration_id is not None:
-            try:
-                integration_id = int(integration_id)
-            except ValueError:
-                raise forms.ValidationError(_("Invalid account"), code="invalid")
+        try:
+            service = PagerDutyService.objects.get(id=service_id)
+        except PagerDutyService.DoesNotExist:
+            raise forms.ValidationError(
+                _('The service "%(service)s" does not exist in the %(account)s Pagerduty account.'),
+                code="invalid",
+                params=params,
+            )
 
-        service_id = cleaned_data.get("service")
-
-        service = PagerDutyService.objects.get(id=service_id)
-
-        # need to make sure that the service actually belongs to that integration - meaning
-        # that it belongs under the appropriate account in PagerDuty
-        if not service.organization_integration.integration_id == integration_id:
-            params = {
-                "account": dict(self.fields["account"].choices).get(integration_id),
-                "service": dict(self.fields["service"].choices).get(int(service_id)),
-            }
-
+        if service.organization_integration.integration_id != integration_id:
+            # We need to make sure that the service actually belongs to that integration,
+            # meaning that it belongs under the appropriate account in PagerDuty.
             raise forms.ValidationError(
                 _(
-                    'The service "%(service)s" does not exist or has not been granted access in the %(account)s Pagerduty account.'
+                    'The service "%(service)s" has not been granted access in the %(account)s Pagerduty account.'
                 ),
                 code="invalid",
                 params=params,
             )
+
+    def clean(self) -> Mapping[str, Any]:
+        cleaned_data = super().clean()
+
+        integration_id = _validate_int_field("account", cleaned_data)
+        service_id = _validate_int_field("service", cleaned_data)
+
+        if service_id:
+            self._validate_service(service_id, integration_id)
 
         return cleaned_data
 
@@ -128,16 +148,14 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         key = f"pagerduty:{integration.id}"
         yield self.future(send_notification, key=key)
 
-    def get_services(self):
-        return [
-            service
-            for integration in self.get_integrations()
-            for service in PagerDutyService.objects.filter(
-                organization_integration_id=OrganizationIntegration.objects.get(
-                    organization=self.project.organization, integration=integration
-                )
+    def get_services(self) -> Sequence[PagerDutyService]:
+        return list(
+            PagerDutyService.objects.filter(
+                organization_integration__organization=self.project.organization,
+                organization_integration__integration__provider=self.provider,
+                organization_integration__integration__status=ObjectStatus.VISIBLE,
             ).values_list("id", "service_name")
-        ]
+        )
 
     def render_label(self):
         try:

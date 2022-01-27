@@ -1,20 +1,21 @@
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.bases import ProjectAlertRuleEndpoint
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.logic import (
     AlreadyDeletedError,
     delete_alert_rule,
     get_slack_actions_with_async_lookups,
 )
+from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.integrations.slack import tasks
 
 
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
-    def get(self, request, project, alert_rule):
+    def get(self, request: Request, project, alert_rule) -> Response:
         """
         Fetch an alert rule.
         ``````````````````
@@ -23,7 +24,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         data = serialize(alert_rule, request.user, AlertRuleSerializer())
         return Response(data)
 
-    def put(self, request, project, alert_rule):
+    def put(self, request: Request, project, alert_rule) -> Response:
         data = request.data
         serializer = DrfAlertRuleSerializer(
             context={
@@ -54,7 +55,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, project, alert_rule):
+    def delete(self, request: Request, project, alert_rule) -> Response:
         try:
             delete_alert_rule(alert_rule, request.user)
             return Response(status=status.HTTP_204_NO_CONTENT)

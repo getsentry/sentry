@@ -1,8 +1,8 @@
-import {GuidesContent} from 'app/components/assistant/types';
-import ExternalLink from 'app/components/links/externalLink';
-import Link from 'app/components/links/link';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
+import {GuidesContent} from 'sentry/components/assistant/types';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 
 export default function getGuidesContent(orgSlug: string | null): GuidesContent {
   if (ConfigStore.get('demoMode')) {
@@ -160,7 +160,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
                 <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
               ),
               committed: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
               ),
             }
           ),

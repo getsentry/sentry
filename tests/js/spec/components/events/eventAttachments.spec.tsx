@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import EventAttachments from 'app/components/events/eventAttachments';
+import EventAttachments from 'sentry/components/events/eventAttachments';
 
 describe('EventAttachments', function () {
   const {routerContext, organization, project} = initializeOrg();

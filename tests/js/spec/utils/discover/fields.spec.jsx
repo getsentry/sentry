@@ -12,7 +12,7 @@ import {
   isMeasurement,
   measurementType,
   parseFunction,
-} from 'app/utils/discover/fields';
+} from 'sentry/utils/discover/fields';
 
 describe('parseFunction', function () {
   it('returns null on non aggregate fields', function () {

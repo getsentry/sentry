@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {SectionHeading} from 'app/components/charts/styles';
-import FeatureBadge from 'app/components/featureBadge';
-import QuestionTooltip from 'app/components/questionTooltip';
-import space from 'app/styles/space';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import FeatureBadge from 'sentry/components/featureBadge';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import space from 'sentry/styles/space';
 
 type MetaDataProps = {
   headingText: string;

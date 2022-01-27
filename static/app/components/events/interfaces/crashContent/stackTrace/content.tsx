@@ -2,11 +2,11 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {t} from 'app/locale';
-import {Frame, Organization, PlatformType} from 'app/types';
-import {Event} from 'app/types/event';
-import {StacktraceType} from 'app/types/stacktrace';
-import withOrganization from 'app/utils/withOrganization';
+import {t} from 'sentry/locale';
+import {Frame, Organization, PlatformType} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {StacktraceType} from 'sentry/types/stacktrace';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import Line from '../../frame/line';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';

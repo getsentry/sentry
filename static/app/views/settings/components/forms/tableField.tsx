@@ -2,17 +2,17 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {defined, objectIsEmpty} from 'app/utils';
-import {singleLineRenderer} from 'app/utils/marked';
-import Input from 'app/views/settings/components/forms/controls/input';
-import InputField from 'app/views/settings/components/forms/inputField';
-import {TableType} from 'app/views/settings/components/forms/type';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {defined, objectIsEmpty} from 'sentry/utils';
+import {singleLineRenderer} from 'sentry/utils/marked';
+import Input from 'sentry/views/settings/components/forms/controls/input';
+import InputField from 'sentry/views/settings/components/forms/inputField';
+import {TableType} from 'sentry/views/settings/components/forms/type';
 
 const defaultProps = {
   /**
@@ -157,7 +157,7 @@ export default class TableField extends React.Component<Props> {
                         icon={<IconDelete />}
                         size="small"
                         disabled={disabled}
-                        label={t('delete')}
+                        aria-label={t('delete')}
                       />
                     </RemoveButton>
                   </Confirm>

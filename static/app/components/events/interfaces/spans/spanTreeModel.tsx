@@ -1,8 +1,8 @@
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {EventTransaction} from 'app/types/event';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import {EventTransaction} from 'sentry/types/event';
 
 import {ActiveOperationFilter} from './filter';
 import {

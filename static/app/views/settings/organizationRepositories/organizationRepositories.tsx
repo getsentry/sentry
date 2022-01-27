@@ -1,17 +1,17 @@
 import {RouteComponentProps} from 'react-router';
 
-import {Client} from 'app/api';
-import AlertLink from 'app/components/alertLink';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import RepositoryRow from 'app/components/repositoryRow';
-import {IconCommit} from 'app/icons';
-import {t, tct} from 'app/locale';
-import {Repository, RepositoryStatus} from 'app/types';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {Client} from 'sentry/api';
+import AlertLink from 'sentry/components/alertLink';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import RepositoryRow from 'sentry/components/repositoryRow';
+import {IconCommit} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Repository, RepositoryStatus} from 'sentry/types';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   itemList: Repository[];

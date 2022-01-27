@@ -3,21 +3,21 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import Alert from 'app/components/alert';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {Panel} from 'app/components/panels';
-import SearchBar from 'app/components/searchBar';
-import {IconWarning} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {EventTransaction} from 'app/types/event';
-import {objectIsEmpty} from 'app/utils';
-import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
-import {TraceError} from 'app/utils/performance/quickTrace/types';
-import withOrganization from 'app/utils/withOrganization';
+import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import {Panel} from 'sentry/components/panels';
+import SearchBar from 'sentry/components/searchBar';
+import {IconWarning} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {EventTransaction} from 'sentry/types/event';
+import {objectIsEmpty} from 'sentry/utils';
+import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import * as AnchorLinkManager from './anchorLinkManager';
 import Filter from './filter';
@@ -76,11 +76,15 @@ class SpansInterface extends PureComponent<Props, State> {
       return null;
     }
 
-    const label = tn(
-      'There is an error event associated with this transaction event.',
-      `There are %s error events associated with this transaction event.`,
-      errors.length
-    );
+    // This is intentional as unbalanced string formatters in `tn()` are problematic
+    const label =
+      errors.length === 1
+        ? t('There is an error event associated with this transaction event.')
+        : tn(
+            `There are %s error events associated with this transaction event.`,
+            `There are %s error events associated with this transaction event.`,
+            errors.length
+          );
 
     // mapping from span ids to the span op and the number of errors in that span
     const errorsMap: {

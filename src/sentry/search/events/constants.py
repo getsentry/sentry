@@ -66,6 +66,11 @@ ARRAY_FIELDS = {
     "spans_group",
     "spans_exclusive_time",
 }
+TIMESTAMP_FIELDS = {
+    "timestamp",
+    "timestamp.to_hour",
+    "timestamp.to_day",
+}
 
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",

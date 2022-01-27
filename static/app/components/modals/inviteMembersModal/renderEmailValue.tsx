@@ -1,10 +1,10 @@
 import {components as selectComponents, MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconWarning} from 'app/icons';
-import space from 'app/styles/space';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconWarning} from 'sentry/icons';
+import space from 'sentry/styles/space';
 
 import {InviteStatus} from './types';
 
@@ -37,7 +37,7 @@ function renderEmailValue<Option>(
 const EmailLabel = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   align-items: center;
 `;
 

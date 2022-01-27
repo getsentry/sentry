@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {t} from 'app/locale';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {t} from 'sentry/locale';
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 

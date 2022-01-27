@@ -2,18 +2,18 @@ import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
-import Pagination from 'app/components/pagination';
-import {t} from 'app/locale';
-import {Organization, TagCollection} from 'app/types';
-import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
-import {TableData} from 'app/utils/discover/discoverQuery';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import Measurements from 'app/utils/measurements/measurements';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import {SPAN_OP_BREAKDOWN_FIELDS} from 'app/utils/performance/spanOperationBreakdowns/constants';
-import withApi from 'app/utils/withApi';
-import withTags from 'app/utils/withTags';
+import {Client} from 'sentry/api';
+import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
+import {Organization, TagCollection} from 'sentry/types';
+import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import Measurements from 'sentry/utils/measurements/measurements';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
+import withApi from 'sentry/utils/withApi';
+import withTags from 'sentry/utils/withTags';
 
 import TableView from './tableView';
 

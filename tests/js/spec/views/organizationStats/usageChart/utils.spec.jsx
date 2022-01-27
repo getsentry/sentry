@@ -1,34 +1,38 @@
+import moment from 'moment';
+
 import {
   getDateFromMoment,
   getXAxisDates,
-} from 'app/views/organizationStats/usageChart/utils';
+} from 'sentry/views/organizationStats/usageChart/utils';
 
 const TS_START = 1531094400000; // 2018 July 9, 12am UTC
 const TS_END = 1531180800000; // 2018 July 10, 12am UTC
 
 describe('getDateFromMoment', () => {
+  const start = moment.unix(TS_START / 1000);
   // Ensure date remains in UTC
   it('shows the date if interval is >= 24h', () => {
-    expect(getDateFromMoment(TS_START)).toBe('Jul 9');
-    expect(getDateFromMoment(TS_START, '7d')).toBe('Jul 9');
+    expect(getDateFromMoment(start)).toBe('Jul 9');
+    expect(getDateFromMoment(start, '7d')).toBe('Jul 9');
+    expect(getDateFromMoment(moment('2021-10-31'))).toBe('Oct 31');
   });
 
   // Ensure datetime is shifted to localtime
   it('shows the date and time if interval is <24h', () => {
-    expect(getDateFromMoment(TS_START, '6h')).toBe('Jul 8 8:00 PM - 2:00 AM (-04:00)');
-    expect(getDateFromMoment(TS_START, '1h')).toBe('Jul 8 8:00 PM - 9:00 PM (-04:00)');
-    expect(getDateFromMoment(TS_START, '5m')).toBe('Jul 8 8:00 PM - 8:05 PM (-04:00)');
+    expect(getDateFromMoment(start, '6h')).toBe('Jul 8 8:00 PM - 2:00 AM (-04:00)');
+    expect(getDateFromMoment(start, '1h')).toBe('Jul 8 8:00 PM - 9:00 PM (-04:00)');
+    expect(getDateFromMoment(start, '5m')).toBe('Jul 8 8:00 PM - 8:05 PM (-04:00)');
   });
 
   // Ensure datetime is shifted to localtime
   it('coerces date and time into UTC', () => {
-    expect(getDateFromMoment(TS_START, '6h', true)).toBe(
+    expect(getDateFromMoment(start, '6h', true)).toBe(
       'Jul 9 12:00 AM - 6:00 AM (+00:00)'
     );
-    expect(getDateFromMoment(TS_START, '1h', true)).toBe(
+    expect(getDateFromMoment(start, '1h', true)).toBe(
       'Jul 9 12:00 AM - 1:00 AM (+00:00)'
     );
-    expect(getDateFromMoment(TS_START, '5m', true)).toBe(
+    expect(getDateFromMoment(start, '5m', true)).toBe(
       'Jul 9 12:00 AM - 12:05 AM (+00:00)'
     );
   });
@@ -37,8 +41,11 @@ describe('getDateFromMoment', () => {
 describe('getXAxisDates', () => {
   // Ensure date remains in UTC
   it('calculates 1d intervals', () => {
-    const dates = getXAxisDates(TS_START, TS_END);
+    let dates = getXAxisDates(TS_START, TS_END);
     expect(dates).toEqual(['Jul 9', 'Jul 10']);
+
+    dates = getXAxisDates('2021-10-29', '2021-10-31');
+    expect(dates).toEqual(['Oct 29', 'Oct 30', 'Oct 31']);
   });
 
   // Datetime remains in UTC

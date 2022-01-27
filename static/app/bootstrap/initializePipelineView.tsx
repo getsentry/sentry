@@ -1,5 +1,5 @@
-import {Config} from 'app/types';
-import {metric} from 'app/utils/analytics';
+import {Config} from 'sentry/types';
+import {metric} from 'sentry/utils/analytics';
 
 import {commonInitialization} from './commonInitialization';
 import {initializeSdk} from './initializeSdk';

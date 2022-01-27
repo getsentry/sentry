@@ -1,8 +1,8 @@
-import ConfigStore from 'app/stores/configStore';
-import GuideStore from 'app/stores/guideStore';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import ConfigStore from 'sentry/stores/configStore';
+import GuideStore from 'sentry/stores/guideStore';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
-jest.mock('app/utils/analytics');
+jest.mock('sentry/utils/analytics');
 
 describe('GuideStore', function () {
   let data;

@@ -12,6 +12,8 @@ from .base import ActivityNotification
 
 
 class NewProcessingIssuesActivityNotification(ActivityNotification):
+    referrer_base = "new-processing-issues-activity"
+
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.issues = summarize_issues(self.activity.data["issues"])

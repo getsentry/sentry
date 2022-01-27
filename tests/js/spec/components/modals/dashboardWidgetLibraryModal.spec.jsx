@@ -1,13 +1,19 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import DashboardWidgetLibraryModal from 'app/components/modals/dashboardWidgetLibraryModal';
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import DashboardWidgetLibraryModal from 'sentry/components/modals/dashboardWidgetLibraryModal';
+import * as types from 'sentry/views/dashboardsV2/types';
 
 const stubEl = props => <div>{props.children}</div>;
 const alertText =
   'Please select at least one Widget from our Library. Alternatively, you can build a custom widget from scratch.';
 
-function mountModal({initialData}, onApply, closeModal) {
+jest.mock('sentry/actionCreators/modal', () => ({
+  openAddDashboardWidgetModal: jest.fn(),
+}));
+
+function mountModal({initialData}, onApply, closeModal, widgets = []) {
   const routerContext = TestStubs.routerContext();
   return mountWithTheme(
     <DashboardWidgetLibraryModal
@@ -15,7 +21,7 @@ function mountModal({initialData}, onApply, closeModal) {
       Footer={stubEl}
       Body={stubEl}
       organization={initialData.organization}
-      dashboard={TestStubs.Dashboard([], {
+      dashboard={TestStubs.Dashboard(widgets, {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
@@ -36,84 +42,124 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
       apdexThreshold: 400,
     },
   });
+  let container;
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    if (container) {
+      container.unmount();
+    }
   });
 
-  it('selects and unselcts widgets correctly', function () {
+  it('opens modal and renders correctly', async function () {
     // Checking initial modal states
-    const container = mountModal({initialData});
-    expect(screen.getByText('6 WIDGETS')).toBeInTheDocument();
-    expect(screen.getByTestId('selected-badge')).toHaveTextContent('0 Selected');
-    expect(screen.queryAllByText('Select')).toHaveLength(6);
-    expect(screen.queryByText('Selected')).not.toBeInTheDocument();
+    container = mountModal({initialData});
 
-    // Select some widgets
-    const selectButtons = screen.getAllByRole('button');
-    userEvent.click(selectButtons[3]);
-    userEvent.click(selectButtons[4]);
-    userEvent.click(selectButtons[5]);
+    expect(screen.getByText('Duration Distribution')).toBeInTheDocument();
+    expect(screen.getByText('High Throughput Transactions')).toBeInTheDocument();
+    expect(screen.getByText('LCP by Country')).toBeInTheDocument();
+    expect(screen.getByText('Miserable Users')).toBeInTheDocument();
+    expect(screen.getByText('Slow vs Fast Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Issues For Review')).toBeInTheDocument();
+    expect(screen.getByText('Top Unhandled Error Types')).toBeInTheDocument();
+    expect(screen.getByText('Users Affected by Errors')).toBeInTheDocument();
 
-    expect(screen.getByTestId('selected-badge')).toHaveTextContent('3 Selected');
-    expect(screen.queryAllByText('Select')).toHaveLength(3);
-    expect(screen.queryAllByText('Selected')).toHaveLength(3);
+    expect(screen.getByRole('button', {name: 'Widget Library beta'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Custom Widget'})).toBeInTheDocument();
 
-    // Deselect a widget
-    userEvent.click(selectButtons[4]);
-    expect(screen.getByTestId('selected-badge')).toHaveTextContent('2 Selected');
-    expect(screen.queryAllByText('Select')).toHaveLength(4);
-    expect(screen.queryAllByText('Selected')).toHaveLength(2);
+    const button = screen.getByRole('button', {name: 'Custom Widget'});
+    userEvent.click(button);
 
-    container.unmount();
+    expect(openAddDashboardWidgetModal).toHaveBeenCalledTimes(1);
   });
-  it('submits selected widgets correctly', function () {
+
+  it('submits selected widgets', function () {
     // Checking initial modal states
     const mockApply = jest.fn();
     const closeModal = jest.fn();
-    const container = mountModal({initialData}, mockApply, closeModal);
-    // Select some widgets
-    const selectButtons = screen.getAllByRole('button');
-    userEvent.click(selectButtons[3]);
+    container = mountModal({initialData}, mockApply, closeModal, [
+      TestStubs.Widget(
+        [{name: '', orderby: '', conditions: 'event.type:error', fields: ['count()']}],
+        {
+          title: 'Errors',
+          interval: '1d',
+          id: '1',
+          displayType: 'line',
+        }
+      ),
+    ]);
 
-    expect(screen.getByTestId('selected-badge')).toHaveTextContent('1 Selected');
+    // Select some widgets
+    const allEvents = screen.queryByText('High Throughput Transactions');
+    userEvent.click(allEvents);
+
+    expect(screen.getByTestId('confirm-widgets')).toBeEnabled();
     userEvent.click(screen.getByTestId('confirm-widgets'));
 
     expect(mockApply).toHaveBeenCalledTimes(1);
     expect(mockApply).toHaveBeenCalledWith([
-      {
-        displayType: 'area',
-        id: undefined,
-        interval: '5m',
+      expect.objectContaining({
+        displayType: 'line',
+        id: '1',
+        interval: '1d',
         queries: [
           {
-            conditions: '!event.type:transaction',
+            conditions: 'event.type:error',
             fields: ['count()'],
             name: '',
             orderby: '',
           },
         ],
-        title: 'All Events',
-      },
+        title: 'Errors',
+      }),
+      expect.objectContaining({
+        displayType: 'top_n',
+        id: undefined,
+        interval: '5m',
+        description: 'Top 5 transactions with the largest volume.',
+        queries: [
+          {
+            conditions: '!event.type:error',
+            fields: ['transaction', 'count()'],
+            name: '',
+            orderby: '-count',
+          },
+        ],
+        title: 'High Throughput Transactions',
+        widgetType: 'discover',
+      }),
     ]);
     expect(closeModal).toHaveBeenCalledTimes(1);
-
-    container.unmount();
   });
+
   it('raises warning if widget not selected', function () {
     // Checking initial modal states
     const mockApply = jest.fn();
     const closeModal = jest.fn();
-    const container = mountModal({initialData}, mockApply, closeModal);
+    container = mountModal({initialData}, mockApply, closeModal);
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();
 
-    expect(screen.getByTestId('selected-badge')).toHaveTextContent('0 Selected');
     userEvent.click(screen.getByTestId('confirm-widgets'));
 
     expect(mockApply).toHaveBeenCalledTimes(0);
     expect(closeModal).toHaveBeenCalledTimes(0);
     expect(screen.getByText(alertText)).toBeInTheDocument();
+  });
 
-    container.unmount();
+  it('disables save button if widget limit is exceeded', function () {
+    // Checking initial modal states
+    const mockApply = jest.fn();
+    const closeModal = jest.fn();
+    types.MAX_WIDGETS = 1;
+    container = mountModal({initialData}, mockApply, closeModal);
+
+    // Select some widgets
+    const allEvents = screen.queryByText('High Throughput Transactions');
+    userEvent.click(allEvents);
+
+    const totalErrors = screen.queryByText('Users Affected by Errors');
+    userEvent.click(totalErrors);
+
+    expect(screen.getByTestId('confirm-widgets')).toBeDisabled();
   });
 });

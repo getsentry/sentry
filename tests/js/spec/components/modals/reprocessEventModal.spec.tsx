@@ -1,7 +1,7 @@
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import {openReprocessEventModal} from 'app/actionCreators/modal';
-import ModalActions from 'app/actions/modalActions';
+import {openReprocessEventModal} from 'sentry/actionCreators/modal';
+import ModalActions from 'sentry/actions/modalActions';
 
 const group = TestStubs.Group({
   id: '1337',
@@ -15,7 +15,7 @@ const organization = TestStubs.Organization({
   features: ['reprocessing-v2'],
 });
 
-async function renderComponent() {
+async function mountComponent() {
   const modal = await mountGlobalModal();
 
   openReprocessEventModal({organization, groupId: group.id});
@@ -30,8 +30,8 @@ async function renderComponent() {
 describe('ReprocessEventModal', function () {
   let wrapper: any;
 
-  beforeAll(async function () {
-    wrapper = await renderComponent();
+  beforeEach(async function () {
+    wrapper = await mountComponent();
   });
 
   it('modal is open', () => {

@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from django.urls import reverse
 
 from sentry.integrations.issues import IssueBasicMixin
@@ -24,7 +26,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         repo, issue_id = key.split("#")
         return f"https://bitbucket.org/{repo}/issues/{issue_id}"
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["repo"]
 
     def get_create_issue_config(self, group, user, **kwargs):
@@ -37,6 +39,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             "sentry-extensions-bitbucket-search", args=[org.slug, self.model.id]
         )
 
+        # TODO(mgaeta): inline these lists.
         return (
             [
                 {
@@ -119,7 +122,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         try:
             issue = client.create_issue(data.get("repo"), data)
         except ApiError as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         return {
             "key": issue["id"],

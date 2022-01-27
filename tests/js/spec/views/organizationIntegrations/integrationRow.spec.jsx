@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
-import IntegrationRow from 'app/views/organizationIntegrations/integrationRow';
+import {Client} from 'sentry/api';
+import IntegrationRow from 'sentry/views/organizationIntegrations/integrationRow';
 
 describe('IntegrationRow', function () {
   beforeEach(function () {

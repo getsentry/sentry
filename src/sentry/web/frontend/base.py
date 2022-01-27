@@ -11,6 +11,8 @@ from django.template.context_processors import csrf
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.serializers import serialize
@@ -41,7 +43,7 @@ class OrganizationMixin:
     # TODO(dcramer): move the implicit organization logic into its own class
     # as it's only used in a single location and over complicates the rest of
     # the code
-    def get_active_organization(self, request, organization_slug=None):
+    def get_active_organization(self, request: Request, organization_slug=None):
         """
         Returns the currently active organization for the request or None
         if no organization.
@@ -50,12 +52,15 @@ class OrganizationMixin:
         # TODO(dcramer): this is a huge hack, and we should refactor this
         # it is currently needed to handle the is_auth_required check on
         # OrganizationBase
+        organizations = None
+        cached_active_org = None
         active_organization = getattr(self, "_active_org", None)
-        cached_active_org = (
-            active_organization
-            and active_organization[0].slug == organization_slug
-            and active_organization[1] == request.user
-        )
+        if active_organization and active_organization[0]:
+            cached_active_org = (
+                active_organization
+                and active_organization[0].slug == organization_slug
+                and active_organization[1] == request.user
+            )
         if cached_active_org:
             return active_organization[0]
 
@@ -80,7 +85,7 @@ class OrganizationMixin:
         if active_organization is None:
             organizations = Organization.objects.get_for_user(user=request.user)
 
-        if active_organization is None and organization_slug:
+        if active_organization is None and organization_slug and organizations:
             try:
                 active_organization = next(o for o in organizations if o.slug == organization_slug)
             except StopIteration:
@@ -89,7 +94,7 @@ class OrganizationMixin:
                     del request.session["activeorg"]
                 active_organization = None
 
-        if active_organization is None:
+        if active_organization is None and organizations:
             if not is_implicit:
                 return None
 
@@ -99,8 +104,7 @@ class OrganizationMixin:
                 logger.info("User is not a member of any organizations")
 
         if active_organization and self._is_org_member(request.user, active_organization):
-            if active_organization.slug != request.session.get("activeorg"):
-                request.session["activeorg"] = active_organization.slug
+            auth.set_active_org(request, active_organization.slug)
 
         self._active_org = (active_organization, request.user)
 
@@ -109,17 +113,17 @@ class OrganizationMixin:
     def _is_org_member(self, user, organization):
         return OrganizationMember.objects.filter(user=user, organization=organization).exists()
 
-    def is_not_2fa_compliant(self, request, organization):
+    def is_not_2fa_compliant(self, request: Request, organization):
         return (
             organization.flags.require_2fa
             and not Authenticator.objects.user_has_2fa(request.user)
             and not is_active_superuser(request)
         )
 
-    def is_member_disabled_from_limit(self, request, organization):
+    def is_member_disabled_from_limit(self, request: Request, organization):
         return is_member_disabled_from_limit(request, organization)
 
-    def get_active_team(self, request, organization, team_slug):
+    def get_active_team(self, request: Request, organization, team_slug):
         """
         Returns the currently selected team for the request or None
         if no match.
@@ -134,7 +138,7 @@ class OrganizationMixin:
 
         return team
 
-    def get_active_project(self, request, organization, project_slug):
+    def get_active_project(self, request: Request, organization, project_slug):
         try:
             project = Project.objects.get(slug=project_slug, organization=organization)
         except Project.DoesNotExist:
@@ -145,7 +149,7 @@ class OrganizationMixin:
 
         return project
 
-    def redirect_to_org(self, request):
+    def redirect_to_org(self, request: Request):
         from sentry import features
 
         # TODO(dcramer): deal with case when the user cannot create orgs
@@ -227,23 +231,23 @@ class BaseView(View, OrganizationMixin):
 
         return self.handle(request, *args, **kwargs)
 
-    def test_csrf(self, request):
+    def test_csrf(self, request: Request):
         middleware = CsrfViewMiddleware()
         return middleware.process_view(request, self.dispatch, [request], {})
 
-    def get_access(self, request, *args, **kwargs):
+    def get_access(self, request: Request, *args, **kwargs):
         return access.DEFAULT
 
-    def convert_args(self, request, *args, **kwargs):
+    def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle(self, request, *args, **kwargs):
+    def handle(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
-    def is_auth_required(self, request, *args, **kwargs):
+    def is_auth_required(self, request: Request, *args, **kwargs):
         return self.auth_required and not (request.user.is_authenticated and request.user.is_active)
 
-    def handle_auth_required(self, request, *args, **kwargs):
+    def handle_auth_required(self, request: Request, *args, **kwargs):
         auth.initiate_login(request, next_url=request.get_full_path())
         if "organization_slug" in kwargs:
             redirect_to = reverse("sentry-auth-organization", args=[kwargs["organization_slug"]])
@@ -251,30 +255,30 @@ class BaseView(View, OrganizationMixin):
             redirect_to = auth.get_login_url()
         return self.redirect(redirect_to, headers={"X-Robots-Tag": "noindex, nofollow"})
 
-    def is_sudo_required(self, request, *args, **kwargs):
+    def is_sudo_required(self, request: Request, *args, **kwargs):
         return self.sudo_required and not request.is_sudo()
 
-    def handle_sudo_required(self, request, *args, **kwargs):
+    def handle_sudo_required(self, request: Request, *args, **kwargs):
         return redirect_to_sudo(request.get_full_path())
 
-    def has_permission(self, request, *args, **kwargs):
+    def has_permission(self, request: Request, *args, **kwargs):
         return True
 
-    def handle_permission_required(self, request, *args, **kwargs):
+    def handle_permission_required(self, request: Request, *args, **kwargs):
         redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def handle_not_2fa_compliant(self, request, *args, **kwargs):
+    def handle_not_2fa_compliant(self, request: Request, *args, **kwargs):
         redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def get_no_permission_url(self, request, *args, **kwargs):
+    def get_no_permission_url(self, request: Request, *args, **kwargs):
         return reverse("sentry-login")
 
-    def get_not_2fa_compliant_url(self, request, *args, **kwargs):
+    def get_not_2fa_compliant_url(self, request: Request, *args, **kwargs):
         return reverse("sentry-account-settings-security")
 
-    def get_context_data(self, request, **kwargs):
+    def get_context_data(self, request: Request, **kwargs):
         context = csrf(request)
         return context
 
@@ -295,7 +299,7 @@ class BaseView(View, OrganizationMixin):
     def get_team_list(self, user, organization):
         return Team.objects.get_for_user(organization=organization, user=user, with_projects=True)
 
-    def create_audit_entry(self, request, transaction_id=None, **kwargs):
+    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
 
     def handle_disabled_member(self, organization):
@@ -314,19 +318,19 @@ class OrganizationView(BaseView):
     required_scope = None
     valid_sso_required = True
 
-    def get_access(self, request, organization, *args, **kwargs):
+    def get_access(self, request: Request, organization, *args, **kwargs):
         if organization is None:
             return access.DEFAULT
         return access.from_request(request, organization)
 
-    def get_context_data(self, request, organization, **kwargs):
+    def get_context_data(self, request: Request, organization, **kwargs):
         context = super().get_context_data(request)
         context["organization"] = organization
         context["TEAM_LIST"] = self.get_team_list(request.user, organization)
         context["ACCESS"] = request.access.to_django_context()
         return context
 
-    def has_permission(self, request, organization, *args, **kwargs):
+    def has_permission(self, request: Request, organization, *args, **kwargs):
         if organization is None:
             return False
         if self.valid_sso_required:
@@ -344,7 +348,7 @@ class OrganizationView(BaseView):
             return False
         return True
 
-    def is_auth_required(self, request, organization_slug=None, *args, **kwargs):
+    def is_auth_required(self, request: Request, organization_slug=None, *args, **kwargs):
         result = super().is_auth_required(request, *args, **kwargs)
         if result:
             return result
@@ -367,7 +371,7 @@ class OrganizationView(BaseView):
                 return True
         return False
 
-    def handle_permission_required(self, request, organization, *args, **kwargs):
+    def handle_permission_required(self, request: Request, organization, *args, **kwargs):
         if self.needs_sso(request, organization):
             logger.info(
                 "access.must-sso",
@@ -379,7 +383,7 @@ class OrganizationView(BaseView):
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def needs_sso(self, request, organization):
+    def needs_sso(self, request: Request, organization):
         if not organization:
             return False
         # XXX(dcramer): this branch should really never hit
@@ -395,7 +399,7 @@ class OrganizationView(BaseView):
             return True
         return False
 
-    def convert_args(self, request, organization_slug=None, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
         active_organization = self.get_active_organization(
             request=request, organization_slug=organization_slug
         )
@@ -404,7 +408,7 @@ class OrganizationView(BaseView):
 
         return (args, kwargs)
 
-    def get_allowed_roles(self, request, organization, member=None):
+    def get_allowed_roles(self, request: Request, organization, member=None):
         can_admin = request.access.has_scope("member:admin")
 
         allowed_roles = []
@@ -426,60 +430,6 @@ class OrganizationView(BaseView):
         return (can_admin, allowed_roles)
 
 
-class TeamView(OrganizationView):
-    """
-    Any view acting on behalf of a team should inherit from this base and the
-    matching URL pattern must pass 'team_slug'.
-
-    Two keyword arguments are added to the resulting dispatch:
-
-    - organization
-    - team
-    """
-
-    def get_context_data(self, request, organization, team, **kwargs):
-        context = super().get_context_data(request, organization)
-        context["team"] = team
-        return context
-
-    def has_permission(self, request, organization, team, *args, **kwargs):
-        if team is None:
-            return False
-        rv = super().has_permission(request, organization)
-        if not rv:
-            return rv
-        if self.required_scope:
-            if not request.access.has_team_scope(team, self.required_scope):
-                logger.info(
-                    "User %s does not have %s permission to access team %s",
-                    request.user,
-                    self.required_scope,
-                    team,
-                )
-                return False
-        elif not request.access.has_team(team):
-            logger.info("User %s does not have access to team %s", request.user, team)
-            return False
-        return True
-
-    def convert_args(self, request, organization_slug, team_slug, *args, **kwargs):
-        active_organization = self.get_active_organization(
-            request=request, organization_slug=organization_slug
-        )
-
-        if active_organization:
-            active_team = self.get_active_team(
-                request=request, team_slug=team_slug, organization=active_organization
-            )
-        else:
-            active_team = None
-
-        kwargs["organization"] = active_organization
-        kwargs["team"] = active_team
-
-        return (args, kwargs)
-
-
 class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
@@ -491,13 +441,13 @@ class ProjectView(OrganizationView):
     - project
     """
 
-    def get_context_data(self, request, organization, project, **kwargs):
+    def get_context_data(self, request: Request, organization, project, **kwargs):
         context = super().get_context_data(request, organization)
         context["project"] = project
         context["processing_issues"] = serialize(project).get("processingIssues", 0)
         return context
 
-    def has_permission(self, request, organization, project, *args, **kwargs):
+    def has_permission(self, request: Request, organization, project, *args, **kwargs):
         if project is None:
             return False
         rv = super().has_permission(request, organization)
@@ -520,7 +470,7 @@ class ProjectView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
+    def convert_args(self, request: Request, organization_slug, project_slug, *args, **kwargs):
         active_organization = self.get_active_organization(
             request=request, organization_slug=organization_slug
         )
@@ -541,7 +491,7 @@ class ProjectView(OrganizationView):
 class AvatarPhotoView(View):
     model = None
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args, **kwargs) -> Response:
         avatar_id = kwargs["avatar_id"]
         try:
             avatar = self.model.objects.get(ident=avatar_id)

@@ -1,4 +1,4 @@
-import {Frame} from 'app/types';
+import {Frame} from 'sentry/types';
 
 // TODO(ts): define correct stack trace type
 function getRelevantFrame(stacktrace: any): Frame {

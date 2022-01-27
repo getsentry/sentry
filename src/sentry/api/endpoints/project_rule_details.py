@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
@@ -23,7 +24,7 @@ from sentry.web.decorators import transaction_start
 class ProjectRuleDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
-    def convert_args(self, request, rule_id, *args, **kwargs):
+    def convert_args(self, request: Request, rule_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
 
@@ -40,7 +41,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         return args, kwargs
 
     @transaction_start("ProjectRuleDetailsEndpoint")
-    def get(self, request, project, rule):
+    def get(self, request: Request, project, rule) -> Response:
         """
         Retrieve a rule
 
@@ -54,7 +55,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
-    def put(self, request, project, rule):
+    def put(self, request: Request, project, rule) -> Response:
         """
         Update a rule
 
@@ -133,7 +134,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
-    def delete(self, request, project, rule):
+    def delete(self, request: Request, project, rule) -> Response:
         """
         Delete a rule
         """

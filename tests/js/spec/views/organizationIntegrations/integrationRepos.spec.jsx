@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import RepositoryActions from 'app/actions/repositoryActions';
-import {Client} from 'app/api';
-import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
+import RepositoryActions from 'sentry/actions/repositoryActions';
+import {Client} from 'sentry/api';
+import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', function () {
   const org = TestStubs.Organization();

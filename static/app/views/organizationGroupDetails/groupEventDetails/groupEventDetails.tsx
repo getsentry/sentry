@@ -4,18 +4,18 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
-import {Client} from 'app/api';
-import ErrorBoundary from 'app/components/errorBoundary';
-import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
-import EventEntries from 'app/components/events/eventEntries';
-import {withMeta} from 'app/components/events/meta/metaProxy';
-import GroupSidebar from 'app/components/group/sidebar';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import MutedBox from 'app/components/mutedBox';
-import ReprocessedBox from 'app/components/reprocessedBox';
-import ResolutionBox from 'app/components/resolutionBox';
-import SuggestProjectCTA from 'app/components/suggestProjectCTA';
+import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
+import {Client} from 'sentry/api';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
+import EventEntries from 'sentry/components/events/eventEntries';
+import {withMeta} from 'sentry/components/events/meta/metaProxy';
+import GroupSidebar from 'sentry/components/group/sidebar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MutedBox from 'sentry/components/mutedBox';
+import ReprocessedBox from 'sentry/components/reprocessedBox';
+import ResolutionBox from 'sentry/components/resolutionBox';
+import SuggestProjectCTA from 'sentry/components/suggestProjectCTA';
 import {
   BaseGroupStatusReprocessing,
   Environment,
@@ -23,9 +23,9 @@ import {
   GroupActivityReprocess,
   Organization,
   Project,
-} from 'app/types';
-import {Event} from 'app/types/event';
-import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
+} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
 
 import GroupEventToolbar from '../eventToolbar';
 import ReprocessingProgress from '../reprocessingProgress';
@@ -122,7 +122,7 @@ class GroupEventDetails extends Component<Props, State> {
     );
     fetchSentryAppInstallations(api, orgSlug);
 
-    // TODO(marcos): Sometimes GlobalSelectionStore cannot pick a project.
+    // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
     if (projectId) {
       fetchSentryAppComponents(api, orgSlug, projectId);
     } else {

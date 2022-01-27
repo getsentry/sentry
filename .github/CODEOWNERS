@@ -25,8 +25,6 @@
 /src/sentry/web/api.py             @getsentry/owners-ingest
 /src/sentry/scripts/quotas/        @getsentry/owners-ingest
 /src/sentry/scripts/tsdb/          @getsentry/owners-ingest
-/src/sentry/tasks/reprocessing.py  @getsentry/owners-ingest
-/src/sentry/tasks/reprocessing2.py @getsentry/owners-ingest
 /src/sentry/tasks/store.py         @getsentry/owners-ingest
 /src/sentry/tasks/unmerge.py       @getsentry/owners-ingest
 
@@ -122,6 +120,7 @@ build-utils/        @getsentry/owners-js-build
 /tests/snuba/search/test_backend.py                             @getsentry/visibility
 /static/app/utils/discover/                                     @getsentry/visibility
 /tests/js/spec/utils/discover/                                  @getsentry/visibility
+/static/app/components/charts/                                  @getsentry/visibility
 ### Endof Visibility ###
 
 
@@ -165,6 +164,7 @@ build-utils/        @getsentry/owners-js-build
 /tests/js/spec/views/discover/                                  @getsentry/discover-n-dashboards
 /static/app/views/dashboardsV2/                                 @getsentry/discover-n-dashboards
 /tests/js/spec/views/dashboardsV2/                              @getsentry/discover-n-dashboards
+/static/app/components/dashboards/                              @getsentry/discover-n-dashboards
 ### Endof Discover/Dashboards ###
 
 
@@ -188,7 +188,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/integrations/                     @getsentry/ecosystem
 /src/sentry/mail/                             @getsentry/ecosystem
 /src/sentry/mediators/                        @getsentry/ecosystem
-/src/sentry/notifications/                    @getsentry/ecosystem
+/src/sentry/notifications/                    @getsentry/ecosystem @getsentry/growth
 /src/sentry/plugins/                          @getsentry/ecosystem
 /src/sentry/ratelimits/                       @getsentry/ecosystem
 /src/sentry/shared_integrations/              @getsentry/ecosystem
@@ -211,6 +211,8 @@ build-utils/        @getsentry/owners-js-build
 # To find matching files -> find . -name "*sentry_app*.py"
 *sentry_app*.py                               @getsentry/ecosystem
 *sentryapp*.py                                @getsentry/ecosystem
+*doc_integration*.py                          @getsentry/ecosystem
+*docintegration*.py                           @getsentry/ecosystem
 
 /api-docs/                                    @getsentry/ecosystem
 /tests/apidocs/                               @getsentry/ecosystem
@@ -258,9 +260,12 @@ build-utils/        @getsentry/owners-js-build
 
 ### Workflow ###
 
-/src/sentry/api/endpoints/organization_activity.py  @getsentry/workflow
-/src/sentry/api/endpoints/organization_searches.py  @getsentry/workflow
-/src/sentry/tasks/releasemonitor.py                 @getsentry/workflow
+/src/sentry/api/endpoints/organization_activity.py    @getsentry/workflow
+/src/sentry/api/endpoints/organization_searches.py    @getsentry/workflow
+/src/sentry/tasks/releasemonitor.py                   @getsentry/workflow
+
+/static/app/views/organizationStats/teamInsights      @getsentry/workflow
+/tests/js/spec/views/organizationStats/teamInsights/  @getsentry/workflow
 
 ## End of Workflow ##
 
@@ -277,5 +282,11 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/tasks/symbolication.py                                  @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                     @getsentry/owners-native
 /tests/sentry/tasks/test_low_priority_symbolication.py              @getsentry/owners-native
+
+
+# Shared ownership of reprocessing as transitionary phase
+/src/sentry/tasks/reprocessing.py  @getsentry/owners-ingest @getsentry/owners-native
+/src/sentry/tasks/reprocessing2.py @getsentry/owners-ingest @getsentry/owners-native
+/src/sentry/reprocessing2.py       @getsentry/owners-ingest @getsentry/owners-native
 
 ## End of Native ##

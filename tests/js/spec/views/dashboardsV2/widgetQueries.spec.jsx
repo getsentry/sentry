@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import WidgetQueries from 'app/views/dashboardsV2/widgetQueries';
+import {Client} from 'sentry/api';
+import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', function () {
   const initialData = initializeOrg({
@@ -553,6 +553,82 @@ describe('Dashboards > WidgetQueries', function () {
           {data: [{name: 1000000, value: 100}], seriesName: 'default : count()'},
         ],
       })
+    );
+  });
+
+  it('calls events-stats with desired 1d interval when interval buckets would exceed 66 and calculated interval is higher fidelity', async function () {
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    const areaWidget = {
+      ...singleQueryWidget,
+      displayType: 'area',
+      interval: '1d',
+    };
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={areaWidget}
+        organization={initialData.organization}
+        selection={{
+          ...selection,
+          datetime: {
+            period: '90d',
+          },
+        }}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({query: expect.objectContaining({interval: '1d'})})
+    );
+  });
+
+  it('calls events-stats with 4h interval when interval buckets would exceed 66', async function () {
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    const areaWidget = {
+      ...singleQueryWidget,
+      displayType: 'area',
+      interval: '5m',
+    };
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={areaWidget}
+        organization={initialData.organization}
+        selection={{
+          ...selection,
+          datetime: {
+            period: '90d',
+          },
+        }}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({query: expect.objectContaining({interval: '4h'})})
     );
   });
 });

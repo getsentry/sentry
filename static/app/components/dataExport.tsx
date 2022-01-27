@@ -1,15 +1,14 @@
 import * as React from 'react';
 import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 // NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
 export enum ExportQueryType {
@@ -17,59 +16,46 @@ export enum ExportQueryType {
   Discover = 'Discover',
 }
 
-type DataExportPayload = {
+interface DataExportPayload {
   queryType: ExportQueryType;
   queryInfo: any; // TODO(ts): Formalize different possible payloads
-};
+}
 
-type Props = {
+interface DataExportProps {
   api: Client;
   disabled?: boolean;
   organization: Organization;
   payload: DataExportPayload;
   icon?: React.ReactNode;
-};
+  children?: React.ReactNode;
+}
 
-type State = {
-  inProgress: boolean;
-};
+function DataExport({
+  api,
+  children,
+  disabled,
+  organization,
+  payload,
+  icon,
+}: DataExportProps): React.ReactElement {
+  const [inProgress, setInProgress] = React.useState(false);
 
-class DataExport extends React.Component<Props, State> {
-  state = this.initialState;
-
-  componentDidUpdate({payload: prevPayload}) {
-    const {payload} = this.props;
-    if (!isEqual(prevPayload, payload)) {
-      this.resetState();
+  React.useEffect(() => {
+    if (inProgress) {
+      setInProgress(false);
     }
-  }
+  }, [payload.queryType, payload.queryInfo]);
 
-  get initialState(): State {
-    return {
-      inProgress: false,
-    };
-  }
-
-  resetState = () => {
-    this.setState(this.initialState);
-  };
-
-  startDataExport = () => {
-    const {
-      api,
-      organization: {slug},
-      payload: {queryType, queryInfo},
-    } = this.props;
-
-    this.setState({inProgress: true});
+  const handleDataExport = React.useCallback(() => {
+    setInProgress(true);
 
     api
-      .requestPromise(`/organizations/${slug}/data-export/`, {
+      .requestPromise(`/organizations/${organization.slug}/data-export/`, {
         includeAllArgs: true,
         method: 'POST',
         data: {
-          query_type: queryType,
-          query_info: queryInfo,
+          query_type: payload.queryType,
+          query_info: payload.queryInfo,
         },
       })
       .then(([_data, _, response]) => {
@@ -85,43 +71,38 @@ class DataExport extends React.Component<Props, State> {
         const message =
           err?.responseJSON?.detail ??
           "We tried our hardest, but we couldn't export your data. Give it another go.";
-        addErrorMessage(t(message));
-        this.setState({inProgress: false});
-      });
-  };
 
-  render() {
-    const {inProgress} = this.state;
-    const {children, disabled, icon} = this.props;
-    return (
-      <Feature features={['organizations:discover-query']}>
-        {inProgress ? (
-          <Button
-            size="small"
-            priority="default"
-            title="You can get on with your life. We'll email you when your data's ready."
-            {...this.props}
-            disabled
-            icon={icon}
-          >
-            {t("We're working on it...")}
-          </Button>
-        ) : (
-          <Button
-            onClick={debounce(this.startDataExport, 500)}
-            disabled={disabled || false}
-            size="small"
-            priority="default"
-            title="Put your data to work. Start your export and we'll email you when it's finished."
-            icon={icon}
-            {...this.props}
-          >
-            {children ? children : t('Export All to CSV')}
-          </Button>
-        )}
-      </Feature>
-    );
-  }
+        addErrorMessage(t(message));
+        setInProgress(false);
+      });
+  }, [payload.queryInfo, payload.queryType, organization.slug, api]);
+
+  return (
+    <Feature features={['organizations:discover-query']}>
+      {inProgress ? (
+        <Button
+          size="small"
+          priority="default"
+          title="You can get on with your life. We'll email you when your data's ready."
+          disabled
+          icon={icon}
+        >
+          {t("We're working on it...")}
+        </Button>
+      ) : (
+        <Button
+          onClick={debounce(handleDataExport, 500)}
+          disabled={disabled || false}
+          size="small"
+          priority="default"
+          title="Put your data to work. Start your export and we'll email you when it's finished."
+          icon={icon}
+        >
+          {children ? children : t('Export All to CSV')}
+        </Button>
+      )}
+    </Feature>
+  );
 }
 
 export {DataExport};

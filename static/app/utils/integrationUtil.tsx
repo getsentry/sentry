@@ -1,6 +1,7 @@
 import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
+import {Result} from 'sentry/components/forms/selectAsyncControl';
 import {
   IconBitbucket,
   IconGeneric,
@@ -8,12 +9,13 @@ import {
   IconGitlab,
   IconJira,
   IconVsts,
-} from 'app/icons';
-import {t} from 'app/locale';
-import HookStore from 'app/stores/hookStore';
+} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
-  DocumentIntegration,
+  DocIntegration,
+  ExternalActorMapping,
   Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
@@ -22,13 +24,13 @@ import {
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'app/types';
-import {Hooks} from 'app/types/hooks';
+} from 'sentry/types';
+import {Hooks} from 'sentry/types/hooks';
 import {
   integrationEventMap,
   IntegrationEventParameters,
-} from 'app/utils/analytics/integrationAnalyticsEvents';
-import makeAnalyticsFunction from 'app/utils/analytics/makeAnalyticsFunction';
+} from 'sentry/utils/analytics/integrationAnalyticsEvents';
+import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 const mapIntegrationParams = analyticsParams => {
   // Reload expects integration_status even though it's not relevant for non-sentry apps
@@ -124,8 +126,8 @@ export const getCategoriesForIntegration = (
   if (isPlugin(integration)) {
     return getCategories(integration.featureDescriptions);
   }
-  if (isDocumentIntegration(integration)) {
-    return getCategories(integration.features);
+  if (isDocIntegration(integration)) {
+    return getCategories(integration.features ?? []);
   }
   return getCategories(integration.metadata.features);
 };
@@ -142,10 +144,10 @@ export function isPlugin(
   return integration.hasOwnProperty('shortName');
 }
 
-export function isDocumentIntegration(
+export function isDocIntegration(
   integration: AppOrProviderOrPlugin
-): integration is DocumentIntegration {
-  return integration.hasOwnProperty('docUrl');
+): integration is DocIntegration {
+  return integration.hasOwnProperty('isDraft');
 }
 
 export const getIntegrationType = (
@@ -157,21 +159,21 @@ export const getIntegrationType = (
   if (isPlugin(integration)) {
     return 'plugin';
   }
-  if (isDocumentIntegration(integration)) {
+  if (isDocIntegration(integration)) {
     return 'document';
   }
   return 'first_party';
 };
 
 export const convertIntegrationTypeToSnakeCase = (
-  type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration'
+  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration'
 ) => {
   switch (type) {
     case 'firstParty':
       return 'first_party';
     case 'sentryApp':
       return 'sentry_app';
-    case 'documentIntegration':
+    case 'docIntegration':
       return 'document';
     default:
       return type;
@@ -228,3 +230,25 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
         'Update to the latest version of our Slack app to get access to personal and team notifications.'
       );
 };
+
+/**
+ * Uses the mapping and baseEndpoint to derive the details for the mappings request.
+ * @param baseEndpoint Must have a trailing slash, since the id is appended for PUT requests!
+ * @param mapping The mapping being sent to the endpoint
+ * @returns An object containing the request method (apiMethod), and final endpoint (apiEndpoint)
+ */
+export const getExternalActorEndpointDetails = (
+  baseEndpoint: string,
+  mapping?: ExternalActorMapping
+): {apiMethod: 'POST' | 'PUT'; apiEndpoint: string} => {
+  const isValidMapping = !!mapping?.id;
+  return {
+    apiMethod: isValidMapping ? 'PUT' : 'POST',
+    apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
+  };
+};
+
+export const sentryNameToOption = ({id, name}): Result => ({
+  value: id,
+  label: name,
+});

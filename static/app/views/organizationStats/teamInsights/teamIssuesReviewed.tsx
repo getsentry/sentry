@@ -1,19 +1,20 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import BarChart from 'app/components/charts/barChart';
-import {DateTimeObject} from 'app/components/charts/utils';
-import IdBadge from 'app/components/idBadge';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import PanelTable from 'app/components/panels/panelTable';
-import Placeholder from 'app/components/placeholder';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {formatPercentage} from 'app/utils/formatters';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import BarChart from 'sentry/components/charts/barChart';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import PanelTable from 'sentry/components/panels/panelTable';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {formatPercentage} from 'sentry/utils/formatters';
 
+import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {
   barAxisLabel,
   convertDaySeriesToWeeks,
@@ -52,7 +53,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/issue-breakdown/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -123,7 +124,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        <IssuesChartWrapper>
+        <ChartWrapper>
           {loading && <Placeholder height="200px" />}
           {!loading && (
             <BarChart
@@ -139,18 +140,25 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
                   seriesName: t('Reviewed'),
                   data: reviewedSeries,
                   silent: true,
-                  // silent is not incldued in the type for BarSeries
-                } as any,
+                  animationDuration: 500,
+                  animationDelay: 0,
+                  barCategoryGap: '5%',
+                },
                 {
                   seriesName: t('Not Reviewed'),
                   data: notReviewedSeries,
                   silent: true,
+                  animationDuration: 500,
+                  animationDelay: 500,
+                  barCategoryGap: '5%',
                 },
               ]}
             />
           )}
-        </IssuesChartWrapper>
+        </ChartWrapper>
         <StyledPanelTable
+          isEmpty={projects.length === 0}
+          emptyMessage={t('No projects assigned to this team')}
           headers={[
             t('Project'),
             <AlignRight key="forReview">{t('For Review')}</AlignRight>,
@@ -184,9 +192,6 @@ export default TeamIssuesReviewed;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-`;
-
-const IssuesChartWrapper = styled(ChartWrapper)`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
@@ -201,14 +206,14 @@ const StyledPanelTable = styled(PanelTable)`
   & > div {
     padding: ${space(1)} ${space(2)};
   }
-`;
 
-const ProjectBadgeContainer = styled('div')`
-  display: flex;
-`;
-
-const ProjectBadge = styled(IdBadge)`
-  flex-shrink: 0;
+  ${p =>
+    p.isEmpty &&
+    css`
+      & > div:last-child {
+        padding: 48px ${space(2)};
+      }
+    `}
 `;
 
 const AlignRight = styled('div')`

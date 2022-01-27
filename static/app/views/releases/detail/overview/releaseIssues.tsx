@@ -5,20 +5,20 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
-import {Client} from 'app/api';
-import Button, {ButtonLabel} from 'app/components/button';
-import ButtonBar, {ButtonGrid} from 'app/components/buttonBar';
-import GroupList from 'app/components/issues/groupList';
-import Pagination from 'app/components/pagination';
-import QueryCount from 'app/components/queryCount';
-import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
-import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import {IssueSortOptions} from 'app/views/issueList/utils';
+import {Client} from 'sentry/api';
+import Button, {ButtonLabel} from 'sentry/components/button';
+import ButtonBar, {ButtonGrid} from 'sentry/components/buttonBar';
+import GroupList from 'sentry/components/issues/groupList';
+import Pagination from 'sentry/components/pagination';
+import QueryCount from 'sentry/components/queryCount';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, PageFilters} from 'sentry/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {getReleaseParams, ReleaseBounds} from '../../utils';
 import EmptyState from '../commitsAndFiles/emptyState';
@@ -53,7 +53,7 @@ type Props = {
   api: Client;
   organization: Organization;
   version: string;
-  selection: GlobalSelection;
+  selection: PageFilters;
   location: Location;
   releaseBounds: ReleaseBounds;
   queryFilterDescription?: string;
@@ -185,7 +185,9 @@ class ReleaseIssues extends Component<Props, State> {
         };
       case IssuesType.RESOLVED:
         return {
-          path: `/organizations/${organization.slug}/releases/${version}/resolved/`,
+          path: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+            version
+          )}/resolved/`,
           queryParams: {...queryParams, query: ''},
         };
       case IssuesType.UNHANDLED:
@@ -224,7 +226,9 @@ class ReleaseIssues extends Component<Props, State> {
   async fetchIssuesCount() {
     const {api, organization, version} = this.props;
     const issueCountEndpoint = this.getIssueCountEndpoint();
-    const resolvedEndpoint = `/organizations/${organization.slug}/releases/${version}/resolved/`;
+    const resolvedEndpoint = `/organizations/${
+      organization.slug
+    }/releases/${encodeURIComponent(version)}/resolved/`;
 
     try {
       await Promise.all([
@@ -384,7 +388,7 @@ class ReleaseIssues extends Component<Props, State> {
               <Button
                 key={value}
                 barId={value}
-                size="small"
+                size="xsmall"
                 onClick={() => this.handleIssuesTypeSelection(value)}
                 data-test-id={`filter-${value}`}
               >
@@ -395,11 +399,11 @@ class ReleaseIssues extends Component<Props, State> {
           </StyledButtonBar>
 
           <OpenInButtonBar gap={1}>
-            <Button to={this.getIssuesUrl()} size="small" data-test-id="issues-button">
+            <Button to={this.getIssuesUrl()} size="xsmall" data-test-id="issues-button">
               {t('Open in Issues')}
             </Button>
 
-            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
+            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xsmall" />
           </OpenInButtonBar>
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
@@ -443,7 +447,7 @@ const StyledButtonBar = styled(ButtonBar)`
   grid-template-columns: repeat(4, 1fr);
   ${ButtonLabel} {
     white-space: nowrap;
-    grid-gap: ${space(0.5)};
+    gap: ${space(0.5)};
     span:last-child {
       color: ${p => p.theme.buttonCount};
     }

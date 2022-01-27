@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import uniq from 'lodash/uniq';
 
-import AsyncComponent from 'app/components/asyncComponent';
-import {t} from 'app/locale';
-import {Frame, Organization, Project, TagWithTopValues} from 'app/types';
-import {Entry, EventError} from 'app/types/event';
-import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import {t} from 'sentry/locale';
+import {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
+import {Entry, EventError} from 'sentry/types/event';
+import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {
   raw: string;

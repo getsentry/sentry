@@ -3,8 +3,8 @@ from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
-import dateutil.parser as parse_date
 import pytest
+from dateutil.parser import parse as parse_date
 from django.urls import reverse
 from pytz import utc
 from snuba_sdk.column import Column
@@ -779,8 +779,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 1}],
             [{"count": 2}],
         ]
-        assert response.data["start"] == parse_date.parse(start).timestamp()
-        assert response.data["end"] == parse_date.parse(end).timestamp()
+        assert response.data["start"] == parse_date(start).timestamp()
+        assert response.data["end"] == parse_date(end).timestamp()
 
     def test_comparison(self):
         self.store_event(
@@ -877,6 +877,25 @@ class OrganizationEventsStatsEndpointTestWithSnql(OrganizationEventsStatsEndpoin
         assert mock_query.call_count == 2
         # Should've reset to the default for 24h
         assert mock_query.mock_calls[1].args[0][0].granularity.granularity == 300
+
+    def test_equations_divide_by_zero(self):
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                # force a 0 in the denominator by doing 1 - 1
+                # since a 0 literal is illegal as the denominator
+                "yAxis": ["equation|count() / (1-1)"],
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": None}],
+            [{"count": None}],
+        ]
 
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
@@ -976,7 +995,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         self.enabled_features = {
             "organizations:discover-basic": True,
-            "organizations:discover-top-events": True,
         }
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
@@ -1164,6 +1182,38 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         other = data["Other"]
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
+
+    @mock.patch("sentry.models.Group.issues_mapping")
+    def test_top_events_with_unknown_issue(self, mock_issues_mapping):
+        event = self.events[0]
+        event_data = self.event_data[0]
+
+        # ensure that the issue mapping returns None for the issue
+        mock_issues_mapping.return_value = {event.group.id: None}
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "issue"],
+                    "topEvents": 5,
+                    # narrow the search to just one issue
+                    "query": f"issue.id:{event.group.id}",
+                },
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+
+        data = response.data
+        assert len(data) == 1
+        results = data["unknown"]
+        assert results["order"] == 0
+        assert [{"count": event_data["count"]}] in [attrs for time, attrs in results["data"]]
 
     @mock.patch(
         "sentry.snuba.discover.raw_query",
@@ -1529,7 +1579,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "orderby": ["-count()"],
+                    "orderby": ["-count()", "user"],
                     "field": ["user", "count()"],
                     "topEvents": 5,
                 },
@@ -1540,7 +1590,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        assert data["email:bar@example.com"]["order"] == 0
+        assert data["email:bar@example.com"]["order"] == 1
         assert [attrs for time, attrs in data["email:bar@example.com"]["data"]] == [
             [{"count": 7}],
             [{"count": 0}],
@@ -1559,7 +1609,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "orderby": ["-count()"],
+                    "orderby": ["-count()", "user"],
                     "field": ["user", "user.email", "count()"],
                     "topEvents": 5,
                 },
@@ -1570,7 +1620,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        assert data["email:bar@example.com,bar@example.com"]["order"] == 0
+        assert data["email:bar@example.com,bar@example.com"]["order"] == 1
         assert [attrs for time, attrs in data["email:bar@example.com,bar@example.com"]["data"]] == [
             [{"count": 7}],
             [{"count": 0}],

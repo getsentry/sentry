@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {RouteSource} from 'app/components/search/sources/routeSource';
+import {RouteSource} from 'sentry/components/search/sources/routeSource';
 
 describe('RouteSource', function () {
   let wrapper;

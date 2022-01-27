@@ -1,21 +1,24 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {cancelDeleteRepository, deleteRepository} from 'app/actionCreators/integrations';
-import {openModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import ExternalLink from 'app/components/links/externalLink';
-import {PanelItem} from 'app/components/panels';
-import RepositoryEditForm from 'app/components/repositoryEditForm';
-import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconEdit} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Repository, RepositoryStatus} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import {
+  cancelDeleteRepository,
+  deleteRepository,
+} from 'sentry/actionCreators/integrations';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {PanelItem} from 'sentry/components/panels';
+import RepositoryEditForm from 'sentry/components/repositoryEditForm';
+import Tooltip from 'sentry/components/tooltip';
+import {IconDelete, IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Repository, RepositoryStatus} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type DefaultProps = {
   showProvider?: boolean;
@@ -106,7 +109,7 @@ class RepositoryRow extends Component<Props> {
           <StyledButton
             size="xsmall"
             icon={<IconDelete size="xs" />}
-            label={t('delete')}
+            aria-label={t('delete')}
             disabled={!hasAccess}
           />
         </Confirm>
@@ -175,7 +178,7 @@ class RepositoryRow extends Component<Props> {
                 <StyledButton
                   size="xsmall"
                   icon={<IconEdit size="xs" />}
-                  label={t('edit')}
+                  aria-label={t('edit')}
                   disabled={
                     !hasAccess ||
                     (!isActive && repository.status !== RepositoryStatus.DISABLED)

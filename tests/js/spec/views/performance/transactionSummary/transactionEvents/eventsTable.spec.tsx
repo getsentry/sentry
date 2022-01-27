@@ -1,14 +1,14 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {t} from 'app/locale';
-import ProjectsStore from 'app/stores/projectsStore';
-import EventView from 'app/utils/discover/eventView';
+import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-} from 'app/utils/discover/fields';
-import EventsTable from 'app/views/performance/transactionSummary/transactionEvents/eventsTable';
+} from 'sentry/utils/discover/fields';
+import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 type Data = {
   features: string[];

@@ -1,13 +1,13 @@
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
-} from 'app/utils/discover/eventView';
+} from 'sentry/utils/discover/eventView';
 import {
   CHART_AXIS_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
-} from 'app/utils/discover/types';
+} from 'sentry/utils/discover/types';
 
 const generateFields = fields =>
   fields.map(field => ({
@@ -2787,20 +2787,20 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
   });
 });
 
-describe('EventView.getGlobalSelection()', function () {
+describe('EventView.getPageFilters()', function () {
   it('return default global selection', function () {
     const eventView = new EventView({});
 
-    expect(eventView.getGlobalSelection()).toMatchObject({
+    expect(eventView.getPageFilters()).toMatchObject({
       projects: [],
       environments: [],
       datetime: {
         start: null,
         end: null,
-        period: '',
+        period: null,
 
         // event views currently do not support the utc option,
-        // see comment in EventView.getGlobalSelection
+        // see comment in EventView.getPageFilters
         utc: true,
       },
     });
@@ -2817,7 +2817,7 @@ describe('EventView.getGlobalSelection()', function () {
 
     const eventView = new EventView(state2);
 
-    expect(eventView.getGlobalSelection()).toMatchObject({
+    expect(eventView.getPageFilters()).toMatchObject({
       projects: state2.project,
       environments: state2.environment,
       datetime: {
@@ -2826,18 +2826,18 @@ describe('EventView.getGlobalSelection()', function () {
         period: state2.statsPeriod,
 
         // event views currently do not support the utc option,
-        // see comment in EventView.getGlobalSelection
+        // see comment in EventView.getPageFilters
         utc: true,
       },
     });
   });
 });
 
-describe('EventView.getGlobalSelectionQuery()', function () {
+describe('EventView.getPageFiltersQuery()', function () {
   it('return default global selection query', function () {
     const eventView = new EventView({});
 
-    expect(eventView.getGlobalSelectionQuery()).toMatchObject({
+    expect(eventView.getPageFiltersQuery()).toMatchObject({
       project: [],
       start: undefined,
       end: undefined,
@@ -2845,7 +2845,7 @@ describe('EventView.getGlobalSelectionQuery()', function () {
       environment: [],
 
       // event views currently do not support the utc option,
-      // see comment in EventView.getGlobalSelection
+      // see comment in EventView.getPageFilters
       utc: 'true',
     });
   });
@@ -2861,14 +2861,14 @@ describe('EventView.getGlobalSelectionQuery()', function () {
 
     const eventView = new EventView(state2);
 
-    expect(eventView.getGlobalSelectionQuery()).toMatchObject({
+    expect(eventView.getPageFiltersQuery()).toMatchObject({
       ...state2,
 
       // when generating the query, it converts numbers to strings
       project: ['42'],
 
       // event views currently do not support the utc option,
-      // see comment in EventView.getGlobalSelection
+      // see comment in EventView.getPageFilters
       utc: 'true',
     });
   });

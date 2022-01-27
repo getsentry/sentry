@@ -1,6 +1,6 @@
 import {OnChangeHandlerFunc} from 'react-mentions';
 
-import {DEFAULT_ERROR_JSON} from 'app/constants';
+import {DEFAULT_ERROR_JSON} from 'sentry/constants';
 
 /**
  * Represents a mentionable user or team.

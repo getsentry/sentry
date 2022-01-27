@@ -1,4 +1,4 @@
-import {Experiments, ExperimentType} from 'app/types/experiments';
+import {Experiments, ExperimentType} from 'sentry/types/experiments';
 
 /**
  * This is the value an experiment will have when the unit of assignment
@@ -20,19 +20,31 @@ export const experimentList = [
     assignments: ['none', 'on_signup', 'on_first_event'],
   },
   {
-    key: 'TargetedUpsellModalExperimentV2',
+    key: 'SubscriptionMemberViewExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],
   },
   {
-    key: 'TrialLabelExperiment',
+    key: 'ContactSalesOnCheckoutExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],
   },
   {
-    key: 'OrgStatsBannerExperiment',
+    key: 'TargetedFeaturesOnCheckoutExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+  {
+    key: 'TrialTagsOnCheckoutExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+  {
+    key: 'ViewSampleSandboxExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],

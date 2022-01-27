@@ -1,4 +1,4 @@
-import FormModel from 'app/views/settings/components/forms/model';
+import FormModel from 'sentry/views/settings/components/forms/model';
 
 import {MonitorConfig} from './types';
 

@@ -1,24 +1,36 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Avatar from 'app/components/avatar';
-import AvatarCropper from 'app/components/avatarCropper';
-import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Well from 'app/components/well';
-import {t} from 'app/locale';
-import {AvatarUser, Organization, Team} from 'app/types';
-import withApi from 'app/utils/withApi';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import Avatar from 'sentry/components/avatar';
+import AvatarCropper from 'sentry/components/avatarCropper';
+import Button from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Well from 'sentry/components/well';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
 
-type Model = Pick<AvatarUser, 'avatar'>;
+export type Model = Pick<AvatarUser, 'avatar'>;
 type AvatarType = Required<Model>['avatar']['avatarType'];
-type AvatarChooserType = 'user' | 'team' | 'organization';
+type AvatarChooserType =
+  | 'user'
+  | 'team'
+  | 'organization'
+  | 'sentryAppColor'
+  | 'sentryAppSimple'
+  | 'docIntegration';
+type DefaultChoice = {
+  preview?: React.ReactNode;
+  allowDefault?: boolean;
+  choiceText?: string;
+};
 
 type DefaultProps = {
   onSave: (model: Model) => void;
@@ -26,6 +38,7 @@ type DefaultProps = {
   allowLetter?: boolean;
   allowUpload?: boolean;
   type?: AvatarChooserType;
+  defaultChoice?: DefaultChoice;
 };
 
 type Props = {
@@ -35,6 +48,8 @@ type Props = {
   disabled?: boolean;
   savedDataUrl?: string;
   isUser?: boolean;
+  title?: string;
+  help?: React.ReactNode;
 } & DefaultProps;
 
 type State = {
@@ -51,6 +66,9 @@ class AvatarChooser extends React.Component<Props, State> {
     allowUpload: true,
     type: 'user',
     onSave: () => {},
+    defaultChoice: {
+      allowDefault: false,
+    },
   };
 
   state: State = {
@@ -71,6 +89,17 @@ class AvatarChooser extends React.Component<Props, State> {
     this.setState({model});
   }
 
+  getModelFromResponse(resp: any): Model {
+    const {type} = this.props;
+    const isSentryApp = type?.startsWith('sentryApp');
+    // SentryApp endpoint returns all avatars, we need to return only the edited one
+    if (!isSentryApp) {
+      return resp;
+    }
+    const isColor = type === 'sentryAppColor';
+    return {avatar: resp?.avatars?.find(({color}) => color === isColor) ?? undefined};
+  }
+
   handleError(msg: string) {
     addErrorMessage(msg);
   }
@@ -83,26 +112,41 @@ class AvatarChooser extends React.Component<Props, State> {
   }
 
   handleSaveSettings = (ev: React.MouseEvent) => {
-    const {endpoint, api} = this.props;
+    const {endpoint, api, type} = this.props;
     const {model, dataUrl} = this.state;
-    ev.preventDefault();
-    let data = {};
-    const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
-    const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : undefined;
 
-    data = {
-      avatar_photo: avatarPhoto,
-      avatar_type: avatarType,
-    };
+    ev.preventDefault();
+    const avatarType = model?.avatar?.avatarType;
+    const avatarPhoto = dataUrl?.split(',')[1];
+
+    const data: {
+      avatar_photo?: string;
+      avatar_type?: string;
+      color?: boolean;
+    } = {avatar_type: avatarType};
+
+    // If an image has been uploaded, then another option is selected, we should not submit the uploaded image
+    if (avatarType === 'upload') {
+      data.avatar_photo = avatarPhoto;
+    }
+
+    if (type?.startsWith('sentryApp')) {
+      data.color = type === 'sentryAppColor';
+    }
 
     api.request(endpoint, {
       method: 'PUT',
       data,
       success: resp => {
         this.setState({savedDataUrl: this.state.dataUrl});
-        this.handleSuccess(resp);
+        this.handleSuccess(this.getModelFromResponse(resp));
       },
-      error: this.handleError.bind(this, 'There was an error saving your preferences.'),
+      error: resp => {
+        const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
+        avatarPhotoErrors.length
+          ? avatarPhotoErrors.map(this.handleError)
+          : this.handleError.bind(this, t('There was an error saving your preferences.'));
+      },
     });
   };
 
@@ -121,6 +165,9 @@ class AvatarChooser extends React.Component<Props, State> {
       type,
       isUser,
       disabled,
+      title,
+      help,
+      defaultChoice,
     } = this.props;
     const {hasError, model} = this.state;
 
@@ -130,14 +177,21 @@ class AvatarChooser extends React.Component<Props, State> {
     if (!model) {
       return <LoadingIndicator />;
     }
+    const {allowDefault, preview, choiceText: defaultChoiceText} = defaultChoice || {};
 
     const avatarType = model.avatar?.avatarType ?? 'letter_avatar';
     const isLetter = avatarType === 'letter_avatar';
+    const isDefault = Boolean(preview && avatarType === 'default');
 
     const isTeam = type === 'team';
     const isOrganization = type === 'organization';
+    const isSentryApp = type?.startsWith('sentryApp');
+
     const choices: [AvatarType, string][] = [];
 
+    if (allowDefault && preview) {
+      choices.push(['default', defaultChoiceText ?? t('Use default avatar')]);
+    }
     if (allowLetter) {
       choices.push(['letter_avatar', t('Use initials')]);
     }
@@ -147,13 +201,12 @@ class AvatarChooser extends React.Component<Props, State> {
     if (allowGravatar) {
       choices.push(['gravatar', t('Use Gravatar')]);
     }
-
     return (
       <Panel>
-        <PanelHeader>{t('Avatar')}</PanelHeader>
+        <PanelHeader>{title || t('Avatar')}</PanelHeader>
         <PanelBody>
           <AvatarForm>
-            <AvatarGroup inline={isLetter}>
+            <AvatarGroup inline={isLetter || isDefault}>
               <RadioGroup
                 style={{flex: 1}}
                 choices={choices}
@@ -169,10 +222,11 @@ class AvatarChooser extends React.Component<Props, State> {
                   user={isUser ? (model as AvatarUser) : undefined}
                   organization={isOrganization ? (model as Organization) : undefined}
                   team={isTeam ? (model as Team) : undefined}
+                  sentryApp={isSentryApp ? (model as SentryApp) : undefined}
                 />
               )}
+              {isDefault && preview}
             </AvatarGroup>
-
             <AvatarUploadSection>
               {allowGravatar && avatarType === 'gravatar' && (
                 <Well>
@@ -180,7 +234,6 @@ class AvatarChooser extends React.Component<Props, State> {
                   <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
                 </Well>
               )}
-
               {model.avatar && avatarType === 'upload' && (
                 <AvatarCropper
                   {...this.props}
@@ -191,6 +244,7 @@ class AvatarChooser extends React.Component<Props, State> {
                 />
               )}
               <AvatarSubmit className="form-actions">
+                {help && <AvatarHelp>{help}</AvatarHelp>}
                 <Button
                   type="button"
                   priority="primary"
@@ -208,24 +262,33 @@ class AvatarChooser extends React.Component<Props, State> {
   }
 }
 
+const AvatarHelp = styled('p')`
+  margin-right: auto;
+  color: ${p => p.theme.gray300};
+  font-size: 14px;
+  width: 50%;
+`;
+
 const AvatarGroup = styled('div')<{inline: boolean}>`
   display: flex;
   flex-direction: ${p => (p.inline ? 'row' : 'column')};
 `;
 
 const AvatarForm = styled('div')`
-  line-height: 1.5em;
-  padding: 1em 1.25em;
+  line-height: ${space(3)};
+  padding: ${space(1.5)} ${space(2)};
+  margin: ${space(1.5)} ${space(1)} ${space(0.5)};
 `;
 
 const AvatarSubmit = styled('fieldset')`
   display: flex;
-  justify-content: flex-end;
-  margin-top: 1em;
+  align-items: center;
+  margin-top: ${space(4)};
+  padding-top: ${space(1.5)};
 `;
 
 const AvatarUploadSection = styled('div')`
-  margin-top: 1em;
+  margin-top: ${space(1.5)};
 `;
 
 export default withApi(AvatarChooser);

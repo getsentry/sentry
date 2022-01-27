@@ -4,18 +4,18 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
-import {Client} from 'app/api';
-import SidebarPanel from 'app/components/sidebar/sidebarPanel';
-import {CommonSidebarProps} from 'app/components/sidebar/types';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'app/types';
-import testableTransition from 'app/utils/testableTransition';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
+import {Client} from 'sentry/api';
+import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
+import {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
+import testableTransition from 'sentry/utils/testableTransition';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 import ProgressHeader from './progressHeader';
 import Task from './task';
@@ -192,7 +192,7 @@ AnimatedTaskItem.defaultProps = {
 const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin: ${space(1)} ${space(4)} ${space(4)} ${space(4)};
 `;
 

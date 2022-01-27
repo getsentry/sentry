@@ -1,39 +1,28 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {AppStoreConnectStatusData} from 'app/types/debugFiles';
-import {unexpectedErrorMessage} from 'app/utils/appStoreValidationErrorMessage';
-import withApi from 'app/utils/withApi';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {
+  AppStoreConnectStatusData,
+  CustomRepoAppStoreConnect,
+} from 'sentry/types/debugFiles';
+import {unexpectedErrorMessage} from 'sentry/utils/appStoreValidationErrorMessage';
+import withApi from 'sentry/utils/withApi';
 
 import StepOne from './stepOne';
 import StepTwo from './stepTwo';
 import {AppStoreApp, StepOneData, StepTwoData} from './types';
 import {getAppStoreErrorMessage} from './utils';
-
-type InitialData = {
-  type: string;
-  appId: string;
-  appName: string;
-  appconnectIssuer: string;
-  appconnectKey: string;
-  appconnectPrivateKey: {
-    'hidden-secret': boolean;
-  };
-  bundleId: string;
-  id: string;
-  name: string;
-};
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   api: Client;
@@ -41,7 +30,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   projectSlug: Project['slug'];
   onSubmit: () => void;
   appStoreConnectStatusData?: AppStoreConnectStatusData;
-  initialData?: InitialData;
+  initialData?: CustomRepoAppStoreConnect;
 };
 
 const steps = [t('App Store Connect credentials'), t('Choose an application')];
@@ -324,7 +313,7 @@ const HeaderContent = styled('div')`
   display: grid;
   grid-template-columns: max-content max-content 1fr;
   align-items: center;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const NumericSymbol = styled('div')`
@@ -367,7 +356,7 @@ const StyledButton = styled(Button)`
 
 const Alerts = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   margin-bottom: ${space(3)};
 `;
 

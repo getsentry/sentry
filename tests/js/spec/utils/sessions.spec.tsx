@@ -1,4 +1,4 @@
-import {SessionField, SessionStatus} from 'app/types';
+import {SessionField, SessionStatus} from 'sentry/types';
 import {
   filterSessionsInTimeWindow,
   getCount,
@@ -6,7 +6,7 @@ import {
   getCrashFreeRate,
   getSessionsInterval,
   getSessionStatusRate,
-} from 'app/utils/sessions';
+} from 'sentry/utils/sessions';
 
 const sessionsApiResponse = {
   start: '2021-07-09T23:00:00Z',

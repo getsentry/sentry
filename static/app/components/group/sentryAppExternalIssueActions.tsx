@@ -1,24 +1,24 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import {deleteExternalIssue} from 'app/actionCreators/platformExternalIssues';
-import {Client} from 'app/api';
-import {IntegrationLink} from 'app/components/issueSyncListElement';
-import {SentryAppIcon} from 'app/components/sentryAppIcon';
-import {IconAdd, IconClose} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
+import {Client} from 'sentry/api';
+import {IntegrationLink} from 'sentry/components/issueSyncListElement';
+import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
+import {IconAdd, IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   Group,
   PlatformExternalIssue,
   SentryAppComponent,
   SentryAppInstallation,
-} from 'app/types';
-import {Event} from 'app/types/event';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
-import withApi from 'app/utils/withApi';
+} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
+import withApi from 'sentry/utils/withApi';
 
 import SentryAppExternalIssueModal from './sentryAppExternalIssueModal';
 
@@ -126,7 +126,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
     return (
       <IssueLinkContainer>
         <IssueLink>
-          <StyledSentryAppIcon slug={sentryAppComponent.sentryApp.slug} />
+          <StyledSentryAppComponentIcon sentryAppComponent={sentryAppComponent} />
           <IntegrationLink onClick={this.doOpenModal} href={url}>
             {displayName}
           </IntegrationLink>
@@ -139,7 +139,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
   }
 }
 
-const StyledSentryAppIcon = styled(SentryAppIcon)`
+const StyledSentryAppComponentIcon = styled(SentryAppComponentIcon)`
   color: ${p => p.theme.textColor};
   width: ${space(3)};
   height: ${space(3)};

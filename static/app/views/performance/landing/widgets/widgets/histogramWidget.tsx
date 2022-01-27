@@ -1,41 +1,21 @@
-import {Fragment, FunctionComponent, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
-import _EventsRequest from 'app/components/charts/eventsRequest';
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
-import {Chart as HistogramChart} from 'app/views/performance/landing/chart/histogramChart';
+import {t} from 'sentry/locale';
+import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/histogramChart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
-import {WidgetDataResult} from '../types';
-import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
-
-type Props = {
-  chartSetting: PerformanceWidgetSetting;
-  chartDefinition: ChartDefinition;
-  title: string;
-  titleTooltip: string;
-  fields: string[];
-  chartColor?: string;
-
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-
-  ContainerActions: FunctionComponent<{isLoading: boolean}>;
-};
+import {PerformanceWidgetProps, WidgetDataResult} from '../types';
 
 type AreaDataType = {
   chart: WidgetDataResult & ReturnType<typeof transformHistogramQuery>;
 };
 
-export function HistogramWidget(props: Props) {
+export function HistogramWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, location} = props;
-  const globalSelection = props.eventView.getGlobalSelection();
+  const globalSelection = props.eventView.getPageFilters();
 
   const Queries = useMemo(() => {
     return {
@@ -44,7 +24,7 @@ export function HistogramWidget(props: Props) {
         component: provided => (
           <HistogramQuery
             {...provided}
-            eventView={props.eventView}
+            eventView={provided.eventView}
             location={props.location}
             numBuckets={20}
             dataFilter="exclude_outliers"
@@ -53,7 +33,7 @@ export function HistogramWidget(props: Props) {
         transform: transformHistogramQuery,
       },
     };
-  }, [props.eventView, props.fields[0], props.organization.slug]);
+  }, [props.chartSetting]);
 
   const onFilterChange = () => {};
 
@@ -61,7 +41,11 @@ export function HistogramWidget(props: Props) {
     <GenericPerformanceWidget<AreaDataType>
       {...props}
       Subtitle={() => (
-        <Subtitle>{t('Compared to last %s ', globalSelection.datetime.period)}</Subtitle>
+        <Subtitle>
+          {globalSelection.datetime.period
+            ? t('In the last %s ', globalSelection.datetime.period)
+            : t('In the last period')}
+        </Subtitle>
       )}
       HeaderActions={provided => (
         <Fragment>
@@ -75,7 +59,6 @@ export function HistogramWidget(props: Props) {
             <HistogramChart
               {...provided}
               colors={props.chartColor ? [props.chartColor] : undefined}
-              height={100}
               location={location}
               isLoading={false}
               isErrored={false}
@@ -84,9 +67,10 @@ export function HistogramWidget(props: Props) {
               chartData={provided.widgetData.chart?.data?.[props.fields[0]]}
               disableXAxis
               disableZoom
+              disableChartPadding
             />
           ),
-          height: 160,
+          height: props.chartHeight,
         },
       ]}
     />

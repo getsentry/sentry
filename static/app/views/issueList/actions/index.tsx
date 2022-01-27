@@ -2,17 +2,18 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
-import {bulkDelete, bulkUpdate, mergeGroups} from 'app/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import Checkbox from 'app/components/checkbox';
-import {t, tct, tn} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
-import space from 'app/styles/space';
-import {GlobalSelection, Group, Organization} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import withApi from 'app/utils/withApi';
+import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {alertStyles} from 'sentry/components/alert';
+import Checkbox from 'sentry/components/checkbox';
+import {t, tct, tn} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import space from 'sentry/styles/space';
+import {Group, Organization, PageFilters} from 'sentry/types';
+import {callIfFunction} from 'sentry/utils/callIfFunction';
+import withApi from 'sentry/utils/withApi';
 
 import ActionSet from './actionSet';
 import Headers from './headers';
@@ -22,7 +23,7 @@ type Props = {
   api: Client;
   allResultsVisible: boolean;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   groupIds: string[];
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
@@ -360,13 +361,20 @@ const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
 `;
 
 const SelectAllNotice = styled('div')`
-  background-color: ${p => p.theme.yellow100};
-  border-top: 1px solid ${p => p.theme.yellow300};
-  border-bottom: 1px solid ${p => p.theme.yellow300};
-  color: ${p => p.theme.black};
-  font-size: ${p => p.theme.fontSizeMedium};
-  text-align: center;
+  ${p => alertStyles({theme: p.theme, type: 'warning', system: true, opaque: true})}
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
   padding: ${space(0.5)} ${space(1.5)};
+  border-top-width: 1px;
+
+  text-align: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  a:not([role='button']) {
+    color: ${p => p.theme.linkColor};
+    border-bottom: none;
+  }
 `;
 
 const SelectAllLink = styled('a')`

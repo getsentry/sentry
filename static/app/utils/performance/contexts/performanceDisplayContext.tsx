@@ -1,4 +1,4 @@
-import {PROJECT_PERFORMANCE_TYPE} from 'app/views/performance/utils';
+import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
 import {createDefinedContext} from './utils';
 

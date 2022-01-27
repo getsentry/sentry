@@ -1,17 +1,17 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {GlobalSelection, Organization, Project} from 'app/types';
-import {analytics} from 'app/utils/analytics';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {Organization, PageFilters, Project} from 'sentry/types';
+import {analytics} from 'sentry/utils/analytics';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import withProjects from 'sentry/utils/withProjects';
 
 import GroupDetails from './groupDetails';
 import SampleEventAlert from './sampleEventAlert';
 
 type Props = {
-  selection: GlobalSelection;
+  selection: PageFilters;
   isGlobalSelectionReady: boolean;
   organization: Organization;
   projects: Project[];
@@ -42,6 +42,4 @@ class OrganizationGroupDetails extends React.Component<Props> {
   }
 }
 
-export default withOrganization(
-  withProjects(withGlobalSelection(OrganizationGroupDetails))
-);
+export default withOrganization(withProjects(withPageFilters(OrganizationGroupDetails)));

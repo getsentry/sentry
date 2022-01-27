@@ -1,7 +1,7 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import Access from 'app/components/acl/access';
-import ConfigStore from 'app/stores/configStore';
+import Access from 'sentry/components/acl/access';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('Access', function () {
   const organization = TestStubs.Organization({

@@ -1,14 +1,14 @@
 import * as React from 'react';
 
-import UserAvatar from 'app/components/avatar/userAvatar';
-import DateTime from 'app/components/dateTime';
-import DeviceName from 'app/components/deviceName';
-import FileSize from 'app/components/fileSize';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import {AvatarUser, Organization, Tag} from 'app/types';
-import {Event} from 'app/types/event';
-import AttachmentUrl from 'app/utils/attachmentUrl';
-import withOrganization from 'app/utils/withOrganization';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import DateTime from 'sentry/components/dateTime';
+import DeviceName from 'sentry/components/deviceName';
+import FileSize from 'sentry/components/fileSize';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {AvatarUser, Organization, Tag} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import AttachmentUrl from 'sentry/utils/attachmentUrl';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   hasUser?: boolean;
@@ -37,12 +37,12 @@ class EventsTableRow extends React.Component<Props> {
         attachment={event.crashFile}
       >
         {url =>
-          url && (
+          url ? (
             <small>
               {crashFileType}: <a href={`${url}?download=1`}>{event.crashFile?.name}</a> (
               <FileSize bytes={event.crashFile?.size || 0} />)
             </small>
-          )
+          ) : null
         }
       </AttachmentUrl>
     );

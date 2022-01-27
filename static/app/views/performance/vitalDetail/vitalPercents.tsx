@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {WebVital} from 'app/utils/discover/fields';
-import {formatPercentage} from 'app/utils/formatters';
+import Tooltip from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {WebVital} from 'sentry/utils/discover/fields';
+import {formatPercentage} from 'sentry/utils/formatters';
 
 import {VitalState, vitalStateIcons, webVitalMeh, webVitalPoor} from './utils';
 
@@ -17,6 +17,7 @@ type Props = {
   vital: WebVital | WebVital[];
   percents: Percent[];
   showVitalPercentNames?: boolean;
+  hideTooltips?: boolean;
 };
 
 function getVitalStateText(vital: WebVital | WebVital[], vitalState) {
@@ -42,22 +43,21 @@ function getVitalStateText(vital: WebVital | WebVital[], vitalState) {
 export default function VitalPercents(props: Props) {
   return (
     <VitalSet>
-      {props.percents.map(pct => {
-        return (
-          <Tooltip
-            key={pct.vitalState}
-            title={getVitalStateText(props.vital, pct.vitalState)}
-          >
-            <VitalStatus>
-              {vitalStateIcons[pct.vitalState]}
-              <span>
-                {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
-                {formatPercentage(pct.percent, 0)}
-              </span>
-            </VitalStatus>
-          </Tooltip>
-        );
-      })}
+      {props.percents.map(pct => (
+        <Tooltip
+          key={pct.vitalState}
+          title={getVitalStateText(props.vital, pct.vitalState)}
+          disabled={props.hideTooltips}
+        >
+          <VitalStatus data-test-id="vital-status">
+            {vitalStateIcons[pct.vitalState]}
+            <span>
+              {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
+              {formatPercentage(pct.percent, 0)}
+            </span>
+          </VitalStatus>
+        </Tooltip>
+      ))}
     </VitalSet>
   );
 }

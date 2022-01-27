@@ -1,5 +1,5 @@
-import {usePageError} from 'app/utils/performance/contexts/pageError';
-import {PerformanceDisplayProvider} from 'app/utils/performance/contexts/performanceDisplayContext';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
@@ -21,6 +21,7 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.TPM_AREA,
             PerformanceWidgetSetting.DURATION_HISTOGRAM,
             PerformanceWidgetSetting.P50_DURATION_AREA,
+            PerformanceWidgetSetting.P75_DURATION_AREA,
             PerformanceWidgetSetting.P95_DURATION_AREA,
             PerformanceWidgetSetting.P99_DURATION_AREA,
           ]}
@@ -28,7 +29,6 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
         <DoubleChartRow
           {...props}
           allowedCharts={[
-            PerformanceWidgetSetting.MOST_RELATED_ERRORS,
             PerformanceWidgetSetting.MOST_RELATED_ISSUES,
             PerformanceWidgetSetting.SLOW_HTTP_OPS,
             PerformanceWidgetSetting.SLOW_RESOURCE_OPS,

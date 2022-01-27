@@ -1,27 +1,27 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import ProjectActions from 'app/actions/projectActions';
-import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import AsyncComponent from 'app/components/asyncComponent';
+import ProjectActions from 'sentry/actions/projectActions';
+import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import AsyncComponent from 'sentry/components/asyncComponent';
 import {
   Panel,
   PanelAlert,
   PanelBody,
   PanelHeader,
   PanelItem,
-} from 'app/components/panels';
-import Switch from 'app/components/switchButton';
-import filterGroups, {customFilterFields} from 'app/data/forms/inboundFilters';
-import {t} from 'app/locale';
-import HookStore from 'app/stores/hookStore';
-import {Project} from 'app/types';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import Form from 'app/views/settings/components/forms/form';
-import FormField from 'app/views/settings/components/forms/formField';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
+} from 'sentry/components/panels';
+import Switch from 'sentry/components/switchButton';
+import filterGroups, {customFilterFields} from 'sentry/data/forms/inboundFilters';
+import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
+import {Project} from 'sentry/types';
+import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromConfig';
+import Form from 'sentry/views/settings/components/forms/form';
+import FormField from 'sentry/views/settings/components/forms/formField';
+import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {

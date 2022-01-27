@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import re
+from typing import Any, Mapping, Sequence
 
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from sentry import http, options
+from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -14,15 +18,15 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.repositories import RepositoryMixin
-from sentry.models import Integration, OrganizationIntegration, Repository
-from sentry.pipeline import PipelineView
+from sentry.models import Integration, Organization, OrganizationIntegration, Repository
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils import jwt
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubAppsClient
+from .client import GitHubAppsClient, GitHubClientMixin
 from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
 from .utils import get_jwt
@@ -60,7 +64,6 @@ FEATURES = [
     ),
 ]
 
-
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
@@ -79,20 +82,23 @@ API_ERRORS = {
 }
 
 
-def build_repository_query(metadata, name, query):
+def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
     account_type = "user" if metadata["account_type"] == "User" else "org"
-    return (f"{account_type}:{name} {query}").encode()
+    return f"{account_type}:{name} {query}".encode()
 
 
-class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
+class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):  # type: ignore
     repo_search = True
 
-    def get_client(self):
+    def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
 
-    def get_codeowner_file(self, repo, ref=None):
+    def get_codeowner_file(
+        self, repo: Repository, ref: str | None = None
+    ) -> Mapping[str, Any] | None:
         try:
             files = self.get_client().search_file(repo.name, "CODEOWNERS")
+            # TODO(mgaeta): Pull this logic out of the try/catch.
             for f in files["items"]:
                 if f["name"] == "CODEOWNERS":
                     filepath = f["path"]
@@ -101,10 +107,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     return {"filepath": filepath, "html_url": html_url, "raw": contents}
         except ApiError:
             return None
-
         return None
 
-    def get_repositories(self, query=None):
+    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
         if not query:
             return [
                 {"name": i["name"], "identifier": i["full_name"]}
@@ -117,7 +122,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             {"name": i["name"], "identifier": i["full_name"]} for i in response.get("items", [])
         ]
 
-    def search_issues(self, query):
+    def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         return self.get_client().search_issues(query)
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
@@ -125,7 +130,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
-    def get_unmigratable_repositories(self):
+    def get_unmigratable_repositories(self) -> Sequence[Repository]:
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
 
@@ -135,22 +140,29 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
 
-    def reinstall(self):
+    def reinstall(self) -> None:
         self.reinstall_repositories()
 
-    def message_from_error(self, exc):
-        if isinstance(exc, ApiError):
-            message = API_ERRORS.get(exc.code)
-            if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
-                message += f" Please also confirm that the commits associated with the following URL have been pushed to GitHub: {exc.url}"
-
-            if message is None:
-                message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
-            return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
-        else:
+    def message_from_error(self, exc: Exception) -> str:
+        if not isinstance(exc, ApiError):
             return ERR_INTERNAL
 
-    def has_repo_access(self, repo):
+        if not exc.code:
+            message = ""
+        else:
+            message = API_ERRORS.get(exc.code, "")
+
+        if exc.code == 404 and exc.url and re.search(r"/repos/.*/(compare|commits)", exc.url):
+            message += (
+                " Please also confirm that the commits associated with "
+                f"the following URL have been pushed to GitHub: {exc.url}"
+            )
+
+        if not message:
+            message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
+        return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
+
+    def has_repo_access(self, repo: Repository) -> bool:
         client = self.get_client()
         try:
             # make sure installation has access to this specific repo
@@ -163,7 +175,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return True
 
 
-class GitHubIntegrationProvider(IntegrationProvider):
+class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
     key = "github"
     name = "GitHub"
     metadata = metadata
@@ -179,7 +191,15 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def post_install(self, integration, organization, extra=None):
+    def get_client(self) -> GitHubClientMixin:
+        return GitHubAppsClient(integration=self.integration_cls)
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: Organization,
+        extra: Mapping[str, Any] | None = None,
+    ) -> None:
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["github", "integrations:github"],
@@ -195,25 +215,23 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 }
             )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [GitHubInstallationRedirect()]
 
-    def get_installation_info(self, installation_id):
+    def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
+        client = self.get_client()
         headers = {
             # TODO(jess): remove this whenever it's out of preview
             "Accept": "application/vnd.github.machine-man-preview+json",
         }
         headers.update(jwt.authorization_header(get_jwt()))
-        with http.build_session() as session:
-            resp = session.get(
-                f"https://api.github.com/app/installations/{installation_id}", headers=headers
-            )
-            resp.raise_for_status()
-        installation_resp = resp.json()
 
-        return installation_resp
+        resp: Mapping[str, Any] = client.get(
+            f"/app/installations/{installation_id}", headers=headers
+        )
+        return resp
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:
         installation = self.get_installation_info(state["installation_id"])
 
         integration = {
@@ -238,7 +256,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(
@@ -246,39 +264,59 @@ class GitHubIntegrationProvider(IntegrationProvider):
         )
 
 
-class GitHubInstallationRedirect(PipelineView):
-    def get_app_url(self):
+class GitHubInstallationRedirect(PipelineView):  # type: ignore
+    def get_app_url(self) -> str:
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
         if "reinstall_id" in request.GET:
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
+            organization = self.get_active_organization(request)
+
+            # We want to wait until the scheduled deletions finish or else the post install to migrate repos do not work.
+            integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
+                integration__provider=GitHubIntegrationProvider.key,
+                organization=organization,
+                status=ObjectStatus.PENDING_DELETION,
+            ).exists()
+
+            if integration_pending_deletion_exists:
+                return render_to_response(
+                    "sentry/integrations/integration-pending-deletion.html",
+                    context={
+                        "payload": {
+                            "success": False,
+                            "data": {"error": _("GitHub installation pending deletion.")},
+                        }
+                    },
+                    request=request,
+                )
+
             try:
                 # We want to limit GitHub integrations to 1 organization
                 installations_exist = OrganizationIntegration.objects.filter(
                     integration=Integration.objects.get(external_id=request.GET["installation_id"])
                 ).exists()
 
-                if installations_exist:
-                    context = {
+            except Integration.DoesNotExist:
+                pipeline.bind_state("installation_id", request.GET["installation_id"])
+                return pipeline.next_step()
+
+            if installations_exist:
+                return render_to_response(
+                    "sentry/integrations/github-integration-exists-on-another-org.html",
+                    context={
                         "payload": {
                             "success": False,
                             "data": {
                                 "error": _("Github installed on another Sentry organization.")
                             },
                         }
-                    }
-                    return render_to_response(
-                        "sentry/integrations/github-integration-exists-on-another-org.html",
-                        context=context,
-                        request=request,
-                    )
-
-            except Integration.DoesNotExist:
-                pipeline.bind_state("installation_id", request.GET["installation_id"])
-                return pipeline.next_step()
+                    },
+                    request=request,
+                )
 
         return self.redirect(self.get_app_url())

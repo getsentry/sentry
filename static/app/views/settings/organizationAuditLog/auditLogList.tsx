@@ -1,18 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'app/components/avatar/userAvatar';
-import DateTime from 'app/components/dateTime';
-import SelectField from 'app/components/forms/selectField';
-import Pagination from 'app/components/pagination';
-import {PanelTable} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {AuditLog} from 'app/types';
-import {use24Hours} from 'app/utils/dates';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import DateTime from 'sentry/components/dateTime';
+import SelectField from 'sentry/components/forms/selectField';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {AuditLog} from 'sentry/types';
+import {use24Hours} from 'sentry/utils/dates';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const avatarStyle = {
   width: 36,
@@ -156,7 +156,7 @@ const MonoDetail = styled('code')`
 const TimestampInfo = styled('div')`
   display: grid;
   grid-template-rows: auto auto;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

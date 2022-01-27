@@ -1,30 +1,28 @@
 import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {EChartOption} from 'echarts/lib/echarts';
 
-import Feature from 'app/components/acl/feature';
-import ChartZoom from 'app/components/charts/chartZoom';
-import ErrorPanel from 'app/components/charts/errorPanel';
-import LineChart from 'app/components/charts/lineChart';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import NotAvailable from 'app/components/notAvailable';
-import QuestionTooltip from 'app/components/questionTooltip';
-import SidebarSection from 'app/components/sidebarSection';
-import Tag from 'app/components/tag';
-import Tooltip from 'app/components/tooltip';
-import {IconWarning} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import LineChart from 'sentry/components/charts/lineChart';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import NotAvailable from 'sentry/components/notAvailable';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import SidebarSection from 'sentry/components/sidebarSection';
+import Tag from 'sentry/components/tag';
+import Tooltip from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
   SessionField,
-} from 'app/types';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
-import {getAdoptionSeries, getCount, getCountAtIndex} from 'app/utils/sessions';
+} from 'sentry/types';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
 
 import {
   ADOPTION_STAGE_LABELS,
@@ -144,7 +142,7 @@ function ReleaseAdoption({
     },
   };
 
-  const chartOptions = {
+  const chartOptions: Omit<React.ComponentProps<typeof LineChart>, 'series' | 'ref'> = {
     height: hasUsers ? 280 : 140,
     grid: [
       {
@@ -186,13 +184,8 @@ function ReleaseAdoption({
     tooltip: {
       trigger: 'axis' as const,
       truncate: 80,
-      valueFormatter: (
-        value: number,
-        label?: string,
-        seriesParams?: EChartOption.Tooltip.Format
-      ) => {
-        const {axisIndex, dataIndex} =
-          (seriesParams as EChartOption.Tooltip.Format & {axisIndex: number}) || {};
+      valueFormatter: (value, label, seriesParams: any) => {
+        const {axisIndex, dataIndex} = seriesParams || {};
         const absoluteCount = getCountAtIndex(
           releaseSessions?.groups,
           axisIndexToSessionsField[axisIndex ?? 0],
@@ -202,10 +195,10 @@ function ReleaseAdoption({
         return label && Object.values(releaseMarkLinesLabels).includes(label)
           ? ''
           : `<span>${formatAbbreviatedNumber(absoluteCount)} <span style="color: ${
-              theme.white
+              theme.textColor
             };margin-left: ${space(0.5)}">${value}%</span></span>`;
       },
-      filter: (_, seriesParam) => {
+      filter: (_, seriesParam: any) => {
         const {seriesName, axisIndex} = seriesParam;
         // do not display tooltips for "Users Adopted" marklines
         if (
@@ -236,37 +229,35 @@ function ReleaseAdoption({
   return (
     <div>
       {isMobileRelease(project.platform) && (
-        <Feature features={['release-adoption-stage']}>
-          <SidebarSection
-            title={t('Adoption Stage')}
-            icon={
-              multipleEnvironments && (
-                <QuestionTooltip
-                  position="top"
-                  title={t(
-                    'See if a release has low adoption, been adopted by users, or replaced by another release. Select an environment above to view the stage this release is in.'
-                  )}
-                  size="sm"
-                />
-              )
-            }
-          >
-            {adoptionStageLabel && !multipleEnvironments ? (
-              <div>
-                <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
-                  <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
-                </Tooltip>
-                <AdoptionEnvironment>
-                  {tct(`in [environment]`, {environment})}
-                </AdoptionEnvironment>
-              </div>
-            ) : (
-              <NotAvailableWrapper>
-                <NotAvailable />
-              </NotAvailableWrapper>
-            )}
-          </SidebarSection>
-        </Feature>
+        <SidebarSection
+          title={t('Adoption Stage')}
+          icon={
+            multipleEnvironments && (
+              <QuestionTooltip
+                position="top"
+                title={t(
+                  'See if a release has low adoption, been adopted by users, or replaced by another release. Select an environment above to view the stage this release is in.'
+                )}
+                size="sm"
+              />
+            )
+          }
+        >
+          {adoptionStageLabel && !multipleEnvironments ? (
+            <div>
+              <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+                <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+              </Tooltip>
+              <AdoptionEnvironment>
+                {tct(`in [environment]`, {environment})}
+              </AdoptionEnvironment>
+            </div>
+          ) : (
+            <NotAvailableWrapper>
+              <NotAvailable />
+            </NotAvailableWrapper>
+          )}
+        </SidebarSection>
       )}
       <RelativeBox>
         <ChartLabel top="0px">
@@ -318,7 +309,12 @@ function ReleaseAdoption({
               xAxisIndex={[sessionsAxisIndex, usersAxisIndex]}
             >
               {zoomRenderProps => (
-                <LineChart {...chartOptions} {...zoomRenderProps} series={getSeries()} />
+                <LineChart
+                  {...chartOptions}
+                  {...zoomRenderProps}
+                  series={getSeries()}
+                  transformSinglePointToLine
+                />
               )}
             </ChartZoom>
           </TransitionChart>

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from django.http import HttpResponse
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations import (
     FeatureDescription,
@@ -28,7 +30,7 @@ class ExampleSetupView(PipelineView):
         </form>
     """
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: Request, pipeline) -> Response:
         if "name" in request.POST:
             pipeline.bind_state("name", request.POST["name"])
             return pipeline.next_step()
@@ -76,7 +78,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
         }
         return comment
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "issueType"]
 
     def get_persisted_user_default_config_fields(self):

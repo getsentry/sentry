@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import withApi from 'sentry/utils/withApi';
 
 describe('withApi', function () {
   let apiInstance: Client | undefined;

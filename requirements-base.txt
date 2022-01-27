@@ -3,12 +3,15 @@ boto3==1.13.16
 botocore==1.16.16
 celery==4.4.7
 click==7.1.2
+# See if we can remove CPATH from lib.sh
+# https://github.com/getsentry/sentry/pull/30094
 confluent-kafka==1.5.0; python_version == '3.8'
 confluent-kafka==1.6.0; python_version == '3.9'
 croniter==0.3.37
 datadog==0.29.3
 django-crispy-forms==1.8.1
 django-picklefield==2.1.0
+django-pg-zero-downtime-migrations==0.10
 Django==2.2.24
 djangorestframework==3.11.2
 email-reply-parser==0.5.12
@@ -23,14 +26,14 @@ google-cloud-storage==1.35.0
 # https://github.com/googleapis/python-crc32c/issues/83
 google-crc32c==1.1.2
 jsonschema==3.2.0
-lxml==4.6.3
+lxml==4.6.5
 maxminddb==2.0.3
 mistune==0.8.4
 mmh3==3.0.0
 parsimonious==0.8.0
 petname==2.6
 phonenumberslite==8.12.0
-Pillow==8.3.1
+Pillow==8.3.2
 progressbar2==3.32.0
 python-rapidjson==1.4
 psycopg2-binary==2.8.6
@@ -38,6 +41,7 @@ PyJWT==2.1.0
 python-dateutil==2.8.1
 python-memcached==1.59
 python-u2flib-server==5.0.0
+fido2==0.9.2
 python3-saml==1.10.1
 PyYAML==5.4
 rb==1.9.0
@@ -51,7 +55,7 @@ rfc3986-validator==0.1.1
 # [end] jsonschema format validators
 sentry-relay==0.8.9
 sentry-sdk>=1.4.3,<1.5.0
-snuba-sdk>=0.0.26,<1.0.0
+snuba-sdk==0.1.1
 simplejson==3.17.2
 statsd==3.3
 structlog==21.1.0
@@ -60,6 +64,8 @@ toronado==0.1.0
 ua-parser==0.10.0
 unidiff==0.6.0
 urllib3==1.24.2
+# See if we can remove LDFLAGS from lib.sh
+# https://github.com/getsentry/sentry/pull/30094
 uWSGI==2.0.19.1
 zstandard==0.14.1
 

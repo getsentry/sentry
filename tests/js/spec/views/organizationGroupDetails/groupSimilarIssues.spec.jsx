@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import GroupSimilarIssues from 'app/views/organizationGroupDetails/groupSimilarIssues';
+import GroupSimilarIssues from 'sentry/views/organizationGroupDetails/groupSimilarIssues';
 
 describe('Issues Similar View', function () {
   let mock;

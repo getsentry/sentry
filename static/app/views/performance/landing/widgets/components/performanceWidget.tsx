@@ -2,14 +2,14 @@ import {Fragment, useCallback, useRef, useState} from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 
-import ErrorPanel from 'app/components/charts/errorPanel';
-import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons/iconWarning';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
-import useApi from 'app/utils/useApi';
-import getPerformanceWidgetContainer from 'app/views/performance/landing/widgets/components/performanceWidgetContainer';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
+import Placeholder from 'sentry/components/placeholder';
+import {IconWarning} from 'sentry/icons/iconWarning';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useApi from 'sentry/utils/useApi';
+import getPerformanceWidgetContainer from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 
 import {
   GenericPerformanceWidgetProps,
@@ -66,6 +66,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   return (
     <Fragment>
       <QueryHandler
+        eventView={props.eventView}
         widgetData={widgetData}
         setWidgetDataForKey={setWidgetDataForKey}
         removeWidgetDataForKey={removeWidgetDataForKey}
@@ -105,8 +106,6 @@ function _DataDisplay<T extends WidgetDataConstraint>(
   const isErrored =
     !missingDataKeys && Object.values(props.widgetData).some(d => d && d.isErrored);
 
-  const paddingOffset = 32; // space(2) * 2;
-
   return (
     <Container data-test-id="performance-widget-container">
       <ContentContainer>
@@ -116,12 +115,13 @@ function _DataDisplay<T extends WidgetDataConstraint>(
         isLoading={isLoading}
         isErrored={isErrored}
         hasData={hasData}
-        errorComponent={<DefaultErrorComponent height={totalHeight - paddingOffset} />}
+        errorComponent={<DefaultErrorComponent height={totalHeight} />}
         dataComponents={Visualizations.map((Visualization, index) => (
           <ContentContainer
             key={index}
             noPadding={Visualization.noPadding}
             bottomPadding={Visualization.bottomPadding}
+            data-test-id="widget-state-has-data"
             onClick={() =>
               trackDataComponentClicks(props.chartSetting, props.organization)
             }
@@ -134,12 +134,12 @@ function _DataDisplay<T extends WidgetDataConstraint>(
             />
           </ContentContainer>
         ))}
-        loadingComponent={<Placeholder height={`${totalHeight - paddingOffset}px`} />}
+        loadingComponent={<Placeholder height={`${totalHeight}px`} />}
         emptyComponent={
           EmptyComponent ? (
             <EmptyComponent />
           ) : (
-            <Placeholder height={`${totalHeight - paddingOffset}px`} />
+            <Placeholder height={`${totalHeight}px`} />
           )
         }
       />
@@ -151,7 +151,7 @@ export const DataDisplay = withRouter(_DataDisplay);
 
 const DefaultErrorComponent = (props: {height: number}) => {
   return (
-    <ErrorPanel height={`${props.height}px`}>
+    <ErrorPanel data-test-id="widget-state-is-errored" height={`${props.height}px`}>
       <IconWarning color="gray300" size="lg" />
     </ErrorPanel>
   );
@@ -161,7 +161,7 @@ const defaultGrid = {
   left: space(0),
   right: space(0),
   top: space(2),
-  bottom: space(0),
+  bottom: space(1),
 };
 
 const ContentContainer = styled('div')<{noPadding?: boolean; bottomPadding?: boolean}>`
@@ -169,6 +169,7 @@ const ContentContainer = styled('div')<{noPadding?: boolean; bottomPadding?: boo
   padding-right: ${p => (p.noPadding ? space(0) : space(2))};
   padding-bottom: ${p => (p.bottomPadding ? space(1) : space(0))};
 `;
+
 GenericPerformanceWidget.defaultProps = {
   containerType: 'panel',
   chartHeight: 200,

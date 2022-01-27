@@ -3,11 +3,11 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Client} from 'app/api';
-import ProjectsStore from 'app/stores/projectsStore';
-import EventView from 'app/utils/discover/eventView';
-import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
-import {TagExplorer} from 'app/views/performance/transactionSummary/transactionOverview/tagExplorer';
+import {Client} from 'sentry/api';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {TagExplorer} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 
 function initialize(projects, query, additionalFeatures = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
@@ -173,7 +173,7 @@ describe('TagExplorer', function () {
       {
         project: '123',
       },
-      ['performance-tag-page']
+      []
     );
 
     const wrapper = mountWithTheme(

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {toPercent} from 'app/components/performance/waterfall/utils';
+import {toPercent} from 'sentry/components/performance/waterfall/utils';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 

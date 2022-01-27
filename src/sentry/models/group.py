@@ -328,6 +328,19 @@ class GroupManager(BaseManager):
 
         return self.get(id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1])
 
+    def filter_to_team(self, team):
+        from sentry.models import GroupAssignee, Project
+
+        project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
+        user_ids = list(team.member_set.values_list("user_id", flat=True))
+        assigned_groups = GroupAssignee.objects.filter(
+            Q(team=team) | Q(user_id__in=user_ids)
+        ).values_list("group_id", flat=True)
+        return self.filter(
+            project__in=project_list,
+            id__in=assigned_groups,
+        )
+
 
 class Group(Model):
     """

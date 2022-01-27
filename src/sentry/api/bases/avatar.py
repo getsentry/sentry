@@ -1,4 +1,5 @@
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.fields import AvatarField
@@ -28,10 +29,11 @@ class AvatarSerializer(serializers.Serializer):
 class AvatarMixin:
     object_type = None
     model = None
+    serializer_cls = AvatarSerializer
 
-    def get(self, request, **kwargs):
-        obj = kwargs[self.object_type]
-        return Response(serialize(obj, request.user))
+    def get(self, request: Request, **kwargs) -> Response:
+        obj = kwargs.pop(self.object_type, None)
+        return Response(serialize(obj, request.user, **kwargs))
 
     def get_serializer_context(self, obj, **kwargs):
         return {"type": self.model, "kwargs": {self.object_type: obj}}
@@ -39,9 +41,13 @@ class AvatarMixin:
     def get_avatar_filename(self, obj):
         return f"{obj.id}.png"
 
-    def put(self, request, **kwargs):
-        obj = kwargs[self.object_type]
-        serializer = AvatarSerializer(data=request.data, context=self.get_serializer_context(obj))
+    def put(self, request: Request, **kwargs) -> Response:
+        obj = kwargs.pop(self.object_type, None)
+
+        serializer = self.serializer_cls(
+            data=request.data, context=self.get_serializer_context(obj)
+        )
+
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -52,6 +58,7 @@ class AvatarMixin:
             type=result["avatar_type"],
             avatar=result.get("avatar_photo"),
             filename=self.get_avatar_filename(obj),
+            color=result.get("color"),
         )
 
-        return Response(serialize(obj, request.user))
+        return Response(serialize(obj, request.user, **kwargs))

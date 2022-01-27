@@ -3,12 +3,12 @@ import {
   userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
-import {getByTextContent} from 'sentry-test/utils';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   DYNAMIC_SAMPLING_DOC_LINK,
   LEGACY_BROWSER_LIST,
-} from 'app/views/settings/project/filtersAndSampling/utils';
+} from 'sentry/views/settings/project/filtersAndSampling/utils';
 
 import {commonConditionCategories, renderComponent, renderModal} from './utils';
 
@@ -190,7 +190,7 @@ describe('Filters and Sampling - Transaction rule', function () {
 
       // Modal will close
       await waitForElementToBeRemoved(() =>
-        screen.getByText('Edit Transaction Sampling Rule')
+        screen.queryByText('Edit Transaction Sampling Rule')
       );
 
       // Error rules panel is updated
@@ -234,10 +234,12 @@ describe('Filters and Sampling - Transaction rule', function () {
         expect(screen.getByText('Tracing')).toBeInTheDocument();
         expect(screen.getByRole('checkbox')).toBeChecked();
         expect(
-          getByTextContent(
-            'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. Learn more about tracing.'
+          screen.getByText(
+            textWithMarkupMatcher(
+              'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. Learn more about tracing.'
+            )
           )
-        ).toBeTruthy();
+        ).toBeInTheDocument();
         expect(
           screen.getByRole('link', {
             name: 'Learn more about tracing',
@@ -257,7 +259,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         // Close Modal
         userEvent.click(screen.getByLabelText('Close Modal'));
         await waitForElementToBeRemoved(() =>
-          screen.getByText('Add Transaction Sampling Rule')
+          screen.queryByText('Add Transaction Sampling Rule')
         );
       });
 
@@ -302,7 +304,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         // Close Modal
         userEvent.click(screen.getByLabelText('Close Modal'));
         await waitForElementToBeRemoved(() =>
-          screen.getByText('Add Transaction Sampling Rule')
+          screen.queryByText('Add Transaction Sampling Rule')
         );
       });
 
@@ -398,7 +400,7 @@ describe('Filters and Sampling - Transaction rule', function () {
 
           // Modal will close
           await waitForElementToBeRemoved(() =>
-            screen.getByText('Add Transaction Sampling Rule')
+            screen.queryByText('Add Transaction Sampling Rule')
           );
 
           // Transaction rules panel is updated
@@ -501,7 +503,7 @@ describe('Filters and Sampling - Transaction rule', function () {
 
             // Modal will close
             await waitForElementToBeRemoved(() =>
-              screen.getByText('Add Transaction Sampling Rule')
+              screen.queryByText('Add Transaction Sampling Rule')
             );
 
             // Transaction rules panel is updated
@@ -628,7 +630,7 @@ describe('Filters and Sampling - Transaction rule', function () {
 
             // Modal will close
             await waitForElementToBeRemoved(() =>
-              screen.getByText('Add Transaction Sampling Rule')
+              screen.queryByText('Add Transaction Sampling Rule')
             );
 
             // Transaction rules panel is updated
@@ -826,7 +828,7 @@ describe('Filters and Sampling - Transaction rule', function () {
 
       // Modal will close
       await waitForElementToBeRemoved(() =>
-        screen.getByText('Edit Transaction Sampling Rule')
+        screen.queryByText('Edit Transaction Sampling Rule')
       );
 
       // Error rules panel is updated

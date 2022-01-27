@@ -1,27 +1,35 @@
+// XXX(epurkhiser): Ensure the LatestContextStore is initialized before we set
+// the active org. Otherwise we will trigger an action that does nothing
+import 'sentry/stores/latestContextStore';
+
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {setActiveOrganization} from 'app/actionCreators/organizations';
-import GlobalSelectionActions from 'app/actions/globalSelectionActions';
-import OrganizationActions from 'app/actions/organizationActions';
-import ProjectActions from 'app/actions/projectActions';
-import TeamActions from 'app/actions/teamActions';
-import {Client} from 'app/api';
-import {Organization, Project, Team} from 'app/types';
-import {getPreloadedDataPromise} from 'app/utils/getPreloadedData';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {setActiveOrganization} from 'sentry/actionCreators/organizations';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import PageFiltersActions from 'sentry/actions/pageFiltersActions';
+import ProjectActions from 'sentry/actions/projectActions';
+import TeamActions from 'sentry/actions/teamActions';
+import {Client, ResponseMeta} from 'sentry/api';
+import {Organization, Project, Team} from 'sentry/types';
+import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
 async function fetchOrg(
   api: Client,
   slug: string,
   isInitialFetch?: boolean
 ): Promise<Organization> {
-  const org = await getPreloadedDataPromise(
+  const [org] = await getPreloadedDataPromise(
     'organization',
     slug,
     () =>
       // This data should get preloaded in static/sentry/index.ejs
       // If this url changes make sure to update the preload
-      api.requestPromise(`/organizations/${slug}/`, {query: {detailed: 0}}),
+      api.requestPromise(`/organizations/${slug}/`, {
+        includeAllArgs: true,
+        query: {detailed: 0},
+      }),
     isInitialFetch
   );
 
@@ -38,7 +46,12 @@ async function fetchOrg(
 async function fetchProjectsAndTeams(
   slug: string,
   isInitialFetch?: boolean
-): Promise<[Project[], Team[]]> {
+): Promise<
+  [
+    [Project[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
+    [Team[], string | undefined, XMLHttpRequest | ResponseMeta | undefined]
+  ]
+> {
   // Create a new client so the request is not cancelled
   const uncancelableApi = new Client();
 
@@ -49,6 +62,7 @@ async function fetchProjectsAndTeams(
       // This data should get preloaded in static/sentry/index.ejs
       // If this url changes make sure to update the preload
       uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
+        includeAllArgs: true,
         query: {
           all_projects: 1,
           collapse: 'latestDeploys',
@@ -62,7 +76,10 @@ async function fetchProjectsAndTeams(
     slug,
     // This data should get preloaded in static/sentry/index.ejs
     // If this url changes make sure to update the preload
-    () => uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
+    () =>
+      uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
+        includeAllArgs: true,
+      }),
     isInitialFetch
   );
 
@@ -79,7 +96,10 @@ async function fetchProjectsAndTeams(
     }
   }
 
-  return [[], []];
+  return [
+    [[], undefined, undefined],
+    [[], undefined, undefined],
+  ];
 }
 
 /**
@@ -99,7 +119,7 @@ export async function fetchOrganizationDetails(
   if (!silent) {
     OrganizationActions.reset();
     ProjectActions.reset();
-    GlobalSelectionActions.reset();
+    PageFiltersActions.reset();
   }
 
   const loadOrganization = async () => {
@@ -132,9 +152,22 @@ export async function fetchOrganizationDetails(
   };
 
   const loadTeamsAndProjects = async () => {
-    const [projects, teams] = await fetchProjectsAndTeams(slug, isInitialFetch);
+    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(
+      slug,
+      isInitialFetch
+    );
+
     ProjectActions.loadProjects(projects);
-    TeamActions.loadTeams(teams);
+
+    const teamPageLinks = resp?.getResponseHeader('Link');
+    if (teamPageLinks) {
+      const paginationObject = parseLinkHeader(teamPageLinks);
+      const hasMore = paginationObject?.next?.results ?? false;
+      const cursor = paginationObject.next?.cursor;
+      TeamActions.loadTeams(teams, hasMore, cursor);
+    } else {
+      TeamActions.loadTeams(teams);
+    }
   };
 
   return Promise.all([loadOrganization(), loadTeamsAndProjects()]);

@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
 
-import GuideActions from 'app/actions/guideActions';
-import OrganizationsActions from 'app/actions/organizationsActions';
-import {Client} from 'app/api';
-import getGuidesContent from 'app/components/assistant/getGuidesContent';
-import {Guide, GuidesContent, GuidesServerData} from 'app/components/assistant/types';
-import ConfigStore from 'app/stores/configStore';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import GuideActions from 'sentry/actions/guideActions';
+import OrganizationsActions from 'sentry/actions/organizationsActions';
+import {Client} from 'sentry/api';
+import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
+import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
+import ConfigStore from 'sentry/stores/configStore';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;

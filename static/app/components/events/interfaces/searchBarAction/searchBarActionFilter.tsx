@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownControl, {Content} from 'app/components/dropdownControl';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import space from 'app/styles/space';
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import DropdownControl, {Content} from 'sentry/components/dropdownControl';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import space from 'sentry/styles/space';
 
 import DropDownButton from './dropDownButton';
 
@@ -128,7 +128,7 @@ const Header = styled('div')`
 `;
 
 const StyledList = styled(List)`
-  grid-gap: 0;
+  gap: 0;
 `;
 
 const StyledListItem = styled(ListItem)<{isChecked: boolean; hasDescription: boolean}>`

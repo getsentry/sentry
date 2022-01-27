@@ -1,11 +1,11 @@
 import * as React from 'react';
 import {motion} from 'framer-motion';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
-import {PlatformKey} from 'app/data/platformCategories';
-import platforms from 'app/data/platforms';
-import {t, tct} from 'app/locale';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
+import {t, tct} from 'sentry/locale';
 
 import SetupIntroduction from './setupIntroduction';
 

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import AreaChart from 'app/components/charts/areaChart';
+import AreaChart from 'sentry/components/charts/areaChart';
 
 type AreaChartProps = React.ComponentProps<typeof AreaChart>;
 

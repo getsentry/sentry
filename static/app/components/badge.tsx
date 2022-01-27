@@ -1,8 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import type {Theme} from 'app/utils/theme';
+import space from 'sentry/styles/space';
+import type {Theme} from 'sentry/utils/theme';
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
   children?: React.ReactNode;

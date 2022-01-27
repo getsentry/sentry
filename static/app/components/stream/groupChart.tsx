@@ -1,10 +1,10 @@
 import LazyLoad from 'react-lazyload';
 
-import MiniBarChart from 'app/components/charts/miniBarChart';
-import {t} from 'app/locale';
-import {Group, TimeseriesValue} from 'app/types';
-import {Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {t} from 'sentry/locale';
+import {Group, TimeseriesValue} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import theme from 'sentry/utils/theme';
 
 type Props = {
   statsPeriod: string;

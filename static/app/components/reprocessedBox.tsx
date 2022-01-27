@@ -1,13 +1,13 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {BannerContainer, BannerSummary} from 'app/components/events/styles';
-import Link from 'app/components/links/link';
-import {IconCheckmark, IconClose} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {GroupActivityReprocess, Organization} from 'app/types';
-import localStorage from 'app/utils/localStorage';
+import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
+import Link from 'sentry/components/links/link';
+import {IconCheckmark, IconClose} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {GroupActivityReprocess, Organization} from 'sentry/types';
+import localStorage from 'sentry/utils/localStorage';
 
 type Props = {
   reprocessActivity: GroupActivityReprocess;

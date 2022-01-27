@@ -1,55 +1,42 @@
-import React, {Component} from 'react';
-import DocumentTitle from 'react-document-title';
+import {Fragment, useEffect, useState} from 'react';
 
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import GroupStore from 'app/stores/groupStore';
-import {Organization, Project} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import withOrganization from 'app/utils/withOrganization';
-import SampleEventAlert from 'app/views/organizationGroupDetails/sampleEventAlert';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import {Organization, Project} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import SampleEventAlert from 'sentry/views/organizationGroupDetails/sampleEventAlert';
 
 type Props = {
   organization: Organization;
   projects: Project[];
+  children: React.ReactChildren;
 };
 
-type State = {
-  showSampleEventBanner: boolean;
-};
-class IssueListContainer extends Component<Props, State> {
-  state: State = {
-    showSampleEventBanner: false,
-  };
+function IssueListContainer({organization, children}: Props) {
+  const [showSampleEventBanner, setShowSampleEventBanner] = useState(false);
 
-  listener = GroupStore.listen(() => this.onGroupChange(), undefined);
-  render() {
-    const {organization, children} = this.props;
-    return (
-      <DocumentTitle title={this.getTitle()}>
-        <React.Fragment>
-          {this.state.showSampleEventBanner && <SampleEventAlert />}
-          <GlobalSelectionHeader>
-            <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
-          </GlobalSelectionHeader>
-        </React.Fragment>
-      </DocumentTitle>
+  useEffect(() => {
+    const unlistener = GroupStore.listen(
+      () => setShowSampleEventBanner(GroupStore.getAllItemIds().length === 1),
+      undefined
     );
-  }
 
-  onGroupChange() {
-    this.setState({
-      showSampleEventBanner: GroupStore.getAllItemIds().length === 1,
-    });
-  }
+    return () => unlistener();
+  }, []);
 
-  componentWillUnmount() {
-    callIfFunction(this.listener);
-  }
-
-  getTitle() {
-    return `Issues - ${this.props.organization.slug} - Sentry`;
-  }
+  return (
+    <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>
+      <Fragment>
+        {showSampleEventBanner && <SampleEventAlert />}
+        <PageFiltersContainer>
+          <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+        </PageFiltersContainer>
+      </Fragment>
+    </SentryDocumentTitle>
+  );
 }
+
 export default withOrganization(IssueListContainer);
-export {IssueListContainer};

@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
-import BaseBadge from 'app/components/idBadge/baseBadge';
+import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
+import BaseBadge from 'sentry/components/idBadge/baseBadge';
 
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type Team = NonNullable<BaseBadgeProps['team']>;

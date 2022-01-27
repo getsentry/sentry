@@ -1,118 +1,98 @@
-import {Component} from 'react';
+import {useEffect, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import PageHeading from 'app/components/pageHeading';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconFlag} from 'app/icons';
-import {t} from 'app/locale';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import {PerformanceEventViewProvider} from 'app/utils/performance/contexts/performanceEventViewContext';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageHeading from 'sentry/components/pageHeading';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PageContent, PageHeader} from 'sentry/styles/organization';
+import {PageFilters} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
+import useProjects from 'sentry/utils/useProjects';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import LandingContent from './landing/content';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
+import {useMetricsSwitch} from './metricsSwitch';
 import Onboarding from './onboarding';
 import {addRoutePerformanceContext, handleTrendsClick} from './utils';
 
 type Props = {
-  api: Client;
-  organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   location: Location;
   router: InjectedRouter;
-  projects: Project[];
-  loadingProjects: boolean;
   demoMode?: boolean;
 };
 
 type State = {
-  eventView: EventView;
-  error: string | undefined;
+  error?: string;
 };
 
-class PerformanceContent extends Component<Props, State> {
-  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    return {
-      ...prevState,
-      eventView: generatePerformanceEventView(
-        nextProps.organization,
-        nextProps.location,
-        nextProps.projects
-      ),
-    };
-  }
+function PerformanceContent({selection, location, demoMode}: Props) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {isMetricsData} = useMetricsSwitch();
+  const previousDateTime = usePrevious(selection.datetime);
 
-  state: State = {
-    eventView: generatePerformanceEventView(
-      this.props.organization,
-      this.props.location,
-      this.props.projects
-    ),
-    error: undefined,
-  };
+  const [state, setState] = useState<State>({error: undefined});
 
-  componentDidMount() {
-    const {api, organization, selection} = this.props;
+  useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
     trackAnalyticsEvent({
       eventKey: 'performance_views.overview.view',
       eventName: 'Performance Views: Transaction overview view',
       organization_id: parseInt(organization.id, 10),
-      show_onboarding: this.shouldShowOnboarding(),
+      show_onboarding: shouldShowOnboarding(),
     });
-  }
+  }, []);
 
-  componentDidUpdate(prevProps: Props) {
-    const {api, organization, selection} = this.props;
-    if (
-      !isEqual(prevProps.selection.projects, selection.projects) ||
-      !isEqual(prevProps.selection.datetime, selection.datetime)
-    ) {
+  useEffect(() => {
+    loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
+  }, [selection.projects]);
+
+  useEffect(() => {
+    if (!isEqual(previousDateTime, selection.datetime)) {
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
     }
-  }
+  }, [selection.datetime]);
 
-  renderError() {
-    const {error} = this.state;
+  const {error} = state;
 
-    if (!error) {
-      return null;
+  function setError(newError?: string) {
+    if (
+      typeof newError === 'object' ||
+      (Array.isArray(newError) && typeof newError[0] === 'object')
+    ) {
+      Sentry.withScope(scope => {
+        scope.setExtra('error', newError);
+        Sentry.captureException(new Error('setError failed with error type.'));
+      });
+      return;
     }
-
-    return (
-      <Alert type="error" icon={<IconFlag size="md" />}>
-        {error}
-      </Alert>
-    );
+    setState({...state, error: newError});
   }
 
-  setError = (error: string | undefined) => {
-    this.setState({error});
-  };
-
-  handleSearch = (searchQuery: string) => {
-    const {location, organization} = this.props;
-
+  function handleSearch(searchQuery: string) {
     trackAnalyticsEvent({
       eventKey: 'performance_views.overview.search',
       eventName: 'Performance Views: Transaction overview search',
@@ -127,12 +107,25 @@ class PerformanceContent extends Component<Props, State> {
         query: String(searchQuery).trim() || undefined,
       },
     });
-  };
+  }
 
-  shouldShowOnboarding() {
-    const {projects, demoMode} = this.props;
-    const {eventView} = this.state;
+  function renderError() {
+    if (!error) {
+      return null;
+    }
 
+    return (
+      <Alert type="error" icon={<IconFlag size="md" />}>
+        {error}
+      </Alert>
+    );
+  }
+
+  const eventView = generatePerformanceEventView(location, organization, projects, {
+    isMetricsData,
+  });
+
+  function shouldShowOnboarding() {
     // XXX used by getsentry to bypass onboarding for the upsell demo state.
     if (demoMode) {
       return false;
@@ -159,10 +152,8 @@ class PerformanceContent extends Component<Props, State> {
     );
   }
 
-  renderBody() {
-    const {organization, projects, selection} = this.props;
-    const eventView = this.state.eventView;
-    const showOnboarding = this.shouldShowOnboarding();
+  function renderBody() {
+    const showOnboarding = shouldShowOnboarding();
 
     return (
       <PageContent>
@@ -173,14 +164,14 @@ class PerformanceContent extends Component<Props, State> {
               <Button
                 priority="primary"
                 data-test-id="landing-header-trends"
-                onClick={() => handleTrendsClick(this.props)}
+                onClick={() => handleTrendsClick({location, organization})}
               >
                 {t('View Trends')}
               </Button>
             )}
           </PageHeader>
           <GlobalSdkUpdateAlert />
-          {this.renderError()}
+          {renderError()}
           {showOnboarding ? (
             <Onboarding
               organization={organization}
@@ -199,8 +190,8 @@ class PerformanceContent extends Component<Props, State> {
               eventView={eventView}
               projects={projects}
               organization={organization}
-              setError={this.setError}
-              handleSearch={this.handleSearch}
+              setError={setError}
+              handleSearch={handleSearch}
             />
           )}
         </NoProjectMessage>
@@ -208,47 +199,42 @@ class PerformanceContent extends Component<Props, State> {
     );
   }
 
-  renderLandingV3() {
+  function renderLandingV3() {
     return (
       <PerformanceLanding
-        eventView={this.state.eventView}
-        setError={this.setError}
-        handleSearch={this.handleSearch}
-        handleTrendsClick={() => handleTrendsClick(this.props)}
-        shouldShowOnboarding={this.shouldShowOnboarding()}
-        {...this.props}
+        eventView={eventView}
+        setError={setError}
+        handleSearch={handleSearch}
+        handleTrendsClick={() => handleTrendsClick({location, organization})}
+        shouldShowOnboarding={shouldShowOnboarding()}
+        organization={organization}
+        location={location}
+        projects={projects}
+        selection={selection}
       />
     );
   }
 
-  render() {
-    const {organization} = this.props;
-
-    return (
-      <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
-        <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
-          <GlobalSelectionHeader
-            defaultSelection={{
-              datetime: {
-                start: null,
-                end: null,
-                utc: false,
-                period: DEFAULT_STATS_PERIOD,
-              },
-            }}
-          >
-            <Feature features={['organizations:performance-landing-widgets']}>
-              {({hasFeature}) =>
-                hasFeature ? this.renderLandingV3() : this.renderBody()
-              }
-            </Feature>
-          </GlobalSelectionHeader>
-        </PerformanceEventViewProvider>
-      </SentryDocumentTitle>
-    );
-  }
+  return (
+    <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
+      <PerformanceEventViewProvider value={{eventView}}>
+        <PageFiltersContainer
+          defaultSelection={{
+            datetime: {
+              start: null,
+              end: null,
+              utc: false,
+              period: DEFAULT_STATS_PERIOD,
+            },
+          }}
+        >
+          <Feature features={['organizations:performance-landing-widgets']}>
+            {({hasFeature}) => (hasFeature ? renderLandingV3() : renderBody())}
+          </Feature>
+        </PageFiltersContainer>
+      </PerformanceEventViewProvider>
+    </SentryDocumentTitle>
+  );
 }
 
-export default withApi(
-  withOrganization(withProjects(withGlobalSelection(PerformanceContent)))
-);
+export default withPageFilters(PerformanceContent);

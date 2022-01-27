@@ -2,13 +2,13 @@ import {Component, createRef, Fragment} from 'react';
 import moment from 'moment';
 import {sprintf} from 'sprintf-js';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {ResolutionStatusDetails} from 'app/types';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {ResolutionStatusDetails} from 'sentry/types';
 
 const defaultProps = {
   label: t('Ignore this issue until \u2026'),

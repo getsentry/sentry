@@ -2,19 +2,19 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'app/components/button';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import SearchBar from 'app/components/events/searchBar';
-import * as Layout from 'app/components/layouts/thirds';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
-import Histogram from 'app/utils/performance/histogram';
-import {FILTER_OPTIONS} from 'app/utils/performance/histogram/constants';
-import {decodeScalar} from 'app/utils/queryString';
+import Button from 'sentry/components/button';
+import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import SearchBar from 'sentry/components/events/searchBar';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
+import Histogram from 'sentry/utils/performance/histogram';
+import {FILTER_OPTIONS} from 'sentry/utils/performance/histogram/constants';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 import {ZOOM_KEYS} from './constants';
 import VitalsPanel from './vitalsPanel';
@@ -30,7 +30,7 @@ function VitalsContent(props: Props) {
   const query = decodeScalar(location.query.query, '');
 
   const handleSearch = (newQuery: string) => {
-    const queryParams = getParams({
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query: newQuery,
     });
@@ -113,7 +113,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledActions = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  gap: ${space(2)};
   grid-template-columns: auto max-content max-content;
   align-items: center;
   margin-bottom: ${space(3)};

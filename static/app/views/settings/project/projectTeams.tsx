@@ -3,18 +3,18 @@ import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {openCreateTeamModal} from 'app/actionCreators/modal';
-import {addTeamToProject, removeTeamFromProject} from 'app/actionCreators/projects';
-import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TeamSelect from 'app/views/settings/components/teamSelect';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import {addTeamToProject, removeTeamFromProject} from 'sentry/actionCreators/projects';
+import Link from 'sentry/components/links/link';
+import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization, Project, Team} from 'sentry/types';
+import routeTitleGen from 'sentry/utils/routeTitle';
+import AsyncView from 'sentry/views/asyncView';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TeamSelect from 'sentry/views/settings/components/teamSelect';
 
 type Props = {
   organization: Organization;

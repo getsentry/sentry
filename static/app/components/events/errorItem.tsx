@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment';
 
-import Button from 'app/components/button';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import ListItem from 'app/components/list/listItem';
-import {JavascriptProcessingErrors} from 'app/constants/eventErrors';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'sentry/components/button';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import ListItem from 'sentry/components/list/listItem';
+import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 import ExternalLink from '../links/externalLink';
 
@@ -148,7 +148,7 @@ class ErrorItem extends React.Component<Props, State> {
             {this.renderTroubleshootingLink(error)}
           </div>
           {!!cleanedData.length && (
-            <ToggleButton onClick={this.handleToggle} priority="link">
+            <ToggleButton onClick={this.handleToggle} priority="link" size="zero">
               {isOpen ? t('Collapse') : t('Expand')}
             </ToggleButton>
           )}

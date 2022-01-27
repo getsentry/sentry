@@ -1,10 +1,10 @@
 import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
-import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
-import space from 'app/styles/space';
-import {MemberRole} from 'app/types';
-import theme from 'app/utils/theme';
+import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import space from 'sentry/styles/space';
+import {MemberRole} from 'sentry/types';
+import theme from 'sentry/utils/theme';
 
 type OptionType = {
   label: string;
@@ -67,7 +67,7 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
 const RoleItem = styled('div')`
   display: grid;
   grid-template-columns: 80px 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 
   h1,
   div {

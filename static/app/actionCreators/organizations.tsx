@@ -1,14 +1,14 @@
 import {browserHistory} from 'react-router';
 
-import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import OrganizationActions from 'app/actions/organizationActions';
-import OrganizationsActions from 'app/actions/organizationsActions';
-import {Client} from 'app/api';
-import OrganizationsStore from 'app/stores/organizationsStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
-import {Organization} from 'app/types';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
+import OrganizationActions from 'sentry/actions/organizationActions';
+import OrganizationsActions from 'sentry/actions/organizationsActions';
+import {Client} from 'sentry/api';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {Organization} from 'sentry/types';
 
 type RedirectRemainingOrganizationParams = {
   /**
@@ -91,7 +91,7 @@ export function remove(api: Client, {successMessage, errorMessage, orgId}: Remov
 }
 
 export function switchOrganization() {
-  resetGlobalSelection();
+  resetPageFilters();
 }
 
 export function removeAndRedirectToRemainingOrganization(
@@ -184,7 +184,7 @@ export async function fetchOrganizationDetails(
   }
 
   if (loadTeam) {
-    TeamStore.loadInitialData(data.teams);
+    TeamStore.loadInitialData(data.teams, false, null);
   }
 
   if (loadProjects) {

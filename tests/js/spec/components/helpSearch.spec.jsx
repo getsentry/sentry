@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import HelpSearch from 'app/components/helpSearch';
+import HelpSearch from 'sentry/components/helpSearch';
 
 const mockResults = [
   {
@@ -68,19 +68,23 @@ jest.mock('@sentry-internal/global-search', () => ({
 
 describe('HelpSearch', function () {
   it('produces search results', async function () {
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <HelpSearch
         entryPoint="sidebar_help"
-        renderInput={({getInputProps}) => <input {...getInputProps({type: 'text'})} />}
+        renderInput={({getInputProps}) => (
+          <input {...getInputProps({type: 'text'})} data-test-id="search" />
+        )}
       />
     );
 
-    wrapper.find('input').simulate('change', {target: {value: 'dummy'}});
-    await tick();
-    wrapper.update();
+    userEvent.type(screen.getByTestId('search'), 'dummy');
 
-    expect(wrapper.find('SectionHeading')).toHaveLength(4);
-    expect(wrapper.find('SearchResultWrapper')).toHaveLength(4);
-    expect(wrapper.find('HighlightMarker')).toHaveLength(5);
+    await screen.findByText('From Documentation');
+
+    for (const result of mockResults) {
+      expect(screen.getByText(`From ${result.name}`)).toBeInTheDocument();
+    }
+
+    expect(screen.getAllByTestId('highlight')).toHaveLength(5);
   });
 });

@@ -4,15 +4,15 @@ import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import OnboardingPanel from 'app/components/onboardingPanel';
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
+import {trackAdhocEvent, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 
 type Props = {
   organization: Organization;

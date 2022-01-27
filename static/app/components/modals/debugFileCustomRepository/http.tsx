@@ -1,22 +1,22 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import ActionButton from 'app/components/actions/button';
-import Button from 'app/components/button';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import ActionButton from 'sentry/components/actions/button';
+import Button from 'sentry/components/button';
 import {
   DEBUG_SOURCE_CASINGS,
   DEBUG_SOURCE_LAYOUTS,
   DEBUG_SOURCE_TYPES,
-} from 'app/data/debugFileSources';
-import {IconClose} from 'app/icons/iconClose';
-import {t, tct} from 'app/locale';
-import {INPUT_PADDING} from 'app/styles/input';
-import space from 'app/styles/space';
-import {uniqueId} from 'app/utils/guid';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
-import SelectField from 'app/views/settings/components/forms/selectField';
+} from 'sentry/data/debugFileSources';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t, tct} from 'sentry/locale';
+import {INPUT_PADDING} from 'sentry/styles/input';
+import space from 'sentry/styles/space';
+import {uniqueId} from 'sentry/utils/guid';
+import Input from 'sentry/views/settings/components/forms/controls/input';
+import Field from 'sentry/views/settings/components/forms/field';
+import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 const CLEAR_PASSWORD_BUTTON_SIZE = 22;
 const PASSWORD_INPUT_PADDING_RIGHT = INPUT_PADDING + CLEAR_PASSWORD_BUTTON_SIZE;
@@ -197,7 +197,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               icon={<IconClose size="14px" />}
               size="xsmall"
               title={t('Clear password')}
-              label={t('Clear password')}
+              aria-label={t('Clear password')}
               borderless
             />
           )}

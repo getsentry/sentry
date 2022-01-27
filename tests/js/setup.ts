@@ -1,3 +1,7 @@
+/* eslint-env node */
+/* eslint import/no-nodejs-modules:0 */
+import {TextDecoder, TextEncoder} from 'util';
+
 import {InjectedRouter} from 'react-router';
 import {configure} from '@testing-library/react';
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
@@ -5,13 +9,18 @@ import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import {Location} from 'history';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
+import * as qs from 'query-string';
 
-import type {Client} from 'app/__mocks__/api';
-import ConfigStore from 'app/stores/configStore';
+import type {Client} from 'sentry/__mocks__/api';
+import ConfigStore from 'sentry/stores/configStore';
 
 import TestStubFixtures from '../fixtures/js-stubs/types';
 
 import {loadFixtures} from './sentry-test/loadFixtures';
+
+// needed by cbor-web for webauthn
+window.TextEncoder = TextEncoder;
+window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
@@ -61,10 +70,10 @@ ConfigStore.loadInitialData(fixtures.Config());
  * Mocks
  */
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
-jest.mock('app/utils/recreateRoute');
-jest.mock('app/api');
-jest.mock('app/utils/domId');
-jest.mock('app/utils/withOrganization');
+jest.mock('sentry/utils/recreateRoute');
+jest.mock('sentry/api');
+jest.mock('sentry/utils/domId');
+jest.mock('sentry/utils/withOrganization');
 jest.mock('scroll-to-element', () => jest.fn());
 jest.mock('react-router', () => {
   const ReactRouter = jest.requireActual('react-router');
@@ -159,7 +168,21 @@ const routerFixtures = {
     goForward: jest.fn(),
     setRouteLeaveHook: jest.fn(),
     isActive: jest.fn(),
-    createHref: jest.fn(),
+    createHref: jest.fn().mockImplementation(to => {
+      if (typeof to === 'string') {
+        return to;
+      }
+
+      if (typeof to === 'object') {
+        if (!to.query) {
+          return to.pathname;
+        }
+
+        return `${to.pathname}?${qs.stringify(to.query)}`;
+      }
+
+      return '';
+    }),
     location: TestStubs.location(),
     createPath: jest.fn(),
     routes: [],
@@ -233,7 +256,7 @@ window.TestStubs = {...fixtures, ...routerFixtures};
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));
 
-window.MockApiClient = jest.requireMock('app/api').Client;
+window.MockApiClient = jest.requireMock('sentry/api').Client;
 
 window.scrollTo = jest.fn();
 

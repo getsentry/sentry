@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import * as ActionCreators from 'app/actionCreators/formSearch';
-import FormSearchActions from 'app/actions/formSearchActions';
-import FormSource from 'app/components/search/sources/formSource';
+import * as ActionCreators from 'sentry/actionCreators/formSearch';
+import FormSearchActions from 'sentry/actions/formSearchActions';
+import FormSource from 'sentry/components/search/sources/formSource';
 
 describe('FormSource', function () {
   let wrapper;

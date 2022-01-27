@@ -1,13 +1,12 @@
-import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import debounce from 'lodash/debounce';
 
-import IdBadge from 'app/components/idBadge';
-import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import recreateRoute from 'app/utils/recreateRoute';
-import useTeams from 'app/utils/useTeams';
-import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
-import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import IdBadge from 'sentry/components/idBadge';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import useTeams from 'sentry/utils/useTeams';
+import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
 import {RouteWithName} from './types';
 import {CrumbLink} from '.';

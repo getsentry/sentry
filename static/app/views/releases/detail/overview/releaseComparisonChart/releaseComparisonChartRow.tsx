@@ -1,17 +1,16 @@
-import {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import NotAvailable from 'app/components/notAvailable';
-import Placeholder from 'app/components/placeholder';
-import Radio from 'app/components/radio';
-import {IconChevron} from 'app/icons';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {ReleaseComparisonChartType} from 'app/types';
-import {defined} from 'app/utils';
+import Button from 'sentry/components/button';
+import NotAvailable from 'sentry/components/notAvailable';
+import Placeholder from 'sentry/components/placeholder';
+import Radio from 'sentry/components/radio';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {ReleaseComparisonChartType} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import {releaseComparisonChartLabels} from '../../utils';
 
@@ -21,7 +20,7 @@ type Props = Omit<ReleaseComparisonRow, 'diffDirection' | 'diffColor'> & {
   showPlaceholders: boolean;
   activeChart: ReleaseComparisonChartType;
   onChartChange: (type: ReleaseComparisonChartType) => void;
-  chartDiff: ReactNode;
+  chartDiff: React.ReactNode;
   onExpanderToggle: (type: ReleaseComparisonChartType) => void;
   expanded: boolean;
   withExpanders: boolean;
@@ -96,7 +95,7 @@ function ReleaseComparisonChartRow({
               borderless
               size="zero"
               icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
-              label={t('Toggle chart group')}
+              aria-label={t('Toggle chart group')}
             />
           )}
         </ExpanderCell>

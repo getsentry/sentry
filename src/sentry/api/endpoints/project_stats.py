@@ -1,3 +1,4 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
@@ -9,7 +10,7 @@ from sentry.models import Environment
 
 
 class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
-    def get(self, request, project):
+    def get(self, request: Request, project) -> Response:
         """
         Retrieve Event Counts for a Project
         ```````````````````````````````````

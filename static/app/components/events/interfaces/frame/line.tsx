@@ -3,18 +3,18 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
-import Button from 'app/components/button';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
-import StrictClick from 'app/components/strictClick';
-import {IconChevron, IconRefresh} from 'app/icons';
-import {t} from 'app/locale';
-import {DebugMetaActions} from 'app/stores/debugMetaStore';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
-import {Event} from 'app/types/event';
-import withOrganization from 'app/utils/withOrganization';
-import withSentryAppComponents from 'app/utils/withSentryAppComponents';
+import Button from 'sentry/components/button';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
+import StrictClick from 'sentry/components/strictClick';
+import {IconChevron, IconRefresh} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import withOrganization from 'sentry/utils/withOrganization';
+import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from '../debugMeta/debugImage';
 import {combineStatus} from '../debugMeta/utils';
@@ -187,6 +187,7 @@ export class Line extends React.Component<Props, State> {
           className="btn-toggle"
           data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
           css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
+          size="zero"
           title={t('Toggle Context')}
           tooltipProps={
             isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined
@@ -430,7 +431,7 @@ const RepeatedContent = styled(VertCenterWrapper)`
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
   grid-template-columns: ${p =>
     `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  1fr`};
   align-items: center;

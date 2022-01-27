@@ -1,18 +1,18 @@
 import 'echarts/lib/chart/heatmap';
 import 'echarts/lib/component/visualMap';
 
-import {EChartOption} from 'echarts';
+import type {HeatmapSeriesOption} from 'echarts';
 
-import {SeriesDataUnit} from 'app/types/echarts';
+import {SeriesDataUnit} from 'sentry/types/echarts';
 
 export default function HeatMapSeries(
-  props: Omit<EChartOption.SeriesHeatmap, 'data'> & {
-    data?: SeriesDataUnit[] | EChartOption.SeriesHeatmap['data'];
+  props: Omit<HeatmapSeriesOption, 'data'> & {
+    data?: SeriesDataUnit[] | HeatmapSeriesOption['data'];
   } = {}
-): EChartOption.SeriesHeatmap {
+): HeatmapSeriesOption {
   const {data, ...rest} = props;
   return {
-    data: data as EChartOption.SeriesHeatmap['data'],
+    data: data as HeatmapSeriesOption['data'],
     ...rest,
     type: 'heatmap',
   };

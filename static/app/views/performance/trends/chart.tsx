@@ -1,20 +1,22 @@
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
+import type {LegendComponentOption} from 'echarts';
 
-import ChartZoom from 'app/components/charts/chartZoom';
-import LineChart from 'app/components/charts/lineChart';
-import TransitionChart from 'app/components/charts/transitionChart';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
-import {EventsStatsData, OrganizationSummary, Project} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import EventView from 'app/utils/discover/eventView';
-import getDynamicText from 'app/utils/getDynamicText';
-import {decodeList} from 'app/utils/queryString';
-import {Theme} from 'app/utils/theme';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
+import {EventsStatsData, OrganizationSummary, Project} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {decodeList} from 'sentry/utils/queryString';
+import {Theme} from 'sentry/utils/theme';
+
+import {ViewProps} from '../types';
 
 import {
   NormalizedTrendsTransaction,
@@ -31,29 +33,18 @@ import {
   trendToColor,
 } from './utils';
 
-const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
-
-type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
-
 type Props = WithRouterProps &
   ViewProps & {
     location: Location;
     organization: OrganizationSummary;
     trendChangeType: TrendChangeType;
     trendFunctionField?: TrendFunctionField;
-    transaction?: NormalizedTrendsTransaction;
     isLoading: boolean;
     statsData: TrendsStats;
     projects: Project[];
+    transaction?: NormalizedTrendsTransaction;
     height?: number;
-    grid?: LineChart['props']['grid'];
+    grid?: React.ComponentProps<typeof LineChart>['grid'];
     disableXAxis?: boolean;
     disableLegend?: boolean;
   };
@@ -70,12 +61,12 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
   ];
 }
 
-function getLegend(trendFunction: string) {
+function getLegend(trendFunction: string): LegendComponentOption {
   return {
     right: 10,
     top: 0,
     itemGap: 12,
-    align: 'left' as const,
+    align: 'left',
     data: [
       {
         name: 'Baseline',
@@ -83,11 +74,9 @@ function getLegend(trendFunction: string) {
       },
       {
         name: 'Releases',
-        icon: 'line',
       },
       {
         name: trendFunction,
-        icon: 'line',
       },
     ],
   };
@@ -98,7 +87,7 @@ function getIntervalLine(
   series: Series[],
   intervalRatio: number,
   transaction?: NormalizedTrendsTransaction
-) {
+): LineChartSeries[] {
   if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
     return [];
   }
@@ -110,18 +99,16 @@ function getIntervalLine(
     return [];
   }
 
-  const periodLine = {
-    data: [] as any[],
+  const periodLine: LineChartSeries = {
+    data: [],
     color: theme.textColor,
     markLine: {
-      data: [] as any[],
-      label: {} as any,
+      data: [],
+      label: {},
       lineStyle: {
-        normal: {
-          color: theme.textColor,
-          type: 'dashed',
-          width: 1,
-        },
+        color: theme.textColor,
+        type: 'dashed',
+        width: 1,
       },
       symbol: ['none', 'none'],
       tooltip: {
@@ -134,6 +121,8 @@ function getIntervalLine(
   const periodLineLabel = {
     fontSize: 11,
     show: true,
+    color: theme.textColor,
+    silent: true,
   };
 
   const previousPeriod = {
@@ -174,7 +163,7 @@ function getIntervalLine(
         '<div class="tooltip-arrow"></div>',
       ].join('');
     },
-  } as any;
+  };
   currentPeriod.markLine.data = [
     [
       {value: 'Present', coord: [seriesLine, transaction.aggregate_range_2]},
@@ -194,26 +183,24 @@ function getIntervalLine(
         '<div class="tooltip-arrow"></div>',
       ].join('');
     },
-  } as any;
+  };
   periodDividingLine.markLine = {
     data: [
       {
-        value: 'Previous Period / This Period',
         xAxis: seriesLine,
       },
     ],
     label: {show: false},
     lineStyle: {
-      normal: {
-        color: theme.textColor,
-        type: 'solid',
-        width: 2,
-      },
+      color: theme.textColor,
+      type: 'solid',
+      width: 2,
     },
     symbol: ['none', 'none'],
     tooltip: {
       show: false,
     },
+    silent: true,
   };
 
   previousPeriod.markLine.label = {
@@ -289,7 +276,7 @@ export function Chart({
 
   const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
   const end = propsEnd ? getUtcToLocalDateObject(propsEnd) : null;
-  const {utc} = getParams(location.query);
+  const {utc} = normalizeDateTimeParams(location.query);
 
   const seriesSelection = decodeList(
     location.query[getUnselectedSeries(trendChangeType)]
@@ -297,7 +284,7 @@ export function Chart({
     selection[metric] = false;
     return selection;
   }, {});
-  const legend = disableLegend
+  const legend: LegendComponentOption = disableLegend
     ? {show: false}
     : {
         ...getLegend(chartLabel),

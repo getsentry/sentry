@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {makePinSearchAction} from 'app/components/smartSearchBar/actions';
+import {makePinSearchAction} from 'sentry/components/smartSearchBar/actions';
 
 describe('SmartSearchBarActions', () => {
   describe('make', function () {

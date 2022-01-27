@@ -1,19 +1,22 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Integration, Organization, Project} from 'app/types';
-import {getIntegrationIcon, trackIntegrationAnalytics} from 'app/utils/integrationUtil';
-import withApi from 'app/utils/withApi';
-import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
-import InputField from 'app/views/settings/components/forms/inputField';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Integration, Organization, Project} from 'sentry/types';
+import {
+  getIntegrationIcon,
+  trackIntegrationAnalytics,
+} from 'sentry/utils/integrationUtil';
+import withApi from 'sentry/utils/withApi';
+import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
+import InputField from 'sentry/views/settings/components/forms/inputField';
 
 type Props = ModalRenderProps & {
   api: Client;
@@ -174,18 +177,18 @@ class StacktraceLinkModal extends Component<Props, State> {
 const SourceCodeInput = styled('div')`
   display: grid;
   grid-template-columns: 5fr 1fr;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const ManualSetup = styled('div')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-items: center;
 `;
 
 const ModalContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(3)};
+  gap: ${space(3)};
 
   code {
     word-break: break-word;

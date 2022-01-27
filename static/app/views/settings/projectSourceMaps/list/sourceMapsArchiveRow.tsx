@@ -1,20 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
-import Count from 'app/components/count';
-import DateTime from 'app/components/dateTime';
-import Link from 'app/components/links/link';
-import TextOverflow from 'app/components/textOverflow';
-import Tooltip from 'app/components/tooltip';
-import Version from 'app/components/version';
-import {IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {SourceMapsArchive} from 'app/types';
+import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Confirm from 'sentry/components/confirm';
+import Count from 'sentry/components/count';
+import DateTime from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
+import TextOverflow from 'sentry/components/textOverflow';
+import Tooltip from 'sentry/components/tooltip';
+import Version from 'sentry/components/version';
+import {IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {SourceMapsArchive} from 'sentry/types';
 
 type Props = {
   archive: SourceMapsArchive;
@@ -63,7 +63,7 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
                     size="small"
                     icon={<IconDelete size="sm" />}
                     title={t('Remove All Artifacts')}
-                    label={t('Remove All Artifacts')}
+                    aria-label={t('Remove All Artifacts')}
                     disabled={!hasAccess}
                   />
                 </Confirm>

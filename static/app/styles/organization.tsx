@@ -1,7 +1,7 @@
 // Shared styles for the new org level pages with global project/env/time selection
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import space from 'sentry/styles/space';
 
 export const PageContent = styled('div')`
   display: flex;
@@ -25,10 +25,8 @@ export const PageHeader = styled('div')`
 `;
 
 export const HeaderTitle = styled('h4')`
+  ${p => p.theme.text.pageTitle};
+  color: ${p => p.theme.headingColor};
   flex: 1;
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.textColor};
   margin: 0;
 `;

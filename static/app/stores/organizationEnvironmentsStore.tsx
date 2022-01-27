@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 
-import EnvironmentActions from 'app/actions/environmentActions';
-import {Environment} from 'app/types';
-import {getDisplayName, getUrlRoutingName} from 'app/utils/environment';
+import EnvironmentActions from 'sentry/actions/environmentActions';
+import {Environment} from 'sentry/types';
+import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 
 type EnhancedEnvironment = Environment & {
   displayName: string;

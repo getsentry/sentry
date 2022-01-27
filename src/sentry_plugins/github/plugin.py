@@ -2,6 +2,7 @@ import logging
 from uuid import uuid4
 
 from django.conf.urls import url
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
@@ -9,8 +10,8 @@ from sentry.app import locks
 from sentry.exceptions import PluginError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.models import Integration, Organization, OrganizationOption, Repository
-from sentry.plugins import providers
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
+from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
@@ -95,10 +96,10 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
     def get_url_module(self):
         return "sentry_plugins.github.urls"
 
-    def is_configured(self, request, project, **kwargs):
+    def is_configured(self, request: Request, project, **kwargs):
         return bool(self.get_option("repo", project))
 
-    def get_new_issue_fields(self, request, group, event, **kwargs):
+    def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return (
             [
@@ -123,7 +124,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             ]
         )
 
-    def get_link_existing_issue_fields(self, request, group, event, **kwargs):
+    def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [
             {
                 "name": "issue_id",
@@ -150,18 +151,18 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             },
         ]
 
-    def get_allowed_assignees(self, request, group):
+    def get_allowed_assignees(self, request: Request, group):
         try:
             with self.get_client(request.user) as client:
                 response = client.list_assignees(repo=self.get_option("repo", group.project))
         except Exception as e:
-            self.raise_error(e)
+            raise self.raise_error(e)
 
         users = tuple((u["login"], u["login"]) for u in response)
 
         return (("", "Unassigned"),) + users
 
-    def create_issue(self, request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data, **kwargs):
         # TODO: support multiple identities via a selection input in the form?
         with self.get_client(request.user) as client:
             try:
@@ -174,11 +175,11 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
                     },
                 )
             except Exception as e:
-                self.raise_error(e)
+                raise self.raise_error(e)
 
         return response["number"]
 
-    def link_issue(self, request, group, form_data, **kwargs):
+    def link_issue(self, request: Request, group, form_data, **kwargs):
         with self.get_client(request.user) as client:
             repo = self.get_option("repo", group.project)
             try:
@@ -189,7 +190,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
                         repo=repo, issue_id=issue["number"], data={"body": comment}
                     )
             except Exception as e:
-                self.raise_error(e)
+                raise self.raise_error(e)
 
         return {"title": issue["title"]}
 
@@ -202,7 +203,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return f"https://github.com/{repo}/issues/{issue_id}"
 
-    def view_autocomplete(self, request, group, **kwargs):
+    def view_autocomplete(self, request: Request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
         query = request.GET.get("autocomplete_query")
         if field != "issue_id" or not query:
@@ -222,7 +223,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return Response({field: issues})
 
-    def get_configure_plugin_fields(self, request, project, **kwargs):
+    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
         return [
             {
                 "name": "repo",
@@ -256,7 +257,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             self.logger.info("apps-not-configured")
 
 
-class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
+class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
     name = "GitHub"
     auth_provider = "github"
     logger = logging.getLogger("sentry.plugins.github")
@@ -286,7 +287,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
                 with self.get_client(actor) as client:
                     repo = client.get_repo(config["name"])
             except Exception as e:
-                self.raise_error(e)
+                raise self.raise_error(e)
             else:
                 config["external_id"] = str(repo["id"])
         return config
@@ -339,7 +340,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
                         "status_code": getattr(e, "code", None),
                     },
                 )
-                self.raise_error(e)
+                raise self.raise_error(e)
             else:
                 return {
                     "name": data["name"],
@@ -409,14 +410,14 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
                 try:
                     res = client.get_last_commits(name, end_sha)
                 except Exception as e:
-                    self.raise_error(e)
+                    raise self.raise_error(e)
                 else:
                     return self._format_commits(repo, res[:10])
             else:
                 try:
                     res = client.compare_commits(name, start_sha, end_sha)
                 except Exception as e:
-                    self.raise_error(e)
+                    raise self.raise_error(e)
                 else:
                     return self._format_commits(repo, res["commits"])
 
@@ -431,7 +432,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
                 with self.get_client(actor) as client:
                     res = client.get_pr_commits(name, number)
             except Exception as e:
-                self.raise_error(e)
+                raise self.raise_error(e)
             else:
                 return self._format_commits(repo, res)
 
@@ -520,14 +521,14 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
             try:
                 res = client.get_last_commits(name, end_sha)
             except Exception as e:
-                self.raise_error(e)
+                raise self.raise_error(e)
             else:
                 return self._format_commits(repo, res[:10])
         else:
             try:
                 res = client.compare_commits(name, start_sha, end_sha)
             except Exception as e:
-                self.raise_error(e)
+                raise self.raise_error(e)
             else:
                 return self._format_commits(repo, res["commits"])
 

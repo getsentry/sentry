@@ -142,5 +142,5 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest):
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=AssignedActivitySlackUser|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned-activity-slack-user|Notification Settings>"
         )

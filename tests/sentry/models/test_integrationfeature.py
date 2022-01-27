@@ -1,11 +1,14 @@
 from sentry.models import IntegrationFeature
+from sentry.models.integrationfeature import IntegrationTypes
 from sentry.testutils import TestCase
 
 
 class IntegrationFeatureTest(TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app()
-        self.integration_feature = IntegrationFeature.objects.get(sentry_app=self.sentry_app)
+        self.integration_feature = IntegrationFeature.objects.get(
+            target_id=self.sentry_app.id, target_type=IntegrationTypes.SENTRY_APP.value
+        )
 
     def test_feature_str(self):
         assert self.integration_feature.feature_str() == "integrations-api"

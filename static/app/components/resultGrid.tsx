@@ -2,12 +2,12 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import {Client, RequestOptions} from 'app/api';
-import DropdownLink from 'app/components/dropdownLink';
-import MenuItem from 'app/components/menuItem';
-import Pagination from 'app/components/pagination';
-import {IconSearch} from 'app/icons';
-import withApi from 'app/utils/withApi';
+import {Client, RequestOptions} from 'sentry/api';
+import DropdownLink from 'sentry/components/dropdownLink';
+import MenuItem from 'sentry/components/menuItem';
+import Pagination from 'sentry/components/pagination';
+import {IconSearch} from 'sentry/icons';
+import withApi from 'sentry/utils/withApi';
 
 type Option = [value: string, label: string];
 

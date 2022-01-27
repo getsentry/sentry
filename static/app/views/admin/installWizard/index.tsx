@@ -1,16 +1,16 @@
-import DocumentTitle from 'react-document-title';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
-import Alert from 'app/components/alert';
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
-import AsyncView from 'app/views/asyncView';
-import {ApiForm} from 'app/views/settings/components/forms';
+import Alert from 'sentry/components/alert';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
+import AsyncView from 'sentry/views/asyncView';
+import {ApiForm} from 'sentry/views/settings/components/forms';
 
 import {getForm, getOptionDefault, getOptionField} from '../options';
 
@@ -89,7 +89,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
   render() {
     const version = ConfigStore.get('version');
     return (
-      <DocumentTitle title={this.getTitle()}>
+      <SentryDocumentTitle noSuffix title={this.getTitle()}>
         <Wrapper>
           <Pattern />
           <SetupWizard>
@@ -104,7 +104,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
               : this.renderBody()}
           </SetupWizard>
         </Wrapper>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 
@@ -149,6 +149,8 @@ const fixedStyle = css`
 `;
 
 const Pattern = styled('div')`
+  z-index: -1;
+
   &::before {
     ${fixedStyle}
     content: '';
@@ -171,7 +173,7 @@ const Pattern = styled('div')`
 
 const Heading = styled('h1')`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   justify-content: space-between;
   grid-auto-flow: column;
   line-height: 36px;

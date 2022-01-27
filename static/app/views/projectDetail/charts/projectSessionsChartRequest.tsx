@@ -3,32 +3,32 @@ import {withTheme} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
 import {
-  GlobalSelection,
   Organization,
+  PageFilters,
   SessionApiResponse,
   SessionField,
   SessionStatus,
-} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {percent} from 'app/utils';
-import {getPeriod} from 'app/utils/getPeriod';
+} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {percent} from 'sentry/utils';
+import {getPeriod} from 'sentry/utils/getPeriod';
 import {
   filterSessionsInTimeWindow,
   getCount,
   getCountSeries,
   getSessionsInterval,
   initSessionsChart,
-} from 'app/utils/sessions';
-import {Theme} from 'app/utils/theme';
-import {getCrashFreePercent} from 'app/views/releases/utils';
+} from 'sentry/utils/sessions';
+import {Theme} from 'sentry/utils/theme';
+import {getCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {DisplayModes} from '../projectCharts';
-import {shouldFetchPreviousPeriod} from '../utils';
 
 const omitIgnoredProps = (props: Props) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
@@ -45,7 +45,7 @@ type ProjectSessionsChartRequestRenderProps = {
 type Props = {
   api: Client;
   organization: Organization;
-  selection: GlobalSelection;
+  selection: PageFilters;
   children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
   onTotalValuesChange: (value: number | null) => void;
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
@@ -88,10 +88,20 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, selection, onTotalValuesChange, displayMode, disablePrevious} =
-      this.props;
+    const {
+      api,
+      selection: {datetime},
+      onTotalValuesChange,
+      displayMode,
+      disablePrevious,
+    } = this.props;
     const shouldFetchWithPrevious =
-      !disablePrevious && shouldFetchPreviousPeriod(selection.datetime);
+      !disablePrevious &&
+      shouldFetchPreviousPeriod({
+        start: datetime.start,
+        end: datetime.end,
+        period: datetime.period,
+      });
 
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
@@ -164,7 +174,7 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
     if (!shouldFetchWithPrevious) {
       return {
         ...baseParams,
-        ...getParams(datetime),
+        ...normalizeDateTimeParams(datetime),
       };
     }
 

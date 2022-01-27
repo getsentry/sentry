@@ -3,9 +3,9 @@ import {Component} from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import NoProjectMessage from 'app/components/noProjectMessage';
-import ConfigStore from 'app/stores/configStore';
-import ProjectsStore from 'app/stores/projectsStore';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
+import ConfigStore from 'sentry/stores/configStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('NoProjectMessage', function () {
   beforeEach(function () {
@@ -123,7 +123,6 @@ describe('NoProjectMessage', function () {
     // verify MockComponent is mounted once
     expect(mount).toHaveBeenCalledTimes(1);
     expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
-    expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(true);
     act(() => ProjectsStore.loadInitialData([project1, project2]));
     // await for trigger from projects store to resolve
     await tick();
@@ -133,6 +132,5 @@ describe('NoProjectMessage', function () {
     expect(unmount).toHaveBeenCalledTimes(0);
     expect(mount).toHaveBeenCalledTimes(1);
     expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
-    expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(false);
   });
 });

@@ -2,19 +2,19 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import OnboardingSidebar from 'app/components/onboardingWizard/sidebar';
-import {getMergedTasks} from 'app/components/onboardingWizard/taskConfig';
+import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
+import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import ProgressRing, {
   RingBackground,
   RingBar,
   RingText,
-} from 'app/components/progressRing';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {OnboardingTaskStatus, Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import theme, {Theme} from 'app/utils/theme';
-import withProjects from 'app/utils/withProjects';
+} from 'sentry/components/progressRing';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import theme, {Theme} from 'sentry/utils/theme';
+import withProjects from 'sentry/utils/withProjects';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';
 
@@ -116,7 +116,7 @@ function OnboardingStatus({
 const Heading = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.white};
   margin-bottom: ${space(0.25)};
 `;
 
@@ -126,7 +126,7 @@ const Remaining = styled('div')`
   color: ${p => p.theme.gray300};
   display: grid;
   grid-template-columns: max-content max-content;
-  grid-gap: ${space(0.75)};
+  gap: ${space(0.75)};
   align-items: center;
 `;
 
@@ -154,7 +154,7 @@ const hoverCss = (p: {theme: Theme}) => css`
     color: ${p.theme.white};
   }
   ${Remaining} {
-    color: ${p.theme.gray200};
+    color: ${p.theme.white};
   }
 `;
 
@@ -163,7 +163,7 @@ const Container = styled('div')<{isActive: boolean}>`
   cursor: pointer;
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1.5)};
+  gap: ${space(1.5)};
   align-items: center;
   transition: background 100ms;
 

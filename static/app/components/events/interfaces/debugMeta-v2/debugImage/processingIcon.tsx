@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/react';
 
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconInfo, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
-import {ImageStatus} from 'app/types/debugImage';
+import Tooltip from 'sentry/components/tooltip';
+import {IconCheckmark, IconInfo, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {ImageStatus} from 'sentry/types/debugImage';
 
 type Props = {
   status: ImageStatus;

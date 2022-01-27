@@ -1,17 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import {Client} from 'app/api';
-import AsyncComponent from 'app/components/asyncComponent';
-import IssueSyncListElement from 'app/components/issueSyncListElement';
-import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
-import {Group, GroupIntegration} from 'app/types';
-import withApi from 'app/utils/withApi';
-import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import AsyncComponent from 'sentry/components/asyncComponent';
+import IssueSyncListElement from 'sentry/components/issueSyncListElement';
+import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import space from 'sentry/styles/space';
+import {Group, GroupIntegration} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
+import IntegrationItem from 'sentry/views/organizationIntegrations/integrationItem';
 
 import ExternalIssueForm from './externalIssueForm';
 

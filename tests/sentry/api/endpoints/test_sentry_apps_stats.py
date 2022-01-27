@@ -1,5 +1,7 @@
 from django.urls import reverse
 
+from sentry.api.serializers.base import serialize
+from sentry.models.sentryappavatar import SentryAppAvatar
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
@@ -13,6 +15,9 @@ class SentryAppsStatsTest(APITestCase):
 
         self.app_1 = self.create_sentry_app(
             name="Test", organization=self.super_org, published=True
+        )
+        self.app_1_avatar = SentryAppAvatar.objects.create(
+            sentry_app=self.app_1, color=True, avatar_type=0
         )
 
         self.app_2 = self.create_sentry_app(name="Testin", organization=self.org)
@@ -30,16 +35,20 @@ class SentryAppsStatsTest(APITestCase):
         assert response.status_code == 200
         assert {
             "id": self.app_2.id,
+            "uuid": self.app_2.uuid,
             "slug": self.app_2.slug,
             "name": self.app_2.name,
             "installs": 1,
+            "avatars": [],
         } in json.loads(response.content)
 
         assert {
             "id": self.app_1.id,
+            "uuid": self.app_1.uuid,
             "slug": self.app_1.slug,
             "name": self.app_1.name,
             "installs": 1,
+            "avatars": [serialize(self.app_1_avatar)],
         } in json.loads(response.content)
 
     def test_nonsuperusers_have_no_access(self):

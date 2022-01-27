@@ -79,7 +79,7 @@ class AvatarBase(Model):
         return photo
 
     @classmethod
-    def save_avatar(cls, relation, type, avatar=None, filename=None):
+    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None):
         from sentry.models import File
 
         if avatar:
@@ -89,6 +89,9 @@ class AvatarBase(Model):
                 # if it's not wrapped in BytesIO.
                 if isinstance(avatar, str):
                     avatar = BytesIO(force_bytes(avatar))
+
+                # XXX: Avatar processing may adjust file position; reset before saving.
+                avatar.seek(0)
                 photo.putfile(avatar)
         else:
             photo = None
@@ -99,7 +102,10 @@ class AvatarBase(Model):
                 router.db_for_write(File),
             )
         ):
-            instance, created = cls.objects.get_or_create(**relation)
+            if relation.get("sentry_app") and color is not None:
+                instance, created = cls.objects.get_or_create(**relation, color=color)
+            else:
+                instance, created = cls.objects.get_or_create(**relation)
             file = instance.get_file()
             if file and photo:
                 file.delete()

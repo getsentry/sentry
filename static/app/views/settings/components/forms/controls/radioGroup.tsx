@@ -2,12 +2,12 @@ import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import Radio from 'app/components/radio';
-import space from 'app/styles/space';
+import Radio from 'sentry/components/radio';
+import space from 'sentry/styles/space';
 
 const Container = styled('div')<{orientInline?: boolean}>`
   display: grid;
-  grid-gap: ${p => space(p.orientInline ? 3 : 1)};
+  gap: ${p => space(p.orientInline ? 3 : 1)};
   grid-auto-flow: ${p => (p.orientInline ? 'column' : 'row')};
   grid-auto-rows: max-content;
   grid-auto-columns: max-content;
@@ -83,7 +83,7 @@ export const RadioLineItem = styled('label', {shouldForwardProp})<{
   index: number;
 }>`
   display: grid;
-  grid-gap: 0.25em 0.5em;
+  gap: 0.25em 0.5em;
   grid-template-columns: max-content auto;
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};

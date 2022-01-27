@@ -1,5 +1,5 @@
-import Alert from 'app/components/alert';
-import {t} from 'app/locale';
+import Alert from 'sentry/components/alert';
+import {t} from 'sentry/locale';
 
 type Props = {
   message?: React.ReactNode;

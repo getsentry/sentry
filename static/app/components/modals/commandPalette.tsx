@@ -2,12 +2,12 @@ import {useEffect} from 'react';
 import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
-import Search from 'app/components/search';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {analytics} from 'app/utils/analytics';
-import Input from 'app/views/settings/components/forms/controls/input';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Search from 'sentry/components/search';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {analytics} from 'sentry/utils/analytics';
+import Input from 'sentry/views/settings/components/forms/controls/input';
 
 function CommandPalette({Body}: ModalRenderProps) {
   const theme = useTheme();

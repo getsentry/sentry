@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Link from 'app/components/links/link';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {GlobalSelection, HealthStatsPeriodOption} from 'app/types';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {HealthStatsPeriodOption, PageFilters} from 'sentry/types';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 type Props = {
   location: Location;
-  selection: GlobalSelection;
+  selection: PageFilters;
 };
 
 const ReleaseCardStatsPeriod = ({location, selection}: Props) => {
@@ -66,4 +66,4 @@ const Period = styled(Link)<{selected: boolean}>`
   }
 `;
 
-export default withGlobalSelection(ReleaseCardStatsPeriod);
+export default withPageFilters(ReleaseCardStatsPeriod);

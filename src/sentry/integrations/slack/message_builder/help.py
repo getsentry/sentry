@@ -1,4 +1,4 @@
-from typing import Iterable, List, Mapping, Optional
+from typing import Mapping, Optional, Sequence
 
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
@@ -53,8 +53,8 @@ class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
             ]
         )
 
-    def get_header_blocks(self) -> Iterable[SlackBlock]:
-        blocks: List[SlackBlock] = []
+    def get_header_blocks(self) -> Sequence[SlackBlock]:
+        blocks = []
         if self.command and self.command != "help":
             logger.info("slack.event.unknown-command", extra={"command": self.command})
             blocks.append(

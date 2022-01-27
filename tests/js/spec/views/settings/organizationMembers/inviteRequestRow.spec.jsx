@@ -3,8 +3,8 @@ import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
 
-import TeamStore from 'app/stores/teamStore';
-import InviteRequestRow from 'app/views/settings/organizationMembers/inviteRequestRow';
+import TeamStore from 'sentry/stores/teamStore';
+import InviteRequestRow from 'sentry/views/settings/organizationMembers/inviteRequestRow';
 
 const roles = [
   {

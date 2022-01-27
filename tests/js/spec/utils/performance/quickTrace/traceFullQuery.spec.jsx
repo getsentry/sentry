@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Client} from 'app/api';
+import {Client} from 'sentry/api';
 import {
   TraceFullDetailedQuery,
   TraceFullQuery,
-} from 'app/utils/performance/quickTrace/traceFullQuery';
+} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 
 const traceId = 'abcdef1234567890';
 const eventId = '0987654321fedcba';

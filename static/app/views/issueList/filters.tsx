@@ -2,10 +2,10 @@ import * as React from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ProjectsStore from 'app/stores/projectsStore';
-import space from 'app/styles/space';
-import {Organization, SavedSearch} from 'app/types';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import space from 'sentry/styles/space';
+import {Organization, SavedSearch} from 'sentry/types';
 
 import IssueListDisplayOptions from './displayOptions';
 import IssueListSearchBar from './searchBar';
@@ -105,7 +105,7 @@ class IssueListFilters extends React.Component<Props> {
 
 const SearchContainer = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   display: inline-grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   margin-bottom: ${space(2)};
   width: 100%;
 
@@ -120,7 +120,7 @@ const SearchContainer = styled('div')<{hasIssuePercentDisplay?: boolean}>`
 
 const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   display: grid;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   grid-template-columns: 1fr ${p => (p.hasIssuePercentDisplay ? '1fr' : '')};
   align-items: start;
 

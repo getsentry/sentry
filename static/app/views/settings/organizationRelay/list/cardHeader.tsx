@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Clipboard from 'app/components/clipboard';
-import ConfirmDelete from 'app/components/confirmDelete';
-import DateTime from 'app/components/dateTime';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {IconCopy, IconDelete, IconEdit} from 'app/icons';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import {Relay} from 'app/types';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import Clipboard from 'sentry/components/clipboard';
+import ConfirmDelete from 'sentry/components/confirmDelete';
+import DateTime from 'sentry/components/dateTime';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Relay} from 'sentry/types';
 
 type Props = Relay & {
   onEdit: (publicKey: Relay['publicKey']) => () => void;
@@ -30,7 +30,7 @@ const CardHeader = ({
     <Button
       size="small"
       icon={<IconDelete />}
-      label={t('Delete Key')}
+      aria-label={t('Delete Key')}
       disabled={disabled}
       title={disabled ? t('You do not have permission to delete keys') : undefined}
     />
@@ -54,7 +54,7 @@ const CardHeader = ({
           size="small"
           onClick={onEdit(publicKey)}
           icon={<IconEdit />}
-          label={t('Edit Key')}
+          aria-label={t('Edit Key')}
           disabled={disabled}
           title={disabled ? t('You do not have permission to edit keys') : undefined}
         />

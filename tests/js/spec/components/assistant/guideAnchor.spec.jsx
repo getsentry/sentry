@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import GuideActions from 'app/actions/guideActions';
-import GuideAnchorWrapper, {GuideAnchor} from 'app/components/assistant/guideAnchor';
-import ConfigStore from 'app/stores/configStore';
-import theme from 'app/utils/theme';
+import GuideActions from 'sentry/actions/guideActions';
+import GuideAnchorWrapper, {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import ConfigStore from 'sentry/stores/configStore';
+import theme from 'sentry/utils/theme';
 
 describe('GuideAnchor', function () {
   let wrapper, wrapper2;

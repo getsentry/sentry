@@ -2,7 +2,7 @@ import extend from 'lodash/extend';
 import isArray from 'lodash/isArray';
 import Reflux from 'reflux';
 
-import {Event} from 'app/types/event';
+import {Event} from 'sentry/types/event';
 
 type Internals = {
   itemsById: Record<string, Event>;

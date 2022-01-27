@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 
-import {Client} from 'app/api';
+import {Client} from 'sentry/api';
 
 type Options = {
   /**

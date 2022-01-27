@@ -1,6 +1,6 @@
 import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import TeamStability from 'app/views/organizationStats/teamInsights/teamStability';
+import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
 
 describe('TeamStability', () => {
   it('should comparse selected past crash rate with current week', async () => {
@@ -20,7 +20,7 @@ describe('TeamStability', () => {
     expect(screen.getByText('project-slug')).toBeInTheDocument();
     expect(screen.getAllByText('90%')).toHaveLength(2);
     expect(screen.getByText('0%')).toBeInTheDocument(2);
-    expect(sessionsApi).toHaveBeenCalledTimes(2);
+    expect(sessionsApi).toHaveBeenCalledTimes(3);
   });
 
   it('should render no sessions', async () => {
@@ -41,6 +41,8 @@ describe('TeamStability', () => {
       <TeamStability projects={[]} organization={TestStubs.Organization()} period="7d" />
     );
 
-    expect(screen.getByText('There are no items to display')).toBeInTheDocument();
+    expect(
+      screen.getByText('No projects with release health enabled')
+    ).toBeInTheDocument();
   });
 });

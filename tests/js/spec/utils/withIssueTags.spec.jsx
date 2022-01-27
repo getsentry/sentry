@@ -1,9 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import MemberListStore from 'app/stores/memberListStore';
-import TagStore from 'app/stores/tagStore';
-import TeamStore from 'app/stores/teamStore';
-import withIssueTags from 'app/utils/withIssueTags';
+import MemberListStore from 'sentry/stores/memberListStore';
+import TagStore from 'sentry/stores/tagStore';
+import TeamStore from 'sentry/stores/teamStore';
+import withIssueTags from 'sentry/utils/withIssueTags';
 
 describe('withIssueTags HoC', function () {
   beforeEach(() => {

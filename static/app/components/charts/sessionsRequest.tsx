@@ -2,11 +2,11 @@ import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {Organization, SessionApiResponse, SessionField} from 'app/types';
-import {filterSessionsInTimeWindow, getSessionsInterval} from 'app/utils/sessions';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
+import {Organization, SessionApiResponse, SessionField} from 'sentry/types';
+import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 
 const propNamesToIgnore = ['api', 'children', 'organization'];
 const omitIgnoredProps = (props: Props) =>
@@ -26,7 +26,7 @@ type Props = {
   field: SessionField[];
   project?: number[];
   environment?: string[];
-  statsPeriod?: string;
+  statsPeriod?: string | null;
   start?: string;
   end?: string;
   query?: string;

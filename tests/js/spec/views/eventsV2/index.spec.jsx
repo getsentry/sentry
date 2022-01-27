@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'app/stores/projectsStore';
-import {DiscoverLanding} from 'app/views/eventsV2/landing';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {DiscoverLanding} from 'sentry/views/eventsV2/landing';
 
 describe('EventsV2 > Landing', function () {
   const eventTitle = 'Oh no something bad';

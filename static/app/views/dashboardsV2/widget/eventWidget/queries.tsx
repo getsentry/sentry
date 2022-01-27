@@ -1,14 +1,14 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
-import SearchBar from 'app/components/events/searchBar';
-import {IconAdd, IconDelete} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
+import Button from 'sentry/components/button';
+import SearchBar from 'sentry/components/events/searchBar';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import Input from 'sentry/views/settings/components/forms/controls/input';
+import Field from 'sentry/views/settings/components/forms/field';
 
 import {WidgetQuery} from '../../types';
 import {DisplayType} from '../utils';
@@ -108,7 +108,7 @@ function Queries({
                   }}
                   icon={<IconDelete />}
                   title={t('Remove query')}
-                  label={t('Remove query')}
+                  aria-label={t('Remove query')}
                 />
               )}
             </Fields>
@@ -155,7 +155,7 @@ const fieldsColumns = (p: {
 const Fields = styled('div')<{displayDeleteButton: boolean; displayLegendAlias: boolean}>`
   display: grid;
   grid-template-columns: ${fieldsColumns};
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 

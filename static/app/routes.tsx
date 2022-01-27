@@ -9,24 +9,24 @@ import {
 } from 'react-router';
 import memoize from 'lodash/memoize';
 
-import LazyLoad from 'app/components/lazyLoad';
-import {EXPERIMENTAL_SPA} from 'app/constants';
-import {t} from 'app/locale';
-import HookStore from 'app/stores/hookStore';
-import {HookName} from 'app/types/hooks';
-import errorHandler from 'app/utils/errorHandler';
-import App from 'app/views/app';
-import AuthLayout from 'app/views/auth/layout';
-import IssueListContainer from 'app/views/issueList/container';
-import IssueListOverview from 'app/views/issueList/overview';
-import OrganizationContextContainer from 'app/views/organizationContext';
-import OrganizationDetails from 'app/views/organizationDetails';
-import {Tab} from 'app/views/organizationGroupDetails/types';
-import OrganizationRoot from 'app/views/organizationRoot';
-import ProjectEventRedirect from 'app/views/projectEventRedirect';
-import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
-import RouteNotFound from 'app/views/routeNotFound';
-import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
+import LazyLoad from 'sentry/components/lazyLoad';
+import {EXPERIMENTAL_SPA} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
+import {HookName} from 'sentry/types/hooks';
+import errorHandler from 'sentry/utils/errorHandler';
+import App from 'sentry/views/app';
+import AuthLayout from 'sentry/views/auth/layout';
+import IssueListContainer from 'sentry/views/issueList/container';
+import IssueListOverview from 'sentry/views/issueList/overview';
+import OrganizationContextContainer from 'sentry/views/organizationContext';
+import OrganizationDetails from 'sentry/views/organizationDetails';
+import {Tab} from 'sentry/views/organizationGroupDetails/types';
+import OrganizationRoot from 'sentry/views/organizationRoot';
+import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
+import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
+import RouteNotFound from 'sentry/views/routeNotFound';
+import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 type CustomProps = {
   name?: string;
@@ -145,7 +145,7 @@ function buildRoutes() {
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
     <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
       <IndexRoute
-        componentPromise={() => import('app/views/auth/login')}
+        componentPromise={() => import('sentry/views/auth/login')}
         component={SafeLazyLoad}
       />
     </Route>
@@ -154,58 +154,58 @@ function buildRoutes() {
   const rootRoutes = (
     <Fragment>
       <IndexRoute
-        componentPromise={() => import('app/views/app/root')}
+        componentPromise={() => import('sentry/views/app/root')}
         component={SafeLazyLoad}
       />
       <Route
         path="/accept/:memberId/:token/"
-        componentPromise={() => import('app/views/acceptOrganizationInvite')}
+        componentPromise={() => import('sentry/views/acceptOrganizationInvite')}
         component={SafeLazyLoad}
       />
       <Route
         path="/accept-transfer/"
-        componentPromise={() => import('app/views/acceptProjectTransfer')}
+        componentPromise={() => import('sentry/views/acceptProjectTransfer')}
         component={SafeLazyLoad}
       />
       <Route
         path="/extensions/external-install/:integrationSlug/:installationId"
-        componentPromise={() => import('app/views/integrationOrganizationLink')}
+        componentPromise={() => import('sentry/views/integrationOrganizationLink')}
         component={SafeLazyLoad}
       />
       <Route
         path="/extensions/:integrationSlug/link/"
-        getComponent={lazyLoad(() => import('app/views/integrationOrganizationLink'))}
+        getComponent={lazyLoad(() => import('sentry/views/integrationOrganizationLink'))}
       />
       <Route
         path="/sentry-apps/:sentryAppSlug/external-install/"
-        componentPromise={() => import('app/views/sentryAppExternalInstallation')}
+        componentPromise={() => import('sentry/views/sentryAppExternalInstallation')}
         component={SafeLazyLoad}
       />
       <Redirect from="/account/" to="/settings/account/details/" />
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
       <Route
         path="/share/issue/:shareId/"
-        componentPromise={() => import('app/views/sharedGroupDetails')}
+        componentPromise={() => import('sentry/views/sharedGroupDetails')}
         component={SafeLazyLoad}
       />
       <Route
         path="/organizations/new/"
-        componentPromise={() => import('app/views/organizationCreate')}
+        componentPromise={() => import('sentry/views/organizationCreate')}
         component={SafeLazyLoad}
       />
       <Route
         path="/organizations/:orgId/data-export/:dataExportId"
-        componentPromise={() => import('app/views/dataExport/dataDownload')}
+        componentPromise={() => import('sentry/views/dataExport/dataDownload')}
         component={SafeLazyLoad}
       />
       <Route
         path="/organizations/:orgId/disabled-member/"
-        componentPromise={() => import('app/views/disabledMember')}
+        componentPromise={() => import('sentry/views/disabledMember')}
         component={SafeLazyLoad}
       />
       <Route
         path="/join-request/:orgId/"
-        componentPromise={() => import('app/views/organizationJoinRequest')}
+        componentPromise={() => import('sentry/views/organizationJoinRequest')}
         component={SafeLazyLoad}
       />
       <Route
@@ -215,7 +215,7 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
-          componentPromise={() => import('app/views/onboarding/onboarding')}
+          componentPromise={() => import('sentry/views/onboarding/onboarding')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -227,20 +227,20 @@ function buildRoutes() {
       path="account/"
       name={t('Account')}
       getComponent={lazyLoad(
-        () => import('app/views/settings/account/accountSettingsLayout')
+        () => import('sentry/views/settings/account/accountSettingsLayout')
       )}
     >
       <IndexRedirect to="details/" />
       <Route
         path="details/"
         name={t('Details')}
-        componentPromise={() => import('app/views/settings/account/accountDetails')}
+        componentPromise={() => import('sentry/views/settings/account/accountDetails')}
         component={SafeLazyLoad}
       />
       <Route path="notifications/" name={t('Notifications')}>
         <IndexRoute
           componentPromise={() =>
-            import('app/views/settings/account/notifications/notificationSettings')
+            import('sentry/views/settings/account/notifications/notificationSettings')
           }
           component={SafeLazyLoad}
         />
@@ -248,7 +248,7 @@ function buildRoutes() {
           path=":fineTuneType/"
           name={t('Fine Tune Alerts')}
           componentPromise={() =>
-            import('app/views/settings/account/accountNotificationFineTuning')
+            import('sentry/views/settings/account/accountNotificationFineTuning')
           }
           component={SafeLazyLoad}
         />
@@ -256,32 +256,34 @@ function buildRoutes() {
       <Route
         path="emails/"
         name={t('Emails')}
-        componentPromise={() => import('app/views/settings/account/accountEmails')}
+        componentPromise={() => import('sentry/views/settings/account/accountEmails')}
         component={SafeLazyLoad}
       />
       <Route
         path="authorizations/"
         componentPromise={() =>
-          import('app/views/settings/account/accountAuthorizations')
+          import('sentry/views/settings/account/accountAuthorizations')
         }
         component={SafeLazyLoad}
       />
       <Route name={t('Security')} path="security/">
         <Route
           componentPromise={() =>
-            import('app/views/settings/account/accountSecurity/accountSecurityWrapper')
+            import('sentry/views/settings/account/accountSecurity/accountSecurityWrapper')
           }
           component={SafeLazyLoad}
         >
           <IndexRoute
-            componentPromise={() => import('app/views/settings/account/accountSecurity')}
+            componentPromise={() =>
+              import('sentry/views/settings/account/accountSecurity')
+            }
             component={SafeLazyLoad}
           />
           <Route
             path="session-history/"
             name={t('Session History')}
             componentPromise={() =>
-              import('app/views/settings/account/accountSecurity/sessionHistory')
+              import('sentry/views/settings/account/accountSecurity/sessionHistory')
             }
             component={SafeLazyLoad}
           />
@@ -289,7 +291,9 @@ function buildRoutes() {
             path="mfa/:authId/"
             name={t('Details')}
             componentPromise={() =>
-              import('app/views/settings/account/accountSecurity/accountSecurityDetails')
+              import(
+                'sentry/views/settings/account/accountSecurity/accountSecurityDetails'
+              )
             }
             component={SafeLazyLoad}
           />
@@ -298,7 +302,7 @@ function buildRoutes() {
           path="mfa/:authId/enroll/"
           name={t('Enroll')}
           componentPromise={() =>
-            import('app/views/settings/account/accountSecurity/accountSecurityEnroll')
+            import('sentry/views/settings/account/accountSecurity/accountSecurityEnroll')
           }
           component={SafeLazyLoad}
         />
@@ -306,39 +310,43 @@ function buildRoutes() {
       <Route
         path="subscriptions/"
         name={t('Subscriptions')}
-        componentPromise={() => import('app/views/settings/account/accountSubscriptions')}
+        componentPromise={() =>
+          import('sentry/views/settings/account/accountSubscriptions')
+        }
         component={SafeLazyLoad}
       />
       <Route
         path="identities/"
         name={t('Identities')}
-        componentPromise={() => import('app/views/settings/account/accountIdentities')}
+        componentPromise={() => import('sentry/views/settings/account/accountIdentities')}
         component={SafeLazyLoad}
       />
       <Route path="api/" name={t('API')}>
         <IndexRedirect to="auth-tokens/" />
         <Route path="auth-tokens/" name={t('Auth Tokens')}>
           <IndexRoute
-            componentPromise={() => import('app/views/settings/account/apiTokens')}
+            componentPromise={() => import('sentry/views/settings/account/apiTokens')}
             component={SafeLazyLoad}
           />
           <Route
             path="new-token/"
             name={t('Create New Token')}
-            componentPromise={() => import('app/views/settings/account/apiNewToken')}
+            componentPromise={() => import('sentry/views/settings/account/apiNewToken')}
             component={SafeLazyLoad}
           />
         </Route>
         <Route path="applications/" name={t('Applications')}>
           <IndexRoute
-            componentPromise={() => import('app/views/settings/account/apiApplications')}
+            componentPromise={() =>
+              import('sentry/views/settings/account/apiApplications')
+            }
             component={SafeLazyLoad}
           />
           <Route
             path=":appId/"
             name={t('Details')}
             componentPromise={() =>
-              import('app/views/settings/account/apiApplications/details')
+              import('sentry/views/settings/account/apiApplications/details')
             }
             component={SafeLazyLoad}
           />
@@ -348,7 +356,7 @@ function buildRoutes() {
       <Route
         path="close-account/"
         name={t('Close Account')}
-        componentPromise={() => import('app/views/settings/account/accountClose')}
+        componentPromise={() => import('sentry/views/settings/account/accountClose')}
         component={SafeLazyLoad}
       />
     </Route>
@@ -359,29 +367,29 @@ function buildRoutes() {
       name={t('Project')}
       path="projects/:projectId/"
       getComponent={lazyLoad(
-        () => import('app/views/settings/project/projectSettingsLayout')
+        () => import('sentry/views/settings/project/projectSettingsLayout')
       )}
     >
       <IndexRoute
         name={t('General')}
-        componentPromise={() => import('app/views/settings/projectGeneralSettings')}
+        componentPromise={() => import('sentry/views/settings/projectGeneralSettings')}
         component={SafeLazyLoad}
       />
       <Route
         path="teams/"
         name={t('Teams')}
-        componentPromise={() => import('app/views/settings/project/projectTeams')}
+        componentPromise={() => import('sentry/views/settings/project/projectTeams')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Alerts')}
         path="alerts/"
         component={SafeLazyLoad}
-        componentPromise={() => import('app/views/settings/projectAlerts')}
+        componentPromise={() => import('sentry/views/settings/projectAlerts')}
       >
         <IndexRoute
           component={SafeLazyLoad}
-          componentPromise={() => import('app/views/settings/projectAlerts/settings')}
+          componentPromise={() => import('sentry/views/settings/projectAlerts/settings')}
         />
         <Redirect from="new/" to="/organizations/:orgId/alerts/:projectId/new/" />
         <Redirect from="rules/" to="/organizations/:orgId/alerts/rules/" />
@@ -402,7 +410,9 @@ function buildRoutes() {
       <Route
         name={t('Environments')}
         path="environments/"
-        componentPromise={() => import('app/views/settings/project/projectEnvironments')}
+        componentPromise={() =>
+          import('sentry/views/settings/project/projectEnvironments')
+        }
         component={SafeLazyLoad}
       >
         <IndexRoute />
@@ -411,7 +421,7 @@ function buildRoutes() {
       <Route
         name={t('Tags')}
         path="tags/"
-        componentPromise={() => import('app/views/settings/projectTags')}
+        componentPromise={() => import('sentry/views/settings/projectTags')}
         component={SafeLazyLoad}
       />
       <Redirect from="issue-tracking/" to="/settings/:orgId/:projectId/plugins/" />
@@ -419,60 +429,62 @@ function buildRoutes() {
         path="release-tracking/"
         name={t('Release Tracking')}
         componentPromise={() =>
-          import('app/views/settings/project/projectReleaseTracking')
+          import('sentry/views/settings/project/projectReleaseTracking')
         }
         component={SafeLazyLoad}
       />
       <Route
         path="ownership/"
         name={t('Issue Owners')}
-        componentPromise={() => import('app/views/settings/project/projectOwnership')}
+        componentPromise={() => import('sentry/views/settings/project/projectOwnership')}
         component={SafeLazyLoad}
       />
       <Route
         path="data-forwarding/"
         name={t('Data Forwarding')}
-        componentPromise={() => import('app/views/settings/projectDataForwarding')}
+        componentPromise={() => import('sentry/views/settings/projectDataForwarding')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Security & Privacy')}
         path="security-and-privacy/"
         component={SafeLazyLoad}
-        componentPromise={() => import('app/views/settings/projectSecurityAndPrivacy')}
+        componentPromise={() => import('sentry/views/settings/projectSecurityAndPrivacy')}
       />
       <Route
         path="debug-symbols/"
         name={t('Debug Information Files')}
-        componentPromise={() => import('app/views/settings/projectDebugFiles')}
+        componentPromise={() => import('sentry/views/settings/projectDebugFiles')}
         component={SafeLazyLoad}
       />
       <Route
         path="proguard/"
         name={t('ProGuard Mappings')}
-        componentPromise={() => import('app/views/settings/projectProguard')}
+        componentPromise={() => import('sentry/views/settings/projectProguard')}
         component={SafeLazyLoad}
       />
       <Route
         path="performance/"
         name={t('Performance')}
-        componentPromise={() => import('app/views/settings/projectPerformance')}
+        componentPromise={() => import('sentry/views/settings/projectPerformance')}
         component={SafeLazyLoad}
       />
       <Route
         path="source-maps/"
         name={t('Source Maps')}
-        componentPromise={() => import('app/views/settings/projectSourceMaps')}
+        componentPromise={() => import('sentry/views/settings/projectSourceMaps')}
         component={SafeLazyLoad}
       >
         <IndexRoute
-          componentPromise={() => import('app/views/settings/projectSourceMaps/list')}
+          componentPromise={() => import('sentry/views/settings/projectSourceMaps/list')}
           component={SafeLazyLoad}
         />
         <Route
           path=":name/"
           name={t('Archive')}
-          componentPromise={() => import('app/views/settings/projectSourceMaps/detail')}
+          componentPromise={() =>
+            import('sentry/views/settings/projectSourceMaps/detail')
+          }
           component={SafeLazyLoad}
         />
       </Route>
@@ -480,14 +492,14 @@ function buildRoutes() {
         path="processing-issues/"
         name={t('Processing Issues')}
         componentPromise={() =>
-          import('app/views/settings/project/projectProcessingIssues')
+          import('sentry/views/settings/project/projectProcessingIssues')
         }
         component={SafeLazyLoad}
       />
       <Route
         path="filters/"
         name={t('Inbound Filters')}
-        componentPromise={() => import('app/views/settings/project/projectFilters')}
+        componentPromise={() => import('sentry/views/settings/project/projectFilters')}
         component={SafeLazyLoad}
       >
         <IndexRedirect to="data-filters/" />
@@ -496,26 +508,30 @@ function buildRoutes() {
       <Route
         name={t('Filters & Sampling')}
         path="filters-and-sampling/"
-        componentPromise={() => import('app/views/settings/project/filtersAndSampling')}
+        componentPromise={() =>
+          import('sentry/views/settings/project/filtersAndSampling')
+        }
         component={SafeLazyLoad}
       />
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
-        componentPromise={() => import('app/views/settings/projectIssueGrouping')}
+        componentPromise={() => import('sentry/views/settings/projectIssueGrouping')}
         component={SafeLazyLoad}
       />
       <Route
         path="hooks/"
         name={t('Service Hooks')}
-        componentPromise={() => import('app/views/settings/project/projectServiceHooks')}
+        componentPromise={() =>
+          import('sentry/views/settings/project/projectServiceHooks')
+        }
         component={SafeLazyLoad}
       />
       <Route
         path="hooks/new/"
         name={t('Create Service Hook')}
         componentPromise={() =>
-          import('app/views/settings/project/projectCreateServiceHook')
+          import('sentry/views/settings/project/projectCreateServiceHook')
         }
         component={SafeLazyLoad}
       />
@@ -523,20 +539,22 @@ function buildRoutes() {
         path="hooks/:hookId/"
         name={t('Service Hook Details')}
         componentPromise={() =>
-          import('app/views/settings/project/projectServiceHookDetails')
+          import('sentry/views/settings/project/projectServiceHookDetails')
         }
         component={SafeLazyLoad}
       />
       <Route path="keys/" name={t('Client Keys')}>
         <IndexRoute
-          componentPromise={() => import('app/views/settings/project/projectKeys/list')}
+          componentPromise={() =>
+            import('sentry/views/settings/project/projectKeys/list')
+          }
           component={SafeLazyLoad}
         />
         <Route
           path=":keyId/"
           name={t('Details')}
           componentPromise={() =>
-            import('app/views/settings/project/projectKeys/details')
+            import('sentry/views/settings/project/projectKeys/details')
           }
           component={SafeLazyLoad}
         />
@@ -544,26 +562,30 @@ function buildRoutes() {
       <Route
         path="user-feedback/"
         name={t('User Feedback')}
-        componentPromise={() => import('app/views/settings/project/projectUserFeedback')}
+        componentPromise={() =>
+          import('sentry/views/settings/project/projectUserFeedback')
+        }
         component={SafeLazyLoad}
       />
       <Redirect from="csp/" to="security-headers/" />
       <Route path="security-headers/" name={t('Security Headers')}>
         <IndexRoute
-          componentPromise={() => import('app/views/settings/projectSecurityHeaders')}
+          componentPromise={() => import('sentry/views/settings/projectSecurityHeaders')}
           component={SafeLazyLoad}
         />
         <Route
           path="csp/"
           name={t('Content Security Policy')}
-          componentPromise={() => import('app/views/settings/projectSecurityHeaders/csp')}
+          componentPromise={() =>
+            import('sentry/views/settings/projectSecurityHeaders/csp')
+          }
           component={SafeLazyLoad}
         />
         <Route
           path="expect-ct/"
           name={t('Certificate Transparency')}
           componentPromise={() =>
-            import('app/views/settings/projectSecurityHeaders/expectCt')
+            import('sentry/views/settings/projectSecurityHeaders/expectCt')
           }
           component={SafeLazyLoad}
         />
@@ -571,33 +593,33 @@ function buildRoutes() {
           path="hpkp/"
           name={t('HPKP')}
           componentPromise={() =>
-            import('app/views/settings/projectSecurityHeaders/hpkp')
+            import('sentry/views/settings/projectSecurityHeaders/hpkp')
           }
           component={SafeLazyLoad}
         />
       </Route>
       <Route path="plugins/" name={t('Legacy Integrations')}>
         <IndexRoute
-          componentPromise={() => import('app/views/settings/projectPlugins')}
+          componentPromise={() => import('sentry/views/settings/projectPlugins')}
           component={SafeLazyLoad}
         />
         <Route
           path=":pluginId/"
           name={t('Integration Details')}
-          componentPromise={() => import('app/views/settings/projectPlugins/details')}
+          componentPromise={() => import('sentry/views/settings/projectPlugins/details')}
           component={SafeLazyLoad}
         />
       </Route>
       <Route path="install/" name={t('Configuration')}>
         <IndexRoute
-          componentPromise={() => import('app/views/projectInstall/overview')}
+          componentPromise={() => import('sentry/views/projectInstall/overview')}
           component={SafeLazyLoad}
         />
         <Route
           path=":platform/"
           name={t('Docs')}
           componentPromise={() =>
-            import('app/views/projectInstall/platformOrIntegration')
+            import('sentry/views/projectInstall/platformOrIntegration')
           }
           component={SafeLazyLoad}
         />
@@ -608,31 +630,33 @@ function buildRoutes() {
   const orgSettingsRoutes = (
     <Route
       getComponent={lazyLoad(
-        () => import('app/views/settings/organization/organizationSettingsLayout')
+        () => import('sentry/views/settings/organization/organizationSettingsLayout')
       )}
     >
       {hook('routes:organization')}
       <IndexRoute
         name={t('General')}
-        componentPromise={() => import('app/views/settings/organizationGeneralSettings')}
+        componentPromise={() =>
+          import('sentry/views/settings/organizationGeneralSettings')
+        }
         component={SafeLazyLoad}
       />
       <Route
         path="projects/"
         name={t('Projects')}
-        componentPromise={() => import('app/views/settings/organizationProjects')}
+        componentPromise={() => import('sentry/views/settings/organizationProjects')}
         component={SafeLazyLoad}
       />
       <Route path="api-keys/" name={t('API Key')}>
         <IndexRoute
-          componentPromise={() => import('app/views/settings/organizationApiKeys')}
+          componentPromise={() => import('sentry/views/settings/organizationApiKeys')}
           component={SafeLazyLoad}
         />
         <Route
           path=":apiKey/"
           name={t('Details')}
           componentPromise={() =>
-            import('app/views/settings/organizationApiKeys/organizationApiKeyDetails')
+            import('sentry/views/settings/organizationApiKeys/organizationApiKeyDetails')
           }
           component={SafeLazyLoad}
         />
@@ -640,26 +664,26 @@ function buildRoutes() {
       <Route
         path="audit-log/"
         name={t('Audit Log')}
-        componentPromise={() => import('app/views/settings/organizationAuditLog')}
+        componentPromise={() => import('sentry/views/settings/organizationAuditLog')}
         component={SafeLazyLoad}
       />
       <Route
         path="auth/"
         name={t('Auth Providers')}
-        componentPromise={() => import('app/views/settings/organizationAuth')}
+        componentPromise={() => import('sentry/views/settings/organizationAuth')}
         component={SafeLazyLoad}
       />
       <Redirect from="members/requests" to="members/" />
       <Route path="members/" name={t('Members')}>
         <Route
           componentPromise={() =>
-            import('app/views/settings/organizationMembers/organizationMembersWrapper')
+            import('sentry/views/settings/organizationMembers/organizationMembersWrapper')
           }
           component={SafeLazyLoad}
         >
           <IndexRoute
             componentPromise={() =>
-              import('app/views/settings/organizationMembers/organizationMembersList')
+              import('sentry/views/settings/organizationMembers/organizationMembersList')
             }
             component={SafeLazyLoad}
           />
@@ -668,7 +692,7 @@ function buildRoutes() {
           path=":memberId/"
           name={t('Details')}
           componentPromise={() =>
-            import('app/views/settings/organizationMembers/organizationMemberDetail')
+            import('sentry/views/settings/organizationMembers/organizationMemberDetail')
           }
           component={SafeLazyLoad}
         />
@@ -676,44 +700,46 @@ function buildRoutes() {
       <Route
         path="rate-limits/"
         name={t('Rate Limits')}
-        componentPromise={() => import('app/views/settings/organizationRateLimits')}
+        componentPromise={() => import('sentry/views/settings/organizationRateLimits')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Relay')}
         path="relay/"
-        componentPromise={() => import('app/views/settings/organizationRelay')}
+        componentPromise={() => import('sentry/views/settings/organizationRelay')}
         component={SafeLazyLoad}
       />
       <Route
         path="repos/"
         name={t('Repositories')}
-        componentPromise={() => import('app/views/settings/organizationRepositories')}
+        componentPromise={() => import('sentry/views/settings/organizationRepositories')}
         component={SafeLazyLoad}
       />
       <Route
         path="settings/"
-        componentPromise={() => import('app/views/settings/organizationGeneralSettings')}
+        componentPromise={() =>
+          import('sentry/views/settings/organizationGeneralSettings')
+        }
         component={SafeLazyLoad}
       />
       <Route
         name={t('Security & Privacy')}
         path="security-and-privacy/"
         componentPromise={() =>
-          import('app/views/settings/organizationSecurityAndPrivacy')
+          import('sentry/views/settings/organizationSecurityAndPrivacy')
         }
         component={SafeLazyLoad}
       />
       <Route name={t('Teams')} path="teams/">
         <IndexRoute
-          componentPromise={() => import('app/views/settings/organizationTeams')}
+          componentPromise={() => import('sentry/views/settings/organizationTeams')}
           component={SafeLazyLoad}
         />
         <Route
           name={t('Team')}
           path=":teamId/"
           componentPromise={() =>
-            import('app/views/settings/organizationTeams/teamDetails')
+            import('sentry/views/settings/organizationTeams/teamDetails')
           }
           component={SafeLazyLoad}
         >
@@ -722,7 +748,7 @@ function buildRoutes() {
             path="members/"
             name={t('Members')}
             componentPromise={() =>
-              import('app/views/settings/organizationTeams/teamMembers')
+              import('sentry/views/settings/organizationTeams/teamMembers')
             }
             component={SafeLazyLoad}
           />
@@ -730,7 +756,7 @@ function buildRoutes() {
             path="notifications/"
             name={t('Notifications')}
             componentPromise={() =>
-              import('app/views/settings/organizationTeams/teamNotifications')
+              import('sentry/views/settings/organizationTeams/teamNotifications')
             }
             component={SafeLazyLoad}
           />
@@ -738,7 +764,7 @@ function buildRoutes() {
             path="projects/"
             name={t('Projects')}
             componentPromise={() =>
-              import('app/views/settings/organizationTeams/teamProjects')
+              import('sentry/views/settings/organizationTeams/teamProjects')
             }
             component={SafeLazyLoad}
           />
@@ -746,7 +772,7 @@ function buildRoutes() {
             path="settings/"
             name={t('Settings')}
             componentPromise={() =>
-              import('app/views/settings/organizationTeams/teamSettings')
+              import('sentry/views/settings/organizationTeams/teamSettings')
             }
             component={SafeLazyLoad}
           />
@@ -758,7 +784,7 @@ function buildRoutes() {
           name={t('Integration Details')}
           path=":integrationSlug/"
           componentPromise={() =>
-            import('app/views/organizationIntegrations/pluginDetailedView')
+            import('sentry/views/organizationIntegrations/pluginDetailedView')
           }
           component={SafeLazyLoad}
         />
@@ -769,7 +795,7 @@ function buildRoutes() {
           name={t('Details')}
           path=":integrationSlug"
           componentPromise={() =>
-            import('app/views/organizationIntegrations/sentryAppDetailedView')
+            import('sentry/views/organizationIntegrations/sentryAppDetailedView')
           }
           component={SafeLazyLoad}
         />
@@ -780,7 +806,7 @@ function buildRoutes() {
           name={t('Details')}
           path=":integrationSlug"
           componentPromise={() =>
-            import('app/views/organizationIntegrations/docIntegrationDetailedView')
+            import('sentry/views/organizationIntegrations/docIntegrationDetailedView')
           }
           component={SafeLazyLoad}
         />
@@ -788,7 +814,7 @@ function buildRoutes() {
       <Route name={t('Integrations')} path="integrations/">
         <IndexRoute
           componentPromise={() =>
-            import('app/views/organizationIntegrations/integrationListDirectory')
+            import('sentry/views/organizationIntegrations/integrationListDirectory')
           }
           component={SafeLazyLoad}
         />
@@ -796,7 +822,7 @@ function buildRoutes() {
           name={t('Integration Details')}
           path=":integrationSlug"
           componentPromise={() =>
-            import('app/views/organizationIntegrations/integrationDetailedView')
+            import('sentry/views/organizationIntegrations/integrationDetailedView')
           }
           component={SafeLazyLoad}
         />
@@ -804,7 +830,7 @@ function buildRoutes() {
           name={t('Configure Integration')}
           path=":providerKey/:integrationId/"
           componentPromise={() =>
-            import('app/views/settings/organizationIntegrations/configureIntegration')
+            import('sentry/views/settings/organizationIntegrations/configureIntegration')
           }
           component={SafeLazyLoad}
         />
@@ -812,26 +838,26 @@ function buildRoutes() {
       <Route name={t('Developer Settings')} path="developer-settings/">
         <IndexRoute
           componentPromise={() =>
-            import('app/views/settings/organizationDeveloperSettings')
+            import('sentry/views/settings/organizationDeveloperSettings')
           }
           component={SafeLazyLoad}
         />
         <Route
-          name={t('New Public Integration')}
+          name={t('Create Integration')}
           path="new-public/"
           componentPromise={() =>
             import(
-              'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
+              'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
             )
           }
           component={SafeLazyLoad}
         />
         <Route
-          name={t('New Internal Integration')}
+          name={t('Create Integration')}
           path="new-internal/"
           componentPromise={() =>
             import(
-              'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
+              'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
             )
           }
           component={SafeLazyLoad}
@@ -841,7 +867,7 @@ function buildRoutes() {
           path=":appSlug/"
           componentPromise={() =>
             import(
-              'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
+              'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails'
             )
           }
           component={SafeLazyLoad}
@@ -851,7 +877,7 @@ function buildRoutes() {
           path=":appSlug/dashboard/"
           componentPromise={() =>
             import(
-              'app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard'
+              'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard'
             )
           }
           component={SafeLazyLoad}
@@ -875,7 +901,7 @@ function buildRoutes() {
   const settingsRoutes = (
     <Route path="/settings/" name={t('Settings')} component={SettingsWrapper}>
       <IndexRoute
-        getComponent={lazyLoad(() => import('app/views/settings/settingsIndex'))}
+        getComponent={lazyLoad(() => import('sentry/views/settings/settingsIndex'))}
       />
       {accountSettingsRoutes}
       <Route name={t('Organization')} path=":orgId/">
@@ -889,34 +915,34 @@ function buildRoutes() {
   const projectsRoutes = (
     <Route path="/organizations/:orgId/projects/">
       <IndexRoute
-        componentPromise={() => import('app/views/projectsDashboard')}
+        componentPromise={() => import('sentry/views/projectsDashboard')}
         component={SafeLazyLoad}
       />
       <Route
         path="new/"
-        componentPromise={() => import('app/views/projectInstall/newProject')}
+        componentPromise={() => import('sentry/views/projectInstall/newProject')}
         component={SafeLazyLoad}
       />
       <Route
         path=":projectId/getting-started/"
-        componentPromise={() => import('app/views/projectInstall/gettingStarted')}
+        componentPromise={() => import('sentry/views/projectInstall/gettingStarted')}
         component={SafeLazyLoad}
       >
         <IndexRoute
-          componentPromise={() => import('app/views/projectInstall/overview')}
+          componentPromise={() => import('sentry/views/projectInstall/overview')}
           component={SafeLazyLoad}
         />
         <Route
           path=":platform/"
           componentPromise={() =>
-            import('app/views/projectInstall/platformOrIntegration')
+            import('sentry/views/projectInstall/platformOrIntegration')
           }
           component={SafeLazyLoad}
         />
       </Route>
       <Route
         path=":projectId/"
-        componentPromise={() => import('app/views/projectDetail')}
+        componentPromise={() => import('sentry/views/projectDetail')}
         component={SafeLazyLoad}
       />
       <Route
@@ -930,47 +956,52 @@ function buildRoutes() {
     <Fragment>
       <Route
         path="/organizations/:orgId/dashboards/"
-        componentPromise={() => import('app/views/dashboardsV2')}
+        componentPromise={() => import('sentry/views/dashboardsV2')}
         component={SafeLazyLoad}
       >
         <IndexRoute
-          componentPromise={() => import('app/views/dashboardsV2/manage')}
+          componentPromise={() => import('sentry/views/dashboardsV2/manage')}
           component={SafeLazyLoad}
         />
       </Route>
       <Route
         path="/organizations/:orgId/dashboards/new/"
-        componentPromise={() => import('app/views/dashboardsV2/create')}
+        componentPromise={() => import('sentry/views/dashboardsV2/create')}
         component={SafeLazyLoad}
       >
         <Route
           path="widget/:widgetId/edit/"
-          componentPromise={() => import('app/views/dashboardsV2/widget')}
+          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
           component={SafeLazyLoad}
         />
         <Route
           path="widget/new/"
-          componentPromise={() => import('app/views/dashboardsV2/widget')}
+          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
           component={SafeLazyLoad}
         />
       </Route>
+      <Route
+        path="/organizations/:orgId/dashboards/new/:templateId"
+        componentPromise={() => import('sentry/views/dashboardsV2/create')}
+        component={SafeLazyLoad}
+      />
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
       />
       <Route
         path="/organizations/:orgId/dashboard/:dashboardId/"
-        componentPromise={() => import('app/views/dashboardsV2/view')}
+        componentPromise={() => import('sentry/views/dashboardsV2/view')}
         component={SafeLazyLoad}
       >
         <Route
           path="widget/:widgetId/edit/"
-          componentPromise={() => import('app/views/dashboardsV2/widget')}
+          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
           component={SafeLazyLoad}
         />
         <Route
           path="widget/new/"
-          componentPromise={() => import('app/views/dashboardsV2/widget')}
+          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -980,34 +1011,34 @@ function buildRoutes() {
   const alertRoutes = (
     <Route
       path="/organizations/:orgId/alerts/"
-      componentPromise={() => import('app/views/alerts')}
+      componentPromise={() => import('sentry/views/alerts')}
       component={SafeLazyLoad}
     >
       <IndexRoute
-        componentPromise={() => import('app/views/alerts/list')}
+        componentPromise={() => import('sentry/views/alerts/list')}
         component={SafeLazyLoad}
-      />
-      <Route
-        path="rules/details/:ruleId/"
-        name={t('Alert Rule Details')}
-        component={SafeLazyLoad}
-        componentPromise={() => import('app/views/alerts/rules/details')}
       />
       <Route path="rules/">
         <IndexRoute
           component={SafeLazyLoad}
-          componentPromise={() => import('app/views/alerts/rules')}
+          componentPromise={() => import('sentry/views/alerts/rules')}
+        />
+        <Route
+          path="details/:ruleId/"
+          name={t('Alert Rule Details')}
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/alerts/rules/details')}
         />
         <Route
           path=":projectId/"
-          componentPromise={() => import('app/views/alerts/builder/projectProvider')}
+          componentPromise={() => import('sentry/views/alerts/builder/projectProvider')}
           component={SafeLazyLoad}
         >
           <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
           <Route
             path=":ruleId/"
             name={t('Edit Alert Rule')}
-            componentPromise={() => import('app/views/alerts/edit')}
+            componentPromise={() => import('sentry/views/alerts/edit')}
             component={SafeLazyLoad}
           />
         </Route>
@@ -1016,44 +1047,39 @@ function buildRoutes() {
         <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
         <Route
           path=":projectId/"
-          componentPromise={() => import('app/views/alerts/builder/projectProvider')}
+          componentPromise={() => import('sentry/views/alerts/builder/projectProvider')}
           component={SafeLazyLoad}
         >
           <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
           <Route
             path=":ruleId/"
             name={t('Edit Alert Rule')}
-            componentPromise={() => import('app/views/alerts/edit')}
+            componentPromise={() => import('sentry/views/alerts/edit')}
             component={SafeLazyLoad}
           />
         </Route>
       </Route>
       <Route
-        path="rules/"
-        componentPromise={() => import('app/views/alerts/rules')}
-        component={SafeLazyLoad}
-      />
-      <Route
         path=":alertId/"
-        componentPromise={() => import('app/views/alerts/details')}
+        componentPromise={() => import('sentry/views/alerts/details')}
         component={SafeLazyLoad}
       />
       <Route
         path=":projectId/"
-        componentPromise={() => import('app/views/alerts/builder/projectProvider')}
+        componentPromise={() => import('sentry/views/alerts/builder/projectProvider')}
         component={SafeLazyLoad}
       >
         <Route
           path="new/"
           name={t('New Alert Rule')}
           component={SafeLazyLoad}
-          componentPromise={() => import('app/views/alerts/create')}
+          componentPromise={() => import('sentry/views/alerts/create')}
         />
         <Route
           path="wizard/"
           name={t('Alert Creation Wizard')}
           component={SafeLazyLoad}
-          componentPromise={() => import('app/views/alerts/wizard')}
+          componentPromise={() => import('sentry/views/alerts/wizard')}
         />
       </Route>
     </Route>
@@ -1062,61 +1088,57 @@ function buildRoutes() {
   const monitorsRoutes = (
     <Route
       path="/organizations/:orgId/monitors/"
-      componentPromise={() => import('app/views/monitors')}
+      componentPromise={() => import('sentry/views/monitors')}
       component={SafeLazyLoad}
     >
       <IndexRoute
-        componentPromise={() => import('app/views/monitors/monitors')}
+        componentPromise={() => import('sentry/views/monitors/monitors')}
         component={SafeLazyLoad}
       />
       <Route
         path="/organizations/:orgId/monitors/create/"
-        componentPromise={() => import('app/views/monitors/create')}
+        componentPromise={() => import('sentry/views/monitors/create')}
         component={SafeLazyLoad}
       />
       <Route
         path="/organizations/:orgId/monitors/:monitorId/"
-        componentPromise={() => import('app/views/monitors/details')}
+        componentPromise={() => import('sentry/views/monitors/details')}
         component={SafeLazyLoad}
       />
       <Route
         path="/organizations/:orgId/monitors/:monitorId/edit/"
-        componentPromise={() => import('app/views/monitors/edit')}
+        componentPromise={() => import('sentry/views/monitors/edit')}
         component={SafeLazyLoad}
       />
     </Route>
   );
 
   const releasesRoutes = (
-    <Route
-      path="/organizations/:orgId/releases/"
-      componentPromise={() => import('app/views/releases')}
-      component={SafeLazyLoad}
-    >
+    <Route path="/organizations/:orgId/releases/">
       <IndexRoute
-        componentPromise={() => import('app/views/releases/list')}
+        componentPromise={() => import('sentry/views/releases/list')}
         component={SafeLazyLoad}
       />
       <Route
         path=":release/"
-        componentPromise={() => import('app/views/releases/detail')}
+        componentPromise={() => import('sentry/views/releases/detail')}
         component={SafeLazyLoad}
       >
         <IndexRoute
-          componentPromise={() => import('app/views/releases/detail/overview')}
+          componentPromise={() => import('sentry/views/releases/detail/overview')}
           component={SafeLazyLoad}
         />
         <Route
           path="commits/"
           componentPromise={() =>
-            import('app/views/releases/detail/commitsAndFiles/commits')
+            import('sentry/views/releases/detail/commitsAndFiles/commits')
           }
           component={SafeLazyLoad}
         />
         <Route
           path="files-changed/"
           componentPromise={() =>
-            import('app/views/releases/detail/commitsAndFiles/filesChanged')
+            import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
           }
           component={SafeLazyLoad}
         />
@@ -1129,7 +1151,7 @@ function buildRoutes() {
   const activityRoutes = (
     <Route
       path="/organizations/:orgId/activity/"
-      componentPromise={() => import('app/views/organizationActivity')}
+      componentPromise={() => import('sentry/views/organizationActivity')}
       component={SafeLazyLoad}
     />
   );
@@ -1137,7 +1159,7 @@ function buildRoutes() {
   const statsRoutes = (
     <Route
       path="/organizations/:orgId/stats/"
-      componentPromise={() => import('app/views/organizationStats')}
+      componentPromise={() => import('sentry/views/organizationStats')}
       component={SafeLazyLoad}
     />
   );
@@ -1145,12 +1167,12 @@ function buildRoutes() {
   const teamStatsRoutes = (
     <Route
       path="/organizations/:orgId/stats/team/"
-      componentPromise={() => import('app/views/organizationStats/teamInsights')}
+      componentPromise={() => import('sentry/views/organizationStats/teamInsights')}
       component={SafeLazyLoad}
     >
       <IndexRoute
         componentPromise={() =>
-          import('app/views/organizationStats/teamInsights/overview')
+          import('sentry/views/organizationStats/teamInsights/overview')
         }
         component={SafeLazyLoad}
       />
@@ -1164,23 +1186,23 @@ function buildRoutes() {
   const discoverRoutes = (
     <Route
       path="/organizations/:orgId/discover/"
-      componentPromise={() => import('app/views/eventsV2')}
+      componentPromise={() => import('sentry/views/eventsV2')}
       component={SafeLazyLoad}
     >
       <IndexRedirect to="queries/" />
       <Route
         path="queries/"
-        componentPromise={() => import('app/views/eventsV2/landing')}
+        componentPromise={() => import('sentry/views/eventsV2/landing')}
         component={SafeLazyLoad}
       />
       <Route
         path="results/"
-        componentPromise={() => import('app/views/eventsV2/results')}
+        componentPromise={() => import('sentry/views/eventsV2/results')}
         component={SafeLazyLoad}
       />
       <Route
         path=":eventSlug/"
-        componentPromise={() => import('app/views/eventsV2/eventDetails')}
+        componentPromise={() => import('sentry/views/eventsV2/eventDetails')}
         component={SafeLazyLoad}
       />
     </Route>
@@ -1189,72 +1211,77 @@ function buildRoutes() {
   const performanceRoutes = (
     <Route
       path="/organizations/:orgId/performance/"
-      componentPromise={() => import('app/views/performance')}
+      componentPromise={() => import('sentry/views/performance')}
       component={SafeLazyLoad}
     >
       <IndexRoute
-        componentPromise={() => import('app/views/performance/content')}
+        componentPromise={() => import('sentry/views/performance/content')}
         component={SafeLazyLoad}
       />
       <Route
         path="trends/"
-        componentPromise={() => import('app/views/performance/trends')}
+        componentPromise={() => import('sentry/views/performance/trends')}
         component={SafeLazyLoad}
       />
       <Route path="/organizations/:orgId/performance/summary/">
         <IndexRoute
           componentPromise={() =>
-            import('app/views/performance/transactionSummary/transactionOverview')
+            import('sentry/views/performance/transactionSummary/transactionOverview')
           }
           component={SafeLazyLoad}
         />
         <Route
           path="vitals/"
           componentPromise={() =>
-            import('app/views/performance/transactionSummary/transactionVitals')
+            import('sentry/views/performance/transactionSummary/transactionVitals')
           }
           component={SafeLazyLoad}
         />
         <Route
           path="tags/"
           componentPromise={() =>
-            import('app/views/performance/transactionSummary/transactionTags')
+            import('sentry/views/performance/transactionSummary/transactionTags')
           }
           component={SafeLazyLoad}
         />
         <Route
           path="events/"
           componentPromise={() =>
-            import('app/views/performance/transactionSummary/transactionEvents')
+            import('sentry/views/performance/transactionSummary/transactionEvents')
           }
           component={SafeLazyLoad}
         />
-        <Route
-          path="spans/"
-          componentPromise={() =>
-            import('app/views/performance/transactionSummary/transactionSpans')
-          }
-          component={SafeLazyLoad}
-        />
+        <Route path="spans/">
+          <IndexRoute
+            componentPromise={() =>
+              import('sentry/views/performance/transactionSummary/transactionSpans')
+            }
+            component={SafeLazyLoad}
+          />
+          <Route
+            path=":spanSlug/"
+            componentPromise={() =>
+              import(
+                'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
+              )
+            }
+            component={SafeLazyLoad}
+          />
+        </Route>
       </Route>
       <Route
         path="vitaldetail/"
-        componentPromise={() => import('app/views/performance/vitalDetail')}
+        componentPromise={() => import('sentry/views/performance/vitalDetail')}
         component={SafeLazyLoad}
       />
       <Route
         path="trace/:traceSlug/"
-        componentPromise={() => import('app/views/performance/traceDetails')}
+        componentPromise={() => import('sentry/views/performance/traceDetails')}
         component={SafeLazyLoad}
       />
       <Route
         path=":eventSlug/"
-        componentPromise={() => import('app/views/performance/transactionDetails')}
-        component={SafeLazyLoad}
-      />
-      <Route
-        path="compare/:baselineEventSlug/:regressionEventSlug/"
-        componentPromise={() => import('app/views/performance/compare')}
+        componentPromise={() => import('sentry/views/performance/transactionDetails')}
         component={SafeLazyLoad}
       />
     </Route>
@@ -1263,7 +1290,7 @@ function buildRoutes() {
   const userFeedbackRoutes = (
     <Route
       path="/organizations/:orgId/user-feedback/"
-      componentPromise={() => import('app/views/userFeedback')}
+      componentPromise={() => import('sentry/views/userFeedback')}
       component={SafeLazyLoad}
     />
   );
@@ -1278,7 +1305,7 @@ function buildRoutes() {
       <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
       <Route
         path="sessionPercent"
-        componentPromise={() => import('app/views/issueList/testSessionPercent')}
+        componentPromise={() => import('sentry/views/issueList/testSessionPercent')}
         component={SafeLazyLoad}
       />
     </Route>
@@ -1289,12 +1316,12 @@ function buildRoutes() {
   const groupDetailsRoutes = (
     <Route
       path="/organizations/:orgId/issues/:groupId/"
-      componentPromise={() => import('app/views/organizationGroupDetails')}
+      componentPromise={() => import('sentry/views/organizationGroupDetails')}
       component={SafeLazyLoad}
     >
       <IndexRoute
         componentPromise={() =>
-          import('app/views/organizationGroupDetails/groupEventDetails')
+          import('sentry/views/organizationGroupDetails/groupEventDetails')
         }
         component={SafeLazyLoad}
         props={{
@@ -1305,7 +1332,7 @@ function buildRoutes() {
       <Route
         path="activity/"
         componentPromise={() =>
-          import('app/views/organizationGroupDetails/groupActivity')
+          import('sentry/views/organizationGroupDetails/groupActivity')
         }
         component={SafeLazyLoad}
         props={{
@@ -1315,7 +1342,9 @@ function buildRoutes() {
       />
       <Route
         path="events/"
-        componentPromise={() => import('app/views/organizationGroupDetails/groupEvents')}
+        componentPromise={() =>
+          import('sentry/views/organizationGroupDetails/groupEvents')
+        }
         component={SafeLazyLoad}
         props={{
           currentTab: Tab.EVENTS,
@@ -1324,7 +1353,7 @@ function buildRoutes() {
       />
       <Route
         path="tags/"
-        componentPromise={() => import('app/views/organizationGroupDetails/groupTags')}
+        componentPromise={() => import('sentry/views/organizationGroupDetails/groupTags')}
         component={SafeLazyLoad}
         props={{
           currentTab: Tab.TAGS,
@@ -1334,7 +1363,7 @@ function buildRoutes() {
       <Route
         path="tags/:tagKey/"
         componentPromise={() =>
-          import('app/views/organizationGroupDetails/groupTagValues')
+          import('sentry/views/organizationGroupDetails/groupTagValues')
         }
         component={SafeLazyLoad}
         props={{
@@ -1345,7 +1374,7 @@ function buildRoutes() {
       <Route
         path="feedback/"
         componentPromise={() =>
-          import('app/views/organizationGroupDetails/groupUserFeedback')
+          import('sentry/views/organizationGroupDetails/groupUserFeedback')
         }
         component={SafeLazyLoad}
         props={{
@@ -1356,7 +1385,7 @@ function buildRoutes() {
       <Route
         path="attachments/"
         componentPromise={() =>
-          import('app/views/organizationGroupDetails/groupEventAttachments')
+          import('sentry/views/organizationGroupDetails/groupEventAttachments')
         }
         component={SafeLazyLoad}
         props={{
@@ -1367,7 +1396,7 @@ function buildRoutes() {
       <Route
         path="similar/"
         componentPromise={() =>
-          import('app/views/organizationGroupDetails/groupSimilarIssues')
+          import('sentry/views/organizationGroupDetails/groupSimilarIssues')
         }
         component={SafeLazyLoad}
         props={{
@@ -1377,7 +1406,9 @@ function buildRoutes() {
       />
       <Route
         path="merged/"
-        componentPromise={() => import('app/views/organizationGroupDetails/groupMerged')}
+        componentPromise={() =>
+          import('sentry/views/organizationGroupDetails/groupMerged')
+        }
         component={SafeLazyLoad}
         props={{
           currentTab: Tab.MERGED,
@@ -1386,7 +1417,7 @@ function buildRoutes() {
       />
       <Route
         path="grouping/"
-        componentPromise={() => import('app/views/organizationGroupDetails/grouping')}
+        componentPromise={() => import('sentry/views/organizationGroupDetails/grouping')}
         component={SafeLazyLoad}
         props={{
           currentTab: Tab.GROUPING,
@@ -1396,7 +1427,7 @@ function buildRoutes() {
       <Route path="events/:eventId/">
         <IndexRoute
           componentPromise={() =>
-            import('app/views/organizationGroupDetails/groupEventDetails')
+            import('sentry/views/organizationGroupDetails/groupEventDetails')
           }
           component={SafeLazyLoad}
           props={{
@@ -1407,7 +1438,7 @@ function buildRoutes() {
         <Route
           path="activity/"
           componentPromise={() =>
-            import('app/views/organizationGroupDetails/groupActivity')
+            import('sentry/views/organizationGroupDetails/groupActivity')
           }
           component={SafeLazyLoad}
           props={{
@@ -1418,7 +1449,7 @@ function buildRoutes() {
         <Route
           path="events/"
           componentPromise={() =>
-            import('app/views/organizationGroupDetails/groupEvents')
+            import('sentry/views/organizationGroupDetails/groupEvents')
           }
           component={SafeLazyLoad}
           props={{
@@ -1429,7 +1460,7 @@ function buildRoutes() {
         <Route
           path="similar/"
           componentPromise={() =>
-            import('app/views/organizationGroupDetails/groupSimilarIssues')
+            import('sentry/views/organizationGroupDetails/groupSimilarIssues')
           }
           component={SafeLazyLoad}
           props={{
@@ -1439,7 +1470,9 @@ function buildRoutes() {
         />
         <Route
           path="tags/"
-          componentPromise={() => import('app/views/organizationGroupDetails/groupTags')}
+          componentPromise={() =>
+            import('sentry/views/organizationGroupDetails/groupTags')
+          }
           component={SafeLazyLoad}
           props={{
             currentTab: Tab.TAGS,
@@ -1449,7 +1482,7 @@ function buildRoutes() {
         <Route
           path="tags/:tagKey/"
           componentPromise={() =>
-            import('app/views/organizationGroupDetails/groupTagValues')
+            import('sentry/views/organizationGroupDetails/groupTagValues')
           }
           component={SafeLazyLoad}
           props={{
@@ -1460,7 +1493,7 @@ function buildRoutes() {
         <Route
           path="feedback/"
           componentPromise={() =>
-            import('app/views/organizationGroupDetails/groupUserFeedback')
+            import('sentry/views/organizationGroupDetails/groupUserFeedback')
           }
           component={SafeLazyLoad}
           props={{
@@ -1471,7 +1504,7 @@ function buildRoutes() {
         <Route
           path="attachments/"
           componentPromise={() =>
-            import('app/views/organizationGroupDetails/groupEventAttachments')
+            import('sentry/views/organizationGroupDetails/groupEventAttachments')
           }
           component={SafeLazyLoad}
           props={{
@@ -1482,7 +1515,7 @@ function buildRoutes() {
         <Route
           path="merged/"
           componentPromise={() =>
-            import('app/views/organizationGroupDetails/groupMerged')
+            import('sentry/views/organizationGroupDetails/groupMerged')
           }
           component={SafeLazyLoad}
           props={{
@@ -1492,7 +1525,9 @@ function buildRoutes() {
         />
         <Route
           path="grouping/"
-          componentPromise={() => import('app/views/organizationGroupDetails/grouping')}
+          componentPromise={() =>
+            import('sentry/views/organizationGroupDetails/grouping')
+          }
           component={SafeLazyLoad}
           props={{
             currentTab: Tab.GROUPING,
@@ -1509,88 +1544,88 @@ function buildRoutes() {
     <Route
       name={t('Admin')}
       path="/manage/"
-      componentPromise={() => import('app/views/admin/adminLayout')}
+      componentPromise={() => import('sentry/views/admin/adminLayout')}
       component={SafeLazyLoad}
     >
       <IndexRoute
-        componentPromise={() => import('app/views/admin/adminOverview')}
+        componentPromise={() => import('sentry/views/admin/adminOverview')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Buffer')}
         path="buffer/"
-        componentPromise={() => import('app/views/admin/adminBuffer')}
+        componentPromise={() => import('sentry/views/admin/adminBuffer')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Relays')}
         path="relays/"
-        componentPromise={() => import('app/views/admin/adminRelays')}
+        componentPromise={() => import('sentry/views/admin/adminRelays')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Organizations')}
         path="organizations/"
-        componentPromise={() => import('app/views/admin/adminOrganizations')}
+        componentPromise={() => import('sentry/views/admin/adminOrganizations')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Projects')}
         path="projects/"
-        componentPromise={() => import('app/views/admin/adminProjects')}
+        componentPromise={() => import('sentry/views/admin/adminProjects')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Queue')}
         path="queue/"
-        componentPromise={() => import('app/views/admin/adminQueue')}
+        componentPromise={() => import('sentry/views/admin/adminQueue')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Quotas')}
         path="quotas/"
-        componentPromise={() => import('app/views/admin/adminQuotas')}
+        componentPromise={() => import('sentry/views/admin/adminQuotas')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Settings')}
         path="settings/"
-        componentPromise={() => import('app/views/admin/adminSettings')}
+        componentPromise={() => import('sentry/views/admin/adminSettings')}
         component={SafeLazyLoad}
       />
       <Route name={t('Users')} path="users/">
         <IndexRoute
-          componentPromise={() => import('app/views/admin/adminUsers')}
+          componentPromise={() => import('sentry/views/admin/adminUsers')}
           component={SafeLazyLoad}
         />
         <Route
           path=":id"
-          componentPromise={() => import('app/views/admin/adminUserEdit')}
+          componentPromise={() => import('sentry/views/admin/adminUserEdit')}
           component={SafeLazyLoad}
         />
       </Route>
       <Route
         name={t('Mail')}
         path="status/mail/"
-        componentPromise={() => import('app/views/admin/adminMail')}
+        componentPromise={() => import('sentry/views/admin/adminMail')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Environment')}
         path="status/environment/"
-        componentPromise={() => import('app/views/admin/adminEnvironment')}
+        componentPromise={() => import('sentry/views/admin/adminEnvironment')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Packages')}
         path="status/packages/"
-        componentPromise={() => import('app/views/admin/adminPackages')}
+        componentPromise={() => import('sentry/views/admin/adminPackages')}
         component={SafeLazyLoad}
       />
       <Route
         name={t('Warnings')}
         path="status/warnings/"
-        componentPromise={() => import('app/views/admin/adminWarnings')}
+        componentPromise={() => import('sentry/views/admin/adminWarnings')}
         component={SafeLazyLoad}
       />
       {hook('routes:admin')}
@@ -1603,7 +1638,7 @@ function buildRoutes() {
     <Route component={errorHandler(OrganizationRoot)}>
       <Route
         path="/organizations/:orgId/teams/new/"
-        componentPromise={() => import('app/views/teamCreate')}
+        componentPromise={() => import('sentry/views/teamCreate')}
         component={SafeLazyLoad}
       />
       <Route path="/organizations/:orgId/">
@@ -1661,16 +1696,18 @@ function buildRoutes() {
   const legacyGettingStartedRoutes = (
     <Route
       path="/:orgId/:projectId/getting-started/"
-      componentPromise={() => import('app/views/projectInstall/gettingStarted')}
+      componentPromise={() => import('sentry/views/projectInstall/gettingStarted')}
       component={SafeLazyLoad}
     >
       <IndexRoute
-        componentPromise={() => import('app/views/projectInstall/overview')}
+        componentPromise={() => import('sentry/views/projectInstall/overview')}
         component={SafeLazyLoad}
       />
       <Route
         path=":platform/"
-        componentPromise={() => import('app/views/projectInstall/platformOrIntegration')}
+        componentPromise={() =>
+          import('sentry/views/projectInstall/platformOrIntegration')
+        }
         component={SafeLazyLoad}
       />
     </Route>

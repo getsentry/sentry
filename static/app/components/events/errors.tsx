@@ -5,18 +5,18 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import uniqWith from 'lodash/uniqWith';
 
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import ErrorItem from 'app/components/events/errorItem';
-import List from 'app/components/list';
-import {JavascriptProcessingErrors} from 'app/constants/eventErrors';
-import {IconWarning} from 'app/icons';
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {Artifact, Organization, Project} from 'app/types';
-import {Event} from 'app/types/event';
-import {Theme} from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ErrorItem from 'sentry/components/events/errorItem';
+import List from 'sentry/components/list';
+import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
+import {IconWarning} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
+import {Artifact, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
+import {Theme} from 'sentry/utils/theme';
+import withApi from 'sentry/utils/withApi';
 
 import {BannerContainer, BannerSummary} from './styles';
 
@@ -150,6 +150,7 @@ class Errors extends Component<Props, State> {
           <StyledButton
             data-test-id="event-error-toggle"
             priority="link"
+            size="zero"
             onClick={this.toggle}
           >
             {isOpen ? t('Hide') : t('Show')}
@@ -211,6 +212,7 @@ const linkStyle = ({theme}: {theme: Theme}) => css`
 
 const StyledButton = styled(Button)`
   ${linkStyle}
+  align-self: center;
 `;
 
 const StyledBanner = styled(BannerContainer)`
