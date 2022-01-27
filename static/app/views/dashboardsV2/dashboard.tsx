@@ -3,6 +3,7 @@ import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import {forceCheck} from 'react-lazyload';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
@@ -262,6 +263,10 @@ class Dashboard extends Component<Props, State> {
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
+    // Force check lazyLoad elements that might have shifted into view after deleting an upper widget
+    // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
+    // RGL doesn't provide a handler for post animation layout change
+    setTimeout(forceCheck, 400);
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
