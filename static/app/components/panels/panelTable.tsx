@@ -181,7 +181,7 @@ export const PanelTableHeader = styled('div')<{sticky: boolean}>`
     `
     position: sticky;
     top: 0;
-    zIndex: 1;
+    z-index: 1;
   `}
 `;
 

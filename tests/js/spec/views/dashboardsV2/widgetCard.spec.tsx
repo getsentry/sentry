@@ -432,4 +432,45 @@ describe('Dashboards > WidgetCard', function () {
       })
     );
   });
+
+  it('has sticky table headers', async function () {
+    const tableWidget: Widget = {
+      title: 'Table Widget',
+      interval: '5m',
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.DISCOVER,
+      queries: [
+        {
+          conditions: '',
+          fields: ['transaction', 'count()'],
+          name: 'Table',
+          orderby: '',
+        },
+      ],
+    };
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={tableWidget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+    await tick();
+    expect(screen.getByText('transaction').parentElement).toHaveStyle({
+      position: 'sticky',
+      top: 0,
+      'z-index': 1,
+    });
+  });
 });
