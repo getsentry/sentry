@@ -60,7 +60,7 @@ from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, resolve_colu
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
-class QueryComplier:
+class QueryCompiler:
     """Builds a snql query"""
 
     def __init__(
@@ -1021,7 +1021,7 @@ class QueryComplier:
         )
 
 
-class QueryBuilder(QueryComplier):
+class QueryBuilder(QueryCompiler):
     def __init__(
         self,
         dataset: Dataset,
@@ -1077,7 +1077,7 @@ class QueryBuilder(QueryComplier):
         self.groupby = self.resolve_groupby()
 
 
-class TimeseriesQueryBuilder(QueryComplier):
+class TimeseriesQueryBuilder(QueryCompiler):
     time_column = Column("time")
 
     def __init__(
