@@ -115,7 +115,8 @@ class BaseNotification(abc.ABC):
 
     def get_custom_analytics_params(self, recipient: Team | User) -> Mapping[str, Any]:
         """
-        Returns a mapping of params used to record the event associated with analytics_event
+        Returns a mapping of params used to record the event associated with self.analytics_event.
+        By default, use the log params.
         """
         return self.get_log_params(recipient)
 
