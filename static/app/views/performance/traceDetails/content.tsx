@@ -105,59 +105,64 @@ class TraceDetailsContent extends React.Component<Props, State> {
     const errors = meta?.errors ?? 0;
 
     if (transactions === 0 && errors > 0) {
-      const eventView = {...traceEventView};
-      eventView.query = `trace:${traceSlug} !event.type:transaction `;
+      const errorsEventView = traceEventView.withColumns([
+        {kind: 'field', field: 'project'},
+        {kind: 'field', field: 'title'},
+        {kind: 'field', field: 'issue.id'},
+      ]);
+      errorsEventView.query = `trace:${traceSlug} !event.type:transaction `;
 
       return (
-        <React.Fragment>
-          <Alert type="error" icon={<IconInfo size="md" />}>
-            <ErrorLabel>
-              {t('The trace cannot be shown when all events are errors.')}
-            </ErrorLabel>
-            <DiscoverQuery
-              eventView={traceEventView}
-              orgSlug={organization.slug}
-              location={location}
-              referrer="api.trace-view.errors"
-            >
-              {({isLoading, tableData, error}) => {
-                if (isLoading) {
-                  return (
-                    <Layout.Main fullWidth>
-                      <LoadingIndicator />
-                    </Layout.Main>
-                  );
-                }
+        <DiscoverQuery
+          eventView={errorsEventView}
+          orgSlug={organization.slug}
+          location={location}
+          referrer="api.trace-view.errors-view"
+        >
+          {({isLoading, tableData, error}) => {
+            if (isLoading) {
+              return <LoadingIndicator />;
+            }
 
-                if (error) {
-                  return (
-                    <ErrorLabel>
-                      {t(`An error occurred when trying to fetch error events: ${error}`)}
-                    </ErrorLabel>
-                  );
-                }
+            if (error) {
+              return (
+                <Alert type="error" icon={<IconInfo size="md" />}>
+                  <ErrorLabel>
+                    {tct(
+                      'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: [error]',
+                      {error}
+                    )}
+                  </ErrorLabel>
+                </Alert>
+              );
+            }
 
-                return (
-                  <List symbol="bullet" data-test-id="trace-view-errors-list">
-                    {tableData.data.map(data => (
-                      <ListItem key={data.id}>
-                        {tct(`[link]: ${data.title}`, {
-                          link: (
-                            <Link
-                              to={`/organizations/${organization.slug}/discover/${data.project}:${data.id}`}
-                            >
-                              {data.project}
-                            </Link>
-                          ),
-                        })}
-                      </ListItem>
-                    ))}
-                  </List>
-                );
-              }}
-            </DiscoverQuery>
-          </Alert>
-        </React.Fragment>
+            return (
+              <Alert type="error" icon={<IconInfo size="md" />}>
+                <ErrorLabel>
+                  {t('The trace cannot be shown when all events are errors.')}
+                </ErrorLabel>
+
+                <List symbol="bullet" data-test-id="trace-view-errors-list">
+                  {tableData.data.map(data => (
+                    <ListItem key={data.id}>
+                      {tct('[link]: [title]', {
+                        link: (
+                          <Link
+                            to={`/organizations/${organization.slug}/issues/${data['issue.id']}/events/${data.id}`}
+                          >
+                            {data.project}
+                          </Link>
+                        ),
+                        title: data.title,
+                      })}
+                    </ListItem>
+                  ))}
+                </List>
+              </Alert>
+            );
+          }}
+        </DiscoverQuery>
       );
     }
 
