@@ -44,8 +44,10 @@ export enum PROJECT_PERFORMANCE_TYPE {
   MOBILE = 'mobile',
 }
 
+// The native SDK is equally used on clients and end-devices as on
+// backend, the default view should be "All Transactions".
 const FRONTEND_PLATFORMS: string[] = [...frontend];
-const BACKEND_PLATFORMS: string[] = [...backend];
+const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
@@ -71,10 +73,8 @@ export function platformToPerformanceType(
   }
 
   if (
-    selectedProjects.every(
-      project =>
-        BACKEND_PLATFORMS.includes(project.platform as string) &&
-        project.platform !== 'native'
+    selectedProjects.every(project =>
+      BACKEND_PLATFORMS.includes(project.platform as string)
     )
   ) {
     return PROJECT_PERFORMANCE_TYPE.BACKEND;
