@@ -6,7 +6,7 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta
 from sentry.utils.hashlib import md5_text
 
@@ -28,10 +28,8 @@ DEFAULT_CONFIG = {
 
 
 def can_be_ratelimited(request: Request, view_func: EndpointFunction) -> bool:
-    return (
-        options.get("api.rate-limiter-activated")
-        and hasattr(view_func, "view_class")
-        and not request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES)
+    return hasattr(view_func, "view_class") and not request.path_info.startswith(
+        settings.ANONYMOUS_STATIC_PREFIXES
     )
 
 

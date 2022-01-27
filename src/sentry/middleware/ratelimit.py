@@ -5,6 +5,7 @@ from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.ratelimits import (
     above_rate_limit_check,
     can_be_ratelimited,
@@ -50,7 +51,9 @@ class RatelimitMiddleware(MiddlewareMixin):
         if self.rate_limit_metadata.is_limited:
             request.will_be_rate_limited = True
             enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
-            if enforce_rate_limit:
+
+            # we only want to check the kill switch if we need to as it might involve a cache refresh
+            if enforce_rate_limit and not options.get("api.rate-limiter-deactivated"):
                 return HttpResponse(
                     {
                         "detail": DEFAULT_ERROR_MESSAGE.format(

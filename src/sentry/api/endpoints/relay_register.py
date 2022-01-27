@@ -113,6 +113,8 @@ class RelayRegisterResponseEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
+    enforce_rate_limit = False
+
     def post(self, request: Request) -> Response:
         """
         Registers a Relay

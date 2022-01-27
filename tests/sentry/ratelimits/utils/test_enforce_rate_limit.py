@@ -56,7 +56,7 @@ class TestKillswitch(APITestCase):
     def test_killswitch_override(self):
         """Ensure that an activated killswitch overrides any other local enforcement"""
         self.endpoint = "enforced-endpoint"
-        options.set("api.rate-limiter-activated", False)
+        options.set("api.rate-limiter-deactivated", True)
         with freeze_time("2000-01-01"):
             self.get_success_response()
             self.get_success_response()
@@ -64,7 +64,7 @@ class TestKillswitch(APITestCase):
     def test_killswitch_disabled(self):
         """Ensure that an deactivated killswitch doesn't affect local enforcement"""
         self.endpoint = "enforced-endpoint"
-        options.set("api.rate-limiter-activated", True)
+        options.set("api.rate-limiter-deactivated", False)
         with freeze_time("2000-01-01"):
             self.get_success_response()
             self.get_error_response()

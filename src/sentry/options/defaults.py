@@ -389,4 +389,4 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
 
 # Killswitch for API Rate limiter
-register("api.rate-limiter-activated", default=True, type=Bool)
+register("api.rate-limiter-deactivated", default=False, type=Bool, ttl=60)
