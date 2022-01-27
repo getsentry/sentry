@@ -1,9 +1,11 @@
 import LazyLoad from 'react-lazyload';
 
+import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {t} from 'sentry/locale';
 import {Group, TimeseriesValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 
 type Props = {
@@ -32,6 +34,8 @@ function GroupChart({
     return null;
   }
 
+  const markLinePoint = stats.map(point => point[1]);
+  const formattedMarkLine = formatAbbreviatedNumber(Math.max(...markLinePoint));
   let colors: string[] | undefined = undefined;
   let emphasisColors: string[] | undefined = undefined;
 
@@ -53,6 +57,23 @@ function GroupChart({
     series.push({
       seriesName: t('Events'),
       data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
+      markLine: MarkLine({
+        silent: true,
+        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+        data: [
+          {
+            type: 'max',
+          },
+        ],
+        label: {
+          show: true,
+          position: 'start',
+          color: `${theme.gray200}`,
+          fontFamily: 'Rubik',
+          fontSize: 10,
+          formatter: `${formattedMarkLine}`,
+        },
+      }),
     });
   }
 
@@ -66,6 +87,7 @@ function GroupChart({
         colors={colors}
         emphasisColors={emphasisColors}
         hideDelay={50}
+        grid={{left: 35}}
       />
     </LazyLoad>
   );

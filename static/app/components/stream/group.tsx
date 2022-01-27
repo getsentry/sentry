@@ -750,7 +750,7 @@ const MenuItemText = styled('div')`
 `;
 
 const ChartWrapper = styled('div')`
-  width: 160px;
+  width: 190px;
   margin: 0 ${space(2)};
   align-self: center;
 `;
