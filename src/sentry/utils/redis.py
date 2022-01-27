@@ -146,19 +146,19 @@ class FailoverRedis(StrictRedis):
     def __init__(
         self,
         *args,
-        _retries: int = 5,
+        _retries: int = 10,
         _backoff_min: float = 0.2,
-        _backoff_max: int = 2,
+        _backoff_max: int = 5,
         _backoff_multiplier: float = 2,
         **kwargs,
     ):
         if _retries < 0:
-            raise ValueError(f"Number of retries must be positive integer: _retries={_retries}")
+            raise ValueError(f"Number of retries must non negative integer: _retries={_retries}")
         self._retries = _retries
 
         if _backoff_min < 0.0:
             raise ValueError(
-                f"Minimal backoff must be positive number: _backoff_min={_backoff_min}"
+                f"Minimal backoff must be non negative number: _backoff_min={_backoff_min}"
             )
         self._backoff_min = _backoff_min
 
