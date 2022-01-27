@@ -81,10 +81,10 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def get_type(self) -> str:
         return "organization.integration.request"
 
-    def build_attachment_title(self) -> str:
+    def build_attachment_title(self, recipient: Team | User) -> str:
         return "Request to Install"
 
-    def get_message_description(self) -> str:
+    def get_message_description(self, recipient: Team | User) -> str:
         requester_name = self.requester.get_display_name()
         optional_message = (
             f" They've included this message `{self.message}`" if self.message else ""
