@@ -60,7 +60,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_project_results(self):
         responses.add(
             responses.GET,
-            "https://example.gitlab.com/api/v4/groups/1/projects?search=GetSentry&simple=True&include_subgroups=False&page=1&per_page=100",
+            "https://example.gitlab.com/api/v4/groups/1/projects?search=GetSentry&simple=True&include_subgroups=False&page=1&per_page=100&order_by=last_activity_at",
             json=[
                 {
                     "id": "1",
@@ -150,7 +150,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_no_project_results(self):
         responses.add(
             responses.GET,
-            "https://example.gitlab.com/api/v4/groups/1/projects?search=GetSentry&simple=True&include_subgroups=False&page=1&per_page=100",
+            "https://example.gitlab.com/api/v4/groups/1/projects?search=GetSentry&simple=True&include_subgroups=False&page=1&per_page=100&order_by=last_activity_at",
             json=[],
         )
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})

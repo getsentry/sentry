@@ -112,7 +112,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
-        resp = self.get_client().search_group_projects(group, query)
+        resp = self.get_client().search_projects(group, query)
         return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
@@ -126,7 +126,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
     def search_projects(self, query):
         client = self.get_client()
         group_id = self.get_group_id()
-        return client.search_group_projects(group_id, query)
+        return client.search_projects(group_id, query)
 
     def search_issues(self, project_id, query, iids):
         client = self.get_client()
@@ -151,7 +151,7 @@ class InstallationForm(forms.Form):
         label=_("GitLab URL"),
         help_text=_(
             "The base URL for your GitLab instance, including the host and protocol. "
-            "Do not include group path."
+            "Do not include the group path."
             "<br>"
             "If using gitlab.com, enter https://gitlab.com/"
         ),
@@ -160,16 +160,26 @@ class InstallationForm(forms.Form):
     group = forms.CharField(
         label=_("GitLab Group Path"),
         help_text=_(
-            "This can be found in the URL of your group's GitLab page. "
+            "This can be found in the URL of your group's GitLab page."
             "<br>"
-            "For example, if your group can be found at "
+            "For example, if your group URL is "
             "https://gitlab.com/my-group/my-subgroup, enter `my-group/my-subgroup`."
+            "<br>"
+            "If you are trying to integrate an entire self-managed GitLab instance, "
+            "leave this empty. Doing so will also allow you to select projects in "
+            "all group and user namespaces (such as users' personal repositories and forks)."
         ),
         widget=forms.TextInput(attrs={"placeholder": _("my-group/my-subgroup")}),
+        required=False,
     )
     include_subgroups = forms.BooleanField(
         label=_("Include Subgroups"),
-        help_text=_("Include projects in subgroups of the GitLab group."),
+        help_text=_(
+            "Include projects in subgroups of the GitLab group."
+            "<br>"
+            "Not applicable when integrating an entire GitLab instance. "
+            "All groups are included for instance-level integrations."
+        ),
         widget=forms.CheckboxInput(),
         required=False,
         initial=False,
@@ -343,10 +353,15 @@ class GitlabIntegrationProvider(IntegrationProvider):
         }
 
         user = get_user_info(data["access_token"], state["installation_data"])
-        group = self.get_group_info(data["access_token"], state["installation_data"])
-        include_subgroups = state["installation_data"]["include_subgroups"]
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
+
+        if state["installation_data"].get("group"):
+            group = self.get_group_info(data["access_token"], state["installation_data"])
+            include_subgroups = state["installation_data"]["include_subgroups"]
+        else:
+            group = {}
+            include_subgroups = False
 
         hostname = urlparse(base_url).netloc
         verify_ssl = state["installation_data"]["verify_ssl"]
@@ -357,22 +372,22 @@ class GitlabIntegrationProvider(IntegrationProvider):
         secret = sha1_text("".join([hostname, state["installation_data"]["client_id"]]))
 
         integration = {
-            "name": group["full_name"],
+            "name": group.get("full_name", hostname),
             # Splice the gitlab host and project together to
             # act as unique link between a gitlab instance, group + sentry.
             # This value is embedded then in the webhook token that we
             # give to gitlab to allow us to find the integration a hook came
             # from.
-            "external_id": "{}:{}".format(hostname, group["id"]),
+            "external_id": "{}:{}".format(hostname, group.get("id", "_instance_")),
             "metadata": {
-                "icon": group["avatar_url"],
+                "icon": group.get("avatar_url"),
                 "instance": hostname,
-                "domain_name": "{}/{}".format(hostname, group["full_path"]),
+                "domain_name": "{}/{}".format(hostname, group.get("full_path", "")).rstrip("/"),
                 "scopes": scopes,
                 "verify_ssl": verify_ssl,
                 "base_url": base_url,
                 "webhook_secret": secret.hexdigest(),
-                "group_id": group["id"],
+                "group_id": group.get("id"),
                 "include_subgroups": include_subgroups,
             },
             "user_identity": {
