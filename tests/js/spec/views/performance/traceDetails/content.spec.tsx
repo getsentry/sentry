@@ -8,8 +8,8 @@ import TraceDetailsContent from 'sentry/views/performance/traceDetails/content';
 
 const SAMPLE_ERROR_DATA = {
   data: [
-    {id: '1', title: 'Test error 1', project: 'sentry'},
-    {id: '2', title: 'Test error 2', project: 'sentry'},
+    {id: '1', level: 'error', title: 'Test error 1', project: 'sentry'},
+    {id: '2', level: 'fatal', title: 'Test error 2', project: 'sentry'},
   ],
 };
 
@@ -62,6 +62,13 @@ describe('TraceDetailsContent', () => {
       ).toBeInTheDocument();
       expect(
         await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1].title)
+      ).toBeInTheDocument();
+
+      expect(
+        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0].level)
+      ).toBeInTheDocument();
+      expect(
+        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1].level)
       ).toBeInTheDocument();
     });
   });
