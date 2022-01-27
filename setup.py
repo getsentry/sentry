@@ -121,6 +121,7 @@ setup(
             "auth_okta = sentry.auth.providers.saml2.okta",
             "auth_onelogin = sentry.auth.providers.saml2.onelogin",
             "auth_rippling = sentry.auth.providers.saml2.rippling",
+            "auth_jumpcloud = sentry.auth.providers.saml2.jumpcloud",
             "auth_saml2 = sentry.auth.providers.saml2.generic",
             "jira = sentry_plugins.jira",
             "freight = sentry_plugins.freight",
