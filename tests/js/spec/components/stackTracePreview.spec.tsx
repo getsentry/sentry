@@ -1,11 +1,13 @@
-import {screen, waitFor} from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {StackTracePreview} from 'sentry/components/stacktracePreview';
 import {EntryType, Event} from 'sentry/types/event';
-import {lightTheme} from 'sentry/utils/theme';
+import useApi from 'sentry/utils/useApi';
 
 const makeEvent = (event: Partial<Event> = {}): Event => {
   const evt: Event = {
@@ -16,6 +18,8 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
   return evt;
 };
 
+jest.mock('sentry/utils/useApi');
+
 describe('StackTracePreview', () => {
   it('fetches from projects when eventId and projectSlug are provided', async () => {
     const api = new MockApiClient();
@@ -24,11 +28,12 @@ describe('StackTracePreview', () => {
       .spyOn(api, 'requestPromise')
       .mockResolvedValue(makeEvent({id: 'event_id', entries: []}));
 
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     mountWithTheme(
       <StackTracePreview
         issueId="issue"
-        api={api}
-        theme={lightTheme}
         eventId="event_id"
         projectSlug="project_slug"
         organization={TestStubs.Organization({slug: 'org_slug'})}
@@ -51,11 +56,12 @@ describe('StackTracePreview', () => {
       .spyOn(api, 'requestPromise')
       .mockResolvedValue(makeEvent({id: 'event_id', entries: []}));
 
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     mountWithTheme(
       <StackTracePreview
         issueId="issue"
-        api={api}
-        theme={lightTheme}
         organization={TestStubs.Organization({slug: 'org_slug'})}
       >
         Preview Trigger
@@ -76,11 +82,12 @@ describe('StackTracePreview', () => {
       .spyOn(api, 'requestPromise')
       .mockRejectedValue(makeEvent({id: 'event_id', entries: []}));
 
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     mountWithTheme(
       <StackTracePreview
         issueId="issue"
-        api={api}
-        theme={lightTheme}
         organization={TestStubs.Organization({slug: 'org_slug'})}
       >
         Preview Trigger
@@ -97,11 +104,12 @@ describe('StackTracePreview', () => {
       .spyOn(api, 'requestPromise')
       .mockResolvedValue(makeEvent({id: 'event_id', entries: []}));
 
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     mountWithTheme(
       <StackTracePreview
         issueId="issue"
-        api={api}
-        theme={lightTheme}
         organization={TestStubs.Organization({slug: 'org_slug'})}
       >
         Preview Trigger
@@ -145,11 +153,12 @@ describe('StackTracePreview', () => {
       })
     );
 
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     mountWithTheme(
       <StackTracePreview
         issueId="issue"
-        api={api}
-        theme={lightTheme}
         organization={TestStubs.Organization({
           slug: 'org_slug',
           features,

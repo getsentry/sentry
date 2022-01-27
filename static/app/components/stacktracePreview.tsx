@@ -1,8 +1,7 @@
 import * as React from 'react';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
@@ -14,8 +13,7 @@ import {Organization} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 
 import findBestThread from './events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from './events/interfaces/threads/threadSelector/getThreadStacktrace';
@@ -56,11 +54,9 @@ function getStacktrace(event: Event): StacktraceType | null {
   return null;
 }
 
-type Props = {
+type StackTracePreviewProps = {
   issueId: string;
   organization: Organization;
-  api: Client;
-  theme: Theme;
   groupingCurrentLevel?: number;
   eventId?: string;
   projectSlug?: string;
@@ -68,7 +64,10 @@ type Props = {
   children: React.ReactNode;
 };
 
-function StackTracePreview(props: Props): React.ReactElement {
+function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
+  const theme = useTheme();
+  const api = useApi();
+
   const [loadingVisible, setLoadingVisible] = React.useState<boolean>(false);
   const [status, setStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
   const [event, setEvent] = React.useState<Event | null>(null);
@@ -103,7 +102,7 @@ function StackTracePreview(props: Props): React.ReactElement {
     }, HOVERCARD_DELAY);
 
     try {
-      const evt = await props.api.requestPromise(
+      const evt = await api.requestPromise(
         props.eventId && props.projectSlug
           ? `/projects/${props.organization.slug}/${props.projectSlug}/events/${props.eventId}/`
           : `/issues/${props.issueId}/events/latest/?collapse=stacktraceOnly`
@@ -118,7 +117,14 @@ function StackTracePreview(props: Props): React.ReactElement {
       setStatus('error');
       setLoadingVisible(false);
     }
-  }, []);
+  }, [
+    event,
+    api,
+    props.organization.slug,
+    props.projectSlug,
+    props.eventId,
+    props.issueId,
+  ]);
 
   const handleMouseEnter = React.useCallback(() => {
     delayTimeout.current = window.setTimeout(fetchData, REQUEST_DELAY);
@@ -213,8 +219,8 @@ function StackTracePreview(props: Props): React.ReactElement {
             ? 'empty'
             : 'done'
         }
-        tipBorderColor={props.theme.border}
-        tipColor={props.theme.background}
+        tipBorderColor={theme.border}
+        tipColor={theme.background}
       >
         {props.children}
       </StyledHovercard>
@@ -276,5 +282,3 @@ const NoStackTraceWrapper = styled('div')`
   justify-content: center;
   min-height: 56px;
 `;
-
-export default withApi(withTheme(StackTracePreview));

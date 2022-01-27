@@ -10,7 +10,7 @@ import {getTitle} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import EventTitleTreeLabel from './eventTitleTreeLabel';
-import StacktracePreview from './stacktracePreview';
+import {StackTracePreview} from './stacktracePreview';
 
 type Props = Partial<DefaultProps> & {
   data: Event | BaseGroup | GroupTombstone;
@@ -94,7 +94,7 @@ const Subtitle = styled('em')`
   font-style: normal;
 `;
 
-const StyledStacktracePreview = styled(StacktracePreview)<{
+const StyledStacktracePreview = styled(StackTracePreview)<{
   hasGroupingStacktraceUI: boolean;
 }>`
   ${p =>
