@@ -24,7 +24,7 @@ type Props = {
 function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, isReady} = useLegacyStore(PageFiltersStore);
+  const {selection, pinnedFilters, isReady} = useLegacyStore(PageFiltersStore);
 
   const [selectedEnvironments, setSelectedEnvironments] = useState<string[] | null>(null);
 
@@ -71,6 +71,7 @@ function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
       onUpdate={handleUpdateEnvironments}
       customDropdownButton={customDropdownButton}
       customLoadingIndicator={customLoadingIndicator}
+      pinned={pinnedFilters.has('environments')}
     />
   );
 }
