@@ -21,12 +21,7 @@ from pytz import utc
 
 from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
-from sentry.incidents.logic import (
-    AlertRuleNameAlreadyUsedError,
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_incident,
-)
+from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
 from sentry.incidents.models import AlertRuleThresholdType, IncidentType
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
@@ -671,29 +666,26 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
                     comments=make_sentence(),
                 )
 
-            try:
-                # Metric alerts
-                alert_rule = create_alert_rule(
-                    org,
-                    [project],
-                    "My Alert Rule",
-                    "level:error",
-                    "count()",
-                    10,
-                    AlertRuleThresholdType.ABOVE,
-                    1,
-                )
-                create_alert_rule_trigger(alert_rule, "critical", 10)
-                create_incident(
-                    org,
-                    type_=IncidentType.DETECTED,
-                    title="My Incident",
-                    date_started=datetime.utcnow().replace(tzinfo=utc),
-                    alert_rule=alert_rule,
-                    projects=[project],
-                )
-            except AlertRuleNameAlreadyUsedError:
-                pass
+            # Metric alerts
+            alert_rule = create_alert_rule(
+                org,
+                [project],
+                "My Alert Rule",
+                "level:error",
+                "count()",
+                10,
+                AlertRuleThresholdType.ABOVE,
+                1,
+            )
+            create_alert_rule_trigger(alert_rule, "critical", 10)
+            create_incident(
+                org,
+                type_=IncidentType.DETECTED,
+                title="My Incident",
+                date_started=datetime.utcnow().replace(tzinfo=utc),
+                alert_rule=alert_rule,
+                projects=[project],
+            )
 
             print(f"    > Loading time series data")  # NOQA
             if event1:
