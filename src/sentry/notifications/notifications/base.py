@@ -156,6 +156,11 @@ class BaseNotification(abc.ABC):
     def get_sentry_query_params(
         self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
+        """
+        Returns the query params that allow us to track clicks into Sentry links.
+        If the recipient is not necessarily a user (ex: sending to an email address associated with an account),
+        The recipient may be omitted.
+        """
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
     def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
