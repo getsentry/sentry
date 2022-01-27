@@ -1,5 +1,8 @@
 import * as React from 'react';
+<<<<<<< HEAD
 import styled from '@emotion/styled';
+=======
+>>>>>>> d530c139b1 (feat(profiling): zoom view)
 import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
