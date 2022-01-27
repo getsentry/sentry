@@ -106,18 +106,14 @@ _VirtualColumnName = Literal["value", "avg", "max", "p50", "p75", "p90", "p95", 
 
 
 def _to_column(
-    query_func: SessionsQueryFunction, column_condition: Optional[Function] = None
+    query_func: SessionsQueryFunction, column_condition: SelectableExpression = 1
 ) -> SelectableExpression:
     """
     Converts query a function into an expression that can be directly plugged into anywhere
     columns are used (like the select argument of a Query)
     """
 
-    suffix = ""
-    parameters = [Column("value")]
-    if column_condition is not None:
-        suffix = "If"
-        parameters.append(column_condition)
+    parameters = [Column("value"), column_condition]
 
     # distribution columns
     if query_func in [
@@ -129,33 +125,33 @@ def _to_column(
     ]:
         return Function(
             alias="percentiles",
-            function=f"quantiles{suffix}(0.5,0.75,0.9,0.95,0.99)",
+            function="quantilesIf(0.5,0.75,0.9,0.95,0.99)",
             parameters=parameters,
         )
     if query_func == "avg(session.duration)":
         return Function(
             alias="avg",
-            function=f"avg{suffix}",
+            function="avgIf",
             parameters=parameters,
         )
     if query_func == "max(session.duration)":
         return Function(
             alias="max",
-            function=f"max{suffix}",
+            function="maxIf",
             parameters=parameters,
         )
     # counters
     if query_func == "sum(session)":
         return Function(
             alias="sum",
-            function=f"sum{suffix}",
+            function="sumIf",
             parameters=parameters,
         )
     # sets
     if query_func == "count_unique(user)":
         return Function(
             alias="count_unique",
-            function=f"uniq{suffix}",
+            function="uniqIf",
             parameters=parameters,
         )
 
@@ -445,7 +441,7 @@ def _fetch_data(
             # to healthy sessions, because that's what sessions_v2 exposes:
             healthy = indexer.resolve("exited")
             column_condition = (
-                None
+                1
                 if group_by_status
                 else Function("equals", [Column(tag_key_session_status), healthy])
             )
