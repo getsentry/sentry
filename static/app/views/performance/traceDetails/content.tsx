@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Alert from 'sentry/components/alert';
@@ -22,12 +23,20 @@ import {
   VirtualScrollbar,
   VirtualScrollbarGrip,
 } from 'sentry/components/performance/waterfall/miniHeader';
+import {
+  ErrorDot,
+  ErrorLevel,
+  ErrorMessageContent,
+  ErrorTitle,
+} from 'sentry/components/performance/waterfall/rowDetails';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -94,14 +103,70 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderTraceNotFound() {
-    const {meta} = this.props;
+    const {meta, traceEventView, traceSlug, organization, location} = this.props;
 
     const transactions = meta?.transactions ?? 0;
     const errors = meta?.errors ?? 0;
 
     if (transactions === 0 && errors > 0) {
+      const errorsEventView = traceEventView.withColumns([
+        {kind: 'field', field: 'project'},
+        {kind: 'field', field: 'title'},
+        {kind: 'field', field: 'issue.id'},
+        {kind: 'field', field: 'level'},
+      ]);
+      errorsEventView.query = `trace:${traceSlug} !event.type:transaction `;
+
       return (
-        <LoadingError message={t('The trace you are looking contains only errors.')} />
+        <DiscoverQuery
+          eventView={errorsEventView}
+          orgSlug={organization.slug}
+          location={location}
+          referrer="api.trace-view.errors-view"
+        >
+          {({isLoading, tableData, error}) => {
+            if (isLoading) {
+              return <LoadingIndicator />;
+            }
+
+            if (error) {
+              return (
+                <Alert type="error" icon={<IconInfo size="md" />}>
+                  <ErrorLabel>
+                    {tct(
+                      'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: [error]',
+                      {error}
+                    )}
+                  </ErrorLabel>
+                </Alert>
+              );
+            }
+
+            return (
+              <Alert type="error" icon={<IconInfo size="md" />}>
+                <ErrorLabel>
+                  {t('The trace cannot be shown when all events are errors.')}
+                </ErrorLabel>
+
+                <ErrorMessageContent data-test-id="trace-view-errors">
+                  {tableData.data.map(data => (
+                    <React.Fragment key={data.id}>
+                      <ErrorDot level={data.level} />
+                      <ErrorLevel>{data.level}</ErrorLevel>
+                      <ErrorTitle>
+                        <Link
+                          to={`/organizations/${organization.slug}/issues/${data['issue.id']}/events/${data.id}`}
+                        >
+                          {data.title}
+                        </Link>
+                      </ErrorTitle>
+                    </React.Fragment>
+                  ))}
+                </ErrorMessageContent>
+              </Alert>
+            );
+          }}
+        </DiscoverQuery>
       );
     }
 
@@ -653,5 +718,9 @@ class TraceDetailsContent extends React.Component<Props, State> {
     );
   }
 }
+
+const ErrorLabel = styled('div')`
+  margin-bottom: ${space(1)};
+`;
 
 export default TraceDetailsContent;
