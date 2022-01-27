@@ -88,16 +88,16 @@ class BaseNotification(abc.ABC):
     def get_notification_title(self) -> str:
         raise NotImplementedError
 
-    def get_title_link(self) -> str | None:
+    def get_title_link(self, recipient: Team | User) -> str | None:
         raise NotImplementedError
 
-    def build_attachment_title(self) -> str:
+    def build_attachment_title(self, recipient: Team | User) -> str:
         raise NotImplementedError
 
     def build_notification_footer(self, recipient: Team | User) -> str:
         raise NotImplementedError
 
-    def get_message_description(self) -> Any:
+    def get_message_description(self, recipient: Team | User) -> Any:
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
 

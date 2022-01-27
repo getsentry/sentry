@@ -71,7 +71,7 @@ class IntegrationNudgeNotification(BaseNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return ""
 
-    def get_message_description(self) -> Any:
+    def get_message_description(self, recipient: Team | User) -> Any:
         return MESSAGE_LIBRARY[self.seed].format(provider=self.provider.name.capitalize())
 
     def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
@@ -89,10 +89,10 @@ class IntegrationNudgeNotification(BaseNotification):
     def get_notification_title(self) -> str:
         return ""
 
-    def get_title_link(self) -> str | None:
+    def get_title_link(self, recipient: Team | User) -> str | None:
         return None
 
-    def build_attachment_title(self) -> str:
+    def build_attachment_title(self, recipient: Team | User) -> str:
         return ""
 
     def get_filename(self) -> str:
