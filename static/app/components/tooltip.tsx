@@ -90,7 +90,6 @@ type Props = DefaultProps & {
 type State = {
   isOpen: boolean;
   usesGlobalPortal: boolean;
-  triggerEl: Element | null;
 };
 
 /**
@@ -129,7 +128,6 @@ class Tooltip extends React.Component<Props, State> {
   state: State = {
     isOpen: false,
     usesGlobalPortal: true,
-    triggerEl: null,
   };
 
   async componentDidMount() {
@@ -154,6 +152,7 @@ class Tooltip extends React.Component<Props, State> {
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
   delayHideTimeout: number | null = null;
+  triggerEl: Element | null = null;
 
   getPortal = memoize((usesGlobalPortal): HTMLElement => {
     if (usesGlobalPortal) {
@@ -179,10 +178,9 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleOpen = () => {
-    const {triggerEl} = this.state;
     const {delay, showOnOverflow} = this.props;
 
-    if (triggerEl && showOnOverflow && !isOverflown(triggerEl)) {
+    if (this.triggerEl && showOnOverflow && !isOverflown(this.triggerEl)) {
       return;
     }
 
@@ -215,7 +213,6 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   renderTrigger(children: React.ReactNode, ref: React.Ref<HTMLElement>) {
-    const {showOnOverflow} = this.props;
     const propList: {[key: string]: any} = {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
@@ -249,9 +246,7 @@ class Tooltip extends React.Component<Props, State> {
           if (typeof ref === 'function') {
             ref(el);
           }
-          if (showOnOverflow && !this.state.triggerEl) {
-            this.setState({triggerEl: el});
-          }
+          this.triggerEl = el;
         }}
       >
         {children}
