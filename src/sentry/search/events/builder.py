@@ -70,6 +70,7 @@ class QueryComplier:
         auto_fields: bool = False,
         auto_aggregations: bool = False,
         functions_acl: Optional[List[str]] = None,
+        array_join: Optional[str] = None,
         limit: Optional[int] = 50,
         offset: Optional[int] = 0,
         limitby: Optional[Tuple[str, int]] = None,
@@ -85,6 +86,7 @@ class QueryComplier:
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
+        self.having: List[WhereType] = []
         # The list of aggregates to be selected
         self.aggregates: List[CurriedFunction] = []
         self.columns: List[SelectType] = []
@@ -108,6 +110,7 @@ class QueryComplier:
         ) = self.load_config()
 
         self.limitby = self.resolve_limitby(limitby)
+        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
     def load_config(
         self,
@@ -1045,6 +1048,7 @@ class QueryBuilder(QueryComplier):
             auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
             functions_acl=functions_acl,
+            array_join=array_join,
             limit=limit,
             offset=offset,
             limitby=limitby,
@@ -1053,13 +1057,16 @@ class QueryBuilder(QueryComplier):
             equation_config=equation_config,
         )
 
-        self.resolve_query(
-            query, use_aggregate_conditions, selected_columns, equations, orderby, array_join
-        )
+        self.resolve_query(query, use_aggregate_conditions, selected_columns, equations, orderby)
 
     def resolve_query(
-        self, query, use_aggregate_conditions, selected_columns, equations, orderby, array_join
-    ):
+        self,
+        query: Optional[str],
+        use_aggregate_conditions: bool,
+        selected_columns: Optional[List[str]],
+        equations: Optional[List[str]],
+        orderby: Optional[List[str]],
+    ) -> None:
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
         )
@@ -1068,7 +1075,6 @@ class QueryBuilder(QueryComplier):
         self.columns = self.resolve_select(selected_columns, equations)
         self.orderby = self.resolve_orderby(orderby)
         self.groupby = self.resolve_groupby()
-        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
 
 class TimeseriesQueryBuilder(QueryComplier):
@@ -1107,7 +1113,13 @@ class TimeseriesQueryBuilder(QueryComplier):
         # Casting for now since QueryFields/QueryFilter are only partially typed
         return self.aggregates
 
-    def resolve_query(self, query, limit, selected_columns, equations):
+    def resolve_query(
+        self,
+        query: Optional[str],
+        limit: Optional[int],
+        selected_columns: Optional[List[str]],
+        equations: Optional[List[str]],
+    ) -> None:
         self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
 
         self.limit = None if limit is None else Limit(limit)
