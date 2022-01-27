@@ -102,7 +102,6 @@ type Props = {
 type State = {
   groupIds: string[];
   reviewedIds: string[];
-  forReview: boolean;
   selectAllActive: boolean;
   realtimeActive: boolean;
   pageLinks: string;
@@ -159,7 +158,6 @@ class IssueListOverview extends React.Component<Props, State> {
     return {
       groupIds: [],
       reviewedIds: [],
-      forReview: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -212,7 +210,7 @@ class IssueListOverview extends React.Component<Props, State> {
       }
     }
 
-    if (prevState.forReview !== this.state.forReview) {
+    if (prevState.itemsRemoved !== this.state.itemsRemoved) {
       this.fetchData();
     }
 
@@ -527,7 +525,6 @@ class IssueListOverview extends React.Component<Props, State> {
       this.setState({
         issuesLoading: true,
         queryCount: 0,
-        itemsRemoved: 0,
         reviewedIds: [],
         error: null,
       });
@@ -538,7 +535,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
     this.setState({
       queryCount: 0,
-      itemsRemoved: 0,
       error: null,
     });
 
@@ -599,9 +595,8 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this._streamManager.push(data);
 
-        if (isForReviewQuery(query)) {
+        if (isForReviewQuery(query) && this.state.reviewedIds.length) {
           GroupStore.remove(this.state.reviewedIds);
-          // this.setState({reviewedIds: []});
         }
 
         this.fetchStats(data.map((group: BaseGroup) => group.id));
@@ -614,7 +609,9 @@ class IssueListOverview extends React.Component<Props, State> {
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = resp.getResponseHeader('Link');
 
-        !this.state.forReview && this.fetchCounts(queryCount, fetchAllCounts);
+        if (!this.state.reviewedIds.length) {
+          this.fetchCounts(queryCount, fetchAllCounts);
+        }
 
         this.setState({
           error: null,
@@ -642,7 +639,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this.resumePolling();
 
-        this.setState({forReview: false});
+        this.setState({itemsRemoved: 0});
       },
     });
   };
@@ -969,7 +966,6 @@ class IssueListOverview extends React.Component<Props, State> {
         },
         itemsRemoved: itemsRemoved + inInboxCount,
         reviewedIds: itemIds,
-        forReview: true,
       });
     }
   };
