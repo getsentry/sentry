@@ -196,7 +196,7 @@ const Wrap = styled('li')<{isDisabled?: boolean}>`
 
   ${p => p.isDisabled && `cursor: initial;`}
 
-  :focus-visible {
+  &:focus-visible {
     outline: none;
   }
 `;
