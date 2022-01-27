@@ -168,7 +168,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
     @mock.patch("sentry.snuba.discover.raw_query")
-    @mock.patch("sentry.snuba.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query, mock_query):
         mock_query.side_effect = RateLimitExceeded("test")
         mock_snql_query.side_effect = RateLimitExceeded("test")
