@@ -130,7 +130,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {organization} = this.props;
+    const {organization, widget} = this.props;
 
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
@@ -147,11 +147,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
       const rendered = fieldRenderer(dataRow);
 
-      if (!!!organization.features.includes('dashboard-grid-layout')) {
+      const isModalWidget = !!!(widget.id || widget.tempId);
+      if (!!!organization.features.includes('dashboard-grid-layout') || isModalWidget) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
-      const {widget} = this.props;
       const widthToHeightRatio =
         widget.layout?.w && widget.layout?.h ? widget.layout.w / widget.layout.h : 1;
 
