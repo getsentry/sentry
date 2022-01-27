@@ -226,7 +226,7 @@ export function initializeUrlState({
 }
 
 function isProjectsValid(projects: ProjectId[]) {
-  return Array.isArray(projects) && projects.every(project => isInteger(project));
+  return Array.isArray(projects) && projects.every(isInteger);
 }
 
 /**
