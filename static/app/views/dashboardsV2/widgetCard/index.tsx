@@ -116,19 +116,17 @@ class WidgetCard extends React.Component<Props> {
     } = this.props;
 
     return (
-      <ContextMenuWrapper>
-        <WidgetCardContextMenu
-          organization={organization}
-          widget={widget}
-          selection={selection}
-          showContextMenu={showContextMenu}
-          isPreview={isPreview}
-          widgetLimitReached={widgetLimitReached}
-          onDuplicate={onDuplicate}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      </ContextMenuWrapper>
+      <WidgetCardContextMenu
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        showContextMenu={showContextMenu}
+        isPreview={isPreview}
+        widgetLimitReached={widgetLimitReached}
+        onDuplicate={onDuplicate}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     );
   }
 
@@ -257,7 +255,7 @@ class WidgetCard extends React.Component<Props> {
       >
         <StyledPanel isDragging={false}>
           <WidgetHeader>
-            <Tooltip title={widget.title} showOnOverflow>
+            <Tooltip title={widget.title} containerDisplayMode="grid" showOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
             {this.renderContextMenu()}
@@ -341,7 +339,6 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 
 const WidgetTitle = styled(HeaderTitle)`
   ${overflowEllipsis};
-  padding-right: 32px;
 `;
 
 const WidgetHeader = styled('div')`
@@ -349,11 +346,6 @@ const WidgetHeader = styled('div')`
   width: 100%;
   display: flex;
   justify-content: space-between;
-`;
-
-const ContextMenuWrapper = styled('div')`
-  position: absolute;
-  right: 20px;
 `;
 
 const StyledTransparentLoadingMask = styled(props => (
