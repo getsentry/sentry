@@ -13,7 +13,7 @@ type Props = {
   data: Group;
   height?: number;
   showSecondaryPoints?: boolean;
-  showMarkline?: boolean;
+  showMarkLine?: boolean;
 };
 
 function GroupChart({
@@ -21,7 +21,7 @@ function GroupChart({
   statsPeriod,
   showSecondaryPoints = false,
   height = 24,
-  showMarkline = false,
+  showMarkLine = false,
 }: Props) {
   const stats: TimeseriesValue[] = statsPeriod
     ? data.filtered
@@ -59,30 +59,26 @@ function GroupChart({
     series.push({
       seriesName: t('Events'),
       data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
-    });
-    if (showMarkline) {
-      series.push({
-        seriesName: t('Events'),
-        data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
-        markLine: MarkLine({
-          silent: true,
-          lineStyle: {color: theme.gray200, type: 'solid', width: 1},
-          data: [
-            {
-              type: 'max',
+      markLine: showMarkLine
+        ? MarkLine({
+            silent: true,
+            lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+            data: [
+              {
+                type: 'max',
+              },
+            ],
+            label: {
+              show: true,
+              position: 'start',
+              color: `${theme.gray200}`,
+              fontFamily: 'Rubik',
+              fontSize: 10,
+              formatter: `${formattedMarkLine}`,
             },
-          ],
-          label: {
-            show: true,
-            position: 'start',
-            color: `${theme.gray200}`,
-            fontFamily: 'Rubik',
-            fontSize: 10,
-            formatter: `${formattedMarkLine}`,
-          },
-        }),
-      });
-    }
+          })
+        : undefined,
+    });
   }
 
   return (
@@ -95,7 +91,7 @@ function GroupChart({
         colors={colors}
         emphasisColors={emphasisColors}
         hideDelay={50}
-        showMarkLineLabel={showMarkline}
+        showMarkLineLabel={showMarkLine}
       />
     </LazyLoad>
   );

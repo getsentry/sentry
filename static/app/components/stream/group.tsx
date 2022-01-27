@@ -420,7 +420,7 @@ class StreamGroup extends React.Component<Props, State> {
                 statsPeriod={statsPeriod!}
                 data={data}
                 showSecondaryPoints={showSecondaryPoints}
-                showMarkline
+                showMarkLine
               />
             )}
           </ChartWrapper>
