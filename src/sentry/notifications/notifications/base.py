@@ -113,6 +113,12 @@ class BaseNotification(abc.ABC):
             "actor_id": recipient.actor_id,
         }
 
+    def get_custom_analytics_params(self, recipient: Team | User) -> Mapping[str, Any]:
+        """
+        Returns a mapping of params used to record the event associated with analytics_event
+        """
+        return self.get_log_params(recipient)
+
     def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         return []
 
@@ -134,10 +140,9 @@ class BaseNotification(abc.ABC):
             self.record_analytics(
                 self.analytics_event,
                 providers=provider.name.lower(),
-                **self.get_log_params(recipient),
+                **self.get_custom_analytics_params(recipient),
             )
 
-    # TODO: make recipient required
     def get_referrer(
         self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
@@ -147,7 +152,9 @@ class BaseNotification(abc.ABC):
             referrer += "-" + recipient.__class__.__name__.lower()
         return referrer
 
-    def get_sentry_query_params(self, provider: ExternalProviders, recipient: Team | User) -> str:
+    def get_sentry_query_params(
+        self, provider: ExternalProviders, recipient: Optional[Team | User]
+    ) -> str:
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
     def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
