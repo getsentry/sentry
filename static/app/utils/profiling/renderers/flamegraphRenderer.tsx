@@ -40,10 +40,10 @@ class FlamegraphRenderer {
   colorMap: Map<string | number, number[]> = new Map();
 
   logicalSpace: Rect = Rect.Empty();
-  logicalToPhysicalSpace: mat3 = mat3.identity(mat3.create());
+  logicalToPhysicalSpace: mat3 = mat3.create();
 
   physicalSpace: Rect = new Rect(0, 0, 0, 0);
-  physicalToLogicalSpace: mat3 = mat3.identity(mat3.create());
+  physicalToLogicalSpace: mat3 = mat3.create();
 
   configSpace: Rect = new Rect(0, 0, 0, 0);
   configView: Rect = new Rect(0, 0, 0, 0);
@@ -279,7 +279,7 @@ class FlamegraphRenderer {
         : frame.depth;
 
       const x1 = frame.start;
-      const x2 = frame.start + frame.end - frame.start;
+      const x2 = frame.end;
       const y1 = depth;
       const y2 = depth + 1;
 
@@ -387,13 +387,17 @@ class FlamegraphRenderer {
     {
       const aColorAttributeLocation = this.gl.getAttribLocation(this.program, 'a_color');
 
+      if (aColorAttributeLocation === -1) {
+        throw new Error('Could not locate a_color in shader');
+      }
+
       // attributes get data from buffers
       this.attributes.a_color = aColorAttributeLocation;
 
-      // Init position buffer
+      // Init color buffer
       const colorBuffer = this.gl.createBuffer();
 
-      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = colorBuffer)
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
       this.gl.bufferData(
         this.gl.ARRAY_BUFFER,
@@ -424,6 +428,10 @@ class FlamegraphRenderer {
         this.program,
         'a_position'
       );
+
+      if (aPositionAttributeLocation === -1) {
+        throw new Error('Could not locate a_color in shader');
+      }
 
       // attributes get data from buffers
       this.attributes.a_position = aPositionAttributeLocation;
@@ -457,11 +465,15 @@ class FlamegraphRenderer {
     }
 
     {
-      // look up where the vertex data needs to go.
+      // look up where the bounds vertices needs to go.
       const aBoundsAttributeLocation = this.gl.getAttribLocation(
         this.program,
         'a_bounds'
       );
+
+      if (aBoundsAttributeLocation === -1) {
+        throw new Error('Could not locate a_color in shader');
+      }
 
       // attributes get data from buffers
       this.attributes.a_bounds = aBoundsAttributeLocation;
@@ -559,6 +571,11 @@ class FlamegraphRenderer {
     let hoveredNode: FlamegraphFrame | null = null;
 
     const findHoveredNode = (frame: FlamegraphFrame, depth: number) => {
+      // This is outside
+      if (hoveredNode) {
+        return;
+      }
+
       const frameRect = new Rect(
         frame.start,
         this.flamegraph.inverted ? this.configSpace.height - frame.depth : frame.depth,
@@ -585,8 +602,8 @@ class FlamegraphRenderer {
       }
     };
 
-    for (const r of this.roots) {
-      findHoveredNode(r, 0);
+    for (let i = 0; i < this.roots.length; i++) {
+      findHoveredNode(this.roots[i], 0);
     }
 
     return hoveredNode;
