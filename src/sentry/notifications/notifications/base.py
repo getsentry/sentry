@@ -129,7 +129,7 @@ class BaseNotification(abc.ABC):
     @property
     def analytics_instance(self) -> Any | None:
         """
-        Returns on instance for that can be used for analytics such as an organization or project
+        Returns an instance for that can be used for analytics such as an organization or project
         """
         return None
 
