@@ -14,6 +14,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import Tooltip from 'sentry/components/tooltip';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
@@ -115,17 +116,19 @@ class WidgetCard extends React.Component<Props> {
     } = this.props;
 
     return (
-      <WidgetCardContextMenu
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        showContextMenu={showContextMenu}
-        isPreview={isPreview}
-        widgetLimitReached={widgetLimitReached}
-        onDuplicate={onDuplicate}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
+      <ContextMenuWrapper>
+        <WidgetCardContextMenu
+          organization={organization}
+          widget={widget}
+          selection={selection}
+          showContextMenu={showContextMenu}
+          isPreview={isPreview}
+          widgetLimitReached={widgetLimitReached}
+          onDuplicate={onDuplicate}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      </ContextMenuWrapper>
     );
   }
 
@@ -254,7 +257,9 @@ class WidgetCard extends React.Component<Props> {
       >
         <StyledPanel isDragging={false}>
           <WidgetHeader>
-            <WidgetTitle>{widget.title}</WidgetTitle>
+            <Tooltip title={widget.title} showOnEllipsis>
+              <WidgetTitle>{widget.title}</WidgetTitle>
+            </Tooltip>
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
@@ -336,6 +341,7 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 
 const WidgetTitle = styled(HeaderTitle)`
   ${overflowEllipsis};
+  padding-right: 32px;
 `;
 
 const WidgetHeader = styled('div')`
@@ -343,6 +349,11 @@ const WidgetHeader = styled('div')`
   width: 100%;
   display: flex;
   justify-content: space-between;
+`;
+
+const ContextMenuWrapper = styled('div')`
+  position: absolute;
+  right: 20px;
 `;
 
 const StyledTransparentLoadingMask = styled(props => (

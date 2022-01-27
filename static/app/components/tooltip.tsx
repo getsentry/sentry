@@ -79,6 +79,11 @@ type Props = DefaultProps & {
    */
   forceShow?: boolean;
 
+  /**
+   * Only display the tooltip if the content overflows
+   */
+  showOnEllipsis?: boolean;
+
   className?: string;
 };
 
@@ -143,6 +148,7 @@ class Tooltip extends React.Component<Props, State> {
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
   delayHideTimeout: number | null = null;
+  isEllipsis: boolean = false;
 
   getPortal = memoize((usesGlobalPortal): HTMLElement => {
     if (usesGlobalPortal) {
@@ -168,7 +174,11 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleOpen = () => {
-    const {delay} = this.props;
+    const {delay, showOnEllipsis} = this.props;
+
+    if (showOnEllipsis && !this.isEllipsis) {
+      return;
+    }
 
     if (this.delayHideTimeout) {
       window.clearTimeout(this.delayHideTimeout);
@@ -225,7 +235,18 @@ class Tooltip extends React.Component<Props, State> {
 
     propList.containerDisplayMode = this.props.containerDisplayMode;
     return (
-      <Container {...propList} className={this.props.className} ref={ref}>
+      <Container
+        {...propList}
+        className={this.props.className}
+        ref={el => {
+          if (typeof ref === 'function') {
+            ref(el);
+          }
+          if (el && isOverflown(el)) {
+            this.isEllipsis = true;
+          }
+        }}
+      >
         {children}
       </Container>
     );
@@ -404,3 +425,7 @@ const TooltipArrow = styled('span')`
 `;
 
 export default Tooltip;
+
+function isOverflown(el: Element): boolean {
+  return el.scrollWidth > el.clientWidth || Array.from(el.children).some(isOverflown);
+}
