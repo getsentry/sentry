@@ -200,7 +200,7 @@ def compare_ratios(
         return f"sessions ERROR, Invalid field {path} value = {sessions}, from sessions, only positive values are expected. "
     if sessions == metrics == 0.0:
         return None
-    if sessions != metrics:
+    if float(abs(sessions - metrics)) / max(metrics, sessions) > 0.01:
         return f"fields with different values at {path} sessions={sessions}, metrics={metrics}"
     return None
 
