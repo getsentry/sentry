@@ -277,7 +277,7 @@ def build_project_series(start__stop, project):
         granularity=Granularity(rollup),
         orderby=[OrderBy(Column("time"), Direction.ASC)],
     )
-    outcome_series = raw_snql_query(outcomes_query, referrer="reports.series")
+    outcome_series = raw_snql_query(outcomes_query, referrer="reports.outcome_series")
     total_error_series = OrderedDict()
     for v in outcome_series["data"]:
         if v["category"] in DataCategory.error_categories():
@@ -492,7 +492,7 @@ def build_project_calendar_series(interval, project):
     return clean_calendar_data(project, series, start, stop, rollup)
 
 
-def build_key_events(interval, project):
+def build_key_errors(interval, project):
     start, stop = interval
 
     # Take the 3 most frequently occuring events
@@ -509,7 +509,7 @@ def build_key_events(interval, project):
         orderby=[OrderBy(Function("count", []), Direction.DESC)],
         limit=Limit(3),
     )
-    query_result = raw_snql_query(query)
+    query_result = raw_snql_query(query, referrer="reports.key_errors")
     key_errors = query_result["data"]
     return [(e["group_id"], e["count()"]) for e in key_errors]
 
@@ -534,7 +534,7 @@ def build_key_transactions(interval, project):
         orderby=[OrderBy(Function("count", []), Direction.DESC)],
         limit=Limit(3),
     )
-    query_result = raw_snql_query(query)
+    query_result = raw_snql_query(query, referrer="reports.key_transactions")
     key_errors = query_result["data"]
 
     transaction_names = map(lambda p: p["transaction_name"], key_errors)
@@ -556,7 +556,7 @@ def build_key_transactions(interval, project):
             ],
             groupby=[Column("transaction_name")],
         )
-        return raw_snql_query(query)
+        return raw_snql_query(query, referrer="reports.key_transactions.p95")
 
     query_result = query_p95((start, stop))
     this_week_p95 = {}
@@ -628,7 +628,7 @@ Report, build_project_report, merge_reports = build_report(
             build_project_calendar_series,
             partial(merge_series, function=safe_add),
         ),
-        ("key_events", build_key_events, partial(take_max_n, n=3)),
+        ("key_events", build_key_errors, partial(take_max_n, n=3)),
         ("key_transactions", build_key_transactions, partial(take_max_n, n=3)),
     ],
 )
@@ -931,7 +931,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 
     inclusion_predicates = [
         lambda interval, project__report: project__report[1] is not None,
-        # has_valid_aggregates,
+        has_valid_aggregates,
     ]
 
     reports = dict(
