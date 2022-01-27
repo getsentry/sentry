@@ -88,3 +88,15 @@ updates:
       - dependency-name: "rrweb-player"
       - dependency-name: "sprintf-js"
       - dependency-name: "u2f-api"
+  - package-ecosystem: pip
+    open-pull-requests-limit: 10
+    directory: "/"
+    schedule:
+      # Going to start with a high interval, and then tone it back
+      interval: daily
+      timezone: America/Los_Angeles
+      time: "09:00"
+    reviewers:
+      - "@getsentry/team-webplatform"
+    allow:
+      - dependency-name: "sentry-sdk"
