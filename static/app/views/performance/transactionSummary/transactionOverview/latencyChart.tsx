@@ -7,7 +7,6 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {getTooltipArrow} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -140,7 +139,7 @@ class LatencyChart extends Component<Props, State> {
             '</div>',
           ];
         }
-        contents.push(getTooltipArrow());
+        contents.push('<div class="tooltip-arrow"></div>');
         return contents.join('');
       },
     };
