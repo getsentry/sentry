@@ -1077,8 +1077,6 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
-    # Enable SCIM Provisioning functionality.
-    "organizations:sso-scim": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
     # Return unhandled information on the issue level
