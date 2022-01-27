@@ -209,6 +209,7 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   renderTrigger(children: React.ReactNode, ref: React.Ref<HTMLElement>) {
+    const {showOnEllipsis} = this.props;
     const propList: {[key: string]: any} = {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
@@ -242,7 +243,9 @@ class Tooltip extends React.Component<Props, State> {
           if (typeof ref === 'function') {
             ref(el);
           }
-          this.isEllipsis = Boolean(el && isOverflown(el));
+          if (showOnEllipsis) {
+            this.isEllipsis = Boolean(el && isOverflown(el));
+          }
         }}
       >
         {children}
