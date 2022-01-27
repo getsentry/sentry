@@ -242,9 +242,7 @@ class Tooltip extends React.Component<Props, State> {
           if (typeof ref === 'function') {
             ref(el);
           }
-          if (el && isOverflown(el)) {
-            this.isEllipsis = true;
-          }
+          this.isEllipsis = Boolean(el && isOverflown(el));
         }}
       >
         {children}
