@@ -40,7 +40,7 @@ def delete_issue_alerts_with_alert_rule_actions(apps, schema_editor):
     for rule in RangeQuerySetWrapperWithProgressBar(
         Rule.objects.filter(
             project_id__in=Project.objects.filter(
-                organization_id__in=SentryAppInstallation.object.filter(
+                organization_id__in=SentryAppInstallation.objects.filter(
                     sentry_app_id__in=SentryAppComponent.objects.filter(
                         type="alert-rule-action"
                     ).values_list("id", flat=True)
