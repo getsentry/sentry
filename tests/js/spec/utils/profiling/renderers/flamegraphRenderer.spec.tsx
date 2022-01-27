@@ -86,10 +86,15 @@ const makeCanvasMock = (
   return canvas as HTMLCanvasElement;
 };
 
+const originalDpr = window.devicePixelRatio;
+
 describe('flamegraphRenderer', () => {
-  afterEach(() => {
-    // We simulat regular screens unless differently specified
+  beforeEach(() => {
+    // We simulate regular screens unless differently specified
     window.devicePixelRatio = 1;
+  });
+  afterEach(() => {
+    window.devicePixelRatio = originalDpr;
   });
   describe('colors', () => {
     it('generates new colors if none are set on the flamegraph', () => {
