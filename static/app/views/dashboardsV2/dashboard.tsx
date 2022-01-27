@@ -266,7 +266,7 @@ class Dashboard extends Component<Props, State> {
     // Force check lazyLoad elements that might have shifted into view after deleting an upper widget
     // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
     // RGL doesn't provide a handler for post animation layout change
-    setTimeout(() => {
+    setTimeout(forceCheck, 400);
       forceCheck();
     }, 400);
   };
