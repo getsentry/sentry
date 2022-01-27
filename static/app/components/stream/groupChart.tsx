@@ -95,7 +95,7 @@ function GroupChart({
         colors={colors}
         emphasisColors={emphasisColors}
         hideDelay={50}
-        grid={{left: showMarkline ? 35 : 0}}
+        showMarkLineLabel={showMarkline}
       />
     </LazyLoad>
   );
