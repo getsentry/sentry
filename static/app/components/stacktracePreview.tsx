@@ -10,7 +10,7 @@ import Hovercard, {Body} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PlatformType} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -22,7 +22,39 @@ import getThreadStacktrace from './events/interfaces/threads/threadSelector/getT
 
 const REQUEST_DELAY = 100;
 const HOVERCARD_DELAY = 400;
+
 export const STACKTRACE_PREVIEW_TOOLTIP_DELAY = 1000;
+
+function getStacktrace(event: Event): StacktraceType | null {
+  const exceptionsWithStacktrace =
+    event.entries
+      .find(e => e.type === EntryType.EXCEPTION)
+      ?.data?.values.filter(({stacktrace}) => defined(stacktrace)) ?? [];
+
+  const exceptionStacktrace: StacktraceType | undefined = isStacktraceNewestFirst()
+    ? exceptionsWithStacktrace[exceptionsWithStacktrace.length - 1]?.stacktrace
+    : exceptionsWithStacktrace[0]?.stacktrace;
+
+  if (exceptionStacktrace) {
+    return exceptionStacktrace;
+  }
+
+  const threads =
+    event.entries.find(e => e.type === EntryType.THREADS)?.data?.values ?? [];
+  const bestThread = findBestThread(threads);
+
+  if (!bestThread) {
+    return null;
+  }
+
+  const bestThreadStacktrace = getThreadStacktrace(false, bestThread);
+
+  if (bestThreadStacktrace) {
+    return bestThreadStacktrace;
+  }
+
+  return null;
+}
 
 type Props = {
   issueId: string;
@@ -30,211 +62,167 @@ type Props = {
   api: Client;
   theme: Theme;
   groupingCurrentLevel?: number;
-  disablePreview?: boolean;
   eventId?: string;
   projectSlug?: string;
   className?: string;
+  children: React.ReactNode;
 };
 
-type State = {
-  loading: boolean;
-  loadingVisible: boolean;
-  event?: Event;
-};
+function StackTracePreview(props: Props): React.ReactElement {
+  const [loadingVisible, setLoadingVisible] = React.useState<boolean>(false);
+  const [status, setStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
+  const [event, setEvent] = React.useState<Event | null>(null);
 
-class StacktracePreview extends React.Component<Props, State> {
-  state: State = {
-    loading: true,
-    loadingVisible: false,
-  };
+  const delayTimeout = React.useRef<number | null>(null);
+  const loaderTimeout = React.useRef<number | null>(null);
 
-  componentWillUnmount() {
-    if (this.delayTimeout) {
-      window.clearTimeout(this.delayTimeout);
-    }
-    if (this.loaderTimeout) {
-      window.clearTimeout(this.loaderTimeout);
-    }
-  }
+  React.useEffect(() => {
+    return () => {
+      if (loaderTimeout.current !== null) {
+        window.clearTimeout(loaderTimeout.current);
+      }
+      if (delayTimeout.current !== null) {
+        window.clearTimeout(delayTimeout.current);
+      }
+    };
+  }, []);
 
-  loaderTimeout: number | null = null;
-  delayTimeout: number | null = null;
-
-  handleMouseEnter = () => {
-    this.delayTimeout = window.setTimeout(this.fetchData, REQUEST_DELAY);
-  };
-
-  handleMouseLeave = () => {
-    if (this.delayTimeout) {
-      window.clearTimeout(this.delayTimeout);
-      this.delayTimeout = null;
-    }
-  };
-
-  fetchData = async () => {
-    const {organization, api, issueId, eventId, projectSlug} = this.props;
-
-    if (this.state.event || (!issueId && !(eventId && projectSlug))) {
+  const fetchData = React.useCallback(async () => {
+    // Data is already loaded
+    if (event) {
       return;
     }
 
-    this.loaderTimeout = window.setTimeout(() => {
-      this.setState({loadingVisible: true});
+    // These are required props to load data
+    if (!props.issueId && !props.eventId && !props.projectSlug) {
+      return;
+    }
+
+    loaderTimeout.current = window.setTimeout(() => {
+      setLoadingVisible(true);
     }, HOVERCARD_DELAY);
 
     try {
-      const event = await api.requestPromise(
-        eventId && projectSlug
-          ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
-          : `/issues/${issueId}/events/latest/?collapse=stacktraceOnly`
+      const evt = await props.api.requestPromise(
+        props.eventId && props.projectSlug
+          ? `/projects/${props.organization.slug}/${props.projectSlug}/events/${props.eventId}/`
+          : `/issues/${props.issueId}/events/latest/?collapse=stacktraceOnly`
       );
-      clearTimeout(this.loaderTimeout);
-      this.setState({event, loading: false, loadingVisible: false});
+      clearTimeout(loaderTimeout.current);
+      setEvent(evt);
+      setStatus('loaded');
+      setLoadingVisible(false);
     } catch {
-      clearTimeout(this.loaderTimeout);
-      this.setState({loading: false, loadingVisible: false});
+      clearTimeout(loaderTimeout.current);
+      setEvent(null);
+      setStatus('error');
+      setLoadingVisible(false);
     }
-  };
+  }, []);
 
-  handleStacktracePreviewClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-  };
+  const handleMouseEnter = React.useCallback(() => {
+    delayTimeout.current = window.setTimeout(fetchData, REQUEST_DELAY);
+  }, [fetchData]);
 
-  getStacktrace(): StacktraceType | undefined {
-    const {event} = this.state;
-
-    if (!event) {
-      return undefined;
+  const handleMouseLeave = React.useCallback(() => {
+    if (delayTimeout.current) {
+      window.clearTimeout(delayTimeout.current);
+      delayTimeout.current = null;
     }
+  }, []);
 
-    const exceptionsWithStacktrace =
-      event.entries
-        .find(e => e.type === EntryType.EXCEPTION)
-        ?.data?.values.filter(({stacktrace}) => defined(stacktrace)) ?? [];
+  // Not sure why we need to stop propagation, maybe to to prevent the hovercard from closing?
+  // If we are doing this often, maybe it should be part of the hovercard component.
+  const handleStacktracePreviewClick = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
 
-    const exceptionStacktrace: StacktraceType | undefined = isStacktraceNewestFirst()
-      ? exceptionsWithStacktrace[exceptionsWithStacktrace.length - 1]?.stacktrace
-      : exceptionsWithStacktrace[0]?.stacktrace;
-
-    if (exceptionStacktrace) {
-      return exceptionStacktrace;
-    }
-
-    const threads =
-      event.entries.find(e => e.type === EntryType.THREADS)?.data?.values ?? [];
-    const bestThread = findBestThread(threads);
-
-    if (!bestThread) {
-      return undefined;
-    }
-
-    const bestThreadStacktrace = getThreadStacktrace(false, bestThread);
-
-    if (bestThreadStacktrace) {
-      return bestThreadStacktrace;
-    }
-
-    return undefined;
-  }
-
-  renderHovercardBody(stacktrace: StacktraceType | undefined) {
-    const {event, loading, loadingVisible} = this.state;
-
-    if (loading && loadingVisible) {
-      return (
-        <NoStackTraceWrapper>
-          <LoadingIndicator hideMessage size={32} />
-        </NoStackTraceWrapper>
-      );
-    }
-
-    if (loading) {
-      return null;
-    }
-
-    if (!stacktrace) {
-      return (
-        <NoStackTraceWrapper onClick={this.handleStacktracePreviewClick}>
-          {t("There's no stack trace available for this issue.")}
-        </NoStackTraceWrapper>
-      );
-    }
-
-    const {organization, groupingCurrentLevel} = this.props;
-
+  const stacktrace = React.useMemo(() => {
     if (event) {
-      const platform = (event.platform ?? 'other') as PlatformType;
-
-      return (
-        <div onClick={this.handleStacktracePreviewClick}>
-          {!!organization.features?.includes('grouping-stacktrace-ui') ? (
-            <StackTraceContentV2
-              data={stacktrace}
-              expandFirstFrame={false}
-              includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
-              platform={platform}
-              newestFirst={isStacktraceNewestFirst()}
-              event={event}
-              groupingCurrentLevel={groupingCurrentLevel}
-              isHoverPreviewed
-            />
-          ) : (
-            <StackTraceContent
-              data={stacktrace}
-              expandFirstFrame={false}
-              includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
-              platform={platform}
-              newestFirst={isStacktraceNewestFirst()}
-              event={event}
-              isHoverPreviewed
-            />
-          )}
-        </div>
-      );
+      return getStacktrace(event);
     }
-
     return null;
-  }
+  }, [event]);
 
-  render() {
-    const {children, disablePreview, theme, className} = this.props;
+  const includeSystemFrames = React.useMemo(() => {
+    return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
+  }, [stacktrace]);
 
-    const {loading, loadingVisible} = this.state;
-    const stacktrace = this.getStacktrace();
-
-    if (disablePreview) {
-      return children;
-    }
-
-    return (
-      <span
-        className={className}
-        onMouseEnter={this.handleMouseEnter}
-        onMouseLeave={this.handleMouseLeave}
+  return (
+    <span
+      className={props.className}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <StyledHovercard
+        body={
+          status === 'loading' && !loadingVisible ? null : status === 'loading' ? (
+            <NoStackTraceWrapper onClick={handleStacktracePreviewClick}>
+              <LoadingIndicator hideMessage size={32} />
+            </NoStackTraceWrapper>
+          ) : status === 'error' ? (
+            <NoStackTraceWrapper onClick={handleStacktracePreviewClick}>
+              {t('Failed to load stack trace.')}
+            </NoStackTraceWrapper>
+          ) : !stacktrace ? (
+            <NoStackTraceWrapper onClick={handleStacktracePreviewClick}>
+              {t('There is no stack trace available for this issue.')}
+            </NoStackTraceWrapper>
+          ) : !event ? null : (
+            <div onClick={handleStacktracePreviewClick}>
+              {!!props.organization.features?.includes('grouping-stacktrace-ui') ? (
+                <StackTraceContentV2
+                  data={stacktrace}
+                  expandFirstFrame={false}
+                  includeSystemFrames={includeSystemFrames}
+                  platform={event.platform ?? 'other'}
+                  newestFirst={isStacktraceNewestFirst()}
+                  event={event}
+                  groupingCurrentLevel={props.groupingCurrentLevel}
+                  isHoverPreviewed
+                />
+              ) : (
+                <StackTraceContent
+                  data={stacktrace}
+                  expandFirstFrame={false}
+                  includeSystemFrames={includeSystemFrames}
+                  platform={event.platform ?? 'other'}
+                  newestFirst={isStacktraceNewestFirst()}
+                  event={event}
+                  isHoverPreviewed
+                />
+              )}
+            </div>
+          )
+        }
+        position="right"
+        modifiers={{
+          flip: {
+            enabled: false,
+          },
+          preventOverflow: {
+            padding: 20,
+            enabled: true,
+            boundariesElement: 'viewport',
+          },
+        }}
+        state={
+          status === 'loading' && loadingVisible
+            ? 'loading'
+            : !stacktrace
+            ? 'empty'
+            : 'done'
+        }
+        tipBorderColor={props.theme.border}
+        tipColor={props.theme.background}
       >
-        <StyledHovercard
-          body={this.renderHovercardBody(stacktrace)}
-          position="right"
-          modifiers={{
-            flip: {
-              enabled: false,
-            },
-            preventOverflow: {
-              padding: 20,
-              enabled: true,
-              boundariesElement: 'viewport',
-            },
-          }}
-          state={loading && loadingVisible ? 'loading' : !stacktrace ? 'empty' : 'done'}
-          tipBorderColor={theme.border}
-          tipColor={theme.background}
-        >
-          {children}
-        </StyledHovercard>
-      </span>
-    );
-  }
+        {props.children}
+      </StyledHovercard>
+    </span>
+  );
 }
+
+export {StackTracePreview};
 
 const StyledHovercard = styled(Hovercard)<{state: 'loading' | 'empty' | 'done'}>`
   /* Lower z-index to match the modals (10000 vs 10002) to allow stackTraceLinkModal be on top of stack trace preview. */
@@ -289,4 +277,4 @@ const NoStackTraceWrapper = styled('div')`
   min-height: 56px;
 `;
 
-export default withApi(withTheme(StacktracePreview));
+export default withApi(withTheme(StackTracePreview));
