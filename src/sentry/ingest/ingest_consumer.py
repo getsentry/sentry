@@ -351,6 +351,10 @@ def process_attachment_chunk(message, projects):
 @trace_func(name="ingest_consumer.process_individual_attachment")
 @metrics.wraps("ingest_consumer.process_individual_attachment")
 def process_individual_attachment(message, projects) -> None:
+    import pdb
+
+    pdb.set_trace()
+
     event_id = message["event_id"]
     project_id = int(message["project_id"])
     cache_key = cache_key_for_event({"event_id": event_id, "project": project_id})

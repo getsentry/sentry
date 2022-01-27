@@ -124,6 +124,10 @@ class OrganizationUserReportsPermission(OrganizationPermission):
     scope_map = {"GET": ["project:read", "project:write", "project:admin"]}
 
 
+class OrganizationReplaysPermission(OrganizationPermission):
+    scope_map = {"GET": ["project:read", "project:write", "project:admin"]}
+
+
 class OrganizationPinnedSearchPermission(OrganizationPermission):
     scope_map = {
         "PUT": ["org:read", "org:write", "org:admin"],
