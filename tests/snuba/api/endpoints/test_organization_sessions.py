@@ -685,6 +685,24 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert seen == {"abnormal", "crashed", "errored", "healthy"}
 
+    @freeze_time("2021-01-14T12:27:28.303Z")
+    def test_environment_filter_not_present_in_query(self):
+        self.create_environment(name="abc")
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "environment": ["development", "abc"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+        ]
+
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
