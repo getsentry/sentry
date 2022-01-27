@@ -154,7 +154,6 @@ class Tooltip extends React.Component<Props, State> {
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
   delayHideTimeout: number | null = null;
-  isOverflow: boolean = false;
 
   getPortal = memoize((usesGlobalPortal): HTMLElement => {
     if (usesGlobalPortal) {
