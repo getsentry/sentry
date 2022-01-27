@@ -132,6 +132,7 @@ default_manager.add("organizations:performance-ops-breakdown", OrganizationFeatu
 default_manager.add("organizations:performance-suspect-spans-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-snql", OrganizationFeature, True)
+default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
 default_manager.add("organizations:trends-use-snql", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
