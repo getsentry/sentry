@@ -14,6 +14,7 @@ import {
   Member,
   Organization,
 } from 'sentry/types';
+import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = AsyncComponent['props'] &
@@ -24,17 +25,21 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   members: (Member & {externalUsers: ExternalUser[]})[];
+  initialResults: Member[];
 };
 
 class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     return [
+      // We paginate on this query, since we're filtering by hasExternalUsers:true
       [
         'members',
         `/organizations/${organization.slug}/members/`,
         {query: {query: 'hasExternalUsers:true', expand: 'externalUsers'}},
       ],
+      // We use this query as defaultOptions to reduce identical API calls
+      ['initialResults', `/organizations/${organization.slug}/members/`],
     ];
   }
 
@@ -88,6 +93,11 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
     return `/organizations/${organization.slug}/external-users/`;
   }
 
+  get defaultUserOptions() {
+    const {initialResults} = this.state;
+    return this.sentryNamesMapper(initialResults).map(sentryNameToOption);
+  }
+
   sentryNamesMapper(members: Member[]) {
     return members
       .filter(member => member.user)
@@ -108,6 +118,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
             integration={integration}
             dataEndpoint={this.dataEndpoint}
             getBaseFormEndpoint={() => this.baseFormEndpoint}
+            defaultOptions={this.defaultUserOptions}
             mapping={mapping}
             sentryNamesMapper={this.sentryNamesMapper}
             onCancel={closeModal}
@@ -133,6 +144,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
           mappings={this.mappings}
           dataEndpoint={this.dataEndpoint}
           getBaseFormEndpoint={() => this.baseFormEndpoint}
+          defaultOptions={this.defaultUserOptions}
           sentryNamesMapper={this.sentryNamesMapper}
           onCreate={this.openModal}
           onDelete={this.handleDelete}

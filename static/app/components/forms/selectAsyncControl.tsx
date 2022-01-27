@@ -4,22 +4,25 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import SelectControl, {
+  ControlProps,
+  GeneralSelectValue,
+} from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
-import SelectControl, {ControlProps, GeneralSelectValue} from './selectControl';
-
-type Result = {
+export type Result = {
   value: string;
   label: string;
 };
 
-type Props = {
+export type SelectAsyncControlProps = {
   url: string;
   onResults: (data: any) => Result[]; // TODO(ts): Improve data type
   onQuery: (query: string | undefined) => {};
   forwardedRef: React.Ref<ReactSelect<GeneralSelectValue>>;
   value: ControlProps['value'];
+  defaultOptions?: boolean | GeneralSelectValue[];
 };
 
 type State = {
@@ -27,11 +30,12 @@ type State = {
 };
 
 /**
- * Performs an API request to `url` when menu is initially opened
+ * Performs an API request to `url` to fetch the options
  */
-class SelectAsyncControl extends React.Component<Props> {
+class SelectAsyncControl extends React.Component<SelectAsyncControlProps> {
   static defaultProps = {
     placeholder: '--',
+    defaultOptions: true,
   };
 
   constructor(props) {
@@ -101,7 +105,7 @@ class SelectAsyncControl extends React.Component<Props> {
   };
 
   render() {
-    const {value, forwardedRef, ...props} = this.props;
+    const {value, forwardedRef, defaultOptions, ...props} = this.props;
     return (
       <SelectControl
         // The key is used as a way to force a reload of the options:
@@ -109,7 +113,7 @@ class SelectAsyncControl extends React.Component<Props> {
         key={value}
         ref={forwardedRef}
         value={value}
-        defaultOptions
+        defaultOptions={defaultOptions}
         loadOptions={this.handleLoadOptions}
         onInputChange={this.handleInputChange}
         async

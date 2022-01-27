@@ -1,6 +1,7 @@
 import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
+import {Result} from 'sentry/components/forms/selectAsyncControl';
 import {
   IconBitbucket,
   IconGeneric,
@@ -246,3 +247,8 @@ export const getExternalActorEndpointDetails = (
     apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
   };
 };
+
+export const sentryNameToOption = ({id, name}): Result => ({
+  value: id,
+  label: name,
+});
