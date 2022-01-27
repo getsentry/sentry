@@ -8,7 +8,10 @@ import pickBy from 'lodash/pickBy';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {PageFilters} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
 import localStorage from 'sentry/utils/localStorage';
+
+import {getStateFromQuery} from './parse';
 
 /**
  * Make a default page filters object
@@ -76,15 +79,6 @@ function makeLocalStorageKey(orgSlug: string) {
   return `global-selection:${orgSlug}`;
 }
 
-// XXX(epurkhiser): Note the difference here between the update input type and
-// retrieved output type. It is like this historically because of how these
-// functions have been used
-
-type RetrievedData = {
-  projects: number[];
-  environments: string[];
-};
-
 /**
  * Updates the localstorage page filters data
  *
@@ -97,9 +91,22 @@ type RetrievedData = {
  * debatable if this is the desired behavior.
  */
 export function setPageFiltersStorage(orgSlug: string, selection: PageFilters) {
+  const {start: currentStart, end: currentEnd} = selection.datetime;
+
+  const start = currentStart ? getUtcDateString(currentStart) : null;
+  const end = currentEnd ? getUtcDateString(currentEnd) : null;
+  const period = !start && !end ? selection.datetime.period : null;
+
+  // XXX(epurkhiser): For legacy reasons the page filter state is stored
+  // similarly to how the URL query state is stored, but with different keys
+  // (projects, instead of project).
   const dataToSave = {
     projects: selection.projects,
     environments: selection.environments,
+    start,
+    end,
+    period,
+    utc: selection.datetime.utc ? 'true' : null,
   };
 
   const localStorageKey = makeLocalStorageKey(orgSlug);
@@ -134,12 +141,21 @@ export function getPageFilterStorage(orgSlug: string) {
     return null;
   }
 
-  const result: RetrievedData = {
-    projects: decoded.projects?.map(Number) ?? [],
-    environments: decoded.environments ?? [],
-  };
+  const {projects, environments, start, end, period, utc} = decoded;
 
-  return result;
+  const state = getStateFromQuery(
+    {
+      project: projects,
+      environment: environments,
+      start,
+      end,
+      period,
+      utc,
+    },
+    {allowAbsoluteDatetime: true}
+  );
+
+  return state;
 }
 
 /**
