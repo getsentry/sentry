@@ -168,6 +168,7 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
 
       return acc;
     }, {});
+
     this.state = {...this.state, ...newTags};
     this.trigger(this.state);
   },
