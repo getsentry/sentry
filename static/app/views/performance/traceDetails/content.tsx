@@ -14,8 +14,6 @@ import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scr
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
@@ -25,6 +23,12 @@ import {
   VirtualScrollbar,
   VirtualScrollbarGrip,
 } from 'sentry/components/performance/waterfall/miniHeader';
+import {
+  ErrorDot,
+  ErrorLevel,
+  ErrorMessageContent,
+  ErrorTitle,
+} from 'sentry/components/performance/waterfall/rowDetails';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {IconInfo} from 'sentry/icons';
@@ -109,6 +113,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
         {kind: 'field', field: 'project'},
         {kind: 'field', field: 'title'},
         {kind: 'field', field: 'issue.id'},
+        {kind: 'field', field: 'level'},
       ]);
       errorsEventView.query = `trace:${traceSlug} !event.type:transaction `;
 
@@ -143,22 +148,21 @@ class TraceDetailsContent extends React.Component<Props, State> {
                   {t('The trace cannot be shown when all events are errors.')}
                 </ErrorLabel>
 
-                <List symbol="bullet" data-test-id="trace-view-errors-list">
+                <ErrorMessageContent data-test-id="trace-view-errors">
                   {tableData.data.map(data => (
-                    <ListItem key={data.id}>
-                      {tct('[link]: [title]', {
-                        link: (
-                          <Link
-                            to={`/organizations/${organization.slug}/issues/${data['issue.id']}/events/${data.id}`}
-                          >
-                            {data.project}
-                          </Link>
-                        ),
-                        title: data.title,
-                      })}
-                    </ListItem>
+                    <React.Fragment key={data.id}>
+                      <ErrorDot level={data.level} />
+                      <ErrorLevel>{data.level}</ErrorLevel>
+                      <ErrorTitle>
+                        <Link
+                          to={`/organizations/${organization.slug}/issues/${data['issue.id']}/events/${data.id}`}
+                        >
+                          {data.title}
+                        </Link>
+                      </ErrorTitle>
+                    </React.Fragment>
                   ))}
-                </List>
+                </ErrorMessageContent>
               </Alert>
             );
           }}
