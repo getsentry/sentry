@@ -357,7 +357,6 @@ function NativeFrame({
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
 const GridRow = styled('div')<{inApp: boolean; expandable: boolean; expanded: boolean}>`
-  display: contents;
   ${p => p.expandable && `cursor: pointer;`};
   ${p => p.inApp && `background: ${p.theme.surface100};`};
 
