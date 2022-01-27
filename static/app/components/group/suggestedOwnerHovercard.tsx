@@ -6,7 +6,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {IconCommit, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
