@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {growIn} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 import {MinimalProject, Organization, Project} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import ProjectSelector from './projectSelector';
@@ -86,11 +86,10 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
    * Should perform an "update" callback
    */
   handleQuickSelect = (selected: Pick<Project, 'id'>) => {
-    analytics('projectselector.direct_selection', {
+    trackAdvancedAnalyticsEvent('projectselector.direct_selection', {
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
-
     const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
     this.props.onChange(value);
     this.doUpdate();
@@ -108,10 +107,11 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     }
 
     const {value} = this.props;
-    analytics('projectselector.update', {
+
+    trackAdvancedAnalyticsEvent('projectselector.update', {
       count: value.length,
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
       multi: this.multi,
     });
 
@@ -124,9 +124,9 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
    * Should perform an "update" callback
    */
   handleClear = () => {
-    analytics('projectselector.clear', {
+    trackAdvancedAnalyticsEvent('projectselector.clear', {
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
 
     this.props.onChange([]);
@@ -141,10 +141,10 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
   handleMultiSelect = (selected: Project[]) => {
     const {onChange, value} = this.props;
 
-    analytics('projectselector.toggle', {
+    trackAdvancedAnalyticsEvent('projectselector.toggle', {
       action: selected.length > value.length ? 'added' : 'removed',
       path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      organization: this.props.organization,
     });
 
     const selectedList = selected.map(({id}) => parseInt(id, 10)).filter(i => i);
@@ -272,10 +272,20 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
                 onShowAllProjects={() => {
                   this.handleQuickSelect({id: ALL_ACCESS_PROJECTS.toString()});
                   actions.close();
+                  trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                    button_type: 'all',
+                    path: getRouteStringFromRoutes(this.props.router.routes),
+                    organization,
+                  });
                 }}
                 onShowMyProjects={() => {
                   this.handleClear();
                   actions.close();
+                  trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                    button_type: 'my',
+                    path: getRouteStringFromRoutes(this.props.router.routes),
+                    organization,
+                  });
                 }}
                 message={footerMessage}
               />
