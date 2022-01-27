@@ -1,4 +1,4 @@
-import CommitRow from 'sentry/components/commitRow';
+import {CommitRow} from 'sentry/components/commitRow';
 
 export default {
   title: 'Components/Tables/CommitRow',
