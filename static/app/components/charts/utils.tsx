@@ -187,7 +187,7 @@ export function shouldFetchPreviousPeriod({
 export function getSeriesSelection(
   location: Location
 ): LegendComponentOption['selected'] {
-  const unselectedSeries = decodeList(location.query.unselectedSeries);
+  const unselectedSeries = decodeList(location?.query.unselectedSeries);
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;
     return selection;
