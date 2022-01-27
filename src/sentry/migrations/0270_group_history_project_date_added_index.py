@@ -2,8 +2,10 @@
 
 from django.db import migrations
 
+from sentry.new_migrations.migrations import CheckedMigration
 
-class Migration(migrations.Migration):
+
+class Migration(CheckedMigration):
     # This flag is used to mark that a migration shouldn't be automatically run in
     # production. We set this to True for operations that we think are risky and want
     # someone from ops to run manually and monitor.
@@ -38,4 +40,3 @@ class Migration(migrations.Migration):
             },
         ),
     ]
-
