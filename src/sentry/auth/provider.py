@@ -122,7 +122,7 @@ class Provider(PipelineProvider):
 
     def can_use_scim(self, organization, user):
         """
-        Controls whether or not a provider can have SCIM enabled to manage users
-        and groups. default False, and only SAML2 Providers may implement SCIM
+        Controls whether or not a provider can have SCIM enabled to manage users.
+        By default we have this on for all providers.
         """
-        return False
+        return True
