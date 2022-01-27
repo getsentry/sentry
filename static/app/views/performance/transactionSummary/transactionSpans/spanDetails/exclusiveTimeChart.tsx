@@ -104,7 +104,6 @@ export default function ExclusiveTimeChart(props: Props) {
             yAxis={yAxis}
             partial
             withoutZerofill={withoutZerofill}
-            referrer="api.performance.transaction-summary.duration-chart"
             queryExtras={{span: `${spanSlug.op}:${spanSlug.group}`}}
             generatePathname={org => `/organizations/${org.slug}/events-spans-stats/`}
           >

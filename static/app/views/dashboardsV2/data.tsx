@@ -20,8 +20,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
     id: 'default-template',
     dateCreated: '',
     createdBy: undefined,
-    title: t('General'),
-    description: t('Various Frontend & Backend Widgets'),
+    title: t('General Template'),
+    description: t('Various Frontend and Backend Widgets'),
     widgets: [
       {
         title: t('Number of Errors'),
@@ -219,7 +219,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
   },
   {
     id: 'frontend-template',
-    title: t('Frontend KPIs'),
+    title: t('Frontend Template'),
     dateCreated: '',
     createdBy: undefined,
     description: t('Erroring URLs and Web Vitals'),
@@ -427,7 +427,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
   },
   {
     id: 'backend-template',
-    title: t('Backend KPIs'),
+    title: t('Backend Template'),
     dateCreated: '',
     createdBy: undefined,
     description: t('Issues and Performance'),
@@ -643,7 +643,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
   },
   {
     id: 'mobile-template',
-    title: t('Mobile KPIs'),
+    title: t('Mobile Template'),
     dateCreated: '',
     createdBy: undefined,
     description: t('Crash Details and Performance Vitals'),

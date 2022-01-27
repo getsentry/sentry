@@ -20,8 +20,6 @@ import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {getTooltipArrow} from './utils';
-
 type ReleaseMetaBasic = {
   version: string;
   date: string;
@@ -32,7 +30,7 @@ type ReleaseConditions = {
   end: DateString;
   project: Readonly<number[]>;
   environment: Readonly<string[]>;
-  statsPeriod?: string;
+  statsPeriod?: string | null;
   cursor?: string;
   query?: string;
 };
@@ -71,7 +69,7 @@ type Props = WithRouterProps & {
   environments: Readonly<string[]>;
   start: DateString;
   end: DateString;
-  period?: string;
+  period?: string | null;
   utc?: boolean | null;
   releases?: ReleaseMetaBasic[] | null;
   tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
@@ -284,7 +282,7 @@ class ReleaseSeries extends React.Component<Props, State> {
             time,
             '</div>',
             '</div>',
-            getTooltipArrow(),
+            '<div class="tooltip-arrow"></div>',
           ].join('');
         },
       },

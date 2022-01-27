@@ -112,7 +112,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
         ],
         title: 'Errors',
       }),
-      {
+      expect.objectContaining({
         displayType: 'top_n',
         id: undefined,
         interval: '5m',
@@ -127,7 +127,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
         ],
         title: 'High Throughput Transactions',
         widgetType: 'discover',
-      },
+      }),
     ]);
     expect(closeModal).toHaveBeenCalledTimes(1);
   });
