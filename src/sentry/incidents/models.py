@@ -376,12 +376,6 @@ class AlertRule(Model):
         db_table = "sentry_alertrule"
         base_manager_name = "objects_with_snapshots"
         default_manager_name = "objects_with_snapshots"
-        # This constraint does not match what is in migration 0061, since there is no
-        # way to declare an index on an expression. Therefore, tests would break depending
-        # on whether we run migrations - to work around this, we skip some tests if
-        # migrations have not been run. In migration 0061, this index is set to
-        # a partial index where status=0
-        unique_together = (("organization", "name", "status"),)
 
     __repr__ = sane_repr("id", "name", "date_added")
 
