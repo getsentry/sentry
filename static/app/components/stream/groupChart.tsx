@@ -13,6 +13,7 @@ type Props = {
   data: Group;
   height?: number;
   showSecondaryPoints?: boolean;
+  showMarkline?: boolean;
 };
 
 function GroupChart({
@@ -20,6 +21,7 @@ function GroupChart({
   statsPeriod,
   showSecondaryPoints = false,
   height = 24,
+  showMarkline = false,
 }: Props) {
   const stats: TimeseriesValue[] = statsPeriod
     ? data.filtered
@@ -57,24 +59,30 @@ function GroupChart({
     series.push({
       seriesName: t('Events'),
       data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
-      markLine: MarkLine({
-        silent: true,
-        lineStyle: {color: theme.gray200, type: 'solid', width: 1},
-        data: [
-          {
-            type: 'max',
-          },
-        ],
-        label: {
-          show: true,
-          position: 'start',
-          color: `${theme.gray200}`,
-          fontFamily: 'Rubik',
-          fontSize: 10,
-          formatter: `${formattedMarkLine}`,
-        },
-      }),
     });
+    if (showMarkline) {
+      series.push({
+        seriesName: t('Events'),
+        data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
+        markLine: MarkLine({
+          silent: true,
+          lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+          data: [
+            {
+              type: 'max',
+            },
+          ],
+          label: {
+            show: true,
+            position: 'start',
+            color: `${theme.gray200}`,
+            fontFamily: 'Rubik',
+            fontSize: 10,
+            formatter: `${formattedMarkLine}`,
+          },
+        }),
+      });
+    }
   }
 
   return (
@@ -87,7 +95,7 @@ function GroupChart({
         colors={colors}
         emphasisColors={emphasisColors}
         hideDelay={50}
-        grid={{left: 35}}
+        grid={{left: showMarkline ? 35 : 0}}
       />
     </LazyLoad>
   );
