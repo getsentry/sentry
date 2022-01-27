@@ -153,7 +153,7 @@ class BaseNotification(abc.ABC):
         return referrer
 
     def get_sentry_query_params(
-        self, provider: ExternalProviders, recipient: Optional[Team | User]
+        self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
