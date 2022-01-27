@@ -2,7 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import PageFiltersActions from 'sentry/actions/pageFiltersActions';
+import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {IconAdd, IconPin} from 'sentry/icons';
@@ -161,7 +161,7 @@ const ProjectSelector = ({
   };
 
   const handlePinClick = () => {
-    PageFiltersActions.pin('projects', !pinned);
+    pinFilter('projects', !pinned);
   };
 
   const hasProjects = !!projects?.length || !!nonMemberProjects?.length;
