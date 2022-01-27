@@ -90,6 +90,7 @@ type Props = DefaultProps & {
 type State = {
   isOpen: boolean;
   usesGlobalPortal: boolean;
+  triggerEl: Element | null;
 };
 
 /**
@@ -128,6 +129,7 @@ class Tooltip extends React.Component<Props, State> {
   state: State = {
     isOpen: false,
     usesGlobalPortal: true,
+    triggerEl: null,
   };
 
   async componentDidMount() {
@@ -178,9 +180,10 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleOpen = () => {
+    const {triggerEl} = this.state;
     const {delay, showOnOverflow} = this.props;
 
-    if (showOnOverflow && !this.isOverflow) {
+    if (triggerEl && showOnOverflow && !isOverflown(triggerEl)) {
       return;
     }
 
@@ -247,8 +250,8 @@ class Tooltip extends React.Component<Props, State> {
           if (typeof ref === 'function') {
             ref(el);
           }
-          if (showOnOverflow) {
-            this.isOverflow = Boolean(el && isOverflown(el));
+          if (showOnOverflow && !this.state.triggerEl) {
+            this.setState({triggerEl: el});
           }
         }}
       >
