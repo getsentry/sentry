@@ -1040,13 +1040,8 @@ class UnresolvedQuery(QueryBuilder):
         self,
         dataset: Dataset,
         params: ParamsType,
-        query: Optional[str] = None,
-        selected_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
         auto_fields: bool = False,
         auto_aggregations: bool = False,
-        use_aggregate_conditions: bool = False,
         functions_acl: Optional[List[str]] = None,
         array_join: Optional[str] = None,
         limit: Optional[int] = 50,
@@ -1087,8 +1082,8 @@ class UnresolvedQuery(QueryBuilder):
             self.search_filter_converter,
         ) = self.load_config()
 
-        self.limitby = self.resolve_limitby(limitby)
         self.array_join = None if array_join is None else [self.resolve_column(array_join)]
+        self.limitby = self.resolve_limitby(limitby)
 
 
 class TimeseriesQueryBuilder(UnresolvedQuery):
