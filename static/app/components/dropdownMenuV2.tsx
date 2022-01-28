@@ -242,7 +242,6 @@ const Overlay = styled('div')<{placementProp: PositionAria['placement']}>`
   background: ${p => p.theme.backgroundElevated};
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   font-size: ${p => p.theme.fontSizeMedium};
-  overflow: hidden;
 
   margin: ${space(1)} 0;
   ${p => p.placementProp === 'top' && `margin-bottom: 0;`}
