@@ -599,7 +599,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this._streamManager.push(data);
 
-        if (isForReviewQuery(query) && this.state.reviewedIds.length) {
+        if (isForReviewQuery(query)) {
           GroupStore.remove(this.state.reviewedIds);
         }
 
@@ -613,7 +613,7 @@ class IssueListOverview extends React.Component<Props, State> {
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = resp.getResponseHeader('Link');
 
-        if (!this.state.reviewedIds.length) {
+        if (!this.state.forReview) {
           this.fetchCounts(queryCount, fetchAllCounts);
         }
 
