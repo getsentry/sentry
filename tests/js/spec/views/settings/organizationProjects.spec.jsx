@@ -1,3 +1,5 @@
+import {act, waitFor} from '@testing-library/react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
@@ -65,19 +67,23 @@ describe('OrganizationProjects', function () {
       routerContext
     );
 
-    wrapper
-      .find('AsyncComponentSearchInput Input')
-      .simulate('change', {target: {value: `${project.slug}`}});
+    act(() => {
+      wrapper
+        .find('AsyncComponentSearchInput Input')
+        .simulate('change', {target: {value: `${project.slug}`}});
+    });
 
-    expect(searchMock).toHaveBeenLastCalledWith(
-      `/organizations/${org.slug}/projects/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          query: project.slug,
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(searchMock).toHaveBeenLastCalledWith(
+        `/organizations/${org.slug}/projects/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: {
+            query: project.slug,
+          },
+        })
+      );
+    });
 
     wrapper.find('SearchWrapper form').simulate('submit');
     expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
