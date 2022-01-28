@@ -494,8 +494,6 @@ def create_alert_rule(
         resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
     validate_alert_rule_query(query)
-    if AlertRule.objects.filter(organization=organization, name=name).exists():
-        raise AlertRuleNameAlreadyUsedError()
     with transaction.atomic():
         snuba_query = create_snuba_query(
             dataset,
@@ -628,13 +626,6 @@ def update_alert_rule(
     comparison period. In minutes.
     :return: The updated `AlertRule`
     """
-    if (
-        name
-        and alert_rule.name != name
-        and AlertRule.objects.filter(organization=alert_rule.organization, name=name).exists()
-    ):
-        raise AlertRuleNameAlreadyUsedError()
-
     updated_fields = {"date_modified": timezone.now()}
     updated_query_fields = {}
     if name:
@@ -1365,7 +1356,7 @@ def translate_aggregate_field(aggregate, reverse=False):
 
 def get_slack_actions_with_async_lookups(organization, user, data):
     try:
-        from sentry.incidents.endpoints.serializers import AlertRuleTriggerActionSerializer
+        from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
 
         slack_actions = []
         for trigger in data["triggers"]:

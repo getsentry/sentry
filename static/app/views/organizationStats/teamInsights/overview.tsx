@@ -16,7 +16,7 @@ import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DateString, RelativePeriod, TeamWithProjects} from 'sentry/types';
+import {DateString, TeamWithProjects} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
@@ -99,7 +99,7 @@ function TeamInsightsOverview({location, router}: Props) {
     }
 
     return setStateOnUrl({
-      pageStatsPeriod: (relative as RelativePeriod) || undefined,
+      pageStatsPeriod: relative || undefined,
       pageStart: undefined,
       pageEnd: undefined,
       pageUtc: undefined,
@@ -107,7 +107,7 @@ function TeamInsightsOverview({location, router}: Props) {
   }
 
   function setStateOnUrl(nextState: {
-    pageStatsPeriod?: RelativePeriod;
+    pageStatsPeriod?: string | null;
     pageStart?: DateString;
     pageEnd?: DateString;
     pageUtc?: boolean | null;
@@ -311,6 +311,24 @@ function TeamInsightsOverview({location, router}: Props) {
             )}
             {isInsightsV2 && (
               <DescriptionCard
+                title={t('All Unresolved Issues')}
+                description={t(
+                  'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or ignored in the past.'
+                )}
+              >
+                <TeamUnresolvedIssues
+                  projects={projects}
+                  organization={organization}
+                  teamSlug={currentTeam!.slug}
+                  period={period}
+                  start={start}
+                  end={end}
+                  utc={utc}
+                />
+              </DescriptionCard>
+            )}
+            {isInsightsV2 && (
+              <DescriptionCard
                 title={t('New and Returning Issues')}
                 description={t(
                   'The new, regressed, and unignored issues that were assigned to your team.'
@@ -355,24 +373,6 @@ function TeamInsightsOverview({location, router}: Props) {
                 )}
               >
                 <TeamIssuesAge organization={organization} teamSlug={currentTeam!.slug} />
-              </DescriptionCard>
-            )}
-            {isInsightsV2 && (
-              <DescriptionCard
-                title={t('All Unresolved Issues')}
-                description={t(
-                  'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or ignored in the past.'
-                )}
-              >
-                <TeamUnresolvedIssues
-                  projects={projects}
-                  organization={organization}
-                  teamSlug={currentTeam!.slug}
-                  period={period}
-                  start={start}
-                  end={end}
-                  utc={utc}
-                />
               </DescriptionCard>
             )}
             <DescriptionCard
@@ -446,6 +446,8 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   }
 `;
 
-const SectionTitle = styled(Layout.Title)`
-  margin-bottom: ${space(1)} !important;
+const SectionTitle = styled('h2')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-top: ${space(2)};
+  margin-bottom: ${space(1)};
 `;

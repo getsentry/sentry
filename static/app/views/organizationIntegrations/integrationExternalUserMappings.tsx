@@ -9,11 +9,13 @@ import IntegrationExternalMappings from 'sentry/components/integrationExternalMa
 import {t} from 'sentry/locale';
 import {
   ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
   ExternalUser,
   Integration,
   Member,
   Organization,
 } from 'sentry/types';
+import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = AsyncComponent['props'] &
@@ -24,27 +26,33 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   members: (Member & {externalUsers: ExternalUser[]})[];
+  initialResults: Member[];
 };
 
 class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     return [
+      // We paginate on this query, since we're filtering by hasExternalUsers:true
       [
         'members',
         `/organizations/${organization.slug}/members/`,
         {query: {query: 'hasExternalUsers:true', expand: 'externalUsers'}},
       ],
+      // We use this query as defaultOptions to reduce identical API calls
+      ['initialResults', `/organizations/${organization.slug}/members/`],
     ];
   }
 
   handleDelete = async (mapping: ExternalActorMapping) => {
     const {organization} = this.props;
-    const endpoint = `/organizations/${organization.slug}/external-users/${mapping.id}/`;
     try {
-      await this.api.requestPromise(endpoint, {
-        method: 'DELETE',
-      });
+      await this.api.requestPromise(
+        `/organizations/${organization.slug}/external-users/${mapping.id}/`,
+        {
+          method: 'DELETE',
+        }
+      );
       // remove config and update state
       addSuccessMessage(t('Deletion successful'));
       this.fetchData();
@@ -76,6 +84,21 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
     return externalUserMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 
+  get dataEndpoint() {
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/members/`;
+  }
+
+  get baseFormEndpoint() {
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/external-users/`;
+  }
+
+  get defaultUserOptions() {
+    const {initialResults} = this.state;
+    return this.sentryNamesMapper(initialResults).map(sentryNameToOption);
+  }
+
   sentryNamesMapper(members: Member[]) {
     return members
       .filter(member => member.user)
@@ -85,25 +108,25 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
       });
   }
 
-  openModal = (mapping?: ExternalActorMapping) => {
-    const {organization, integration} = this.props;
+  openModal = (mapping?: ExternalActorMappingOrSuggestion) => {
+    const {integration} = this.props;
     openModal(({Body, Header, closeModal}) => (
       <Fragment>
         <Header closeButton>{t('Configure External User Mapping')}</Header>
         <Body>
           <IntegrationExternalMappingForm
-            organization={organization}
+            type="user"
             integration={integration}
+            dataEndpoint={this.dataEndpoint}
+            getBaseFormEndpoint={() => this.baseFormEndpoint}
+            defaultOptions={this.defaultUserOptions}
+            mapping={mapping}
+            sentryNamesMapper={this.sentryNamesMapper}
+            onCancel={closeModal}
             onSubmitSuccess={() => {
               this.handleSubmitSuccess();
               closeModal();
             }}
-            mapping={mapping}
-            sentryNamesMapper={this.sentryNamesMapper}
-            type="user"
-            url={`/organizations/${organization.slug}/members/`}
-            onCancel={closeModal}
-            baseEndpoint={`/organizations/${organization.slug}/external-users/`}
           />
         </Body>
       </Fragment>
@@ -111,15 +134,20 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {integration} = this.props;
+    const {integration, organization} = this.props;
     const {membersPageLinks} = this.state;
     return (
       <Fragment>
         <IntegrationExternalMappings
-          integration={integration}
           type="user"
+          integration={integration}
+          organization={organization}
           mappings={this.mappings}
-          onCreateOrEdit={this.openModal}
+          dataEndpoint={this.dataEndpoint}
+          getBaseFormEndpoint={() => this.baseFormEndpoint}
+          defaultOptions={this.defaultUserOptions}
+          sentryNamesMapper={this.sentryNamesMapper}
+          onCreate={this.openModal}
           onDelete={this.handleDelete}
           pageLinks={membersPageLinks}
         />
