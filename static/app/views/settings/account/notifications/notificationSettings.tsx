@@ -145,7 +145,6 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 
       fields.push(field);
     }
-
     return fields;
   }
 
