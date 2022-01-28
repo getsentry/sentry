@@ -38,6 +38,7 @@ export type DashboardsEventParameters = {
   };
   'dashboards_manage.templates.add': {
     dashboard_id: string;
+    was_previewed: boolean;
   };
   'dashboards_manage.templates.preview': {
     dashboard_id: string;
