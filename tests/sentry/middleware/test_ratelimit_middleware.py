@@ -1,10 +1,12 @@
 from time import time
 from unittest.mock import patch
 
+from before_after import before
 from django.conf import settings
 from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
+from django.urls import reverse
 from exam import fixture
 from freezegun import freeze_time
 from rest_framework.permissions import AllowAny
@@ -220,12 +222,27 @@ class RateLimitHeaderTestEndpoint(Endpoint):
     enforce_rate_limit = True
     rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(2, 100)}}
 
+    def inject_call(self):
+        return
+
+    def get(self, request):
+        self.inject_call()
+        return Response({"ok": True})
+
+
+class RaceConditionEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    enforce_rate_limit = False
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(40, 100)}}
+
     def get(self, request):
         return Response({"ok": True})
 
 
 urlpatterns = [
-    url(r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint")
+    url(r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"),
+    url(r"^/race-condition$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
 ]
 
 
@@ -272,3 +289,18 @@ class TestRatelimitHeader(APITestCase):
         assert "X-Sentry-Rate-Limit-Remaining" not in response._headers
         assert "X-Sentry-Rate-Limit-Limit" not in response._headers
         assert "X-Sentry-Rate-Limit-Reset" not in response._headers
+
+    def test_header_race_condition(self):
+        """Make sure concurrent requests don't affect each other's rate limit"""
+
+        def parallel_request(*args, **kwargs):
+            self.client.get(reverse("race-condition-endpoint"))
+
+        with before(
+            "tests.sentry.middleware.test_ratelimit_middleware.RateLimitHeaderTestEndpoint.inject_call",
+            parallel_request,
+        ):
+            response = self.get_success_response()
+
+        assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 1
+        assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
