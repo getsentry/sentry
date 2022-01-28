@@ -145,14 +145,13 @@ jobs:
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
         run: yarn install --frozen-lockfile
 
-      - uses: getsentry/size-limit-action@v3
+      - uses: getsentry/size-limit-action@v4
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
         env:
           SENTRY_INSTRUMENTATION: 1
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         with:
           main_branch: master
-          workflow_name: 'js-build-and-lint'
           skip_step: install
           build_script: build
           windows_verbatim_arguments: false
