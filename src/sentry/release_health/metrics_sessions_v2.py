@@ -17,6 +17,7 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     TypedDict,
     Union,
@@ -98,9 +99,6 @@ class _SessionStatusValue:
     value: Union[None, float, int]
 
 
-#: Actual column name in snuba
-_SnubaColumnName = Literal["value", "avg", "max", "percentiles"]
-
 #: "Virtual" column name, almost the same as _SnubaColumnName,
 #: but "percentiles" is expanded into multiple columns later on
 _VirtualColumnName = Literal["value", "avg", "max", "p50", "p75", "p90", "p95", "p99"]
@@ -114,7 +112,7 @@ def _to_column(
     columns are used (like the select argument of a Query)
     """
 
-    parameters = [Column("value"), column_condition]
+    parameters = (Column("value"), column_condition)
 
     # distribution columns
     if query_func in [
@@ -192,7 +190,7 @@ class _DataPointKey:
 
 _DataPoints = MutableMapping[_DataPointKey, float]
 _SnubaData = Sequence[MutableMapping[str, Any]]
-_SnubaDataByMetric = Sequence[Tuple[MetricKey, _SnubaData]]
+_SnubaDataByMetric = List[Tuple[MetricKey, _SnubaData]]
 
 
 class _OutputField(abc.ABC):
@@ -404,16 +402,39 @@ def _fetch_data(
 ) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
     """Build & run necessary snuba queries"""
 
-    # It greatly simplifies code if we just assume that these two tags exist:
-    # TODO: Can we get away with that assumption?
+    # Prevent fields from being fetched multiple times (only used for percentiles)
+    columns_fetched: Set[SelectableExpression] = set()
+
+    primary_field = query.raw_fields[0]  # This will determine the order of groups
+    combined_data, metric_to_output_field = _fetch_data_for_field(
+        org_id, query, primary_field, columns_fetched
+    )
+
+    # This filter determines which groups will be fetched for the other fields:
+    # extra_conditions = [Condition(Function("tuple", group_columns), Op.IN, group_values)]
+
+    for raw_field in query.raw_fields[1:]:
+        data, field_map = _fetch_data_for_field(org_id, query, raw_field, columns_fetched)
+        combined_data.extend(data)
+        metric_to_output_field.update(field_map)
+
+    return combined_data, metric_to_output_field
+
+
+def _fetch_data_for_field(
+    org_id: int,
+    query: QueryDefinition,
+    raw_field: SessionsQueryFunction,
+    columns_fetched: Set[SelectableExpression],  # output param
+) -> Tuple[_SnubaDataByMetric, MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
     tag_key_session_status = resolve_tag_key("session.status")
 
-    data: List[Tuple[MetricKey, _SnubaData]] = []
+    data: _SnubaDataByMetric = []
 
-    #: Find the field that needs a specific column in a specific metric
+    # Find the field that needs a specific column in a specific metric
     metric_to_output_field: MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField] = {}
 
-    if "count_unique(user)" in query.raw_fields:
+    if "count_unique(user)" == raw_field:
         metric_id = indexer.resolve(MetricKey.USER.value)
         if metric_id is not None:
             data.extend(
@@ -428,8 +449,7 @@ def _fetch_data(
             )
             metric_to_output_field[(MetricKey.USER, "value")] = _UserField()
 
-    duration_fields = [field for field in query.raw_fields if "session.duration" in field]
-    if duration_fields:
+    if "session.duration" in raw_field:
         metric_id = indexer.resolve(MetricKey.SESSION_DURATION.value)
         if metric_id is not None:
 
@@ -440,24 +460,18 @@ def _fetch_data(
 
             # If we're not grouping by status, we still need to filter down
             # to healthy sessions, because that's what sessions_v2 exposes:
-            healthy = indexer.resolve("exited")
-            column_condition = (
-                1
-                if group_by_status
-                else Function("equals", [Column(tag_key_session_status), healthy])
-            )
+            if group_by_status:
+                column_condition = 1
+            else:
+                healthy = indexer.resolve("exited")
+                if healthy is None:
+                    # There are no healthy sessions, return
+                    return [], {}
+                column_condition = Function("equals", (Column(tag_key_session_status), healthy))
 
-            # eliminate duplicate fields (p50...p99) all generate the same field "percentiles"
-            seen_fields = set()
-            snuba_columns = []
-            for field in duration_fields:
-                column = _to_column(field, column_condition)
-                if column.alias not in seen_fields:
-                    # a new field add it to the columns and remember it
-                    snuba_columns.append(column)
-                    seen_fields.add(column.alias)
+            snuba_column = _to_column(raw_field, column_condition)
 
-            if tag_key_session_status is not None and healthy is not None:
+            if snuba_column not in columns_fetched:
                 data.extend(
                     _get_snuba_query_data(
                         org_id,
@@ -465,16 +479,17 @@ def _fetch_data(
                         EntityKey.MetricsDistributions,
                         MetricKey.SESSION_DURATION,
                         metric_id,
-                        snuba_columns,
+                        [snuba_column],
                     )
                 )
-                for field in duration_fields:
-                    col = get_virtual_column(field)
-                    metric_to_output_field[
-                        (MetricKey.SESSION_DURATION, col)
-                    ] = _SessionDurationField(field, col, group_by_status)
+                columns_fetched.add(snuba_column)
 
-    if "sum(session)" in query.raw_fields:
+            col = get_virtual_column(raw_field)
+            metric_to_output_field[(MetricKey.SESSION_DURATION, col)] = _SessionDurationField(
+                raw_field, col, group_by_status
+            )
+
+    if "sum(session)" == raw_field:
         metric_id = indexer.resolve(MetricKey.SESSION.value)
         if metric_id is not None:
             if "session.status" in query.raw_groupby:
