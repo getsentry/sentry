@@ -6,8 +6,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import Tooltip from 'sentry/components/tooltip';
+import * as utils from 'sentry/utils/tooltip';
 
 describe('Tooltip', function () {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('renders', function () {
     const {container} = mountWithTheme(
       <Tooltip delay={0} title="test">
@@ -67,5 +72,35 @@ describe('Tooltip', function () {
     expect(screen.getByText('My Button')).not.toHaveAttribute('aria-describedby');
 
     userEvent.unhover(screen.getByText('My Button'));
+  });
+
+  it('displays a tooltip if the content overflows with showOnOverflow', async function () {
+    jest.spyOn(utils, 'isOverflown').mockReturnValue(true);
+    mountWithTheme(
+      <Tooltip delay={0} title="test" showOnOverflow>
+        <div>This text overflows</div>
+      </Tooltip>,
+      {context: TestStubs.routerContext()}
+    );
+
+    userEvent.hover(screen.getByText('This text overflows'));
+
+    expect(screen.getByText('test')).toBeInTheDocument();
+
+    userEvent.unhover(screen.getByText('This text overflows'));
+  });
+
+  it('does not display a tooltip if the content does not overflow with showOnOverflow', function () {
+    jest.spyOn(utils, 'isOverflown').mockReturnValue(false);
+    mountWithTheme(
+      <Tooltip title="Tooltip title" showOnOverflow>
+        <div data-test-id="truncated-text">This text does not overflow</div>
+      </Tooltip>,
+      {context: TestStubs.routerContext()}
+    );
+
+    userEvent.hover(screen.getByText('This text does not overflow'));
+
+    expect(screen.queryByText('Tooltip title')).not.toBeInTheDocument();
   });
 });

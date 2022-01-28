@@ -11,6 +11,7 @@ import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import space from 'sentry/styles/space';
 import {domId} from 'sentry/utils/domId';
 import testableTransition from 'sentry/utils/testableTransition';
+import {isOverflown} from 'sentry/utils/tooltip';
 
 export const OPEN_DELAY = 50;
 
@@ -113,10 +114,6 @@ function computeOriginFromArrow(
     default:
       return {originX: `50%`, originY: '100%'};
   }
-}
-
-function isOverflown(el: Element): boolean {
-  return el.scrollWidth > el.clientWidth || Array.from(el.children).some(isOverflown);
 }
 
 class Tooltip extends React.Component<Props, State> {
