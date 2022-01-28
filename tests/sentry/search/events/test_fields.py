@@ -6,12 +6,12 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry import eventstore
+from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import (
     COMBINATORS,
     FUNCTIONS,
     FunctionDetails,
     InvalidSearchQuery,
-    QueryFields,
     get_json_meta_type,
     parse_arguments,
     parse_combinator,
@@ -1592,7 +1592,7 @@ class ResolveFieldListTest(unittest.TestCase):
 
 
 def resolve_snql_fieldlist(fields):
-    return QueryFields(Dataset.Discover, {}).resolve_select(fields, [])
+    return UnresolvedQuery(Dataset.Discover, {}).resolve_select(fields, [])
 
 
 @pytest.mark.parametrize(
@@ -1663,7 +1663,7 @@ def test_range_funtions(field, expected):
 
 @pytest.mark.parametrize("combinator", COMBINATORS)
 def test_combinator_names_are_reserved(combinator):
-    fields = QueryFields(dataset=Dataset.Discover, params={})
+    fields = UnresolvedQuery(dataset=Dataset.Discover, params={})
     for function in fields.function_converter:
         assert not function.endswith(
             combinator.kind
