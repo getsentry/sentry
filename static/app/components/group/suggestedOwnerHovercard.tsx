@@ -30,6 +30,12 @@ type Props = {
    * if the actor is not suggested based on ownership rules.
    */
   rules?: any[] | null;
+
+  /**
+   * Children are required, as they are passed to the hovercard component, without it,
+   * we will not be able to trigger any hovercard actions
+   */
+  children: React.ReactNode;
 };
 
 type State = {
