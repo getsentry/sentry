@@ -6,17 +6,17 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {getTooltipArrow} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {EventsStatsData, OrganizationSummary, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
+
+import {ViewProps} from '../types';
 
 import {
   NormalizedTrendsTransaction,
@@ -32,17 +32,6 @@ import {
   transformEventStatsSmoothed,
   trendToColor,
 } from './utils';
-
-const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
-
-type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type Props = WithRouterProps &
   ViewProps & {
@@ -171,7 +160,7 @@ function getIntervalLine(
         tooltipFormatter(transaction.aggregate_range_1, 'p50()'),
         '</div>',
         '</div>',
-        getTooltipArrow(),
+        '<div class="tooltip-arrow"></div>',
       ].join('');
     },
   };
@@ -191,7 +180,7 @@ function getIntervalLine(
         tooltipFormatter(transaction.aggregate_range_2, 'p50()'),
         '</div>',
         '</div>',
-        getTooltipArrow(),
+        '<div class="tooltip-arrow"></div>',
       ].join('');
     },
   };

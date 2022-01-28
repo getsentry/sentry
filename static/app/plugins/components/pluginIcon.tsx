@@ -13,6 +13,7 @@ import gitlab from 'sentry-logos/logo-gitlab.svg';
 import heroku from 'sentry-logos/logo-heroku.svg';
 import jira from 'sentry-logos/logo-jira.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
+import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
 import lighthouse from 'sentry-logos/logo-lighthouse.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
@@ -58,6 +59,7 @@ export const ICON_PATHS = {
   heroku,
   jira,
   jira_server: jiraserver,
+  jumpcloud,
   lighthouse,
   msteams,
   opsgenie,

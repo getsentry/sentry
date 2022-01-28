@@ -27,7 +27,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {Widget, WidgetType} from '../types';
-import {ISSUE_FIELDS} from '../widget/issueWidget/fields';
+import {ISSUE_FIELD_TO_HEADER_MAP, ISSUE_FIELDS} from '../widget/issueWidget/fields';
 
 import WidgetCardChart from './chart';
 import IssueWidgetQueries from './issueWidgetQueries';
@@ -58,9 +58,10 @@ type Props = WithRouterProps & {
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   noLazyLoad?: boolean;
-  hideDragHandle?: boolean;
+  isMobile?: boolean;
   widgetLimitReached: boolean;
   tableItemLimit?: number;
+  windowWidth?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -70,7 +71,7 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, hideDragHandle} =
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, isMobile} =
       this.props;
 
     if (!isEditing) {
@@ -80,7 +81,7 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-          {!hideDragHandle && (
+          {!isMobile && (
             <IconClick>
               <StyledIconGrabbable
                 color="textColor"
@@ -157,6 +158,7 @@ class WidgetCard extends React.Component<Props> {
         data={transformedResults}
         organization={organization}
         getCustomFieldRenderer={getIssueFieldRenderer}
+        fieldHeaderMap={ISSUE_FIELD_TO_HEADER_MAP}
       />
     );
   }
@@ -202,6 +204,8 @@ class WidgetCard extends React.Component<Props> {
       location,
       router,
       tableItemLimit,
+      isMobile,
+      windowWidth,
     } = this.props;
     return (
       <WidgetQueries
@@ -227,6 +231,8 @@ class WidgetCard extends React.Component<Props> {
                 selection={selection}
                 router={router}
                 organization={organization}
+                isMobile={isMobile}
+                windowWidth={windowWidth}
               />
               {this.renderToolbar()}
             </React.Fragment>

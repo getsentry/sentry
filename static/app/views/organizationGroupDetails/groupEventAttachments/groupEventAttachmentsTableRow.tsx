@@ -56,13 +56,13 @@ const GroupEventAttachmentsTableRow = ({
           attachment={attachment}
         >
           {url =>
-            !isDeleted && (
+            !isDeleted ? (
               <EventAttachmentActions
                 url={url}
                 onDelete={onDelete}
                 attachmentId={attachment.id}
               />
-            )
+            ) : null
           }
         </AttachmentUrl>
       </ActionsWrapper>
