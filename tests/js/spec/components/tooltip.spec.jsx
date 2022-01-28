@@ -75,6 +75,7 @@ describe('Tooltip', function () {
   });
 
   it('displays a tooltip if the content overflows with showOnOverflow', async function () {
+    // Mock this to return true because scrollWidth and clientWidth are 0 in JSDOM
     jest.spyOn(utils, 'isOverflown').mockReturnValue(true);
     mountWithTheme(
       <Tooltip delay={0} title="test" showOnOverflow>
