@@ -27,9 +27,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # Will be empty for non pull requests
     - id: 'current-branch'
       shell: bash
-      run: echo "::set-output name=name::$GITHUB_REF_NAME"
+      run: echo "::set-output name=name::$(echo ${GITHUB_HEAD_REF#refs/heads/})"
 
     - name: Fetch existing report from master
       if: inputs.action != 'upload'
@@ -44,9 +45,9 @@ runs:
     # Overwrite reports from master if branch reports exist
     #
     # Note branch reports are also from master, but this way a branch will
-      # always use the same report instead of fetching latest from master.
+    # always use the same report instead of fetching latest from master.
     - name: Fetch report from current branch (if not master)
-      if: inputs.action != 'upload' && steps.current-branch.outputs.name != 'master'
+      if: inputs.action != 'upload' && steps.current-branch.outputs.name != ''
       id: 'get-artifact-branch'
       uses: getsentry/action-download-workflow-artifact@2c7fdc458e9fb008b94b8399a483ff6e3af883b1
       with:
@@ -63,11 +64,22 @@ runs:
         echo '${{ steps.get-artifact.outcome }}'
         echo '${{ steps.get-artifact.conclusion }}'
 
+    # This is temp as `steps.<id>.outcome` is broken right now
+    - name: Does artifact exist
+      if: inputs.action != 'upload'
+      id: artifact-exists
+      shell: bash
+      run: |
+        test -f ${{ inputs.dest }} && echo "::set-output name=exists::1"
+
+
     # We re-upload the report that was from the master branch so that the same
     # report is always used within a PR.
     # This is so the test order remains consistent a PR.
     - name: Upload report for branch
-      if: steps.get-artifact.outcome == 'success'
+      # Ideally we'd use the below check
+      # if: steps.get-artifact.outcome == 'success'
+      if: inputs.action != 'upload' && steps.artifact-exists.outputs.exists == '1'
       uses: actions/upload-artifact@v2
       with:
         name: ${{ inputs.artifact }}__internal
