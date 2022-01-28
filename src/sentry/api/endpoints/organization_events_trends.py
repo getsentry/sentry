@@ -421,7 +421,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
         use_snql = self.has_snql_feature(organization, request)
-        sentry_sdk.set_tag("discover.use-snql", use_snql)
+        sentry_sdk.set_tag("discover.use_snql", use_snql)
 
         try:
             params = self.get_snuba_params(request, organization)
