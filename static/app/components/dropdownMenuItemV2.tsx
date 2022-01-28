@@ -16,17 +16,20 @@ import {TreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
 
 import {IconChevron} from 'sentry/icons';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 export type MenuItemProps = {
   key: string;
   label: ReactNode;
-  details?: string;
+  details?: ReactNode;
   isSubmenu?: boolean;
   submenuTitle?: string;
   showDividers?: boolean;
   leadingItems?: ReactNode;
+  leadingItemsSpanFullHeight?: boolean;
   trailingItems?: ReactNode;
+  trailingItemsSpanFullHeight?: boolean;
   onAction?: (key: MenuItemProps['key']) => void;
   children?: MenuItemProps[];
 };
@@ -143,7 +146,13 @@ function MenuItem(
    * See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
    */
   const props = mergeProps(submenuTriggerProps, menuItemProps, hoverProps, keyboardProps);
-  const {details, leadingItems, trailingItems} = item;
+  const {
+    details,
+    leadingItems,
+    leadingItemsSpanFullHeight,
+    trailingItems,
+    trailingItemsSpanFullHeight,
+  } = item;
   const label = node.rendered ?? item.label;
   const showDividers = item.showDividers && !isLastNode;
 
@@ -158,7 +167,12 @@ function MenuItem(
       >
         <InnerWrap isFocused={isFocused} role="presentation">
           {leadingItems && (
-            <LeadingItems isDisabled={isDisabled}>{leadingItems}</LeadingItems>
+            <LeadingItems
+              isDisabled={isDisabled}
+              spanFullHeight={leadingItemsSpanFullHeight}
+            >
+              {leadingItems}
+            </LeadingItems>
           )}
           <ContentWrap
             isFocused={isFocused}
@@ -172,7 +186,10 @@ function MenuItem(
               {details && <Details {...descriptionProps}>{details}</Details>}
             </LabelWrap>
             {(trailingItems || isSubmenuTrigger) && (
-              <TrailingItems isDisabled={isDisabled}>
+              <TrailingItems
+                isDisabled={isDisabled}
+                spanFullHeight={trailingItemsSpanFullHeight}
+              >
                 {trailingItems}
                 {isSubmenuTrigger && (
                   <IconChevron size="xs" direction="right" aria-hidden="true" />
@@ -189,6 +206,7 @@ function MenuItem(
 export default forwardRef<RefObject<HTMLElement> | null, Props>(MenuItem);
 
 const Wrap = styled('li')<{isDisabled?: boolean}>`
+  position: static;
   list-style-type: none;
   margin: 0;
   padding: 0 ${space(0.5)};
@@ -211,7 +229,7 @@ const InnerWrap = styled('div')<{isFocused: boolean}>`
   ${p => p.isFocused && `background: ${p.theme.hover}; z-index: 1;`}
 `;
 
-const LeadingItems = styled('div')<{isDisabled?: boolean}>`
+const LeadingItems = styled('div')<{isDisabled?: boolean; spanFullHeight?: boolean}>`
   display: flex;
   align-items: center;
   height: 1.4em;
@@ -221,6 +239,7 @@ const LeadingItems = styled('div')<{isDisabled?: boolean}>`
   margin-right: ${space(0.5)};
 
   ${p => p.isDisabled && `opacity: 0.5;`}
+  ${p => p.spanFullHeight && `height: 100%;`}
 `;
 
 const ContentWrap = styled('div')<{isFocused: boolean; showDividers?: boolean}>`
@@ -250,12 +269,14 @@ const ContentWrap = styled('div')<{isFocused: boolean; showDividers?: boolean}>`
 
 const LabelWrap = styled('div')`
   padding-right: ${space(1)};
+  width: 100%;
 `;
 
 const Label = styled('p')<{isDisabled?: boolean}>`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
+  ${overflowEllipsis}
 
   ${p => p.isDisabled && `color: ${p.theme.subText};`}
 `;
@@ -265,9 +286,10 @@ const Details = styled('p')`
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
+  ${overflowEllipsis}
 `;
 
-const TrailingItems = styled('div')<{isDisabled?: boolean}>`
+const TrailingItems = styled('div')<{isDisabled?: boolean; spanFullHeight?: boolean}>`
   display: flex;
   align-items: center;
   height: 1.4em;
@@ -275,4 +297,5 @@ const TrailingItems = styled('div')<{isDisabled?: boolean}>`
   margin-right: ${space(0.5)};
 
   ${p => p.isDisabled && `opacity: 0.5;`}
+  ${p => p.spanFullHeight && `height: 100%;`}
 `;

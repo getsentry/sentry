@@ -37,7 +37,7 @@ type Props = {
    * By default, the menu trigger will be rendered as a button,
    * with triggerLabel as the button label.
    */
-  triggerLabel?: string;
+  triggerLabel?: ReactNode;
   /**
    * If using the default button trigger (i.e. the custom `trigger` prop
    * has not been provided), then `triggerProps` will be passed on
@@ -77,6 +77,10 @@ type Props = {
    * Tag name for the outer wrap, defaults to `div`
    */
   renderWrapAs?: ElementType;
+  /**
+   * Pass class name to the outer wrap
+   */
+  className?: string;
 } & Partial<MenuTriggerProps> &
   Partial<AriaMenuOptions<MenuItemProps>> &
   Partial<OverlayProps> &
@@ -97,6 +101,7 @@ function MenuControl({
   closeRootMenu,
   closeCurrentSubmenu,
   renderWrapAs = 'div',
+  className,
   ...props
 }: Props) {
   const ref = useRef(null);
@@ -127,7 +132,7 @@ function MenuControl({
 
   const renderTrigger = isOpen => {
     if (trigger) {
-      return trigger({props: buttonProps, ref});
+      return trigger({props: {...buttonProps, isOpen: state.isOpen}, ref});
     }
     return (
       <DropdownButton
@@ -174,7 +179,7 @@ function MenuControl({
   };
 
   return (
-    <Wrap as={renderWrapAs} role="presentation">
+    <Wrap className={className} as={renderWrapAs} role="presentation">
       {renderTrigger(state.isOpen)}
       {renderMenu(state.isOpen)}
     </Wrap>
@@ -184,6 +189,5 @@ function MenuControl({
 export default MenuControl;
 
 const Wrap = styled('div')`
-  position: relative;
   list-style-type: none;
 `;

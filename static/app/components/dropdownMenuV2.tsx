@@ -6,6 +6,7 @@ import {AriaMenuOptions, useMenu} from '@react-aria/menu';
 import {
   AriaPositionProps,
   OverlayProps,
+  PositionAria,
   useOverlay,
   useOverlayPosition,
 } from '@react-aria/overlays';
@@ -54,6 +55,7 @@ type Props = {
 function Menu({
   offset = 8,
   crossOffset = 0,
+  containerPadding = 0,
   placement = 'bottom left',
   closeOnSelect = true,
   triggerRef,
@@ -105,14 +107,14 @@ function Menu({
     },
     overlayRef
   );
-  const {overlayProps: positionProps} = useOverlayPosition({
+  const {overlayProps: positionProps, placement: placementProp} = useOverlayPosition({
     targetRef: triggerRef,
     overlayRef,
     offset,
     crossOffset,
     placement,
+    containerPadding,
     isOpen: true,
-    containerPadding: 0,
   });
 
   /**
@@ -190,9 +192,9 @@ function Menu({
         items={node.value.children as MenuItemProps[]}
         trigger={trigger}
         menuTitle={node.value.submenuTitle}
-        placement="right"
+        placement="right top"
         offset={-4}
-        crossOffset={4}
+        crossOffset={-8}
         closeOnSelect={closeOnSelect}
         isOpen={state.selectionManager.isSelected(node.key)}
         isSubmenu
@@ -237,9 +239,14 @@ function Menu({
     <FocusScope restoreFocus autoFocus>
       <Overlay
         ref={overlayRef}
+        placementProp={placementProp}
         {...mergeProps(overlayProps, positionProps, keyboardProps)}
       >
-        <MenuWrap ref={menuRef} {...modifiedMenuProps}>
+        <MenuWrap
+          ref={menuRef}
+          {...modifiedMenuProps}
+          style={{maxHeight: positionProps.style?.maxHeight}}
+        >
           {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
           {renderCollection(stateCollection)}
         </MenuWrap>
@@ -250,12 +257,17 @@ function Menu({
 
 export default Menu;
 
-const Overlay = styled('div')`
-  display: block;
+const Overlay = styled('div')<{placementProp: PositionAria['placement']}>`
+  max-width: 24rem;
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundElevated};
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   font-size: ${p => p.theme.fontSizeMedium};
+  overflow: hidden;
+
+  margin: ${space(1)} 0;
+  ${p => p.placementProp === 'top' && `margin-bottom: 0;`}
+  ${p => p.placementProp === 'bottom' && `margin-top: 0;`}
 
   /* Override z-index from useOverlayPosition */
   z-index: ${p => p.theme.zIndex.dropdown} !important;
@@ -265,6 +277,8 @@ const MenuWrap = styled('ul')`
   margin: 0;
   padding: ${space(0.5)} 0;
   font-size: ${p => p.theme.fontSizeMedium};
+  overflow-x: hidden;
+  overflow-y: scroll;
 
   &:focus {
     outline: none;

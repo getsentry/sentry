@@ -76,7 +76,8 @@ const StyledButton = styled(Button)<
 >`
   position: relative;
   z-index: 2;
-  box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
+
+  ${p => p.isOpen || (p.disabled && 'box-shadow: none;')}
 `;
 
 const LabelText = styled('span')`

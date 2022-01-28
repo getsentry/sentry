@@ -42,8 +42,12 @@ const Heading = styled('span')`
   color: ${p => p.theme.subText};
   text-transform: uppercase;
   white-space: nowrap;
-  margin: ${space(0.5)} ${space(1.5)};
+  margin: ${space(1)} ${space(1.5)} ${space(0.5)};
   padding-right: ${space(1)};
+
+  ${/* sc-selector */ Section}:first-of-type & {
+    margin-top: ${space(0.5)};
+  }
 `;
 
 const Group = styled('ul')`
