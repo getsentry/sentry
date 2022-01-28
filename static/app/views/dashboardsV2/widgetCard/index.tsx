@@ -59,6 +59,7 @@ type Props = WithRouterProps & {
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   noLazyLoad?: boolean;
   hideDragHandle?: boolean;
+  isMobile?: boolean;
   widgetLimitReached: boolean;
   tableItemLimit?: number;
 };
@@ -203,6 +204,7 @@ class WidgetCard extends React.Component<Props> {
       location,
       router,
       tableItemLimit,
+      isMobile,
     } = this.props;
     return (
       <WidgetQueries
@@ -228,6 +230,7 @@ class WidgetCard extends React.Component<Props> {
                 selection={selection}
                 router={router}
                 organization={organization}
+                isMobile={isMobile}
               />
               {this.renderToolbar()}
             </React.Fragment>

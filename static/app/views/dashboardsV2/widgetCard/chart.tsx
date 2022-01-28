@@ -3,6 +3,7 @@ import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import AreaChart from 'sentry/components/charts/areaChart';
@@ -34,6 +35,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
 import {Widget} from '../types';
+import {DisplayType} from '../widget/utils';
 
 import WidgetQueries from './widgetQueries';
 
@@ -55,10 +57,26 @@ type WidgetCardChartProps = Pick<
   widget: Widget;
   selection: PageFilters;
   router: InjectedRouter;
+  isMobile: boolean;
 };
 
-class WidgetCardChart extends React.Component<WidgetCardChartProps> {
-  shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
+type State = {
+  viewPortWidth?: number;
+};
+
+class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
+  state: State = {
+    viewPortWidth: DisplayType.BIG_NUMBER ? window.innerWidth : 0,
+  };
+
+  componentDidMount() {
+    const {widget} = this.props;
+    if (widget.displayType === DisplayType.BIG_NUMBER) {
+      window.addEventListener('resize', this.debouncedHandleResize);
+    }
+  }
+
+  shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
     // Widget title changes should not update the WidgetCardChart component tree
     const currentProps = {
       ...this.props,
@@ -76,7 +94,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       },
     };
 
-    return !isEqual(currentProps, nextProps);
+    return (
+      !isEqual(currentProps, nextProps) ||
+      this.state.viewPortWidth !== nextState.viewPortWidth
+    );
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.debouncedHandleResize);
   }
 
   tableResultComponent({
@@ -115,11 +140,16 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     });
   }
 
-  bigNumberComponent({
-    loading,
-    errorMessage,
-    tableResults,
-  }: TableResultProps): React.ReactNode {
+  debouncedHandleResize = debounce(() => {
+    this.setState({
+      viewPortWidth: window.innerWidth,
+    });
+  }, 250);
+
+  bigNumberComponent(
+    {loading, errorMessage, tableResults}: TableResultProps,
+    windowWidth: number
+  ): React.ReactNode {
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -132,7 +162,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {organization, widget} = this.props;
+    const {organization, widget, isMobile} = this.props;
 
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
@@ -150,35 +180,33 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       const rendered = fieldRenderer(dataRow);
 
       const isModalWidget = !!!(widget.id || widget.tempId);
-      if (!!!organization.features.includes('dashboard-grid-layout') || isModalWidget) {
+      if (
+        !!!organization.features.includes('dashboard-grid-layout') ||
+        isModalWidget ||
+        isMobile
+      ) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
       const widthToHeightRatio =
-        widget.layout?.w && widget.layout?.h ? widget.layout.w / widget.layout.h : 1;
+        widget.layout?.w && widget.layout?.h
+          ? widget.layout.w / widget.layout.h ** 1.5
+          : 1;
 
       const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
-      let multiplier: number;
-
-      if (widthToHeightRatio >= 1 && widthToHeightRatio < 2) {
-        multiplier = 600;
-      } else if (widthToHeightRatio >= 2) {
-        multiplier = 600;
-      } else {
-        multiplier = 400;
-      }
+      const viewPortMultiplier = windowWidth / 4;
 
       // heuristics to maintain an aspect ratio that works
       // most of the time.
       const w =
         widget.layout?.w && widget.layout?.h
-          ? widthToHeightRatio * multiplier
+          ? widthToHeightRatio * (400 + viewPortMultiplier)
           : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
 
-      const fontSize =
-        widthToHeightRatio < 1
-          ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * widthToHeightRatio
-          : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
+      const fontSize = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
+      // widthToHeightRatio < 1
+      //   ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * widthToHeightRatio
+      //   : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
 
       return (
         <BigNumber fontSize={fontSize} key={`big_number:${result.title}`}>
@@ -234,11 +262,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       );
     }
 
-    if (widget.displayType === 'big_number') {
+    if (widget.displayType === 'big_number' && this.state.viewPortWidth) {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          {this.bigNumberComponent({tableResults, loading, errorMessage})}
+          {this.bigNumberComponent(
+            {tableResults, loading, errorMessage},
+            this.state.viewPortWidth
+          )}
         </TransitionChart>
       );
     }
