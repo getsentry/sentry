@@ -134,7 +134,8 @@ export const modalCss = css`
 `;
 
 const StyledButton = styled(Button)`
-  padding: 0 ${space(3)};
+  padding-left: ${space(3)};
+  padding-right: ${space(3)};
 `;
 
 export default DashboardWidgetLibraryModal;
