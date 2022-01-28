@@ -57,16 +57,16 @@ type WidgetCardChartProps = Pick<
   widget: Widget;
   selection: PageFilters;
   router: InjectedRouter;
-  isMobile: boolean;
+  isMobile?: boolean;
 };
 
 type State = {
-  viewPortWidth?: number;
+  windowWidth: number;
 };
 
 class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
   state: State = {
-    viewPortWidth: DisplayType.BIG_NUMBER ? window.innerWidth : 0,
+    windowWidth: DisplayType.BIG_NUMBER ? window.innerWidth : 0,
   };
 
   componentDidMount() {
@@ -96,7 +96,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     return (
       !isEqual(currentProps, nextProps) ||
-      this.state.viewPortWidth !== nextState.viewPortWidth
+      this.state.windowWidth !== nextState.windowWidth
     );
   }
 
@@ -142,14 +142,15 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
   debouncedHandleResize = debounce(() => {
     this.setState({
-      viewPortWidth: window.innerWidth,
+      windowWidth: window.innerWidth,
     });
   }, 250);
 
-  bigNumberComponent(
-    {loading, errorMessage, tableResults}: TableResultProps,
-    windowWidth: number
-  ): React.ReactNode {
+  bigNumberComponent({
+    loading,
+    errorMessage,
+    tableResults,
+  }: TableResultProps): React.ReactNode {
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -187,6 +188,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       ) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
+
+      const {windowWidth} = this.state;
 
       const widthToHeightRatio =
         widget.layout?.w && widget.layout?.h
@@ -262,14 +265,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       );
     }
 
-    if (widget.displayType === 'big_number' && this.state.viewPortWidth) {
+    if (widget.displayType === 'big_number') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          {this.bigNumberComponent(
-            {tableResults, loading, errorMessage},
-            this.state.viewPortWidth
-          )}
+          {this.bigNumberComponent({tableResults, loading, errorMessage})}
         </TransitionChart>
       );
     }

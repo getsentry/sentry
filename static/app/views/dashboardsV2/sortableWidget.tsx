@@ -21,7 +21,6 @@ type Props = {
   onDuplicate: () => void;
   widgetLimitReached: boolean;
   organization: Organization;
-  hideDragHandle?: boolean;
   isPreview?: boolean;
   isMobile?: boolean;
 };
@@ -33,7 +32,6 @@ function SortableWidget(props: Props) {
     dragId,
     isEditing,
     widgetLimitReached,
-    hideDragHandle,
     onDelete,
     onEdit,
     onDuplicate,
@@ -82,7 +80,6 @@ function SortableWidget(props: Props) {
   if (organization.features.includes('dashboard-grid-layout')) {
     widgetProps = {
       ...widgetProps,
-      hideDragHandle,
       isMobile,
       // TODO(nar): These aren't necessary for supporting RGL
       isSorting: false,

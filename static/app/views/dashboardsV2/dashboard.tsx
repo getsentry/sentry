@@ -377,12 +377,7 @@ class Dashboard extends Component<Props, State> {
             }
           }
         >
-          <SortableWidget
-            {...widgetProps}
-            dragId={dragId}
-            hideDragHandle={isMobile}
-            isMobile={isMobile}
-          />
+          <SortableWidget {...widgetProps} dragId={dragId} isMobile={isMobile} />
         </GridItem>
       );
     }
