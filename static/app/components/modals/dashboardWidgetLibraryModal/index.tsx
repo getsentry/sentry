@@ -75,7 +75,7 @@ function DashboardWidgetLibraryModal({
         <ButtonBar gap={1}>
           <Button
             external
-            href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
+            href="https://docs.sentry.io/product/dashboards/widget-library/"
           >
             {t('Read the docs')}
           </Button>
