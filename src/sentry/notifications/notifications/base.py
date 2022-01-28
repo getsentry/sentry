@@ -217,13 +217,15 @@ class BaseNotification(abc.ABC):
         """The default way to send notifications that respects Notification Settings."""
         from sentry.notifications.notify import notify
 
-        participants_by_provider = self.get_participants()
-        if not participants_by_provider:
-            return
+        with sentry_sdk.start_span(op="notification.send", description="get_participants"):
+            participants_by_provider = self.get_participants()
+            if not participants_by_provider:
+                return
 
         context = self.get_context()
         for provider, recipients in participants_by_provider.items():
-            safe_execute(notify, provider, self, recipients, context)
+            with sentry_sdk.start_span(op="notification.send", description=f"send_for_{provider}"):
+                safe_execute(notify, provider, self, recipients, context)
 
 
 class ProjectNotification(BaseNotification, abc.ABC):
