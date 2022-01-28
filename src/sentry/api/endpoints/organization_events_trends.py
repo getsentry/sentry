@@ -484,6 +484,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 )
                 # Both orderby and conditions need to be resolved after the columns because of aliasing
                 trend_query.orderby = trend_query.resolve_orderby(orderby)
+                trend_query.groupby = trend_query.resolve_groupby()
                 where, having = trend_query.resolve_conditions(query, use_aggregate_conditions=True)
                 trend_query.where += where
                 trend_query.having += having
