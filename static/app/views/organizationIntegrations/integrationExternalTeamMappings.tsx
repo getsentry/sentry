@@ -8,7 +8,13 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
 import {t} from 'sentry/locale';
-import {ExternalActorMapping, Integration, Organization, Team} from 'sentry/types';
+import {
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
+  Integration,
+  Organization,
+  Team,
+} from 'sentry/types';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -105,7 +111,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return this.sentryNamesMapper(initialResults).map(sentryNameToOption);
   }
 
-  getBaseFormEndpoint(mapping?: ExternalActorMapping) {
+  getBaseFormEndpoint(mapping?: ExternalActorMappingOrSuggestion) {
     if (!mapping) {
       return '';
     }
@@ -150,7 +156,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     }
   };
 
-  openModal = (mapping?: ExternalActorMapping) => {
+  openModal = (mapping?: ExternalActorMappingOrSuggestion) => {
     const {integration} = this.props;
     openModal(({Body, Header, closeModal}) => (
       <Fragment>
