@@ -23,6 +23,7 @@ import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -350,6 +351,13 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
+          if (this.isPreview) {
+            trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
+              organization,
+              dashboard_id: dashboard.id,
+              was_previewed: true,
+            });
+          }
           createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
