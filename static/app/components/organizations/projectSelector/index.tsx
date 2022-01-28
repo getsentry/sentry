@@ -2,9 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -59,6 +60,7 @@ type Props = {
    * Calls back with (projects[], event)
    */
   onMultiSelect?: (projects: Array<Project>, event: React.MouseEvent) => void;
+  pinned?: boolean;
 } & Pick<
   DropdownAutoCompleteProps,
   'menuFooter' | 'onScroll' | 'onClose' | 'rootClassName' | 'className'
@@ -80,6 +82,7 @@ const ProjectSelector = ({
   onMultiSelect,
   multi = false,
   selectedProjects = [],
+  pinned,
   ...props
 }: Props) => {
   const getProjects = () => {
@@ -157,9 +160,14 @@ const ProjectSelector = ({
     ];
   };
 
+  const handlePinClick = () => {
+    pinFilter('projects', !pinned);
+  };
+
   const hasProjects = !!projects?.length || !!nonMemberProjects?.length;
   const newProjectUrl = `/organizations/${organization.slug}/projects/new/`;
   const hasProjectWrite = organization.access.includes('project:write');
+  const hasPageFilters = organization.features.includes('selection-filters-v2');
 
   return (
     <DropdownAutoComplete
@@ -180,17 +188,31 @@ const ProjectSelector = ({
       virtualizedLabelHeight={theme.headerSelectorLabelHeight}
       emptyHidesInput={!paginated}
       inputActions={
-        <AddButton
-          disabled={!hasProjectWrite}
-          to={newProjectUrl}
-          size="xsmall"
-          icon={<IconAdd size="xs" isCircled />}
-          title={
-            !hasProjectWrite ? t("You don't have permission to add a project") : undefined
-          }
-        >
-          {t('Project')}
-        </AddButton>
+        <InputActions>
+          <AddButton
+            aria-label={t('Add Project')}
+            disabled={!hasProjectWrite}
+            to={newProjectUrl}
+            size="xsmall"
+            icon={<IconAdd size="xs" isCircled />}
+            title={
+              !hasProjectWrite
+                ? t("You don't have permission to add a project")
+                : undefined
+            }
+          >
+            {hasPageFilters ? '' : t('Project')}
+          </AddButton>
+          {hasPageFilters && (
+            <PinButton
+              aria-pressed={pinned}
+              aria-label={t('Pin')}
+              onClick={handlePinClick}
+              size="xsmall"
+              icon={<IconPin size="xs" isSolid={pinned} />}
+            />
+          )}
+        </InputActions>
       }
       menuFooter={renderProps => {
         const renderedFooter =
@@ -231,7 +253,14 @@ const Label = styled('div')`
 
 const AddButton = styled(Button)`
   display: block;
-  margin: 0 ${space(1)};
+  color: ${p => p.theme.gray300};
+  :hover {
+    color: ${p => p.theme.subText};
+  }
+`;
+
+const PinButton = styled(Button)`
+  display: block;
   color: ${p => p.theme.gray300};
   :hover {
     color: ${p => p.theme.subText};
@@ -242,4 +271,12 @@ const CreateProjectButton = styled(Button)`
   display: block;
   text-align: center;
   margin: ${space(0.5)} 0;
+`;
+
+const InputActions = styled('div')`
+  display: grid;
+  margin: 0 ${space(1)};
+  gap: ${space(1)};
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
 `;
