@@ -143,6 +143,12 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 
       fields.push(field);
     }
+
+    const legacyField = SELF_NOTIFICATION_SETTINGS_TYPES.map(
+      type => NOTIFICATION_SETTING_FIELDS[type] as FieldObject
+    );
+    fields.push(...legacyField);
+
     return fields;
   }
 
@@ -160,20 +166,14 @@ class NotificationSettings extends AsyncComponent<Props, State> {
           apiEndpoint="/users/me/notification-settings/"
           initialData={this.getInitialData()}
         >
-          <JsonForm title={t('Notifications')} fields={this.getFields()} />
-        </Form>
-        <Form
-          initialData={legacyData}
-          saveOnBlur
-          apiMethod="PUT"
-          apiEndpoint="/users/me/notifications/"
-        >
-          <JsonForm
-            title={t('My Activity')}
-            fields={SELF_NOTIFICATION_SETTINGS_TYPES.map(
-              type => NOTIFICATION_SETTING_FIELDS[type] as FieldObject
-            )}
-          />
+          <Form
+            initialData={legacyData}
+            saveOnBlur
+            apiMethod="PUT"
+            apiEndpoint="/users/me/notifications/"
+          >
+            <JsonForm title={t('Notifications')} fields={this.getFields()} />
+          </Form>
         </Form>
         <AlertLink to="/settings/account/emails" icon={<IconMail />}>
           {t('Looking to add or remove an email address? Use the emails panel.')}
