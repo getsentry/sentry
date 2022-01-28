@@ -31,6 +31,20 @@ runs:
       shell: bash
       run: echo "::set-output name=name::$GITHUB_REF_NAME"
 
+    - name: Fetch existing report from master
+      if: inputs.action != 'upload'
+      id: 'get-artifact'
+      uses: getsentry/action-download-workflow-artifact@2c7fdc458e9fb008b94b8399a483ff6e3af883b1
+      with:
+        branch: ${{ inputs.branch }}
+        artifact: ${{ inputs.artifact }}
+        path: ${{ github.workspace }}/${{ inputs.path }}
+        workflowEvent: pull_request # temp for artifacts on branch
+
+    # Overwrite reports from master if branch reports exist
+    #
+    # Note branch reports are also from master, but this way a branch will
+      # always use the same report instead of fetching latest from master.
     - name: Fetch report from current branch (if not master)
       if: inputs.action != 'upload' && steps.current-branch.outputs.name != 'master'
       id: 'get-artifact-branch'
@@ -41,16 +55,6 @@ runs:
         path: ${{ github.workspace }}/${{ inputs.path }}
         ignoreError: true
         workflowEvent: pull_request
-
-    - name: Fetch existing report from master
-      if: inputs.action != 'upload' && (steps.get-artifact-branch.outcome == 'skipped' || steps.get-artifact-branch.outputs.result == 'failed')
-      id: 'get-artifact'
-      uses: getsentry/action-download-workflow-artifact@2c7fdc458e9fb008b94b8399a483ff6e3af883b1
-      with:
-        branch: ${{ inputs.branch }}
-        artifact: ${{ inputs.artifact }}
-        path: ${{ github.workspace }}/${{ inputs.path }}
-        workflowEvent: pull_request # temp for artifacts on branch
         # workflowEvent: push
 
     - name: Debug
