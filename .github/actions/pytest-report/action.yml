@@ -71,7 +71,9 @@ runs:
       id: artifact-exists
       shell: bash
       run: |
-        test -f ${{ github.workspace }}/${{ inputs.path }} && echo "::set-output name=exists::1"
+        if [ -d "${{ github.workspace }}/${{ inputs.path }}" ]; then
+          echo "::set-output name=exists::1"
+        fi
 
     # We re-upload the report that was from the master branch so that the same
     # report is always used within a PR.
