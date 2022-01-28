@@ -59,7 +59,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
 
     const totalPerBucket = response.intervals.map((_intervalValue, intervalIndex) =>
       response.groups.reduce(
-        (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
+        (acc, group) => acc + (group.series[metricsField]?.[intervalIndex] ?? 0),
         0
       )
     );
@@ -67,7 +67,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     const totalFailurePerBucket = response.intervals.map(
       (_intervalValue, intervalIndex) =>
         failedGroups.reduce(
-          (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
+          (acc, group) => acc + (group.series[metricsField]?.[intervalIndex] ?? 0),
           0
         )
     );
@@ -116,7 +116,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     const previousTotalPerBucket = responsePrevious?.intervals.map(
       (_intervalValue, intervalIndex) =>
         responsePrevious?.groups.reduce(
-          (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
+          (acc, group) => acc + (group.series[metricsField]?.[intervalIndex] ?? 0),
           0
         )
     );
@@ -124,7 +124,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
     const previousTotalFailurePerBucket = responsePrevious?.intervals.map(
       (_intervalValue, intervalIndex) =>
         previousFailedGroups?.reduce(
-          (acc, group) => acc + (group.series[metricsField][intervalIndex] ?? 0),
+          (acc, group) => acc + (group.series[metricsField]?.[intervalIndex] ?? 0),
           0
         )
     );
@@ -162,7 +162,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   const data = response.groups.map(group => {
     const series = response.intervals.map((intervalValue, intervalIndex) => ({
       name: moment(intervalValue).valueOf(),
-      value: group.series[metricsField][intervalIndex],
+      value: group.series[metricsField]?.[intervalIndex],
     }));
 
     return {
@@ -191,7 +191,7 @@ export function transformMetricsToArea<T extends WidgetDataConstraint>(
   const previousData = responsePrevious?.groups?.map(group => {
     const series = response?.intervals.map((intervalValue, intervalIndex) => ({
       name: moment(intervalValue).valueOf(),
-      value: group.series[metricsField][intervalIndex],
+      value: group.series[metricsField]?.[intervalIndex],
     }));
 
     return {
