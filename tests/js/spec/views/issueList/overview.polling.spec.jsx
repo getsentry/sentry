@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
@@ -67,8 +68,11 @@ describe('IssueList -> Polling', function () {
       routerContext
     );
 
-    await Promise.resolve();
-    jest.runAllTimers();
+    await act(async () => {
+      await Promise.resolve();
+      jest.runAllTimers();
+    });
+
     wrapper.update();
 
     return wrapper;
