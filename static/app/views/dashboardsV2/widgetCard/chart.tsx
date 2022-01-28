@@ -3,8 +3,8 @@ import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import AreaChart from 'sentry/components/charts/areaChart';
 import BarChart from 'sentry/components/charts/barChart';
@@ -21,6 +21,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -34,8 +35,7 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
-import {Widget} from '../types';
-import {DisplayType} from '../widget/utils';
+import {DisplayType, Widget} from '../types';
 
 import WidgetQueries from './widgetQueries';
 
@@ -58,28 +58,22 @@ type WidgetCardChartProps = Pick<
   selection: PageFilters;
   router: InjectedRouter;
   isMobile?: boolean;
+  windowWidth?: number;
 };
 
-type State = {
-  windowWidth: number;
-};
-
-class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
-  state: State = {
-    windowWidth: DisplayType.BIG_NUMBER ? window.innerWidth : 0,
-  };
-
-  componentDidMount() {
-    const {widget} = this.props;
-    if (widget.displayType === DisplayType.BIG_NUMBER) {
-      window.addEventListener('resize', this.debouncedHandleResize);
+class WidgetCardChart extends React.Component<WidgetCardChartProps> {
+  shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
+    if (
+      this.props.widget.displayType === DisplayType.BIG_NUMBER &&
+      nextProps.widget.displayType === DisplayType.BIG_NUMBER &&
+      this.props.windowWidth !== nextProps.windowWidth
+    ) {
+      return true;
     }
-  }
 
-  shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
     // Widget title changes should not update the WidgetCardChart component tree
     const currentProps = {
-      ...this.props,
+      ...omit(this.props, ['windowWidth']),
       widget: {
         ...this.props.widget,
         title: '',
@@ -87,21 +81,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     };
 
     nextProps = {
-      ...nextProps,
+      ...omit(nextProps, ['windowWidth']),
       widget: {
         ...nextProps.widget,
         title: '',
       },
     };
 
-    return (
-      !isEqual(currentProps, nextProps) ||
-      this.state.windowWidth !== nextState.windowWidth
-    );
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.debouncedHandleResize);
+    return !isEqual(currentProps, nextProps);
   }
 
   tableResultComponent({
@@ -140,12 +127,6 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     });
   }
 
-  debouncedHandleResize = debounce(() => {
-    this.setState({
-      windowWidth: window.innerWidth,
-    });
-  }, 250);
-
   bigNumberComponent({
     loading,
     errorMessage,
@@ -163,7 +144,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {organization, widget, isMobile} = this.props;
+    const {organization, widget, isMobile, windowWidth} = this.props;
 
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
@@ -184,7 +165,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       if (
         !!!organization.features.includes('dashboard-grid-layout') ||
         isModalWidget ||
-        isMobile
+        isMobile ||
+        !!!defined(windowWidth)
       ) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
@@ -197,7 +179,6 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           : 1;
 
       const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
-      const {windowWidth} = this.state;
 
       // heuristics to maintain an aspect ratio that works
       // most of the time, taking into account the height

@@ -61,6 +61,7 @@ type Props = WithRouterProps & {
   isMobile?: boolean;
   widgetLimitReached: boolean;
   tableItemLimit?: number;
+  windowWidth?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -204,6 +205,7 @@ class WidgetCard extends React.Component<Props> {
       router,
       tableItemLimit,
       isMobile,
+      windowWidth,
     } = this.props;
     return (
       <WidgetQueries
@@ -230,6 +232,7 @@ class WidgetCard extends React.Component<Props> {
                 router={router}
                 organization={organization}
                 isMobile={isMobile}
+                windowWidth={windowWidth}
               />
               {this.renderToolbar()}
             </React.Fragment>

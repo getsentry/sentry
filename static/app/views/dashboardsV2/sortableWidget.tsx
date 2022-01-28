@@ -23,6 +23,7 @@ type Props = {
   organization: Organization;
   isPreview?: boolean;
   isMobile?: boolean;
+  windowWidth?: number;
 };
 
 function SortableWidget(props: Props) {
@@ -37,6 +38,7 @@ function SortableWidget(props: Props) {
     onDuplicate,
     isPreview,
     isMobile,
+    windowWidth,
   } = props;
 
   const {
@@ -81,6 +83,7 @@ function SortableWidget(props: Props) {
     widgetProps = {
       ...widgetProps,
       isMobile,
+      windowWidth,
       // TODO(nar): These aren't necessary for supporting RGL
       isSorting: false,
       currentWidgetDragging: false,
