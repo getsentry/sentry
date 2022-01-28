@@ -10,6 +10,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import (
     Any,
+    Collection,
     Generator,
     List,
     Literal,
@@ -310,7 +311,52 @@ class _SessionDurationField(_OutputField):
             ]
 
 
-def _get_snuba_groupby(query: QueryDefinition) -> Set[Column]:
+class _LimitState:
+    """Keeps track of how to limit each query
+    Before the first query, limiting_conditions = None, so the first query
+    will apply an ORDER BY ... LIMIT.
+    After that, the groups returned by the first query will be added as a
+    WHERE clause to any secondary query.
+    """
+
+    def __init__(self) -> None:
+        self.limiting_conditions: Optional[List[Condition]] = None
+
+    def update(self, groupby: Collection[Column], snuba_rows: _SnubaData) -> None:
+        # Only set limiting conditions if there weren't any before:
+        if self.limiting_conditions is None:
+            # Only "totals" queries may set the limiting conditions:
+            assert Column(TS_COL_GROUP) not in groupby
+            group_columns = list(groupby)
+            group_values = [
+                Function("tuple", [row.get(col.name) for col in groupby]) for row in snuba_rows
+            ]
+            self.limiting_conditions = [
+                Condition(Function("tuple", group_columns), Op.IN, group_values)
+            ]
+
+
+def _get_snuba_query(
+    org_id: int,
+    query: QueryDefinition,
+    entity_key: EntityKey,
+    metric_id: int,
+    columns: List[SelectableExpression],
+    series: bool,
+    limit_state: _LimitState,
+    extra_conditions: List[Condition],
+) -> Tuple[Query, List[Column]]:
+    """Build the snuba query"""
+    conditions = [
+        Condition(Column("org_id"), Op.EQ, org_id),
+        Condition(Column("project_id"), Op.IN, query.filter_keys["project_id"]),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+        Condition(Column(TS_COL_QUERY), Op.GTE, query.start),
+        Condition(Column(TS_COL_QUERY), Op.LT, query.end),
+    ]
+    conditions += _get_filter_conditions(org_id, query.conditions)
+    conditions += extra_conditions
+
     groupby = {}
     for field in query.raw_groupby:
         if field == "project":
@@ -323,55 +369,32 @@ def _get_snuba_groupby(query: QueryDefinition) -> Set[Column]:
             # exclude unresolved keys from groupby
             pass
 
-    return set(groupby.values())
-
-
-def _get_snuba_query(
-    org_id: int,
-    query: QueryDefinition,
-    entity_key: EntityKey,
-    metric_id: int,
-    columns: Sequence[SelectableExpression],
-    series: bool,
-    extra_conditions: List[Condition],
-    limit_conditions: List[Condition],
-) -> Query:
-    """Build the snuba query"""
-    conditions = [
-        Condition(Column("org_id"), Op.EQ, org_id),
-        Condition(Column("project_id"), Op.IN, query.filter_keys["project_id"]),
-        Condition(Column("metric_id"), Op.EQ, metric_id),
-        Condition(Column(TS_COL_QUERY), Op.GTE, query.start),
-        Condition(Column(TS_COL_QUERY), Op.LT, query.end),
-    ]
-    conditions += _get_filter_conditions(org_id, query.conditions)
-    conditions += extra_conditions
-    conditions += limit_conditions
-
-    full_groupby = _get_snuba_groupby(query)
-
-    if series and not limit_conditions:
-        raise RuntimeError("Only 'totals' query can run without limit conditions")
+    full_groupby = list(set(groupby.values()))
 
     if series:
-        full_groupby.add(Column(TS_COL_GROUP))
+        full_groupby.append(Column(TS_COL_GROUP))
 
     query_args = dict(
         dataset=Dataset.Metrics.value,
         match=Entity(entity_key.value),
-        select=list(columns),
-        groupby=list(full_groupby),
+        select=columns,
+        groupby=full_groupby,
         where=conditions,
         granularity=Granularity(query.rollup),
     )
 
-    if not limit_conditions:
-        # Set limit and order by to be consistent with sessions_v2
-        max_groups = SNUBA_LIMIT // len(get_timestamps(query))
-        query_args["limit"] = Limit(max_groups)
-        query_args["orderby"] = [Column(query.primary_column), Direction.DESC)]
+    # In case of group by, either set a limit or use the groups from the
+    # first query to limit the results:
+    if query.raw_groupby:
+        if limit_state.limiting_conditions is None:
+            # Set limit and order by to be consistent with sessions_v2
+            max_groups = SNUBA_LIMIT // len(get_timestamps(query))
+            query_args["limit"] = Limit(max_groups)
+            query_args["orderby"] = [OrderBy(columns[0], Direction.DESC)]
+        else:
+            query_args["where"] += limit_state.limiting_conditions
 
-    return Query(**query_args)
+    return Query(**query_args), full_groupby
 
 
 def _get_snuba_query_data(
@@ -380,25 +403,27 @@ def _get_snuba_query_data(
     entity_key: EntityKey,
     metric_key: MetricKey,
     metric_id: int,
-    columns: Sequence[SelectableExpression],
-    extra_conditions: Optional[List[Condition]],
-    limit_conditions: Optional[List[Condition]],
+    columns: List[SelectableExpression],
+    limit_state: _LimitState,
+    extra_conditions: Optional[List[Condition]] = None,
 ) -> Generator[Tuple[MetricKey, _SnubaData], None, None]:
     """Get data from snuba"""
 
     for query_type in ("totals", "series"):
-        snuba_query = _get_snuba_query(
+        snuba_query, groupby = _get_snuba_query(
             org_id,
             query,
             entity_key,
             metric_id,
             columns,
             series=query_type == "series",
+            limit_state=limit_state,
             extra_conditions=extra_conditions or [],
-            limit_conditions=limit_conditions if query_type == "series",  # TODO: need to pass limit conditions to series here
         )
         referrer = REFERRERS[metric_key][query_type]
         query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
+
+        limit_state.update(groupby, query_data)
 
         if len(query_data) == SNUBA_LIMIT:
             logger.error("metrics_sessions_v2.snuba_limit_exceeded")
@@ -412,24 +437,32 @@ def _fetch_data(
 ) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
     """Build & run necessary snuba queries"""
 
+    #
+    combined_data: _SnubaDataByMetric = []
+
+    # Find the field that needs a specific column in a specific metric
+    metric_to_output_field: MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField] = {}
+
     # Prevent fields from being fetched multiple times (only used for percentiles)
     columns_fetched: Set[SelectableExpression] = set()
 
-    primary_field = query.raw_fields[0]  # This will determine the order of groups
-    combined_data, metric_to_output_field = _fetch_data_for_field(
-        org_id, query, primary_field, None, columns_fetched
-    )
+    # primary_field = query.raw_fields[0]  # This will determine the order of groups
+    # combined_data, metric_to_output_field = _fetch_data_for_field(
+    #     org_id, query, primary_field, None, columns_fetched
+    # )
 
-    primary_totals = combined_data[0][0]
+    # primary_totals = combined_data[0][0]
 
-    # This filter determines which groups will be fetched for the other fields:
-    group_columns = sorted(col.alias for col in _get_snuba_groupby(query))
-    group_values = [tuple([row.get(col) for col in group_columns]) for row in primary_totals]
-    limit_conditions = [Condition(Function("tuple", group_columns), Op.IN, group_values)]
+    # # This filter determines which groups will be fetched for the other fields:
+    # group_columns = sorted(col.alias for col in _get_snuba_groupby(query))
+    # group_values = [tuple([row.get(col) for col in group_columns]) for row in primary_totals]
+    # limit_conditions = [Condition(Function("tuple", group_columns), Op.IN, group_values)]
 
-    for raw_field in query.raw_fields[1:]:
+    limit_state = _LimitState()
+
+    for raw_field in query.raw_fields:
         data, field_map = _fetch_data_for_field(
-            org_id, query, raw_field, limit_conditions, columns_fetched
+            org_id, query, raw_field, limit_state, columns_fetched
         )
         combined_data.extend(data)
         metric_to_output_field.update(field_map)
@@ -441,7 +474,7 @@ def _fetch_data_for_field(
     org_id: int,
     query: QueryDefinition,
     raw_field: SessionsQueryFunction,
-    limit_conditions: Optional[List[Condition]],
+    limit_state: _LimitState,
     columns_fetched: Set[SelectableExpression],  # output param
 ) -> Tuple[_SnubaDataByMetric, MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
     tag_key_session_status = resolve_tag_key("session.status")
@@ -462,8 +495,7 @@ def _fetch_data_for_field(
                     MetricKey.USER,
                     metric_id,
                     [Function("uniq", [Column("value")], "value")],
-                    None,
-                    limit_conditions,
+                    limit_state,
                 )
             )
             metric_to_output_field[(MetricKey.USER, "value")] = _UserField()
@@ -499,8 +531,7 @@ def _fetch_data_for_field(
                         MetricKey.SESSION_DURATION,
                         metric_id,
                         [snuba_column],
-                        None,
-                        limit_conditions,
+                        limit_state,
                     )
                 )
                 columns_fetched.add(snuba_column)
@@ -525,8 +556,7 @@ def _fetch_data_for_field(
                         MetricKey.SESSION,
                         metric_id,
                         [Function("sum", [Column("value")], "value")],
-                        None,
-                        limit_conditions,
+                        limit_state,
                     )
                 )
 
@@ -541,8 +571,7 @@ def _fetch_data_for_field(
                             MetricKey.SESSION_ERROR,
                             error_metric_id,
                             [Function("uniq", [Column("value")], "value")],
-                            None,
-                            limit_conditions,
+                            limit_state,
                         )
                     )
             else:
@@ -558,8 +587,8 @@ def _fetch_data_for_field(
                             MetricKey.SESSION,
                             metric_id,
                             [Function("sum", [Column("value")], "value")],
-                            None,
-                            limit_conditions,
+                            limit_state,
+                            extra_conditions,
                         )
                     )
 
