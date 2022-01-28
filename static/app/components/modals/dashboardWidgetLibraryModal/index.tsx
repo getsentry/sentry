@@ -1,10 +1,12 @@
 import * as React from 'react';
 import {useState} from 'react';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
@@ -90,7 +92,7 @@ function DashboardWidgetLibraryModal({
             )}
             disabled={!!!overLimit}
           >
-            <Button
+            <StyledButton
               data-test-id="confirm-widgets"
               priority="primary"
               disabled={overLimit}
@@ -117,7 +119,7 @@ function DashboardWidgetLibraryModal({
               }}
             >
               {t('Add')}
-            </Button>
+            </StyledButton>
           </Tooltip>
         </ButtonBar>
       </Footer>
@@ -129,6 +131,10 @@ export const modalCss = css`
   width: 100%;
   max-width: 700px;
   margin: 70px auto;
+`;
+
+const StyledButton = styled(Button)`
+  padding: 0 ${space(3)};
 `;
 
 export default DashboardWidgetLibraryModal;
