@@ -178,6 +178,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           ? widget.layout.w / widget.layout.h ** 1.5
           : 1;
 
+      const widthToHeightRatio =
+        widget.layout?.w && widget.layout?.h ? widget.layout.w / widget.layout.h : 1;
+
       const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
 
       // heuristics to maintain an aspect ratio that works
@@ -186,14 +189,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       // window
       const w =
         widget.layout?.w && widget.layout?.h
-          ? transformedWidthToHeightRatio * (400 + windowWidth / 4)
+          ? transformedWidthToHeightRatio * (300 + windowWidth / 4)
           : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
 
       // adjusting font size for very tall widgets to prevent
       // text clipping
       const fontSize =
         transformedWidthToHeightRatio < 0.5
-          ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * transformedWidthToHeightRatio
+          ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * widthToHeightRatio
           : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
 
       return (
