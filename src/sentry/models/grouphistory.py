@@ -158,7 +158,11 @@ class GroupHistory(Model):
     class Meta:
         db_table = "sentry_grouphistory"
         app_label = "sentry"
-        index_together = (("project", "status", "release"), ("group", "status"))
+        index_together = (
+            ("project", "status", "release"),
+            ("group", "status"),
+            ("project", "date_added"),
+        )
 
     __repr__ = sane_repr("group_id", "release_id")
 

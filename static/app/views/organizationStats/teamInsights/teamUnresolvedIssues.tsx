@@ -133,7 +133,9 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
       return acc;
     }, {});
 
-    const seriesData = convertDayValueObjectToSeries(totalByDay);
+    const seriesData = convertDayValueObjectToSeries(totalByDay).sort(
+      (a, b) => new Date(a.name).getTime() - new Date(b.name).getTime()
+    );
 
     return (
       <div>

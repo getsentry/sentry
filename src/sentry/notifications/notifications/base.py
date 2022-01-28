@@ -88,16 +88,16 @@ class BaseNotification(abc.ABC):
     def get_notification_title(self) -> str:
         raise NotImplementedError
 
-    def get_title_link(self) -> str | None:
+    def get_title_link(self, recipient: Team | User) -> str | None:
         raise NotImplementedError
 
-    def build_attachment_title(self) -> str:
+    def build_attachment_title(self, recipient: Team | User) -> str:
         raise NotImplementedError
 
     def build_notification_footer(self, recipient: Team | User) -> str:
         raise NotImplementedError
 
-    def get_message_description(self) -> Any:
+    def get_message_description(self, recipient: Team | User) -> Any:
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
 
@@ -113,14 +113,28 @@ class BaseNotification(abc.ABC):
             "actor_id": recipient.actor_id,
         }
 
+    def get_custom_analytics_params(self, recipient: Team | User) -> Mapping[str, Any]:
+        """
+        Returns a mapping of params used to record the event associated with self.analytics_event.
+        By default, use the log params.
+        """
+        return self.get_log_params(recipient)
+
     def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         return []
 
     def get_callback_data(self) -> Mapping[str, Any] | None:
         return None
 
-    def record_analytics(self, event_name: str, **kwargs: Any) -> None:
-        analytics.record(event_name, **kwargs)
+    @property
+    def analytics_instance(self) -> Any | None:
+        """
+        Returns an instance for that can be used for analytics such as an organization or project
+        """
+        return None
+
+    def record_analytics(self, event_name: str, *args: Any, **kwargs: Any) -> None:
+        analytics.record(event_name, *args, **kwargs)
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         # may want to explicitly pass in the parameters for this event
@@ -133,11 +147,11 @@ class BaseNotification(abc.ABC):
         if self.analytics_event:
             self.record_analytics(
                 self.analytics_event,
+                self.analytics_instance,
                 providers=provider.name.lower(),
-                **self.get_log_params(recipient),
+                **self.get_custom_analytics_params(recipient),
             )
 
-    # TODO: make recipient required
     def get_referrer(
         self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
@@ -147,7 +161,14 @@ class BaseNotification(abc.ABC):
             referrer += "-" + recipient.__class__.__name__.lower()
         return referrer
 
-    def get_sentry_query_params(self, provider: ExternalProviders, recipient: Team | User) -> str:
+    def get_sentry_query_params(
+        self, provider: ExternalProviders, recipient: Optional[Team | User] = None
+    ) -> str:
+        """
+        Returns the query params that allow us to track clicks into Sentry links.
+        If the recipient is not necessarily a user (ex: sending to an email address associated with an account),
+        The recipient may be omitted.
+        """
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
     def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:

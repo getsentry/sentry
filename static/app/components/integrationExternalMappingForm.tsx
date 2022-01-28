@@ -4,9 +4,14 @@ import capitalize from 'lodash/capitalize';
 
 import {SelectAsyncControlProps} from 'sentry/components/forms/selectAsyncControl';
 import {t, tct} from 'sentry/locale';
-import {ExternalActorMapping, Integration} from 'sentry/types';
+import {
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
+  Integration,
+} from 'sentry/types';
 import {
   getExternalActorEndpointDetails,
+  isExternalActorMapping,
   sentryNameToOption,
 } from 'sentry/utils/integrationUtil';
 import {FieldFromConfig} from 'sentry/views/settings/components/forms';
@@ -17,9 +22,9 @@ import {Field} from 'sentry/views/settings/components/forms/type';
 type Props = Pick<Form['props'], 'onCancel' | 'onSubmitSuccess' | 'onSubmitError'> &
   Pick<SelectAsyncControlProps, 'defaultOptions'> & {
     integration: Integration;
-    mapping?: ExternalActorMapping;
+    mapping?: ExternalActorMappingOrSuggestion;
     type: 'user' | 'team';
-    getBaseFormEndpoint: (mapping?: ExternalActorMapping) => string;
+    getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
     sentryNamesMapper: (v: any) => {id: string; name: string}[];
     dataEndpoint: string;
     onResults?: (data: any, mappingKey?: string) => void;
@@ -39,21 +44,23 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
     };
   }
 
-  getDefaultOptions(mapping?: ExternalActorMapping) {
+  getDefaultOptions(mapping?: ExternalActorMappingOrSuggestion) {
     const {defaultOptions, type} = this.props;
     if (typeof defaultOptions === 'boolean') {
       return defaultOptions;
     }
     const options = [...(defaultOptions ?? [])];
-    if (!mapping) {
+    if (!mapping || !isExternalActorMapping(mapping) || !mapping.sentryName) {
       return options;
     }
     // For organizations with >100 entries, we want to make sure their
     // saved mapping gets populated in the results if it wouldn't have
     // been in the initial 100 API results, which is why we add it here
     const mappingId = mapping[`${type}Id`];
-    const mappingOption = options.find(({value}) => mappingId && value === mappingId);
-    return !!mappingOption
+    const isMappingInOptionsAlready = options.some(
+      ({value}) => mappingId && value === mappingId
+    );
+    return isMappingInOptionsAlready
       ? options
       : [{value: mappingId, label: mapping.sentryName}, ...options];
   }
@@ -111,12 +118,15 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
 
   // This function is necessary since the endpoint we submit to changes depending on the value selected
   updateModel() {
-    const mapping = this.model.getData() as ExternalActorMapping;
-    const {getBaseFormEndpoint} = this.props;
-    if (mapping) {
+    const {getBaseFormEndpoint, mapping} = this.props;
+    const updatedMapping: ExternalActorMapping = {
+      ...mapping,
+      ...(this.model.getData() as ExternalActorMapping),
+    };
+    if (updatedMapping) {
       const endpointDetails = getExternalActorEndpointDetails(
-        getBaseFormEndpoint(mapping),
-        mapping
+        getBaseFormEndpoint(updatedMapping),
+        updatedMapping
       );
       this.model.setFormOptions({...this.model.options, ...endpointDetails});
     }
