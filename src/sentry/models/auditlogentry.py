@@ -391,7 +391,7 @@ class AuditLogEntry(Model):
             if "prev_ondemand" in self.data:
                 prev_ondemand_budget = format_ondemand_budget(self.data["prev_ondemand"])
                 return f"changed on-demand budget from {prev_ondemand_budget} to {next_ondemand_budget}"
-            return f"changed on-demand max spend to {next_ondemand_budget}"
+            return f"changed on-demand budget spend to {next_ondemand_budget}"
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return "started trial"
         elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
