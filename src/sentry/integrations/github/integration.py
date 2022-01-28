@@ -64,9 +64,6 @@ FEATURES = [
     ),
 ]
 
-# The order determines which location takes precidence when fetching CODEOWNERS files
-CODEOWNERS_LOCATIONS = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
-
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
