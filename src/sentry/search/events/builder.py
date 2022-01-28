@@ -117,16 +117,6 @@ class QueryBuilder:
         self.limitby = self.resolve_limitby(limitby)
         self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
-        self.resolve_query(query, use_aggregate_conditions, selected_columns, equations, orderby)
-
-    def resolve_query(
-        self,
-        query: Optional[str],
-        use_aggregate_conditions: bool,
-        selected_columns: Optional[List[str]],
-        equations: Optional[List[str]],
-        orderby: Optional[List[str]],
-    ) -> None:
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
         )
@@ -1123,8 +1113,13 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             equation_config={"auto_add": True, "aggregates_only": True},
         )
 
-        self.resolve_query(query, limit, selected_columns, equations)
+        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
 
+        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+        self.where += self.resolve_params()
+        self.columns = self.resolve_select(selected_columns, equations)
+
+        self.limit = None if limit is None else Limit(limit)
         self.granularity = Granularity(granularity)
 
         # This is a timeseries, the groupby will always be time
@@ -1136,21 +1131,6 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             raise InvalidSearchQuery("Cannot query a timeseries without a Y-Axis")
         # Casting for now since QueryFields/QueryFilter are only partially typed
         return self.aggregates
-
-    def resolve_query(
-        self,
-        query: Optional[str],
-        limit: Optional[int],
-        selected_columns: Optional[List[str]],
-        equations: Optional[List[str]],
-    ) -> None:
-        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
-
-        self.limit = None if limit is None else Limit(limit)
-
-        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-        self.where += self.resolve_params()
-        self.columns = self.resolve_select(selected_columns, equations)
 
     def get_snql_query(self) -> Query:
         return Query(
