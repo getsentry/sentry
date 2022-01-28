@@ -320,20 +320,48 @@ class _LimitState:
     """
 
     def __init__(self) -> None:
-        self.limiting_conditions: Optional[List[Condition]] = None
+        self._initialized = False
+        self.skip_columns: List[Column] = []  # Will not be added to limiting conditions
 
     def update(self, groupby: Collection[Column], snuba_rows: _SnubaData) -> None:
-        # Only set limiting conditions if there weren't any before:
-        if self.limiting_conditions is None:
-            # Only "totals" queries may set the limiting conditions:
-            assert Column(TS_COL_GROUP) not in groupby
-            group_columns = list(groupby)
-            group_values = [
-                Function("tuple", [row.get(col.name) for col in groupby]) for row in snuba_rows
-            ]
-            self.limiting_conditions = [
-                Condition(Function("tuple", group_columns), Op.IN, group_values)
-            ]
+        if self._initialized:
+            return
+
+        # Only "totals" queries may set the limiting conditions:
+        assert Column(TS_COL_GROUP) not in groupby
+
+        groupby = sorted(groupby, key=lambda x: x.name)
+
+        self._groupby = sorted(groupby, key=lambda x: x.name)
+        self._groups = [{column.name: row[column.name] for column in groupby} for row in snuba_rows]
+
+        self._initialized = True
+
+    @property
+    def limiting_conditions(self) -> Optional[List[Condition]]:
+        if not self._initialized:
+            # First query may run without limiting conditions:
+            return None
+
+        group_columns = [col for col in self._groupby if col not in self.skip_columns]
+
+        if not group_columns:
+            return []
+
+        # Create conditions from the groups in group by
+        group_values = [
+            Function("tuple", [row[column.name] for column in group_columns])
+            for row in self._groups
+        ]
+        return [
+            # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
+            Condition(Function("tuple", group_columns), Op.IN, group_values)
+        ] + [
+            # These conditions are redundant but might lead to better query performance
+            # Eg. [release IN [1, 3]], [environment IN [2, 4]]
+            Condition(column, Op.IN, [row[column.name] for row in self._groups])
+            for column in group_columns
+        ]
 
 
 def _get_snuba_query(
@@ -446,18 +474,6 @@ def _fetch_data(
     # Prevent fields from being fetched multiple times (only used for percentiles)
     columns_fetched: Set[SelectableExpression] = set()
 
-    # primary_field = query.raw_fields[0]  # This will determine the order of groups
-    # combined_data, metric_to_output_field = _fetch_data_for_field(
-    #     org_id, query, primary_field, None, columns_fetched
-    # )
-
-    # primary_totals = combined_data[0][0]
-
-    # # This filter determines which groups will be fetched for the other fields:
-    # group_columns = sorted(col.alias for col in _get_snuba_groupby(query))
-    # group_values = [tuple([row.get(col) for col in group_columns]) for row in primary_totals]
-    # limit_conditions = [Condition(Function("tuple", group_columns), Op.IN, group_values)]
-
     limit_state = _LimitState()
 
     for raw_field in query.raw_fields:
@@ -563,6 +579,9 @@ def _fetch_data_for_field(
                 # 2: session.error
                 error_metric_id = indexer.resolve(MetricKey.SESSION_ERROR.value)
                 if error_metric_id is not None:
+                    # Should not limit session.error to session.status=X,
+                    # because that tag does not exist for this metric
+                    limit_state.skip_columns.append(Column(tag_key_session_status))
                     data.extend(
                         _get_snuba_query_data(
                             org_id,
@@ -574,6 +593,8 @@ def _fetch_data_for_field(
                             limit_state,
                         )
                     )
+                    # Remove skip_column again:
+                    limit_state.skip_columns.pop()
             else:
                 # Simply count the number of started sessions:
                 init = indexer.resolve("init")
