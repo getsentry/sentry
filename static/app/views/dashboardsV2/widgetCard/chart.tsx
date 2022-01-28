@@ -4,6 +4,7 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import AreaChart from 'sentry/components/charts/areaChart';
 import BarChart from 'sentry/components/charts/barChart';
@@ -21,6 +22,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -34,7 +36,7 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
-import {Widget} from '../types';
+import {DisplayType, Widget} from '../types';
 
 import WidgetQueries from './widgetQueries';
 
@@ -56,13 +58,23 @@ type WidgetCardChartProps = Pick<
   widget: Widget;
   selection: PageFilters;
   router: InjectedRouter;
+  isMobile?: boolean;
+  windowWidth?: number;
 };
 
 class WidgetCardChart extends React.Component<WidgetCardChartProps> {
   shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
+    if (
+      this.props.widget.displayType === DisplayType.BIG_NUMBER &&
+      nextProps.widget.displayType === DisplayType.BIG_NUMBER &&
+      this.props.windowWidth !== nextProps.windowWidth
+    ) {
+      return true;
+    }
+
     // Widget title changes should not update the WidgetCardChart component tree
     const currentProps = {
-      ...this.props,
+      ...omit(this.props, ['windowWidth']),
       widget: {
         ...this.props.widget,
         title: '',
@@ -70,7 +82,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     };
 
     nextProps = {
-      ...nextProps,
+      ...omit(nextProps, ['windowWidth']),
       widget: {
         ...nextProps.widget,
         title: '',
@@ -133,7 +145,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {organization, widget} = this.props;
+    const {organization, widget, isMobile, windowWidth} = this.props;
 
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
@@ -151,9 +163,21 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       const rendered = fieldRenderer(dataRow);
 
       const isModalWidget = !!!(widget.id || widget.tempId);
-      if (!!!organization.features.includes('dashboard-grid-layout') || isModalWidget) {
+      if (
+        !!!organization.features.includes('dashboard-grid-layout') ||
+        isModalWidget ||
+        isMobile ||
+        !!!defined(windowWidth)
+      ) {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
+
+      // making it a bit more sensitive to height changes with
+      // the exponent so it doesn't go purely off of the w:h ratio
+      const transformedWidthToHeightRatio =
+        widget.layout?.w && widget.layout?.h
+          ? widget.layout.w / widget.layout.h ** 1.5
+          : 1;
 
       const widthToHeightRatio =
         widget.layout?.w && widget.layout?.h ? widget.layout.w / widget.layout.h : 1;
@@ -161,14 +185,18 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
 
       // heuristics to maintain an aspect ratio that works
-      // most of the time.
+      // most of the time, taking into account the height
+      // & width of the container and the width of the
+      // window
       const w =
         widget.layout?.w && widget.layout?.h
-          ? widthToHeightRatio * 400
+          ? transformedWidthToHeightRatio * (300 + windowWidth / 4)
           : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
 
+      // adjusting font size for very tall widgets to prevent
+      // text clipping
       const fontSize =
-        widthToHeightRatio < 1
+        transformedWidthToHeightRatio < 0.5
           ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * widthToHeightRatio
           : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
 
