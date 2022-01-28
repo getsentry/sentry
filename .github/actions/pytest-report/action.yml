@@ -63,6 +63,7 @@ runs:
       run: |
         echo '${{ steps.get-artifact.outcome }}'
         echo '${{ steps.get-artifact.conclusion }}'
+        ls ${{ github.workspace }}/${{ inputs.path }}
 
     # This is temp as `steps.<id>.outcome` is broken right now
     - name: Does artifact exist
@@ -70,8 +71,7 @@ runs:
       id: artifact-exists
       shell: bash
       run: |
-        test -f ${{ inputs.dest }} && echo "::set-output name=exists::1"
-
+        test -f ${{ github.workspace }}/${{ inputs.path }} && echo "::set-output name=exists::1"
 
     # We re-upload the report that was from the master branch so that the same
     # report is always used within a PR.
@@ -83,7 +83,7 @@ runs:
       uses: actions/upload-artifact@v2
       with:
         name: ${{ inputs.artifact }}__internal
-        path: ${{ inputs.dest }}
+        path: ${{ github.workspace }}/${{ inputs.path }}
 
     # Need to rename so if we have multiple test instances, the reports do not overwrite each other on GHA
     - name: Rename report
