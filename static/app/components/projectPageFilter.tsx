@@ -114,7 +114,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       <StyledDropdownButton isOpen={isOpen} {...getActorProps()}>
         <DropdownTitle>
           {icon}
-          {title}
+          <TitleContainer>{title}</TitleContainer>
         </DropdownTitle>
       </StyledDropdownButton>
     );
@@ -148,14 +148,21 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
 const StyledDropdownButton = styled(DropdownButton)`
   width: 100%;
   height: 40px;
+  text-overflow: ellipsis;
+`;
+
+const TitleContainer = styled('div')`
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1 1 0%;
+  margin-left: ${space(1)};
 `;
 
 const DropdownTitle = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
+  display: flex;
+  overflow: hidden;
   align-items: center;
-  white-space: nowrap;
 `;
 
 export default withRouter(ProjectPageFilter);
