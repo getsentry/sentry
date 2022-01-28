@@ -168,11 +168,15 @@ describe('AsyncComponentSearchInput', () => {
     });
 
     jest.advanceTimersByTime(500);
+
     // Flush out promises
+    await Promise.resolve();
     await Promise.resolve();
 
     // First render 1 for each character typed
-    expect(render).toHaveBeenCalledTimes(1 + 'Te'.length);
+    await waitFor(() => {
+      expect(render).toHaveBeenCalledTimes(1 + 'Te'.length);
+    });
     expect(render.mock.calls[1][0].value).toBe('Te');
   });
   it('updates route onSubmit', async () => {
