@@ -207,6 +207,8 @@ function Hovercard(props: HovercardProps): React.ReactElement {
   );
 }
 
+export {Hovercard};
+
 const SLIDE_DISTANCE = 10;
 
 function SlideInAnimation({
@@ -313,10 +315,14 @@ const Header = styled('div')`
   padding: ${space(1.5)};
 `;
 
+export {Header};
+
 const Body = styled('div')`
   padding: ${space(2)};
   min-height: 30px;
 `;
+
+export {Body};
 
 type HovercardArrowProps = {
 <<<<<<< HEAD
@@ -367,5 +373,3 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
       border-${getTipDirection}-color: ${p => p.tipColor ?? p.theme.background};
     }
 `;
-
-export {Body, Header, Hovercard};
