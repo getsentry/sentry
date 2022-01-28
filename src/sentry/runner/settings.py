@@ -156,7 +156,6 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     )
 
     if os.environ.get("OPENAPIGENERATE", False):
-        # TODO: is this the best place for this import?
         # see https://drf-spectacular.readthedocs.io/en/latest/customization.html#step-5-extensions
         from sentry.apidocs import extensions  # NOQA
 
