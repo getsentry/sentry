@@ -8,15 +8,14 @@ import * as qs from 'query-string';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getStateFromQuery} from 'sentry/components/organizations/pageFilters/parse';
-import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import {
-  getDefaultSelection,
   getPageFilterStorage,
   setPageFiltersStorage,
-} from 'sentry/components/organizations/pageFilters/utils';
+} from 'sentry/components/organizations/pageFilters/persistence';
+import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
+import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {
   DateString,
   Environment,
@@ -164,9 +163,11 @@ export function initializeUrlState({
     const storedPageFilters = getPageFilterStorage(orgSlug);
 
     if (storedPageFilters !== null) {
+      const {project, environment} = storedPageFilters.selection;
+
       pageFilters = {
-        projects: storedPageFilters.project ?? [],
-        environments: storedPageFilters.environment ?? [],
+        projects: project ?? [],
+        environments: environment ?? [],
         datetime: pageFilters.datetime,
       };
     }
@@ -290,10 +291,12 @@ export function updateDateTime(
   persistPageFilters(options);
 }
 
+/**
+ * Pins a particular filter so that it is read out of local storage
+ */
 export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
   PageFiltersActions.pin(filter, pin);
-
-  // TODO: Persist into storage
+  persistPageFilters({save: true});
 }
 
 /**
@@ -330,12 +333,11 @@ async function persistPageFilters(options?: Options) {
   }
 
   // XXX(epurkhiser): Since this is called immediately after updating the
-  // store, wait for a tick since stores are not updated fully synchronously..
-  // a bit goofy, but it works fine.
+  // store, wait for a tick since stores are not updated fully synchronously.
+  // A bit goofy, but it works fine.
   await new Promise(resolve => setTimeout(resolve, 0));
 
   const {organization} = OrganizationStore.getState();
-  const {selection} = PageFiltersStore.getState();
   const orgSlug = organization?.slug ?? null;
 
   // Can't do anything if we don't have an organization
@@ -343,7 +345,7 @@ async function persistPageFilters(options?: Options) {
     return;
   }
 
-  setPageFiltersStorage(orgSlug, selection);
+  setPageFiltersStorage(orgSlug);
 }
 
 /**
