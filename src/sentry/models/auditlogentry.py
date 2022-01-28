@@ -16,10 +16,7 @@ MAX_ACTOR_LABEL_LENGTH = 64
 def format_ondemand_budget(ondemand_data):
     if type(ondemand_data) is dict:
         budget_mode = ondemand_data.get("budgetMode", None)
-        if budget_mode == "shared":
-            shared_budget = ondemand_data.get("sharedMaxBudget", 0)
-            return f"shared on-demand of {format_ondemand_max_spend(shared_budget)}"
-        else:
+        if budget_mode == "per_category":
             errors_budget = format_ondemand_max_spend(ondemand_data.get("errorsBudget", 0))
             transactions_budget = format_ondemand_max_spend(
                 ondemand_data.get("transactionsBudget", 0)
@@ -28,6 +25,9 @@ def format_ondemand_budget(ondemand_data):
                 ondemand_data.get("attachmentsBudget", 0)
             )
             return f"split on-demand (errors at {errors_budget}, transactions at {transactions_budget}, and attachments at {attachments_budget})"
+        else:
+            shared_budget = ondemand_data.get("sharedMaxBudget", 0)
+            return f"shared on-demand of {format_ondemand_max_spend(shared_budget)}"
     return format_ondemand_max_spend(ondemand_data)
 
 
