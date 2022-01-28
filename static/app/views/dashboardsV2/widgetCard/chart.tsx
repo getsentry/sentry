@@ -189,27 +189,31 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
-      const {windowWidth} = this.state;
-
-      const widthToHeightRatio =
+      // making it a bit more sensitive to height changes with
+      // the exponent so it doesn't go purely off of the w:h ratio
+      const transformedWidthToHeightRatio =
         widget.layout?.w && widget.layout?.h
           ? widget.layout.w / widget.layout.h ** 1.5
           : 1;
 
       const h = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
-      const viewPortMultiplier = windowWidth / 4;
+      const {windowWidth} = this.state;
 
       // heuristics to maintain an aspect ratio that works
-      // most of the time.
+      // most of the time, taking into account the height
+      // & width of the container and the width of the
+      // window
       const w =
         widget.layout?.w && widget.layout?.h
-          ? widthToHeightRatio * (400 + viewPortMultiplier)
+          ? transformedWidthToHeightRatio * (400 + windowWidth / 4)
           : BIG_NUMBER_WIDGET_DEFAULT_WIDTH;
 
-      const fontSize = BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
-      // widthToHeightRatio < 1
-      //   ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * widthToHeightRatio
-      //   : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
+      // adjusting font size for very tall widgets to prevent
+      // text clipping
+      const fontSize =
+        transformedWidthToHeightRatio < 0.5
+          ? BIG_NUMBER_WIDGET_DEFAULT_HEIGHT * transformedWidthToHeightRatio
+          : BIG_NUMBER_WIDGET_DEFAULT_HEIGHT;
 
       return (
         <BigNumber fontSize={fontSize} key={`big_number:${result.title}`}>
