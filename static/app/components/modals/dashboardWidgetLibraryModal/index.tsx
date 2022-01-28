@@ -116,7 +116,7 @@ function DashboardWidgetLibraryModal({
                 handleSubmit();
               }}
             >
-              {t('Save')}
+              {t('Add')}
             </Button>
           </Tooltip>
         </ButtonBar>
