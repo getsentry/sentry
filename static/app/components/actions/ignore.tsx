@@ -45,22 +45,16 @@ const IgnoreActions = ({
   isIgnored = false,
 }: Props) => {
   const onIgnore = (statusDetails: ResolutionStatusDetails) => {
-    if (shouldConfirm) {
-      openConfirmModal({
-        onConfirm: () =>
-          onUpdate({
-            status: ResolutionStatus.IGNORED,
-            statusDetails: statusDetails || {},
-          }),
-        message: confirmMessage,
-        confirmText: confirmLabel,
-      });
-    } else {
-      onUpdate({
-        status: ResolutionStatus.IGNORED,
-        statusDetails: statusDetails || {},
-      });
-    }
+    openConfirmModal({
+      bypass: !shouldConfirm,
+      onConfirm: () =>
+        onUpdate({
+          status: ResolutionStatus.IGNORED,
+          statusDetails: statusDetails || {},
+        }),
+      message: confirmMessage,
+      confirmText: confirmLabel,
+    });
   };
 
   const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {

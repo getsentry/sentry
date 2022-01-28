@@ -133,15 +133,12 @@ class ResolveActions extends React.Component<Props> {
       : '';
 
     const onActionOrConfirm = onAction => {
-      if (shouldConfirm) {
-        openConfirmModal({
-          onConfirm: onAction,
-          message: confirmMessage,
-          confirmText: confirmLabel,
-        });
-      } else {
-        onAction();
-      }
+      openConfirmModal({
+        bypass: !shouldConfirm,
+        onConfirm: onAction,
+        message: confirmMessage,
+        confirmText: confirmLabel,
+      });
     };
 
     const items = [
