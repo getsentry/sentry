@@ -23,6 +23,7 @@ type Props = {
   triggers: Trigger[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  thresholdPeriod: UnsavedIncidentRule['thresholdPeriod'];
   comparisonType: AlertRuleComparisonType;
   aggregate: UnsavedIncidentRule['aggregate'];
   currentProject: string;
@@ -40,6 +41,7 @@ type Props = {
   onResolveThresholdChange: (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => void;
+  onThresholdPeriodChange: (value: number) => void;
 };
 
 /**
@@ -99,10 +101,12 @@ class Triggers extends Component<Props> {
       disabled,
       aggregate,
       thresholdType,
+      thresholdPeriod,
       comparisonType,
       resolveThreshold,
       onThresholdTypeChange,
       onResolveThresholdChange,
+      onThresholdPeriodChange,
     } = this.props;
 
     // Note we only support 2 triggers max
@@ -119,10 +123,12 @@ class Triggers extends Component<Props> {
               aggregate={aggregate}
               resolveThreshold={resolveThreshold}
               thresholdType={thresholdType}
+              thresholdPeriod={thresholdPeriod}
               comparisonType={comparisonType}
               onChange={this.handleChangeTrigger}
               onThresholdTypeChange={onThresholdTypeChange}
               onResolveThresholdChange={onResolveThresholdChange}
+              onThresholdPeriodChange={onThresholdPeriodChange}
             />
           </PanelBody>
         </Panel>
