@@ -43,11 +43,7 @@ describe('AsyncComponentSearchInput', () => {
     const debounceWait = 500;
     const props = makeProps({url: '/endpoint', debounceWait});
 
-    MockApiClient.addMockResponse({
-      url: props.url,
-      method: 'GET',
-      body: 'RESPONSE',
-    });
+    jest.spyOn(props.api, 'requestPromise').mockResolvedValue(['Response']);
 
     mountWithTheme(<AsyncComponentSearchInput {...props} />, {
       context: TestStubs.routerContext(),
