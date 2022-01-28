@@ -22,9 +22,11 @@ import {TrendColumnField, TrendFunctionField} from '../../trends/types';
 import {TRENDS_FUNCTIONS, TRENDS_PARAMETERS} from '../../trends/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 
+import LatencyChartControls from './latencyChart/chartControls';
+import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import DurationChart from './durationChart';
 import DurationPercentileChart from './durationPercentileChart';
-import LatencyChart, {LatencyChartControls, ZOOM_END, ZOOM_START} from './latencyChart';
+import LatencyChart from './latencyChart';
 import TrendChart from './trendChart';
 import VitalsChart from './vitalsChart';
 

@@ -9,7 +9,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('EnvironmentPageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({
-    organization: {features: ['global-views']},
+    organization: {features: ['global-views', 'selection-filters-v2']},
     project: undefined,
     projects: [
       {
@@ -55,6 +55,39 @@ describe('EnvironmentPageFilter', function () {
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({query: {environment: ['prod']}})
+    );
+  });
+
+  it('can pin environment', async function () {
+    mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <EnvironmentPageFilter />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
+    // Confirm no filters are pinned
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        pinnedFilters: new Set(),
+      })
+    );
+
+    // Open the environment dropdown
+    expect(screen.getByText('All Environments')).toBeInTheDocument();
+    userEvent.click(screen.getByText('All Environments'));
+
+    // Click the pin button
+    const pinButton = screen.getByRole('button', {name: 'Pin'});
+    userEvent.click(pinButton);
+
+    await screen.findByRole('button', {name: 'Pin', pressed: true});
+
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        pinnedFilters: new Set(['environments']),
+      })
     );
   });
 });

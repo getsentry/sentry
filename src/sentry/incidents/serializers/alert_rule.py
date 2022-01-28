@@ -16,7 +16,6 @@ from sentry.exceptions import InvalidSearchQuery, UnsupportedQuerySubscription
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
-    AlertRuleNameAlreadyUsedError,
     ChannelLookupTimeoutError,
     check_aggregate_column_support,
     create_alert_rule,
@@ -356,30 +355,24 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def create(self, validated_data):
-        try:
-            with transaction.atomic():
-                triggers = validated_data.pop("triggers")
-                alert_rule = create_alert_rule(
-                    user=self.context.get("user", None),
-                    organization=self.context["organization"],
-                    **validated_data,
-                )
-                self._handle_triggers(alert_rule, triggers)
-                return alert_rule
-        except AlertRuleNameAlreadyUsedError:
-            raise serializers.ValidationError("This name is already in use for this organization")
+        with transaction.atomic():
+            triggers = validated_data.pop("triggers")
+            alert_rule = create_alert_rule(
+                user=self.context.get("user", None),
+                organization=self.context["organization"],
+                **validated_data,
+            )
+            self._handle_triggers(alert_rule, triggers)
+            return alert_rule
 
     def update(self, instance, validated_data):
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")
-        try:
-            with transaction.atomic():
-                alert_rule = update_alert_rule(instance, **validated_data)
-                self._handle_triggers(alert_rule, triggers)
-                return alert_rule
-        except AlertRuleNameAlreadyUsedError:
-            raise serializers.ValidationError("This name is already in use for this organization")
+        with transaction.atomic():
+            alert_rule = update_alert_rule(instance, **validated_data)
+            self._handle_triggers(alert_rule, triggers)
+            return alert_rule
 
     def _handle_triggers(self, alert_rule, triggers):
         channel_lookup_timeout_error = None

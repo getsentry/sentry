@@ -13,10 +13,8 @@ class TransitionalSerializer:
         self.json_serializer = JSONSerializer()
 
     def dumps(self, obj: Dict[str, Any]) -> bytes:
-        # will have the write as pickle obj for now, will change to json in seperate deploy
-        # return self.json_serializer.dumps(obj)
-        metrics.incr("transitional_serializer.pickle_write")
-        return self.pickle_serializer.dumps(obj)
+        metrics.incr("transitional_serializer.json_write")
+        return self.json_serializer.dumps(obj)
 
     def loads(self, data: bytes) -> Dict[str, Any]:
         try:

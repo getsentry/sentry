@@ -164,11 +164,16 @@ export function initializeUrlState({
     const storedPageFilters = getPageFilterStorage(orgSlug);
 
     if (storedPageFilters !== null) {
-      pageFilters = {...storedPageFilters, datetime: pageFilters.datetime};
+      pageFilters = {
+        projects: storedPageFilters.project ?? [],
+        environments: storedPageFilters.environment ?? [],
+        datetime: pageFilters.datetime,
+      };
     }
   }
 
   const {projects, environments: environment, datetime} = pageFilters;
+
   let newProject: number[] | null = null;
   let project = projects;
 
@@ -221,7 +226,7 @@ export function initializeUrlState({
 }
 
 function isProjectsValid(projects: ProjectId[]) {
-  return Array.isArray(projects) && projects.every(project => isInteger(project));
+  return Array.isArray(projects) && projects.every(isInteger);
 }
 
 /**
@@ -282,9 +287,7 @@ export function updateDateTime(
 ) {
   PageFiltersActions.updateDateTime(datetime);
   updateParams(datetime, router, options);
-
-  // We only save projects/environments to local storage, do not
-  // save anything when date changes.
+  persistPageFilters(options);
 }
 
 export function pinFilter(filter: PinnedPageFilter, pin: boolean) {

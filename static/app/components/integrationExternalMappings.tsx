@@ -1,39 +1,123 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import Access from 'sentry/components/acl/access';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import DropdownLink from 'sentry/components/dropdownLink';
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
-import {IconAdd, IconArrow, IconEllipsis} from 'sentry/icons';
+import {IconAdd, IconArrow, IconEllipsis, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
-import {ExternalActorMapping, Integration, Organization} from 'sentry/types';
-import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
+  ExternalActorSuggestion,
+  Integration,
+  Organization,
+} from 'sentry/types';
+import {getIntegrationIcon, isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-type Props = Pick<
-  IntegrationExternalMappingForm['props'],
-  'dataEndpoint' | 'getBaseFormEndpoint' | 'sentryNamesMapper' | 'onResults'
-> & {
-  organization: Organization;
-  integration: Integration;
-  mappings: ExternalActorMapping[];
-  type: 'team' | 'user';
-  onCreate: (mapping?: ExternalActorMapping) => void;
-  onDelete: (mapping: ExternalActorMapping) => void;
-  pageLinks?: string;
+type CodeOwnersAssociationMappings = {
+  [projectSlug: string]: {
+    associations: {
+      [externalName: string]: string;
+    };
+    errors: {
+      [errorKey: string]: string;
+    };
+  };
 };
 
-type State = {};
-class IntegrationExternalMappings extends Component<Props, State> {
-  renderMappingName(mapping: ExternalActorMapping, hasAccess: boolean) {
+type Props = AsyncComponent['props'] &
+  WithRouterProps &
+  Pick<
+    IntegrationExternalMappingForm['props'],
+    | 'dataEndpoint'
+    | 'getBaseFormEndpoint'
+    | 'sentryNamesMapper'
+    | 'onResults'
+    | 'defaultOptions'
+  > & {
+    organization: Organization;
+    integration: Integration;
+    mappings: ExternalActorMappingOrSuggestion[];
+    type: 'team' | 'user';
+    onCreate: (mapping?: ExternalActorMappingOrSuggestion) => void;
+    onDelete: (mapping: ExternalActorMapping) => void;
+    pageLinks?: string;
+  };
+
+type State = AsyncComponent['state'] & {
+  associationMappings: CodeOwnersAssociationMappings;
+  newlyAssociatedMappings: ExternalActorMapping[];
+};
+
+class IntegrationExternalMappings extends AsyncComponent<Props, State> {
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
+      associationMappings: {},
+      newlyAssociatedMappings: [],
+    };
+  }
+
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {organization, integration} = this.props;
+    return [
+      [
+        'associationMappings',
+        `/organizations/${organization.slug}/codeowners-associations/`,
+        {query: {provider: integration.provider.key}},
+      ],
+    ];
+  }
+
+  get isFirstPage(): boolean {
+    const {cursor} = this.props.location.query;
+    return cursor ? cursor?.split(':')[1] === '0' : true;
+  }
+
+  get unassociatedMappings(): ExternalActorSuggestion[] {
+    const {type} = this.props;
+    const {associationMappings} = this.state;
+    const errorKey = `missing_external_${type}s`;
+    const unassociatedMappings = Object.values(associationMappings).reduce(
+      (map, {errors}) => {
+        return new Set<string>([...map, ...errors[errorKey]]);
+      },
+      new Set<string>()
+    );
+    return Array.from(unassociatedMappings).map(externalName => ({externalName}));
+  }
+
+  get allMappings(): ExternalActorMappingOrSuggestion[] {
+    const {mappings} = this.props;
+    if (!this.isFirstPage) {
+      return mappings;
+    }
+    const {newlyAssociatedMappings} = this.state;
+    const inlineMappings = this.unassociatedMappings.map(mapping => {
+      // If this mapping has been changed, replace it with the new version from its change's response
+      // The new version will be used in IntegrationExternalMappingForm to update the apiMethod and apiEndpoint
+      const newlyAssociatedMapping = newlyAssociatedMappings.find(
+        ({externalName}) => externalName === mapping.externalName
+      );
+
+      return newlyAssociatedMapping ?? mapping;
+    });
+    return [...inlineMappings, ...mappings];
+  }
+
+  renderMappingName(mapping: ExternalActorMappingOrSuggestion, hasAccess: boolean) {
     const {
       type,
       getBaseFormEndpoint,
@@ -41,8 +125,9 @@ class IntegrationExternalMappings extends Component<Props, State> {
       dataEndpoint,
       sentryNamesMapper,
       onResults,
+      defaultOptions,
     } = this.props;
-    const mappingName = mapping.sentryName ?? '';
+    const mappingName = isExternalActorMapping(mapping) ? mapping.sentryName : '';
     return hasAccess ? (
       <IntegrationExternalMappingForm
         type={type}
@@ -52,16 +137,27 @@ class IntegrationExternalMappings extends Component<Props, State> {
         mapping={mapping}
         sentryNamesMapper={sentryNamesMapper}
         onResults={onResults}
+        onSubmitSuccess={(newMapping: ExternalActorMapping) => {
+          this.setState({
+            newlyAssociatedMappings: [
+              ...this.state.newlyAssociatedMappings.filter(
+                map => map.externalName !== newMapping.externalName
+              ),
+              newMapping as ExternalActorMapping,
+            ],
+          });
+        }}
         isInline
+        defaultOptions={defaultOptions}
       />
     ) : (
       mappingName
     );
   }
 
-  renderMappingOptions(mapping: ExternalActorMapping, hasAccess: boolean) {
+  renderMappingOptions(mapping: ExternalActorMappingOrSuggestion, hasAccess: boolean) {
     const {type, onDelete} = this.props;
-    return (
+    return isExternalActorMapping(mapping) ? (
       <Tooltip
         title={t(
           'You must be an organization owner, manager or admin to make changes to an external user mapping.'
@@ -90,11 +186,17 @@ class IntegrationExternalMappings extends Component<Props, State> {
           </MenuItemActionLink>
         </DropdownLink>
       </Tooltip>
+    ) : (
+      <Tooltip
+        title={t(`This ${type} mapping suggestion was generated from a CODEOWNERS file`)}
+      >
+        <Button borderless size="small" icon={<IconQuestion size="sm" />} disabled />
+      </Tooltip>
     );
   }
 
-  render() {
-    const {integration, mappings, type, onCreate, pageLinks} = this.props;
+  renderBody() {
+    const {integration, type, onCreate, pageLinks} = this.props;
     return (
       <Fragment>
         <Panel>
@@ -124,7 +226,7 @@ class IntegrationExternalMappings extends Component<Props, State> {
                         icon={<IconAdd size="xs" isCircled />}
                         disabled={!hasAccess}
                       >
-                        {tct('Add [type] Mapping', {type})}
+                        <ButtonText>{tct('Add [type] Mapping', {type})}</ButtonText>
                       </AddButton>
                     </Tooltip>
                   </ButtonColumn>
@@ -133,12 +235,12 @@ class IntegrationExternalMappings extends Component<Props, State> {
             </HeaderLayout>
           </PanelHeader>
           <PanelBody>
-            {!mappings.length && (
+            {!this.allMappings.length && (
               <EmptyMessage icon={getIntegrationIcon(integration.provider.key, 'lg')}>
                 {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
               </EmptyMessage>
             )}
-            {mappings.map((mapping, index) => (
+            {this.allMappings.map((mapping, index) => (
               <Access access={['org:integrations']} key={index}>
                 {({hasAccess}) => (
                   <ConfigPanelItem>
@@ -169,10 +271,15 @@ class IntegrationExternalMappings extends Component<Props, State> {
   }
 }
 
-export default IntegrationExternalMappings;
+export default withRouter(IntegrationExternalMappings);
 
 const AddButton = styled(Button)`
   text-transform: capitalize;
+  height: inherit;
+`;
+
+const ButtonText = styled('div')`
+  white-space: break-spaces;
 `;
 
 const Layout = styled('div')`
@@ -181,7 +288,7 @@ const Layout = styled('div')`
   padding: ${space(1)};
   width: 100%;
   align-items: center;
-  grid-template-columns: 2.5fr 50px 2.5fr 1fr;
+  grid-template-columns: 2.25fr 50px 2.75fr 100px;
   grid-template-areas: 'external-name arrow sentry-name button';
 `;
 
@@ -200,6 +307,7 @@ const IconEllipsisVertical = styled(IconEllipsis)`
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
+  min-width: ${p => p.size}px;
   margin-right: ${space(2)};
 `;
 
