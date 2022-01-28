@@ -32,8 +32,8 @@ type CommonProps = Omit<
   'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority' | 'children'
 > & {
   title: string;
-  onAction?: () => void;
   children: React.ReactChild;
+  onAction?: () => void;
   disabled?: boolean;
   className?: string;
   shouldConfirm?: boolean;

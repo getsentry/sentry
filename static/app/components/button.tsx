@@ -23,8 +23,8 @@ type ConditionalAriaLabel =
       'aria-label'?: string;
     }
   | {
-      children?: null | boolean;
       'aria-label': string;
+      children?: null | boolean;
     };
 
 type Props = {
