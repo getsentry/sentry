@@ -56,7 +56,7 @@ from sentry.sentry_metrics.utils import (
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import TS_COL_GROUP, TS_COL_QUERY, get_intervals
-from sentry.snuba.sessions_v2 import SNUBA_LIMIT, QueryDefinition, finite_or_none
+from sentry.snuba.sessions_v2 import SNUBA_LIMIT, QueryDefinition, finite_or_none, get_timestamps
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -310,26 +310,7 @@ class _SessionDurationField(_OutputField):
             ]
 
 
-def _get_snuba_query(
-    org_id: int,
-    query: QueryDefinition,
-    entity_key: EntityKey,
-    metric_id: int,
-    columns: Sequence[SelectableExpression],
-    series: bool,
-    extra_conditions: List[Condition],
-) -> Query:
-    """Build the snuba query"""
-    conditions = [
-        Condition(Column("org_id"), Op.EQ, org_id),
-        Condition(Column("project_id"), Op.IN, query.filter_keys["project_id"]),
-        Condition(Column("metric_id"), Op.EQ, metric_id),
-        Condition(Column(TS_COL_QUERY), Op.GTE, query.start),
-        Condition(Column(TS_COL_QUERY), Op.LT, query.end),
-    ]
-    conditions += _get_filter_conditions(org_id, query.conditions)
-    conditions += extra_conditions
-
+def _get_snuba_groupby(query: QueryDefinition) -> Set[Column]:
     groupby = {}
     for field in query.raw_groupby:
         if field == "project":
@@ -342,7 +323,35 @@ def _get_snuba_query(
             # exclude unresolved keys from groupby
             pass
 
-    full_groupby = set(groupby.values())
+    return set(groupby.values())
+
+
+def _get_snuba_query(
+    org_id: int,
+    query: QueryDefinition,
+    entity_key: EntityKey,
+    metric_id: int,
+    columns: Sequence[SelectableExpression],
+    series: bool,
+    extra_conditions: List[Condition],
+    limit_conditions: List[Condition],
+) -> Query:
+    """Build the snuba query"""
+    conditions = [
+        Condition(Column("org_id"), Op.EQ, org_id),
+        Condition(Column("project_id"), Op.IN, query.filter_keys["project_id"]),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+        Condition(Column(TS_COL_QUERY), Op.GTE, query.start),
+        Condition(Column(TS_COL_QUERY), Op.LT, query.end),
+    ]
+    conditions += _get_filter_conditions(org_id, query.conditions)
+    conditions += extra_conditions
+    conditions += limit_conditions
+
+    full_groupby = _get_snuba_groupby(query)
+
+    if series and not limit_conditions:
+        raise RuntimeError("Only 'totals' query can run without limit conditions")
 
     if series:
         full_groupby.add(Column(TS_COL_GROUP))
@@ -356,10 +365,11 @@ def _get_snuba_query(
         granularity=Granularity(query.rollup),
     )
 
-    if series:
-        # Set higher limit and order by to be consistent with sessions_v2
-        query_args["limit"] = Limit(SNUBA_LIMIT)
-        query_args["orderby"] = [OrderBy(Column(TS_COL_GROUP), Direction.DESC)]
+    if not limit_conditions:
+        # Set limit and order by to be consistent with sessions_v2
+        max_groups = SNUBA_LIMIT // len(get_timestamps(query))
+        query_args["limit"] = Limit(max_groups)
+        query_args["orderby"] = [Column(query.primary_column), Direction.DESC)]
 
     return Query(**query_args)
 
@@ -371,13 +381,12 @@ def _get_snuba_query_data(
     metric_key: MetricKey,
     metric_id: int,
     columns: Sequence[SelectableExpression],
-    extra_conditions: Optional[List[Condition]] = None,
+    extra_conditions: Optional[List[Condition]],
+    limit_conditions: Optional[List[Condition]],
 ) -> Generator[Tuple[MetricKey, _SnubaData], None, None]:
     """Get data from snuba"""
-    if extra_conditions is None:
-        extra_conditions = []
 
-    for query_type in ("series", "totals"):
+    for query_type in ("totals", "series"):
         snuba_query = _get_snuba_query(
             org_id,
             query,
@@ -385,7 +394,8 @@ def _get_snuba_query_data(
             metric_id,
             columns,
             series=query_type == "series",
-            extra_conditions=extra_conditions,
+            extra_conditions=extra_conditions or [],
+            limit_conditions=limit_conditions if query_type == "series",  # TODO: need to pass limit conditions to series here
         )
         referrer = REFERRERS[metric_key][query_type]
         query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
@@ -407,14 +417,20 @@ def _fetch_data(
 
     primary_field = query.raw_fields[0]  # This will determine the order of groups
     combined_data, metric_to_output_field = _fetch_data_for_field(
-        org_id, query, primary_field, columns_fetched
+        org_id, query, primary_field, None, columns_fetched
     )
 
+    primary_totals = combined_data[0][0]
+
     # This filter determines which groups will be fetched for the other fields:
-    # extra_conditions = [Condition(Function("tuple", group_columns), Op.IN, group_values)]
+    group_columns = sorted(col.alias for col in _get_snuba_groupby(query))
+    group_values = [tuple([row.get(col) for col in group_columns]) for row in primary_totals]
+    limit_conditions = [Condition(Function("tuple", group_columns), Op.IN, group_values)]
 
     for raw_field in query.raw_fields[1:]:
-        data, field_map = _fetch_data_for_field(org_id, query, raw_field, columns_fetched)
+        data, field_map = _fetch_data_for_field(
+            org_id, query, raw_field, limit_conditions, columns_fetched
+        )
         combined_data.extend(data)
         metric_to_output_field.update(field_map)
 
@@ -425,6 +441,7 @@ def _fetch_data_for_field(
     org_id: int,
     query: QueryDefinition,
     raw_field: SessionsQueryFunction,
+    limit_conditions: Optional[List[Condition]],
     columns_fetched: Set[SelectableExpression],  # output param
 ) -> Tuple[_SnubaDataByMetric, MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
     tag_key_session_status = resolve_tag_key("session.status")
@@ -445,6 +462,8 @@ def _fetch_data_for_field(
                     MetricKey.USER,
                     metric_id,
                     [Function("uniq", [Column("value")], "value")],
+                    None,
+                    limit_conditions,
                 )
             )
             metric_to_output_field[(MetricKey.USER, "value")] = _UserField()
@@ -480,6 +499,8 @@ def _fetch_data_for_field(
                         MetricKey.SESSION_DURATION,
                         metric_id,
                         [snuba_column],
+                        None,
+                        limit_conditions,
                     )
                 )
                 columns_fetched.add(snuba_column)
@@ -504,6 +525,8 @@ def _fetch_data_for_field(
                         MetricKey.SESSION,
                         metric_id,
                         [Function("sum", [Column("value")], "value")],
+                        None,
+                        limit_conditions,
                     )
                 )
 
@@ -518,6 +541,8 @@ def _fetch_data_for_field(
                             MetricKey.SESSION_ERROR,
                             error_metric_id,
                             [Function("uniq", [Column("value")], "value")],
+                            None,
+                            limit_conditions,
                         )
                     )
             else:
@@ -533,7 +558,8 @@ def _fetch_data_for_field(
                             MetricKey.SESSION,
                             metric_id,
                             [Function("sum", [Column("value")], "value")],
-                            extra_conditions,
+                            None,
+                            limit_conditions,
                         )
                     )
 
