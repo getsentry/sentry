@@ -117,6 +117,22 @@ class QueryBuilder:
         self.limitby = self.resolve_limitby(limitby)
         self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
+        self.resolve_query(
+            query=query,
+            use_aggregate_conditions=use_aggregate_conditions,
+            selected_columns=selected_columns,
+            equations=equations,
+            orderby=orderby,
+        )
+
+    def resolve_query(
+        self,
+        query: Optional[str],
+        use_aggregate_conditions: bool,
+        selected_columns: Optional[List[str]],
+        equations: Optional[List[str]],
+        orderby: Optional[List[str]],
+    ) -> None:
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
         )
@@ -1051,39 +1067,30 @@ class UnresolvedQuery(QueryBuilder):
         sample_rate: Optional[float] = None,
         equation_config: Optional[Dict[str, bool]] = None,
     ):
-        self.dataset = dataset
-        self.params = params
-        self.auto_fields = auto_fields
-        self.functions_acl = set() if functions_acl is None else functions_acl
-        self.equation_config = {} if equation_config is None else equation_config
+        super().__init__(
+            dataset=dataset,
+            params=params,
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            functions_acl=functions_acl,
+            array_join=array_join,
+            limit=limit,
+            offset=offset,
+            limitby=limitby,
+            turbo=turbo,
+            sample_rate=sample_rate,
+            equation_config=equation_config,
+        )
 
-        # Function is a subclass of CurriedFunction
-        self.where: List[WhereType] = []
-        self.having: List[WhereType] = []
-        # The list of aggregates to be selected
-        self.aggregates: List[CurriedFunction] = []
-        self.columns: List[SelectType] = []
-        self.orderby: List[OrderBy] = []
-        self.groupby: List[SelectType] = []
-        self.projects_to_filter: Set[int] = set()
-        self.function_alias_map: Dict[str, FunctionDetails] = {}
-
-        self.auto_aggregations = auto_aggregations
-        self.limit = None if limit is None else Limit(limit)
-        self.offset = None if offset is None else Offset(offset)
-        self.turbo = Turbo(turbo)
-        self.sample_rate = sample_rate
-
-        self.resolve_column_name = resolve_column(self.dataset)
-
-        (
-            self.field_alias_converter,
-            self.function_converter,
-            self.search_filter_converter,
-        ) = self.load_config()
-
-        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
-        self.limitby = self.resolve_limitby(limitby)
+    def resolve_query(
+        self,
+        query: Optional[str],
+        use_aggregate_conditions: bool,
+        selected_columns: Optional[List[str]],
+        equations: Optional[List[str]],
+        orderby: Optional[List[str]],
+    ) -> None:
+        pass
 
 
 class TimeseriesQueryBuilder(UnresolvedQuery):
@@ -1108,17 +1115,31 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             equation_config={"auto_add": True, "aggregates_only": True},
         )
 
-        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
-
-        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-        self.where += self.resolve_params()
-        self.columns = self.resolve_select(selected_columns, equations)
+        self.resolve_query(
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
+        )
 
         self.limit = None if limit is None else Limit(limit)
         self.granularity = Granularity(granularity)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
+
+    def resolve_query(
+        self,
+        query: Optional[str],
+        use_aggregate_conditions: bool,
+        selected_columns: Optional[List[str]],
+        equations: Optional[List[str]],
+        orderby: Optional[List[str]],
+    ) -> None:
+        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
+
+        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+        self.where += self.resolve_params()
+        self.columns = self.resolve_select(selected_columns, equations)
 
     @property
     def select(self) -> List[SelectType]:
