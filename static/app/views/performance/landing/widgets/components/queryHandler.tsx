@@ -29,7 +29,7 @@ export function QueryHandler<T extends WidgetDataConstraint>(
 }
 
 function genericQueryReferrer(setting: PerformanceWidgetSetting) {
-  return `api.performance.generic-widget-chart.${setting}`;
+  return `api.performance.generic-widget-chart.${setting.replaceAll('_', '-')}`;
 }
 
 function SingleQueryHandler<T extends WidgetDataConstraint>(
