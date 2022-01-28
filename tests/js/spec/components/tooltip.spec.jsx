@@ -94,14 +94,14 @@ describe('Tooltip', function () {
   it('does not display a tooltip if the content does not overflow with showOnOverflow', function () {
     jest.spyOn(utils, 'isOverflown').mockReturnValue(false);
     mountWithTheme(
-      <Tooltip title="Tooltip title" showOnOverflow>
-        <div data-test-id="truncated-text">This text does not overflow</div>
+      <Tooltip delay={0} title="test" showOnOverflow>
+        <div>This text does not overflow</div>
       </Tooltip>,
       {context: TestStubs.routerContext()}
     );
 
     userEvent.hover(screen.getByText('This text does not overflow'));
 
-    expect(screen.queryByText('Tooltip title')).not.toBeInTheDocument();
+    expect(screen.queryByText('test')).not.toBeInTheDocument();
   });
 });
