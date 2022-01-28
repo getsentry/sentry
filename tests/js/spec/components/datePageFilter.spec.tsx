@@ -59,4 +59,33 @@ describe('DatePageFilter', function () {
       },
     });
   });
+
+  it('can pin datetime', async function () {
+    mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <DatePageFilter />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
+    // Confirm no filters are pinned
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        pinnedFilters: new Set(),
+      })
+    );
+
+    // Click the pin button
+    const pinButton = screen.getByRole('button', {name: 'Pin'});
+    userEvent.click(pinButton);
+
+    await screen.findByRole('button', {name: 'Pin', pressed: true});
+
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        pinnedFilters: new Set(['datetime']),
+      })
+    );
+  });
 });
