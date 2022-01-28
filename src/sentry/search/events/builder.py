@@ -127,11 +127,11 @@ class QueryBuilder:
 
     def resolve_query(
         self,
-        query: Optional[str],
-        use_aggregate_conditions: bool,
-        selected_columns: Optional[List[str]],
-        equations: Optional[List[str]],
-        orderby: Optional[List[str]],
+        query: Optional[str] = None,
+        use_aggregate_conditions: bool = False,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
     ) -> None:
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
@@ -1084,11 +1084,11 @@ class UnresolvedQuery(QueryBuilder):
 
     def resolve_query(
         self,
-        query: Optional[str],
-        use_aggregate_conditions: bool,
-        selected_columns: Optional[List[str]],
-        equations: Optional[List[str]],
-        orderby: Optional[List[str]],
+        query: Optional[str] = None,
+        use_aggregate_conditions: bool = False,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
     ) -> None:
         pass
 
@@ -1129,11 +1129,11 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
 
     def resolve_query(
         self,
-        query: Optional[str],
-        use_aggregate_conditions: bool,
-        selected_columns: Optional[List[str]],
-        equations: Optional[List[str]],
-        orderby: Optional[List[str]],
+        query: Optional[str] = None,
+        use_aggregate_conditions: bool = False,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
     ) -> None:
         self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
 
