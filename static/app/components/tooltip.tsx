@@ -221,6 +221,13 @@ class Tooltip extends React.Component<Props, State> {
       onPointerLeave: this.handleClose,
     };
 
+    const setRef = el => {
+      if (typeof ref === 'function') {
+        ref(el);
+      }
+      this.triggerEl = el;
+    };
+
     // Use the `type` property of the react instance to detect whether we
     // have a basic element (type=string) or a class/function component (type=function or object)
     // Because we can't rely on the child element implementing forwardRefs we wrap
@@ -233,22 +240,13 @@ class Tooltip extends React.Component<Props, State> {
       // Basic DOM nodes can be cloned and have more props applied.
       return React.cloneElement(children, {
         ...propList,
-        ref,
+        ref: setRef,
       });
     }
 
     propList.containerDisplayMode = this.props.containerDisplayMode;
     return (
-      <Container
-        {...propList}
-        className={this.props.className}
-        ref={el => {
-          if (typeof ref === 'function') {
-            ref(el);
-          }
-          this.triggerEl = el;
-        }}
-      >
+      <Container {...propList} className={this.props.className} ref={setRef}>
         {children}
       </Container>
     );
