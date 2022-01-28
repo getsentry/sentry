@@ -69,6 +69,7 @@ describe('DatePageFilter', function () {
         context: routerContext,
       }
     );
+
     // Confirm no filters are pinned
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
