@@ -69,8 +69,7 @@ class RatelimitMiddleware(MiddlewareMixin):
             (
                 hasattr(request, "rate_limit_limit"),
                 hasattr(request, "rate_limit_current_count"),
-                request,
-                "rate_limit_reset",
+                hasattr(request, "rate_limit_reset"),
             )
         ):
             remaining_count = (
