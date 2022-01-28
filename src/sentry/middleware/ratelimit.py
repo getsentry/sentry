@@ -27,7 +27,6 @@ class RatelimitMiddleware(MiddlewareMixin):
         request.will_be_rate_limited = False
         request.rate_limit_category = None
 
-        # If rate_limit_metadata isn't none, then some other request established it first
         if not can_be_ratelimited(request, view_func):
             return
 
@@ -45,39 +44,25 @@ class RatelimitMiddleware(MiddlewareMixin):
         if rate_limit is None:
             return
 
-        rate_limit_metadata = above_rate_limit_check(key, rate_limit)
-        request.rate_limit_limit = rate_limit_metadata.limit
-        request.rate_limit_current_count = rate_limit_metadata.current
-        request.rate_limit_reset = rate_limit_metadata.reset_time
+        request.rate_limit_metadata = above_rate_limit_check(key, rate_limit)
 
-        if rate_limit_metadata.is_limited:
+        if request.rate_limit_metadata.is_limited:
             request.will_be_rate_limited = True
             enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
             if enforce_rate_limit:
                 return HttpResponse(
                     {
                         "detail": DEFAULT_ERROR_MESSAGE.format(
-                            limit=rate_limit_metadata.limit,
-                            window=rate_limit_metadata.window,
+                            limit=request.rate_limit_metadata.limit,
+                            window=request.rate_limit_metadata.window,
                         )
                     },
                     status=429,
                 )
 
     def process_response(self, request: Request, response: Response) -> Response:
-        if all(
-            (
-                hasattr(request, "rate_limit_limit"),
-                hasattr(request, "rate_limit_current_count"),
-                hasattr(request, "rate_limit_reset"),
-            )
-        ):
-            remaining_count = (
-                request.rate_limit_limit - request.rate_limit_current_count
-                if request.rate_limit_limit > request.rate_limit_current_count
-                else 0
-            )
-            response["X-Sentry-Rate-Limit-Remaining"] = remaining_count
-            response["X-Sentry-Rate-Limit-Limit"] = request.rate_limit_limit
-            response["X-Sentry-Rate-Limit-Reset"] = request.rate_limit_reset
+        if hasattr(request, "rate_limit_metadata"):
+            response["X-Sentry-Rate-Limit-Remaining"] = request.rate_limit_metadata.remaining
+            response["X-Sentry-Rate-Limit-Limit"] = request.rate_limit_metadata.limit
+            response["X-Sentry-Rate-Limit-Reset"] = request.rate_limit_metadata.reset_time
         return response
