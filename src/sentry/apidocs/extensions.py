@@ -67,3 +67,7 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):  # ty
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
         return resolve_type_hint(self.target.typeSchema)
+
+
+# TODO: extension to do default error codes on responses.
+# https://github.com/tfranzel/drf-spectacular/issues/334
