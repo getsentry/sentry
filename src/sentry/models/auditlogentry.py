@@ -389,11 +389,8 @@ class AuditLogEntry(Model):
                 return "changed on-demand spend to unlimited"
             next_ondemand_budget = format_ondemand_budget(self.data["ondemand"])
             if "prev_ondemand" in self.data:
-                ondemand_label = "on-demand max spend"
-                if type(self.data["ondemand"]) is dict or type(self.data["prev_ondemand"]) is dict:
-                    ondemand_label = "on-demand budget"
                 prev_ondemand_budget = format_ondemand_budget(self.data["prev_ondemand"])
-                return f"changed {ondemand_label} from {prev_ondemand_budget} to {next_ondemand_budget}"
+                return f"changed on-demand budget from {prev_ondemand_budget} to {next_ondemand_budget}"
             return f"changed on-demand max spend to {next_ondemand_budget}"
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return "started trial"
