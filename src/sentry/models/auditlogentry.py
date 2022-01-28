@@ -13,6 +13,24 @@ from sentry.utils.strings import truncatechars
 MAX_ACTOR_LABEL_LENGTH = 64
 
 
+def format_ondemand_budget(ondemand_data):
+    if type(ondemand_data) is dict:
+        budget_mode = ondemand_data.get("budgetMode", None)
+        if budget_mode == "per_category":
+            errors_budget = format_ondemand_max_spend(ondemand_data.get("errorsBudget", 0))
+            transactions_budget = format_ondemand_max_spend(
+                ondemand_data.get("transactionsBudget", 0)
+            )
+            attachments_budget = format_ondemand_max_spend(
+                ondemand_data.get("attachmentsBudget", 0)
+            )
+            return f"split on-demand (errors at {errors_budget}, transactions at {transactions_budget}, and attachments at {attachments_budget})"
+        else:
+            shared_budget = ondemand_data.get("sharedMaxBudget", 0)
+            return f"shared on-demand of {format_ondemand_max_spend(shared_budget)}"
+    return format_ondemand_max_spend(ondemand_data)
+
+
 def format_ondemand_max_spend(max_spend_in_cents):
     ondemand_max_spend = max_spend_in_cents / 100
     has_cents = (ondemand_max_spend % 1) != 0
@@ -369,11 +387,11 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
             if self.data["ondemand"] == -1:
                 return "changed on-demand spend to unlimited"
-            next_ondemand_max_spend = format_ondemand_max_spend(self.data["ondemand"])
+            next_ondemand_budget = format_ondemand_budget(self.data["ondemand"])
             if "prev_ondemand" in self.data:
-                prev_ondemand_max_spend = format_ondemand_max_spend(self.data["prev_ondemand"])
-                return f"changed on-demand max spend from {prev_ondemand_max_spend} to {next_ondemand_max_spend}"
-            return f"changed on-demand max spend to {next_ondemand_max_spend}"
+                prev_ondemand_budget = format_ondemand_budget(self.data["prev_ondemand"])
+                return f"changed on-demand budget from {prev_ondemand_budget} to {next_ondemand_budget}"
+            return f"changed on-demand budget to {next_ondemand_budget}"
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return "started trial"
         elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
