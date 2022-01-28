@@ -1,4 +1,4 @@
-import {Fragment, ReactNode, RefObject, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -29,7 +29,7 @@ type Props = {
   /**
    * Ref object to the trigger element, needed for useOverlayPosition()
    */
-  triggerRef: RefObject<HTMLButtonElement>;
+  triggerRef: React.RefObject<HTMLButtonElement>;
   /**
    * Whether this is a submenu
    */
@@ -44,8 +44,8 @@ type Props = {
    */
   closeRootMenu: () => void;
   /**
-   * If this is a submenu, it will in some cases need to close itself
-   * (e.g. when the user presses the arrow left key)
+   * If this is a submenu, it will in some cases need to close itself (e.g.
+   * when the user presses the arrow left key)
    */
   closeCurrentSubmenu?: () => void;
 } & AriaMenuOptions<MenuItemProps> &
@@ -70,16 +70,12 @@ function Menu({
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = [...state.collection];
 
-  /**
-   * Implement focus states, keyboard navigation, aria-label,...
-   */
+  // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef(null);
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
 
-  /**
-   * If this is a submenu, pressing arrow left should close it
-   * (but not the root menu).
-   */
+  // If this is a submenu, pressing arrow left should close it (but not the
+  // root menu).
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
       if (isSubmenu && e.key === 'ArrowLeft') {
@@ -90,13 +86,10 @@ function Menu({
     },
   });
 
-  /**
-   * Close the menu on outside interaction, blur, or Esc key press,
-   * and control its position relative to the trigger button.
-   * See:
-   *   https://react-spectrum.adobe.com/react-aria/useOverlay.html
-   *   https://react-spectrum.adobe.com/react-aria/useOverlayPosition.html
-   */
+  // Close the menu on outside interaction, blur, or Esc key press, and
+  // control its position relative to the trigger button. See:
+  // https://react-spectrum.adobe.com/react-aria/useOverlay.html
+  // https://react-spectrum.adobe.com/react-aria/useOverlayPosition.html
   const overlayRef = useRef(null);
   const {overlayProps} = useOverlay(
     {
@@ -117,25 +110,19 @@ function Menu({
     isOpen: true,
   });
 
-  /**
-   * Store whether this menu/submenu is the current focused one, which
-   * in a nested, tree-like menu system should be the leaf submenu.
-   * This information is used for controlling keyboard events.
-   * See: modifiedMenuProps below.
-   */
+  // Store whether this menu/submenu is the current focused one, which in a
+  // nested, tree-like menu system should be the leaf submenu. This
+  // information is used for controlling keyboard events. See:
+  // modifiedMenuProps below.
   const [hasFocus, setHasFocus] = useState(true);
   useEffect(() => {
-    /**
-     * A submenu is a leaf when it does not contain any expanded submenu.
-     * This logically follows from the tree-like structure and single-selection
-     * nature of menus.
-     */
+    // A submenu is a leaf when it does not contain any expanded submenu. This
+    // logically follows from the tree-like structure and single-selection
+    // nature of menus.
     const isLeafSubmenu = !stateCollection.some(node => {
       const isSection = node.hasChildNodes && !node.value.isSubmenu;
-      /**
-       * A submenu with key [key] is expanded if
-       * state.selectionManager.isSelected([key]) = true
-       */
+      // A submenu with key [key] is expanded if
+      // state.selectionManager.isSelected([key]) = true
       return isSection
         ? [...node.childNodes].some(child =>
             state.selectionManager.isSelected(`${child.key}`)
@@ -144,10 +131,8 @@ function Menu({
     });
     setHasFocus(isLeafSubmenu);
   }, [state.selectionManager.selectedKeys]);
-  /**
-   * Menu props from useMenu, modified to disable keyboard events
-   * if the current menu does not have focus.
-   */
+  // Menu props from useMenu, modified to disable keyboard events if the
+  // current menu does not have focus.
   const modifiedMenuProps = {
     ...menuProps,
     ...(!hasFocus && {
@@ -156,9 +141,7 @@ function Menu({
     }),
   };
 
-  /**
-   * Render a single menu item
-   */
+  // Render a single menu item
   const renderItem = (node: Node<MenuItemProps>, isLastNode: boolean) => {
     return (
       <MenuItem
@@ -171,9 +154,7 @@ function Menu({
     );
   };
 
-  /**
-   * Render a submenu whose trigger button is a menu item
-   */
+  // Render a submenu whose trigger button is a menu item
   const renderItemWithSubmenu = (node: Node<MenuItemProps>, isLastNode: boolean) => {
     const trigger = ({props: submenuTriggerProps, ref: submenuTriggerRef}) => (
       <MenuItem
@@ -205,9 +186,7 @@ function Menu({
     );
   };
 
-  /**
-   * Render a collection of menu items
-   */
+  // Render a collection of menu items
   const renderCollection = (collection: Node<MenuItemProps>[]) =>
     collection.map((node, i) => {
       const isLastNode = collection.length - 1 === i;
@@ -215,7 +194,7 @@ function Menu({
         !isLastNode && (node.type === 'section' || collection[i + 1]?.type === 'section');
       const {separatorProps} = useSeparator({elementType: 'li'});
 
-      let itemToRender: ReactNode;
+      let itemToRender: React.ReactNode;
 
       if (node.type === 'section') {
         itemToRender = (

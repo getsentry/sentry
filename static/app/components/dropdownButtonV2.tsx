@@ -1,14 +1,12 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-export type DropdownButtonProps = Omit<
-  React.ComponentProps<typeof Button>,
-  'type' | 'priority'
-> & {
+export type DropdownButtonProps = Omit<React.ComponentProps<typeof Button>, 'type'> & {
+  children?: React.ReactNode;
   /**
    * The fixed prefix text to show in the button eg: 'Sort By'
    */
@@ -21,34 +19,31 @@ export type DropdownButtonProps = Omit<
    * Should a chevron icon be shown?
    */
   showChevron?: boolean;
-  /**
-   * Button color
-   */
-  priority?: 'default' | 'primary' | 'form';
-  /**
-   * Forward a ref to the button's root
-   */
-  forwardedRef?: React.Ref<typeof Button>;
 };
 
-const DropdownButton = ({
-  children,
-  forwardedRef,
-  prefix,
-  isOpen = false,
-  showChevron = false,
-  disabled = false,
-  priority = 'form',
-  ...props
-}: DropdownButtonProps) => {
-  return (
+const DropdownButton = forwardRef<
+  React.RefObject<HTMLElement> | null,
+  DropdownButtonProps
+>(
+  (
+    {
+      children,
+      prefix,
+      isOpen = false,
+      showChevron = true,
+      disabled = false,
+      priority = 'form',
+      ...props
+    }: DropdownButtonProps,
+    ref
+  ) => (
     <StyledButton
       {...props}
       type="button"
       disabled={disabled}
       priority={priority}
       isOpen={isOpen}
-      ref={forwardedRef}
+      ref={ref}
     >
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}
@@ -60,15 +55,11 @@ const DropdownButton = ({
         />
       )}
     </StyledButton>
-  );
-};
-
-DropdownButton.defaultProps = {
-  showChevron: true,
-};
+  )
+);
 
 const StyledChevron = styled(IconChevron)`
-  margin-left: 0.33em;
+  margin-left: ${space(0.75)};
 `;
 
 const StyledButton = styled(Button)<
@@ -89,6 +80,4 @@ const LabelText = styled('span')`
   padding-right: ${space(0.75)};
 `;
 
-export default React.forwardRef<typeof Button, DropdownButtonProps>((props, ref) => (
-  <DropdownButton forwardedRef={ref} {...props} />
-));
+export default DropdownButton;

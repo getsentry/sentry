@@ -1,11 +1,4 @@
-import {
-  ElementType,
-  HTMLAttributes,
-  MouseEvent,
-  ReactNode,
-  RefObject,
-  useRef,
-} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
@@ -19,44 +12,43 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import Menu from 'sentry/components/dropdownMenuV2';
 
 type TriggerProps = {
-  props: HTMLAttributes<HTMLButtonElement> & {
+  props: React.HTMLAttributes<HTMLButtonElement> & {
     onClick?: (e: MouseEvent) => void;
   };
-  ref: RefObject<HTMLButtonElement>;
+  ref: React.RefObject<HTMLButtonElement>;
 };
 
 type Props = {
   /**
-   * Items to display inside the dropdown menu. If the item has
-   * a `children` prop, it will be rendered as a menu section.
-   * If it has a `children` prop and its `isSubmenu` prop
-   * is true, it will be rendered as a submenu.
+   * Items to display inside the dropdown menu. If the item has a `children`
+   * prop, it will be rendered as a menu section. If it has a `children` prop
+   * and its `isSubmenu` prop is true, it will be rendered as a submenu.
    */
   items: MenuItemProps[];
   /**
-   * By default, the menu trigger will be rendered as a button,
-   * with triggerLabel as the button label.
+   * By default, the menu trigger will be rendered as a button, with
+   * triggerLabel as the button label.
    */
-  triggerLabel?: ReactNode;
+  triggerLabel?: React.ReactNode;
   /**
-   * If using the default button trigger (i.e. the custom `trigger` prop
-   * has not been provided), then `triggerProps` will be passed on
-   * to the button component.
+   * If using the default button trigger (i.e. the custom `trigger` prop has
+   * not been provided), then `triggerProps` will be passed on to the button
+   * component.
    */
   triggerProps?: DropdownButtonProps;
   /**
-   * Optionally replace the trigger button with a different component.
-   * Note that the replacement must have the `props` and `ref` (supplied
-   * in TriggerProps) forwarded its outer wrap, otherwise the accessibility
+   * Optionally replace the trigger button with a different component. Note
+   * that the replacement must have the `props` and `ref` (supplied in
+   * TriggerProps) forwarded its outer wrap, otherwise the accessibility
    * features won't work correctly.
    */
-  trigger?: (props: TriggerProps) => ReactNode;
+  trigger?: (props: TriggerProps) => React.ReactNode;
   /**
-   * Whether the trigger is disabled
+   * Whether the trigger is disabled.
    */
   isDisabled?: boolean;
   /**
-   * Title to put on top of
+   * Title for the current menu.
    */
   menuTitle?: string;
   /**
@@ -69,14 +61,14 @@ type Props = {
    */
   closeRootMenu?: () => void;
   /**
-   * If this is a submenu, it will in some cases need to close itself
-   * (e.g. when the user presses the arrow left key)
+   * If this is a submenu, it will in some cases need to close itself (e.g.
+   * when the user presses the arrow left key)
    */
   closeCurrentSubmenu?: () => void;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */
-  renderWrapAs?: ElementType;
+  renderWrapAs?: React.ElementType;
   /**
    * Pass class name to the outer wrap
    */
@@ -87,9 +79,8 @@ type Props = {
   Partial<AriaPositionProps>;
 
 /**
- * A menu component that renders both the trigger button
- * and the dropdown menu.
- * See: https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
+ * A menu component that renders both the trigger button and the dropdown
+ * menu. See: https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
  */
 function MenuControl({
   items,
@@ -106,10 +97,8 @@ function MenuControl({
 }: Props) {
   const ref = useRef(null);
 
-  /**
-   * Control the menu open state
-   * See: https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
-   */
+  // Control the menu open state. See:
+  // https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
   const state = useMenuTriggerState(props);
   const {menuTriggerProps, menuProps} = useMenuTrigger(
     {type: 'menu', isDisabled},

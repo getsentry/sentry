@@ -1,4 +1,3 @@
-import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
 import {Node} from '@react-types/shared';
@@ -8,12 +7,12 @@ import space from 'sentry/styles/space';
 
 type Props = {
   node: Node<MenuItemProps>;
-  children: ReactNode;
+  children: React.ReactNode;
 };
 
 /**
- * A wrapper component for menu sections
- * See: https://react-spectrum.adobe.com/react-aria/useMenu.html
+ * A wrapper component for menu sections. See:
+ * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
 function MenuSection({node, children}: Props) {
   const {itemProps, headingProps, groupProps} = useMenuSection({
