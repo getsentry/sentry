@@ -1,3 +1,7 @@
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
 from .base import BasePage
 
 EDIT_WIDGET_BUTTON = '[data-test-id="widget-edit"]'
@@ -14,8 +18,14 @@ class DashboardDetailPage(BasePage):
         self.dashboard = kwargs.get("dashboard", None)
 
     def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
-        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+        WebDriverWait(self.browser.driver, 10).until_not(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".loading-indicator"))
+        )
+        WebDriverWait(self.browser.driver, 10).until_not(
+            EC.presence_of_all_elements_located(
+                (By.CSS_SELECTOR, '[data-test-id="loading-placeholder"]')
+            )
+        )
 
     def visit_default_overview(self):
         self.browser.get(f"/organizations/{self.organization.slug}/dashboard/default-overview/")
