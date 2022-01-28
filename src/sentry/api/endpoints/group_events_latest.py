@@ -1,5 +1,3 @@
-import time
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -31,8 +29,6 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
         :pparam string group_id: the ID of the issue
         """
         environments = [e.name for e in get_environments(request, group.project.organization)]
-
-        time.sleep(10)
 
         event = group.get_latest_event_for_environments(environments)
 
