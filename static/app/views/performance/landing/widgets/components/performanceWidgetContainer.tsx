@@ -8,11 +8,8 @@ export type PerformanceWidgetContainerTypes = 'panel' | 'inline';
 const StyledPanel = styled(Panel)`
   padding-top: ${space(2)};
   margin-bottom: 0;
-  overflow: auto;
 `;
-const Div = styled('div')`
-  overflow: auto;
-`;
+const Div = styled('div')``;
 
 const getPerformanceWidgetContainer = ({
   containerType,
