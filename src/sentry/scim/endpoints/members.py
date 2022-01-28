@@ -15,7 +15,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.decorators import declare_public
+from sentry.apidocs.decorators import public
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import (
@@ -54,7 +54,7 @@ def _scim_member_serializer_with_expansion(organization):
     return OrganizationMemberSCIMSerializer(expand=expand)
 
 
-@declare_public(methods={"GET"})
+@public(methods={"GET"})
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
