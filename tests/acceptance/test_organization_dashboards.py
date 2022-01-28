@@ -100,9 +100,10 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
-        self.team = self.create_team(organization=self.organization, name="Mariachi Band")
-        self.project = self.create_project(
-            organization=self.organization, teams=[self.team], name="Bengal"
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
+            project_id=self.project.id,
         )
         self.dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by=self.user, organization=self.organization
@@ -122,6 +123,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         self.browser.snapshot(screenshot_name)
         self.browser.refresh()
         self.page.wait_until_loaded()
+
         self.browser.snapshot(f"{screenshot_name} (refresh)")
 
     def test_add_and_move_new_widget_on_existing_dashboard(self):
@@ -155,12 +157,13 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.save_dashboard()
 
             # Wait for page redirect, or else loading check passes too early
-            wait = WebDriverWait(self.browser.driver, 2)
+            wait = WebDriverWait(self.browser.driver, 10)
             wait.until(
-                lambda driver: driver.current_url.endswith(
-                    f"/organizations/{self.organization.slug}/dashboard/2/"
+                lambda driver: (
+                    f"/organizations/{self.organization.slug}/dashboard/2/" in driver.current_url
                 )
             )
+
             self.capture_screenshots("dashboards - save widget layout in new custom dashboard")
 
     def test_move_existing_widget_on_existing_dashboard(self):
@@ -239,7 +242,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
                 f".react-grid-item:nth-of-type(2) {WIDGET_DRAG_HANDLE}"
             )
             action = ActionChains(self.browser.driver)
-            action.drag_and_drop_by_offset(dragHandle, 500, 0)
+            action.drag_and_drop_by_offset(dragHandle, 1000, 0)
             action.perform()
 
             # Edit the new widget
@@ -304,7 +307,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
                 f".react-grid-item:nth-of-type(2) {WIDGET_DRAG_HANDLE}"
             )
             action = ActionChains(self.browser.driver)
-            action.drag_and_drop_by_offset(dragHandle, -500, 0).perform()
+            action.drag_and_drop_by_offset(dragHandle, -1000, 0).perform()
 
             # Resize new widget, get the 2nd element instead of the "last" because the "last" is
             # the add widget button
@@ -361,6 +364,58 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots(
                 "dashboards - delete existing widget does not reset new widget layout"
             )
+
+    def test_resize_big_number_widget(self):
+        existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Big Number Widget",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count_unique(issue)"], order=0
+        )
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+            self.page.visit_dashboard_detail()
+            self.page.enter_edit_state()
+
+            # Resize existing widget
+            resizeHandle = self.browser.element(WIDGET_RESIZE_HANDLE)
+            action = ActionChains(self.browser.driver)
+            action.drag_and_drop_by_offset(resizeHandle, 200, 200).perform()
+
+            self.page.save_dashboard()
+
+            self.capture_screenshots("dashboards - resize big number widget")
+
+    def test_default_layout_when_widgets_do_not_have_layout_set(self):
+        existing_widgets = DashboardWidget.objects.bulk_create(
+            [
+                DashboardWidget(
+                    dashboard=self.dashboard,
+                    order=i,
+                    title=f"Existing Widget {i}",
+                    display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    interval="1d",
+                )
+                for i in range(4)
+            ]
+        )
+        DashboardWidgetQuery.objects.bulk_create(
+            [
+                DashboardWidgetQuery(widget=existing_widget, fields=["count()"], order=0)
+                for existing_widget in existing_widgets
+            ]
+        )
+
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.page.wait_until_loaded()
+            self.browser.snapshot("dashboards - default layout when widgets do not have layout set")
 
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):

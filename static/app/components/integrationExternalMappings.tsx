@@ -20,7 +20,11 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = Pick<
   IntegrationExternalMappingForm['props'],
-  'dataEndpoint' | 'getBaseFormEndpoint' | 'sentryNamesMapper' | 'onResults'
+  | 'dataEndpoint'
+  | 'getBaseFormEndpoint'
+  | 'sentryNamesMapper'
+  | 'onResults'
+  | 'defaultOptions'
 > & {
   organization: Organization;
   integration: Integration;
@@ -41,6 +45,7 @@ class IntegrationExternalMappings extends Component<Props, State> {
       dataEndpoint,
       sentryNamesMapper,
       onResults,
+      defaultOptions,
     } = this.props;
     const mappingName = mapping.sentryName ?? '';
     return hasAccess ? (
@@ -53,6 +58,7 @@ class IntegrationExternalMappings extends Component<Props, State> {
         sentryNamesMapper={sentryNamesMapper}
         onResults={onResults}
         isInline
+        defaultOptions={defaultOptions}
       />
     ) : (
       mappingName

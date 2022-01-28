@@ -6,7 +6,6 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {getTooltipArrow} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {EventsStatsData, OrganizationSummary, Project} from 'sentry/types';
@@ -161,7 +160,7 @@ function getIntervalLine(
         tooltipFormatter(transaction.aggregate_range_1, 'p50()'),
         '</div>',
         '</div>',
-        getTooltipArrow(),
+        '<div class="tooltip-arrow"></div>',
       ].join('');
     },
   };
@@ -181,7 +180,7 @@ function getIntervalLine(
         tooltipFormatter(transaction.aggregate_range_2, 'p50()'),
         '</div>',
         '</div>',
-        getTooltipArrow(),
+        '<div class="tooltip-arrow"></div>',
       ].join('');
     },
   };

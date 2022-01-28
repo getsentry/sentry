@@ -5,6 +5,7 @@ Do not call this module directly. Use the `release_health` service instead. """
 import abc
 import logging
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import (
@@ -106,18 +107,14 @@ _VirtualColumnName = Literal["value", "avg", "max", "p50", "p75", "p90", "p95", 
 
 
 def _to_column(
-    query_func: SessionsQueryFunction, column_condition: Optional[Function] = None
+    query_func: SessionsQueryFunction, column_condition: SelectableExpression = 1
 ) -> SelectableExpression:
     """
     Converts query a function into an expression that can be directly plugged into anywhere
     columns are used (like the select argument of a Query)
     """
 
-    suffix = ""
-    parameters = [Column("value")]
-    if column_condition is not None:
-        suffix = "If"
-        parameters.append(column_condition)
+    parameters = [Column("value"), column_condition]
 
     # distribution columns
     if query_func in [
@@ -129,33 +126,33 @@ def _to_column(
     ]:
         return Function(
             alias="percentiles",
-            function=f"quantiles{suffix}(0.5,0.75,0.9,0.95,0.99)",
+            function="quantilesIf(0.5,0.75,0.9,0.95,0.99)",
             parameters=parameters,
         )
     if query_func == "avg(session.duration)":
         return Function(
             alias="avg",
-            function=f"avg{suffix}",
+            function="avgIf",
             parameters=parameters,
         )
     if query_func == "max(session.duration)":
         return Function(
             alias="max",
-            function=f"max{suffix}",
+            function="maxIf",
             parameters=parameters,
         )
     # counters
     if query_func == "sum(session)":
         return Function(
             alias="sum",
-            function=f"sum{suffix}",
+            function="sumIf",
             parameters=parameters,
         )
     # sets
     if query_func == "count_unique(user)":
         return Function(
             alias="count_unique",
-            function=f"uniq{suffix}",
+            function="uniqIf",
             parameters=parameters,
         )
 
@@ -445,7 +442,7 @@ def _fetch_data(
             # to healthy sessions, because that's what sessions_v2 exposes:
             healthy = indexer.resolve("exited")
             column_condition = (
-                None
+                1
                 if group_by_status
                 else Function("equals", [Column(tag_key_session_status), healthy])
             )
@@ -577,11 +574,15 @@ def run_sessions_query(
     span_op: str,
 ) -> SessionsQueryResult:
     """Convert a QueryDefinition to multiple snuba queries and reformat the results"""
-    data, metric_to_output_field = _fetch_data(org_id, query)
+    # This is necessary so that we do not mutate the query object shared between different
+    # backend runs
+    query_clone = deepcopy(query)
+
+    data, metric_to_output_field = _fetch_data(org_id, query_clone)
 
     data_points = _flatten_data(org_id, data)
 
-    intervals = list(get_intervals(query))
+    intervals = list(get_intervals(query_clone))
     timestamp_index = {timestamp.isoformat(): index for index, timestamp in enumerate(intervals)}
 
     def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
@@ -595,8 +596,10 @@ def run_sessions_query(
 
     groups: MutableMapping[GroupKey, Group] = defaultdict(
         lambda: {
-            "totals": {field: default_for(field) for field in query.raw_fields},
-            "series": {field: len(intervals) * [default_for(field)] for field in query.raw_fields},
+            "totals": {field: default_for(field) for field in query_clone.raw_fields},
+            "series": {
+                field: len(intervals) * [default_for(field)] for field in query_clone.raw_fields
+            },
         }
     )
 
@@ -647,9 +650,9 @@ def run_sessions_query(
         return dt.isoformat().replace("+00:00", "Z")
 
     return {
-        "start": format_datetime(query.start),
-        "end": format_datetime(query.end),
-        "query": query.query,
+        "start": format_datetime(query_clone.start),
+        "end": format_datetime(query_clone.end),
+        "query": query_clone.query,
         "intervals": [format_datetime(dt) for dt in intervals],
         "groups": groups_as_list,
     }
