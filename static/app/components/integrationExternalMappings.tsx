@@ -191,7 +191,15 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
       <Tooltip
         title={t(`This ${type} mapping suggestion was generated from a CODEOWNERS file`)}
       >
-        <Button borderless size="small" icon={<IconQuestion size="sm" />} disabled />
+        <Button
+          disabled
+          borderless
+          size="small"
+          icon={<IconQuestion size="sm" />}
+          aria-label={t(
+            `This ${type} mapping suggestion was generated from a CODEOWNERS file`
+          )}
+        />
       </Tooltip>
     );
   }
