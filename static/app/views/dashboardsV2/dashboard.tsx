@@ -666,6 +666,10 @@ const GridLayout = styled(WidthProvider(Responsive))`
   .react-grid-item > .react-resizable-handle::after {
     border: none;
   }
+
+  .react-grid-item.react-grid-placeholder {
+    background: ${p => p.theme.purple200};
+  }
 `;
 
 const ResizeHandle = styled('div')`
