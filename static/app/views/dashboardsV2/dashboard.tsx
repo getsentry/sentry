@@ -3,12 +3,14 @@ import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
 import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import {forceCheck} from 'react-lazyload';
 import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
@@ -83,6 +85,7 @@ type Props = {
 type State = {
   isMobile: boolean;
   layouts: Layouts;
+  windowWidth: number;
 };
 
 class Dashboard extends Component<Props, State> {
@@ -97,6 +100,7 @@ class Dashboard extends Component<Props, State> {
         [DESKTOP]: isUsingGrid ? desktopLayout : [],
         [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
       },
+      windowWidth: window.innerWidth,
     };
   }
 
@@ -131,7 +135,10 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing} = this.props;
+    const {isEditing, organization} = this.props;
+    if (organization.features.includes('dashboard-grid-layout')) {
+      window.addEventListener('resize', this.debouncedHandleResize);
+    }
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
@@ -157,6 +164,19 @@ class Dashboard extends Component<Props, State> {
       this.fetchMemberList();
     }
   }
+
+  componentWillUnmount() {
+    const {organization} = this.props;
+    if (organization.features.includes('dashboard-grid-layout')) {
+      window.removeEventListener('resize', this.debouncedHandleResize);
+    }
+  }
+
+  debouncedHandleResize = debounce(() => {
+    this.setState({
+      windowWidth: window.innerWidth,
+    });
+  }, 250);
 
   fetchMemberList() {
     const {api, selection} = this.props;
@@ -262,6 +282,10 @@ class Dashboard extends Component<Props, State> {
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }
+    // Force check lazyLoad elements that might have shifted into view after deleting an upper widget
+    // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
+    // RGL doesn't provide a handler for post animation layout change
+    setTimeout(forceCheck, 400);
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
@@ -343,7 +367,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   renderWidget(widget: Widget, index: number, defaultPosition?: Position) {
-    const {isMobile} = this.state;
+    const {isMobile, windowWidth} = this.state;
     const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
     const widgetProps = {
@@ -372,7 +396,12 @@ class Dashboard extends Component<Props, State> {
             }
           }
         >
-          <SortableWidget {...widgetProps} dragId={dragId} hideDragHandle={isMobile} />
+          <SortableWidget
+            {...widgetProps}
+            dragId={dragId}
+            isMobile={isMobile}
+            windowWidth={windowWidth}
+          />
         </GridItem>
       );
     }

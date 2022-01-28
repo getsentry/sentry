@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
+import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -7,7 +8,14 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
 import {t} from 'sentry/locale';
-import {ExternalActorMapping, Integration, Organization, Team} from 'sentry/types';
+import {
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
+  Integration,
+  Organization,
+  Team,
+} from 'sentry/types';
+import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = AsyncComponent['props'] &
@@ -18,6 +26,7 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   teams: Team[];
+  initialResults: Team[];
   queryResults: {
     // For inline forms, the mappingKey will be the external name (since multiple will be rendered at one time)
     // For the modal form, the mappingKey will be this.modalMappingKey (since only one modal form is rendered at any time)
@@ -30,6 +39,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       teams: [],
+      initialResults: [],
       queryResults: {},
     };
   }
@@ -37,11 +47,14 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     return [
+      // We paginate on this query, since we're filtering by hasExternalTeams:true
       [
         'teams',
         `/organizations/${organization.slug}/teams/`,
         {query: {...location?.query, query: 'hasExternalTeams:true'}},
       ],
+      // We use this query as defaultOptions to reduce identical API calls
+      ['initialResults', `/organizations/${organization.slug}/teams/`],
     ];
   }
 
@@ -86,22 +99,31 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return externalTeamMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 
-  modalMappingKey = 'MODAL_RESULTS';
+  modalMappingKey = '__MODAL_RESULTS__';
 
   get dataEndpoint() {
     const {organization} = this.props;
     return `/organizations/${organization.slug}/teams/`;
   }
 
-  getBaseFormEndpoint(mapping?: ExternalActorMapping) {
+  get defaultTeamOptions() {
+    const {initialResults} = this.state;
+    return this.sentryNamesMapper(initialResults).map(sentryNameToOption);
+  }
+
+  getBaseFormEndpoint(mapping?: ExternalActorMappingOrSuggestion) {
     if (!mapping) {
       return '';
     }
     const {organization} = this.props;
-    const {queryResults} = this.state;
-    const mappingResults =
+    const {queryResults, initialResults} = this.state;
+    const fieldResults =
       queryResults[mapping.externalName] ?? queryResults[this.modalMappingKey];
-    const team = mappingResults?.find(item => item.id === mapping.teamId);
+    const team =
+      // First, search for the team in the query results...
+      fieldResults?.find(item => item.id === mapping.teamId) ??
+      // Then in the initial results, if nothing was found.
+      initialResults?.find(item => item.id === mapping.teamId);
     return `/teams/${organization.slug}/${team?.slug ?? ''}/external-teams/`;
   }
 
@@ -109,18 +131,32 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return teams.map(({id, slug}) => ({id, name: slug}));
   }
 
+  /**
+   * This method combines the results from searches made on a form dropping repeated entries
+   * that have identical 'id's. This is because we need the result of the the search query when
+   * the user submits to get the team slug, but it won't always be the last query they've made.
+   *
+   * If they search (but not select) after making a selection, and we didn't keep a running collection of results,
+   * we wouldn't have the team to generate the endpoint from.
+   */
+  combineResultsById = (resultList1, resultList2) => {
+    return uniqBy([...resultList1, ...resultList2], 'id');
+  };
+
   handleResults = (results, mappingKey?: string) => {
     if (mappingKey) {
+      const {queryResults} = this.state;
       this.setState({
         queryResults: {
-          ...this.state.queryResults,
-          [mappingKey]: results,
+          ...queryResults,
+          // Ensure we always have a team to pull the slug from
+          [mappingKey]: this.combineResultsById(results, queryResults[mappingKey] ?? []),
         },
       });
     }
   };
 
-  openModal = (mapping?: ExternalActorMapping) => {
+  openModal = (mapping?: ExternalActorMappingOrSuggestion) => {
     const {integration} = this.props;
     openModal(({Body, Header, closeModal}) => (
       <Fragment>
@@ -131,6 +167,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
             integration={integration}
             dataEndpoint={this.dataEndpoint}
             getBaseFormEndpoint={map => this.getBaseFormEndpoint(map)}
+            defaultOptions={this.defaultTeamOptions}
             mapping={mapping}
             mappingKey={this.modalMappingKey}
             sentryNamesMapper={this.sentryNamesMapper}
@@ -157,6 +194,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
         mappings={this.mappings}
         dataEndpoint={this.dataEndpoint}
         getBaseFormEndpoint={mapping => this.getBaseFormEndpoint(mapping)}
+        defaultOptions={this.defaultTeamOptions}
         sentryNamesMapper={this.sentryNamesMapper}
         onCreate={this.openModal}
         onDelete={this.handleDelete}

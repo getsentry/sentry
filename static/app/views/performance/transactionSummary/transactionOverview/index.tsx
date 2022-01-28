@@ -35,8 +35,8 @@ import {
   VITAL_GROUPS,
 } from '../transactionVitals/constants';
 
+import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import SummaryContent from './content';
-import {ZOOM_END, ZOOM_START} from './latencyChart';
 
 // Used to cast the totals request to numbers
 // as React.ReactText

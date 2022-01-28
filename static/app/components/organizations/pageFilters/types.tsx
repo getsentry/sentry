@@ -1,5 +1,3 @@
-import {DateString} from 'sentry/types';
-
 /**
  * A flat object of stringified page filter data
  *
@@ -25,17 +23,4 @@ export type PageFiltersState = {
   start: Date | null;
   end: Date | null;
   utc: boolean | null;
-};
-
-/**
- * This is the 'update' object used for updating the page filters. The types
- * here are a bit wider to allow for easy updates.
- */
-export type PageFiltersUpdate = {
-  project?: Array<string | number> | null;
-  environment?: string[] | null;
-  start?: DateString;
-  end?: DateString;
-  utc?: string | boolean | null;
-  period?: string | null;
 };
