@@ -10,7 +10,7 @@ from sentry.apidocs.spectacular_ports import resolve_type_hint  # type: ignore
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):  # type: ignore
     """
-    Extension that adds what permissions are needed to access the endpoint to the
+    Extension that adds what scopes are needed to access an endpoint to the
     OpenAPI Schema.
     """
 
@@ -18,12 +18,12 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):  # type: ignore
     name = "auth_token"
 
     def get_security_requirement(self, auto_schema: AutoSchema) -> Dict[str, List[Any]]:
-        permissions = set()
+        scopes = set()
         for permission in auto_schema.view.get_permissions():
-            for p in permission.scope_map.get(auto_schema.method, []):
-                permissions.add(p)
+            for s in permission.scope_map.get(auto_schema.method, []):
+                scopes.add(s)
 
-        return {self.name: list(permissions)}
+        return {self.name: list(scopes)}
 
     def get_security_definition(
         self, auto_schema: AutoSchema
