@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -63,6 +64,10 @@ describe('OrganizationMembersList', function () {
   });
 
   beforeEach(function () {
+    // We have a side effect somewhere that triggers an update which causes the jest wrapped in act error.
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/organizations/org-id/members/me/',
@@ -154,11 +159,14 @@ describe('OrganizationMembersList', function () {
       TestStubs.routerContext([{organization}])
     );
 
-    wrapper.find('Button[data-test-id="remove"]').at(0).simulate('click');
+    await act(async () => {
+      wrapper.find('Button[data-test-id="remove"]').at(0).simulate('click');
 
-    // Confirm modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
+      // Confirm modal
+      const modal = await mountGlobalModal();
+      modal.find('Button[priority="primary"]').simulate('click');
+    });
+
     await tick();
 
     expect(deleteMock).toHaveBeenCalled();
@@ -180,11 +188,13 @@ describe('OrganizationMembersList', function () {
       TestStubs.routerContext([{organization}])
     );
 
-    wrapper.find('Button[priority="danger"]').at(0).simulate('click');
+    await act(async () => {
+      wrapper.find('Button[priority="danger"]').at(0).simulate('click');
 
-    // Confirm modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
+      // Confirm modal
+      const modal = await mountGlobalModal();
+      modal.find('Button[priority="primary"]').simulate('click');
+    });
     await tick();
 
     expect(deleteMock).toHaveBeenCalled();
@@ -212,11 +222,13 @@ describe('OrganizationMembersList', function () {
       TestStubs.routerContext([{organization}])
     );
 
-    wrapper.find('Button[priority="danger"]').at(0).simulate('click');
+    await act(async () => {
+      wrapper.find('Button[priority="danger"]').at(0).simulate('click');
 
-    // Confirm modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
+      // Confirm modal
+      const modal = await mountGlobalModal();
+      modal.find('Button[priority="primary"]').simulate('click');
+    });
     await tick();
 
     expect(deleteMock).toHaveBeenCalled();
@@ -270,7 +282,9 @@ describe('OrganizationMembersList', function () {
 
     expect(inviteMock).not.toHaveBeenCalled();
 
-    wrapper.find('StyledButton[aria-label="Resend SSO link"]').simulate('click');
+    act(() => {
+      wrapper.find('StyledButton[aria-label="Resend SSO link"]').simulate('click');
+    });
 
     await tick();
     expect(inviteMock).toHaveBeenCalled();
@@ -292,7 +306,9 @@ describe('OrganizationMembersList', function () {
 
     expect(inviteMock).not.toHaveBeenCalled();
 
-    wrapper.find('StyledButton[aria-label="Resend invite"]').simulate('click');
+    act(() => {
+      wrapper.find('StyledButton[aria-label="Resend invite"]').simulate('click');
+    });
 
     await tick();
     expect(inviteMock).toHaveBeenCalled();
@@ -309,9 +325,9 @@ describe('OrganizationMembersList', function () {
       routerContext
     );
 
-    wrapper
-      .find('AsyncComponentSearchInput input')
-      .simulate('change', {target: {value: 'member'}});
+    act(() => {
+      wrapper.find('input').simulate('change', {target: {value: 'member'}});
+    });
 
     expect(searchMock).toHaveBeenLastCalledWith(
       '/organizations/org-id/members/',
@@ -339,11 +355,21 @@ describe('OrganizationMembersList', function () {
       routerContext
     );
 
-    wrapper.find('AsyncComponentSearchInput DropdownMenu Button').simulate('click');
+    await act(async () => {
+      wrapper.find('DropdownMenu Button').simulate('click');
+      await tick();
+    });
 
-    wrapper
-      .find('AsyncComponentSearchInput [data-test-id="filter-role-member"] input')
-      .simulate('change', {target: {checked: true}});
+    wrapper.update();
+
+    await act(async () => {
+      wrapper
+        .find('[data-test-id="filter-role-member"] input')
+        .simulate('change', {target: {checked: true}});
+      await tick();
+    });
+
+    wrapper.update();
 
     expect(searchMock).toHaveBeenLastCalledWith(
       '/organizations/org-id/members/',
@@ -353,14 +379,24 @@ describe('OrganizationMembersList', function () {
       })
     );
 
-    wrapper
-      .find('AsyncComponentSearchInput [data-test-id="filter-role-member"] input')
-      .simulate('change', {target: {checked: false}});
+    await act(async () => {
+      wrapper
+        .find('[data-test-id="filter-role-member"] input')
+        .simulate('change', {target: {checked: false}});
+      await tick();
+    });
+
+    wrapper.update();
 
     for (const filter of ['isInvited', 'has2fa', 'ssoLinked']) {
-      wrapper
-        .find(`AsyncComponentSearchInput [data-test-id="filter-${filter}"] input`)
-        .simulate('change', {target: {checked: true}});
+      await act(async () => {
+        wrapper
+          .find(`[data-test-id="filter-${filter}"] input`)
+          .simulate('change', {target: {checked: true}});
+        await tick();
+      });
+
+      wrapper.update();
 
       expect(searchMock).toHaveBeenLastCalledWith(
         '/organizations/org-id/members/',
@@ -370,9 +406,12 @@ describe('OrganizationMembersList', function () {
         })
       );
 
-      wrapper
-        .find(`AsyncComponentSearchInput [data-test-id="filter-${filter}"] Switch`)
-        .simulate('click');
+      await act(async () => {
+        wrapper.find(`[data-test-id="filter-${filter}"] Switch`).simulate('click');
+        await tick();
+      });
+
+      wrapper.update();
 
       expect(searchMock).toHaveBeenLastCalledWith(
         '/organizations/org-id/members/',
@@ -382,9 +421,14 @@ describe('OrganizationMembersList', function () {
         })
       );
 
-      wrapper
-        .find(`AsyncComponentSearchInput [data-test-id="filter-${filter}"] input`)
-        .simulate('change', {target: {checked: false}});
+      await act(async () => {
+        wrapper
+          .find(`[data-test-id="filter-${filter}"] input`)
+          .simulate('change', {target: {checked: false}});
+        await tick();
+      });
+
+      wrapper.update();
     }
   });
 
@@ -525,7 +569,9 @@ describe('OrganizationMembersList', function () {
         true
       );
 
-      wrapper.find('button[aria-label="Deny"]').simulate('click');
+      act(() => {
+        wrapper.find('button[aria-label="Deny"]').simulate('click');
+      });
 
       await tick();
       wrapper.update();
@@ -568,9 +614,11 @@ describe('OrganizationMembersList', function () {
 
       selectByValue(wrapper, 'admin', {name: 'role', control: true});
 
-      wrapper.find('button[aria-label="Approve"]').simulate('click');
-      const modal = await mountGlobalModal();
-      modal.find('button[aria-label="Confirm"]').simulate('click');
+      await act(async () => {
+        wrapper.find('button[aria-label="Approve"]').simulate('click');
+        const modal = await mountGlobalModal();
+        modal.find('button[aria-label="Confirm"]').simulate('click');
+      });
 
       await tick();
       wrapper.update();

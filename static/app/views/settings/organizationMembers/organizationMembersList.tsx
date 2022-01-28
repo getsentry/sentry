@@ -259,27 +259,29 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     const requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
     // eslint-disable-next-line react/prop-types
-    const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => (
-      <SearchWrapperWithFilter>
-        <DropdownMenu closeOnEscape>
-          {({getActorProps, isOpen}) => (
-            <FilterWrapper>
-              <Button icon={<IconSliders size="xs" />} {...getActorProps({})}>
-                {t('Filter')}
-              </Button>
-              {isOpen && (
-                <StyledMembersFilter
-                  roles={currentMember?.roles ?? MEMBER_ROLES}
-                  query={value}
-                  onChange={(query: string) => handleChange(query)}
-                />
-              )}
-            </FilterWrapper>
-          )}
-        </DropdownMenu>
-        {defaultSearchBar}
-      </SearchWrapperWithFilter>
-    );
+    const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => {
+      return (
+        <SearchWrapperWithFilter>
+          <DropdownMenu closeOnEscape>
+            {({getActorProps, isOpen}) => (
+              <FilterWrapper>
+                <Button icon={<IconSliders size="xs" />} {...getActorProps({})}>
+                  {t('Filter')}
+                </Button>
+                {isOpen && (
+                  <StyledMembersFilter
+                    roles={currentMember?.roles ?? MEMBER_ROLES}
+                    query={value}
+                    onChange={(query: string) => handleChange(query)}
+                  />
+                )}
+              </FilterWrapper>
+            )}
+          </DropdownMenu>
+          {defaultSearchBar}
+        </SearchWrapperWithFilter>
+      );
+    };
 
     return (
       <React.Fragment>

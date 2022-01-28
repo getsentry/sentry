@@ -88,27 +88,33 @@ function AsyncComponentSearchInput({
   const latestQuery = React.useRef<string>(state.query);
 
   const queryResolver = React.useCallback(
-    async (searchQuery: string) => {
+    (searchQuery: string) => {
       latestQuery.current = searchQuery;
       setState({query: searchQuery, busy: true});
 
-      try {
-        const [data, , resp] = await api.requestPromise(url, {
+      api
+        .requestPromise(url, {
           includeAllArgs: true,
           method: 'GET',
           query: {...location.query, query: searchQuery},
+        })
+        .then(([data, _, resp]) => {
+          // only update data if the request's query matches the current query
+          if (latestQuery.current === searchQuery) {
+            onSuccess(data, resp);
+          }
+        })
+        .catch(() => {
+          // TODO: should this also respect latestQuery === searchQuery?
+          if (latestQuery.current === searchQuery) {
+            onError();
+          }
+        })
+        .finally(() => {
+          if (latestQuery.current === searchQuery) {
+            setState({query: searchQuery, busy: false});
+          }
         });
-
-        // only update data if the request's query matches the current query
-        if (latestQuery.current === searchQuery) {
-          onSuccess(data, resp);
-        }
-      } catch {
-        // TODO: should this also respect latestQuery === searchQuery?
-        onError();
-      }
-
-      setState({query: searchQuery, busy: false});
     },
     [onSuccess, onError, api, url]
   );
