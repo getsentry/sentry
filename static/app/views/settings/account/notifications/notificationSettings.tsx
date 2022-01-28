@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Link from 'sentry/components/links/link';
+import Panel from 'sentry/components/panels/panel';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -144,11 +146,6 @@ class NotificationSettings extends AsyncComponent<Props, State> {
       fields.push(field);
     }
 
-    const legacyField = SELF_NOTIFICATION_SETTINGS_TYPES.map(
-      type => NOTIFICATION_SETTING_FIELDS[type] as FieldObject
-    );
-    fields.push(...legacyField);
-
     return fields;
   }
 
@@ -160,21 +157,26 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         <SettingsPageHeader title="Notifications" />
         <TextBlock>Personal notifications sent via email or an integration.</TextBlock>
         <FeedbackAlert />
-        <Form
+        <StyledForm
           saveOnBlur
           apiMethod="PUT"
           apiEndpoint="/users/me/notification-settings/"
           initialData={this.getInitialData()}
         >
-          <Form
-            initialData={legacyData}
-            saveOnBlur
-            apiMethod="PUT"
-            apiEndpoint="/users/me/notifications/"
-          >
-            <JsonForm title={t('Notifications')} fields={this.getFields()} />
-          </Form>
-        </Form>
+          <JsonForm title={t('Notifications')} fields={this.getFields()} />
+        </StyledForm>
+        <StyledLegacyForm
+          initialData={legacyData}
+          saveOnBlur
+          apiMethod="PUT"
+          apiEndpoint="/users/me/notifications/"
+        >
+          <JsonForm
+            fields={SELF_NOTIFICATION_SETTINGS_TYPES.map(
+              type => NOTIFICATION_SETTING_FIELDS[type] as FieldObject
+            )}
+          />
+        </StyledLegacyForm>
         <AlertLink to="/settings/account/emails" icon={<IconMail />}>
           {t('Looking to add or remove an email address? Use the emails panel.')}
         </AlertLink>
@@ -184,3 +186,20 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 }
 
 export default withOrganizations(NotificationSettings);
+
+const StyledForm = styled(Form)<Form['props']>`
+  ${Panel} {
+    margin-bottom: 0;
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+`;
+
+const StyledLegacyForm = styled(Form)<Form['props']>`
+  ${Panel} {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+`;
