@@ -135,8 +135,10 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing} = this.props;
-    window.addEventListener('resize', this.debouncedHandleResize);
+    const {isEditing, organization} = this.props;
+    if (organization.features.includes('dashboard-grid-layout')) {
+      window.addEventListener('resize', this.debouncedHandleResize);
+    }
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
@@ -164,7 +166,10 @@ class Dashboard extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    window.removeEventListener('resize', this.debouncedHandleResize);
+    const {organization} = this.props;
+    if (organization.features.includes('dashboard-grid-layout')) {
+      window.removeEventListener('resize', this.debouncedHandleResize);
+    }
   }
 
   debouncedHandleResize = debounce(() => {
