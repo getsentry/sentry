@@ -28,11 +28,14 @@ describe('ProjectPageFilter', function () {
   beforeEach(() => {
     act(() => {
       PageFiltersStore.reset();
-      PageFiltersStore.onInitializeUrlState({
-        projects: [],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      });
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [],
+          environments: [],
+          datetime: {start: null, end: null, period: '14d', utc: null},
+        },
+        new Set()
+      );
     });
   });
 

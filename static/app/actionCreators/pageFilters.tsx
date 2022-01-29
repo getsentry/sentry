@@ -7,14 +7,17 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
-import {getStateFromQuery} from 'sentry/components/organizations/pageFilters/parse';
+import {
+  getDatetimeFromState,
+  getStateFromQuery,
+} from 'sentry/components/organizations/pageFilters/parse';
 import {
   getPageFilterStorage,
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/persistence';
 import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {
   DateString,
@@ -92,6 +95,24 @@ function getProjectIdFromProject(project: MinimalProject) {
   return parseInt(project.id, 10);
 }
 
+/**
+ * Merges two date time objects, where the `base` object takes presidence, and
+ * the `fallback` values are used when the base values are null or undefined.
+ */
+function mergeDatetime(
+  base: PageFilters['datetime'],
+  fallback: Partial<PageFilters['datetime']> | undefined
+) {
+  const datetime: PageFilters['datetime'] = {
+    start: base.start ?? fallback?.start ?? null,
+    end: base.end ?? fallback?.end ?? null,
+    period: base.period ?? fallback?.period ?? null,
+    utc: base.utc ?? fallback?.utc ?? null,
+  };
+
+  return datetime;
+}
+
 type InitializeUrlStateParams = {
   organization: Organization;
   queryParams: Location['query'];
@@ -122,54 +143,64 @@ export function initializeUrlState({
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
 
-  const query = pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT]);
-  const hasProjectOrEnvironmentInUrl = Object.keys(query).length > 0;
-
   const parsed = getStateFromQuery(queryParams, {
     allowAbsoluteDatetime: showAbsolute,
     allowEmptyPeriod: true,
   });
 
-  const {datetime: defaultDateTime, ...retrievedDefaultSelection} = getDefaultSelection();
+  const {datetime: defaultDatetime, ...defaultFilters} = getDefaultSelection();
+  const {datetime: customDatetime, ...customDefaultFilters} = defaultSelection ?? {};
 
-  const {datetime: customizedDefaultDateTime, ...customizedDefaultSelection} =
-    defaultSelection || {};
-
-  let pageFilters: PageFilters = {
-    ...retrievedDefaultSelection,
-    ...customizedDefaultSelection,
-    datetime: {
-      start: parsed.start || customizedDefaultDateTime?.start || null,
-      end: parsed.end || customizedDefaultDateTime?.end || null,
-      period:
-        parsed.period || customizedDefaultDateTime?.period || defaultDateTime.period,
-      utc: parsed.utc || customizedDefaultDateTime?.utc || null,
-    },
+  const pageFilters: PageFilters = {
+    ...defaultFilters,
+    ...customDefaultFilters,
+    datetime: mergeDatetime(parsed, customDatetime),
   };
+
+  // Use period from default of we don't have a period set
+  pageFilters.datetime.period ??= defaultDatetime.period;
 
   // Do not set a period if we have absolute start and end
   if (pageFilters.datetime.start && pageFilters.datetime.end) {
     pageFilters.datetime.period = null;
   }
 
+  const hasDatetimeInUrl = Object.keys(pick(queryParams, DATE_TIME_KEYS)).length > 0;
+  const hasProjectOrEnvironmentInUrl =
+    Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
+
   if (hasProjectOrEnvironmentInUrl) {
     pageFilters.projects = parsed.project || [];
     pageFilters.environments = parsed.environment || [];
   }
 
-  // We only save environment and project, so if those exist in URL, do not
-  // touch local storage
-  if (!hasProjectOrEnvironmentInUrl && !skipLoadLastUsed) {
-    const storedPageFilters = getPageFilterStorage(orgSlug);
+  const storedPageFilters = skipLoadLastUsed ? null : getPageFilterStorage(orgSlug);
 
-    if (storedPageFilters !== null) {
-      const {project, environment} = storedPageFilters.selection;
+  // We may want to restore some page filters from local storage. In the new
+  // world when they are pinned, and in the old world as long as
+  // skipLoadLastUsed is not set to true.
+  if (storedPageFilters) {
+    const {state: storedState, pinnedFilters} = storedPageFilters;
 
-      pageFilters = {
-        projects: project ?? [],
-        environments: environment ?? [],
-        datetime: pageFilters.datetime,
-      };
+    const hasPinning = organization.features.includes(
+      'organizations:selection-filters-v2'
+    );
+
+    const filtersToRestore = hasPinning
+      ? pinnedFilters
+      : new Set<PinnedPageFilter>(['projects', 'environments']);
+
+    if (!hasProjectOrEnvironmentInUrl && filtersToRestore.has('projects')) {
+      pageFilters.projects = storedState.project ?? [];
+    }
+
+    if (!hasProjectOrEnvironmentInUrl && filtersToRestore.has('environments')) {
+      pageFilters.environments = storedState.environment ?? [];
+    }
+
+    if (!hasDatetimeInUrl && filtersToRestore.has('datetime')) {
+      const storedDatetime = getDatetimeFromState(storedState);
+      pageFilters.datetime = mergeDatetime(pageFilters.datetime, storedDatetime);
     }
   }
 
@@ -212,7 +243,8 @@ export function initializeUrlState({
     project = newProject;
   }
 
-  PageFiltersActions.initializeUrlState(pageFilters);
+  const pinnedFilters = storedPageFilters?.pinnedFilters ?? new Set();
+  PageFiltersActions.initializeUrlState(pageFilters, pinnedFilters);
 
   const newDatetime = {
     ...datetime,
@@ -231,11 +263,11 @@ function isProjectsValid(projects: ProjectId[]) {
 }
 
 /**
- * Updates store and  selection URL param if `router` is supplied
+ * Updates store and selection URL param if `router` is supplied
  *
- * This accepts `environments` from `options` to also update environments simultaneously
- * as environments are tied to a project, so if you change projects, you may need
- * to clear environments.
+ * This accepts `environments` from `options` to also update environments
+ * simultaneously as environments are tied to a project, so if you change
+ * projects, you may need to clear environments.
  */
 export function updateProjects(
   projects: ProjectId[],
