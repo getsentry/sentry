@@ -20,6 +20,7 @@ from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 from sentry.utils.compat import map
+from sentry.utils.imports import import_string
 from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -240,7 +241,11 @@ class _RedisCluster:
             else:
                 host = hosts[0].copy()
                 host["decode_responses"] = True
-                return StrictRedis(**host)
+                return (
+                    import_string(config["client_class"])
+                    if "client_class" in config
+                    else StrictRedis
+                )(**host)
 
         return SimpleLazyObject(cluster_factory)
 
