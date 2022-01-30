@@ -47,7 +47,7 @@ describe('withIssueTags HoC', function () {
       expect(screen.getByText(/MechanismTagValue/)).toBeInTheDocument();
     });
 
-    // // should include special issue and attributes.
+    // should include special issue and attributes.
     expect(screen.getByText(/is: resolved/)).toBeInTheDocument();
     expect(screen.getByText(/bookmarks: me/)).toBeInTheDocument();
     expect(screen.getByText(/assigned: me/)).toBeInTheDocument();

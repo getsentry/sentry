@@ -36,6 +36,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
   function ComponentWithTags(props: Omit<Props, keyof WithIssueTagsProps>) {
     const [state, setState] = React.useState<WrappedComponentState>({
       tags: assign(
+        {},
         TagStore.getAllTags(),
         TagStore.getIssueAttributes(),
         TagStore.getBuiltInTags()
@@ -87,16 +88,17 @@ function withIssueTags<Props extends WithIssueTagsProps>(
     );
 
     // Listen to team store updates and cleanup listener on unmount
-    const unsubscribeTeams = React.useMemo(() => {
-      return TeamStore.listen(() => {
+    React.useEffect(() => {
+      const unsubscribeTeam = TeamStore.listen(() => {
         setAssigned({teams: TeamStore.getAll()});
       }, undefined);
+
+      return () => unsubscribeTeam();
     }, []);
-    React.useEffect(() => () => unsubscribeTeams(), [unsubscribeTeams]);
 
     // Listen to tag store updates and cleanup listener on unmount
-    const unsubscribeTags = React.useMemo(() => {
-      return TagStore.listen((storeTags: TagCollection) => {
+    React.useEffect(() => {
+      const unsubscribeTags = TagStore.listen((storeTags: TagCollection) => {
         const tags = assign(
           {},
           storeTags,
@@ -106,16 +108,18 @@ function withIssueTags<Props extends WithIssueTagsProps>(
 
         setAssigned({tags});
       }, undefined);
+
+      return () => unsubscribeTags();
     }, []);
-    React.useEffect(() => () => unsubscribeTags(), [unsubscribeTags]);
 
     // Listen to member store updates and cleanup listener on unmount
-    const unsubscribeMembers = React.useMemo(() => {
-      return MemberListStore.listen((users: User[]) => {
+    React.useEffect(() => {
+      const unsubscribeMembers = MemberListStore.listen((users: User[]) => {
         setAssigned({users});
       }, undefined);
+
+      return () => unsubscribeMembers();
     }, []);
-    React.useEffect(() => () => unsubscribeMembers(), [unsubscribeMembers]);
 
     return <WrappedComponent {...(props as Props)} tags={state.tags} />;
   }
