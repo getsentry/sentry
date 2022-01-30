@@ -41,6 +41,7 @@ const BaseBadge = React.memo(
           team={team}
           organization={organization}
           project={project}
+          data-test-id="badge-styled-avatar"
         />
       )}
 

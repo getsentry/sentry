@@ -15,6 +15,7 @@ type State = {
 };
 
 type TeamStoreInterface = CommonStoreInterface<State> & {
+  init(): void;
   initialized: boolean;
   state: State;
   reset(): void;
