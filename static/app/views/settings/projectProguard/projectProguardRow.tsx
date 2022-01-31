@@ -54,6 +54,7 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
                   disabled={!hasRole}
                   href={downloadUrl}
                   title={hasRole ? t('Download Mapping') : undefined}
+                  aria-label={t('Download Mapping')}
                 />
               </Tooltip>
             )}

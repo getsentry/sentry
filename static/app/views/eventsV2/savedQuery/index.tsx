@@ -358,6 +358,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         onClick={this.handleDeleteQuery}
         disabled={disabled}
         icon={<IconDelete />}
+        aria-label={t('Delete')}
       />
     );
   }
