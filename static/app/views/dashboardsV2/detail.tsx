@@ -200,9 +200,11 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard} = this.state;
 
     if (
-      ![DashboardState.VIEW, DashboardState.PENDING_DELETE].includes(
-        this.state.dashboardState
-      ) &&
+      ![
+        DashboardState.VIEW,
+        DashboardState.PENDING_DELETE,
+        DashboardState.PREVIEW,
+      ].includes(this.state.dashboardState) &&
       !isEqual(modifiedDashboard, dashboard)
     ) {
       return UNSAVED_MESSAGE;
@@ -215,9 +217,11 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard} = this.state;
 
     if (
-      [DashboardState.VIEW, DashboardState.PENDING_DELETE].includes(
-        this.state.dashboardState
-      ) ||
+      [
+        DashboardState.VIEW,
+        DashboardState.PENDING_DELETE,
+        DashboardState.PREVIEW,
+      ].includes(this.state.dashboardState) ||
       isEqual(modifiedDashboard, dashboard)
     ) {
       return;
@@ -259,7 +263,8 @@ class DashboardDetail extends Component<Props, State> {
   onCancel = () => {
     const {organization, dashboard, location, params} = this.props;
     const {modifiedDashboard} = this.state;
-    if (!isEqual(modifiedDashboard, dashboard)) {
+    // Don't confirm preview cancellation regardless of dashboard state
+    if (!isEqual(modifiedDashboard, dashboard) && !this.isPreview) {
       // Ignore no-alert here, so that the confirm on cancel matches onUnload & onRouteLeave
       /* eslint no-alert:0 */
       if (!confirm(UNSAVED_MESSAGE)) {
