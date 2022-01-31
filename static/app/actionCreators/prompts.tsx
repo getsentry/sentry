@@ -2,18 +2,18 @@ import {Client} from 'sentry/api';
 
 type PromptsUpdateParams = {
   /**
+   * The prompt feature name
+   */
+  feature: string;
+  /**
    * The numeric organization ID as a string
    */
   organizationId: string;
+  status: 'snoozed' | 'dismissed';
   /**
    * The numeric project ID as a string
    */
   projectId?: string;
-  /**
-   * The prompt feature name
-   */
-  feature: string;
-  status: 'snoozed' | 'dismissed';
 };
 
 /**
@@ -33,6 +33,10 @@ export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
 
 type PromptCheckParams = {
   /**
+   * The prompt feature name
+   */
+  feature: string;
+  /**
    * The numeric organization ID as a string
    */
   organizationId: string;
@@ -40,15 +44,11 @@ type PromptCheckParams = {
    * The numeric project ID as a string
    */
   projectId?: string;
-  /**
-   * The prompt feature name
-   */
-  feature: string;
 };
 
 export type PromptResponseItem = {
-  snoozed_ts?: number;
   dismissed_ts?: number;
+  snoozed_ts?: number;
 };
 export type PromptResponse = {
   data?: PromptResponseItem;

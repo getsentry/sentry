@@ -31,17 +31,17 @@ const defaultProps = {
 };
 
 type Props = {
-  organization: Organization;
   hasRelease: boolean;
   onUpdate: (data: UpdateResolutionStatus) => void;
   orgSlug: string;
+  organization: Organization;
+  confirmMessage?: React.ReactNode;
+  disableDropdown?: boolean;
+  disabled?: boolean;
   latestRelease?: Release;
+  projectFetchError?: boolean;
   projectSlug?: string;
   shouldConfirm?: boolean;
-  confirmMessage?: React.ReactNode;
-  disabled?: boolean;
-  disableDropdown?: boolean;
-  projectFetchError?: boolean;
 } & Partial<typeof defaultProps>;
 
 class ResolveActions extends React.Component<Props> {

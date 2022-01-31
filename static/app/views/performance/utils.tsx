@@ -168,8 +168,8 @@ export function trendsTargetRoute({
 }: {
   location: Location;
   organization: Organization;
-  initialConditions?: MutableSearch;
   additionalQuery?: {[x: string]: string};
+  initialConditions?: MutableSearch;
 }) {
   const newQuery = {
     ...location.query,

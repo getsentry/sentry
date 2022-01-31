@@ -32,7 +32,7 @@ discoverCharts.push({
   getOption: (
     data:
       | {seriesName: string; stats: EventsStats}
-      | {seriesName?: string; stats: Record<string, EventsStats>}
+      | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
@@ -90,7 +90,7 @@ discoverCharts.push({
   getOption: (
     data:
       | {seriesName: string; stats: EventsStats}
-      | {seriesName?: string; stats: Record<string, EventsStats>}
+      | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
@@ -150,7 +150,7 @@ discoverCharts.push({
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_PERIOD,
   getOption: (
-    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+    data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
@@ -207,7 +207,7 @@ discoverCharts.push({
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
   getOption: (
-    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+    data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
@@ -263,7 +263,7 @@ discoverCharts.push({
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_DAILY,
   getOption: (
-    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+    data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
@@ -321,7 +321,7 @@ discoverCharts.push({
   getOption: (
     data:
       | {seriesName: string; stats: EventsStats}
-      | {seriesName?: string; stats: Record<string, EventsStats>}
+      | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
     if (isArray(data.stats.data)) {
       const dataMiddleIndex = Math.floor(data.stats.data.length / 2);

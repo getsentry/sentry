@@ -27,10 +27,23 @@ type Props = {
   footerMessage?: React.ReactNode;
 
   /**
+   * If a forced project is passed, selection is disabled
+   */
+  forceProject?: MinimalProject | null;
+
+  /**
    * Subject that will be used in a tooltip that is shown on a lock icon hover
    * E.g. This 'issue' is unique to a project
    */
   lockedMessageSubject?: string;
+
+  /**
+   * A project will be forced from parent component (selection is disabled, and if user
+   * does not have multi-project support enabled, it will not try to auto select a project).
+   *
+   * Project will be specified in the prop `forceProject` (since its data is async)
+   */
+  shouldForceProject?: boolean;
 
   /**
    * If true, there will be a back to issues stream icon link
@@ -47,19 +60,6 @@ type Props = {
    * Slugs of projects to restrict the project selector to
    */
   specificProjectSlugs?: string[];
-
-  /**
-   * A project will be forced from parent component (selection is disabled, and if user
-   * does not have multi-project support enabled, it will not try to auto select a project).
-   *
-   * Project will be specified in the prop `forceProject` (since its data is async)
-   */
-  shouldForceProject?: boolean;
-
-  /**
-   * If a forced project is passed, selection is disabled
-   */
-  forceProject?: MinimalProject | null;
 };
 
 export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}: Props) {

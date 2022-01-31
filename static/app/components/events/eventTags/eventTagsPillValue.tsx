@@ -8,8 +8,8 @@ import {defined} from 'sentry/utils';
 
 type Props = {
   isRelease: boolean;
-  streamPath: string;
   locationSearch: string;
+  streamPath: string;
   tag: EventTag;
   meta?: Meta;
 };

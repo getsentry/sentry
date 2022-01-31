@@ -10,19 +10,19 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type DefaultProps = {
-  query: string;
   defaultQuery: string;
   onSearch: (query: string) => void;
+  query: string;
 };
 
 type Props = DefaultProps & {
-  width?: string;
   onChange?: (query: string) => void;
+  width?: string;
 } & Omit<React.ComponentProps<typeof Input>, 'onChange'>;
 
 type State = {
-  query: string;
   dropdownVisible: boolean;
+  query: string;
 };
 
 class SearchBar extends React.PureComponent<Props, State> {

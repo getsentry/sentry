@@ -17,18 +17,18 @@ const hasValue = value => !!value || value === 0;
 
 export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   type: 'select' | 'textarea' | 'text';
-  default?: 'issue.title' | 'issue.description';
-  uri?: string;
-  depends_on?: string[];
-  choices?: Array<[any, string]>;
   async?: boolean;
+  choices?: Array<[any, string]>;
+  default?: 'issue.title' | 'issue.description';
+  depends_on?: string[];
+  uri?: string;
 };
 
 export type SchemaFormConfig = {
-  uri: string;
-  required_fields?: FieldFromSchema[];
-  optional_fields?: FieldFromSchema[];
   description: string | null;
+  uri: string;
+  optional_fields?: FieldFromSchema[];
+  required_fields?: FieldFromSchema[];
 };
 
 // only need required_fields and optional_fields
@@ -37,12 +37,13 @@ type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
 };
 
 type Props = {
+  action: 'create' | 'link';
   api: Client;
-  sentryAppInstallationUuid: string;
   appName: string;
   config: SchemaFormConfig;
-  action: 'create' | 'link';
   element: 'issue-link' | 'alert-rule-action';
+  onSubmitSuccess: Function;
+  sentryAppInstallationUuid: string;
   /**
    * Addtional form data to submit with the request
    */
@@ -52,14 +53,13 @@ type Props = {
    */
   extraRequestBody?: {[key: string]: any};
   /**
-   * Object containing reset values for fields if previously entered, in case this form is unmounted
-   */
-  resetValues?: {[key: string]: any};
-  /**
    * Function to provide fields with pre-written data if a default is specified
    */
   getFieldDefault?: (field: FieldFromSchema) => string;
-  onSubmitSuccess: Function;
+  /**
+   * Object containing reset values for fields if previously entered, in case this form is unmounted
+   */
+  resetValues?: {[key: string]: any};
 };
 
 /**

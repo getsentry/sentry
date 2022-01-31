@@ -7,17 +7,17 @@ import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
 
 type Props = {
   group: Group;
-  tag: string;
   name: string;
   organization: Organization;
-  totalValues: number;
-  topValues: TagWithTopValues['topValues'];
   projectId: string;
+  tag: string;
+  topValues: TagWithTopValues['topValues'];
+  totalValues: number;
 };
 
 type State = {
-  loading: boolean;
   error: boolean;
+  loading: boolean;
   iOSDeviceList?: IOSDeviceList;
 };
 

@@ -34,8 +34,8 @@ type Props = AsyncComponent['props'] & {
 };
 
 type State = {
-  notificationSettings: NotificationSettingsObject;
   legacyData: {[key: string]: string};
+  notificationSettings: NotificationSettingsObject;
 } & AsyncComponent['state'];
 
 class NotificationSettings extends AsyncComponent<Props, State> {

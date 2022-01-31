@@ -7,11 +7,11 @@ import theme from 'sentry/utils/theme';
 import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 
 type Props = {
-  name?: string;
-  version?: string;
   culture?: string;
-  publicKeyToken?: string;
   filePath?: string | null;
+  name?: string;
+  publicKeyToken?: string;
+  version?: string;
 };
 
 function Assembly({name, version, culture, publicKeyToken, filePath}: Props) {

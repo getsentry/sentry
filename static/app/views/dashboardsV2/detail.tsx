@@ -54,21 +54,21 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   api: Client;
-  organization: Organization;
-  initialState: DashboardState;
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
+  initialState: DashboardState;
+  organization: Organization;
   route: PlainRoute;
-  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   newWidget?: Widget;
+  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
 };
 
 type State = {
   dashboardState: DashboardState;
-  modifiedDashboard: DashboardDetails | null;
-  widgetToBeUpdated?: Widget;
   layout: RGLLayout[];
+  modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
+  widgetToBeUpdated?: Widget;
 };
 
 class DashboardDetail extends Component<Props, State> {

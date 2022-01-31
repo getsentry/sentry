@@ -25,37 +25,37 @@ const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 const DEFAULT_EXPAND = ['owners'];
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
-  project: number[];
   environment: string[];
+  project: number[];
+  collapse?: string[];
+  cursor?: string;
+  display?: string;
+  expand?: string[];
+  groupStatsPeriod?: string | null;
+  page?: number | string;
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
-  groupStatsPeriod?: string | null;
-  cursor?: string;
-  page?: number | string;
-  display?: string;
-  collapse?: string[];
-  expand?: string[];
 };
 
 type Props = {
   api: Client;
-  organization: OrganizationSummary;
-  widget: Widget;
-  selection: PageFilters;
-  limit?: number;
   children: (props: {
-    loading: boolean;
     errorMessage: undefined | string;
+    loading: boolean;
     transformedResults: TableDataRow[];
   }) => React.ReactNode;
+  organization: OrganizationSummary;
+  selection: PageFilters;
+  widget: Widget;
+  limit?: number;
 };
 
 type State = {
   errorMessage: undefined | string;
   loading: boolean;
-  tableResults: Group[];
   memberListStoreLoaded: boolean;
+  tableResults: Group[];
   totalCount: null | string;
 };
 

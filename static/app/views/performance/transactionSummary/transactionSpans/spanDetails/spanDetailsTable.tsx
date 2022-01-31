@@ -41,14 +41,14 @@ type TableColumn = GridColumnOrder<TableColumnKeys>;
 type TableDataRow = Record<TableColumnKeys, any>;
 
 type Props = {
+  examples: ExampleTransaction[];
+  isLoading: boolean;
   location: Location;
   organization: Organization;
-  suspectSpan?: SuspectSpan;
   transactionName: string;
-  isLoading: boolean;
-  examples: ExampleTransaction[];
-  project?: Project;
   pageLinks?: string | null;
+  project?: Project;
+  suspectSpan?: SuspectSpan;
 };
 
 export default function SpanTable(props: Props) {
@@ -212,8 +212,8 @@ const DurationBarSection = styled(RowRectangle)`
 `;
 
 type SpanDurationBarProps = {
-  spanOp: string;
   spanDuration: number;
+  spanOp: string;
   transactionDuration: number;
 };
 

@@ -4,6 +4,13 @@ import {Client} from 'sentry/api';
 
 type Options = {
   /**
+   * An existing API client may be provided.
+   *
+   * This is a continent way to re-use clients and still inherit the
+   * persistInFlight configuration.
+   */
+  api?: Client;
+  /**
    * Enabling this option will disable clearing in-flight requests when the
    * component is unmounted.
    *
@@ -12,13 +19,6 @@ type Options = {
    * component is unmounted.
    */
   persistInFlight?: boolean;
-  /**
-   * An existing API client may be provided.
-   *
-   * This is a continent way to re-use clients and still inherit the
-   * persistInFlight configuration.
-   */
-  api?: Client;
 };
 
 /**

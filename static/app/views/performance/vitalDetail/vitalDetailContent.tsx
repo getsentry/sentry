@@ -47,18 +47,18 @@ const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]
 
 type Props = {
   api: Client;
-  location: Location;
   eventView: EventView;
+  isMetricsData: boolean;
+  location: Location;
   organization: Organization;
   projects: Project[];
   router: InjectedRouter;
   vitalName: WebVital;
-  isMetricsData: boolean;
 };
 
 type State = {
-  incompatibleAlertNotice: React.ReactNode;
   error: string | undefined;
+  incompatibleAlertNotice: React.ReactNode;
 };
 
 function getSummaryConditions(query: string) {

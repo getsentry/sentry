@@ -29,8 +29,8 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 type CustomProps = {
-  name?: string;
   componentPromise?: () => Promise<any>;
+  name?: string;
 };
 
 /**

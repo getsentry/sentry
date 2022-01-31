@@ -10,9 +10,9 @@ import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
 type Props = {
-  sampleEvent: Event;
   eventCount: number;
   organization: Organization;
+  sampleEvent: Event;
 };
 
 function NewIssue({sampleEvent, eventCount, organization}: Props) {

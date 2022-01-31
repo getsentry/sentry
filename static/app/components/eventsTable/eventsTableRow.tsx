@@ -11,13 +11,13 @@ import AttachmentUrl from 'sentry/utils/attachmentUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  hasUser?: boolean;
-  orgId: string;
-  groupId: string;
-  projectId: string;
   event: Event;
-  tagList: Tag[];
+  groupId: string;
+  orgId: string;
   organization: Organization;
+  projectId: string;
+  tagList: Tag[];
+  hasUser?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 class EventsTableRow extends React.Component<Props> {

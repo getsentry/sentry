@@ -50,12 +50,12 @@ const BUILTIN_TAGS = [
 }, {});
 
 type TagStoreInterface = {
-  state: TagCollection;
+  getAllTags(): TagCollection;
   getBuiltInTags(): TagCollection;
   getIssueAttributes(): TagCollection;
-  getAllTags(): TagCollection;
-  reset(): void;
   onLoadTagsSuccess(data: Tag[]): void;
+  reset(): void;
+  state: TagCollection;
 };
 
 const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {

@@ -44,8 +44,8 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 
 type Props = {
   api: Client;
-  organization: Organization;
   location: Location;
+  organization: Organization;
   router: InjectedRouter;
 } & AsyncView['props'];
 

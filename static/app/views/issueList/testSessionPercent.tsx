@@ -24,9 +24,9 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import Input from 'sentry/views/settings/components/forms/controls/input';
 
 type Props = {
-  selection: PageFilters;
-  params: {orgId: string};
   organization: Organization;
+  params: {orgId: string};
+  selection: PageFilters;
 };
 
 const timePeriods = range(-1, -24 * 7, -1);

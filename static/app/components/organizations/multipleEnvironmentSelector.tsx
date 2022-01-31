@@ -35,10 +35,7 @@ type DefaultProps = {
 
 type Props = WithRouterProps & {
   api: Client;
-  organization: Organization;
-  projects: Project[];
   loadingProjects: boolean;
-  selectedProjects: number[];
   /**
    * Handler whenever selector values are changed
    */
@@ -47,6 +44,9 @@ type Props = WithRouterProps & {
    * When menu is closed
    */
   onUpdate: () => void;
+  organization: Organization;
+  projects: Project[];
+  selectedProjects: number[];
   customDropdownButton?: (config: {
     getActorProps: GetActorPropsFn;
     isOpen: boolean;

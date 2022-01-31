@@ -29,12 +29,12 @@ import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';
 
 type Props = {
-  rule: CombinedMetricIssueAlerts;
-  projects: Project[];
-  projectsLoaded: boolean;
+  onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   orgId: string;
   organization: Organization;
-  onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
+  projects: Project[];
+  projectsLoaded: boolean;
+  rule: CombinedMetricIssueAlerts;
   // Set of team ids that the user belongs to
   userTeams: Set<string>;
 };

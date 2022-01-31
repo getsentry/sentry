@@ -59,8 +59,8 @@ export function vitalDetailRouteWithQuery({
   query,
 }: {
   orgSlug: string;
-  vitalName: string;
   query: Query;
+  vitalName: string;
   projectID?: string | string[];
 }) {
   const pathname = generateVitalDetailRoute({
@@ -158,8 +158,8 @@ export function getVitalChartDefinitions({
   vital,
   yAxis,
 }: {
-  theme: Theme;
   location: Location;
+  theme: Theme;
   vital: string;
   yAxis: string;
 }) {

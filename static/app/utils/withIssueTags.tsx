@@ -13,8 +13,8 @@ type InjectedTagsProps = {
 
 type State = {
   tags: TagCollection;
-  users: User[];
   teams: Team[];
+  users: User[];
 };
 
 const uuidPattern = /[0-9a-f]{32}$/;

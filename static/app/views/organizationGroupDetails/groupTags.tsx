@@ -21,8 +21,8 @@ import {percent} from 'sentry/utils';
 
 type Props = AsyncComponent['props'] & {
   baseUrl: string;
-  group: Group;
   environments: string[];
+  group: Group;
 } & RouteComponentProps<{}, {}>;
 
 type State = AsyncComponent['state'] & {

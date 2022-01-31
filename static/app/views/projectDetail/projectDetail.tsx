@@ -49,9 +49,9 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  loadingProjects: boolean;
   organization: Organization;
   projects: Project[];
-  loadingProjects: boolean;
   selection: PageFilters;
 };
 

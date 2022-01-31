@@ -25,15 +25,15 @@ const HOVERCARD_DELAY = 400;
 export const STACKTRACE_PREVIEW_TOOLTIP_DELAY = 1000;
 
 type Props = {
+  api: Client;
   issueId: string;
   organization: Organization;
-  api: Client;
   theme: Theme;
-  groupingCurrentLevel?: number;
+  className?: string;
   disablePreview?: boolean;
   eventId?: string;
+  groupingCurrentLevel?: number;
   projectSlug?: string;
-  className?: string;
 };
 
 type State = {

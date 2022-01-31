@@ -15,12 +15,12 @@ import StacktracePreview from './stacktracePreview';
 type Props = Partial<DefaultProps> & {
   data: Event | BaseGroup | GroupTombstone;
   organization: Organization;
-  hasGuideAnchor?: boolean;
-  withStackTracePreview?: boolean;
-  guideAnchorName?: string;
+  className?: string;
   /* is issue breakdown? */
   grouping?: boolean;
-  className?: string;
+  guideAnchorName?: string;
+  hasGuideAnchor?: boolean;
+  withStackTracePreview?: boolean;
 };
 
 type DefaultProps = {

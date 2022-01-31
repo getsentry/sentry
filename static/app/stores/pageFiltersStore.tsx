@@ -9,25 +9,25 @@ import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 import {CommonStoreInterface} from './types';
 
 type State = {
-  selection: PageFilters;
-  pinnedFilters: Set<PinnedPageFilter>;
   isReady: boolean;
+  pinnedFilters: Set<PinnedPageFilter>;
+  selection: PageFilters;
 };
 
 type Internals = {
-  selection: PageFilters;
-  pinnedFilters: Set<PinnedPageFilter>;
   hasInitialState: boolean;
+  pinnedFilters: Set<PinnedPageFilter>;
+  selection: PageFilters;
 };
 
 type PageFiltersStoreInterface = CommonStoreInterface<State> & {
-  reset(selection?: PageFilters): void;
-  onReset(): void;
   onInitializeUrlState(newSelection: PageFilters): void;
-  updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
+  onReset(): void;
+  pin(filter: PinnedPageFilter, pin: boolean): void;
+  reset(selection?: PageFilters): void;
   updateDateTime(datetime: PageFilters['datetime']): void;
   updateEnvironments(environments: string[]): void;
-  pin(filter: PinnedPageFilter, pin: boolean): void;
+  updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
 };
 
 const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterface = {

@@ -10,14 +10,14 @@ import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 
 type Props = {
-  raw: string;
+  'data-test-id': string;
   dateUpdated: string | null;
+  raw: string;
+  type: 'codeowners' | 'issueowners';
+  controls?: React.ReactNode[];
+  placeholder?: string;
   provider?: string;
   repoName?: string;
-  type: 'codeowners' | 'issueowners';
-  placeholder?: string;
-  controls?: React.ReactNode[];
-  'data-test-id': string;
 };
 
 function RulesPanel({

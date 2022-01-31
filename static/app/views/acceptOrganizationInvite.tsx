@@ -16,22 +16,22 @@ import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
-  orgSlug: string;
-  needsAuthentication: boolean;
+  existingMember: boolean;
   needs2fa: boolean;
+  needsAuthentication: boolean;
   needsEmailVerification: boolean;
   needsSso: boolean;
+  orgSlug: string;
   requireSso: boolean;
-  existingMember: boolean;
   ssoProvider?: string;
 };
 
 type Props = RouteComponentProps<{memberId: string; token: string}, {}>;
 
 type State = AsyncView['state'] & {
-  inviteDetails: InviteDetails;
-  accepting: boolean | undefined;
   acceptError: boolean | undefined;
+  accepting: boolean | undefined;
+  inviteDetails: InviteDetails;
 };
 
 class AcceptOrganizationInvite extends AsyncView<Props, State> {

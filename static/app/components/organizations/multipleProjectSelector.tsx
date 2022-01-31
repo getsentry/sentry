@@ -22,27 +22,27 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import ProjectSelector from './projectSelector';
 
 type Props = WithRouterProps & {
-  organization: Organization;
-  value: number[];
-  projects: Project[];
   nonMemberProjects: Project[];
   onChange: (selected: number[]) => unknown;
   onUpdate: () => unknown;
-  isGlobalSelectionReady?: boolean;
-  disableMultipleProjectSelection?: boolean;
-  shouldForceProject?: boolean;
-  forceProject?: MinimalProject | null;
-  showIssueStreamLink?: boolean;
-  showProjectSettingsLink?: boolean;
-  lockedMessageSubject?: React.ReactNode;
-  footerMessage?: React.ReactNode;
+  organization: Organization;
+  projects: Project[];
+  value: number[];
   customDropdownButton?: (config: {
     getActorProps: GetActorPropsFn;
-    selectedProjects: Project[];
     isOpen: boolean;
+    selectedProjects: Project[];
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
+  disableMultipleProjectSelection?: boolean;
+  footerMessage?: React.ReactNode;
+  forceProject?: MinimalProject | null;
+  isGlobalSelectionReady?: boolean;
+  lockedMessageSubject?: React.ReactNode;
   pinned?: boolean;
+  shouldForceProject?: boolean;
+  showIssueStreamLink?: boolean;
+  showProjectSettingsLink?: boolean;
 };
 
 type State = {
@@ -349,14 +349,14 @@ type FeatureRenderProps = {
 };
 
 type ControlProps = {
-  organization: Organization;
   onApply: () => void;
   onShowAllProjects: () => void;
   onShowMyProjects: () => void;
-  selected?: Set<number>;
+  organization: Organization;
   disableMultipleProjectSelection?: boolean;
   hasChanges?: boolean;
   message?: React.ReactNode;
+  selected?: Set<number>;
 };
 
 const SelectorFooterControls = ({

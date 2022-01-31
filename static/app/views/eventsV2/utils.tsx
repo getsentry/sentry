@@ -424,11 +424,11 @@ function generateExpandedConditions(
 
 type FieldGeneratorOpts = {
   organization: Organization;
-  tagKeys?: string[] | null;
-  measurementKeys?: string[] | null;
-  spanOperationBreakdownKeys?: string[];
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
+  measurementKeys?: string[] | null;
+  spanOperationBreakdownKeys?: string[];
+  tagKeys?: string[] | null;
 };
 
 export function generateFieldOptions({

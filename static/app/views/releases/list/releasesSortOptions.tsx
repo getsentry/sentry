@@ -19,11 +19,11 @@ export enum ReleasesSortOption {
 }
 
 type Props = {
-  selected: ReleasesSortOption;
-  selectedDisplay: ReleasesDisplayOption;
+  environments: string[];
   onSelect: (key: string) => void;
   organization: Organization;
-  environments: string[];
+  selected: ReleasesSortOption;
+  selectedDisplay: ReleasesDisplayOption;
 };
 
 function ReleasesSortOptions({

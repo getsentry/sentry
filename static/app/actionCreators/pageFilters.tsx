@@ -36,21 +36,21 @@ type EnvironmentId = Environment['id'];
 
 type Options = {
   /**
-   * List of parameters to remove when changing URL params
-   */
-  resetParams?: string[];
-  /**
    * Do not reset the `cursor` query parameter when updating page filters
    */
   keepCursor?: boolean;
   /**
-   * Persist changes to the page filter selection into local storage
-   */
-  save?: boolean;
-  /**
    * Use Location.replace instead of push when updating the URL query state
    */
   replace?: boolean;
+  /**
+   * List of parameters to remove when changing URL params
+   */
+  resetParams?: string[];
+  /**
+   * Persist changes to the page filter selection into local storage
+   */
+  save?: boolean;
 };
 
 /**
@@ -58,12 +58,12 @@ type Options = {
  * here are a bit wider to allow for easy updates.
  */
 type PageFiltersUpdate = {
-  project?: Array<string | number> | null;
-  environment?: string[] | null;
-  start?: DateString;
   end?: DateString;
-  utc?: string | boolean | null;
+  environment?: string[] | null;
   period?: string | null;
+  project?: Array<string | number> | null;
+  start?: DateString;
+  utc?: string | boolean | null;
 };
 
 /**
@@ -93,19 +93,19 @@ function getProjectIdFromProject(project: MinimalProject) {
 }
 
 type InitializeUrlStateParams = {
+  memberProjects: Project[];
   organization: Organization;
   queryParams: Location['query'];
   router: InjectedRouter;
-  memberProjects: Project[];
-  shouldForceProject?: boolean;
   shouldEnforceSingleProject: boolean;
+  defaultSelection?: Partial<PageFilters>;
+  forceProject?: MinimalProject | null;
+  shouldForceProject?: boolean;
+  showAbsolute?: boolean;
   /**
    * If true, do not load from local storage
    */
   skipLoadLastUsed?: boolean;
-  defaultSelection?: Partial<PageFilters>;
-  forceProject?: MinimalProject | null;
-  showAbsolute?: boolean;
 };
 
 export function initializeUrlState({

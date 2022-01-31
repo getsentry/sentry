@@ -18,19 +18,19 @@ type Props = WithRouterProps & {
   api: Client;
   endpoint: string;
   emptyText?: string;
-  query?: Record<string, any>;
-  pagination?: boolean;
-  renderEmpty?: () => React.ReactElement;
   noBorder?: boolean;
   noMargin?: boolean;
+  pagination?: boolean;
+  query?: Record<string, any>;
+  renderEmpty?: () => React.ReactElement;
 };
 
 type State = {
+  data: Array<Group>;
+  error: boolean;
   issueIds: Array<string>;
   loading: boolean;
-  error: boolean;
   pageLinks: string | null;
-  data: Array<Group>;
 };
 
 class IssueList extends React.Component<Props, State> {

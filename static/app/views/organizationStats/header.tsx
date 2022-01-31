@@ -9,8 +9,8 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
 type Props = {
-  organization: Organization;
   activeTab: 'stats' | 'team';
+  organization: Organization;
 };
 
 function StatsHeader({organization, activeTab}: Props) {

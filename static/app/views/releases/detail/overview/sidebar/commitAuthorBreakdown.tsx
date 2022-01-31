@@ -17,8 +17,8 @@ type GroupedAuthorCommits = {
 };
 
 type Props = {
-  projectSlug: string;
   orgId: string;
+  projectSlug: string;
   version: string;
 } & AsyncComponent['props'];
 

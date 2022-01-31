@@ -5,7 +5,7 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 const path = 'http://some.url/';
 
 describe('GlobalSelectionLink', function () {
-  const getContext = (query: {project: string[]; environment: string}) =>
+  const getContext = (query: {environment: string; project: string[]}) =>
     TestStubs.routerContext([
       {
         router: TestStubs.router({
