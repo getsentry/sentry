@@ -96,11 +96,15 @@ export function getDefaultWidgetHeight(displayType: DisplayType): number {
   return displayType === DisplayType.BIG_NUMBER ? 1 : 2;
 }
 
+export function getInitialColumnDepths() {
+  return Array(NUM_DESKTOP_COLS).fill(0);
+}
+
 /**
  * Creates an array from layouts where each column stores how deep it is.
  */
 export function calculateColumnDepths(layouts: Layout[]): number[] {
-  const depths = Array(NUM_DESKTOP_COLS).fill(0);
+  const depths = getInitialColumnDepths();
 
   // For each layout's x, record the max depth
   layouts

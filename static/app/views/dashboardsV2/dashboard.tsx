@@ -77,7 +77,6 @@ type Props = {
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   handleAddCustomWidget: (widget: Widget) => void;
-  onLayoutInteraction: () => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
   newWidget?: Widget;
@@ -528,8 +527,7 @@ class Dashboard extends Component<Props, State> {
 
   renderGridDashboard() {
     const {layouts, isMobile} = this.state;
-    const {onLayoutInteraction, isEditing, dashboard, organization, widgetLimitReached} =
-      this.props;
+    const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
     // Filter out any issue widgets if the user does not have the feature flag
     if (!organization.features.includes('issues-in-dashboards')) {
@@ -548,8 +546,6 @@ class Dashboard extends Component<Props, State> {
         layouts={layouts}
         onLayoutChange={this.handleLayoutChange}
         onBreakpointChange={this.handleBreakpointChange}
-        onResizeStop={onLayoutInteraction}
-        onDragStop={onLayoutInteraction}
         isDraggable={canModifyLayout}
         isResizable={canModifyLayout}
         resizeHandle={

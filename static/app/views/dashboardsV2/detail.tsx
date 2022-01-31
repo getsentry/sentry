@@ -73,7 +73,6 @@ type State = {
   modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
   layoutColumnDepths: number[];
-  layoutManuallyChanged: boolean;
   widgetToBeUpdated?: Widget;
 };
 
@@ -85,7 +84,6 @@ class DashboardDetail extends Component<Props, State> {
     layoutColumnDepths: calculateColumnDepths(
       getDashboardLayout(this.props.dashboard.widgets)
     ),
-    layoutManuallyChanged: false,
   };
 
   componentDidMount() {
@@ -271,19 +269,21 @@ class DashboardDetail extends Component<Props, State> {
 
   onCancel = () => {
     const {organization, dashboard, location, params} = this.props;
-    const {modifiedDashboard, layoutManuallyChanged} = this.state;
+    const {modifiedDashboard} = this.state;
 
+    // If a dashboard has every layout undefined, then ignore the layout field
+    // because it is either a dashboard from before the grid feature or added through
+    // the template feature
     let isDashboardDirty;
     const isLegacyLayout = dashboard.widgets.every(({layout}) => !defined(layout));
     if (isLegacyLayout) {
-      isDashboardDirty =
-        !isEqual(
-          {
-            ...modifiedDashboard,
-            widgets: modifiedDashboard?.widgets.map(widget => omit(widget, 'layout')),
-          },
-          {...dashboard, widgets: dashboard.widgets.map(widget => omit(widget, 'layout'))}
-        ) || layoutManuallyChanged;
+      isDashboardDirty = !isEqual(
+        {
+          ...modifiedDashboard,
+          widgets: modifiedDashboard?.widgets.map(widget => omit(widget, 'layout')),
+        },
+        {...dashboard, widgets: dashboard.widgets.map(widget => omit(widget, 'layout'))}
+      );
     } else {
       isDashboardDirty = !isEqual(modifiedDashboard, dashboard);
     }
@@ -305,7 +305,6 @@ class DashboardDetail extends Component<Props, State> {
       this.setState({
         dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
-        layoutManuallyChanged: false,
       });
       return;
     }
@@ -402,7 +401,6 @@ class DashboardDetail extends Component<Props, State> {
               });
               this.setState({
                 dashboardState: DashboardState.VIEW,
-                layoutManuallyChanged: false,
               });
 
               // redirect to new dashboard
@@ -442,7 +440,6 @@ class DashboardDetail extends Component<Props, State> {
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
-                layoutManuallyChanged: false,
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
@@ -463,7 +460,6 @@ class DashboardDetail extends Component<Props, State> {
         this.setState({
           dashboardState: DashboardState.VIEW,
           modifiedDashboard: null,
-          layoutManuallyChanged: false,
         });
         break;
       }
@@ -472,7 +468,6 @@ class DashboardDetail extends Component<Props, State> {
         this.setState({
           dashboardState: DashboardState.VIEW,
           modifiedDashboard: null,
-          layoutManuallyChanged: false,
         });
         break;
       }
@@ -503,10 +498,6 @@ class DashboardDetail extends Component<Props, State> {
       }),
       this.updateRouteAfterSavingWidget
     );
-  };
-
-  handleLayoutInteraction = () => {
-    this.setState({layoutManuallyChanged: true});
   };
 
   renderWidgetBuilder(dashboard: DashboardDetails) {
@@ -570,7 +561,6 @@ class DashboardDetail extends Component<Props, State> {
               onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
               handleUpdateWidgetList={this.handleUpdateWidgetList}
               handleAddCustomWidget={this.handleAddCustomWidget}
-              onLayoutInteraction={this.handleLayoutInteraction}
               isPreview={this.isPreview}
               router={router}
               location={location}
@@ -666,7 +656,6 @@ class DashboardDetail extends Component<Props, State> {
                     onUpdate={this.onUpdateWidget}
                     handleUpdateWidgetList={this.handleUpdateWidgetList}
                     handleAddCustomWidget={this.handleAddCustomWidget}
-                    onLayoutInteraction={this.handleLayoutInteraction}
                     onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
                     router={router}
                     location={location}
