@@ -10,6 +10,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import {Group, OrganizationSummary, PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {queryToObj} from 'sentry/utils/stream';
 import {
   DISCOVER_EXCLUSION_FIELDS,
@@ -248,10 +249,13 @@ class IssueWidgetQueries extends React.Component<Props, State> {
     const {children} = this.props;
     const {loading, errorMessage, memberListStoreLoaded} = this.state;
     const transformedResults = this.transformTableResults();
-    return children({
-      loading: loading || !memberListStoreLoaded,
-      transformedResults,
-      errorMessage,
+    return getDynamicText({
+      value: children({
+        loading: loading || !memberListStoreLoaded,
+        transformedResults,
+        errorMessage,
+      }),
+      fixed: <div />,
     });
   }
 }

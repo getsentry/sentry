@@ -1,10 +1,12 @@
 import * as React from 'react';
 import {useState} from 'react';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {assignTempId} from 'sentry/views/dashboardsV2/layoutUtils';
@@ -75,7 +77,7 @@ function DashboardWidgetLibraryModal({
         <ButtonBar gap={1}>
           <Button
             external
-            href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
+            href="https://docs.sentry.io/product/dashboards/widget-library/"
           >
             {t('Read the docs')}
           </Button>
@@ -90,7 +92,7 @@ function DashboardWidgetLibraryModal({
             )}
             disabled={!!!overLimit}
           >
-            <Button
+            <StyledButton
               data-test-id="confirm-widgets"
               priority="primary"
               disabled={overLimit}
@@ -116,8 +118,8 @@ function DashboardWidgetLibraryModal({
                 handleSubmit();
               }}
             >
-              {t('Save')}
-            </Button>
+              {t('Add')}
+            </StyledButton>
           </Tooltip>
         </ButtonBar>
       </Footer>
@@ -129,6 +131,11 @@ export const modalCss = css`
   width: 100%;
   max-width: 700px;
   margin: 70px auto;
+`;
+
+const StyledButton = styled(Button)`
+  padding-left: ${space(3)};
+  padding-right: ${space(3)};
 `;
 
 export default DashboardWidgetLibraryModal;

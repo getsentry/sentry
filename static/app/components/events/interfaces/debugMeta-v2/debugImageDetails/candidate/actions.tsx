@@ -120,6 +120,7 @@ function Actions({
                       icon={<IconDelete size="xs" />}
                       size="xsmall"
                       disabled={!hasAccess}
+                      aria-label={t('Delete')}
                     />
                   </Confirm>
                 </Tooltip>

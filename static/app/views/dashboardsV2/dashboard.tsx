@@ -10,6 +10,7 @@ import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
@@ -84,6 +85,7 @@ type Props = {
 type State = {
   isMobile: boolean;
   layouts: Layouts;
+  windowWidth: number;
 };
 
 class Dashboard extends Component<Props, State> {
@@ -98,6 +100,7 @@ class Dashboard extends Component<Props, State> {
         [DESKTOP]: isUsingGrid ? desktopLayout : [],
         [MOBILE]: isUsingGrid ? getMobileLayout(desktopLayout, dashboard.widgets) : [],
       },
+      windowWidth: window.innerWidth,
     };
   }
 
@@ -132,7 +135,10 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing} = this.props;
+    const {isEditing, organization} = this.props;
+    if (organization.features.includes('dashboard-grid-layout')) {
+      window.addEventListener('resize', this.debouncedHandleResize);
+    }
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
@@ -158,6 +164,19 @@ class Dashboard extends Component<Props, State> {
       this.fetchMemberList();
     }
   }
+
+  componentWillUnmount() {
+    const {organization} = this.props;
+    if (organization.features.includes('dashboard-grid-layout')) {
+      window.removeEventListener('resize', this.debouncedHandleResize);
+    }
+  }
+
+  debouncedHandleResize = debounce(() => {
+    this.setState({
+      windowWidth: window.innerWidth,
+    });
+  }, 250);
 
   fetchMemberList() {
     const {api, selection} = this.props;
@@ -348,7 +367,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   renderWidget(widget: Widget, index: number, defaultPosition?: Position) {
-    const {isMobile} = this.state;
+    const {isMobile, windowWidth} = this.state;
     const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
     const widgetProps = {
@@ -377,7 +396,12 @@ class Dashboard extends Component<Props, State> {
             }
           }
         >
-          <SortableWidget {...widgetProps} dragId={dragId} hideDragHandle={isMobile} />
+          <SortableWidget
+            {...widgetProps}
+            dragId={dragId}
+            isMobile={isMobile}
+            windowWidth={windowWidth}
+          />
         </GridItem>
       );
     }
@@ -642,6 +666,10 @@ const GridLayout = styled(WidthProvider(Responsive))`
   .react-grid-item > .react-resizable-handle::after {
     border: none;
   }
+
+  .react-grid-item.react-grid-placeholder {
+    background: ${p => p.theme.purple200};
+  }
 `;
 
 const ResizeHandle = styled('div')`
@@ -649,4 +677,5 @@ const ResizeHandle = styled('div')`
   position: absolute;
   bottom: 2px;
   right: 4px;
+  cursor: nwse-resize;
 `;

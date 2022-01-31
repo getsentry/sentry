@@ -48,6 +48,7 @@ describe('ProjectSelector', function () {
           id: 'org',
           slug: 'org-slug',
           access: [],
+          features: [],
         }}
       />,
       routerContext
@@ -68,6 +69,7 @@ describe('ProjectSelector', function () {
           id: 'org',
           slug: 'org-slug',
           access: ['project:write'],
+          features: [],
         }}
       />,
       routerContext
