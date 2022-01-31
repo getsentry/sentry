@@ -64,6 +64,7 @@ export type QueryFC<T extends WidgetDataConstraint> = React.FC<
     environment?: Readonly<string[]>;
     team?: Readonly<string | string[]>;
     query?: string;
+    referrer?: string;
     orgSlug: string;
     eventView: EventView;
     organization: OrganizationSummary;

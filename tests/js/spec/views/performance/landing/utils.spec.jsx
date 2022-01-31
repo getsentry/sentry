@@ -55,6 +55,13 @@ describe('Utils', function () {
         getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
       ).toEqual('Backend');
     });
+    it('returns all display for native platform', function () {
+      const projects = [TestStubs.Project({id: '22', platform: 'native'})];
+      const data = initializeData(projects, {project: [22]});
+      expect(
+        getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
+      ).toEqual('All Transactions');
+    });
     it('returns all display if multiple projects', function () {
       const projects = [TestStubs.Project()];
       const data = initializeData(projects, {project: [1, 2]});

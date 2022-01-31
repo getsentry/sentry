@@ -58,9 +58,10 @@ type Props = WithRouterProps & {
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   noLazyLoad?: boolean;
-  hideDragHandle?: boolean;
+  isMobile?: boolean;
   widgetLimitReached: boolean;
   tableItemLimit?: number;
+  windowWidth?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -70,7 +71,7 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, hideDragHandle} =
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, isMobile} =
       this.props;
 
     if (!isEditing) {
@@ -80,7 +81,7 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-          {!hideDragHandle && (
+          {!isMobile && (
             <IconClick>
               <StyledIconGrabbable
                 color="textColor"
@@ -203,6 +204,8 @@ class WidgetCard extends React.Component<Props> {
       location,
       router,
       tableItemLimit,
+      isMobile,
+      windowWidth,
     } = this.props;
     return (
       <WidgetQueries
@@ -228,6 +231,8 @@ class WidgetCard extends React.Component<Props> {
                 selection={selection}
                 router={router}
                 organization={organization}
+                isMobile={isMobile}
+                windowWidth={windowWidth}
               />
               {this.renderToolbar()}
             </React.Fragment>
