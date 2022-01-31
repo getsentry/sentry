@@ -251,7 +251,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
     />
 
     <h3>{platform.name}</h3>
-    {selected && <ClearButton onClick={onClear} />}
+    {selected && <ClearButton onClick={onClear} aria-label={t('Clear')} />}
   </div>
 ))`
   position: relative;

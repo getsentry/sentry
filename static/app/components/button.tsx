@@ -17,6 +17,16 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
+type ConditionalAriaLabel =
+  | {
+      children: Omit<React.ReactNode, 'null' | 'undefined' | 'boolean'>;
+      'aria-label'?: string;
+    }
+  | {
+      'aria-label': string;
+      children?: null | boolean;
+    };
+
 type Props = {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
   size?: 'zero' | 'xsmall' | 'small';
@@ -30,7 +40,6 @@ type Props = {
   external?: boolean;
   borderless?: boolean;
   translucentBorder?: boolean;
-  'aria-label'?: string;
   tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
@@ -38,8 +47,7 @@ type Props = {
 
   // This is only used with `<ButtonBar>`
   barId?: string;
-  children?: React.ReactNode;
-};
+} & ConditionalAriaLabel;
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref' | 'label'> &
   Props;
@@ -84,7 +92,8 @@ function BaseButton({
     return disabled ? undefined : prop;
   }
 
-  // For `aria-label`
+  // Fallbacking aria-label to string children is not necessary as screen readers natively understand that scenario.
+  // Leaving it here for a bunch of our tests that query by aria-label.
   const screenReaderLabel =
     ariaLabel || (typeof children === 'string' ? children : undefined);
 

@@ -133,6 +133,7 @@ const DebugFileRow = ({
                     size="xsmall"
                     disabled={!hasAccess}
                     data-test-id="delete-dif"
+                    aria-label={t('Delete')}
                   />
                 </Confirm>
               </Tooltip>

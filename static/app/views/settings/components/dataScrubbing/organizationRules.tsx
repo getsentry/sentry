@@ -67,6 +67,7 @@ class OrganizationRules extends Component<Props, State> {
             }
             icon={<IconChevron size="xs" direction={isCollapsed ? 'down' : 'up'} />}
             size="xsmall"
+            aria-label={t('Toggle Organization Rules')}
           />
         </Header>
         <Content>

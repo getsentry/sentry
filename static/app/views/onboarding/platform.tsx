@@ -162,6 +162,7 @@ class OnboardingPlatform extends Component<Props, State> {
                   <Button
                     priority="link"
                     onClick={() => this.handleSetPlatform('other')}
+                    aria-label={t('Other platform')}
                   />
                 ),
                 communityClient: (

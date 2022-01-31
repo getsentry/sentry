@@ -115,6 +115,7 @@ class ProjectTags extends AsyncView<Props, State> {
                                   ? t('This tag cannot be deleted.')
                                   : t('You do not have permission to remove tags.')
                               }
+                              aria-label={t('Remove tag')}
                               icon={<IconDelete size="xs" />}
                               data-test-id="delete"
                             />

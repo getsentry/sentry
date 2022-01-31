@@ -158,6 +158,7 @@ class Form<
               priority="primary"
               disabled={isSaving || this.props.submitDisabled || !hasChanges}
               type="submit"
+              aria-label={this.props.submitLabel ?? t('Submit')}
             >
               {this.props.submitLabel}
             </Button>
@@ -167,6 +168,7 @@ class Form<
                 disabled={isSaving}
                 onClick={this.props.onCancel}
                 style={{marginLeft: 5}}
+                aria-label={this.props.cancelLabel ?? t('Cancel')}
               >
                 {this.props.cancelLabel}
               </Button>

@@ -153,6 +153,7 @@ class IntegrationSetup extends Component<Props, State> {
                   onClick={() => {
                     openInviteMembersModal();
                   }}
+                  aria-label={t('Invite your team instead')}
                 />
               ),
             }

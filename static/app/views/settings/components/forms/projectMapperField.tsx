@@ -264,6 +264,7 @@ export class RenderField extends Component<RenderProps, State> {
               priority="primary"
               onClick={handleAdd}
               icon={<IconAdd />}
+              aria-label={t('Add project')}
             />
           </AddProjectWrapper>
           <FieldControlWrapper>

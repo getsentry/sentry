@@ -143,6 +143,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
                   size="small"
                   analyticsParams={{view: 'project_creation', already_installed: false}}
                   modalParams={{projectId: project.id}}
+                  aria-label={t('Add integration')}
                 />
                 <Button
                   size="small"

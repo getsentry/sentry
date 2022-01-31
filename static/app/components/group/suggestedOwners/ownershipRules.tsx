@@ -70,6 +70,7 @@ const OwnershipRules = ({
           icon={<IconClose size="xs" />}
           priority="link"
           onClick={() => handleCTAClose()}
+          aria-label={t('Close')}
         />
       </HeaderContainer>
       <Content>

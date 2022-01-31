@@ -226,6 +226,7 @@ export default class ChoiceMapper extends React.Component<FieldProps> {
                       size="small"
                       disabled={disabled}
                       onClick={() => removeRow(itemKey)}
+                      aria-label={t('Delete')}
                     />
                   </Actions>
                 )}

@@ -278,16 +278,17 @@ function RuleListRow({
                     icon={<IconDelete />}
                     size="small"
                     title={t('Delete')}
+                    aria-label={t('Delete')}
                   />
                 </Confirm>
-                <Tooltip title={t('Edit')}>
-                  <Button
-                    size="small"
-                    type="button"
-                    icon={<IconSettings />}
-                    to={editLink}
-                  />
-                </Tooltip>
+                <Button
+                  size="small"
+                  type="button"
+                  icon={<IconSettings />}
+                  to={editLink}
+                  title={t('Edit')}
+                  aria-label={t('Edit')}
+                />
               </StyledButtonBar>
             </React.Fragment>
           )}

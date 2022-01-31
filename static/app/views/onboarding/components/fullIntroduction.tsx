@@ -40,6 +40,7 @@ export default function FullIntroduction({currentPlatform}: Props) {
                 onClick={() => {
                   openInviteMembersModal();
                 }}
+                aria-label={t('Invite your team instead')}
               />
             ),
           }

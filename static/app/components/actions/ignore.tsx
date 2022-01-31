@@ -139,6 +139,7 @@ const IgnoreActions = ({
           <StyledActionButton
             disabled={disabled}
             icon={<IconChevron direction="down" size="xs" />}
+            aria-label={t('Ignore options')}
           />
         }
         alwaysRenderMenu

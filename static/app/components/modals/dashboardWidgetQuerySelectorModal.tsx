@@ -76,6 +76,7 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
                     }
                   );
                 }}
+                aria-label={t('Open in Discover')}
               />
             </Link>
           </QueryContainer>

@@ -189,6 +189,7 @@ class RuleBuilder extends React.Component<Props, State> {
             onClick={this.handleAddRule}
             icon={<IconAdd isCircled />}
             size="small"
+            aria-label={t('Add rule')}
           />
         </BuilderBar>
       </React.Fragment>

@@ -192,11 +192,13 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   text-align: center;
 `;
 
-const ViewMoreButton = styled((p: React.ComponentProps<typeof Button>) => (
-  <Button {...p} priority="link" size="zero">
-    {t('View more')}
-  </Button>
-))`
+const ViewMoreButton = styled(
+  (p: Omit<React.ComponentProps<typeof Button>, 'aria-label'>) => (
+    <Button {...p} priority="link" size="zero">
+      {t('View more')}
+    </Button>
+  )
+)`
   border: none;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraSmall};
