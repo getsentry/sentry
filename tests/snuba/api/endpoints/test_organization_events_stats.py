@@ -2168,7 +2168,7 @@ class OrganizationEventsStatsTopNEventsWithSnql(OrganizationEventsStatsTopNEvent
         assert mock_raw_query.mock_calls[5].args[0].granularity.granularity == 300
 
     @mock.patch(
-        "sentry.snuba.discover.raw_snql_query",
+        "sentry.search.events.builder.raw_snql_query",
         side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
     )
     def test_top_events_with_issue_check_query_conditions(self, mock_query):
