@@ -232,7 +232,7 @@ class JiraServerIntegration(JiraIntegration):
             try:
                 self.default_identity = self.get_default_identity()
             except Identity.DoesNotExist:
-                return None
+                raise
 
         return JiraServerClient(
             self.model.metadata["base_url"],

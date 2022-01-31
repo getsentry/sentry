@@ -95,7 +95,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
             try:
                 self.default_identity = self.get_default_identity()
             except Identity.DoesNotExist:
-                return None
+                raise
 
         return GitLabApiClient(self)
 
