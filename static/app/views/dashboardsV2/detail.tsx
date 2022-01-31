@@ -2,6 +2,7 @@ import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {
   createDashboard,
@@ -21,6 +22,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
@@ -268,8 +270,23 @@ class DashboardDetail extends Component<Props, State> {
   onCancel = () => {
     const {organization, dashboard, location, params} = this.props;
     const {modifiedDashboard} = this.state;
+
+    let isDashboardDirty;
+    const isLegacyLayout = dashboard.widgets.every(({layout}) => !defined(layout));
+    if (isLegacyLayout) {
+      isDashboardDirty = !isEqual(
+        {
+          ...modifiedDashboard,
+          widgets: modifiedDashboard?.widgets.map(widget => omit(widget, 'layout')),
+        },
+        {...dashboard, widgets: dashboard.widgets.map(widget => omit(widget, 'layout'))}
+      );
+    } else {
+      isDashboardDirty = !isEqual(modifiedDashboard, dashboard);
+    }
+
     // Don't confirm preview cancellation regardless of dashboard state
-    if (!isEqual(modifiedDashboard, dashboard) && !this.isPreview) {
+    if (isDashboardDirty && !this.isPreview) {
       // Ignore no-alert here, so that the confirm on cancel matches onUnload & onRouteLeave
       /* eslint no-alert:0 */
       if (!confirm(UNSAVED_MESSAGE)) {
