@@ -59,7 +59,7 @@ function StackTrace({
     return (
       <Panel dashedBorder>
         <EmptyMessage
-          icon={<IconWarning size="xs" />}
+          icon={<IconWarning size="xl" />}
           title={
             hasHierarchicalGrouping
               ? t('No relevant stack trace has been found!')
