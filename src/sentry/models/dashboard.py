@@ -77,8 +77,9 @@ PREBUILT_DASHBOARDS = {
     item["id"]: item
     for item in [
         {
+            # This should match the general template in static/app/views/dashboardsV2/data.tsx
             "id": "default-overview",
-            "title": "Dashboard",
+            "title": "General",
             "dateCreated": "",
             "createdBy": "",
             "widgets": [
