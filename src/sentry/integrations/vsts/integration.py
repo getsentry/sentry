@@ -155,7 +155,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
             return False
         return True
 
-    def get_client(self) -> VstsApiClient | None:
+    def get_client(self) -> VstsApiClient:
         if self.default_identity is None:
             try:
                 self.default_identity = self.get_default_identity()
