@@ -54,11 +54,14 @@ class TestAlertRuleActionRequester(TestCase):
         request = responses.calls[0].request
 
         data = {
-            "fields": {
-                "title": "An Alert",
-                "description": "threshold reached",
-                "assignee_id": "user-1",
-            },
+            "fields": [
+                {"name": "title", "value": "An Alert"},
+                {"name": "description", "value": "threshold reached"},
+                {
+                    "name": "assignee_id",
+                    "value": "user-1",
+                },
+            ],
             "installationId": self.install.uuid,
         }
         payload = json.loads(request.body)
@@ -95,11 +98,14 @@ class TestAlertRuleActionRequester(TestCase):
         request = responses.calls[0].request
 
         data = {
-            "fields": {
-                "title": "An Alert",
-                "description": "threshold reached",
-                "assignee_id": "user-1",
-            },
+            "fields": [
+                {"name": "title", "value": "An Alert"},
+                {"name": "description", "value": "threshold reached"},
+                {
+                    "name": "assignee_id",
+                    "value": "user-1",
+                },
+            ],
             "installationId": self.install.uuid,
         }
         payload = json.loads(request.body)
@@ -135,11 +141,14 @@ class TestAlertRuleActionRequester(TestCase):
         request = responses.calls[0].request
 
         data = {
-            "fields": {
-                "title": "An Alert",
-                "description": "threshold reached",
-                "assignee_id": "user-1",
-            },
+            "fields": [
+                {"name": "title", "value": "An Alert"},
+                {"name": "description", "value": "threshold reached"},
+                {
+                    "name": "assignee_id",
+                    "value": "user-1",
+                },
+            ],
             "installationId": self.install.uuid,
         }
         payload = json.loads(request.body)
