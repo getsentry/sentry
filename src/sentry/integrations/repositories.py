@@ -109,7 +109,9 @@ class RepositoryMixin:
     def has_repo_access(self, repo: Repository) -> bool:
         raise NotImplementedError
 
-    def get_codeowner_file(self, repo: Repository, ref: str | None = None) -> Mapping[str, str]:
+    def get_codeowner_file(
+        self, repo: Repository, ref: str | None = None
+    ) -> Mapping[str, str] | None:
         """
         Find and get the contents of a CODEOWNERS file.
 
