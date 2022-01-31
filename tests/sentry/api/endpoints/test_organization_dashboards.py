@@ -137,7 +137,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             if not forward_sort:
                 expected = list(reversed(expected))
 
-            assert values == ["Dashboard"] + expected
+            assert values == ["General"] + expected
 
     def test_get_sortby_mydashboards(self):
         user_1 = self.create_user(username="user_1")
