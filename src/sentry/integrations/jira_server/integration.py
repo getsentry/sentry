@@ -18,7 +18,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.jira import JiraIntegration
-from sentry.model import Identity
+from sentry.models import Identity
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.decorators import classproperty
