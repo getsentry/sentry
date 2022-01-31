@@ -6,7 +6,7 @@ from sentry.utils.cache import memoize
 
 class AlertRuleActionCreator(Mediator):
     install = Param("sentry.models.SentryAppInstallation")
-    fields = Param(object)
+    fields = Param(object, default=[])  # array of dicts
 
     def call(self):
         uri = self._fetch_sentry_app_uri()

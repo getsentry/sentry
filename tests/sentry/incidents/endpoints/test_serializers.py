@@ -993,7 +993,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "sentry_app": self.sentry_app.id,
                 "sentry_app_config": {"tag": "asdfasdfads"},
             },
-            {"sentryApp": ["Missing paramater: sentry_app_installation_uuid"]},
+            {"sentryApp": ["Missing parameter: sentry_app_installation_uuid"]},
         )
 
     @responses.activate

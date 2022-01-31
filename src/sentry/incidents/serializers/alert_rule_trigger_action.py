@@ -33,7 +33,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     id = serializers.IntegerField(required=False)
     type = serializers.CharField()
     target_type = serializers.CharField()
-    sentry_app_config = serializers.JSONField(required=False)
+    sentry_app_config = serializers.JSONField(required=False)  # array of dicts
     sentry_app_installation_uuid = serializers.CharField(required=False)
 
     class Meta:
@@ -128,7 +128,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             if attrs.get("sentry_app_config"):
                 if attrs.get("sentry_app_installation_uuid") is None:
                     raise serializers.ValidationError(
-                        {"sentry_app": "Missing paramater: sentry_app_installation_uuid"}
+                        {"sentry_app": "Missing parameter: sentry_app_installation_uuid"}
                     )
 
                 try:

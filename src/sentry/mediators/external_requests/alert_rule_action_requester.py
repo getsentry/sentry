@@ -23,7 +23,7 @@ class AlertRuleActionRequester(Mediator):
 
     install = Param("sentry.models.SentryAppInstallation")
     uri = Param((str,))
-    fields = Param(object, required=False, default={})
+    fields = Param(list, required=False, default=[])
     http_method = Param(str, required=False, default="POST")
 
     def call(self):
@@ -76,13 +76,12 @@ class AlertRuleActionRequester(Mediator):
 
     @memoize
     def body(self):
-        body = {"fields": {}}
-        for name, value in self.fields.items():
-            body["fields"][name] = value
-
-        body["installationId"] = self.install.uuid
-
-        return json.dumps(body)
+        return json.dumps(
+            {
+                "fields": self.fields,
+                "installationId": self.install.uuid,
+            }
+        )
 
     @memoize
     def sentry_app(self):

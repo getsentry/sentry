@@ -44,17 +44,17 @@ type Props = {
   action: 'create' | 'link';
   element: 'issue-link' | 'alert-rule-action';
   /**
-   * Addtional form data to submit with the request
+   * Additional form data to submit with the request
    */
   extraFields?: {[key: string]: any};
   /**
-   * Addtional body parameters to submit with the request
+   * Additional body parameters to submit with the request
    */
   extraRequestBody?: {[key: string]: any};
   /**
    * Object containing reset values for fields if previously entered, in case this form is unmounted
    */
-  resetValues?: {[key: string]: any};
+  resetValues?: {[key: string]: any; settings?: {name: string; value: any}[]};
   /**
    * Function to provide fields with pre-written data if a default is specified
    */
@@ -249,7 +249,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     // async only used for select components
     const isAsync = typeof field.async === 'undefined' ? true : !!field.async; // default to true
-    const defaultResetValues = (this.props.resetValues || {}).settings || {};
+    const defaultResetValues = (this.props.resetValues || {}).settings || [];
 
     if (fieldToPass.type === 'select') {
       // find the options from state to pass down
@@ -259,12 +259,18 @@ export class SentryAppExternalForm extends Component<Props, State> {
       }));
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
       const allowClear = !required;
+      const defaultValue = defaultResetValues.reduce((acc, curr) => {
+        if (curr.name === field.name) {
+          acc = curr.value;
+        }
+        return acc;
+      }, undefined);
       // filter by what the user is typing
       const filterOption = createFilter({});
       fieldToPass = {
         ...fieldToPass,
         options,
-        defaultValue: defaultResetValues[field.name],
+        defaultValue,
         defaultOptions,
         filterOption,
         allowClear,
@@ -325,7 +331,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     if (this.model.validateForm()) {
       onSubmitSuccess({
         // The form data must be nested in 'settings' to ensure they don't overlap with any other field names.
-        settings: formData,
+        settings: Object.entries(formData).map(([name, value]) => ({name, value})),
         sentryAppInstallationUuid,
         // Used on the backend to explicitly associate with a different rule than those without a custom form.
         hasSchemaFormConfig: true,
