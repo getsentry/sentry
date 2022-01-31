@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Iterable, Mapping, MutableMapping
 
+import sentry_sdk
 from django.utils.encoding import force_text
 
 from sentry import options
@@ -109,22 +110,27 @@ def send_notification_as_email(
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
     for recipient in recipients:
-        if isinstance(recipient, Team):
-            # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
-            continue
-        log_message(notification, recipient)
+        with sentry_sdk.start_span(op="notification.send_email", description="one_recipient"):
+            if isinstance(recipient, Team):
+                # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
+                continue
+            log_message(notification, recipient)
 
-        msg = MessageBuilder(
-            **get_builder_args(notification, recipient, shared_context, extra_context_by_actor_id)
-        )
+            with sentry_sdk.start_span(op="notification.send_email", description="build_message"):
+                msg = MessageBuilder(
+                    **get_builder_args(
+                        notification, recipient, shared_context, extra_context_by_actor_id
+                    )
+                )
 
-        # TODO: find better way of handling this
-        add_users_kwargs = {}
-        if isinstance(notification, ProjectNotification):
-            add_users_kwargs["project"] = notification.project
-        msg.add_users([recipient.id], **add_users_kwargs)
-        msg.send_async()
-        notification.record_notification_sent(recipient, ExternalProviders.EMAIL)
+            with sentry_sdk.start_span(op="notification.send_email", description="send_message"):
+                # TODO: find better way of handling this
+                add_users_kwargs = {}
+                if isinstance(notification, ProjectNotification):
+                    add_users_kwargs["project"] = notification.project
+                msg.add_users([recipient.id], **add_users_kwargs)
+                msg.send_async()
+            notification.record_notification_sent(recipient, ExternalProviders.EMAIL)
 
 
 def get_builder_args(

@@ -2,7 +2,9 @@ import chunk from 'lodash/chunk';
 import moment from 'moment';
 
 import BaseChart from 'sentry/components/charts/baseChart';
-import {SeriesDataUnit} from 'sentry/types/echarts';
+import {DateTimeObject} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
 
 /**
  * Buckets a week of sequential days into one data unit
@@ -57,3 +59,46 @@ export const barAxisLabel = (
     },
   };
 };
+
+const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
+
+export function dataDatetime(
+  query: Parameters<typeof normalizeDateTimeParams>[0]
+): DateTimeObject {
+  const {
+    start,
+    end,
+    statsPeriod,
+    utc: utcString,
+  } = normalizeDateTimeParams(query, {
+    allowEmptyPeriod: true,
+    allowAbsoluteDatetime: true,
+    allowAbsolutePageDatetime: true,
+  });
+
+  if (!statsPeriod && !start && !end) {
+    return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
+  }
+
+  // Following getParams, statsPeriod will take priority over start/end
+  if (statsPeriod) {
+    return {period: statsPeriod};
+  }
+
+  const utc = utcString === 'true';
+  if (start && end) {
+    return utc
+      ? {
+          start: moment.utc(start).format(),
+          end: moment.utc(end).format(),
+          utc,
+        }
+      : {
+          start: moment(start).utc().format(),
+          end: moment(end).utc().format(),
+          utc,
+        };
+  }
+
+  return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
+}

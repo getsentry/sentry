@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
+import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -7,9 +8,15 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
 import {t} from 'sentry/locale';
-import {ExternalActorMapping, Integration, Organization, Team} from 'sentry/types';
+import {
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
+  Integration,
+  Organization,
+  Team,
+} from 'sentry/types';
+import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
-import FormModel from 'sentry/views/settings/components/forms/model';
 
 type Props = AsyncComponent['props'] &
   WithRouterProps & {
@@ -19,7 +26,12 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   teams: Team[];
-  queryResults: Team[];
+  initialResults: Team[];
+  queryResults: {
+    // For inline forms, the mappingKey will be the external name (since multiple will be rendered at one time)
+    // For the modal form, the mappingKey will be this.modalMappingKey (since only one modal form is rendered at any time)
+    [mappingKey: string]: Team[];
+  };
 };
 
 class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
@@ -27,18 +39,22 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       teams: [],
-      queryResults: [],
+      initialResults: [],
+      queryResults: {},
     };
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     return [
+      // We paginate on this query, since we're filtering by hasExternalTeams:true
       [
         'teams',
         `/organizations/${organization.slug}/teams/`,
         {query: {...location?.query, query: 'hasExternalTeams:true'}},
       ],
+      // We use this query as defaultOptions to reduce identical API calls
+      ['initialResults', `/organizations/${organization.slug}/teams/`],
     ];
   }
 
@@ -83,66 +99,84 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return externalTeamMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 
+  modalMappingKey = '__MODAL_RESULTS__';
+
+  get dataEndpoint() {
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/teams/`;
+  }
+
+  get defaultTeamOptions() {
+    const {initialResults} = this.state;
+    return this.sentryNamesMapper(initialResults).map(sentryNameToOption);
+  }
+
+  getBaseFormEndpoint(mapping?: ExternalActorMappingOrSuggestion) {
+    if (!mapping) {
+      return '';
+    }
+    const {organization} = this.props;
+    const {queryResults, initialResults} = this.state;
+    const fieldResults =
+      queryResults[mapping.externalName] ?? queryResults[this.modalMappingKey];
+    const team =
+      // First, search for the team in the query results...
+      fieldResults?.find(item => item.id === mapping.teamId) ??
+      // Then in the initial results, if nothing was found.
+      initialResults?.find(item => item.id === mapping.teamId);
+    return `/teams/${organization.slug}/${team?.slug ?? ''}/external-teams/`;
+  }
+
   sentryNamesMapper(teams: Team[]) {
     return teams.map(({id, slug}) => ({id, name: slug}));
   }
 
-  handleSubmit = (
-    data: Record<string, any>,
-    onSubmitSuccess: (data: Record<string, any>) => void,
-    onSubmitError: (error: any) => void,
-    _: React.FormEvent<Element>,
-    model: FormModel,
-    mapping?: ExternalActorMapping
-  ) => {
-    // We need to dynamically set the endpoint bc it requires the slug of the selected team in the form.
-    try {
-      const {organization} = this.props;
+  /**
+   * This method combines the results from searches made on a form dropping repeated entries
+   * that have identical 'id's. This is because we need the result of the the search query when
+   * the user submits to get the team slug, but it won't always be the last query they've made.
+   *
+   * If they search (but not select) after making a selection, and we didn't keep a running collection of results,
+   * we wouldn't have the team to generate the endpoint from.
+   */
+  combineResultsById = (resultList1, resultList2) => {
+    return uniqBy([...resultList1, ...resultList2], 'id');
+  };
+
+  handleResults = (results, mappingKey?: string) => {
+    if (mappingKey) {
       const {queryResults} = this.state;
-      const team = queryResults.find(item => item.id === data.teamId);
-
-      if (!team) {
-        throw new Error('Cannot find team slug.');
-      }
-
-      const baseEndpoint = `/teams/${organization.slug}/${team.slug}/external-teams/`;
-      const apiEndpoint = mapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint;
-      const apiMethod = mapping ? 'PUT' : 'POST';
-
-      model.setFormOptions({
-        onSubmitSuccess,
-        onSubmitError,
-        apiEndpoint,
-        apiMethod,
+      this.setState({
+        queryResults: {
+          ...queryResults,
+          // Ensure we always have a team to pull the slug from
+          [mappingKey]: this.combineResultsById(results, queryResults[mappingKey] ?? []),
+        },
       });
-
-      model.saveForm();
-    } catch {
-      // no 4xx errors should happen on delete
-      addErrorMessage(t('An error occurred'));
     }
   };
 
-  openModal = (mapping?: ExternalActorMapping) => {
-    const {organization, integration} = this.props;
+  openModal = (mapping?: ExternalActorMappingOrSuggestion) => {
+    const {integration} = this.props;
     openModal(({Body, Header, closeModal}) => (
       <Fragment>
         <Header closeButton>{t('Configure External Team Mapping')}</Header>
         <Body>
           <IntegrationExternalMappingForm
-            organization={organization}
+            type="team"
             integration={integration}
+            dataEndpoint={this.dataEndpoint}
+            getBaseFormEndpoint={map => this.getBaseFormEndpoint(map)}
+            defaultOptions={this.defaultTeamOptions}
+            mapping={mapping}
+            mappingKey={this.modalMappingKey}
+            sentryNamesMapper={this.sentryNamesMapper}
+            onCancel={closeModal}
+            onResults={this.handleResults}
             onSubmitSuccess={() => {
               this.handleSubmitSuccess();
               closeModal();
             }}
-            mapping={mapping}
-            sentryNamesMapper={this.sentryNamesMapper}
-            type="team"
-            url={`/organizations/${organization.slug}/teams/`}
-            onCancel={closeModal}
-            onSubmit={(...args) => this.handleSubmit(...args, mapping)}
-            onResults={results => this.setState({queryResults: results})}
           />
         </Body>
       </Fragment>
@@ -150,16 +184,22 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {integration} = this.props;
+    const {integration, organization} = this.props;
     const {teamsPageLinks} = this.state;
     return (
       <IntegrationExternalMappings
-        integration={integration}
         type="team"
+        integration={integration}
+        organization={organization}
         mappings={this.mappings}
-        onCreateOrEdit={this.openModal}
+        dataEndpoint={this.dataEndpoint}
+        getBaseFormEndpoint={mapping => this.getBaseFormEndpoint(mapping)}
+        defaultOptions={this.defaultTeamOptions}
+        sentryNamesMapper={this.sentryNamesMapper}
+        onCreate={this.openModal}
         onDelete={this.handleDelete}
         pageLinks={teamsPageLinks}
+        onResults={this.handleResults}
       />
     );
   }

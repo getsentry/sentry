@@ -5,7 +5,7 @@ import operator
 import zlib
 from calendar import Calendar
 from collections import OrderedDict, namedtuple
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from functools import partial, reduce
 from itertools import zip_longest
 from typing import Iterable, Mapping, NamedTuple, Tuple
@@ -581,12 +581,39 @@ def prepare_reports(dry_run=False, *args, **kwargs):
         RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item)
     ):
         prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
-        if i % 10000:
+        if i % 10000 == 0:
             logger.info(
-                f"Scheduled prepare_organization_report for org {organization_id}. Total scheduled: {i}"
+                "reports.scheduled_prepare_organization_report",
+                extra={"organization_id": organization_id, "total_scheduled": i},
             )
 
+    client = redis.redis_clusters.get("default")
+    client.set(prepare_reports_verify_key(), 1, ex=int(timedelta(days=3).total_seconds()))
     logger.info("reports.finish_prepare_report")
+
+
+def prepare_reports_verify_key():
+    today = date.today()
+    week = today - timedelta(days=today.weekday())
+    return f"prepare_reports_completed:{week.isoformat()}"
+
+
+@instrumented_task(
+    name="sentry.tasks.reports.verify_prepare_reports",
+    queue="reports.prepare",
+    max_retries=5,
+    acks_late=True,
+)
+def verify_prepare_reports(*args, **kwargs):
+    logger.info("reports.begin_verify_prepare_reports")
+    client = redis.redis_clusters.get("default")
+    verify = client.get(prepare_reports_verify_key())
+    if verify is None:
+        logger.error(
+            "Failed to verify that sentry.tasks.reports.prepare_reports successfully completed. "
+            "Confirm whether this worked via logs"
+        )
+    logger.info("reports.end_verify_prepare_reports")
 
 
 @instrumented_task(

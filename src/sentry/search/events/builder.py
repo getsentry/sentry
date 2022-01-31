@@ -40,6 +40,7 @@ from sentry.search.events.constants import (
     TIMESTAMP_FIELDS,
     VALID_FIELD_PATTERN,
 )
+from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     FunctionDetails,
@@ -52,7 +53,7 @@ from sentry.search.events.fields import (
     parse_arguments,
     parse_combinator,
 )
-from sentry.search.events.filter import ParsedTerm, ParsedTerms, QueryFilter
+from sentry.search.events.filter import ParsedTerm, ParsedTerms
 from sentry.search.events.types import HistogramParams, ParamsType, SelectType, WhereType
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError, raw_snql_query, resolve_column
@@ -80,19 +81,22 @@ class QueryBuilder:
         limitby: Optional[Tuple[str, int]] = None,
         turbo: bool = False,
         sample_rate: Optional[float] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
     ):
         self.dataset = dataset
         self.params = params
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
-        self.equation_config: Optional[Dict[str, bool]] = {}
+        self.equation_config = {} if equation_config is None else equation_config
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
+        self.having: List[WhereType] = []
         # The list of aggregates to be selected
         self.aggregates: List[CurriedFunction] = []
         self.columns: List[SelectType] = []
         self.orderby: List[OrderBy] = []
+        self.groupby: List[SelectType] = []
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
 
@@ -111,6 +115,24 @@ class QueryBuilder:
         ) = self.load_config()
 
         self.limitby = self.resolve_limitby(limitby)
+        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
+
+        self.resolve_query(
+            query=query,
+            use_aggregate_conditions=use_aggregate_conditions,
+            selected_columns=selected_columns,
+            equations=equations,
+            orderby=orderby,
+        )
+
+    def resolve_query(
+        self,
+        query: Optional[str] = None,
+        use_aggregate_conditions: bool = False,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
+    ) -> None:
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
         )
@@ -118,7 +140,7 @@ class QueryBuilder:
         self.where += self.resolve_params()
         self.columns = self.resolve_select(selected_columns, equations)
         self.orderby = self.resolve_orderby(orderby)
-        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
+        self.groupby = self.resolve_groupby()
 
     def load_config(
         self,
@@ -127,10 +149,14 @@ class QueryBuilder:
         Mapping[str, SnQLFunction],
         Mapping[str, Callable[[SearchFilter], Optional[WhereType]]],
     ]:
-        from sentry.search.events.dataset import DiscoverDatasetConfig
+        from sentry.search.events.datasets.discover import DiscoverDatasetConfig
+        from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 
+        self.config: DatasetConfig
         if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
             self.config = DiscoverDatasetConfig(self)
+        elif self.dataset == Dataset.Sessions:
+            self.config = SessionsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -594,6 +620,17 @@ class QueryBuilder:
         else:
             return self.resolve_field(field, alias=alias)
 
+    def resolve_groupby(self) -> List[SelectType]:
+        if self.aggregates:
+            self.validate_aggregate_arguments()
+            return [
+                c
+                for c in self.columns
+                if c not in self.aggregates and not self.is_equation_column(c)
+            ]
+        else:
+            return []
+
     @property
     def flattened_having(self) -> List[Condition]:
         """Return self.having as a flattened list ignoring boolean operators
@@ -618,18 +655,6 @@ class QueryBuilder:
                     boolean_conditions.append(condition)
 
         return flattened
-
-    @property
-    def groupby(self) -> Optional[List[SelectType]]:
-        if self.aggregates:
-            self.validate_aggregate_arguments()
-            return [
-                c
-                for c in self.columns
-                if c not in self.aggregates and not self.is_equation_column(c)
-            ]
-        else:
-            return []
 
     @cached_property  # type: ignore
     def project_slugs(self) -> Mapping[str, int]:
@@ -1029,7 +1054,49 @@ class QueryBuilder:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
 
-class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
+class UnresolvedQuery(QueryBuilder):
+    def __init__(
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        auto_fields: bool = False,
+        auto_aggregations: bool = False,
+        functions_acl: Optional[List[str]] = None,
+        array_join: Optional[str] = None,
+        limit: Optional[int] = 50,
+        offset: Optional[int] = 0,
+        limitby: Optional[Tuple[str, int]] = None,
+        turbo: bool = False,
+        sample_rate: Optional[float] = None,
+        equation_config: Optional[Dict[str, bool]] = None,
+    ):
+        super().__init__(
+            dataset=dataset,
+            params=params,
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            functions_acl=functions_acl,
+            array_join=array_join,
+            limit=limit,
+            offset=offset,
+            limitby=limitby,
+            turbo=turbo,
+            sample_rate=sample_rate,
+            equation_config=equation_config,
+        )
+
+    def resolve_query(
+        self,
+        query: Optional[str] = None,
+        use_aggregate_conditions: bool = False,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
+    ) -> None:
+        pass
+
+
+class TimeseriesQueryBuilder(UnresolvedQuery):
     time_column = Column("time")
 
     def __init__(
@@ -1050,24 +1117,39 @@ class TimeseriesQueryBuilder(QueryFilter):  # type: ignore
             functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
         )
-        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
+
+        self.resolve_query(
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
+        )
 
         self.limit = None if limit is None else Limit(limit)
-
-        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-        self.where += self.resolve_params()
-        self.columns = self.resolve_select(selected_columns, equations)
         self.granularity = Granularity(granularity)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
+
+    def resolve_query(
+        self,
+        query: Optional[str] = None,
+        use_aggregate_conditions: bool = False,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
+    ) -> None:
+        self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
+
+        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+        self.where += self.resolve_params()
+        self.columns = self.resolve_select(selected_columns, equations)
 
     @property
     def select(self) -> List[SelectType]:
         if not self.aggregates:
             raise InvalidSearchQuery("Cannot query a timeseries without a Y-Axis")
         # Casting for now since QueryFields/QueryFilter are only partially typed
-        return cast(List[SelectType], self.aggregates)
+        return self.aggregates
 
     def get_snql_query(self) -> Query:
         return Query(
@@ -1314,9 +1396,11 @@ class HistogramQueryBuilder(QueryBuilder):
             OrderBy(resolved_histogram, Direction.ASC)
         ]
 
-    @property
-    def groupby(self) -> Optional[List[SelectType]]:
-        base_groupby = super().groupby
+        self.groupby = self.resolve_groupby()
+        self.groupby = self.resolve_additional_groupby()
+
+    def resolve_additional_groupby(self) -> List[SelectType]:
+        base_groupby = self.groupby
         if base_groupby is not None and self.additional_groupby is not None:
             base_groupby += [self.resolve_column(field) for field in self.additional_groupby]
 

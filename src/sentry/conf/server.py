@@ -451,7 +451,7 @@ SESSION_COOKIE_NAME = "sentrysid"
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
 SESSION_COOKIE_SAMESITE = None
 
-SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
+SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
 GOOGLE_OAUTH2_CLIENT_ID = ""
 GOOGLE_OAUTH2_CLIENT_SECRET = ""
@@ -762,6 +762,13 @@ CELERYBEAT_SCHEDULE = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
+    "schedule-verify-weekly-organization-reports": {
+        "task": "sentry.tasks.reports.verify_prepare_reports",
+        "schedule": crontab(
+            minute=0, hour=12, day_of_week="tuesday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60},
+    },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
         "schedule": crontab_with_minute_jitter(hour="*/6"),
@@ -977,6 +984,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
+    # Enable threshold period in metric alert rule builder
+    "organizations:metric-alert-threshold-period": False,
     # Enable migrating auth identities between providers automatically
     "organizations:idp-automatic-migration": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1075,8 +1084,6 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
-    # Enable SCIM Provisioning functionality.
-    "organizations:sso-scim": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
     # Return unhandled information on the issue level

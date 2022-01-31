@@ -17,6 +17,16 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
+type ConditionalAriaLabel =
+  | {
+      children: Omit<React.ReactNode, 'null' | 'undefined' | 'boolean'>;
+      'aria-label'?: string;
+    }
+  | {
+      'aria-label': string;
+      children?: null | boolean;
+    };
+
 type Props = {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
   size?: 'zero' | 'xsmall' | 'small';
@@ -29,7 +39,7 @@ type Props = {
   title?: React.ComponentProps<typeof Tooltip>['title'];
   external?: boolean;
   borderless?: boolean;
-  'aria-label'?: string;
+  translucentBorder?: boolean;
   tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
@@ -37,8 +47,7 @@ type Props = {
 
   // This is only used with `<ButtonBar>`
   barId?: string;
-  children?: React.ReactNode;
-};
+} & ConditionalAriaLabel;
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref' | 'label'> &
   Props;
@@ -55,6 +64,7 @@ function BaseButton({
   children,
   'aria-label': ariaLabel,
   borderless,
+  translucentBorder,
   align = 'center',
   priority,
   disabled = false,
@@ -82,7 +92,8 @@ function BaseButton({
     return disabled ? undefined : prop;
   }
 
-  // For `aria-label`
+  // Fallbacking aria-label to string children is not necessary as screen readers natively understand that scenario.
+  // Leaving it here for a bunch of our tests that query by aria-label.
   const screenReaderLabel =
     ariaLabel || (typeof children === 'string' ? children : undefined);
 
@@ -99,6 +110,7 @@ function BaseButton({
       size={size}
       priority={priority}
       borderless={borderless}
+      translucentBorder={translucentBorder}
       {...buttonProps}
       onClick={handleClick}
       role="button"
@@ -139,22 +151,39 @@ type StyledButtonProps = ButtonProps & {theme: Theme};
 const getFontWeight = ({priority, borderless}: StyledButtonProps) =>
   `font-weight: ${priority === 'link' || borderless ? 'inherit' : 600};`;
 
-const getBoxShadow =
-  (theme: Theme) =>
-  ({priority, borderless, disabled}: StyledButtonProps) => {
-    if (disabled || borderless || priority === 'link') {
-      return 'box-shadow: none';
-    }
+const getBoxShadow = ({
+  priority,
+  borderless,
+  translucentBorder,
+  disabled,
+  theme,
+}: StyledButtonProps) => {
+  const themeName = disabled ? 'disabled' : priority || 'default';
+  const {borderTranslucent} = theme.button[themeName];
+  const translucentBorderString = translucentBorder
+    ? `0 0 0 1px ${borderTranslucent},`
+    : '';
 
-    return `
-      box-shadow: ${theme.dropShadowLight};
+  if (disabled || borderless || priority === 'link') {
+    return 'box-shadow: none';
+  }
+
+  return `
+      box-shadow: ${translucentBorderString} ${theme.dropShadowLight};
       &:active {
-        box-shadow: inset ${theme.dropShadowLight};
+        box-shadow: ${translucentBorderString} inset ${theme.dropShadowLight};
       }
     `;
-  };
+};
 
-const getColors = ({size, priority, disabled, borderless, theme}: StyledButtonProps) => {
+const getColors = ({
+  size,
+  priority,
+  disabled,
+  borderless,
+  translucentBorder,
+  theme,
+}: StyledButtonProps) => {
   const themeName = disabled ? 'disabled' : priority || 'default';
   const {
     color,
@@ -170,7 +199,10 @@ const getColors = ({size, priority, disabled, borderless, theme}: StyledButtonPr
   return css`
     color: ${color};
     background-color: ${background};
+
     border: 1px solid ${borderless ? 'transparent' : border};
+
+    ${translucentBorder && `border-width: 0;`}
 
     &:hover {
       color: ${color};
@@ -193,12 +225,23 @@ const getColors = ({size, priority, disabled, borderless, theme}: StyledButtonPr
   `;
 };
 
-const getSizeStyles = ({size, theme}: StyledButtonProps) => {
+const getSizeStyles = ({size, translucentBorder, theme}: StyledButtonProps) => {
   const buttonSize = size === 'small' || size === 'xsmall' ? size : 'default';
+  const formStyles = theme.form[buttonSize];
+  const buttonPadding = theme.buttonPadding[buttonSize];
 
   return {
-    ...theme.form[buttonSize],
-    ...theme.buttonPadding[buttonSize],
+    ...formStyles,
+    ...buttonPadding,
+    // If using translucent borders, rewrite size styles to
+    // prevent layout shifts
+    ...(translucentBorder && {
+      height: formStyles.height - 2,
+      minHeight: formStyles.minHeight - 2,
+      paddingTop: buttonPadding.paddingTop - 1,
+      paddingBottom: buttonPadding.paddingBottom - 1,
+      margin: 1,
+    }),
   };
 };
 
@@ -249,7 +292,7 @@ const StyledButton = styled(
   ${getFontWeight};
   ${getColors};
   ${getSizeStyles}
-  ${p => getBoxShadow(p.theme)};
+  ${getBoxShadow};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
   transition: background 0.1s, border 0.1s, box-shadow 0.1s;

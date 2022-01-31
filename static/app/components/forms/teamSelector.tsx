@@ -206,6 +206,7 @@ function TeamSelector(props: Props) {
             disabled={!canAddTeam}
             onClick={() => handleAddTeamToProject(team)}
             icon={<IconAdd isCircled />}
+            aria-label={t('Add %s to project', `#${team.slug}`)}
           />
         </Tooltip>
       ),
