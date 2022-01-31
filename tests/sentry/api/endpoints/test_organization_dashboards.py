@@ -115,7 +115,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             if not forward_sort:
                 expected = ["Dashboard 2", "Dashboard 1", "A"]
 
-            assert values == ["Dashboard"] + expected
+            assert values == ["General"] + expected
 
     def test_get_sortby_recently_viewed(self):
         Dashboard.objects.create(
