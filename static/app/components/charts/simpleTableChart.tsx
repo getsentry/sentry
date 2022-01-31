@@ -37,8 +37,8 @@ class SimpleTableChart extends Component<Props> {
 
     return columns.map(column => {
       const fieldRenderer =
-        getCustomFieldRenderer?.(column.name, tableMeta) ??
-        getFieldRenderer(column.name, tableMeta);
+        getCustomFieldRenderer?.(column.key, tableMeta) ??
+        getFieldRenderer(column.key, tableMeta);
       const rendered = fieldRenderer(row, {organization, location});
       return <TableCell key={`${index}:${column.name}`}>{rendered}</TableCell>;
     });
@@ -57,7 +57,7 @@ class SimpleTableChart extends Component<Props> {
           isLoading={loading}
           headers={columns.map((column, index) => {
             const align = fieldAlignment(column.name, column.type, meta);
-            const header = fieldHeaderMap?.[column.name] ?? column.key;
+            const header = fieldHeaderMap?.[column.key] ?? column.name;
             return (
               <HeadCell key={index} align={align}>
                 <Tooltip title={header}>
