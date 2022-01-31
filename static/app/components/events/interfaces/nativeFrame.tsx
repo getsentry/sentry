@@ -361,16 +361,17 @@ const GridRow = styled('div')<{inApp: boolean; expandable: boolean; expanded: bo
   ${p => p.inApp && `background: ${p.theme.surface100};`};
 
   display: grid;
+  align-items: flex-start;
   padding: ${space(0.5)};
   :not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
   }
 
-  grid-template-columns: 28px 0.6fr 0.5fr 24px 1fr 24px;
+  grid-template-columns: 24px 132px 138px 24px 1fr 24px;
   grid-template-rows: 1fr;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 28px auto minmax(max-content, 1fr) auto;
+    grid-template-columns: 24px auto minmax(138px, 1fr) 24px;
     grid-template-rows: repeat(2, auto);
   }
 `;
@@ -391,6 +392,7 @@ const StatusCell = styled(Cell)`
 `;
 
 const PackageCell = styled(Cell)`
+  color: ${p => p.theme.gray300};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-column: 2/2;
     grid-row: 1/1;
@@ -401,12 +403,11 @@ const PackageCell = styled(Cell)`
 `;
 
 const AddressCell = styled(Cell)`
-  padding-left: ${space(1)};
+  font-family: ${p => p.theme.text.familyMono};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-column: 3/3;
     grid-row: 1/1;
-    font-family: ${p => p.theme.text.familyMono};
   }
 `;
 
