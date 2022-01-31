@@ -121,7 +121,7 @@ function MenuControl({
 
   const renderTrigger = isOpen => {
     if (trigger) {
-      return trigger({props: {...buttonProps, isOpen: state.isOpen}, ref});
+      return trigger({props: {...buttonProps, isOpen}, ref});
     }
     return (
       <DropdownButton
