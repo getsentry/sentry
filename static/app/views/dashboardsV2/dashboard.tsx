@@ -73,7 +73,7 @@ type Props = {
   /**
    * Fired when widgets are added/removed/sorted.
    */
-  onUpdate: (widgets: Widget[]) => void;
+  onUpdate: (widgets: Widget[], columnDepths?: number[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   handleAddCustomWidget: (widget: Widget) => void;
@@ -440,7 +440,8 @@ class Dashboard extends Component<Props, State> {
     };
 
     // Generate a new list of widgets where the layouts are associated
-    let columnDepths = calculateColumnDepths(newLayouts[DESKTOP]);
+    const initialDepths = calculateColumnDepths(newLayouts[DESKTOP]);
+    let columnDepths = [...initialDepths];
     const newWidgets = dashboard.widgets.map(widget => {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
@@ -485,7 +486,7 @@ class Dashboard extends Component<Props, State> {
     this.setState({
       layouts: newLayouts,
     });
-    onUpdate(newWidgets);
+    onUpdate(newWidgets, initialDepths);
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {

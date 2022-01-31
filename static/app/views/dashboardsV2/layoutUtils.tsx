@@ -159,3 +159,28 @@ export function getNextAvailablePosition(
   }
   return [{x: 0, y: maxColumnDepth}, [...columnDepths]];
 }
+
+export function assignDefaultLayout(
+  widgets: Widget[],
+  initialColumnDepths: number[]
+): Widget[] {
+  let columnDepths = [...initialColumnDepths];
+  const newWidgets = widgets.map(widget => {
+    if (defined(widget.layout)) {
+      return widget;
+    }
+
+    const height = getDefaultWidgetHeight(widget.displayType);
+    const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
+      columnDepths,
+      height
+    );
+    columnDepths = nextColumnDepths;
+
+    return {
+      ...widget,
+      layout: {...nextPosition, h: height, minH: height, w: DEFAULT_WIDGET_WIDTH},
+    };
+  });
+  return newWidgets;
+}

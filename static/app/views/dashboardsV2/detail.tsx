@@ -1,5 +1,4 @@
 import {cloneElement, Component, isValidElement} from 'react';
-import type {Layout as RGLLayout} from 'react-grid-layout';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -30,7 +29,11 @@ import withOrganization from 'sentry/utils/withOrganization';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
-import {getDashboardLayout} from './layoutUtils';
+import {
+  assignDefaultLayout,
+  calculateColumnDepths,
+  getDashboardLayout,
+} from './layoutUtils';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
@@ -66,17 +69,19 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
-  widgetToBeUpdated?: Widget;
-  layout: RGLLayout[];
   widgetLimitReached: boolean;
+  layoutColumnDepths: number[];
+  widgetToBeUpdated?: Widget;
 };
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
-    layout: getDashboardLayout(this.props.dashboard.widgets),
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
+    layoutColumnDepths: calculateColumnDepths(
+      getDashboardLayout(this.props.dashboard.widgets)
+    ),
   };
 
   componentDidMount() {
@@ -296,10 +301,13 @@ class DashboardDetail extends Component<Props, State> {
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
-    const {modifiedDashboard} = this.state;
+    const {modifiedDashboard, layoutColumnDepths, dashboardState} = this.state;
     const newModifiedDashboard = {
       ...cloneDashboard(modifiedDashboard || dashboard),
-      widgets,
+      widgets:
+        dashboardState === DashboardState.VIEW
+          ? assignDefaultLayout(widgets, layoutColumnDepths)
+          : widgets,
     };
     this.setState({
       modifiedDashboard: newModifiedDashboard,
@@ -456,7 +464,7 @@ class DashboardDetail extends Component<Props, State> {
     this.setState({widgetToBeUpdated: widget});
   };
 
-  onUpdateWidget = (widgets: Widget[]) => {
+  onUpdateWidget = (widgets: Widget[], columnDepths?: number[]) => {
     this.setState(
       (state: State) => ({
         ...state,
@@ -466,6 +474,7 @@ class DashboardDetail extends Component<Props, State> {
           ...(state.modifiedDashboard || this.props.dashboard),
           widgets,
         },
+        layoutColumnDepths: columnDepths ?? state.layoutColumnDepths,
       }),
       this.updateRouteAfterSavingWidget
     );
