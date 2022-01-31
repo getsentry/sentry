@@ -47,7 +47,7 @@ interface ItemProps {
 
 // Not using typeof defaultProps because of the wrapping HOC which
 // causes defaultProp magic to fall off.
-const defaultProps = {
+export const DefaultSearchProps = {
   renderItem: ({
     item,
     matches,
@@ -62,7 +62,7 @@ const defaultProps = {
   closeOnSelect: true,
 };
 
-interface SearchProps extends WithRouterProps<{orgId: string}> {
+export interface SearchProps extends WithRouterProps<{orgId: string}> {
   /**
    * For analytics
    */
@@ -96,6 +96,9 @@ interface SearchProps extends WithRouterProps<{orgId: string}> {
    * Adds a footer below the results when the search is complete
    */
   resultFooter?: React.ReactElement;
+  /**
+   * Fuse search options
+   */
   searchOptions?: Fuse.FuseOptions<any>;
   /**
    * The sources to query
@@ -125,7 +128,7 @@ function Search(props: SearchProps): React.ReactElement {
 
       // `action` refers to a callback function while
       // `to` is a react-router route
-      if (item.action) {
+      if (typeof item.action === 'function') {
         item.action(item, state);
         return;
       }
@@ -177,13 +180,18 @@ function Search(props: SearchProps): React.ReactElement {
     <AutoComplete
       defaultHighlightedIndex={0}
       onSelect={handleSelectItem}
-      closeOnSelect={props.closeOnSelect}
+      closeOnSelect={props.closeOnSelect ?? DefaultSearchProps.closeOnSelect}
     >
       {({getInputProps, getItemProps, isOpen, inputValue, highlightedIndex}) => {
         const searchQuery = inputValue.toLowerCase().trim();
         const isValidSearch = inputValue.length >= props.minSearch;
 
         debouncedSaveQueryMetrics(searchQuery);
+
+        const renderItem =
+          typeof props.renderItem === 'function'
+            ? props.renderItem
+            : DefaultSearchProps.renderItem;
 
         return (
           <SearchWrapper>
@@ -194,7 +202,7 @@ function Search(props: SearchProps): React.ReactElement {
                 searchOptions={props.searchOptions}
                 query={searchQuery}
                 params={props.params}
-                sources={props.sources ?? defaultProps.sources}
+                sources={props.sources ?? DefaultSearchProps.sources}
               >
                 {({isLoading, results, hasAnyResults}) => (
                   <DropdownBox className={props.dropdownStyle}>
@@ -205,20 +213,21 @@ function Search(props: SearchProps): React.ReactElement {
                     ) : !hasAnyResults ? (
                       <EmptyItem>{t('No results found')}</EmptyItem>
                     ) : (
-                      results.slice(0, props.maxResults).map((resultObj, index) =>
-                        typeof props.renderItem === 'function'
-                          ? React.cloneElement(
-                              props.renderItem({
-                                index,
-                                item: resultObj.item,
-                                matches: resultObj.matches,
-                                highlighted: index === highlightedIndex,
-                                itemProps: getItemProps({item: resultObj.item, index}),
-                              }),
-                              {key: `${resultObj.item.title}-${index}`}
-                            )
-                          : null
-                      )
+                      results.slice(0, props.maxResults).map((resultObj, index) => {
+                        return React.cloneElement(
+                          renderItem({
+                            index,
+                            item: resultObj.item,
+                            matches: resultObj.matches,
+                            highlighted: index === highlightedIndex,
+                            itemProps: getItemProps({
+                              item: resultObj.item,
+                              index,
+                            }),
+                          }),
+                          {key: `${resultObj.item.title}-${index}`}
+                        );
+                      })
                     )}
                     {!isLoading && props.resultFooter ? (
                       <ResultFooter>{props.resultFooter}</ResultFooter>
