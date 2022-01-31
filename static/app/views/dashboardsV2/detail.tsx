@@ -271,10 +271,10 @@ class DashboardDetail extends Component<Props, State> {
     const {organization, dashboard, location, params} = this.props;
     const {modifiedDashboard} = this.state;
 
+    let isDashboardDirty = !isEqual(modifiedDashboard, dashboard);
+
     // If a dashboard has every layout undefined, then ignore the layout field
-    // because it is either a dashboard from before the grid feature or added through
-    // the template feature
-    let isDashboardDirty;
+    // when checking equality because it is a dashboard from before the grid feature
     const isLegacyLayout = dashboard.widgets.every(({layout}) => !defined(layout));
     if (isLegacyLayout) {
       isDashboardDirty = !isEqual(
@@ -284,8 +284,6 @@ class DashboardDetail extends Component<Props, State> {
         },
         {...dashboard, widgets: dashboard.widgets.map(widget => omit(widget, 'layout'))}
       );
-    } else {
-      isDashboardDirty = !isEqual(modifiedDashboard, dashboard);
     }
 
     // Don't confirm preview cancellation regardless of dashboard state
