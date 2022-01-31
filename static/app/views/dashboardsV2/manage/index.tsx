@@ -229,6 +229,7 @@ class ManageDashboards extends AsyncView<Props, State> {
     trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
       organization,
       dashboard_id: dashboard.id,
+      dashboard_title: dashboard.title,
       was_previewed: false,
     });
 
