@@ -118,7 +118,7 @@ function SuspectSpansHeader(props: HeaderProps) {
     <Header>
       <div>
         <SectionHeading>{t('Suspect Spans')}</SectionHeading>
-        <FeatureBadge type="alpha" />
+        <FeatureBadge type="new" />
       </div>
       <Button to={viewAllTarget} size="xsmall" data-test-id="suspect-spans-open-tab">
         {t('View All Spans')}
