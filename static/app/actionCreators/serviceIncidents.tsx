@@ -46,12 +46,17 @@ function getIncidentsFromIncidentResponse(statuspageIncidents: StatuspageInciden
 
 export async function loadIncidents(): Promise<SentryServiceStatus | null> {
   const cfg = ConfigStore.get('statuspage');
+  let response: Response | undefined = undefined;
   if (!cfg || !cfg.id) {
     return null;
   }
-  const response = await fetch(
-    `https://${cfg.id}.${cfg.api_host}/api/v2/incidents/unresolved.json`
-  );
+  try {
+    response = await fetch(
+      `https://${cfg.id}.${cfg.api_host}/api/v2/incidents/unresolved.json`
+    );
+  } catch (err) {
+    return null;
+  }
 
   if (!response.ok) {
     return null;
