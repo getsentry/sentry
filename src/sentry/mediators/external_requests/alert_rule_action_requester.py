@@ -78,7 +78,7 @@ class AlertRuleActionRequester(Mediator):
     def body(self):
         return json.dumps(
             {
-                "fields": {field["name"]: field["value"] for field in self.fields},
+                "fields": self.fields,
                 "installationId": self.install.uuid,
             }
         )
