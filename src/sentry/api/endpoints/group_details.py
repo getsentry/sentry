@@ -15,7 +15,6 @@ from sentry.api.helpers.group_index import (
     delete_group_list,
     get_first_last_release,
     prep_search,
-    rate_limit_endpoint,
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
@@ -32,6 +31,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
+    enforce_rate_limit = True
     rate_limits = {
         "GET": {
             RateLimitCategory.IP: RateLimit(5, 1),
@@ -113,7 +113,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             PluginSerializer(project),
         )
 
-    @rate_limit_endpoint(limit=5, window=1)
     def get(self, request: Request, group) -> Response:
         """
         Retrieve an Issue
@@ -228,7 +227,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             raise
 
-    @rate_limit_endpoint(limit=5, window=1)
     def put(self, request: Request, group) -> Response:
         """
         Update an Issue
@@ -297,7 +295,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         except Exception:
             raise
 
-    @rate_limit_endpoint(limit=5, window=5)
     def delete(self, request: Request, group) -> Response:
         """
         Remove an Issue

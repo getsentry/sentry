@@ -4,14 +4,12 @@ from django.http import QueryDict
 
 from sentry.api.helpers.group_index import (
     ValidationError,
-    build_rate_limit_key,
     update_groups,
     validate_search_filter_permissions,
 )
 from sentry.api.issue_search import parse_search_query
 from sentry.models import GroupInbox, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.testutils import TestCase
-from sentry.utils.hashlib import md5_text
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
@@ -171,13 +169,3 @@ class UpdateGroupsTest(TestCase):
 
         assert not GroupInbox.objects.filter(group=group).exists()
         assert send_robust.called
-
-
-class BuildRateLimitKeyTest(TestCase):
-    def some_function(self):
-        pass
-
-    def test(self):
-        request = self.make_request()
-        expected = f"rate_limit_endpoint:{md5_text('BuildRateLimitKeyTest.some_function').hexdigest()}:{request.META['REMOTE_ADDR']}"
-        assert build_rate_limit_key(self.some_function, request) == expected

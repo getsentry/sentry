@@ -11,7 +11,6 @@ from sentry.api.helpers.group_index import (
     delete_groups,
     get_by_short_id,
     prep_search,
-    rate_limit_endpoint,
     track_slo_response,
     update_groups,
 )
@@ -28,6 +27,7 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectEventPermission,)
+    enforce_rate_limit = True
 
     rate_limits = {
         "GET": {
@@ -38,7 +38,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     }
 
     @track_slo_response("workflow")
-    @rate_limit_endpoint(limit=3, window=1)
     def get(self, request: Request, project) -> Response:
         """
         List a Project's Issues

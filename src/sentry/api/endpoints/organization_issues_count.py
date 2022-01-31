@@ -4,11 +4,7 @@ from rest_framework.response import Response
 
 from sentry import features, search
 from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.api.helpers.group_index import (
-    ValidationError,
-    rate_limit_endpoint,
-    validate_search_filter_permissions,
-)
+from sentry.api.helpers.group_index import ValidationError, validate_search_filter_permissions
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.snuba import discover
@@ -21,6 +17,7 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
+    enforce_rate_limit = True
     rate_limits = {
         "GET": {
             RateLimitCategory.IP: RateLimit(10, 1),
@@ -53,7 +50,6 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
         result = search.query(**query_kwargs)
         return result.hits
 
-    @rate_limit_endpoint(limit=10, window=1)
     def get(self, request: Request, organization) -> Response:
         stats_period = request.GET.get("groupStatsPeriod")
         try:

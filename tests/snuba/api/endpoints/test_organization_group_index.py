@@ -5,6 +5,8 @@ from uuid import uuid4
 from dateutil.parser import parse as parse_datetime
 from django.urls import reverse
 from django.utils import timezone
+from freezegun import freeze_time
+from rest_framework import status
 
 from sentry import options
 from sentry.models import (
@@ -1630,12 +1632,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response.data[0]["owners"][1]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
         )
 
-    @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
-    )
-    def test_ratelimit(self, is_limited):
+    def test_ratelimit(self):
         self.login_as(user=self.user)
-        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+        with freeze_time("2000-01-01"):
+            for i in range(10):
+                self.get_success_response()
+            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
     def test_filter_not_unresolved(self):
         event = self.store_event(
@@ -2986,12 +2988,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
 
-    @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
-    )
-    def test_ratelimit(self, is_limited):
+    def test_ratelimit(self):
         self.login_as(user=self.user)
-        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+        with freeze_time("2000-01-01"):
+            for i in range(5):
+                self.get_success_response()
+            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
     def test_set_inbox(self):
         group1 = self.create_group(checksum="a" * 32)
@@ -3163,9 +3165,9 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
 
-    @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
-    )
-    def test_ratelimit(self, is_limited):
+    def test_ratelimit(self):
         self.login_as(user=self.user)
-        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+        with freeze_time("2000-01-01"):
+            for i in range(5):
+                self.get_success_response()
+            self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
