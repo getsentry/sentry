@@ -677,4 +677,5 @@ const ResizeHandle = styled('div')`
   position: absolute;
   bottom: 2px;
   right: 4px;
+  cursor: nwse-resize;
 `;
