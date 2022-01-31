@@ -21,11 +21,6 @@ import MenuSection from 'sentry/components/dropdownMenuSectionV2';
 import space from 'sentry/styles/space';
 
 type Props = {
-  onClose?: () => void;
-  /**
-   * Whether the menu should close when an item has been clicked/selected
-   */
-  closeOnSelect?: boolean;
   /**
    * Ref object to the trigger element, needed for useOverlayPosition()
    */
@@ -34,6 +29,11 @@ type Props = {
    * Whether this is a submenu
    */
   isSubmenu: boolean;
+  /**
+   * Whether the menu should close when an item has been clicked/selected
+   */
+  closeOnSelect?: boolean;
+  onClose?: () => void;
   /*
    * Title to display on top of the menu
    */
