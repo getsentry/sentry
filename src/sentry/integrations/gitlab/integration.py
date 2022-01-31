@@ -18,7 +18,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.repositories import RepositoryMixin
-from sentry.models import Repository
+from sentry.models import Identity, Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.hashlib import sha1_text
@@ -92,7 +92,10 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
     def get_client(self):
         if self.default_identity is None:
-            self.default_identity = self.get_default_identity()
+            try:
+                self.default_identity = self.get_default_identity()
+            except Identity.DoesNotExist:
+                return None
 
         return GitLabApiClient(self)
 
