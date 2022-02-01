@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -25,10 +25,16 @@ describe('EnvironmentPageFilter', function () {
   });
   OrganizationStore.onUpdate(organization, {replace: true});
   ProjectsStore.loadInitialData(organization.projects);
-  PageFiltersStore.onInitializeUrlState({
-    projects: [2],
-    environments: [],
-    datetime: {start: null, end: null, period: '14d', utc: null},
+
+  beforeEach(() => {
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.onInitializeUrlState({
+        projects: [2],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+    });
   });
 
   it('can pick environment', function () {
@@ -87,6 +93,48 @@ describe('EnvironmentPageFilter', function () {
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
         pinnedFilters: new Set(['environments']),
+      })
+    );
+  });
+
+  it('can quick select', async function () {
+    mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <EnvironmentPageFilter />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
+
+    // Open the environment dropdown
+    expect(screen.getByText('All Environments')).toBeInTheDocument();
+    userEvent.click(screen.getByText('All Environments'));
+
+    // Click the first environment directly
+    const prodEnvOption = screen.getByText('prod');
+    userEvent.click(prodEnvOption);
+
+    // Verify we were redirected
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({query: {environment: ['prod']}})
+    );
+
+    await screen.findByText('prod');
+
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        isReady: true,
+        selection: {
+          datetime: {
+            end: null,
+            period: '14d',
+            start: null,
+            utc: null,
+          },
+          environments: ['prod'],
+          projects: [2],
+        },
       })
     );
   });
