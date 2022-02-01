@@ -220,8 +220,11 @@ const IgnoreActions = ({
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
-            size="xsmall"
+            // to prevent prop type warning due to
+            // ConditionalAriaLabel in button.tsx
+            children={null}
             aria-label={t('Ignore options')}
+            size="xsmall"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={disabled}
           />

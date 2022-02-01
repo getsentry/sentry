@@ -12,7 +12,7 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import Menu from 'sentry/components/dropdownMenuV2';
 
 type TriggerProps = {
-  props: React.HTMLAttributes<HTMLButtonElement> & {
+  props: React.HTMLAttributes<Element> & {
     onClick?: (e: MouseEvent) => void;
   };
   ref: React.RefObject<HTMLButtonElement>;

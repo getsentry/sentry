@@ -172,8 +172,11 @@ class ResolveActions extends React.Component<Props> {
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
-            size="xsmall"
+            // to prevent prop type warning due to
+            // ConditionalAriaLabel in button.tsx
+            children={null}
             aria-label={t('More resolve options')}
+            size="xsmall"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={!projectSlug ? disabled : disableDropdown}
           />
