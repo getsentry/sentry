@@ -39,7 +39,7 @@ interface DeviceNameProps {
  * This asynchronously loads the ios-device-list library because of its size
  */
 function DeviceName({value, children}: DeviceNameProps): React.ReactElement | null {
-  const [iOSDeviceList, setiOSDeviceList] = React.useState<IOSDeviceList | null>(null);
+  const [iOSDeviceList, setIOSDeviceList] = React.useState<IOSDeviceList | null>(null);
 
   React.useEffect(() => {
     let didUnmount = false;
@@ -47,11 +47,12 @@ function DeviceName({value, children}: DeviceNameProps): React.ReactElement | nu
     selfModule
       .loadiOSDeviceListModule()
       .then(deviceList => {
+        // We need to track component unmount so we dont try and setState on an unmounted component
         if (didUnmount) {
           return;
         }
 
-        setiOSDeviceList(deviceList);
+        setIOSDeviceList(deviceList);
       })
       .catch(() => {
         Sentry.captureException('Failed to load ios-device-list module');

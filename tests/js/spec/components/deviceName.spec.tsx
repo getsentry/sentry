@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
-import {render, screen, waitFor} from '@testing-library/react';
-import * as devicelist from 'ios-device-list';
+import {generationByIdentifier} from 'ios-device-list';
+
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as Device from 'sentry/components/deviceName';
 
@@ -16,24 +17,24 @@ describe('DeviceName', () => {
   });
 
   it('renders device name if module is loaded', async () => {
-    devicelist.generationByIdentifier.mockImplementation(() => 'iPhone 6s Plus');
+    generationByIdentifier.mockImplementation(() => 'iPhone 6s Plus');
 
     render(<Device.DeviceName value="iPhone8,2" />);
 
     expect(await screen.findByText('iPhone 6s Plus')).toBeInTheDocument();
-    expect(devicelist.generationByIdentifier).toHaveBeenCalledWith('iPhone8,2');
+    expect(generationByIdentifier).toHaveBeenCalledWith('iPhone8,2');
   });
 
   it('renders device name if name helper returns undefined is loaded', async () => {
-    devicelist.generationByIdentifier.mockImplementation(() => undefined);
+    generationByIdentifier.mockImplementation(() => undefined);
 
     render(<Device.DeviceName value="iPhone8,2" />);
 
     expect(await screen.findByText('iPhone8,2')).toBeInTheDocument();
-    expect(devicelist.generationByIdentifier).toHaveBeenCalledWith('iPhone8,2');
+    expect(generationByIdentifier).toHaveBeenCalledWith('iPhone8,2');
   });
 
-  it('renders device name if module is not loaded', async () => {
+  it('renders device name if module fails to load', async () => {
     jest.spyOn(Device, 'loadiOSDeviceListModule').mockImplementation(() => {
       return Promise.reject('Cannot load module');
     });
