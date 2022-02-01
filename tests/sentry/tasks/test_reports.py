@@ -10,6 +10,7 @@ from django.core import mail
 from django.utils import timezone
 
 from sentry.app import tsdb
+from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import GroupStatus, Project, UserOption
 from sentry.tasks.reports import (
@@ -41,7 +42,6 @@ from sentry.tasks.reports import (
 from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.utils import redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome
 
@@ -246,8 +246,7 @@ class ReportTestCase(TestCase, SnubaTestCase):
 
             message = mail.outbox[0]
             assert self.organization.name in message.subject
-        client = redis.redis_clusters.get("default")
-        assert client.get(prepare_reports_verify_key()) == "1"
+        assert default_cache.get(prepare_reports_verify_key()) == "1"
 
     @mock.patch("sentry.tasks.reports.logger")
     def test_verify(self, logger):

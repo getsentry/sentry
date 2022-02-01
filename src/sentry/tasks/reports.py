@@ -23,6 +23,7 @@ from snuba_sdk.query import Query
 
 from sentry import features
 from sentry.app import tsdb
+from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import (
     Activity,
@@ -587,8 +588,7 @@ def prepare_reports(dry_run=False, *args, **kwargs):
                 extra={"organization_id": organization_id, "total_scheduled": i},
             )
 
-    client = redis.redis_clusters.get("default")
-    client.set(prepare_reports_verify_key(), 1, ex=int(timedelta(days=3).total_seconds()))
+    default_cache.set(prepare_reports_verify_key(), "1", int(timedelta(days=3).total_seconds()))
     logger.info("reports.finish_prepare_report")
 
 
@@ -606,8 +606,7 @@ def prepare_reports_verify_key():
 )
 def verify_prepare_reports(*args, **kwargs):
     logger.info("reports.begin_verify_prepare_reports")
-    client = redis.redis_clusters.get("default")
-    verify = client.get(prepare_reports_verify_key())
+    verify = default_cache.get(prepare_reports_verify_key())
     if verify is None:
         logger.error(
             "Failed to verify that sentry.tasks.reports.prepare_reports successfully completed. "
