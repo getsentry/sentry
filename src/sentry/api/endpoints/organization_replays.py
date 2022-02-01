@@ -7,7 +7,8 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationRepl
 # from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models import UserReportWithGroupSerializer
+from sentry.api.serializers.models import ReplaySerializer
+from sentry.models.replay import Replay
 
 # from sentry.models import UserReport
 
@@ -32,30 +33,14 @@ class OrganizationReplaysEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response([])
 
-        # queryset = UserReport.objects.filter(
-        #     project_id__in=filter_params["project_id"], group_id__isnull=False
-        # )
-        # if "environment" in filter_params:
-        #     queryset = queryset.filter(
-        #         environment_id__in=[env.id for env in filter_params["environment_objects"]]
-        #     )
-        # if filter_params["start"] and filter_params["end"]:
-        #     queryset = queryset.filter(
-        #         date_added__range=(filter_params["start"], filter_params["end"])
-        #     )
-
-        status = request.GET.get("status", "unresolved")
-        paginate_kwargs = {}
-        if status == "unresolved":
-            paginate_kwargs["post_query_filter"] = user_reports_filter_to_unresolved
-        elif status:
-            return self.respond({"status": "Invalid status choice"}, status=400)
+        queryset = Replay.objects.filter(project_id__in=filter_params["project_id"])
+        paginate_kwargs = {}  # TODO (noop right now)
 
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-date_added",
-            on_results=lambda x: serialize(x, request.user, ReplayWithGroupSerializer()),
+            on_results=lambda x: serialize(x, request.user, ReplaySerializer()),
             paginator_cls=DateTimePaginator,
             **paginate_kwargs,
         )
