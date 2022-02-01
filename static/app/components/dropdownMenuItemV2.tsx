@@ -193,7 +193,7 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
     const showDividers = item.showDividers && !isLastNode;
 
     return (
-      <Wrap
+      <MenuItemWrap
         ref={ref}
         as={renderAs}
         isDisabled={isDisabled}
@@ -233,14 +233,14 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
             )}
           </ContentWrap>
         </InnerWrap>
-      </Wrap>
+      </MenuItemWrap>
     );
   }
 );
 
 export default MenuItem;
 
-const Wrap = styled('li')<{isDisabled?: boolean}>`
+const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
   position: static;
   list-style-type: none;
   margin: 0;

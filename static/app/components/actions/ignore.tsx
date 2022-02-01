@@ -44,13 +44,13 @@ const IgnoreActions = ({
   confirmLabel = t('Ignore'),
   isIgnored = false,
 }: Props) => {
-  const onIgnore = (statusDetails: ResolutionStatusDetails) => {
+  const onIgnore = (statusDetails?: ResolutionStatusDetails) => {
     openConfirmModal({
       bypass: !shouldConfirm,
       onConfirm: () =>
         onUpdate({
           status: ResolutionStatus.IGNORED,
-          statusDetails: statusDetails || {},
+          statusDetails,
         }),
       message: confirmMessage,
       confirmText: confirmLabel,
@@ -59,14 +59,6 @@ const IgnoreActions = ({
 
   const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {
     onIgnore(statusDetails);
-  };
-
-  const actionLinkProps = {
-    shouldConfirm,
-    title: t('Ignore'),
-    message: confirmMessage,
-    confirmLabel,
-    disabled,
   };
 
   if (isIgnored) {
@@ -212,14 +204,14 @@ const IgnoreActions = ({
   return (
     <ButtonBar merged>
       <IgnoreButton
-        {...actionLinkProps}
         size="xsmall"
         tooltipProps={{delay: 300}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
-        onClick={() => onUpdate({status: ResolutionStatus.IGNORED})}
         icon={<IconMute size="xs" />}
+        onClick={() => onIgnore()}
+        disabled={disabled}
       >
         {t('Ignore')}
       </IgnoreButton>

@@ -218,25 +218,26 @@ class ResolveActions extends React.Component<Props> {
       return this.renderResolved();
     }
 
-    const actionLinkProps = {
-      shouldConfirm,
-      message: confirmMessage,
-      confirmLabel,
-      disabled,
-    };
+    const onResolve = () =>
+      openConfirmModal({
+        bypass: !shouldConfirm,
+        onConfirm: () => onUpdate({status: ResolutionStatus.RESOLVED}),
+        message: confirmMessage,
+        confirmText: confirmLabel,
+      });
 
     return (
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
           <ResolveButton
-            {...actionLinkProps}
             size="xsmall"
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}
             tooltipProps={{delay: 300}}
             icon={<IconCheckmark size="xs" />}
-            onClick={() => onUpdate({status: ResolutionStatus.RESOLVED})}
+            onClick={onResolve}
+            disabled={disabled}
           >
             {t('Resolve')}
           </ResolveButton>
