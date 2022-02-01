@@ -602,7 +602,7 @@ class OrganizationEventsFacetsEndpointTestWithSnql(OrganizationEventsFacetsEndpo
         self.features["organizations:discover-use-snql"] = True
 
     # Separate test for now to keep the patching simpler
-    @mock.patch("sentry.snuba.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
     def test_handling_snuba_errors(self, mock_query):
         mock_query.side_effect = ParseError("test")
         with self.feature(self.features):
