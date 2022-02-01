@@ -247,10 +247,6 @@ const Overlay = styled('div')<{placementProp: PositionAria['placement']}>`
   ${p => p.placementProp === 'top' && `margin-bottom: 0;`}
   ${p => p.placementProp === 'bottom' && `margin-top: 0;`}
 
-  margin: ${space(1)} 0;
-  ${p => p.placementProp === 'top' && `margin-bottom: 0;`}
-  ${p => p.placementProp === 'bottom' && `margin-top: 0;`}
-
   /* Override z-index from useOverlayPosition */
   z-index: ${p => p.theme.zIndex.dropdown} !important;
 `;
