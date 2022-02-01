@@ -72,7 +72,6 @@ type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
-  layoutColumnDepths: number[];
   widgetToBeUpdated?: Widget;
 };
 
@@ -81,24 +80,7 @@ class DashboardDetail extends Component<Props, State> {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
-    layoutColumnDepths: calculateColumnDepths(
-      getDashboardLayout(this.props.dashboard.widgets)
-    ),
   };
-
-  static getDerivedStateFromProps(props, state) {
-    const columnDepthsFromProps = calculateColumnDepths(
-      getDashboardLayout(props.dashboard.widgets)
-    );
-
-    if (!isEqual(state.layoutColumnDepths, columnDepthsFromProps)) {
-      // The column depths needs to be up to date with props
-      // so adding through the header positions properly
-      return {...state, layoutColumnDepths: columnDepthsFromProps};
-    }
-
-    return null;
-  }
 
   componentDidMount() {
     const {route, router} = this.props;
@@ -333,7 +315,10 @@ class DashboardDetail extends Component<Props, State> {
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
-    const {modifiedDashboard, layoutColumnDepths, dashboardState} = this.state;
+    const {modifiedDashboard, dashboardState} = this.state;
+    const layoutColumnDepths = calculateColumnDepths(
+      getDashboardLayout(dashboard.widgets)
+    );
     const newModifiedDashboard = {
       ...cloneDashboard(modifiedDashboard || dashboard),
       widgets:
