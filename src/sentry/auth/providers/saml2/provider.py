@@ -290,7 +290,8 @@ class SAML2Provider(Provider):
 
         # map configured provider attributes
         for key, provider_key in self.config["attribute_mapping"].items():
-            attributes[key] = raw_attributes.get(provider_key, [""])[0]
+            attribute_list = raw_attributes.get(provider_key, [""])
+            attributes[key] = attribute_list[0] if len(attribute_list) > 0 else ""
 
         # Email and identifier MUST be correctly mapped
         if not attributes[Attributes.IDENTIFIER] or not attributes[Attributes.USER_EMAIL]:
