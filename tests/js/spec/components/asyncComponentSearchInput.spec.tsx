@@ -1,7 +1,10 @@
-import {act, fireEvent, screen, waitFor} from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   AsyncComponentSearchInput,
@@ -192,14 +195,11 @@ describe('AsyncComponentSearchInput', () => {
       context: props.router,
     });
 
-    act(async () => {
-      fireEvent.change(screen.getByRole('textbox'), {target: {value: 'test'}});
+    userEvent.type(screen.getByRole('textbox'), 'test');
+    userEvent.keyboard('{enter}');
 
-      jest.advanceTimersByTime(500);
-      await Promise.resolve();
-
-      fireEvent.submit(screen.getByRole('textbox'));
-    });
+    jest.advanceTimersByTime(500);
+    await Promise.resolve();
 
     await waitFor(() => expect(props.onSuccess).toHaveBeenCalledTimes(1));
 

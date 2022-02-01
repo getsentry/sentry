@@ -127,6 +127,11 @@ function AsyncComponentSearchInput({
   const handleInputChange = React.useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
       debouncedQueryResolver(evt.target.value);
+      // We need to immediately set state to the new query value because the handler is debounced
+      // and the input value is controlled, meaning that typing wouldnt be reflected in the UI
+      setState(oldState => {
+        return {query: evt.target.value, busy: oldState.busy};
+      });
     },
     [debouncedQueryResolver]
   );
