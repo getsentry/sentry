@@ -1,5 +1,8 @@
-import {DisplayType} from 'sentry/views/dashboardsV2/types';
-import {constructWidgetFromQuery} from 'sentry/views/dashboardsV2/utils';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  constructWidgetFromQuery,
+  eventViewFromWidget,
+} from 'sentry/views/dashboardsV2/utils';
 
 describe('Dashboards util', () => {
   describe('constructWidgetFromQuery', () => {
@@ -66,6 +69,59 @@ describe('Dashboards util', () => {
           orderby: '',
         },
       ]);
+    });
+  });
+  describe('eventViewFromWidget', () => {
+    const selection = {
+      datetime: {
+        period: '7d',
+        utc: null,
+        start: null,
+        end: null,
+      },
+      environments: [],
+      projects: [],
+    };
+    let widget;
+    beforeEach(() => {
+      widget = {
+        title: 'Test Query',
+        displayType: DisplayType.WORLD_MAP,
+        widgetType: WidgetType.DISCOVER,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['count()'],
+            orderby: '',
+          },
+        ],
+      };
+    });
+    it('attaches a geo.country_code condition and field to a World Map widget if it does not already have one', () => {
+      const eventView = eventViewFromWidget(
+        widget.title,
+        widget.queries[0],
+        selection,
+        widget.displayType
+      );
+      expect(eventView.fields[0].field).toEqual('geo.country_code');
+      expect(eventView.fields[1].field).toEqual('count()');
+      expect(eventView.query).toEqual('has:geo.country_code');
+    });
+    it('does not attach geo.country_code condition and field to a World Map widget if it already has one', () => {
+      widget.queries.fields = ['geo.country_code', 'count()'];
+      widget.conditions = 'has:geo.country_code';
+      const eventView = eventViewFromWidget(
+        widget.title,
+        widget.queries[0],
+        selection,
+        widget.displayType
+      );
+      expect(eventView.fields[0].field).toEqual('geo.country_code');
+      expect(eventView.fields[1].field).toEqual('count()');
+      expect(eventView.query).toEqual('has:geo.country_code');
     });
   });
 });
