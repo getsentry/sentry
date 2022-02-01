@@ -108,8 +108,7 @@ describe('ProjectPageFilter', function () {
     userEvent.click(screen.getByText('My Projects'));
 
     // Click the first project's checkbox
-    const projectLabel = screen.getByText('project-2');
-    userEvent.click(projectLabel);
+    userEvent.click(screen.getByText('project-2'));
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
