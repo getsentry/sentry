@@ -157,7 +157,7 @@ export function initializeUrlState({
     datetime: mergeDatetime(parsed, customDatetime),
   };
 
-  // Use period from default of we don't have a period set
+  // Use period from default if we don't have a period set
   pageFilters.datetime.period ??= defaultDatetime.period;
 
   // Do not set a period if we have absolute start and end
@@ -182,9 +182,7 @@ export function initializeUrlState({
   if (storedPageFilters) {
     const {state: storedState, pinnedFilters} = storedPageFilters;
 
-    const hasPinning = organization.features.includes(
-      'organizations:selection-filters-v2'
-    );
+    const hasPinning = organization.features.includes('selection-filters-v2');
 
     const filtersToRestore = hasPinning
       ? pinnedFilters
