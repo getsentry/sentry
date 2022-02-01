@@ -126,9 +126,9 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             self.browser.element('[data-test-id="context-menu"]').click()
-            self.browser.element('[data-test-id="duplicate-widget"]').click()
+            self.browser.element('[data-test-id="delete-widget"]').click()
 
-            self.browser.snapshot("dashboard widget - duplicate")
+            self.browser.snapshot("dashboard widget - delete")
 
 
 class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
