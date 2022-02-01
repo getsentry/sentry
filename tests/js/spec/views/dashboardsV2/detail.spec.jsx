@@ -855,7 +855,7 @@ describe('Dashboards > Detail', function () {
       wrapper.update();
 
       wrapper
-        .find(`DropdownMenu Confirm[data-test-id="delete-widget"]`)
+        .find(`DropdownMenu StyledMenuItem[data-test-id="delete-widget"]`)
         .simulate('click');
 
       const modal = await mountGlobalModal();

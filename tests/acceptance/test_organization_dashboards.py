@@ -467,6 +467,53 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             wait = WebDriverWait(self.browser.driver, 5)
             wait.until_not(EC.alert_is_present())
 
+    def test_deleting_stacked_widgets_by_context_menu_does_not_trigger_confirm_on_edit_cancel(
+        self,
+    ):
+        layouts = [{"x": 0, "y": 0, "w": 2, "h": 2}, {"x": 0, "y": 2, "w": 2, "h": 2}]
+        existing_widgets = DashboardWidget.objects.bulk_create(
+            [
+                DashboardWidget(
+                    dashboard=self.dashboard,
+                    order=i,
+                    title=f"Existing Widget {i}",
+                    display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    interval="1d",
+                    detail={"layout": layout},
+                )
+                for i, layout in enumerate(layouts)
+            ]
+        )
+        DashboardWidgetQuery.objects.bulk_create(
+            DashboardWidgetQuery(widget=widget, fields=["count()"], order=0)
+            for widget in existing_widgets
+        )
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+
+            context_menu_icon = self.browser.element('[data-test-id="context-menu"]')
+            context_menu_icon.click()
+
+            delete_widget_menu_item = self.browser.element('[data-test-id="delete-widget"]')
+            delete_widget_menu_item.click()
+
+            confirm_button = self.browser.element('[data-test-id="confirm-button"]')
+            confirm_button.click()
+
+            # TODO: Fix this hack to wait for one widget
+            import time
+
+            time.sleep(1)
+
+            # Should not trigger confirm dialog
+            self.page.enter_edit_state()
+            self.page.click_cancel_button()
+            wait = WebDriverWait(self.browser.driver, 5)
+            wait.until_not(EC.alert_is_present())
+
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
