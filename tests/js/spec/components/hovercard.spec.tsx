@@ -1,8 +1,7 @@
 import * as React from 'react';
-import {act, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Hovercard, HOVERCARD_PORTAL_ID} from 'sentry/components/hovercard';
 
@@ -58,7 +57,7 @@ describe('Hovercard', () => {
     expect(await screen.findByText(/Hovercard Header/)).toBeInTheDocument();
   });
 
-  it('Does not display card', async () => {
+  it('Does not display card', () => {
     mountWithTheme(
       <Hovercard
         position="top"
@@ -78,7 +77,7 @@ describe('Hovercard', () => {
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
   });
 
-  it('Always displays card', async () => {
+  it('Always displays card', () => {
     mountWithTheme(
       <Hovercard
         position="top"
@@ -95,7 +94,7 @@ describe('Hovercard', () => {
     expect(screen.getByText(/Hovercard Header/)).toBeInTheDocument();
   });
 
-  it('Respects displayTimeout displays card', async () => {
+  it('Respects displayTimeout displays card', () => {
     mountWithTheme(
       <Hovercard
         position="top"
@@ -123,7 +122,7 @@ describe('Hovercard', () => {
     expect(screen.getByText(/Hovercard Header/)).toBeInTheDocument();
   });
 
-  it('Doesnt leak timeout', async () => {
+  it('Doesnt leak timeout', () => {
     mountWithTheme(
       <Hovercard
         position="top"

@@ -256,7 +256,7 @@ function SlideInAnimation({
   );
 }
 
-const getTipDirection = (p: HovercardArrowProps): string => {
+function getTipDirection(p: HovercardArrowProps): string {
   const placement = p.placement;
 
   if (!placement) {
@@ -268,7 +268,7 @@ const getTipDirection = (p: HovercardArrowProps): string => {
   });
 
   return prefix || 'top';
-};
+}
 
 type StyledHovercardProps = {
 <<<<<<< HEAD
