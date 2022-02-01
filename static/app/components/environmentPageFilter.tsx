@@ -33,7 +33,7 @@ function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
   };
 
   const handleUpdateEnvironments = (quickSelectedEnvs?: string[]) => {
-    updateEnvironments(quickSelectedEnvs || selectedEnvironments, router, {
+    updateEnvironments(quickSelectedEnvs ?? selectedEnvironments, router, {
       save: true,
       resetParams: resetParamsOnChange,
     });

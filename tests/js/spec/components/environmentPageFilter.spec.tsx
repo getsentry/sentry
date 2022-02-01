@@ -112,8 +112,7 @@ describe('EnvironmentPageFilter', function () {
     userEvent.click(screen.getByText('All Environments'));
 
     // Click the first environment directly
-    const prodEnvOption = screen.getByText('prod');
-    userEvent.click(prodEnvOption);
+    userEvent.click(screen.getByText('prod'));
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
