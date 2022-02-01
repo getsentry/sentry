@@ -64,7 +64,7 @@ function GroupChart({
         showMarkLine && Math.max(...markLinePoint) > 0
           ? MarkLine({
               silent: true,
-              lineStyle: {color: theme.gray200, type: 'solid', width: 1},
+              lineStyle: {color: theme.gray200, type: 'dotted', width: 1},
               data: [
                 {
                   type: 'max',
@@ -86,7 +86,7 @@ function GroupChart({
   return (
     <LazyLoad debounce={50} height={showMarkLine ? 30 : height}>
       <MiniBarChart
-        height={showMarkLine ? 30 : height}
+        height={showMarkLine ? 36 : height}
         isGroupedByDate
         showTimeInTooltip
         series={series}

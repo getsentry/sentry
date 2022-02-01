@@ -207,7 +207,7 @@ function MiniBarChart({
     grid: {
       // Offset to ensure there is room for the marker symbols at the
       // default size.
-      top: labelYAxisExtents ? 6 : 0,
+      top: labelYAxisExtents || showMarkLineLabel ? 6 : 0,
       bottom: markers || labelYAxisExtents || showMarkLineLabel ? 4 : 0,
       left: markers ? 8 : showMarkLineLabel ? 35 : 4,
       right: markers ? 4 : 0,
