@@ -1,4 +1,5 @@
 import logging
+from typing import Mapping, Union
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
@@ -10,6 +11,9 @@ from sentry.utils.cache import memoize
 
 logger = logging.getLogger("sentry.mediators.external-requests")
 
+DEFAULT_SUCCESS_MESSAGE = "Success!"
+DEFAULT_ERROR_MESSAGE = "Something went wrong!"
+
 
 class AlertRuleActionRequester(Mediator):
     """
@@ -19,7 +23,7 @@ class AlertRuleActionRequester(Mediator):
 
     install = Param("sentry.models.SentryAppInstallation")
     uri = Param((str,))
-    fields = Param(object, required=False, default={})
+    fields = Param(list, required=False, default=[])
     http_method = Param(str, required=False, default="POST")
 
     def call(self):
@@ -30,7 +34,8 @@ class AlertRuleActionRequester(Mediator):
         urlparts[2] = self.uri
         return urlunparse(urlparts)
 
-    def _make_request(self):
+    def _make_request(self) -> Mapping[str, Union[bool, str]]:
+
         try:
             req = send_and_save_sentry_app_request(
                 self._build_url(),
@@ -41,8 +46,6 @@ class AlertRuleActionRequester(Mediator):
                 method=self.http_method,
                 data=self.body,
             )
-            body = safe_urlread(req)
-            response = {"success": True, "message": "", "body": json.loads(body)}
         except Exception as e:
             logger.info(
                 "alert_rule_action.error",
@@ -53,10 +56,14 @@ class AlertRuleActionRequester(Mediator):
                     "error_message": str(e),
                 },
             )
+            message = f"{self.sentry_app.name}: {str(e.response.text) or DEFAULT_ERROR_MESSAGE}"
             # Bubble up error message from Sentry App to the UI for the user.
-            response = {"success": False, "message": str(e.response.text), "body": {}}
+            return {"success": False, "message": message}
 
-        return response
+        body_raw = safe_urlread(req)
+        body = body_raw.decode() if body_raw else None
+        message = f"{self.sentry_app.name}: {body or DEFAULT_SUCCESS_MESSAGE}"
+        return {"success": True, "message": message}
 
     def _build_headers(self):
         request_uuid = uuid4().hex
@@ -69,13 +76,12 @@ class AlertRuleActionRequester(Mediator):
 
     @memoize
     def body(self):
-        body = {"fields": {}}
-        for name, value in self.fields.items():
-            body["fields"][name] = value
-
-        body["installationId"] = self.install.uuid
-
-        return json.dumps(body)
+        return json.dumps(
+            {
+                "fields": self.fields,
+                "installationId": self.install.uuid,
+            }
+        )
 
     @memoize
     def sentry_app(self):

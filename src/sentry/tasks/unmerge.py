@@ -80,8 +80,8 @@ def merge_mappings(values):
 
 def _generate_culprit(event):
     # XXX(mitsuhiko): workaround: some old events do not have this data yet.
-    # This should be save delete by end of 2019 even considering slow on-prem
-    # releases.  Platform was added back to data in december 2018.
+    # This should be save delete by end of 2019 even considering slow
+    # self-hosted releases. Platform was added back to data in december 2018.
     data = event.data
     if data.get("platform") is None:
         data = dict(data.items())

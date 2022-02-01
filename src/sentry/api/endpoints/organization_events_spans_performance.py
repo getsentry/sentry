@@ -11,7 +11,8 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk.conditions import Condition, Op
-from snuba_sdk.function import Function
+from snuba_sdk.function import Function, Identifier, Lambda
+from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -32,14 +33,14 @@ from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 class SpanPerformanceColumn:
     suspect_op_group_columns: List[str]
     suspect_op_group_sort: List[str]
-    suspect_example_sort: List[str]
+    suspect_example_functions: List[str]
 
 
 SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
     "count": SpanPerformanceColumn(
         ["count()", "sumArray(spans_exclusive_time)"],
         ["count()", "sumArray(spans_exclusive_time)"],
-        ["count()", "sumArray(spans_exclusive_time)"],
+        ["count", "sum"],
     ),
     "avgOccurrence": SpanPerformanceColumn(
         [
@@ -49,32 +50,32 @@ SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
             "sumArray(spans_exclusive_time)",
         ],
         ["equation[0]", "sumArray(spans_exclusive_time)"],
-        ["count()", "sumArray(spans_exclusive_time)"],
+        ["count", "sum"],
     ),
     "sumExclusiveTime": SpanPerformanceColumn(
         ["sumArray(spans_exclusive_time)"],
         ["sumArray(spans_exclusive_time)"],
-        ["sumArray(spans_exclusive_time)"],
+        ["sum"],
     ),
     "p50ExclusiveTime": SpanPerformanceColumn(
         ["percentileArray(spans_exclusive_time, 0.50)"],
         ["percentileArray(spans_exclusive_time, 0.50)"],
-        ["maxArray(spans_exclusive_time)"],
+        ["max"],
     ),
     "p75ExclusiveTime": SpanPerformanceColumn(
         ["percentileArray(spans_exclusive_time, 0.75)"],
         ["percentileArray(spans_exclusive_time, 0.75)"],
-        ["maxArray(spans_exclusive_time)"],
+        ["max"],
     ),
     "p95ExclusiveTime": SpanPerformanceColumn(
         ["percentileArray(spans_exclusive_time, 0.95)"],
         ["percentileArray(spans_exclusive_time, 0.95)"],
-        ["maxArray(spans_exclusive_time)"],
+        ["max"],
     ),
     "p99ExclusiveTime": SpanPerformanceColumn(
         ["percentileArray(spans_exclusive_time, 0.99)"],
         ["percentileArray(spans_exclusive_time, 0.99)"],
-        ["maxArray(spans_exclusive_time)"],
+        ["max"],
     ),
 }
 
@@ -449,30 +450,15 @@ def query_suspect_span_groups(
     ] + [
         "array_join(spans_op)",
         "array_join(spans_group)",
-        "count()",
-        "count_unique(id)",
         # want a single event id to fetch from nodestore for the span description
         "any(id)",
     ]
 
     equations: List[str] = [
         strip_equation(column)
-        for column in suspect_span_columns.suspect_op_group_columns
+        for column in suspect_span_columns.suspect_op_group_columns + fields
         if is_equation(column)
     ]
-
-    # TODO: This adds all the possible fields to the query by default. However,
-    # due to the way shards aggregate the rows, this can be slow. As an
-    # optimization, allow the fields to be user specified to only get the
-    # necessary aggregations.
-    #
-    # As part of the transition, continue to add all possible fields when its
-    # not specified, but this should be removed in the future.
-    if not fields:
-        for column in SPAN_PERFORMANCE_COLUMNS.values():
-            for col in column.suspect_op_group_sort:
-                if not col.startswith("equation["):
-                    selected_columns.append(col)
 
     builder = QueryBuilder(
         dataset=Dataset.Discover,
@@ -536,6 +522,38 @@ def query_suspect_span_groups(
     ]
 
 
+class SpanQueryBuilder(QueryBuilder):  # type: ignore
+    def resolve_span_function(self, function: str, span: Span, alias: str):
+        op = span.op
+        group = span.group
+
+        return Function(
+            "arrayReduce",
+            [
+                f"{function}If",
+                self.column("spans_exclusive_time"),
+                Function(
+                    "arrayMap",
+                    [
+                        Lambda(
+                            ["x", "y"],
+                            Function(
+                                "and",
+                                [
+                                    Function("equals", [Identifier("x"), op]),
+                                    Function("equals", [Identifier("y"), group]),
+                                ],
+                            ),
+                        ),
+                        self.column("spans_op"),
+                        self.column("spans_group"),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+
 def query_example_transactions(
     params: ParamsType,
     query: Optional[str],
@@ -549,44 +567,37 @@ def query_example_transactions(
     if per_suspect == 0:
         return {}
 
-    orderby_columns = SPAN_PERFORMANCE_COLUMNS[orderby].suspect_example_sort
-
     selected_columns: List[str] = [
         "id",
         "project.id",
-        "array_join(spans_op)",
-        "array_join(spans_group)",
-        *orderby_columns,
     ]
 
-    builder = QueryBuilder(
+    builder = SpanQueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         selected_columns=selected_columns,
         query=query,
-        orderby=[direction + column for column in orderby_columns],
+        orderby=[],
         limit=per_suspect,
         offset=offset,
-        functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
     )
+
+    # Make sure to resolve the custom span functions and add it to the columns and order bys
+    orderby_columns = [
+        builder.resolve_span_function(function, span, f"{function}_span_time")
+        for function in SPAN_PERFORMANCE_COLUMNS[orderby].suspect_example_functions
+    ]
+    builder.columns += orderby_columns
+    builder.orderby += [
+        OrderBy(column, Direction.DESC if direction == "-" else Direction.ASC)
+        for column in orderby_columns
+    ]
 
     # we are only interested in the specific op, group pairs from the suspects
     builder.add_conditions(
         [
-            Condition(
-                Function(
-                    "tuple",
-                    [
-                        builder.resolve_function("array_join(spans_op)"),
-                        builder.resolve_function("array_join(spans_group)"),
-                    ],
-                ),
-                Op.IN,
-                Function(
-                    "tuple",
-                    [Function("tuple", [span.op, span.group])],
-                ),
-            ),
+            Condition(Function("has", [builder.column("spans_op"), span.op]), Op.EQ, 1),
+            Condition(Function("has", [builder.column("spans_group"), span.group]), Op.EQ, 1),
         ]
     )
 
@@ -596,9 +607,8 @@ def query_example_transactions(
     examples: Dict[Span, List[EventID]] = {Span(span.op, span.group): []}
 
     for example in results["data"]:
-        key = Span(example["array_join_spans_op"], example["array_join_spans_group"])
         value = EventID(params["project_id"][0], example["id"])
-        examples[key].append(value)
+        examples[span].append(value)
 
     return examples
 

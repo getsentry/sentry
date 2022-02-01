@@ -33,6 +33,7 @@ const numericStyle = (
       justify-content: center;
       text-align: center;
       left: 0;
+      line-height: 1;
       ${isSolid
         ? css`
             width: 24px;

@@ -9,7 +9,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('ProjectPageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({
-    organization: {features: ['global-views']},
+    organization: {features: ['global-views', 'selection-filters-v2']},
     project: undefined,
     projects: [
       {
@@ -56,7 +56,34 @@ describe('ProjectPageFilter', function () {
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {environment: [], project: [2]}})
+      expect.objectContaining({query: {environment: [], project: ['2']}})
+    );
+  });
+
+  it('can pin selection', async function () {
+    mountWithTheme(
+      <OrganizationContext.Provider value={organization}>
+        <ProjectPageFilter />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
+
+    // Open the project dropdown
+    expect(screen.getByText('My Projects')).toBeInTheDocument();
+    userEvent.click(screen.getByText('My Projects'));
+
+    // Click the pin button
+    const pinButton = screen.getByRole('button', {name: 'Pin'});
+    userEvent.click(pinButton);
+
+    await screen.findByRole('button', {name: 'Pin', pressed: true});
+
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        pinnedFilters: new Set(['projects']),
+      })
     );
   });
 });

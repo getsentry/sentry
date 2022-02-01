@@ -66,7 +66,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
     def test_project_with_no_first_event(self):
         self.project.update(first_event=None)
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("resources")
         self.browser.wait_until(".echarts-for-react path", timeout=10000)
         self.browser.snapshot("org dash no first event")
@@ -74,16 +74,16 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
     def test_one_issue(self):
         self.create_sample_event()
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until(".echarts-for-react path", timeout=100000)
         self.browser.snapshot("org dash one issue")
 
     def test_rename_team_and_navigate_back(self):
         self.create_sample_event()
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.click('[data-test-id="badge-display-name"]')
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.click(".nav-tabs li:nth-child(4) a")
         self.browser.wait_until('input[name="slug"]')
         self.browser.element('input[name="slug"]').send_keys("-new-slug")
@@ -93,7 +93,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
 
         # Go to projects
         self.browser.click(f'[href="/organizations/{self.organization.slug}/projects/"]')
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         assert self.browser.element('[data-test-id="badge-display-name"]').text == "#foo-new-slug"
 
@@ -106,5 +106,5 @@ class EmptyDashboardTest(AcceptanceTestCase):
 
     def test_new_dashboard_empty(self):
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.snapshot("new dashboard empty")

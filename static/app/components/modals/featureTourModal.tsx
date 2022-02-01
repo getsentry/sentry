@@ -161,7 +161,13 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
 
     return (
       <Body>
-        <CloseButton borderless size="zero" onClick={closeModal} icon={<IconClose />} />
+        <CloseButton
+          borderless
+          size="zero"
+          onClick={closeModal}
+          icon={<IconClose />}
+          aria-label={t('Close tour')}
+        />
         <TourContent>
           {step.image}
           <TourHeader>{step.title}</TourHeader>
@@ -184,6 +190,7 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
                 data-test-id="complete-tour"
                 onClick={closeModal}
                 priority="primary"
+                aria-label={t('Complete tour')}
               >
                 {doneText}
               </Button>

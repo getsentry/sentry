@@ -56,6 +56,10 @@ describe('Dashboards > Create', function () {
         method: 'GET',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        body: {data: []},
+      });
     });
 
     afterEach(function () {
@@ -66,10 +70,8 @@ describe('Dashboards > Create', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         method: 'POST',
-        // Dashboard detail requires the number of widgets returned to match
-        // the number of layouts, which is 1 in this case
         // @ts-ignore
-        body: TestStubs.Dashboard([{}], {id: '1', title: 'Custom Errors'}),
+        body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
       });
 
       mountGlobalModal(initialData.routerContext);

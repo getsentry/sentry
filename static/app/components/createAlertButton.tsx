@@ -182,7 +182,10 @@ function IncompatibleQueryAlert({
   );
 }
 
-type CreateAlertFromViewButtonProps = React.ComponentProps<typeof Button> & {
+type CreateAlertFromViewButtonProps = Omit<
+  React.ComponentProps<typeof Button>,
+  'aria-label'
+> & {
   className?: string;
   projects: Project[];
   /**
@@ -270,13 +273,21 @@ function CreateAlertFromViewButton({
     hasYAxisError,
   };
   const project = projects.find(p => p.id === `${eventView.project[0]}`);
+  const queryParams = eventView.generateQueryStringObject();
+  if (queryParams.query?.includes(`project:${project?.slug}`)) {
+    queryParams.query = (queryParams.query as string).replace(
+      `project:${project?.slug}`,
+      ''
+    );
+  }
+
   const hasErrors = Object.values(errors).some(x => x);
   const to = hasErrors
     ? undefined
     : {
         pathname: `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
         query: {
-          ...eventView.generateQueryStringObject(),
+          ...queryParams,
           createFromDiscover: true,
           referrer,
         },
@@ -307,6 +318,7 @@ function CreateAlertFromViewButton({
       organization={organization}
       onClick={handleClick}
       to={to}
+      aria-label={t('Create Alert')}
       {...buttonProps}
     />
   );

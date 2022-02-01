@@ -44,9 +44,9 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
       const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
       // Pull a max of 3 valid Y-Axis from the widget
       const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-      discoverLocation.query.yAxis = query.fields
-        .filter(field => yAxisOptions.includes(field))
-        .slice(0, 3);
+      discoverLocation.query.yAxis = [
+        ...new Set(query.fields.filter(field => yAxisOptions.includes(field))),
+      ].slice(0, 3);
       switch (widget.displayType) {
         case DisplayType.BAR:
           discoverLocation.query.display = DisplayModes.BAR;
@@ -76,6 +76,7 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
                     }
                   );
                 }}
+                aria-label={t('Open in Discover')}
               />
             </Link>
           </QueryContainer>

@@ -1,4 +1,5 @@
 import collections.abc
+import math
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -139,6 +140,8 @@ def compare_datetime(
 
     if type(sessions) != type(metrics):
         return f"field {path} inconsistent types return sessions={type(sessions)}, metrics={type(metrics)}"
+
+    dd = None
     if isinstance(sessions, str):
         assert isinstance(metrics, str)
         try:
@@ -150,7 +153,7 @@ def compare_datetime(
     elif isinstance(sessions, datetime):
         assert isinstance(metrics, datetime)
         dd = abs(sessions - metrics)
-    if dd > timedelta(seconds=rollup):
+    if dd != timedelta(seconds=0):
         return f"field {path} failed to mach datetimes sessions={sessions}, metrics={metrics}"
 
     return None
@@ -173,19 +176,8 @@ def compare_counters(
         return f"invalid field {path} value={metrics}, from metrics, only positive values are expected. "
     if sessions < 0:
         return f"sessions ERROR, Invalid field {path} value = {sessions}, from sessions, only positive values are expected. "
-    if (sessions <= 10 and metrics > 10) or (metrics <= 10 and sessions > 10):
-        if abs(sessions - metrics) > 4:
-            return f"fields with different values at {path} sessions={sessions}, metrics={metrics}"
-        else:
-            return None
-    if metrics <= 10:
-        if abs(sessions - metrics) > 3:
-            return f"fields with different values at {path} sessions={sessions}, metrics={metrics}"
-        else:
-            return None
-    else:
-        if float(abs(sessions - metrics)) / metrics > 0.05:
-            return f"fields with different values at {path} sessions={sessions}, metrics={metrics}"
+    if sessions != metrics:
+        return f"fields with different values at {path} sessions={sessions}, metrics={metrics}"
     return None
 
 
@@ -446,7 +438,16 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ):
         self.sessions = SessionsReleaseHealthBackend()
         self.metrics = MetricsReleaseHealthBackend()
-        self.metrics_start = metrics_start
+        self.metrics_start = max(
+            metrics_start,
+            # The sessions backend never returns data beyond 90 days, so any
+            # query beyond 90 days will return truncated results.
+            # We assume that the release health duplex backend is sufficiently
+            # often reinstantiated, at least once per day, not only due to
+            # deploys but also because uwsgi/celery are routinely restarting
+            # processes
+            datetime.now(timezone.utc) - timedelta(days=89),
+        )
 
     @staticmethod
     def _org_from_projects(projects_list: Sequence[ProjectOrRelease]) -> Optional[Organization]:
@@ -484,7 +485,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         sessions_fn = getattr(self.sessions, fn_name)
         set_tag("releasehealth.duplex.rollup", str(rollup))
         set_tag("releasehealth.duplex.method", fn_name)
-        set_tag("releasehealth.duplex.organization", str(getattr(organization, "id")))
+        set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
 
         tags = {"method": fn_name, "rollup": str(rollup)}
         with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
@@ -656,6 +657,11 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "max(session.duration)": ComparatorType.Quantile,
         }
         schema_for_series = {field: [comparator] for field, comparator in schema_for_totals.items()}
+
+        # Tag sentry event with relative end time, so we can see if live queries
+        # cause greater deltas:
+        relative_hours = math.ceil((query.end - datetime.now(timezone.utc)).total_seconds() / 3600)
+        set_tag("run_sessions_query.rel_end", f"{relative_hours}h")
 
         def index_by(d: Mapping[Any, Any]) -> Any:
             return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
@@ -911,11 +917,18 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
-        schema = {
-            "duration_p50": ComparatorType.Quantile,
-            "duration_p90": ComparatorType.Quantile,
-            "*": ComparatorType.Counter,
-        }
+        schema = (
+            [
+                {
+                    "duration_p50": ComparatorType.Quantile,
+                    "duration_p90": ComparatorType.Quantile,
+                    "*": ComparatorType.Counter,
+                }
+            ],
+            {
+                "*": ComparatorType.Counter,
+            },
+        )
         should_compare = lambda _: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects([project_id])
         return self._dispatch_call(  # type: ignore
@@ -992,9 +1005,9 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Sequence[ProjectRelease]:
         schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
 
-        set_tag("get_project_releases_by_stability.limit", str(limit))
-        set_tag("get_project_releases_by_stability.offset", str(offset))
-        set_tag("get_project_releases_by_stability.scope", str(scope))
+        set_tag("gprbs.limit", str(limit))
+        set_tag("gprbs.offset", str(offset))
+        set_tag("gprbs.scope", str(scope))
 
         if stats_period is None:
             stats_period = "24h"

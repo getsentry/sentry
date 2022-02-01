@@ -56,6 +56,10 @@ describe('Dashboards > IssueWidgetCard', function () {
             name: 'dashboard user',
             email: 'dashboarduser@sentry.io',
           },
+          lifetime: {count: 10, userCount: 5},
+          count: 6,
+          userCount: 3,
+          project: {id: 1},
         },
       ],
     });
@@ -188,5 +192,39 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
+  });
+
+  it('maps lifetimeEvents and lifetimeUsers headers to more human readable', async function () {
+    MemberListStore.loadInitialData([]);
+    mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{
+          ...widget,
+          queries: [
+            {
+              ...widget.queries[0],
+              fields: ['issue', 'assignee', 'title', 'lifetimeEvents', 'lifetimeUsers'],
+            },
+          ],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+
+    await tick();
+
+    expect(screen.getByText('Lifetime Events')).toBeInTheDocument();
+    expect(screen.getByText('Lifetime Users')).toBeInTheDocument();
   });
 });

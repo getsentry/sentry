@@ -51,7 +51,12 @@ def get_rate_limit_key(view_func: EndpointFunction, request: Request) -> str | N
 
     from django.contrib.auth.models import AnonymousUser
 
+    from sentry.auth.system import SystemToken
     from sentry.models import ApiKey, ApiToken
+
+    # Don't Rate Limit System Token Requests
+    if isinstance(request_auth, SystemToken):
+        return None
 
     if isinstance(request_auth, ApiToken):
 
@@ -123,12 +128,14 @@ def above_rate_limit_check(key: str, rate_limit: RateLimit) -> RateLimitMeta:
     is_limited, current, reset_time = ratelimiter.is_limited_with_value(
         key, limit=rate_limit.limit, window=rate_limit.window
     )
+    remaining = rate_limit.limit - current if not is_limited else 0
     return RateLimitMeta(
         is_limited=is_limited,
         current=current,
         limit=rate_limit.limit,
         window=rate_limit.window,
         reset_time=reset_time,
+        remaining=remaining,
     )
 
 

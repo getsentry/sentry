@@ -1361,7 +1361,11 @@ class SmartSearchBar extends React.Component<Props, State> {
     const cursor = this.cursorPosition;
 
     return (
-      <Container ref={this.containerRef} className={className} isOpen={inputHasFocus}>
+      <Container
+        ref={this.containerRef}
+        className={className}
+        inputHasFocus={inputHasFocus}
+      >
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
           {inlineLabel}
@@ -1450,7 +1454,7 @@ export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
 
 export {SmartSearchBar};
 
-const Container = styled('div')<{isOpen: boolean}>`
+const Container = styled('div')<{inputHasFocus: boolean}>`
   border: 1px solid ${p => p.theme.border};
   box-shadow: inset ${p => p.theme.dropShadowLight};
   background: ${p => p.theme.background};
@@ -1461,14 +1465,18 @@ const Container = styled('div')<{isOpen: boolean}>`
   gap: ${space(1)};
   align-items: start;
 
-  border-radius: ${p =>
-    p.isOpen
-      ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
-      : p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadius};
 
   .show-sidebar & {
     background: ${p => p.theme.backgroundSecondary};
   }
+
+  ${p =>
+    p.inputHasFocus &&
+    `
+    border-color: ${p.theme.focusBorder};
+    box-shadow: 0 0 0 1px ${p.theme.focusBorder};
+  `}
 `;
 
 const SearchLabel = styled('label')`

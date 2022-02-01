@@ -14,6 +14,7 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.models import ReleaseStages
 from sentry.models.release import SemverFilter
+from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -28,7 +29,6 @@ from sentry.search.events.fields import (
     with_default,
 )
 from sentry.search.events.filter import (
-    QueryFilter,
     _semver_build_filter_converter,
     _semver_filter_converter,
     _semver_package_filter_converter,
@@ -2475,7 +2475,7 @@ def _project(x):
 def test_snql_boolean_search(description, query, expected_where, expected_having):
     dataset = Dataset.Discover
     params: ParamsType = {"project_id": 1}
-    query_filter = QueryFilter(dataset, params)
+    query_filter = UnresolvedQuery(dataset, params)
     where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
     assert where == expected_where, description
     assert having == expected_having, description
@@ -2549,7 +2549,7 @@ def test_snql_boolean_search(description, query, expected_where, expected_having
 def test_snql_malformed_boolean_search(description, query, expected_message):
     dataset = Dataset.Discover
     params: ParamsType = {}
-    query_filter = QueryFilter(dataset, params)
+    query_filter = UnresolvedQuery(dataset, params)
     with pytest.raises(InvalidSearchQuery) as error:
         where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
     assert str(error.value) == expected_message, description
@@ -2570,7 +2570,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
             "organization_id": self.organization.id,
             "project_id": [self.project1.id, self.project2.id],
         }
-        self.query_filter = QueryFilter(dataset, params)
+        self.query_filter = UnresolvedQuery(dataset, params)
 
     def test_project_or(self):
         query = f"project:{self.project1.slug} OR project:{self.project2.slug}"

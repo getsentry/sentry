@@ -5,15 +5,20 @@ describe('generateIssueWidgetFieldOptions', function () {
     const issueFields = generateIssueWidgetFieldOptions();
     expect(Object.keys(issueFields)).toEqual([
       'field:assignee',
+      'field:events',
+      'field:firstSeen',
       'field:isBookmarked',
       'field:isHandled',
       'field:isSubscribed',
       'field:issue',
+      'field:lastSeen',
       'field:level',
-      'field:permalink',
+      'field:lifetimeEvents',
+      'field:lifetimeUsers',
       'field:platform',
       'field:status',
       'field:title',
+      'field:users',
     ]);
   });
   it('returns supplied issue fields', () => {

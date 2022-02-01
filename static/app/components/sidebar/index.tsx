@@ -102,12 +102,19 @@ function Sidebar({location, organization}: Props) {
   }, [location?.hash]);
 
   /**
-   * Navigate to a path, but keep the global selection query strings.
+   * Navigate to a path, but keep the page filter query strings.
    */
-  const navigateWithGlobalSelection = (
+  const navigateWithPageFilters = (
     pathname: string,
     evt: React.MouseEvent<HTMLAnchorElement>
   ) => {
+    // XXX(epurkhiser): No need to navigation w/ the page filters in the world
+    // of new page filter selection. You must pin your filters in which case
+    // they will persist anyway.
+    if (organization?.features.includes('selection-filters-v2')) {
+      return;
+    }
+
     const globalSelectionRoutes = [
       'alerts',
       'alerts/rules',
@@ -161,7 +168,7 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) =>
-        navigateWithGlobalSelection(`/organizations/${organization.slug}/issues/`, evt)
+        navigateWithPageFilters(`/organizations/${organization.slug}/issues/`, evt)
       }
       icon={<IconIssues size="md" />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
@@ -179,7 +186,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         onClick={(_id, evt) =>
-          navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
+          navigateWithPageFilters(getDiscoverLandingUrl(organization), evt)
         }
         icon={<IconTelescope size="md" />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
@@ -200,7 +207,7 @@ function Sidebar({location, organization}: Props) {
           <SidebarItem
             {...sidebarItemProps}
             onClick={(_id, evt) =>
-              navigateWithGlobalSelection(
+              navigateWithPageFilters(
                 `/organizations/${organization.slug}/performance/`,
                 evt
               )
@@ -220,7 +227,7 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) =>
-        navigateWithGlobalSelection(`/organizations/${organization.slug}/releases/`, evt)
+        navigateWithPageFilters(`/organizations/${organization.slug}/releases/`, evt)
       }
       icon={<IconReleases size="md" />}
       label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
@@ -233,10 +240,7 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) =>
-        navigateWithGlobalSelection(
-          `/organizations/${organization.slug}/user-feedback/`,
-          evt
-        )
+        navigateWithPageFilters(`/organizations/${organization.slug}/user-feedback/`, evt)
       }
       icon={<IconSupport size="md" />}
       label={t('User Feedback')}
@@ -249,10 +253,7 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) =>
-        navigateWithGlobalSelection(
-          `/organizations/${organization.slug}/alerts/rules/`,
-          evt
-        )
+        navigateWithPageFilters(`/organizations/${organization.slug}/alerts/rules/`, evt)
       }
       icon={<IconSiren size="md" />}
       label={t('Alerts')}
@@ -266,10 +267,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         onClick={(_id, evt) =>
-          navigateWithGlobalSelection(
-            `/organizations/${organization.slug}/monitors/`,
-            evt
-          )
+          navigateWithPageFilters(`/organizations/${organization.slug}/monitors/`, evt)
         }
         icon={<IconLab size="md" />}
         label={t('Monitors')}
@@ -290,10 +288,7 @@ function Sidebar({location, organization}: Props) {
         {...sidebarItemProps}
         index
         onClick={(_id, evt) =>
-          navigateWithGlobalSelection(
-            `/organizations/${organization.slug}/dashboards/`,
-            evt
-          )
+          navigateWithPageFilters(`/organizations/${organization.slug}/dashboards/`, evt)
         }
         icon={<IconGraph size="md" />}
         label={t('Dashboards')}

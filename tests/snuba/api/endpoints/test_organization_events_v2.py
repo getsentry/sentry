@@ -168,7 +168,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
     @mock.patch("sentry.snuba.discover.raw_query")
-    @mock.patch("sentry.snuba.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query, mock_query):
         mock_query.side_effect = RateLimitExceeded("test")
         mock_snql_query.side_effect = RateLimitExceeded("test")
@@ -474,6 +474,31 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) == 1
             assert response.data["data"][0]["user"] == "ip:{}".format(data["user"]["ip_address"])
+
+    def test_team_param_no_access(self):
+        org = self.create_organization(
+            owner=self.user,  # use other user as owner
+            name="foo",
+            flags=0,  # disable default allow_joinleave
+        )
+        project = self.create_project(name="baz", organization=org)
+
+        user = self.create_user()
+        self.login_as(user=user, superuser=False)
+
+        team = self.create_team(organization=org, name="Team Bar")
+        project.add_team(team)
+
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=project.id,
+        )
+
+        query = {"field": ["id", "project.id"], "project": [project.id], "team": [team.id]}
+        response = self.do_request(query)
+        assert response.status_code == 403, response.content
+
+        assert response.data["detail"] == "You do not have permission to perform this action."
 
     def test_comparison_operators_on_numeric_field(self):
         project = self.create_project()
@@ -1259,6 +1284,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
     @mock.patch(
         "sentry.search.events.fields.MAX_QUERYABLE_TRANSACTION_THRESHOLDS",
+        MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
+    )
+    @mock.patch(
+        "sentry.search.events.datasets.discover.MAX_QUERYABLE_TRANSACTION_THRESHOLDS",
         MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
     )
     def test_too_many_transaction_thresholds(self):
@@ -4335,53 +4364,57 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_too_many_team_key_transactions(self):
         MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
         with mock.patch(
-            "sentry.search.events.fields.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
+            "sentry.search.events.datasets.discover.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
             MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
         ):
-            team = self.create_team(organization=self.organization, name="Team A")
-            self.create_team_membership(team, user=self.user)
-            self.project.add_team(team)
-            project_team = ProjectTeam.objects.get(project=self.project, team=team)
+            with mock.patch(
+                "sentry.search.events.fields.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
+                MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
+            ):
+                team = self.create_team(organization=self.organization, name="Team A")
+                self.create_team_membership(team, user=self.user)
+                self.project.add_team(team)
+                project_team = ProjectTeam.objects.get(project=self.project, team=team)
 
-            for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1):
-                transaction = f"transaction-{team.id}-{i}"
-                self.transaction_data["transaction"] = transaction
-                self.store_event(self.transaction_data, self.project.id)
+                for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1):
+                    transaction = f"transaction-{team.id}-{i}"
+                    self.transaction_data["transaction"] = transaction
+                    self.store_event(self.transaction_data, self.project.id)
 
-            TeamKeyTransaction.objects.bulk_create(
-                [
-                    TeamKeyTransaction(
-                        organization=self.organization,
-                        project_team=project_team,
-                        transaction=f"transaction-{team.id}-{i}",
-                    )
-                    for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1)
-                ]
-            )
+                TeamKeyTransaction.objects.bulk_create(
+                    [
+                        TeamKeyTransaction(
+                            organization=self.organization,
+                            project_team=project_team,
+                            transaction=f"transaction-{team.id}-{i}",
+                        )
+                        for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1)
+                    ]
+                )
 
-            query = {
-                "team": "myteams",
-                "project": [self.project.id],
-                "orderby": "transaction",
-                "field": [
-                    "team_key_transaction",
-                    "transaction",
-                    "transaction.status",
-                    "project",
-                    "epm()",
-                    "failure_rate()",
-                    "percentile(transaction.duration, 0.95)",
-                ],
-            }
+                query = {
+                    "team": "myteams",
+                    "project": [self.project.id],
+                    "orderby": "transaction",
+                    "field": [
+                        "team_key_transaction",
+                        "transaction",
+                        "transaction.status",
+                        "project",
+                        "epm()",
+                        "failure_rate()",
+                        "percentile(transaction.duration, 0.95)",
+                    ],
+                }
 
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 2
-            assert (
-                sum(row["team_key_transaction"] for row in data)
-                == MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
-            )
+                response = self.do_request(query)
+                assert response.status_code == 200, response.content
+                data = response.data["data"]
+                assert len(data) == 2
+                assert (
+                    sum(row["team_key_transaction"] for row in data)
+                    == MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
+                )
 
     def test_no_pagination_param(self):
         self.store_event(

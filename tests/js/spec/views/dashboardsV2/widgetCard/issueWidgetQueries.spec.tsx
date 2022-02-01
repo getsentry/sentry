@@ -25,12 +25,17 @@ describe('IssueWidgetQueries', function () {
           project: {
             id: '3',
           },
+          status: 'unresolved',
           owners: [
             {
               type: 'ownershipRule',
               owner: 'user:2',
             },
           ],
+          lifetime: {count: 10, userCount: 5},
+          count: 6,
+          userCount: 3,
+          firstSeen: '2022-01-01T13:04:02Z',
         },
       ],
     });
@@ -76,7 +81,18 @@ describe('IssueWidgetQueries', function () {
     await tick();
     expect(mockFunction).toHaveBeenCalledWith(
       expect.objectContaining({
-        transformedResults: [expect.objectContaining({title: 'Error: Failed'})],
+        transformedResults: [
+          expect.objectContaining({
+            id: '1',
+            title: 'Error: Failed',
+            status: 'unresolved',
+            lifetimeEvents: 10,
+            lifetimeUsers: 5,
+            events: 6,
+            users: 3,
+            firstSeen: '2022-01-01T13:04:02Z',
+          }),
+        ],
       })
     );
   });

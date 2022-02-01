@@ -30,7 +30,7 @@ describe('AcceptOrganizationInvite', function () {
       TestStubs.routerContext()
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
 
     expect(joinButton.exists()).toBe(true);
     expect(joinButton.text()).toBe('Join the test-org organization');
@@ -42,7 +42,9 @@ describe('AcceptOrganizationInvite', function () {
 
     joinButton.simulate('click');
     expect(acceptMock).toHaveBeenCalled();
-    expect(wrapper.find('Button[label="join-organization"]').props().disabled).toBe(true);
+    expect(wrapper.find('Button[aria-label="join-organization"]').props().disabled).toBe(
+      true
+    );
 
     await tick();
     expect(browserHistory.replace).toHaveBeenCalledWith('/test-org/');
@@ -63,14 +65,14 @@ describe('AcceptOrganizationInvite', function () {
       TestStubs.routerContext()
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(false);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(false);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(false);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
   });
 
@@ -89,14 +91,14 @@ describe('AcceptOrganizationInvite', function () {
       TestStubs.routerContext()
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(true);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
   });
 
@@ -115,14 +117,14 @@ describe('AcceptOrganizationInvite', function () {
       TestStubs.routerContext()
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(false);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
   });
 
@@ -141,14 +143,14 @@ describe('AcceptOrganizationInvite', function () {
       TestStubs.routerContext()
     );
 
-    const joinButton = wrapper.find('Button[label="join-organization"]');
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
     expect(joinButton.exists()).toBe(false);
 
     expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
 
-    expect(wrapper.find('Button[label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[label="create-account"]').exists()).toBe(false);
+    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
+    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(false);
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
   });
 
@@ -182,6 +184,28 @@ describe('AcceptOrganizationInvite', function () {
     expect(window.location.replace).toHaveBeenCalled();
 
     window.location.replace = replace;
+  });
+
+  it('shows right options for logged in user and optional SSO', async function () {
+    addMock({
+      orgSlug: 'test-org',
+      needsAuthentication: false,
+      needs2fa: false,
+      needsSso: true,
+      requireSso: false,
+      existingMember: false,
+    });
+
+    const wrapper = mountWithTheme(
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
+      TestStubs.routerContext()
+    );
+
+    const ssoLink = wrapper.find('[data-test-id="action-info-sso"]');
+    expect(ssoLink.exists()).toBe(true);
+
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
+    expect(joinButton.exists()).toBe(true);
   });
 
   it('shows a logout button for existing members', async function () {

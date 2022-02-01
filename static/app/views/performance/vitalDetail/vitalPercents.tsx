@@ -43,23 +43,21 @@ function getVitalStateText(vital: WebVital | WebVital[], vitalState) {
 export default function VitalPercents(props: Props) {
   return (
     <VitalSet>
-      {props.percents.map(pct => {
-        return (
-          <Tooltip
-            key={pct.vitalState}
-            title={getVitalStateText(props.vital, pct.vitalState)}
-            disabled={props.hideTooltips}
-          >
-            <VitalStatus>
-              {vitalStateIcons[pct.vitalState]}
-              <span>
-                {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
-                {formatPercentage(pct.percent, 0)}
-              </span>
-            </VitalStatus>
-          </Tooltip>
-        );
-      })}
+      {props.percents.map(pct => (
+        <Tooltip
+          key={pct.vitalState}
+          title={getVitalStateText(props.vital, pct.vitalState)}
+          disabled={props.hideTooltips}
+        >
+          <VitalStatus data-test-id="vital-status">
+            {vitalStateIcons[pct.vitalState]}
+            <span>
+              {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
+              {formatPercentage(pct.percent, 0)}
+            </span>
+          </VitalStatus>
+        </Tooltip>
+      ))}
     </VitalSet>
   );
 }

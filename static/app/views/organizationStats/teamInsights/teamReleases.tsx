@@ -9,7 +9,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import BarChart from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
@@ -219,6 +219,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                     show: false,
                   },
                 }),
+                barCategoryGap: '5%',
               },
             ]}
             tooltip={{
@@ -237,7 +238,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                   `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
                   '</div>',
                   `<div class="tooltip-date">${startDate} - ${endDate}</div>`,
-                  getTooltipArrow(),
+                  '<div class="tooltip-arrow"></div>',
                 ].join('');
               },
             }}

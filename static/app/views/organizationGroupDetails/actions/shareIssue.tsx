@@ -49,6 +49,7 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
             size="xsmall"
             onClick={this.handleCopyClick}
             icon={<IconCopy />}
+            aria-label={t('Copy to clipboard')}
           />
         </Clipboard>
 
@@ -62,6 +63,7 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
         >
           <ReshareButton
             title={t('Generate new URL')}
+            aria-label={t('Generate new URL')}
             borderless
             size="xsmall"
             icon={<IconRefresh />}

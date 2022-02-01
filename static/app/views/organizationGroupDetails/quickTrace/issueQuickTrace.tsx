@@ -127,6 +127,7 @@ class IssueQuickTrace extends Component<Props, State> {
             })}
             <Button
               priority="link"
+              size="zero"
               title={t('Dismiss for a month')}
               onClick={this.snoozePrompt}
             >

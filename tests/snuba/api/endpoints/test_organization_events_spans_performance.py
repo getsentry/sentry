@@ -111,36 +111,31 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
     def suspect_span_examples_snuba_results(self, op, event):
         results = {
             "project.id": self.project.id,
-            "project": self.project.slug,
             "id": event.event_id,
-            "array_join_spans_op": op,
         }
 
         if op == "http.server":
             results.update(
                 {
-                    "array_join_spans_group": "ab" * 8,
-                    "count": 1,
-                    "sumArray_spans_exclusive_time": 4.0,
-                    "maxArray_spans_exclusive_time": 4.0,
+                    "count_span_time": 1,
+                    "sum_span_time": 4.0,
+                    "max_span_time": 4.0,
                 }
             )
         elif op == "django.middleware":
             results.update(
                 {
-                    "array_join_spans_group": "cd" * 8,
-                    "count": 2,
-                    "sumArray_spans_exclusive_time": 6.0,
-                    "maxArray_spans_exclusive_time": 3.0,
+                    "count_span_time": 2,
+                    "sum_span_time": 6.0,
+                    "max_span_time": 3.0,
                 }
             )
         elif op == "django.view":
             results.update(
                 {
-                    "array_join_spans_group": "ef" * 8,
-                    "count": 3,
-                    "sumArray_spans_exclusive_time": 3.0,
-                    "maxArray_spans_exclusive_time": 1.0,
+                    "count_span_time": 3,
+                    "sum_span_time": 3.0,
+                    "max_span_time": 1.0,
                 }
             )
         else:
@@ -491,7 +486,18 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": self.project.id},
+                data={
+                    "project": self.project.id,
+                    "field": [
+                        "percentileArray(spans_exclusive_time, 0.50)",
+                        "percentileArray(spans_exclusive_time, 0.75)",
+                        "percentileArray(spans_exclusive_time, 0.95)",
+                        "percentileArray(spans_exclusive_time, 0.99)",
+                        "count()",
+                        "count_unique(id)",
+                        "sumArray(spans_exclusive_time)",
+                    ],
+                },
                 format="json",
             )
 

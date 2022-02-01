@@ -6,6 +6,7 @@ from django.urls import reverse
 from freezegun import freeze_time
 
 from sentry.integrations.slack.endpoints.action import (
+    ENABLE_SLACK_SUCCESS_MESSAGE,
     LINK_IDENTITY_MESSAGE,
     UNLINK_IDENTITY_MESSAGE,
 )
@@ -22,11 +23,14 @@ from sentry.models import (
     IdentityStatus,
     Integration,
     InviteStatus,
+    NotificationSetting,
     OrganizationIntegration,
     OrganizationMember,
 )
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import add_identity, install_slack
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -549,7 +553,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["text"] == "You don't have access to the organization for the invitation."
+        assert resp.data["text"] == "You do not have access to the organization for the invitation."
 
     def test_no_member_admin(self):
         OrganizationMember.objects.filter(user=self.user).update(role="admin")
@@ -566,4 +570,54 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["text"] == "You don't have permission to approve member invitations."
+        assert resp.data["text"] == "You do not have permission to approve member invitations."
+
+
+class EnableNotificationsActionTest(BaseEventTest):
+    def setUp(self):
+        super().setUp()
+        self.slack_id = "UXXXXXXX1"
+        self.team_id = "TXXXXXXX1"
+
+    def test_enable_all_slack_no_identity(self):
+        Identity.objects.delete_identity(user=self.user, idp=self.idp, external_id=self.external_id)
+        response = self.post_webhook(
+            action_data=[{"name": "enable_notifications", "value": "all_slack"}]
+        )
+
+        assert response.status_code == 403, response.content
+
+    def test_enable_all_slack_already_enabled(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+        )
+
+        response = self.post_webhook(
+            action_data=[{"name": "enable_notifications", "value": "all_slack"}]
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["text"] == ENABLE_SLACK_SUCCESS_MESSAGE
+
+        assert NotificationSetting.objects.has_any_provider_settings(
+            self.user, ExternalProviders.SLACK
+        )
+
+    def test_enable_all_slack(self):
+        assert not NotificationSetting.objects.has_any_provider_settings(
+            self.user, ExternalProviders.SLACK
+        )
+
+        response = self.post_webhook(
+            action_data=[{"name": "enable_notifications", "value": "all_slack"}]
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["text"] == ENABLE_SLACK_SUCCESS_MESSAGE
+
+        assert NotificationSetting.objects.has_any_provider_settings(
+            self.user, ExternalProviders.SLACK
+        )

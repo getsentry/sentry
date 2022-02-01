@@ -19,10 +19,17 @@ export const lightColors = {
   surface400: '#F5F3F7',
 
   gray500: '#2B2233',
-  gray400: '#4D4158',
+  gray400: '#3E3446',
   gray300: '#80708F',
   gray200: '#DBD6E1',
   gray100: '#EBE6EF',
+
+  /**
+   * Alternative version of gray200 that's translucent.
+   * Useful for borders on tooltips, popovers, and dialogs.
+   */
+  translucentGray200: 'rgba(58, 17, 95, 0.18)',
+  translucentGray100: 'rgba(45, 0, 85, 0.1)',
 
   purple400: '#584AC0',
   purple300: '#6C5FC7',
@@ -73,6 +80,13 @@ export const darkColors = {
   gray300: '#998DA5',
   gray200: '#43384C',
   gray100: '#342B3B',
+
+  /**
+   * Alternative version of gray200 that's translucent.
+   * Useful for borders on tooltips, popovers, and dialogs.
+   */
+  translucentGray200: 'rgba(218, 184, 245, 0.18)',
+  translucentGray100: 'rgba(208, 168, 240, 0.1)',
 
   purple400: '#6859CF',
   purple300: '#7669D3',
@@ -131,9 +145,14 @@ type BaseColors = typeof lightColors;
 
 const generateAliases = (colors: BaseColors) => ({
   /**
+   * Heading text color
+   */
+  headingColor: colors.gray500,
+
+  /**
    * Primary text color
    */
-  textColor: colors.gray500,
+  textColor: colors.gray400,
 
   /**
    * Text that should not have as much emphasis
@@ -169,21 +188,13 @@ const generateAliases = (colors: BaseColors) => ({
    * Primary border color
    */
   border: colors.gray200,
+  translucentBorder: colors.translucentGray200,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
   innerBorder: colors.gray100,
-
-  /**
-   * Border around modals
-   */
-  modalBorder: 'none',
-
-  /**
-   * Box shadow on the modal
-   */
-  modalBoxShadow: 'none',
+  translucentInnerBorder: colors.translucentGray100,
 
   /**
    * A color that denotes a "success", or something good
@@ -468,6 +479,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: alias.backgroundSecondary,
     border: alias.border,
     borderActive: alias.border,
+    borderTranslucent: alias.translucentBorder,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
@@ -478,6 +490,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: colors.purple400,
     border: colors.purple300,
     borderActive: colors.purple300,
+    borderTranslucent: colors.purple300,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
@@ -488,6 +501,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: colors.green400,
     border: colors.green300,
     borderActive: colors.green300,
+    borderTranslucent: colors.green300,
     focusBorder: colors.green300,
     focusShadow: colors.green200,
   },
@@ -498,6 +512,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: colors.red400,
     border: colors.red300,
     borderActive: colors.red300,
+    borderTranslucent: colors.red300,
     focusBorder: colors.red300,
     focusShadow: colors.red200,
   },
@@ -508,6 +523,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: 'transparent',
     border: 'transparent',
     borderActive: 'transparent',
+    borderTranslucent: 'transparent',
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
@@ -518,6 +534,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: alias.background,
     border: alias.disabledBorder,
     borderActive: alias.disabledBorder,
+    borderTranslucent: alias.translucentInnerBorder,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
@@ -528,6 +545,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundActive: alias.backgroundSecondary,
     border: alias.formInputBorder,
     borderActive: alias.formInputBorder,
+    borderTranslucent: alias.translucentBorder,
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
@@ -667,8 +685,68 @@ const commonTheme = {
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
     familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
-    lineHeightHeading: '1.15',
-    lineHeightBody: '1.4',
+    lineHeightHeading: 1.2,
+    lineHeightBody: 1.4,
+    pageTitle: {
+      fontSize: '1.625rem',
+      fontWeight: 600,
+      letterSpacing: '-0.01em',
+      lineHeight: 1.2,
+    },
+    cardTitle: {
+      fontSize: '1rem',
+      fontWeight: 600,
+      lineHeight: 1.2,
+    },
+  },
+
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    default: {
+      height: 40,
+      minHeight: 40,
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    small: {
+      height: 34,
+      minHeight: 34,
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    xsmall: {
+      height: 28,
+      minHeight: 28,
+      fontSize: '0.75rem',
+      lineHeight: '0.875rem',
+    },
+  },
+
+  /**
+   * Padding for buttons
+   */
+  buttonPadding: {
+    default: {
+      paddingTop: 10,
+      paddingBottom: 10,
+      paddingLeft: 16,
+      paddingRight: 16,
+    },
+    small: {
+      paddingTop: 8,
+      paddingBottom: 8,
+      paddingLeft: 12,
+      paddingRight: 12,
+    },
+    xsmall: {
+      paddingTop: 6,
+      paddingBottom: 6,
+      paddingLeft: 8,
+      paddingRight: 8,
+    },
   },
 
   dataCategory,

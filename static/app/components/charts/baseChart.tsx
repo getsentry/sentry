@@ -79,6 +79,32 @@ type Truncateable = {
   truncate?: number | boolean;
 };
 
+interface TooltipOption
+  extends Omit<TooltipComponentOption, 'valueFormatter'>,
+    Truncateable {
+  filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
+  formatAxisLabel?: (
+    value: number,
+    isTimestamp: boolean,
+    utc: boolean,
+    showTimeInTooltip: boolean,
+    addSecondsToTimeFormat: boolean,
+    bucketSize: number | undefined,
+    seriesParamsOrParam: TooltipComponentFormatterCallbackParams
+  ) => string;
+  valueFormatter?: (
+    value: number,
+    label?: string,
+    seriesParams?: TooltipComponentFormatterCallback<any>
+  ) => string;
+  nameFormatter?: (name: string) => string;
+  markerFormatter?: (marker: string, label?: string) => string;
+  /**
+   * Array containing seriesNames that need to be indented
+   */
+  indentLabels?: string[];
+}
+
 type Props = {
   options?: EChartsOption;
   /**
@@ -120,33 +146,7 @@ type Props = {
   /**
    * Tooltip options
    */
-  tooltip?: TooltipComponentOption &
-    Truncateable & {
-      filter?: (
-        value: number,
-        seriesParam: TooltipComponentOption['formatter']
-      ) => boolean;
-      formatAxisLabel?: (
-        value: number,
-        isTimestamp: boolean,
-        utc: boolean,
-        showTimeInTooltip: boolean,
-        addSecondsToTimeFormat: boolean,
-        bucketSize: number | undefined,
-        seriesParamsOrParam: TooltipComponentFormatterCallbackParams
-      ) => string;
-      valueFormatter?: (
-        value: number,
-        label?: string,
-        seriesParams?: TooltipComponentFormatterCallback<any>
-      ) => string | number;
-      nameFormatter?: (name: string) => string;
-      markerFormatter?: (marker: string, label?: string) => string;
-      /**
-       * Array containing seriesNames that need to be indented
-       */
-      indentLabels?: string[];
-    };
+  tooltip?: TooltipOption;
   /**
    * DataZoom (allows for zooming of chart)
    */
@@ -256,7 +256,7 @@ type Props = {
   /**
    * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
    */
-  period?: string;
+  period?: string | null;
   /**
    * Formats dates as UTC?
    */
@@ -593,14 +593,14 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     border-top: 8px solid ${p => p.theme.backgroundElevated};
     margin-left: -8px;
     &:before {
-      border-left: 9px solid transparent;
-      border-right: 9px solid transparent;
-      border-top: 9px solid ${p => p.theme.border};
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid ${p => p.theme.translucentBorder};
       content: '';
       display: block;
       position: absolute;
-      top: -8px;
-      left: -9px;
+      top: -7px;
+      left: -8px;
       z-index: -1;
     }
   }

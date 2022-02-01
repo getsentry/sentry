@@ -15,5 +15,5 @@ class ProjectSavedSearchesSettingsTest(AcceptanceTestCase):
     def test_saved_searches(self):
         path = f"/{self.org.slug}/{self.project.slug}/settings/debug-symbols/"
         self.browser.get(path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.snapshot("project settings - debug symbols")

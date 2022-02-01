@@ -12,7 +12,6 @@ export function createShader(
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-
   if (success) {
     return shader;
   }
@@ -159,6 +158,19 @@ export function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement): boolean {
 export const Transform = {
   betweenRect(from: Rect, to: Rect): Rect {
     return new Rect(to.x, to.y, to.width / from.width, to.height / from.height);
+  },
+  transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
+    return mat3.fromValues(
+      to.width / from.width,
+      0,
+      0,
+      0,
+      to.height / from.height,
+      0,
+      -((from.x * to.width) / from.width),
+      -((from.y * to.height) / from.height),
+      1
+    );
   },
 };
 
@@ -361,7 +373,6 @@ export class Rect {
     if (this.height !== rect.height) {
       return false;
     }
-
     return true;
   }
 
@@ -383,4 +394,67 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
   return ctx;
 }
 
+// Exporting this like this instead of writing export function for each overload as
+// it breaks the lines and makes it harder to read.
 export {getContext};
+
+export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
+  if (!string) {
+    return Rect.Empty();
+  }
+
+  const context = ctx || getContext(document.createElement('canvas'), '2d');
+  const measures = context.measureText(string);
+
+  return new Rect(
+    0,
+    0,
+    measures.width,
+    // https://stackoverflow.com/questions/1134586/how-can-you-find-the-height-of-text-on-an-html-canvas
+    measures.actualBoundingBoxAscent + measures.actualBoundingBoxDescent
+  );
+}
+
+/** Find closest min and max value to target */
+export function findRangeBinarySearch(
+  {low, high}: {low: number; high: number},
+  fn: (val: number) => number,
+  target: number,
+  precision = 1
+): [number, number] {
+  if (target < low || target > high) {
+    throw new Error(
+      `Target value needs to be in low-high range, got ${target} for [${low}, ${high}]`
+    );
+  }
+  // eslint-disable-next-line
+  while (true) {
+    if (high - low <= precision) {
+      return [low, high];
+    }
+
+    const mid = (high + low) / 2;
+    if (fn(mid) < target) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+}
+
+export const ELLIPSIS = '\u2026';
+export function trimTextCenter(text: string, low: number) {
+  if (low > text.length) {
+    return text;
+  }
+
+  const prefixLength = Math.floor(low / 2);
+  // Use 1 character less than the low value to account for ellipsis
+  // and favor displaying the prefix
+  const postfixLength = low - prefixLength - 1;
+
+  return `${text.substring(0, prefixLength)}${ELLIPSIS}${text.substring(
+    text.length - postfixLength,
+    text.length
+  )}`;
+}

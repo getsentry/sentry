@@ -10,7 +10,12 @@ import _DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformMetricsToArea} from '../transforms/transformMetricsToArea';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {DurationChart, HighlightNumber, Subtitle} from './singleFieldAreaWidget';
@@ -38,6 +43,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
   }
 
   const field = fields[0];
+  const failureRate = chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA;
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -53,7 +59,7 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
       }) => (
         <MetricsRequest
           api={api}
-          organization={organization}
+          orgSlug={organization.slug}
           start={start}
           end={end}
           statsPeriod={period}
@@ -61,17 +67,14 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
           environment={environment}
           query={new MutableSearch(eventView.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
           field={decodeList(chartFields)}
-          groupBy={
-            chartSetting === PerformanceWidgetSetting.FAILURE_RATE_AREA
-              ? ['transaction.status']
-              : undefined
-          }
+          groupBy={failureRate ? ['transaction.status'] : undefined}
           includePrevious
         >
           {children}
         </MetricsRequest>
       ),
-      transform: transformMetricsToArea,
+      transform: (data: GenericPerformanceWidgetProps<DataType>, result) =>
+        transformMetricsToArea(data, result, failureRate),
     }),
     [chartSetting]
   );
@@ -106,9 +109,9 @@ export function SingleFieldAreaWidgetMetrics(props: PerformanceWidgetProps) {
             <DurationChart
               {...provided.widgetData.chart}
               {...provided}
+              chartColors={chartColor ? [chartColor] : undefined}
               disableMultiAxis
               disableXAxis
-              chartColors={chartColor ? [chartColor] : undefined}
             />
           ),
           height: chartHeight,

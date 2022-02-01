@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -19,6 +20,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
+import {MetricsSwitch} from '../metricsSwitch';
 
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
@@ -211,6 +213,17 @@ class TransactionHeader extends React.Component<Props> {
     }
   }
 
+  handleSwitchMetrics = () => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: undefined,
+      },
+    });
+  };
+
   render() {
     const {organization, location, projectId, transactionName, currentTab} = this.props;
 
@@ -242,6 +255,7 @@ class TransactionHeader extends React.Component<Props> {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            <MetricsSwitch onSwitch={this.handleSwitchMetrics} />
             <Feature organization={organization} features={['incidents']}>
               {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
             </Feature>
@@ -285,7 +299,7 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTabClick(Tab.Spans)}
               >
                 {t('Spans')}
-                <FeatureBadge type="alpha" noTooltip />
+                <FeatureBadge type="new" noTooltip />
               </ListLink>
             </Feature>
           </StyledNavTabs>

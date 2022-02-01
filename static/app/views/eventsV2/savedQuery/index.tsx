@@ -26,7 +26,11 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import {DashboardWidgetSource, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
 import InputControl from 'sentry/views/settings/components/forms/controls/input';
 
 import {
@@ -231,10 +235,16 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   handleAddDashboardWidget = () => {
     const {organization, eventView, savedQuery, yAxis} = this.props;
+
+    const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
+    const defaultTableColumns = eventView.fields.map(({field}) => field);
     const sort = eventView.sorts[0];
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
-      fields: yAxis && yAxis.length > 0 ? yAxis : ['count()'],
+      fields: [
+        ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+      ],
       conditions: eventView.query,
       orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };
@@ -248,11 +258,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       organization,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns: eventView.fields.map(({field}) => field),
+      defaultTableColumns,
       defaultTitle:
         savedQuery?.name ??
         (eventView.name !== 'All Events' ? eventView.name : undefined),
-      displayType: displayModeToDisplayType(eventView.display as DisplayModes),
+      displayType,
     });
   };
 
@@ -348,6 +358,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         onClick={this.handleDeleteQuery}
         disabled={disabled}
         icon={<IconDelete />}
+        aria-label={t('Delete')}
       />
     );
   }
@@ -372,12 +383,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   renderButtonAddToDashboard() {
     return (
-      <AddToDashboardButton
+      <Button
         key="add-dashboard-widget-from-discover"
+        data-test-id="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
         {t('Add to Dashboard')}
-      </AddToDashboardButton>
+      </Button>
     );
   }
 
@@ -455,12 +467,6 @@ const IconUpdate = styled('div')`
   margin-right: ${space(0.75)};
   border-radius: 5px;
   background-color: ${p => p.theme.yellow300};
-`;
-
-const AddToDashboardButton = styled(Button)`
-  span {
-    height: 38px;
-  }
 `;
 
 export default withProjects(withApi(SavedQueryButtonGroup));

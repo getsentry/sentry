@@ -1,5 +1,6 @@
 import {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -8,17 +9,20 @@ import * as qs from 'query-string';
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getStateFromQuery} from 'sentry/components/organizations/pageFilters/parse';
 import {
-  getDefaultSelection,
   getPageFilterStorage,
   setPageFiltersStorage,
-} from 'sentry/components/organizations/pageFilters/utils';
-import {DATE_TIME, URL_PARAM} from 'sentry/constants/pageFilters';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+} from 'sentry/components/organizations/pageFilters/persistence';
+import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
+import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import {
+  DateString,
   Environment,
   MinimalProject,
   Organization,
   PageFilters,
+  PinnedPageFilter,
   Project,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -43,34 +47,34 @@ type Options = {
    * Persist changes to the page filter selection into local storage
    */
   save?: boolean;
+  /**
+   * Use Location.replace instead of push when updating the URL query state
+   */
+  replace?: boolean;
 };
 
 /**
- * Represents the datetime portion of page filters staate
+ * This is the 'update' object used for updating the page filters. The types
+ * here are a bit wider to allow for easy updates.
  */
-type DateTimeObject = {
-  start?: Date | string | null;
-  end?: Date | string | null;
-  statsPeriod?: string | null;
+type PageFiltersUpdate = {
+  project?: Array<string | number> | null;
+  environment?: string[] | null;
+  start?: DateString;
+  end?: DateString;
   utc?: string | boolean | null;
-  /**
-   * @deprecated
-   */
   period?: string | null;
 };
 
 /**
- * Cast project ids to strings, as everything is assumed to be a string in URL params
- *
- * We also handle internal types so Dates and booleans can show up in the start/end/utc
- * keys. Long term it would be good to narrow down these types.
+ * Represents the input for updating the date time of page filters
  */
-type UrlParams = {
-  project?: ProjectId[] | null;
-  environment?: EnvironmentId[] | null;
-} & DateTimeObject & {
-    [others: string]: any;
-  };
+type DateTimeUpdate = Pick<PageFiltersUpdate, 'start' | 'end' | 'period' | 'utc'>;
+
+/**
+ * Output object used for updating query parameters
+ */
+type PageFilterQuery = PageFiltersStringified & Record<string, Location['query'][string]>;
 
 /**
  * This can be null which will not perform any router side effects, and instead updates store.
@@ -90,7 +94,7 @@ function getProjectIdFromProject(project: MinimalProject) {
 
 type InitializeUrlStateParams = {
   organization: Organization;
-  queryParams: InjectedRouter['location']['query'];
+  queryParams: Location['query'];
   router: InjectedRouter;
   memberProjects: Project[];
   shouldForceProject?: boolean;
@@ -117,76 +121,88 @@ export function initializeUrlState({
   showAbsolute = true,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
+
   const query = pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT]);
   const hasProjectOrEnvironmentInUrl = Object.keys(query).length > 0;
+
   const parsed = getStateFromQuery(queryParams, {
     allowAbsoluteDatetime: showAbsolute,
     allowEmptyPeriod: true,
   });
+
   const {datetime: defaultDateTime, ...retrievedDefaultSelection} = getDefaultSelection();
+
   const {datetime: customizedDefaultDateTime, ...customizedDefaultSelection} =
     defaultSelection || {};
 
-  let pageFilters: Omit<PageFilters, 'datetime'> & {
-    datetime: {
-      [K in keyof PageFilters['datetime']]: PageFilters['datetime'][K] | null;
-    };
-  } = {
+  let pageFilters: PageFilters = {
     ...retrievedDefaultSelection,
     ...customizedDefaultSelection,
     datetime: {
-      [DATE_TIME.START as 'start']:
-        parsed.start || customizedDefaultDateTime?.start || null,
-      [DATE_TIME.END as 'end']: parsed.end || customizedDefaultDateTime?.end || null,
-      [DATE_TIME.PERIOD as 'period']:
+      start: parsed.start || customizedDefaultDateTime?.start || null,
+      end: parsed.end || customizedDefaultDateTime?.end || null,
+      period:
         parsed.period || customizedDefaultDateTime?.period || defaultDateTime.period,
-      [DATE_TIME.UTC as 'utc']: parsed.utc || customizedDefaultDateTime?.utc || null,
+      utc: parsed.utc || customizedDefaultDateTime?.utc || null,
     },
   };
+
+  // Do not set a period if we have absolute start and end
   if (pageFilters.datetime.start && pageFilters.datetime.end) {
     pageFilters.datetime.period = null;
   }
 
-  // We only save environment and project, so if those exist in
-  // URL, do not touch local storage
   if (hasProjectOrEnvironmentInUrl) {
     pageFilters.projects = parsed.project || [];
     pageFilters.environments = parsed.environment || [];
-  } else if (!skipLoadLastUsed) {
+  }
+
+  // We only save environment and project, so if those exist in URL, do not
+  // touch local storage
+  if (!hasProjectOrEnvironmentInUrl && !skipLoadLastUsed) {
     const storedPageFilters = getPageFilterStorage(orgSlug);
 
     if (storedPageFilters !== null) {
-      pageFilters = {...storedPageFilters, datetime: pageFilters.datetime};
+      const {project, environment} = storedPageFilters.selection;
+
+      pageFilters = {
+        projects: project ?? [],
+        environments: environment ?? [],
+        datetime: pageFilters.datetime,
+      };
     }
   }
 
   const {projects, environments: environment, datetime} = pageFilters;
+
   let newProject: number[] | null = null;
   let project = projects;
 
-  /**
-   * Skip enforcing a single project if `shouldForceProject` is true,
-   * since a component is controlling what that project needs to be.
-   * This is true regardless if user has access to multi projects
-   */
+  // Skip enforcing a single project if `shouldForceProject` is true, since a
+  // component is controlling what that project needs to be. This is true
+  // regardless if user has access to multi projects
   if (shouldForceProject && forceProject) {
     newProject = [getProjectIdFromProject(forceProject)];
   } else if (shouldEnforceSingleProject && !shouldForceProject) {
-    /**
-     * If user does not have access to `global-views` (e.g. multi project select) *and* there is no
-     * `project` URL parameter, then we update URL params with:
-     * 1) the first project from the list of requested projects from URL params,
-     * 2) first project user is a member of from org
-     *
-     * Note this is intentionally skipped if `shouldForceProject == true` since we want to initialize store
-     * and wait for the forced project
-     */
+    // If user does not have access to `global-views` (e.g. multi project
+    // select) *and* there is no `project` URL parameter, then we update URL
+    // params with:
+    //
+    //  1) the first project from the list of requested projects from URL params
+    //  2) first project user is a member of from org
+    //
+    // Note this is intentionally skipped if `shouldForceProject == true` since
+    // we want to initialize store and wait for the forced project
+    //
     if (projects && projects.length > 0) {
-      // If there is a list of projects from URL params, select first project from that list
+      // If there is a list of projects from URL params, select first project
+      // from that list
       newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]];
     } else {
-      // When we have finished loading the organization into the props,  i.e. the organization slug is consistent with
-      // the URL param--Sentry will get the first project from the organization that the user is a member of.
+      // When we have finished loading the organization into the props,  i.e.
+      // the organization slug is consistent with the URL param--Sentry will
+      // get the first project from the organization that the user is a member
+      // of.
       newProject = [...memberProjects].slice(0, 1).map(getProjectIdFromProject);
     }
   }
@@ -197,27 +213,21 @@ export function initializeUrlState({
   }
 
   PageFiltersActions.initializeUrlState(pageFilters);
-  PageFiltersActions.setOrganization(organization);
-
-  // To keep URLs clean, don't push default period if url params are empty
-  const parsedWithNoDefaultPeriod = getStateFromQuery(queryParams, {
-    allowEmptyPeriod: true,
-    allowAbsoluteDatetime: showAbsolute,
-  });
 
   const newDatetime = {
     ...datetime,
-    period:
-      !parsedWithNoDefaultPeriod.start &&
-      !parsedWithNoDefaultPeriod.end &&
-      !parsedWithNoDefaultPeriod.period
-        ? null
-        : datetime.period,
-    utc: !parsedWithNoDefaultPeriod.utc ? null : datetime.utc,
+    period: !parsed.start && !parsed.end && !parsed.period ? null : datetime.period,
+    utc: !parsed.utc ? null : datetime.utc,
   };
-  replaceParams({project, environment, ...newDatetime}, router, {
+
+  updateParams({project, environment, ...newDatetime}, router, {
+    replace: true,
     keepCursor: true,
   });
+}
+
+function isProjectsValid(projects: ProjectId[]) {
+  return Array.isArray(projects) && projects.every(isInteger);
 }
 
 /**
@@ -242,29 +252,7 @@ export function updateProjects(
 
   PageFiltersActions.updateProjects(projects, options?.environments);
   updateParams({project: projects, environment: options?.environments}, router, options);
-}
-
-function isProjectsValid(projects: ProjectId[]) {
-  return Array.isArray(projects) && projects.every(project => isInteger(project));
-}
-
-/**
- * Updates store and global datetime selection URL param if `router` is supplied
- *
- * @param {Object} datetime Object with start, end, range keys
- * @param {Object} [router] Router object
- * @param {Object} [options] Options object
- * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
- */
-export function updateDateTime(
-  datetime: DateTimeObject,
-  router?: Router,
-  options?: Options
-) {
-  PageFiltersActions.updateDateTime(datetime);
-  // We only save projects/environments to local storage, do not
-  // save anything when date changes.
-  updateParams(datetime, router, {...options, save: false});
+  persistPageFilters(options);
 }
 
 /**
@@ -282,6 +270,33 @@ export function updateEnvironments(
 ) {
   PageFiltersActions.updateEnvironments(environment);
   updateParams({environment}, router, options);
+  persistPageFilters(options);
+}
+
+/**
+ * Updates store and global datetime selection URL param if `router` is supplied
+ *
+ * @param {Object} datetime Object with start, end, range keys
+ * @param {Object} [router] Router object
+ * @param {Object} [options] Options object
+ * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ */
+export function updateDateTime(
+  datetime: DateTimeUpdate,
+  router?: Router,
+  options?: Options
+) {
+  PageFiltersActions.updateDateTime(datetime);
+  updateParams(datetime, router, options);
+  persistPageFilters(options);
+}
+
+/**
+ * Pins a particular filter so that it is read out of local storage
+ */
+export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
+  PageFiltersActions.pin(filter, pin);
+  persistPageFilters({save: true});
 }
 
 /**
@@ -291,7 +306,7 @@ export function updateEnvironments(
  * @param [router] React router object
  * @param [options] Options object
  */
-export function updateParams(obj: UrlParams, router?: Router, options?: Options) {
+function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options) {
   // Allow another component to handle routing
   if (!router) {
     return;
@@ -304,99 +319,88 @@ export function updateParams(obj: UrlParams, router?: Router, options?: Options)
     return;
   }
 
-  if (options?.save) {
-    const {organization, selection} = PageFiltersStore.getState();
-    const orgSlug = organization?.slug ?? null;
+  const routerAction = options?.replace ? router.replace : router.push;
 
-    setPageFiltersStorage(orgSlug, selection, newQuery);
-  }
-
-  router.push({
-    pathname: router.location.pathname,
-    query: newQuery,
-  });
+  routerAction({pathname: router.location.pathname, query: newQuery});
 }
 
 /**
- * Like updateParams but just replaces the current URL and does not create a
- * new browser history entry
- *
- * @param obj New query params
- * @param [router] React router object
- * @param [options] Options object
+ * Save the current page filters to local storage
  */
-export function replaceParams(obj: UrlParams, router?: Router, options?: Options) {
-  // Allow another component to handle routing
-  if (!router) {
+async function persistPageFilters(options?: Options) {
+  if (!options?.save) {
     return;
   }
 
-  const newQuery = getNewQueryParams(obj, router.location.query, options);
+  // XXX(epurkhiser): Since this is called immediately after updating the
+  // store, wait for a tick since stores are not updated fully synchronously.
+  // A bit goofy, but it works fine.
+  await new Promise(resolve => setTimeout(resolve, 0));
 
-  // Only push new location if query params have changed because this will cause a heavy re-render
-  if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
+  const {organization} = OrganizationStore.getState();
+  const orgSlug = organization?.slug ?? null;
+
+  // Can't do anything if we don't have an organization
+  if (orgSlug === null) {
     return;
   }
 
-  router.replace({
-    pathname: router.location.pathname,
-    query: newQuery,
-  });
+  setPageFiltersStorage(orgSlug);
 }
 
 /**
- * Creates a new query parameter object given new params and old params
- * Preserves the old query params, except for `cursor` (can be overriden with keepCursor option)
+ * Merges an UpdateParams object into a Location['query'] object. Results in a
+ * PageFilterQuery
+ *
+ * Preserves the old query params, except for `cursor` (can be overriden with
+ * keepCursor option)
  *
  * @param obj New query params
- * @param oldQueryParams Old query params
+ * @param currentQuery The current query parameters
  * @param [options] Options object
  */
 function getNewQueryParams(
-  obj: UrlParams,
-  oldQueryParams: UrlParams,
-  {resetParams, keepCursor}: Options = {}
+  obj: PageFiltersUpdate,
+  currentQuery: Location['query'],
+  options: Options = {}
 ) {
-  const {cursor, statsPeriod, ...oldQuery} = oldQueryParams;
-  const oldQueryWithoutResetParams = !!resetParams?.length
-    ? omit(oldQuery, resetParams)
-    : oldQuery;
+  const {resetParams, keepCursor} = options;
 
-  const newQuery = getParams({
-    ...oldQueryWithoutResetParams,
-    // Some views update using `period`, and some `statsPeriod`, we should make this uniform
-    period: !obj.start && !obj.end ? obj.period || statsPeriod : null,
-    ...obj,
+  const cleanCurrentQuery = !!resetParams?.length
+    ? omit(currentQuery, resetParams)
+    : currentQuery;
+
+  // Normalize existing query parameters
+  const currentQueryState = getStateFromQuery(cleanCurrentQuery, {
+    allowEmptyPeriod: true,
   });
 
-  if (newQuery.start) {
-    newQuery.start = getUtcDateString(newQuery.start);
-  }
+  // Extract non page filter parameters.
+  const cursorParam = !keepCursor ? 'cursor' : null;
+  const omittedParameters = [...Object.values(URL_PARAM), cursorParam].filter(defined);
 
-  if (newQuery.end) {
-    newQuery.end = getUtcDateString(newQuery.end);
-  }
+  const extraParams = omit(cleanCurrentQuery, omittedParameters);
 
-  if (keepCursor) {
-    newQuery.cursor = cursor;
-  }
+  // Override parameters
+  const {project, environment, start, end, utc} = {
+    ...currentQueryState,
+    ...obj,
+  };
 
-  return newQuery;
-}
+  // Only set a stats period if we don't have an absolute date
+  const statsPeriod = !start && !end ? obj.period || currentQueryState.period : null;
 
-function getParams(params: UrlParams): UrlParams {
-  const {start, end, period, statsPeriod, ...otherParams} = params;
+  const newQuery: PageFilterQuery = {
+    project: project?.map(String),
+    environment,
+    start: statsPeriod ? null : start instanceof Date ? getUtcDateString(start) : start,
+    end: statsPeriod ? null : end instanceof Date ? getUtcDateString(end) : end,
+    utc: utc ? 'true' : null,
+    statsPeriod,
+    ...extraParams,
+  };
 
-  // `statsPeriod` takes precedence for now
-  const coercedPeriod = statsPeriod || period;
+  const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));
 
-  // Filter null values
-  return Object.fromEntries(
-    Object.entries({
-      statsPeriod: coercedPeriod,
-      start: coercedPeriod ? null : start,
-      end: coercedPeriod ? null : end,
-      ...otherParams,
-    }).filter(([, value]) => defined(value))
-  );
+  return Object.fromEntries(paramEntries) as PageFilterQuery;
 }

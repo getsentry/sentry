@@ -37,8 +37,9 @@ function bundle(originalFile) {
           'missing' in v &&
           v.missing === true &&
           (v.type === 'relative' || v.type === 'remote')
-        )
+        ) {
           resErrors[k] = v.error;
+        }
       }
       if (Object.keys(resErrors).length > 0) {
         return Promise.reject(new Error(dictToString(resErrors)));

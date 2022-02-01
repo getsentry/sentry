@@ -24,7 +24,12 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformMetricsToArea} from '../transforms/transformMetricsToArea';
 import {transformMetricsToList} from '../transforms/transformMetricsToList';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -51,6 +56,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
     chartHeight,
   } = props;
   const field = fields[0];
+  const orgSlug = organization.slug;
 
   if (fields.length !== 1) {
     throw new Error(`Line chart list widget can only accept a single field (${fields})`);
@@ -68,7 +74,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
       component: ({start, end, period, project, environment, children, eventView}) => (
         <MetricsRequest
           api={api}
-          organization={organization}
+          orgSlug={orgSlug}
           start={start}
           end={end}
           statsPeriod={period}
@@ -110,7 +116,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
         return (
           <MetricsRequest
             api={api}
-            organization={organization}
+            orgSlug={orgSlug}
             start={start}
             end={end}
             statsPeriod={period}
@@ -128,7 +134,8 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
           </MetricsRequest>
         );
       },
-      transform: transformMetricsToArea,
+      transform: (data: GenericPerformanceWidgetProps<DataType>, result) =>
+        transformMetricsToArea(data, result),
     };
   }, [chartSetting, selectedListIndex]);
 
@@ -174,7 +181,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
                 }
 
                 const transactionTarget = transactionSummaryRouteWithQuery({
-                  orgSlug: organization.slug,
+                  orgSlug,
                   projectID: decodeList(location.query.project), // TODO(metrics): filter by project once api supports it (listItem['project.id'])
                   transaction,
                   query: props.eventView.getPageFiltersQuery(),
@@ -182,7 +189,7 @@ export function LineChartListWidgetMetrics(props: PerformanceWidgetProps) {
 
                 return (
                   <Fragment>
-                    <GrowLink to={transactionTarget} className="truncate">
+                    <GrowLink to={transactionTarget}>
                       <Truncate value={transaction} maxLength={40} />
                     </GrowLink>
                     <RightAlignedCell>

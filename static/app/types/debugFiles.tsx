@@ -90,7 +90,7 @@ export type CustomRepoAppStoreConnect = {
   details?: AppStoreConnectStatusData;
 };
 
-type CustomRepoHttp = {
+export type CustomRepoHttp = {
   type: CustomRepoType.HTTP;
   id: string;
   layout: {casing: string; type: string};

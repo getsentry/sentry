@@ -8,7 +8,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventContexts from 'sentry/components/events/contexts';
-import EventContextSummary from 'sentry/components/events/contextSummary/contextSummary';
+import EventContextSummary from 'sentry/components/events/contextSummary';
 import EventDevice from 'sentry/components/events/device';
 import EventErrors, {Error} from 'sentry/components/events/errors';
 import EventAttachments from 'sentry/components/events/eventAttachments';

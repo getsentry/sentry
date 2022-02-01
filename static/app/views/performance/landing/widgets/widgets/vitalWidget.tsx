@@ -224,7 +224,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               <Button
                 onClick={handleViewAllClick}
                 to={target}
-                size="small"
+                size="xsmall"
                 data-test-id="view-all-button"
               >
                 {t('View All')}
@@ -243,10 +243,6 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               {...provided}
               field={field}
               vitalFields={vitalFields}
-              organization={organization}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
               grid={provided.grid}
             />
           ),
