@@ -22,7 +22,6 @@ import {Client} from 'sentry/api';
 import {IconArrow} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
@@ -31,6 +30,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
+  assignDefaultLayout,
   calculateColumnDepths,
   constructGridItemKey,
   DEFAULT_WIDGET_WIDTH,
@@ -366,7 +366,7 @@ class Dashboard extends Component<Props, State> {
     ];
   }
 
-  renderWidget(widget: Widget, index: number, defaultPosition?: Position) {
+  renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
     const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
 
@@ -383,19 +383,8 @@ class Dashboard extends Component<Props, State> {
     if (organization.features.includes('dashboard-grid-layout')) {
       const key = constructGridItemKey(widget);
       const dragId = key;
-      const height = getDefaultWidgetHeight(widget.displayType);
       return (
-        <GridItem
-          key={key}
-          data-grid={
-            widget.layout ?? {
-              ...defaultPosition,
-              minH: height,
-              w: DEFAULT_WIDGET_WIDTH,
-              h: height,
-            }
-          }
-        >
+        <GridItem key={key} data-grid={widget.layout}>
           <SortableWidget
             {...widgetProps}
             dragId={dragId}
@@ -409,25 +398,6 @@ class Dashboard extends Component<Props, State> {
     const key = generateWidgetId(widget, index);
     const dragId = key;
     return <SortableWidget {...widgetProps} key={key} dragId={dragId} />;
-  }
-
-  renderWidgets(widgets: Widget[]) {
-    const {layouts} = this.state;
-    let columnDepths = calculateColumnDepths(layouts[DESKTOP]);
-
-    return widgets.map((widget, index) => {
-      if (defined(widget.layout)) {
-        return this.renderWidget(widget, index);
-      }
-
-      const height = getDefaultWidgetHeight(widget.displayType);
-      const [nextPosition, nextColumnDepths] = getNextAvailablePosition(
-        columnDepths,
-        height
-      );
-      columnDepths = nextColumnDepths;
-      return this.renderWidget(widget, index, nextPosition);
-    });
   }
 
   handleLayoutChange = (_, allLayouts: Layouts) => {
@@ -533,6 +503,9 @@ class Dashboard extends Component<Props, State> {
       widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
     }
 
+    const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
+    const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
+
     const canModifyLayout = !isMobile && isEditing;
 
     return (
@@ -557,7 +530,7 @@ class Dashboard extends Component<Props, State> {
         }
         isBounded
       >
-        {this.renderWidgets(widgets)}
+        {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
         {isEditing && !!!widgetLimitReached && (
           <div key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={this.addWidgetLayout}>
             <AddWidget
