@@ -522,7 +522,7 @@ class Results extends React.Component<Props, State> {
                   yAxis={yAxisArray}
                 />
               </Top>
-              <Layout.Main fullWidth={!showTags}>
+              <Middle fullWidth={!showTags}>
                 <Table
                   organization={organization}
                   eventView={eventView}
@@ -533,7 +533,7 @@ class Results extends React.Component<Props, State> {
                   showTags={showTags}
                   confirmedQuery={confirmedQuery}
                 />
-              </Layout.Main>
+              </Middle>
               {showTags ? this.renderTagsTable() : null}
               <Confirm
                 priority="primary"
@@ -577,6 +577,13 @@ const StyledSearchBar = styled(SearchBar)`
 
 const Top = styled(Layout.Main)`
   flex-grow: 0;
+`;
+
+const Middle = styled(Layout.Main)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) and (max-width: ${p =>
+      p.theme.breakpoints[2]}) {
+    padding-top: ${space(3)};
+  }
 `;
 
 type SavedQueryState = AsyncComponent['state'] & {
