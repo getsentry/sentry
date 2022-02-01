@@ -98,9 +98,6 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
-            // to prevent prop type warning due to
-            // ConditionalAriaLabel in button.tsx
-            children={null}
             aria-label={t('More delete options')}
             size="xsmall"
             icon={<IconChevron direction="down" size="xs" />}
