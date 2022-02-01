@@ -177,7 +177,13 @@ describe('ReleasesList', function () {
   });
 
   it('searches for a release', function () {
-    const input = wrapper.find('input');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+
+    const input = wrapper.find('textarea');
 
     expect(endpointMock).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
@@ -186,7 +192,7 @@ describe('ReleasesList', function () {
       })
     );
 
-    expect(input.prop('value')).toBe('derp');
+    expect(input.prop('value')).toBe('derp ');
 
     input.simulate('change', {target: {value: 'a'}}).simulate('submit');
 
@@ -209,7 +215,7 @@ describe('ReleasesList', function () {
     const sortByOptions = sortDropdown.find('DropdownItem span');
 
     const dateCreatedOption = sortByOptions.at(0);
-    expect(sortByOptions).toHaveLength(5);
+    expect(sortByOptions).toHaveLength(7);
     expect(dateCreatedOption.text()).toEqual('Date Created');
 
     const healthStatsControls = wrapper.find('AdoptionColumn span').first();
@@ -438,9 +444,6 @@ describe('ReleasesList', function () {
         },
       ],
     });
-
-    const semverOrg = {...organization, features: ['semver']};
-    wrapper.setProps({...props, organization: semverOrg});
     wrapper.find('SmartSearchBar textarea').simulate('click');
     wrapper
       .find('SmartSearchBar textarea')
