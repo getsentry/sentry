@@ -74,6 +74,7 @@ describe('IntegrationExternalMappings', function () {
         type="user"
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
+        defaultOptions={[]}
       />,
       {
         context: routerContext,
@@ -93,6 +94,7 @@ describe('IntegrationExternalMappings', function () {
         type="user"
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
+        defaultOptions={[]}
       />,
       {
         context: routerContext,
@@ -117,6 +119,7 @@ describe('IntegrationExternalMappings', function () {
         type="team"
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
+        defaultOptions={[]}
       />,
       {
         context: routerContext,
@@ -146,6 +149,7 @@ describe('IntegrationExternalMappings', function () {
         type="user"
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
+        defaultOptions={[]}
       />,
       {
         context: routerContext,
