@@ -349,6 +349,7 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 
 const WidgetTitle = styled(HeaderTitle)`
   ${overflowEllipsis};
+  font-weight: normal;
 `;
 
 const WidgetHeader = styled('div')`

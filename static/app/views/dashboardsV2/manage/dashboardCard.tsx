@@ -98,6 +98,7 @@ const Title = styled('div')`
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
   ${overflowEllipsis};
+  font-weight: normal;
 `;
 
 const Detail = styled('div')`
