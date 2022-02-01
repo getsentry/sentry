@@ -186,6 +186,28 @@ describe('AcceptOrganizationInvite', function () {
     window.location.replace = replace;
   });
 
+  it('shows right options for logged in user and optional SSO', async function () {
+    addMock({
+      orgSlug: 'test-org',
+      needsAuthentication: false,
+      needs2fa: false,
+      needsSso: true,
+      requireSso: false,
+      existingMember: false,
+    });
+
+    const wrapper = mountWithTheme(
+      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />,
+      TestStubs.routerContext()
+    );
+
+    const ssoLink = wrapper.find('[data-test-id="action-info-sso"]');
+    expect(ssoLink.exists()).toBe(true);
+
+    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
+    expect(joinButton.exists()).toBe(true);
+  });
+
   it('shows a logout button for existing members', async function () {
     addMock({
       orgSlug: 'test-org',

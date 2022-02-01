@@ -68,3 +68,19 @@ class SAML2ProviderTest(TestCase):
         assert identity["id"] == "123"
         assert identity["email"] == "valid@example.com"
         assert identity["name"] == "Morty Smith"
+
+    def test_build_identity_empty_lastname(self):
+        self.provider.config = dummy_provider_config
+        attrs = {
+            "id": ["123"],
+            "email": ["valid@example.com"],
+            "first": ["Morty"],
+            "last": [],
+        }
+
+        state = {"auth_attributes": attrs}
+        identity = self.provider.build_identity(state)
+
+        assert identity["id"] == "123"
+        assert identity["email"] == "valid@example.com"
+        assert identity["name"] == "Morty"

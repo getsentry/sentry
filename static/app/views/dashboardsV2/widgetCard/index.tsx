@@ -14,6 +14,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import Tooltip from 'sentry/components/tooltip';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
@@ -264,7 +265,9 @@ class WidgetCard extends React.Component<Props> {
       >
         <StyledPanel isDragging={false}>
           <WidgetHeader>
-            <WidgetTitle>{widget.title}</WidgetTitle>
+            <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
+              <WidgetTitle>{widget.title}</WidgetTitle>
+            </Tooltip>
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
@@ -346,6 +349,7 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 
 const WidgetTitle = styled(HeaderTitle)`
   ${overflowEllipsis};
+  font-weight: normal;
 `;
 
 const WidgetHeader = styled('div')`

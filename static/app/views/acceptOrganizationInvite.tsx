@@ -210,16 +210,43 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     const {inviteDetails, accepting} = this.state;
 
     return (
-      <Actions>
-        <Button
-          aria-label="join-organization"
-          priority="primary"
-          disabled={accepting}
-          onClick={this.handleAcceptInvite}
-        >
-          {t('Join the %s organization', inviteDetails.orgSlug)}
-        </Button>
-      </Actions>
+      <Fragment>
+        {inviteDetails.needsSso && !inviteDetails.requireSso && (
+          <p data-test-id="action-info-sso">
+            {tct(
+              `Note that [orgSlug] has enabled Single Sign-On (SSO) using
+               [authProvider]. You may join the organization by authenticating with
+               the organization's SSO provider or via your standard account authentication.`,
+              {
+                orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
+                authProvider: inviteDetails.ssoProvider,
+              }
+            )}
+          </p>
+        )}
+        <Actions>
+          <ActionsLeft>
+            {inviteDetails.needsSso && !inviteDetails.requireSso && (
+              <Button
+                aria-label="sso-login"
+                priority="primary"
+                href={this.makeNextUrl(`/auth/login/${inviteDetails.orgSlug}/`)}
+              >
+                {t('Join with %s', inviteDetails.ssoProvider)}
+              </Button>
+            )}
+
+            <Button
+              aria-label="join-organization"
+              priority="primary"
+              disabled={accepting}
+              onClick={this.handleAcceptInvite}
+            >
+              {t('Join the %s organization', inviteDetails.orgSlug)}
+            </Button>
+          </ActionsLeft>
+        </Actions>
+      </Fragment>
     );
   }
 
@@ -257,7 +284,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           ? this.warning2fa
           : inviteDetails.needsEmailVerification
           ? this.warningEmailVerification
-          : inviteDetails.needsSso
+          : inviteDetails.requireSso
           ? this.authenticationActions
           : this.acceptActions}
       </NarrowLayout>
