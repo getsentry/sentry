@@ -5,9 +5,9 @@ import * as Sentry from '@sentry/react';
 import * as selfModule from 'sentry/components/deviceName';
 import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
 
-export function iOSDeviceNameMapper(
+export function deviceNameMapper(
   model: string | undefined,
-  iOSDeviceList: IOSDeviceList | null
+  module: IOSDeviceList | null
 ): string | null {
   // If we have no model, render nothing
   if (typeof model !== 'string') {
@@ -15,17 +15,20 @@ export function iOSDeviceNameMapper(
   }
 
   // If module has not loaded yet, render the unparsed model
-  if (iOSDeviceList === null) {
+  if (module === null) {
     return model;
   }
 
   const [identifier, ...rest] = model.split(' ');
 
-  const modelName = iOSDeviceList.generationByIdentifier(identifier);
+  const modelName = module.generationByIdentifier(identifier);
   return modelName === undefined ? model : `${modelName} ${rest.join(' ')}`;
 }
 
-export async function loadiOSDeviceListModule() {
+export async function loadDeviceListModule(platform: 'iOS') {
+  if (platform !== 'iOS') {
+    Sentry.captureException('DeviceName component only supports iOS module');
+  }
   return import('ios-device-list');
 }
 
@@ -39,20 +42,20 @@ interface DeviceNameProps {
  * This asynchronously loads the ios-device-list library because of its size
  */
 function DeviceName({value, children}: DeviceNameProps): React.ReactElement | null {
-  const [iOSDeviceList, setIOSDeviceList] = React.useState<IOSDeviceList | null>(null);
+  const [deviceList, setDeviceList] = React.useState<IOSDeviceList | null>(null);
 
   React.useEffect(() => {
     let didUnmount = false;
 
     selfModule
-      .loadiOSDeviceListModule()
-      .then(deviceList => {
+      .loadDeviceListModule('iOS')
+      .then(module => {
         // We need to track component unmount so we dont try and setState on an unmounted component
         if (didUnmount) {
           return;
         }
 
-        setIOSDeviceList(deviceList);
+        setDeviceList(module);
       })
       .catch(() => {
         Sentry.captureException('Failed to load ios-device-list module');
@@ -64,8 +67,8 @@ function DeviceName({value, children}: DeviceNameProps): React.ReactElement | nu
   }, []);
 
   const deviceName = React.useMemo(
-    () => iOSDeviceNameMapper(value, iOSDeviceList),
-    [value, iOSDeviceList]
+    () => deviceNameMapper(value, deviceList),
+    [value, deviceList]
   );
 
   return deviceName ? (
