@@ -119,6 +119,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="context-menu"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
 
+            self.page.wait_until_loaded()
             self.browser.snapshot("dashboard widget - duplicate")
 
     def test_delete_widget_in_view_mode(self):
@@ -127,6 +128,9 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.browser.element('[data-test-id="context-menu"]').click()
             self.browser.element('[data-test-id="delete-widget"]').click()
+            self.browser.element('[data-test-id="confirm-button"]').click()
+
+            self.page.wait_until_loaded()
 
             self.browser.snapshot("dashboard widget - delete")
 
