@@ -328,7 +328,6 @@ INSTALLED_APPS = (
     "django.contrib.messages",
     "django.contrib.sessions",
     "django.contrib.sites",
-    "drf_spectacular",
     "crispy_forms",
     "rest_framework",
     "sentry",
@@ -889,30 +888,7 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
-
-
-if os.environ.get("OPENAPIGENERATE", False):
-    OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
-    from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_paths
-
-    SPECTACULAR_SETTINGS = {
-        "PREPROCESSING_HOOKS": ["sentry.apidocs.preprocessor.custom_preprocessing_hook"],
-        "DISABLE_ERRORS_AND_WARNINGS": False,
-        "COMPONENT_SPLIT_REQUEST": True,
-        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
-        "TAGS": OPENAPI_TAGS,
-        "TITLE": "API Reference",
-        "DESCRIPTION": "Sentry Public API",
-        "TOS": "http://sentry.io/terms/",
-        "CONTACT": {"email": "partners@sentry.io"},
-        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
-        "VERSION": "v0",
-        "SERVERS": [{"url": "https://sentry.io/"}],
-        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
-    }
-
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 

@@ -1,6 +1,5 @@
 /* global process */
 /* eslint import/no-nodejs-modules:0 */
-/* eslint import/no-unresolved:0 */
 
 const fs = require('fs');
 const path = require('path');
@@ -19,27 +18,26 @@ function dictToString(dict) {
 function bundle(originalFile) {
   const root = yaml.safeLoad(fs.readFileSync(originalFile, 'utf8'));
   const options = {
-    filter: ['relative', 'remote', 'local'],
+    filter: ['relative', 'remote'],
     resolveCirculars: true,
     location: originalFile,
     loaderOptions: {
-      processContent: function (res, callback) {
+      processContent: function(res, callback) {
         callback(undefined, yaml.safeLoad(res.text));
       },
     },
   };
   JsonRefs.clearCache();
   return JsonRefs.resolveRefs(root, options).then(
-    function (results) {
+    function(results) {
       const resErrors = {};
       for (const [k, v] of Object.entries(results.refs)) {
         if (
           'missing' in v &&
           v.missing === true &&
           (v.type === 'relative' || v.type === 'remote')
-        ) {
+        )
           resErrors[k] = v.error;
-        }
       }
       if (Object.keys(resErrors).length > 0) {
         return Promise.reject(new Error(dictToString(resErrors)));
@@ -47,9 +45,9 @@ function bundle(originalFile) {
 
       return results.resolved;
     },
-    function (e) {
+    function(e) {
       const error = {};
-      Object.getOwnPropertyNames(e).forEach(function (key) {
+      Object.getOwnPropertyNames(e).forEach(function(key) {
         error[key] = e[key];
       });
       return Promise.reject(new Error(dictToString(error)));
@@ -59,10 +57,10 @@ function bundle(originalFile) {
 
 function build(originalFile, _, bundleTo) {
   bundle(originalFile).then(
-    function (bundled) {
+    function(bundled) {
       const bundleString = JSON.stringify(bundled, null, 2);
       if (typeof bundleTo === 'string') {
-        fs.writeFile(bundleTo, bundleString, function (err) {
+        fs.writeFile(bundleTo, bundleString, function(err) {
           if (err) {
             // eslint-disable-next-line no-console
             console.log(err);
@@ -73,7 +71,7 @@ function build(originalFile, _, bundleTo) {
         });
       }
     },
-    function (err) {
+    function(err) {
       // eslint-disable-next-line no-console
       console.log(err);
     }
