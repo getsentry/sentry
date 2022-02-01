@@ -267,13 +267,13 @@ class DashboardDetail extends Component<Props, State> {
     const {organization, dashboard, location, params} = this.props;
     const {modifiedDashboard} = this.state;
 
-    let isDashboardDirty = !isEqual(modifiedDashboard, dashboard);
+    let hasDashboardChanged = !isEqual(modifiedDashboard, dashboard);
 
     // If a dashboard has every layout undefined, then ignore the layout field
     // when checking equality because it is a dashboard from before the grid feature
     const isLegacyLayout = dashboard.widgets.every(({layout}) => !defined(layout));
     if (isLegacyLayout) {
-      isDashboardDirty = !isEqual(
+      hasDashboardChanged = !isEqual(
         {
           ...modifiedDashboard,
           widgets: modifiedDashboard?.widgets.map(widget => omit(widget, 'layout')),
@@ -283,7 +283,7 @@ class DashboardDetail extends Component<Props, State> {
     }
 
     // Don't confirm preview cancellation regardless of dashboard state
-    if (isDashboardDirty && !this.isPreview) {
+    if (hasDashboardChanged && !this.isPreview) {
       // Ignore no-alert here, so that the confirm on cancel matches onUnload & onRouteLeave
       /* eslint no-alert:0 */
       if (!confirm(UNSAVED_MESSAGE)) {
