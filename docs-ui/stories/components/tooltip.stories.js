@@ -9,6 +9,12 @@ class CustomThing extends Component {
   }
 }
 
+class PassThroughComponent extends Component {
+  render() {
+    return this.props.children;
+  }
+}
+
 export default {
   title: 'Components/Tooltips/Tooltip',
   component: Tooltip,
@@ -58,6 +64,44 @@ export const _Tooltip = ({...args}) => {
           <button>Native button</button>
         </Tooltip>
       </p>
+
+      <h3>With overflowing text</h3>
+      <p>
+        <Tooltip {...args}>
+          <div
+            style={{
+              width: 'fit-content',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              resize: 'horizontal',
+            }}
+          >
+            Activate showOnlyOnOverflow and drag the right side to make this text
+            overflow. Tooltip will appear on hover when text overflows.
+          </div>
+        </Tooltip>
+      </p>
+
+      <h3>With custom component with text</h3>
+      <p>
+        <Tooltip {...args}>
+          <PassThroughComponent>
+            <div
+              style={{
+                width: 'fit-content',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                resize: 'horizontal',
+              }}
+            >
+              This text is in a custom react component. Activate showOnlyOnOverflow and
+              drag the right side to make this text overflow.
+            </div>
+          </PassThroughComponent>
+        </Tooltip>
+      </p>
     </Fragment>
   );
 };
@@ -68,6 +112,7 @@ _Tooltip.args = {
   displayMode: undefined,
   position: 'top',
   isHoverable: false,
+  showOnlyOnOverflow: false,
 };
 _Tooltip.argTypes = {
   displayMode: {
