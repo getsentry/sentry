@@ -93,6 +93,7 @@ const DropdownTitle = styled('div')`
   display: flex;
   overflow: hidden;
   align-items: center;
+  flex: 1;
 `;
 
 export default withRouter(EnvironmentPageFilter);
