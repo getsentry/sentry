@@ -77,8 +77,8 @@ export const _Tooltip = ({...args}) => {
               resize: 'horizontal',
             }}
           >
-            Activate showOnOverflow and drag the right side to make this text overflow.
-            Tooltip will appear on hover when text overflows.
+            Activate showOnlyOnOverflow and drag the right side to make this text
+            overflow. Tooltip will appear on hover when text overflows.
           </div>
         </Tooltip>
       </p>
@@ -96,8 +96,8 @@ export const _Tooltip = ({...args}) => {
                 resize: 'horizontal',
               }}
             >
-              This text is in a custom react component. Activate showOnOverflow and drag
-              the right side to make this text overflow.
+              This text is in a custom react component. Activate showOnlyOnOverflow and
+              drag the right side to make this text overflow.
             </div>
           </PassThroughComponent>
         </Tooltip>
@@ -112,7 +112,7 @@ _Tooltip.args = {
   displayMode: undefined,
   position: 'top',
   isHoverable: false,
-  showOnOverflow: false,
+  showOnlyOnOverflow: false,
 };
 _Tooltip.argTypes = {
   displayMode: {

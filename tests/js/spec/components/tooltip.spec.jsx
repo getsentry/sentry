@@ -74,11 +74,11 @@ describe('Tooltip', function () {
     userEvent.unhover(screen.getByText('My Button'));
   });
 
-  it('displays a tooltip if the content overflows with showOnOverflow', async function () {
+  it('displays a tooltip if the content overflows with showOnlyOnOverflow', async function () {
     // Mock this to return true because scrollWidth and clientWidth are 0 in JSDOM
     jest.spyOn(utils, 'isOverflown').mockReturnValue(true);
     mountWithTheme(
-      <Tooltip delay={0} title="test" showOnOverflow>
+      <Tooltip delay={0} title="test" showOnlyOnOverflow>
         <div>This text overflows</div>
       </Tooltip>,
       {context: TestStubs.routerContext()}
@@ -91,10 +91,10 @@ describe('Tooltip', function () {
     userEvent.unhover(screen.getByText('This text overflows'));
   });
 
-  it('does not display a tooltip if the content does not overflow with showOnOverflow', function () {
+  it('does not display a tooltip if the content does not overflow with showOnlyOnOverflow', function () {
     jest.spyOn(utils, 'isOverflown').mockReturnValue(false);
     mountWithTheme(
-      <Tooltip delay={0} title="test" showOnOverflow>
+      <Tooltip delay={0} title="test" showOnlyOnOverflow>
         <div>This text does not overflow</div>
       </Tooltip>,
       {context: TestStubs.routerContext()}

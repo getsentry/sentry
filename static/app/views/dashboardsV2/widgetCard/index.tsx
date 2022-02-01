@@ -265,7 +265,7 @@ class WidgetCard extends React.Component<Props> {
       >
         <StyledPanel isDragging={false}>
           <WidgetHeader>
-            <Tooltip title={widget.title} containerDisplayMode="grid" showOnOverflow>
+            <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
             {this.renderContextMenu()}

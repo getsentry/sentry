@@ -81,9 +81,9 @@ type Props = DefaultProps & {
   forceShow?: boolean;
 
   /**
-   * Only display the tooltip if the content overflows
+   * Only display the tooltip only if the content overflows
    */
-  showOnOverflow?: boolean;
+  showOnlyOnOverflow?: boolean;
 
   className?: string;
 };
@@ -175,9 +175,9 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleOpen = () => {
-    const {delay, showOnOverflow} = this.props;
+    const {delay, showOnlyOnOverflow} = this.props;
 
-    if (this.triggerEl && showOnOverflow && !isOverflown(this.triggerEl)) {
+    if (this.triggerEl && showOnlyOnOverflow && !isOverflown(this.triggerEl)) {
       return;
     }
 
