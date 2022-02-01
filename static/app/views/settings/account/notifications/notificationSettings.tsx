@@ -6,6 +6,7 @@ import Link from 'sentry/components/links/link';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
@@ -53,6 +54,13 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     ];
   }
 
+  componentDidMount() {
+    // only tied to a user
+    trackAdvancedAnalyticsEvent('notification_settings.index_page_viewed', {
+      organization: null,
+    });
+  }
+
   getStateToPutForDefault = (
     changedData: {[key: string]: string},
     notificationType: string
@@ -83,11 +91,20 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
+  get notificationSettingsType() {
+    const hasFeatureFlag =
+      this.props.organizations.filter(org =>
+        org.features?.includes('slack-overage-notifications')
+      ).length > 0;
+    // filter out quotas if the feature flag isn't set
+    return NOTIFICATION_SETTINGS_TYPES.filter(type => type !== 'quota' || hasFeatureFlag);
+  }
+
   getInitialData(): {[key: string]: string} {
     const {notificationSettings} = this.state;
 
     return Object.fromEntries(
-      NOTIFICATION_SETTINGS_TYPES.map(notificationType => [
+      this.notificationSettingsType.map(notificationType => [
         notificationType,
         decideDefault(notificationType, notificationSettings),
       ])
@@ -98,7 +115,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {notificationSettings} = this.state;
 
     const fields: FieldObject[] = [];
-    for (const notificationType of NOTIFICATION_SETTINGS_TYPES) {
+    for (const notificationType of this.notificationSettingsType) {
       const field = Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
         getData: data => this.getStateToPutForDefault(data, notificationType),
         help: (

@@ -7,23 +7,22 @@ export type ColumnType =
   | 'percentage'
   | 'string';
 
-enum FieldKey {
+export enum FieldKey {
   ASSIGNEE = 'assignee',
   TITLE = 'title',
   ISSUE = 'issue',
   LEVEL = 'level',
   STATUS = 'status',
   PLATFORM = 'platform',
-  PERMALINK = 'permalink',
   IS_BOOKMARKED = 'isBookmarked',
   IS_SUBSCRIBED = 'isSubscribed',
   IS_HANDLED = 'isHandled',
-  COUNT = 'count',
-  USER_COUNT = 'userCount',
   LAST_SEEN = 'lastSeen',
   FIRST_SEEN = 'firstSeen',
-  LIFETIME_COUNT = 'lifetimeCount',
-  LIFETIME_USER_COUNT = 'lifetimeUserCount',
+  EVENTS = 'events',
+  USERS = 'users',
+  LIFETIME_EVENTS = 'lifetimeEvents',
+  LIFETIME_USERS = 'lifetimeUsers',
 }
 
 export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
@@ -33,14 +32,18 @@ export const ISSUE_FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.LEVEL]: 'string',
   [FieldKey.STATUS]: 'string',
   [FieldKey.PLATFORM]: 'string',
-  [FieldKey.PERMALINK]: 'string',
   [FieldKey.IS_BOOKMARKED]: 'boolean',
   [FieldKey.IS_SUBSCRIBED]: 'boolean',
   [FieldKey.IS_HANDLED]: 'boolean',
-  [FieldKey.COUNT]: 'string',
-  [FieldKey.USER_COUNT]: 'string',
   [FieldKey.LAST_SEEN]: 'string',
   [FieldKey.FIRST_SEEN]: 'string',
-  [FieldKey.LIFETIME_COUNT]: 'string',
-  [FieldKey.LIFETIME_USER_COUNT]: 'string',
+  [FieldKey.EVENTS]: 'string',
+  [FieldKey.USERS]: 'string',
+  [FieldKey.LIFETIME_EVENTS]: 'string',
+  [FieldKey.LIFETIME_USERS]: 'string',
+};
+
+export const ISSUE_FIELD_TO_HEADER_MAP = {
+  [FieldKey.LIFETIME_EVENTS]: 'Lifetime Events',
+  [FieldKey.LIFETIME_USERS]: 'Lifetime Users',
 };

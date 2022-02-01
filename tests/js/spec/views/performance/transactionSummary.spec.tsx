@@ -407,6 +407,24 @@ describe('Performance > TransactionSummary', function () {
       match: [MockApiClient.matchQuery({groupBy: undefined})],
     });
 
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: null,
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: undefined,
+          field: [
+            'p50(sentry.transactions.transaction.duration)',
+            'p75(sentry.transactions.transaction.duration)',
+            'p95(sentry.transactions.transaction.duration)',
+            'p99(sentry.transactions.transaction.duration)',
+            'max(sentry.transactions.transaction.duration)',
+          ],
+        }),
+      ],
+    });
+
     const {organization, router, routerContext} = initializeData({
       project: TestStubs.Project({teams, platform: 'javascript'}),
       query: {
@@ -443,7 +461,7 @@ describe('Performance > TransactionSummary', function () {
           query: 'transaction:/organizations/:orgId/issues/',
           groupBy: ['measurement_rating'],
           orderBy: undefined,
-          limit: undefined,
+          per_page: undefined,
           interval: '1h',
           datasource: undefined,
           statsPeriod: '14d',
@@ -507,6 +525,24 @@ describe('Performance > TransactionSummary', function () {
       match: [MockApiClient.matchQuery({groupBy: undefined})],
     });
 
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: null,
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: undefined,
+          field: [
+            'p50(sentry.transactions.transaction.duration)',
+            'p75(sentry.transactions.transaction.duration)',
+            'p95(sentry.transactions.transaction.duration)',
+            'p99(sentry.transactions.transaction.duration)',
+            'max(sentry.transactions.transaction.duration)',
+          ],
+        }),
+      ],
+    });
+
     const {organization, router, routerContext} = initializeData();
 
     mountWithTheme(
@@ -536,7 +572,7 @@ describe('Performance > TransactionSummary', function () {
           field: ['count(sentry.transactions.transaction.duration)'],
           groupBy: ['transaction.status'],
           interval: '1h',
-          limit: undefined,
+          per_page: undefined,
           orderBy: undefined,
           project: [2],
           query: 'transaction:/performance',
@@ -561,7 +597,7 @@ describe('Performance > TransactionSummary', function () {
           field: ['count(sentry.transactions.transaction.duration)'],
           groupBy: undefined,
           interval: '1h',
-          limit: undefined,
+          per_page: undefined,
           orderBy: undefined,
           project: [2],
           query: 'transaction:/performance',

@@ -2,11 +2,9 @@ import * as React from 'react';
 
 import Button from 'sentry/components/button';
 import DiscoverFeature from 'sentry/components/discover/discoverFeature';
+import {t} from 'sentry/locale';
 
-type Props = React.PropsWithChildren<{
-  className?: string;
-}> &
-  React.ComponentProps<typeof Button>;
+type Props = Omit<React.ComponentProps<typeof Button>, 'aria-label'>;
 
 /**
  * Provide a button that turns itself off if the current organization
@@ -16,7 +14,11 @@ function DiscoverButton({children, ...buttonProps}: Props) {
   return (
     <DiscoverFeature>
       {({hasFeature}) => (
-        <Button disabled={!hasFeature} {...buttonProps}>
+        <Button
+          disabled={!hasFeature}
+          aria-label={t('Open in Discover')}
+          {...buttonProps}
+        >
           {children}
         </Button>
       )}

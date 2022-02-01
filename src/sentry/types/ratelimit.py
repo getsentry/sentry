@@ -31,6 +31,7 @@ class RateLimitMeta:
     Attributes:
         is_limited (bool): request is rate limited
         current (int): number of requests done in the current window
+        remaining (int): number of requests left in the current window
         limit (int): max number of requests per window
         window (int): window size in seconds
         reset_time (int): UTC Epoch time in seconds when the current window expires
@@ -38,6 +39,7 @@ class RateLimitMeta:
 
     is_limited: bool
     current: int
+    remaining: int
     limit: int
     window: int
     reset_time: int

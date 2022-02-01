@@ -3,6 +3,7 @@ import functools
 from datetime import datetime, timedelta
 from unittest import mock
 
+import freezegun
 import pytest
 import pytz
 from django.core import mail
@@ -32,12 +33,15 @@ from sentry.tasks.reports import (
     merge_series,
     month_to_index,
     prepare_reports,
+    prepare_reports_verify_key,
     safe_add,
     user_subscribed_to_organization_reports,
+    verify_prepare_reports,
 )
 from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils import redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome
 
@@ -242,6 +246,53 @@ class ReportTestCase(TestCase, SnubaTestCase):
 
             message = mail.outbox[0]
             assert self.organization.name in message.subject
+        client = redis.redis_clusters.get("default")
+        assert client.get(prepare_reports_verify_key()) == "1"
+
+    @mock.patch("sentry.tasks.reports.logger")
+    def test_verify(self, logger):
+        verify_prepare_reports()
+        logger.error.assert_called_once_with(
+            "Failed to verify that sentry.tasks.reports.prepare_reports successfully completed. "
+            "Confirm whether this worked via logs"
+        )
+        logger.reset_mock()
+        prepare_reports()
+        verify_prepare_reports()
+        assert logger.error.call_count == 0
+
+    @mock.patch("sentry.tasks.reports.logger")
+    def test_verify_with_error(self, logger):
+        logger.reset_mock()
+        with mock.patch("sentry.tasks.reports.prepare_organization_report") as prep_report:
+            prep_report.delay.side_effect = Exception
+            try:
+                prepare_reports()
+            except Exception:
+                pass
+        verify_prepare_reports()
+        logger.error.assert_called_once_with(
+            "Failed to verify that sentry.tasks.reports.prepare_reports successfully completed. "
+            "Confirm whether this worked via logs"
+        )
+
+    @mock.patch("sentry.tasks.reports.logger")
+    def test_verify_weeks_dont_clash(self, logger):
+        with freezegun.freeze_time(timedelta(days=-7)):
+            prepare_reports()
+            verify_prepare_reports()
+            assert logger.error.call_count == 0
+
+        logger.reset_mock()
+        verify_prepare_reports()
+        logger.error.assert_called_once_with(
+            "Failed to verify that sentry.tasks.reports.prepare_reports successfully completed. "
+            "Confirm whether this worked via logs"
+        )
+        logger.reset_mock()
+        prepare_reports()
+        verify_prepare_reports()
+        assert logger.error.call_count == 0
 
     def test_deliver_organization_user_report_respects_settings(self):
         user = self.user

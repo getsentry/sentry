@@ -1,6 +1,7 @@
 import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
+import {Result} from 'sentry/components/forms/selectAsyncControl';
 import {
   IconBitbucket,
   IconGeneric,
@@ -14,6 +15,8 @@ import HookStore from 'sentry/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
   DocIntegration,
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
   Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
@@ -148,6 +151,12 @@ export function isDocIntegration(
   return integration.hasOwnProperty('isDraft');
 }
 
+export function isExternalActorMapping(
+  mapping: ExternalActorMappingOrSuggestion
+): mapping is ExternalActorMapping {
+  return mapping.hasOwnProperty('id');
+}
+
 export const getIntegrationType = (
   integration: AppOrProviderOrPlugin
 ): IntegrationType => {
@@ -228,3 +237,25 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
         'Update to the latest version of our Slack app to get access to personal and team notifications.'
       );
 };
+
+/**
+ * Uses the mapping and baseEndpoint to derive the details for the mappings request.
+ * @param baseEndpoint Must have a trailing slash, since the id is appended for PUT requests!
+ * @param mapping The mapping or suggestion being sent to the endpoint
+ * @returns An object containing the request method (apiMethod), and final endpoint (apiEndpoint)
+ */
+export const getExternalActorEndpointDetails = (
+  baseEndpoint: string,
+  mapping?: ExternalActorMappingOrSuggestion
+): {apiMethod: 'POST' | 'PUT'; apiEndpoint: string} => {
+  const isValidMapping = mapping && isExternalActorMapping(mapping);
+  return {
+    apiMethod: isValidMapping ? 'PUT' : 'POST',
+    apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
+  };
+};
+
+export const sentryNameToOption = ({id, name}): Result => ({
+  value: id,
+  label: name,
+});

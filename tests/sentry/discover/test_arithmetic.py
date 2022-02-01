@@ -287,6 +287,7 @@ def test_unparseable_arithmetic(equation):
         "12",
         "p50(transaction.duration)",
         "measurements.lcp",
+        "(measurements.lcp)",
     ],
 )
 def test_invalid_arithmetic(equation):

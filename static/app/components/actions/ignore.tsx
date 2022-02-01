@@ -73,7 +73,7 @@ const IgnoreActions = ({
         <ActionButton
           priority="primary"
           onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
-          label={t('Unignore')}
+          aria-label={t('Unignore')}
           icon={<IconMute size="xs" />}
         />
       </Tooltip>
@@ -139,6 +139,7 @@ const IgnoreActions = ({
           <StyledActionButton
             disabled={disabled}
             icon={<IconChevron direction="down" size="xs" />}
+            aria-label={t('Ignore options')}
           />
         }
         alwaysRenderMenu

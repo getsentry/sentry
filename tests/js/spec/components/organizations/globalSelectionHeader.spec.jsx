@@ -57,7 +57,6 @@ describe('GlobalSelectionHeader', function () {
     jest.spyOn(globalActions, 'updateDateTime');
     jest.spyOn(globalActions, 'updateEnvironments');
     jest.spyOn(globalActions, 'updateProjects');
-    jest.spyOn(globalActions, 'updateParams');
   });
 
   beforeEach(function () {
@@ -78,7 +77,6 @@ describe('GlobalSelectionHeader', function () {
       globalActions.updateDateTime,
       globalActions.updateProjects,
       globalActions.updateEnvironments,
-      globalActions.updateParams,
       router.push,
       router.replace,
       getItem,
@@ -311,8 +309,8 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
-      organization,
       isReady: true,
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '14d',
@@ -339,8 +337,8 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
-      organization,
       isReady: true,
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '14d',
@@ -366,8 +364,8 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
-      organization,
       isReady: true,
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '14d',
@@ -412,8 +410,8 @@ describe('GlobalSelectionHeader', function () {
     expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
 
     expect(PageFiltersStore.getState()).toEqual({
-      organization,
       isReady: true,
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '7d',

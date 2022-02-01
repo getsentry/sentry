@@ -41,6 +41,10 @@ class DashboardDetailPage(BasePage):
         button = self.browser.element('[data-test-id="add-widget-library"]')
         button.click()
 
+    def click_cancel_button(self):
+        button = self.browser.element('[data-test-id="dashboard-cancel"]')
+        button.click()
+
     def add_widget_through_dashboard(self, widget_title):
         self.click_dashboard_add_widget_button()
         title_input = self.browser.element(WIDGET_TITLE_FIELD)

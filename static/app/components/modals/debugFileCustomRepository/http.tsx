@@ -197,7 +197,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               icon={<IconClose size="14px" />}
               size="xsmall"
               title={t('Clear password')}
-              label={t('Clear password')}
+              aria-label={t('Clear password')}
               borderless
             />
           )}

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -80,7 +80,7 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
               caret={false}
               customTitle={
                 <Button
-                  label={t('Actions')}
+                  aria-label={t('Actions')}
                   size="xsmall"
                   icon={<IconEllipsis size="xs" />}
                 />

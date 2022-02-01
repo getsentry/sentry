@@ -41,6 +41,15 @@ def _get_notification_setting_default(
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
 
+def _get_default_value_by_provider(
+    type: NotificationSettingTypes,
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    return {
+        provider: _get_notification_setting_default(provider, type)
+        for provider in NOTIFICATION_SETTING_DEFAULTS.keys()
+    }
+
+
 def _get_setting_mapping_from_mapping(
     notification_settings_by_recipient: Mapping[
         Team | User,
@@ -53,19 +62,17 @@ def _get_setting_mapping_from_mapping(
     XXX(CEO): may not respect granularity of a setting for Slack a setting for
      email but we'll worry about that later since we don't have a FE for it yet.
     """
-    from sentry.notifications.notify import notification_providers
-
-    # Fill in with the fallback values.
-    notification_setting_option = {
-        provider: _get_notification_setting_default(provider, type)
-        for provider in notification_providers()
-    }
-
-    notification_settings_mapping = notification_settings_by_recipient.get(recipient, {})
-    for scope in [NotificationScopeType.USER, NotificationScopeType.TEAM, get_scope_type(type)]:
-        notification_setting_option.update(notification_settings_mapping.get(scope, {}))
-
-    return notification_setting_option
+    return merge_notification_settings_up(
+        _get_default_value_by_provider(type),
+        *(
+            notification_settings_by_recipient.get(recipient, {}).get(scope, {})
+            for scope in (
+                NotificationScopeType.USER,
+                NotificationScopeType.TEAM,
+                get_scope_type(type),
+            )
+        ),
+    )
 
 
 def where_should_recipient_be_notified(
@@ -225,13 +232,23 @@ def validate(type: NotificationSettingTypes, value: NotificationSettingOptionVal
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
     """In which scope (proj or org) can a user set more specific settings?"""
-    if type in [NotificationSettingTypes.DEPLOY, NotificationSettingTypes.APPROVAL]:
+    if type in [
+        NotificationSettingTypes.DEPLOY,
+        NotificationSettingTypes.APPROVAL,
+        NotificationSettingTypes.QUOTA,
+        NotificationSettingTypes.QUOTA_ERRORS,
+        NotificationSettingTypes.QUOTA_TRANSACTIONS,
+        NotificationSettingTypes.QUOTA_ATTACHMENTS,
+        NotificationSettingTypes.QUOTA_WARNINGS,
+    ]:
         return NotificationScopeType.ORGANIZATION
 
     if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
         return NotificationScopeType.PROJECT
 
-    raise Exception(f"type {type}, must be alerts, deploy, workflow, or approval")
+    raise Exception(
+        f"type {type}, must be alerts, deploy, workflow, approval, quota, quotaErrors, quotaTransactions, quotaAttachments, quotaWarnings"
+    )
 
 
 def get_scope(
@@ -333,30 +350,49 @@ def get_user_subscriptions_for_groups(
     subscriptions_by_group_id: Mapping[int, GroupSubscription],
     user: User,
 ) -> Mapping[int, tuple[bool, bool, GroupSubscription | None]]:
-    """Takes collected data and returns a mapping of group IDs to a three-tuple of values."""
+    """
+    For each group, use the combination of GroupSubscription and
+    NotificationSetting rows to determine if the user is explicitly or
+    implicitly subscribed (or if they can subscribe at all.)
+    """
     results = {}
     for project, groups in groups_by_project.items():
-        value = get_most_specific_notification_setting_value(
+        notification_settings_by_provider = get_values_by_provider(
             notification_settings_by_scope,
             recipient=user,
             parent_id=project.id,
             type=NotificationSettingTypes.WORKFLOW,
         )
         for group in groups:
-            subscription = subscriptions_by_group_id.get(group.id)
-
-            is_disabled = False
-            if subscription:
-                is_active = subscription.is_active
-            elif value == NotificationSettingOptionValues.NEVER:
-                is_active = False
-                is_disabled = True
-            else:
-                is_active = value == NotificationSettingOptionValues.ALWAYS
-
-            results[group.id] = (is_disabled, is_active, subscription)
-
+            results[group.id] = _get_subscription_values(
+                group,
+                subscriptions_by_group_id,
+                notification_settings_by_provider,
+            )
     return results
+
+
+def _get_subscription_values(
+    group: Group,
+    subscriptions_by_group_id: Mapping[int, GroupSubscription],
+    notification_settings_by_provider: Mapping[ExternalProviders, NotificationSettingOptionValues],
+) -> tuple[bool, bool, GroupSubscription | None]:
+    is_disabled = False
+    subscription = subscriptions_by_group_id.get(group.id)
+    if subscription:
+        # Having a GroupSubscription overrides NotificationSettings.
+        is_active = subscription.is_active
+    else:
+        value = get_highest_notification_setting_value(notification_settings_by_provider)
+        if value == NotificationSettingOptionValues.NEVER:
+            # The user has disabled notifications in all cases.
+            is_disabled = True
+            is_active = False
+        else:
+            # Since there is no subscription, it is only active if the value is ALWAYS.
+            is_active = value == NotificationSettingOptionValues.ALWAYS
+
+    return is_disabled, is_active, subscription
 
 
 def get_settings_by_provider(
@@ -446,6 +482,39 @@ def get_highest_notification_setting_value(
     return max(notification_settings_by_provider.values(), key=lambda v: v.value)
 
 
+def get_value_for_parent(
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType,
+        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ],
+    parent_id: int,
+    type: NotificationSettingTypes,
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    """
+    Given notification settings by scope, an organization or project, and a
+    notification type, get the notification settings by provider.
+    """
+    return notification_settings_by_scope.get(get_scope_type(type), {}).get(parent_id, {})
+
+
+def get_value_for_actor(
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType,
+        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ],
+    recipient: Team | User,
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    """
+    Instead of checking the DB to see if `recipient` is a Team or User, just
+    `get()` both since only one of them can have a value.
+    """
+    return (
+        notification_settings_by_scope.get(NotificationScopeType.USER)
+        or notification_settings_by_scope.get(NotificationScopeType.TEAM)
+        or {}
+    ).get(recipient.id, {})
+
+
 def get_most_specific_notification_setting_value(
     notification_settings_by_scope: Mapping[
         NotificationScopeType,
@@ -461,14 +530,44 @@ def get_most_specific_notification_setting_value(
     """
     return (
         get_highest_notification_setting_value(
-            notification_settings_by_scope.get(get_scope_type(type), {}).get(parent_id, {})
+            get_value_for_parent(notification_settings_by_scope, parent_id, type)
         )
         or get_highest_notification_setting_value(
-            (
-                notification_settings_by_scope.get(NotificationScopeType.USER)
-                or notification_settings_by_scope.get(NotificationScopeType.TEAM)
-                or {}
-            ).get(recipient.id, {})
+            get_value_for_actor(notification_settings_by_scope, recipient)
         )
         or _get_notification_setting_default(ExternalProviders.EMAIL, type)
+    )
+
+
+def merge_notification_settings_up(
+    *settings_mappings: Mapping[ExternalProviders, NotificationSettingOptionValues],
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    """
+    Given a list of notification settings by provider ordered by increasing
+    specificity, get the most specific value by provider.
+    """
+    value_by_provider: MutableMapping[ExternalProviders, NotificationSettingOptionValues] = {}
+    for notification_settings_by_provider in settings_mappings:
+        value_by_provider.update(notification_settings_by_provider)
+    return value_by_provider
+
+
+def get_values_by_provider(
+    notification_settings_by_scope: Mapping[
+        NotificationScopeType,
+        Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ],
+    recipient: Team | User,
+    parent_id: int,
+    type: NotificationSettingTypes,
+) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
+    """
+    Given notification settings by scope, an organization or project, a
+    recipient, and a notification type, what is the non-never notification
+    setting by provider?
+    """
+    return merge_notification_settings_up(
+        _get_default_value_by_provider(type),
+        get_value_for_actor(notification_settings_by_scope, recipient),
+        get_value_for_parent(notification_settings_by_scope, parent_id, type),
     )

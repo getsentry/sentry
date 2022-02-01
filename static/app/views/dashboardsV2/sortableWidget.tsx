@@ -10,6 +10,8 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {Widget} from './types';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
+const TABLE_ITEM_LIMIT = 20;
+
 type Props = {
   widget: Widget;
   dragId: string;
@@ -19,8 +21,9 @@ type Props = {
   onDuplicate: () => void;
   widgetLimitReached: boolean;
   organization: Organization;
-  hideDragHandle?: boolean;
   isPreview?: boolean;
+  isMobile?: boolean;
+  windowWidth?: number;
 };
 
 function SortableWidget(props: Props) {
@@ -30,11 +33,12 @@ function SortableWidget(props: Props) {
     dragId,
     isEditing,
     widgetLimitReached,
-    hideDragHandle,
     onDelete,
     onEdit,
     onDuplicate,
     isPreview,
+    isMobile,
+    windowWidth,
   } = props;
 
   const {
@@ -78,10 +82,12 @@ function SortableWidget(props: Props) {
   if (organization.features.includes('dashboard-grid-layout')) {
     widgetProps = {
       ...widgetProps,
-      hideDragHandle,
+      isMobile,
+      windowWidth,
       // TODO(nar): These aren't necessary for supporting RGL
       isSorting: false,
       currentWidgetDragging: false,
+      tableItemLimit: TABLE_ITEM_LIMIT,
     };
     return (
       <GridWidgetWrapper>

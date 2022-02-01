@@ -153,6 +153,7 @@ class TestSendAlertEvent(TestCase):
                         )
                     ),
                     issue_url=absolute_uri(f"/api/0/issues/{group.id}/"),
+                    issue_id=str(group.id),
                 ),
                 "triggered_rule": self.rule.label,
             },
@@ -180,11 +181,14 @@ class TestSendAlertEvent(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event_with_additional_payload(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
-        settings = {
-            "alert_prefix": "[Not Good]",
-            "channel": "#ignored-errors",
-            "best_emoji": ":fire:",
-        }
+        settings = [
+            {"name": "alert_prefix", "value": "[Not Good]"},
+            {"name": "channel", "value": "#ignored-errors"},
+            {"name": "best_emoji", "value": ":fire:"},
+            {"name": "teamId", "value": 1},
+            {"name": "assigneeId", "value": 3},
+        ]
+
         rule_future = RuleFuture(
             rule=self.rule,
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
@@ -306,6 +310,7 @@ class TestProcessResourceChange(TestCase):
         assert data["action"] == "created"
         assert data["installation"]["uuid"] == install.uuid
         assert data["data"]["error"]["event_id"] == event.event_id
+        assert data["data"]["error"]["issue_id"] == str(event.group_id)
         assert faux(safe_urlopen).kwargs_contain("headers.Content-Type")
         assert faux(safe_urlopen).kwargs_contain("headers.Request-ID")
         assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Resource")

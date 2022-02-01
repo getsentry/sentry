@@ -108,7 +108,7 @@ class QueryBuilderTest(TestCase):
             limit=4,
         )
 
-        assert query.limitby == LimitBy(Column("message"), 1)
+        assert query.limitby == LimitBy([Column("message")], 1)
 
     def test_environment_filter(self):
         query = QueryBuilder(
@@ -453,7 +453,8 @@ class QueryBuilderTest(TestCase):
                 Function("count", [], "count"),
             ],
         )
-        assert query.array_join == Column("spans.op")
+
+        assert query.array_join == [Column("spans.op")]
         query.get_snql_query().validate()
 
     def test_sample_rate(self):

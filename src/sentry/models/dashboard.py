@@ -77,8 +77,9 @@ PREBUILT_DASHBOARDS = {
     item["id"]: item
     for item in [
         {
+            # This should match the general template in static/app/views/dashboardsV2/data.tsx
             "id": "default-overview",
-            "title": "Dashboard",
+            "title": "General",
             "dateCreated": "",
             "createdBy": "",
             "widgets": [
@@ -175,6 +176,72 @@ PREBUILT_DASHBOARDS = {
                             "fields": ["browser.name", "count()"],
                             "orderby": "-count",
                         }
+                    ],
+                },
+                {
+                    "title": "High Throughput Transactions",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()", "transaction"],
+                            "conditions": "!event.type:error",
+                            "orderby": "-count",
+                        },
+                    ],
+                },
+                {
+                    "title": "Overall User Misery",
+                    "displayType": "big_number",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["user_misery(300)"],
+                            "conditions": "",
+                            "orderby": "",
+                        },
+                    ],
+                },
+                {
+                    "title": "High Throughput Transactions",
+                    "displayType": "top_n",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["transaction", "count()"],
+                            "conditions": "!event.type:error",
+                            "orderby": "-count",
+                        },
+                    ],
+                },
+                {
+                    "title": "Issues Assigned to Me or My Teams",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["assignee", "issue", "title"],
+                            "conditions": "assigned_or_suggested:me is:unresolved",
+                            "orderby": "priority",
+                        },
+                    ],
+                    "widgetType": "issue",
+                },
+                {
+                    "title": "Transactions Ordered by Misery",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["transaction", "user_misery(300)"],
+                            "conditions": "",
+                            "orderby": "-user_misery_300",
+                        },
                     ],
                 },
             ],

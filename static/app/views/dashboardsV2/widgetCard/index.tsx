@@ -14,11 +14,13 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import Tooltip from 'sentry/components/tooltip';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -26,7 +28,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {Widget, WidgetType} from '../types';
-import {ISSUE_FIELDS} from '../widget/issueWidget/fields';
+import {ISSUE_FIELD_TO_HEADER_MAP, ISSUE_FIELDS} from '../widget/issueWidget/fields';
 
 import WidgetCardChart from './chart';
 import IssueWidgetQueries from './issueWidgetQueries';
@@ -57,8 +59,10 @@ type Props = WithRouterProps & {
   draggableProps?: DraggableProps;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   noLazyLoad?: boolean;
-  hideDragHandle?: boolean;
+  isMobile?: boolean;
   widgetLimitReached: boolean;
+  tableItemLimit?: number;
+  windowWidth?: number;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -68,7 +72,7 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderToolbar() {
-    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, hideDragHandle} =
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing, isMobile} =
       this.props;
 
     if (!isEditing) {
@@ -78,7 +82,7 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-          {!hideDragHandle && (
+          {!isMobile && (
             <IconClick>
               <StyledIconGrabbable
                 color="textColor"
@@ -110,7 +114,12 @@ class WidgetCard extends React.Component<Props> {
       onEdit,
       onDuplicate,
       onDelete,
+      isEditing,
     } = this.props;
+
+    if (isEditing) {
+      return null;
+    }
 
     return (
       <WidgetCardContextMenu
@@ -127,7 +136,7 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  tableResultComponent({
+  issueTableResultComponent({
     loading,
     errorMessage,
     transformedResults,
@@ -154,18 +163,22 @@ class WidgetCard extends React.Component<Props> {
         metadata={ISSUE_FIELDS}
         data={transformedResults}
         organization={organization}
+        getCustomFieldRenderer={getIssueFieldRenderer}
+        fieldHeaderMap={ISSUE_FIELD_TO_HEADER_MAP}
       />
     );
   }
 
   renderIssueChart() {
-    const {widget, api, organization, selection, renderErrorMessage} = this.props;
+    const {widget, api, organization, selection, renderErrorMessage, tableItemLimit} =
+      this.props;
     return (
       <IssueWidgetQueries
         api={api}
         organization={organization}
         widget={widget}
         selection={selection}
+        limit={tableItemLimit}
       >
         {({transformedResults, errorMessage, loading}) => {
           return (
@@ -174,7 +187,11 @@ class WidgetCard extends React.Component<Props> {
                 ? renderErrorMessage(errorMessage)
                 : null}
               <LoadingScreen loading={loading} />
-              {this.tableResultComponent({transformedResults, loading, errorMessage})}
+              {this.issueTableResultComponent({
+                transformedResults,
+                loading,
+                errorMessage,
+              })}
               {this.renderToolbar()}
             </React.Fragment>
           );
@@ -184,14 +201,25 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderDiscoverChart() {
-    const {widget, api, organization, selection, renderErrorMessage, location, router} =
-      this.props;
+    const {
+      widget,
+      api,
+      organization,
+      selection,
+      renderErrorMessage,
+      location,
+      router,
+      tableItemLimit,
+      isMobile,
+      windowWidth,
+    } = this.props;
     return (
       <WidgetQueries
         api={api}
         organization={organization}
         widget={widget}
         selection={selection}
+        limit={tableItemLimit}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (
@@ -209,6 +237,8 @@ class WidgetCard extends React.Component<Props> {
                 selection={selection}
                 router={router}
                 organization={organization}
+                isMobile={isMobile}
+                windowWidth={windowWidth}
               />
               {this.renderToolbar()}
             </React.Fragment>
@@ -235,7 +265,9 @@ class WidgetCard extends React.Component<Props> {
       >
         <StyledPanel isDragging={false}>
           <WidgetHeader>
-            <WidgetTitle>{widget.title}</WidgetTitle>
+            <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
+              <WidgetTitle>{widget.title}</WidgetTitle>
+            </Tooltip>
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
