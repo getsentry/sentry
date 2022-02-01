@@ -172,6 +172,8 @@ class Dashboard extends Component<Props, State> {
     }
   }
 
+  updateDashboardAfterLayoutUpdate: boolean = false;
+
   debouncedHandleResize = debounce(() => {
     this.setState({
       windowWidth: window.innerWidth,
@@ -263,24 +265,24 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {isEditing, handleUpdateWidgetList} = this.props;
+    const {isEditing} = this.props;
     const nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
     nextList[updateIndex] = {...nextWidget, tempId: prevWidget.tempId};
     this.props.onUpdate(nextList);
     if (!!!isEditing) {
-      handleUpdateWidgetList(nextList);
+      this.updateDashboardAfterLayoutUpdate = true;
     }
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
+    const {dashboard, onUpdate, isEditing} = this.props;
 
     const nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     onUpdate(nextList);
 
     if (!!!isEditing) {
-      handleUpdateWidgetList(nextList);
+      this.updateDashboardAfterLayoutUpdate = true;
     }
     // Force check lazyLoad elements that might have shifted into view after deleting an upper widget
     // Unfortunately need to use setTimeout since React Grid Layout animates widgets into view when layout changes
@@ -289,7 +291,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, isEditing, handleUpdateWidgetList} = this.props;
+    const {dashboard, isEditing} = this.props;
 
     const widgetCopy = cloneDeep(widget);
     widgetCopy.id = undefined;
@@ -299,7 +301,7 @@ class Dashboard extends Component<Props, State> {
     nextList.splice(index, 0, widgetCopy);
 
     if (!!!isEditing) {
-      handleUpdateWidgetList(nextList);
+      this.updateDashboardAfterLayoutUpdate = true;
     }
   };
 
@@ -402,7 +404,7 @@ class Dashboard extends Component<Props, State> {
 
   handleLayoutChange = (_, allLayouts: Layouts) => {
     const {isMobile} = this.state;
-    const {dashboard, onUpdate} = this.props;
+    const {dashboard, onUpdate, handleUpdateWidgetList} = this.props;
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
@@ -456,6 +458,10 @@ class Dashboard extends Component<Props, State> {
       layouts: newLayouts,
     });
     onUpdate(newWidgets);
+    if (this.updateDashboardAfterLayoutUpdate) {
+      handleUpdateWidgetList(newWidgets);
+      this.updateDashboardAfterLayoutUpdate = false;
+    }
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {
