@@ -7,7 +7,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {TeamWithProjects} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
@@ -73,7 +72,6 @@ function TeamStatsHealth({location, router}: Props) {
         {!initiallyLoaded && <LoadingIndicator />}
         {initiallyLoaded && (
           <Layout.Main fullWidth>
-            <SectionTitle>{t('Project Health')}</SectionTitle>
             <DescriptionCard
               title={t('Crash Free Sessions')}
               description={t(
@@ -151,10 +149,4 @@ const Body = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: block;
   }
-`;
-
-const SectionTitle = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
 `;
