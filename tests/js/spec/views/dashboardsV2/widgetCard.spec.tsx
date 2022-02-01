@@ -362,6 +362,8 @@ describe('Dashboards > WidgetCard', function () {
 
     userEvent.click(screen.getByTestId('context-menu'));
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Delete Widget'));
+    expect(mock).toHaveBeenCalledTimes(1);
   });
 
   it('calls eventsV2 with a limit of 20 items', async function () {

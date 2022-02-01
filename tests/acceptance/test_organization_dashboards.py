@@ -42,7 +42,23 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
             project_id=self.project.id,
         )
-        self.page = DashboardDetailPage(self.browser, self.client, organization=self.organization)
+        self.dashboard = Dashboard.objects.create(
+            title="Dashboard 1", created_by=self.user, organization=self.organization
+        )
+        self.existing_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="Existing Widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=self.existing_widget, fields=["count()"], order=0
+        )
+        self.page = DashboardDetailPage(
+            self.browser, self.client, organization=self.organization, dashboard=self.dashboard
+        )
         self.login_as(self.user)
 
     def test_view_dashboard(self):
@@ -95,6 +111,24 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="widget-library-card-2"]').click()
 
             self.browser.snapshot("dashboards - widget library")
+
+    def test_duplicate_widget_in_view_mode(self):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+
+            self.browser.snapshot("dashboard widget - duplicate")
+
+    def test_delete_widget_in_view_mode(self):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
+            self.page.visit_dashboard_detail()
+
+            self.browser.element('[data-test-id="context-menu"]').click()
+            self.browser.element('[data-test-id="duplicate-widget"]').click()
+
+            self.browser.snapshot("dashboard widget - duplicate")
 
 
 class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
