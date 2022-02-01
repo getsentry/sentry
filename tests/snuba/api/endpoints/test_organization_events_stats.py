@@ -2087,7 +2087,9 @@ class OrganizationEventsStatsTopNEventsWithSnql(OrganizationEventsStatsTopNEvent
 
     # Separate test for now to keep the patching simpler
     @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": [], "meta": []}])
-    @mock.patch("sentry.snuba.discover.raw_snql_query", return_value={"data": [], "meta": []})
+    @mock.patch(
+        "sentry.search.events.builder.raw_snql_query", return_value={"data": [], "meta": []}
+    )
     def test_invalid_interval(self, mock_raw_query, mock_bulk_query):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2166,7 +2168,7 @@ class OrganizationEventsStatsTopNEventsWithSnql(OrganizationEventsStatsTopNEvent
         assert mock_raw_query.mock_calls[5].args[0].granularity.granularity == 300
 
     @mock.patch(
-        "sentry.snuba.discover.raw_snql_query",
+        "sentry.search.events.builder.raw_snql_query",
         side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
     )
     def test_top_events_with_issue_check_query_conditions(self, mock_query):
