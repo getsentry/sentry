@@ -1,4 +1,4 @@
-import {forwardRef, Fragment, useEffect, useRef, useState} from 'react';
+import {forwardRef, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
@@ -44,9 +44,9 @@ export type MenuItemProps = {
    */
   leadingItems?: React.ReactNode;
   /*
-   * Whether leading items should be centered wrt/ the entire height of the
-   * menu item. If false (default), they will be centered wrt/ the first line of the
-   * label element.
+   * Whether leading items should be centered with respect to the entire
+   * height of the menu item. If false (default), they will be centered with
+   * respect to the first line of the label element.
    */
   leadingItemsSpanFullHeight?: boolean;
   /*
@@ -133,9 +133,9 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
     const actionHandler = () => {
       if (isSubmenuTrigger) {
         state.selectionManager.select(node.key);
-      } else {
-        item.onAction?.(item.key);
+        return;
       }
+      item.onAction?.(item.key);
     };
 
     // Open submenu on hover
@@ -193,56 +193,54 @@ const MenuItem = forwardRef<React.RefObject<HTMLLIElement>, Props>(
     const showDividers = item.showDividers && !isLastNode;
 
     return (
-      <Fragment>
-        <Wrap
-          ref={ref}
-          as={renderAs}
-          isDisabled={isDisabled}
-          {...props}
-          {...(isSubmenuTrigger && {role: 'menuitemradio'})}
-        >
-          <InnerWrap isFocused={isFocused} role="presentation">
-            {leadingItems && (
-              <LeadingItems
-                isDisabled={isDisabled}
-                spanFullHeight={leadingItemsSpanFullHeight}
-              >
-                {leadingItems}
-              </LeadingItems>
-            )}
-            <ContentWrap
-              isFocused={isFocused}
-              showDividers={showDividers}
-              role="presentation"
+      <MenuItemWrap
+        ref={ref}
+        as={renderAs}
+        isDisabled={isDisabled}
+        {...props}
+        {...(isSubmenuTrigger && {role: 'menuitemradio'})}
+      >
+        <InnerWrap isFocused={isFocused} role="presentation">
+          {leadingItems && (
+            <LeadingItems
+              isDisabled={isDisabled}
+              spanFullHeight={leadingItemsSpanFullHeight}
             >
-              <LabelWrap role="presentation">
-                <Label isDisabled={isDisabled} {...labelProps} aria-hidden="true">
-                  {label}
-                </Label>
-                {details && <Details {...descriptionProps}>{details}</Details>}
-              </LabelWrap>
-              {(trailingItems || isSubmenuTrigger) && (
-                <TrailingItems
-                  isDisabled={isDisabled}
-                  spanFullHeight={trailingItemsSpanFullHeight}
-                >
-                  {trailingItems}
-                  {isSubmenuTrigger && (
-                    <IconChevron size="xs" direction="right" aria-hidden="true" />
-                  )}
-                </TrailingItems>
-              )}
-            </ContentWrap>
-          </InnerWrap>
-        </Wrap>
-      </Fragment>
+              {leadingItems}
+            </LeadingItems>
+          )}
+          <ContentWrap
+            isFocused={isFocused}
+            showDividers={showDividers}
+            role="presentation"
+          >
+            <LabelWrap role="presentation">
+              <Label isDisabled={isDisabled} {...labelProps} aria-hidden="true">
+                {label}
+              </Label>
+              {details && <Details {...descriptionProps}>{details}</Details>}
+            </LabelWrap>
+            {(trailingItems || isSubmenuTrigger) && (
+              <TrailingItems
+                isDisabled={isDisabled}
+                spanFullHeight={trailingItemsSpanFullHeight}
+              >
+                {trailingItems}
+                {isSubmenuTrigger && (
+                  <IconChevron size="xs" direction="right" aria-hidden="true" />
+                )}
+              </TrailingItems>
+            )}
+          </ContentWrap>
+        </InnerWrap>
+      </MenuItemWrap>
     );
   }
 );
 
 export default MenuItem;
 
-const Wrap = styled('li')<{isDisabled?: boolean}>`
+const MenuItemWrap = styled('li')<{isDisabled?: boolean}>`
   position: static;
   list-style-type: none;
   margin: 0;
