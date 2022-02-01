@@ -1,6 +1,9 @@
-import {fireEvent, screen, waitFor} from '@testing-library/react';
-
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {
+  mountWithTheme,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {IssueList} from 'sentry/components/issueList';
 
@@ -30,6 +33,7 @@ describe('IssueList', () => {
     );
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
+
   it('renders error state', () => {
     const api = new MockApiClient();
     MockApiClient.addMockResponse({
@@ -51,6 +55,7 @@ describe('IssueList', () => {
 
     expect(screen.getByTestId('loading-error-message')).toBeInTheDocument();
   });
+
   it('refetches data on click from error state', async () => {
     const api = new MockApiClient();
     MockApiClient.addMockResponse({
@@ -76,7 +81,7 @@ describe('IssueList', () => {
       expect(screen.getByTestId('loading-error-message')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Retry'));
+    userEvent.click(screen.getByText('Retry'));
 
     expect(spy).toHaveBeenCalledTimes(2);
   });
@@ -116,6 +121,7 @@ describe('IssueList', () => {
       limit: '5',
     });
   });
+
   it('renders custom empty state', () => {
     const api = new MockApiClient();
     const CustomEmptyState = jest.fn().mockImplementation(() => <div>Empty State</div>);
@@ -142,6 +148,7 @@ describe('IssueList', () => {
     expect(screen.getByText('Empty State')).toBeInTheDocument();
     expect(CustomEmptyState).toHaveBeenCalled();
   });
+
   it('renders empty state', () => {
     const api = new MockApiClient();
     MockApiClient.addMockResponse({
