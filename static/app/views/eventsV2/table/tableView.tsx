@@ -373,8 +373,9 @@ class TableView extends React.Component<TableViewProps> {
 
       switch (action) {
         case Actions.TRANSACTION: {
-          const maybeProject = projects.find(project => project.slug === dataRow.project);
-
+          const maybeProject = projects.find(
+            project => project.slug === dataRow['project.name']
+          );
           const projectID = maybeProject ? [maybeProject.id] : undefined;
 
           const next = transactionSummaryRouteWithQuery({
