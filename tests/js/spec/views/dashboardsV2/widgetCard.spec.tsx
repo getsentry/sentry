@@ -3,8 +3,11 @@ import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary
 
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+
+jest.mock('sentry/components/charts/simpleTableChart');
 
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
@@ -467,10 +470,9 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
     await tick();
-    expect(screen.getByText('transaction').parentElement).toHaveStyle({
-      position: 'sticky',
-      top: 0,
-      'z-index': 1,
-    });
+    expect(SimpleTableChart).toHaveBeenCalledWith(
+      expect.objectContaining({stickyHeaders: true}),
+      expect.anything()
+    );
   });
 });
