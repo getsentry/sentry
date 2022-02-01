@@ -124,7 +124,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         self.browser.snapshot(screenshot_name)
         self.browser.refresh()
         self.page.wait_until_loaded()
-
         self.browser.snapshot(f"{screenshot_name} (refresh)")
 
     def test_add_and_move_new_widget_on_existing_dashboard(self):
@@ -466,6 +465,64 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.click_cancel_button()
             wait = WebDriverWait(self.browser.driver, 5)
             wait.until_not(EC.alert_is_present())
+
+    def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_edit(
+        self,
+    ):
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_dashboard_detail()
+            self.page.enter_edit_state()
+
+            # Widgets should take up the whole first row and the first spot in second row
+            self.page.add_widget_through_dashboard("A")
+            self.page.add_widget_through_dashboard("B")
+            self.page.add_widget_through_dashboard("C")
+            self.page.add_widget_through_dashboard("D")
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot(
+                "dashboards - pre save position when adding multiple widgets through Add Widget tile in edit"
+            )
+
+            self.page.save_dashboard()
+            self.capture_screenshots(
+                "dashboards - position when adding multiple widgets through Add Widget tile in edit"
+            )
+
+    def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_create(
+        self,
+    ):
+        with self.feature(
+            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
+        ):
+            self.page.visit_create_dashboard()
+
+            # Widgets should take up the whole first row and the first spot in second row
+            self.page.add_widget_through_dashboard("A")
+            self.page.add_widget_through_dashboard("B")
+            self.page.add_widget_through_dashboard("C")
+            self.page.add_widget_through_dashboard("D")
+            self.page.wait_until_loaded()
+
+            self.browser.snapshot(
+                "dashboards - pre save position when adding multiple widgets through Add Widget tile in create"
+            )
+
+            self.page.save_dashboard()
+
+            # Wait for page redirect, or else loading check passes too early
+            wait = WebDriverWait(self.browser.driver, 10)
+            wait.until(
+                lambda driver: (
+                    f"/organizations/{self.organization.slug}/dashboards/new/"
+                    not in driver.current_url
+                )
+            )
+            self.capture_screenshots(
+                "dashboards - position when adding multiple widgets through Add Widget tile in create"
+            )
 
 
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
