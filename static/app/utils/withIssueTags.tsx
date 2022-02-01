@@ -7,15 +7,9 @@ import TeamStore from 'sentry/stores/teamStore';
 import {TagCollection, Team, User} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
-type InjectedTagsProps = {
+export interface WithIssueTagsProps {
   tags: TagCollection;
-};
-
-type State = {
-  tags: TagCollection;
-  users: User[];
-  teams: Team[];
-};
+}
 
 const uuidPattern = /[0-9a-f]{32}$/;
 const getUsername = ({isManaged, username, email}: User) => {
@@ -27,97 +21,110 @@ const getUsername = ({isManaged, username, email}: User) => {
   return !isManaged && username ? username : email;
 };
 
+type WrappedComponentState = {
+  tags: TagCollection;
+  users: User[];
+  teams: Team[];
+};
 /**
  * HOC for getting tags and many useful issue attributes as 'tags' for use
  * in autocomplete selectors or condition builders.
  */
-function withIssueTags<P extends InjectedTagsProps>(
-  WrappedComponent: React.ComponentType<P>
+function withIssueTags<Props extends WithIssueTagsProps>(
+  WrappedComponent: React.ComponentType<Props>
 ) {
-  class WithIssueTags extends React.Component<
-    Omit<P, keyof InjectedTagsProps> & Partial<InjectedTagsProps>,
-    State
-  > {
-    static displayName = `withIssueTags(${getDisplayName(WrappedComponent)})`;
-
-    constructor(props, context) {
-      super(props, context);
-
-      const tags = assign(
+  function ComponentWithTags(props: Omit<Props, keyof WithIssueTagsProps>) {
+    const [state, setState] = React.useState<WrappedComponentState>({
+      tags: assign(
         {},
         TagStore.getAllTags(),
         TagStore.getIssueAttributes(),
         TagStore.getBuiltInTags()
-      );
-      const users = MemberListStore.getAll();
-      const teams = TeamStore.getAll();
+      ),
+      users: MemberListStore.getAll(),
+      teams: TeamStore.getAll(),
+    });
 
-      this.state = {tags, users, teams};
-    }
+    const setAssigned = React.useCallback(
+      (newState: Partial<WrappedComponentState>) => {
+        setState(oldState => {
+          const usernames: string[] = newState.users
+            ? newState.users.map(getUsername)
+            : oldState.users.map(getUsername);
 
-    componentWillUnmount() {
-      this.unsubscribeMembers();
-      this.unsubscribeTeams();
-      this.unsubscribeTags();
-    }
+          const teamnames: string[] = (newState.teams ? newState.teams : oldState.teams)
+            .filter(team => team.isMember)
+            .map(team => `#${team.slug}`);
 
-    unsubscribeMembers = MemberListStore.listen((users: User[]) => {
-      this.setState({users});
-      this.setAssigned();
-    }, undefined);
+          const allAssigned = ['[me, none]', ...usernames, ...teamnames];
+          allAssigned.unshift('me');
+          usernames.unshift('me');
 
-    unsubscribeTeams = TeamStore.listen(() => {
-      this.setState({teams: TeamStore.getAll()});
-      this.setAssigned();
-    }, undefined);
+          return {
+            ...oldState,
+            ...newState,
+            tags: {
+              ...oldState.tags,
+              ...newState.tags,
+              assigned: {
+                ...(newState.tags?.assigned ?? oldState.tags?.assigned ?? {}),
+                values: allAssigned,
+              },
+              bookmarks: {
+                ...(newState.tags?.bookmarks ?? oldState.tags?.bookmarks ?? {}),
+                values: usernames,
+              },
+              assigned_or_suggested: {
+                ...(newState.tags?.assigned_or_suggested ??
+                  oldState.tags.assigned_or_suggested ??
+                  {}),
+                values: allAssigned,
+              },
+            },
+          };
+        });
+      },
+      [state]
+    );
 
-    unsubscribeTags = TagStore.listen((storeTags: TagCollection) => {
-      const tags = assign(
-        {},
-        storeTags,
-        TagStore.getIssueAttributes(),
-        TagStore.getBuiltInTags()
-      );
-      this.setState({tags});
-      this.setAssigned();
-    }, undefined);
+    // Listen to team store updates and cleanup listener on unmount
+    React.useEffect(() => {
+      const unsubscribeTeam = TeamStore.listen(() => {
+        setAssigned({teams: TeamStore.getAll()});
+      }, undefined);
 
-    setAssigned() {
-      const {tags, users, teams} = this.state;
-      const usernames: string[] = users.map(getUsername);
-      const teamnames: string[] = teams
-        .filter(team => team.isMember)
-        .map(team => `#${team.slug}`);
-      const allAssigned = ['[me, none]', ...usernames.concat(teamnames)];
-      allAssigned.unshift('me');
-      usernames.unshift('me');
+      return () => unsubscribeTeam();
+    }, []);
 
-      this.setState({
-        tags: {
-          ...tags,
-          assigned: {
-            ...tags.assigned,
-            values: allAssigned,
-          },
-          bookmarks: {
-            ...tags.bookmarks,
-            values: usernames,
-          },
-          assigned_or_suggested: {
-            ...tags.assigned_or_suggested,
-            values: allAssigned,
-          },
-        },
-      });
-    }
+    // Listen to tag store updates and cleanup listener on unmount
+    React.useEffect(() => {
+      const unsubscribeTags = TagStore.listen((storeTags: TagCollection) => {
+        const tags = assign(
+          {},
+          storeTags,
+          TagStore.getIssueAttributes(),
+          TagStore.getBuiltInTags()
+        );
 
-    render() {
-      const {tags, ...props} = this.props as P;
-      return <WrappedComponent {...({tags: tags ?? this.state.tags, ...props} as P)} />;
-    }
+        setAssigned({tags});
+      }, undefined);
+
+      return () => unsubscribeTags();
+    }, []);
+
+    // Listen to member store updates and cleanup listener on unmount
+    React.useEffect(() => {
+      const unsubscribeMembers = MemberListStore.listen((users: User[]) => {
+        setAssigned({users});
+      }, undefined);
+
+      return () => unsubscribeMembers();
+    }, []);
+
+    return <WrappedComponent {...(props as Props)} tags={state.tags} />;
   }
-
-  return WithIssueTags;
+  ComponentWithTags.displayName = `withIssueTags(${getDisplayName(WrappedComponent)})`;
+  return ComponentWithTags;
 }
 
 export default withIssueTags;

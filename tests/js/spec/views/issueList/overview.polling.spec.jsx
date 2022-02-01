@@ -75,6 +75,11 @@ describe('IssueList -> Polling', function () {
   };
 
   beforeEach(function () {
+    // The tests fail because we have a "component update was not wrapped in act" error.
+    // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
