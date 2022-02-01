@@ -37,6 +37,7 @@ const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
       <h3>{renderValue('name')}</h3>
       <TextOverflow isParagraph>
         <Subject>{t('Version:')}</Subject>
+        LOL
         {!data.version ? t('Unknown') : renderValue('version')}
       </TextOverflow>
     </Item>
