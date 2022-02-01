@@ -410,8 +410,7 @@ class Dashboard extends Component<Props, State> {
     };
 
     // Generate a new list of widgets where the layouts are associated
-    const initialDepths = calculateColumnDepths(newLayouts[DESKTOP]);
-    let columnDepths = [...initialDepths];
+    let columnDepths = calculateColumnDepths(newLayouts[DESKTOP]);
     const newWidgets = dashboard.widgets.map(widget => {
       const gridKey = constructGridItemKey(widget);
       let matchingLayout = newLayouts[DESKTOP].find(({i}) => i === gridKey);
@@ -456,7 +455,7 @@ class Dashboard extends Component<Props, State> {
     this.setState({
       layouts: newLayouts,
     });
-    onUpdate(newWidgets, initialDepths);
+    onUpdate(newWidgets);
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {

@@ -86,6 +86,20 @@ class DashboardDetail extends Component<Props, State> {
     ),
   };
 
+  static getDerivedStateFromProps(props, state) {
+    const columnDepthsFromProps = calculateColumnDepths(
+      getDashboardLayout(props.dashboard.widgets)
+    );
+
+    if (!isEqual(state.layoutColumnDepths, columnDepthsFromProps)) {
+      // The column depths needs to be up to date with props
+      // so adding through the header positions properly
+      return {...state, layoutColumnDepths: columnDepthsFromProps};
+    }
+
+    return null;
+  }
+
   componentDidMount() {
     const {route, router} = this.props;
     this.checkStateRoute();
@@ -482,7 +496,7 @@ class DashboardDetail extends Component<Props, State> {
     this.setState({widgetToBeUpdated: widget});
   };
 
-  onUpdateWidget = (widgets: Widget[], columnDepths?: number[]) => {
+  onUpdateWidget = (widgets: Widget[]) => {
     this.setState(
       (state: State) => ({
         ...state,
@@ -492,7 +506,6 @@ class DashboardDetail extends Component<Props, State> {
           ...(state.modifiedDashboard || this.props.dashboard),
           widgets,
         },
-        layoutColumnDepths: columnDepths ?? state.layoutColumnDepths,
       }),
       this.updateRouteAfterSavingWidget
     );
