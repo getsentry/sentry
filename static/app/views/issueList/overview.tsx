@@ -48,7 +48,6 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -1038,13 +1037,6 @@ class IssueListOverview extends React.Component<Props, State> {
         />
       ),
     });
-
-    // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
-    if (organization.features.includes('semver') && !tags['release.version']) {
-      Object.entries(SEMVER_TAGS).forEach(([key, value]) => {
-        tags[key] = value;
-      });
-    }
 
     const projectIds = selection?.projects?.map(p => p.toString());
 
