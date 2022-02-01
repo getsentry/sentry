@@ -161,7 +161,8 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             wait = WebDriverWait(self.browser.driver, 10)
             wait.until(
                 lambda driver: (
-                    f"/organizations/{self.organization.slug}/dashboard/2/" in driver.current_url
+                    f"/organizations/{self.organization.slug}/dashboards/new/"
+                    not in driver.current_url
                 )
             )
 
