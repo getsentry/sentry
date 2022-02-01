@@ -28,10 +28,14 @@ class TestAlertRuleActionRequester(TestCase):
         self.install = self.create_sentry_app_installation(
             slug="foo", organization=self.org, user=self.user
         )
+        self.fields = [
+            {"name": "title", "value": "An Alert"},
+            {"name": "description", "value": "threshold reached"},
+            {"name": "assignee_id", "value": "user-1"},
+        ]
 
     @responses.activate
     def test_makes_successful_request(self):
-        fields = {"title": "An Alert", "description": "threshold reached", "assignee": "user-1"}
 
         responses.add(
             method=responses.POST,
@@ -43,18 +47,21 @@ class TestAlertRuleActionRequester(TestCase):
         result = AlertRuleActionRequester.run(
             install=self.install,
             uri="/sentry/alert-rule",
-            fields=fields,
+            fields=self.fields,
         )
         assert result["success"]
         assert result["message"] == 'foo: "Saved information"'
         request = responses.calls[0].request
 
         data = {
-            "fields": {
-                "title": "An Alert",
-                "description": "threshold reached",
-                "assignee": "user-1",
-            },
+            "fields": [
+                {"name": "title", "value": "An Alert"},
+                {"name": "description", "value": "threshold reached"},
+                {
+                    "name": "assignee_id",
+                    "value": "user-1",
+                },
+            ],
             "installationId": self.install.uuid,
         }
         payload = json.loads(request.body)
@@ -73,7 +80,6 @@ class TestAlertRuleActionRequester(TestCase):
 
     @responses.activate
     def test_makes_failed_request(self):
-        fields = {"title": "An Alert", "description": "threshold reached", "assignee": "user-1"}
 
         responses.add(
             method=responses.POST,
@@ -85,18 +91,21 @@ class TestAlertRuleActionRequester(TestCase):
         result = AlertRuleActionRequester.run(
             install=self.install,
             uri="/sentry/alert-rule",
-            fields=fields,
+            fields=self.fields,
         )
         assert not result["success"]
         assert result["message"] == 'foo: "Channel not found!"'
         request = responses.calls[0].request
 
         data = {
-            "fields": {
-                "title": "An Alert",
-                "description": "threshold reached",
-                "assignee": "user-1",
-            },
+            "fields": [
+                {"name": "title", "value": "An Alert"},
+                {"name": "description", "value": "threshold reached"},
+                {
+                    "name": "assignee_id",
+                    "value": "user-1",
+                },
+            ],
             "installationId": self.install.uuid,
         }
         payload = json.loads(request.body)
@@ -115,7 +124,6 @@ class TestAlertRuleActionRequester(TestCase):
 
     @responses.activate
     def test_makes_failed_request_returning_only_status(self):
-        fields = {"title": "An Alert", "description": "threshold reached", "assignee": "user-1"}
 
         responses.add(
             method=responses.POST,
@@ -126,18 +134,21 @@ class TestAlertRuleActionRequester(TestCase):
         result = AlertRuleActionRequester.run(
             install=self.install,
             uri="/sentry/alert-rule",
-            fields=fields,
+            fields=self.fields,
         )
         assert not result["success"]
         assert result["message"] == "foo: Something went wrong!"
         request = responses.calls[0].request
 
         data = {
-            "fields": {
-                "title": "An Alert",
-                "description": "threshold reached",
-                "assignee": "user-1",
-            },
+            "fields": [
+                {"name": "title", "value": "An Alert"},
+                {"name": "description", "value": "threshold reached"},
+                {
+                    "name": "assignee_id",
+                    "value": "user-1",
+                },
+            ],
             "installationId": self.install.uuid,
         }
         payload = json.loads(request.body)

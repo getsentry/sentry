@@ -114,7 +114,12 @@ class WidgetCard extends React.Component<Props> {
       onEdit,
       onDuplicate,
       onDelete,
+      isEditing,
     } = this.props;
+
+    if (isEditing) {
+      return null;
+    }
 
     return (
       <WidgetCardContextMenu

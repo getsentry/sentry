@@ -666,6 +666,10 @@ const GridLayout = styled(WidthProvider(Responsive))`
   .react-grid-item > .react-resizable-handle::after {
     border: none;
   }
+
+  .react-grid-item.react-grid-placeholder {
+    background: ${p => p.theme.purple200};
+  }
 `;
 
 const ResizeHandle = styled('div')`
@@ -673,4 +677,5 @@ const ResizeHandle = styled('div')`
   position: absolute;
   bottom: 2px;
   right: 4px;
+  cursor: nwse-resize;
 `;

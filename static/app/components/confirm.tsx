@@ -301,7 +301,12 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
                 defaultOnClick: this.handleClose,
               })
             ) : (
-              <Button onClick={this.handleClose}>{cancelText}</Button>
+              <Button
+                onClick={this.handleClose}
+                aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
+              >
+                {cancelText}
+              </Button>
             )}
             {renderConfirmButton ? (
               renderConfirmButton({
@@ -315,6 +320,7 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
                 priority={priority}
                 onClick={this.handleConfirm}
                 autoFocus
+                aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}
               >
                 {confirmText}
               </Button>

@@ -1,23 +1,18 @@
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import TeamInsightsOverview from 'sentry/views/organizationStats/teamInsights/overview';
+import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
 
 jest.mock('sentry/utils/localStorage');
 jest.mock('sentry/utils/isActiveSuperuser', () => ({
   isActiveSuperuser: jest.fn(),
 }));
 
-describe('TeamInsightsOverview', () => {
+describe('TeamStatsIssues', () => {
   const project1 = TestStubs.Project({id: '2', name: 'js', slug: 'js'});
   const project2 = TestStubs.Project({id: '3', name: 'py', slug: 'py'});
   const team1 = TestStubs.Team({
@@ -50,97 +45,12 @@ describe('TeamInsightsOverview', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/key-transactions-list/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/legacy-key-transactions-count/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/sessions/`,
-      body: {
-        start: '2021-10-30T00:00:00Z',
-        end: '2021-12-24T00:00:00Z',
-        query: '',
-        intervals: [],
-        groups: [
-          {
-            by: {project: 1, 'session.status': 'healthy'},
-            totals: {'sum(session)': 0},
-            series: {'sum(session)': []},
-          },
-          {
-            by: {project: 1, 'session.status': 'crashed'},
-            totals: {'sum(session)': 0},
-            series: {'sum(session)': []},
-          },
-          {
-            by: {project: 1, 'session.status': 'errored'},
-            totals: {'sum(session)': 0},
-            series: {'sum(session)': []},
-          },
-          {
-            by: {project: 1, 'session.status': 'abnormal'},
-            totals: {'sum(session)': 0},
-            series: {'sum(session)': []},
-          },
-        ],
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
-      body: {
-        meta: {
-          user: 'string',
-          transaction: 'string',
-          project: 'string',
-          tpm: 'number',
-          count_unique_user: 'number',
-          count_miserable_user: 'number',
-          user_misery: 'number',
-        },
-        data: [
-          {
-            key_transaction: 1,
-            transaction: '/apple/cart',
-            project: project1.slug,
-            tpm: 30,
-            count_unique_user: 1000,
-            count_miserable_user: 122,
-            user_misery: 0.114,
-            project_threshold_config: ['duration', 300],
-          },
-        ],
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/teams/org-slug/${team1.slug}/alerts-triggered/`,
-      body: TestStubs.TeamAlertsTriggered(),
-    });
-    MockApiClient.addMockResponse({
-      url: `/teams/org-slug/${team1.slug}/alerts-triggered-index/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
       body: TestStubs.TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
       body: TestStubs.TeamIssuesBreakdown(),
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/teams/org-slug/${team1.slug}/release-count/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/teams/org-slug/${team2.slug}/alerts-triggered/`,
-      body: TestStubs.TeamAlertsTriggered(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
@@ -153,11 +63,6 @@ describe('TeamInsightsOverview', () => {
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/issue-breakdown/`,
       body: TestStubs.TeamIssuesBreakdown(),
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/teams/org-slug/${team2.slug}/release-count/`,
-      body: [],
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -209,14 +114,13 @@ describe('TeamInsightsOverview', () => {
     const organization = TestStubs.Organization({
       teams,
       projects,
-      features: ['team-insights-v2'],
     });
     const context = TestStubs.routerContext([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
     return mountWithTheme(
       <OrganizationContext.Provider value={organization}>
-        <TeamInsightsOverview router={mockRouter} location={{}} />
+        <TeamStatsIssues router={mockRouter} location={{}} />
       </OrganizationContext.Provider>,
       {
         context,
@@ -224,17 +128,15 @@ describe('TeamInsightsOverview', () => {
     );
   }
 
-  it('defaults to first team', async () => {
+  it('defaults to first team', () => {
     createWrapper();
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
-    expect(screen.getByText('Key transaction')).toBeInTheDocument();
+    expect(screen.getByText('All Unresolved Issues')).toBeInTheDocument();
   });
 
-  it('allows team switching', async () => {
+  it('allows team switching', () => {
     createWrapper();
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     userEvent.type(screen.getByText('#backend'), '{mouseDown}');

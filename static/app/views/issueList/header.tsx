@@ -112,6 +112,7 @@ function IssueListHeader({
             }
             icon={realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
             onClick={() => onRealtimeChange(!realtimeActive)}
+            aria-label={t('Toggle real-time updates')}
           />
         </ButtonBar>
       </Layout.HeaderActions>
