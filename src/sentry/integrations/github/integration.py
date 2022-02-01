@@ -89,25 +89,10 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
 
 class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):  # type: ignore
     repo_search = True
+    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
-
-    def get_codeowner_file(
-        self, repo: Repository, ref: str | None = None
-    ) -> Mapping[str, Any] | None:
-        try:
-            files = self.get_client().search_file(repo.name, "CODEOWNERS")
-            # TODO(mgaeta): Pull this logic out of the try/catch.
-            for f in files["items"]:
-                if f["name"] == "CODEOWNERS":
-                    filepath = f["path"]
-                    html_url = f["html_url"]
-                    contents = self.get_client().get_file(repo.name, filepath)
-                    return {"filepath": filepath, "html_url": html_url, "raw": contents}
-        except ApiError:
-            return None
-        return None
 
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
         if not query:
