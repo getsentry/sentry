@@ -8,14 +8,6 @@ import * as Device from 'sentry/components/deviceName';
 jest.mock('ios-device-list');
 
 describe('DeviceName', () => {
-  it('renders nothing if value is null', async () => {
-    render(<Device.DeviceName value={undefined} />);
-
-    await waitFor(() =>
-      expect(screen.queryByTestId(/loaded-device-name/)).not.toBeInTheDocument()
-    );
-  });
-
   it('renders device name if module is loaded', async () => {
     generationByIdentifier.mockImplementation(() => 'iPhone 6s Plus');
 
@@ -25,7 +17,7 @@ describe('DeviceName', () => {
     expect(generationByIdentifier).toHaveBeenCalledWith('iPhone8,2');
   });
 
-  it('renders device name if name helper returns undefined is loaded', async () => {
+  it('renders device name if name helper returns undefined', async () => {
     generationByIdentifier.mockImplementation(() => undefined);
 
     render(<Device.DeviceName value="iPhone8,2" />);
