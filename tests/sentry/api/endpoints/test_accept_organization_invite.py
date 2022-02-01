@@ -142,6 +142,7 @@ class AcceptInviteTest(TestCase):
         )
         assert resp.status_code == 200
         assert resp.data["needsSso"]
+        assert resp.data["hasAuthProvider"]
         assert resp.data["ssoProvider"] == "Google"
 
     def test_can_accept_while_authenticated(self):
