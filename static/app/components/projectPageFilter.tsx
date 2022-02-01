@@ -70,7 +70,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
   const organization = useOrganization();
   const {selection, pinnedFilters, isReady} = useLegacyStore(PageFiltersStore);
 
-  const handleChangeProjects = (newProjects: number[] | null) => {
+  const handleChangeProjects = (newProjects: number[]) => {
     setCurrentSelectedProjects(newProjects);
   };
 
@@ -81,7 +81,6 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       resetParams: [],
       environments: [],
     });
-    setCurrentSelectedProjects(null);
   };
 
   const specifiedProjects = specificProjectSlugs
