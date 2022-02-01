@@ -269,15 +269,13 @@ class ProjectDetail extends AsyncView<Props, State> {
                 organization={organization}
               />
               <Layout.Main>
-                <Feature features={['semver']} organization={organization}>
-                  <ProjectFiltersWrapper>
-                    <ProjectFilters
-                      query={query}
-                      onSearch={this.handleSearch}
-                      tagValueLoader={this.tagValueLoader}
-                    />
-                  </ProjectFiltersWrapper>
-                </Feature>
+                <ProjectFiltersWrapper>
+                  <ProjectFilters
+                    query={query}
+                    onSearch={this.handleSearch}
+                    tagValueLoader={this.tagValueLoader}
+                  />
+                </ProjectFiltersWrapper>
 
                 <ProjectScoreCards
                   organization={organization}

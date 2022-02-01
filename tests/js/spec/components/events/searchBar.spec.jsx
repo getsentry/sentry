@@ -94,11 +94,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('autocompletes release semver queries', async function () {
-    const initializationObj = initializeOrg({
-      organization: {
-        features: ['semver'],
-      },
-    });
+    const initializationObj = initializeOrg();
     props.organization = initializationObj.organization;
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
