@@ -13,7 +13,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
@@ -21,7 +21,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
+import {
+  getPerformanceLandingUrl,
+  getTransactionSearchQuery,
+  platformToPerformanceType,
+} from '../utils';
 
 import ChangedTransactions from './changedTransactions';
 import {TrendChangeType, TrendFunctionField, TrendView} from './types';
@@ -32,6 +36,7 @@ import {
   getCurrentTrendParameter,
   getSelectedQueryKey,
   modifyTrendsViewDefaultPeriod,
+  performanceTypeToTrendParameterLabel,
   resetCursors,
   TRENDS_FUNCTIONS,
   TRENDS_PARAMETERS,
@@ -42,6 +47,7 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
+  projects: Project[];
 };
 
 type State = {
@@ -51,6 +57,13 @@ type State = {
 
 class TrendsContent extends React.Component<Props, State> {
   state: State = {};
+
+  componentDidMount() {
+    const {trendParameter} = this.props.location.query;
+    if (!trendParameter) {
+      this.setDefaultTrendParameter();
+    }
+  }
 
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
@@ -118,6 +131,21 @@ class TrendsContent extends React.Component<Props, State> {
       </Alert>
     );
   }
+
+  setDefaultTrendParameter = () => {
+    const {projects, eventView, location} = this.props;
+
+    const performanceType = platformToPerformanceType(projects, eventView.project);
+    const trendParameterLabel = performanceTypeToTrendParameterLabel(performanceType);
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        trendParameter: trendParameterLabel,
+      },
+    });
+  };
 
   handleParameterChange = (label: string) => {
     const {organization, location} = this.props;

@@ -18,6 +18,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
+import {PROJECT_PERFORMANCE_TYPE} from '../utils';
+
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
@@ -160,6 +162,20 @@ export function getCurrentTrendParameter(location: Location): TrendParameter {
     ({label}) => label === trendParameterLabel
   );
   return trendParameter || TRENDS_PARAMETERS[0];
+}
+
+export function performanceTypeToTrendParameterLabel(
+  performanceType: PROJECT_PERFORMANCE_TYPE
+): string {
+  switch (performanceType) {
+    case PROJECT_PERFORMANCE_TYPE.FRONTEND:
+    case PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER:
+      return 'LCP';
+    case PROJECT_PERFORMANCE_TYPE.ANY:
+    case PROJECT_PERFORMANCE_TYPE.BACKEND:
+    default:
+      return 'Duration';
+  }
 }
 
 export function generateTrendFunctionAsString(
