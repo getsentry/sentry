@@ -46,7 +46,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
 
   getDefaultOptions(mapping?: ExternalActorMappingOrSuggestion) {
     const {defaultOptions, type} = this.props;
-    if (typeof defaultOptions === 'boolean' || !defaultOptions) {
+    if (typeof defaultOptions !== 'object') {
       return defaultOptions;
     }
     const options = [...(defaultOptions ?? [])];

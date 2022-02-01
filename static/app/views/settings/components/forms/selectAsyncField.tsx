@@ -52,8 +52,8 @@ class SelectAsyncField extends React.Component<
   findValue(propsValue: string): GeneralSelectValue {
     const {defaultOptions} = this.props;
     const {results, latestSelection} = this.state;
-    const options =
-      typeof defaultOptions !== 'boolean' && defaultOptions ? defaultOptions : [];
+    // We don't use defaultOptions if it is undefined or a boolean
+    const options = typeof defaultOptions === 'object' ? defaultOptions : [];
     /**
      * The propsValue is the `id` of the object (user, team, etc), and
      * react-select expects a full value object: {value: "id", label: "name"}
