@@ -315,16 +315,13 @@ class DashboardDetail extends Component<Props, State> {
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
-    const {modifiedDashboard, dashboardState} = this.state;
+    const {modifiedDashboard} = this.state;
     const layoutColumnDepths = calculateColumnDepths(
       getDashboardLayout(dashboard.widgets)
     );
     const newModifiedDashboard = {
       ...cloneDashboard(modifiedDashboard || dashboard),
-      widgets:
-        dashboardState === DashboardState.VIEW
-          ? assignDefaultLayout(widgets, layoutColumnDepths)
-          : widgets,
+      widgets: assignDefaultLayout(widgets, layoutColumnDepths),
     };
     this.setState({
       modifiedDashboard: newModifiedDashboard,
